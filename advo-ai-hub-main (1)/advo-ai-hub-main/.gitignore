@@ -1,0 +1,61 @@
+﻿# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+node_modules
+dist
+dist-ssr
+*.local
+
+# Editor directories and files
+.vscode/*
+!.vscode/extensions.json
+.idea
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+.env.secrets
+
+# Environment variables - NEVER commit!
+.env
+.env.local
+.env.production
+.env.*.BACKUP
+.env.BACKUP_SEGURO
+*.pem
+
+# Temporary files
+tmpclaude-*
+src/**/tmpclaude-*
+
+# Local CLI settings
+.claude/settings*.json
+
+# Test coverage
+coverage/
+*.lcov
+
+# Build artifacts
+.vite/
+*.tsbuildinfo
+
+# OS files
+Thumbs.db
+
+# Backup files
+*.backup
+*.bak
+*-backup.*
+*-old.*
+
+# Supabase local
+.supabase/
+

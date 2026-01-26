@@ -1,0 +1,173 @@
+@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&family=Inter:wght@300;400;500;600;700;800;900&family=Space+Grotesk:wght@400;500;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* 🏛️ LIGHT THEME - ELITE LEGAL (Authority & Purity) */
+    --background: 0 0% 100%;
+    --foreground: 222 47% 4%;
+
+    --card: 0 0% 98%;
+    --card-foreground: 222 47% 4%;
+    --card-border: 222 47% 90%;
+
+    --primary: 43 96% 45%;
+    /* Darker Gold for Light Theme */
+    --primary-foreground: 0 0% 100%;
+
+    --accent: 43 96% 45%;
+    --accent-foreground: 0 0% 100%;
+
+    --muted: 220 14% 96%;
+    --muted-foreground: 220 9% 46%;
+
+    --border: 220 13% 91%;
+    --ring: 43 96% 45%;
+
+    --radius: 0px;
+    /* 📐 SHARP GEOMETRY MANDATE */
+
+    /* Sidebar Variables - Light */
+    --sidebar-background: 0 0% 98%;
+    --sidebar-foreground: 222 47% 4%;
+    --sidebar-primary: 43 96% 45%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 220 14% 94%;
+    --sidebar-accent-foreground: 222 47% 4%;
+    --sidebar-border: 220 13% 91%;
+    --sidebar-ring: 43 96% 45%;
+  }
+
+  .dark {
+    /* 🕋 DARK THEME - MONOLITH (Power & Mystery) */
+    --background: 222 47% 2%;
+    --foreground: 210 20% 98%;
+
+    --card: 222 47% 4%;
+    --card-foreground: 210 20% 98%;
+    --card-border: 222 47% 8%;
+
+    --primary: 43 96% 56%;
+    /* Bright Gold */
+    --primary-foreground: 222 47% 4%;
+
+    --accent: 43 96% 56%;
+    --accent-foreground: 222 47% 4%;
+
+    --muted: 222 47% 8%;
+    --muted-foreground: 215 20% 65%;
+
+    --border: 222 47% 10%;
+    --ring: 43 96% 56%;
+
+    /* Sidebar Variables - Dark */
+    --sidebar-background: 222 47% 4%;
+    --sidebar-foreground: 210 20% 98%;
+    --sidebar-primary: 43 96% 56%;
+    --sidebar-primary-foreground: 222 47% 4%;
+    --sidebar-accent: 222 47% 10%;
+    --sidebar-accent-foreground: 210 20% 98%;
+    --sidebar-border: 222 47% 15%;
+    --sidebar-ring: 43 96% 56%;
+  }
+
+  body {
+    @apply bg-background text-foreground transition-colors duration-500;
+    font-family: 'Inter', sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4 {
+    font-family: 'Cormorant Garamond', serif;
+    @apply tracking-tight font-bold;
+  }
+
+  /* Sharpness Enforcement - BRUTAL MANDATE */
+  *,
+  *:before,
+  *:after {
+    border-radius: 0 !important;
+  }
+
+  /* Specific overrides for common UI libraries */
+  div[class*="rounded-"],
+  button[class*="rounded-"],
+  span[class*="rounded-"],
+  input[class*="rounded-"],
+  select[class*="rounded-"] {
+    border-radius: 0 !important;
+  }
+}
+
+@layer components {
+
+  /* 💎 JURIFY MONOLITH UTILITIES */
+  .glass-premium {
+    background-color: hsla(var(--background), 0.8);
+    backdrop-filter: blur(12px);
+    border: 1px solid hsl(var(--border));
+    transition: all 300ms cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
+  }
+
+  .premium-gradient-text {
+    @apply bg-clip-text text-transparent bg-gradient-to-br from-foreground via-foreground to-primary;
+  }
+
+  .btn-sharp {
+    @apply relative overflow-hidden transition-all duration-300 active:scale-95 px-6 py-3 font-bold tracking-widest uppercase text-[10px];
+  }
+
+  .card-monolith {
+    background-color: hsl(var(--card));
+    border: 1px solid hsl(var(--card-border));
+    padding: 1.5rem;
+    transition: all 500ms cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .card-monolith:hover {
+    border-color: hsla(var(--primary), 0.5);
+  }
+}
+
+@layer utilities {
+  .scrollbar-premium::-webkit-scrollbar {
+    width: 2px;
+  }
+
+  .scrollbar-premium::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .scrollbar-premium::-webkit-scrollbar-thumb {
+    background-color: hsla(var(--primary), 0.2);
+    transition: background-color 300ms;
+  }
+
+  .scrollbar-premium::-webkit-scrollbar-thumb:hover {
+    background-color: hsla(var(--primary), 0.5);
+  }
+
+  /* Animations */
+  .reveal-up {
+    animation: revealUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  }
+
+  @keyframes revealUp {
+    from {
+      opacity: 0;
+      transform: translateY(20px);
+    }
+
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+}

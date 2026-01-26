@@ -1,0 +1,85 @@
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { PDFDocument, StandardFonts, rgb } from "https://esm.sh/pdf-lib@1.17.1";
+import { getCorsHeaders } from "../_shared/cors.ts";
+
+console.log("🚀 Generate Document Function Started");
+
+serve(async (req) => {
+    const corsHeaders = getCorsHeaders(req.headers.get("origin") || undefined);
+
+    if (req.method === "OPTIONS") {
+        return new Response("ok", { headers: corsHeaders });
+    }
+
+    try {
+        const authHeader = req.headers.get("Authorization");
+        if (!authHeader) throw new Error("Missing Authorization header");
+
+        const supabase = createClient(
+            Deno.env.get("SUPABASE_URL") ?? "",
+            Deno.env.get("SUPABASE_ANON_KEY") ?? "",
+            { global: { headers: { Authorization: authHeader } } }
+        );
+
+        const { data: { user }, error: userError } = await supabase.auth.getUser();
+        if (userError || !user) throw new Error("Unauthorized");
+
+        const { title, content, leadId } = await req.json();
+
+        // Create PDF
+        const pdfDoc = await PDFDocument.create();
+        const page = pdfDoc.addPage();
+        const { width, height } = page.getSize();
+        const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
+
+        page.drawText(title || "Contrato de Prestação de Serviços", {
+            x: 50,
+            y: height - 50,
+            size: 20,
+            font: font,
+            color: rgb(0, 0, 0),
+        });
+
+        page.drawText(content || "Conteúdo do contrato...", {
+            x: 50,
+            y: height - 100,
+            size: 12,
+            font: font,
+            maxWidth: width - 100,
+            lineHeight: 18,
+        });
+
+        const pdfBytes = await pdfDoc.save();
+
+        // Upload to Storage
+        const fileName = `contrato_${leadId}_${Date.now()}.pdf`;
+        const { data: uploadData, error: uploadError } = await supabase
+            .storage
+            .from("documents")
+            .upload(fileName, pdfBytes, {
+                contentType: "application/pdf",
+                upsert: false
+            });
+
+        if (uploadError) throw uploadError;
+
+        // Get Public URL
+        const { data: { publicUrl } } = supabase
+            .storage
+            .from("documents")
+            .getPublicUrl(fileName);
+
+        return new Response(
+            JSON.stringify({ url: publicUrl, path: fileName }),
+            { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+
+    } catch (error) {
+        console.error("❌ Error generating document:", error);
+        return new Response(
+            JSON.stringify({ error: error.message }),
+            { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+    }
+});

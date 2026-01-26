@@ -1,0 +1,29 @@
+﻿{
+  "permissions": {
+    "allow": [
+      "Bash(npm run dev:*)",
+      "Bash(find:*)",
+      "Bash(ls:*)",
+      "Bash(node:*)",
+      "Bash(git push:*)",
+      "Bash(supabase --version:*)",
+      "Bash(curl:*)",
+      "Bash(dir:*)",
+      "Bash(findstr:*)",
+      "Bash(cat:*)",
+      "Bash(tree:*)",
+      "Bash(npx supabase:*)",
+      "Bash(set SUPABASE_ACCESS_TOKEN=**redacted**)",
+      "Bash(cmd /c deploy-edge-function-agora.bat)",
+      "Bash(export SUPABASE_ACCESS_TOKEN=**redacted**)",
+      "Bash(python3:*)",
+      "Bash(git commit:*)",
+      "Bash(taskkill //F //PID 21144)",
+      "Bash(npm run type-check:*)",
+      "Bash(npm install:*)",
+      "Bash(git add:*)",
+      "Bash(grep:*)"
+    ]
+  }
+}
+

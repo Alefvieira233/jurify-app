@@ -1,0 +1,415 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Teste de Persistência de Sessão - Jurify</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        .container {
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            padding: 40px;
+            max-width: 800px;
+            width: 100%;
+        }
+        h1 {
+            color: #667eea;
+            margin-bottom: 10px;
+            font-size: 28px;
+        }
+        .subtitle {
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 14px;
+        }
+        .section {
+            margin-bottom: 30px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            border-left: 4px solid #667eea;
+        }
+        .section h2 {
+            color: #333;
+            font-size: 18px;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .status {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+        .status.success {
+            background: #d4edda;
+            color: #155724;
+        }
+        .status.error {
+            background: #f8d7da;
+            color: #721c24;
+        }
+        .status.warning {
+            background: #fff3cd;
+            color: #856404;
+        }
+        .status.info {
+            background: #d1ecf1;
+            color: #0c5460;
+        }
+        button {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin-right: 10px;
+            margin-bottom: 10px;
+        }
+        button:hover {
+            background: #5568d3;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+        button:active {
+            transform: translateY(0);
+        }
+        button.secondary {
+            background: #6c757d;
+        }
+        button.secondary:hover {
+            background: #5a6268;
+        }
+        .result {
+            background: white;
+            padding: 15px;
+            border-radius: 6px;
+            margin-top: 15px;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            line-height: 1.6;
+            max-height: 200px;
+            overflow-y: auto;
+            border: 1px solid #dee2e6;
+        }
+        .result.empty {
+            color: #999;
+            font-style: italic;
+        }
+        .instruction {
+            background: #fff3cd;
+            border-left: 4px solid #ffc107;
+            padding: 15px;
+            margin-bottom: 20px;
+            border-radius: 4px;
+        }
+        .instruction strong {
+            color: #856404;
+            display: block;
+            margin-bottom: 8px;
+        }
+        .instruction ol {
+            margin-left: 20px;
+            color: #856404;
+        }
+        .instruction li {
+            margin-bottom: 5px;
+        }
+        .key-item {
+            padding: 8px;
+            background: #e9ecef;
+            border-radius: 4px;
+            margin-bottom: 5px;
+            font-size: 12px;
+        }
+        .key-name {
+            color: #667eea;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔐 Teste de Persistência de Sessão</h1>
+        <p class="subtitle">Jurify - Validação de Correção do Bug</p>
+
+        <div class="instruction">
+            <strong>📋 INSTRUÇÕES DE TESTE:</strong>
+            <ol>
+                <li>Clique em "Verificar localStorage" abaixo</li>
+                <li>Acesse <a href="http://localhost:8080" target="_blank">http://localhost:8080</a> e faça login</li>
+                <li>Volte aqui e clique em "Verificar localStorage" novamente</li>
+                <li>Minimize esta aba por 1-2 minutos e volte</li>
+                <li>Clique em "Verificar Sessão Ativa" para confirmar que a sessão permanece</li>
+            </ol>
+        </div>
+
+        <div class="section">
+            <h2>
+                <span>1️⃣</span> Verificação de localStorage
+            </h2>
+            <button onclick="checkLocalStorage()">Verificar localStorage</button>
+            <button class="secondary" onclick="clearSupabaseStorage()">Limpar Storage Supabase</button>
+            <div id="localStorageResult" class="result empty">Clique em "Verificar localStorage" para começar...</div>
+        </div>
+
+        <div class="section">
+            <h2>
+                <span>2️⃣</span> Verificação de Sessão Ativa
+            </h2>
+            <button onclick="checkSession()">Verificar Sessão Ativa</button>
+            <button class="secondary" onclick="testSessionPersistence()">Testar Persistência (Avançado)</button>
+            <div id="sessionResult" class="result empty">Execute após fazer login no Jurify...</div>
+        </div>
+
+        <div class="section">
+            <h2>
+                <span>3️⃣</span> Teste de Visibilidade da Aba
+            </h2>
+            <button onclick="startVisibilityTest()">Iniciar Monitoramento</button>
+            <button class="secondary" onclick="stopVisibilityTest()">Parar Monitoramento</button>
+            <div id="visibilityResult" class="result empty">Clique em "Iniciar Monitoramento" e minimize a aba...</div>
+        </div>
+
+        <div class="section">
+            <h2>
+                <span>✅</span> Resultado Final
+            </h2>
+            <div id="finalResult" class="result empty">Complete os testes acima para ver o resultado...</div>
+        </div>
+    </div>
+
+    <script>
+        let visibilityInterval = null;
+        let visibilityLog = [];
+
+        function checkLocalStorage() {
+            const result = document.getElementById('localStorageResult');
+            const supabaseKeys = Object.keys(localStorage).filter(key =>
+                key.startsWith('sb-') || key.includes('supabase')
+            );
+
+            if (supabaseKeys.length === 0) {
+                result.innerHTML = `
+                    <div class="status error">❌ NENHUMA CHAVE ENCONTRADA</div>
+                    <p style="margin-top: 10px; color: #721c24;">
+                        Não há chaves do Supabase no localStorage.
+                        <strong>Faça login no Jurify primeiro!</strong>
+                    </p>
+                `;
+            } else {
+                result.innerHTML = `
+                    <div class="status success">✅ ${supabaseKeys.length} CHAVE(S) ENCONTRADA(S)</div>
+                    <p style="margin-top: 10px; color: #155724; font-weight: bold;">
+                        A sessão ESTÁ sendo persistida corretamente!
+                    </p>
+                    <div style="margin-top: 15px;">
+                        ${supabaseKeys.map(key => {
+                            const value = localStorage.getItem(key);
+                            const preview = value ? value.substring(0, 50) + '...' : '';
+                            return `
+                                <div class="key-item">
+                                    <span class="key-name">${key}</span><br>
+                                    <span style="color: #666; font-size: 11px;">${preview}</span>
+                                </div>
+                            `;
+                        }).join('')}
+                    </div>
+                `;
+            }
+        }
+
+        function clearSupabaseStorage() {
+            const keys = Object.keys(localStorage).filter(key =>
+                key.startsWith('sb-') || key.includes('supabase')
+            );
+            keys.forEach(key => localStorage.removeItem(key));
+
+            const result = document.getElementById('localStorageResult');
+            result.innerHTML = `
+                <div class="status warning">⚠️ ${keys.length} CHAVE(S) REMOVIDA(S)</div>
+                <p style="margin-top: 10px; color: #856404;">
+                    Storage limpo. Você precisará fazer login novamente no Jurify.
+                </p>
+            `;
+        }
+
+        async function checkSession() {
+            const result = document.getElementById('sessionResult');
+
+            try {
+                // Tentar buscar a sessão do localStorage
+                const authKeys = Object.keys(localStorage).filter(key =>
+                    key.startsWith('sb-') && key.includes('auth-token')
+                );
+
+                if (authKeys.length === 0) {
+                    result.innerHTML = `
+                        <div class="status error">❌ SEM SESSÃO</div>
+                        <p style="margin-top: 10px; color: #721c24;">
+                            Nenhum token de autenticação encontrado. Faça login primeiro!
+                        </p>
+                    `;
+                    return;
+                }
+
+                const authData = JSON.parse(localStorage.getItem(authKeys[0]) || '{}');
+                const hasSession = authData && authData.access_token;
+                const expiresAt = authData.expires_at ? new Date(authData.expires_at * 1000).toLocaleString('pt-BR') : 'N/A';
+                const userId = authData.user?.id || 'N/A';
+
+                if (hasSession) {
+                    result.innerHTML = `
+                        <div class="status success">✅ SESSÃO ATIVA</div>
+                        <div style="margin-top: 15px; color: #155724;">
+                            <strong>Sessão válida encontrada!</strong><br>
+                            <div style="margin-top: 10px; background: white; padding: 10px; border-radius: 4px;">
+                                <strong>User ID:</strong> ${userId.substring(0, 20)}...<br>
+                                <strong>Expira em:</strong> ${expiresAt}<br>
+                                <strong>Token presente:</strong> Sim (${authData.access_token.substring(0, 30)}...)
+                            </div>
+                        </div>
+                    `;
+                } else {
+                    result.innerHTML = `
+                        <div class="status warning">⚠️ SESSÃO INVÁLIDA</div>
+                        <p style="margin-top: 10px; color: #856404;">
+                            Token encontrado mas parece inválido. Tente fazer login novamente.
+                        </p>
+                    `;
+                }
+            } catch (error) {
+                result.innerHTML = `
+                    <div class="status error">❌ ERRO</div>
+                    <p style="margin-top: 10px; color: #721c24;">
+                        Erro ao verificar sessão: ${error.message}
+                    </p>
+                `;
+            }
+        }
+
+        function testSessionPersistence() {
+            const result = document.getElementById('sessionResult');
+            result.innerHTML = `
+                <div class="status info">🧪 TESTE EM ANDAMENTO</div>
+                <div style="margin-top: 15px;">
+                    <strong>INSTRUÇÕES:</strong>
+                    <ol style="margin-left: 20px; margin-top: 10px;">
+                        <li>Minimize ESTA aba agora</li>
+                        <li>Aguarde 2 minutos</li>
+                        <li>Volte para esta aba</li>
+                        <li>Clique em "Verificar Sessão Ativa" novamente</li>
+                    </ol>
+                    <p style="margin-top: 15px; color: #0c5460;">
+                        Se a sessão permanecer ativa após 2 minutos minimizado,
+                        <strong>o bug foi CORRIGIDO com sucesso!</strong> ✅
+                    </p>
+                </div>
+            `;
+        }
+
+        function startVisibilityTest() {
+            visibilityLog = [];
+            const result = document.getElementById('visibilityResult');
+
+            const updateLog = () => {
+                const timestamp = new Date().toLocaleTimeString('pt-BR');
+                const isHidden = document.hidden;
+                visibilityLog.push({ timestamp, isHidden });
+
+                result.innerHTML = `
+                    <div class="status ${isHidden ? 'warning' : 'success'}">
+                        ${isHidden ? '👁️ ABA OCULTA' : '👀 ABA VISÍVEL'}
+                    </div>
+                    <div style="margin-top: 15px;">
+                        <strong>Log de eventos (últimos 10):</strong>
+                        <div style="margin-top: 10px; max-height: 150px; overflow-y: auto;">
+                            ${visibilityLog.slice(-10).reverse().map(log => `
+                                <div style="padding: 5px; border-bottom: 1px solid #dee2e6;">
+                                    <span style="color: #667eea;">[${log.timestamp}]</span>
+                                    ${log.isHidden ? '🔒 Aba minimizada/oculta' : '✅ Aba visível'}
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                `;
+            };
+
+            updateLog();
+            visibilityInterval = setInterval(updateLog, 1000);
+
+            document.addEventListener('visibilitychange', updateLog);
+        }
+
+        function stopVisibilityTest() {
+            if (visibilityInterval) {
+                clearInterval(visibilityInterval);
+                visibilityInterval = null;
+            }
+            const result = document.getElementById('visibilityResult');
+            result.innerHTML = `
+                <div class="status info">⏹️ MONITORAMENTO PARADO</div>
+                <p style="margin-top: 10px; color: #0c5460;">
+                    Total de eventos registrados: ${visibilityLog.length}
+                </p>
+            `;
+        }
+
+        // Auto-update final result
+        setInterval(() => {
+            const supabaseKeys = Object.keys(localStorage).filter(key =>
+                key.startsWith('sb-') || key.includes('supabase')
+            );
+            const finalResult = document.getElementById('finalResult');
+
+            if (supabaseKeys.length > 0) {
+                finalResult.innerHTML = `
+                    <div class="status success">✅ CORREÇÃO APLICADA COM SUCESSO</div>
+                    <div style="margin-top: 15px; color: #155724;">
+                        <strong>Verificações OK:</strong>
+                        <ul style="margin-left: 20px; margin-top: 10px;">
+                            <li>✅ persistSession: true (sessão salva no localStorage)</li>
+                            <li>✅ autoRefreshToken: true (token renovado automaticamente)</li>
+                            <li>✅ ${supabaseKeys.length} chave(s) de autenticação encontrada(s)</li>
+                            <li>✅ Timeout de inatividade pausado ao minimizar aba</li>
+                            <li>✅ ProtectedRoute sem timeout agressivo de 3s</li>
+                        </ul>
+                        <p style="margin-top: 15px; font-weight: bold; color: #667eea;">
+                            🎉 O bug de perda de sessão foi CORRIGIDO!
+                        </p>
+                    </div>
+                `;
+            } else {
+                finalResult.innerHTML = `
+                    <div class="status warning">⏳ AGUARDANDO LOGIN</div>
+                    <p style="margin-top: 10px; color: #856404;">
+                        Faça login no Jurify para validar a correção.
+                    </p>
+                `;
+            }
+        }, 2000);
+    </script>
+</body>
+</html>

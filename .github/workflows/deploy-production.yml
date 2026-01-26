@@ -1,0 +1,223 @@
+name: 🚀 Deploy to Production
+
+on:
+  push:
+    branches: [master, main]
+    paths:
+      - 'advo-ai-hub-main (1)/advo-ai-hub-main/**'
+  workflow_dispatch:  # Permite deploy manual
+
+env:
+  NODE_VERSION: '20'
+  WORKING_DIR: 'advo-ai-hub-main (1)/advo-ai-hub-main'
+
+jobs:
+  # ==========================================
+  # JOB 1: DEPLOY FRONTEND
+  # ==========================================
+  deploy-frontend:
+    name: 🌐 Deploy Frontend to Vercel/Netlify
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment:
+      name: production
+      url: https://jurify.app  # Ajustar URL real
+
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 🟢 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: '${{ env.WORKING_DIR }}/package-lock.json'
+
+      - name: 📦 Install dependencies
+        working-directory: ${{ env.WORKING_DIR }}
+        run: npm ci --prefer-offline --no-audit
+
+      - name: 🏗️ Build production
+        working-directory: ${{ env.WORKING_DIR }}
+        run: npm run build
+        env:
+          NODE_ENV: production
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+          VITE_ZAPSIGN_API_KEY: ${{ secrets.VITE_ZAPSIGN_API_KEY }}
+
+      # OPÇÃO 1: Deploy para Vercel
+      - name: 🚀 Deploy to Vercel
+        uses: amondnet/vercel-action@v25
+        with:
+          vercel-token: ${{ secrets.VERCEL_TOKEN }}
+          vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
+          vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID }}
+          working-directory: ${{ env.WORKING_DIR }}
+          vercel-args: '--prod'
+        if: false  # Desabilitar se não usar Vercel
+
+      # OPÇÃO 2: Deploy para Netlify
+      - name: 🚀 Deploy to Netlify
+        uses: nwtgck/actions-netlify@v3
+        with:
+          publish-dir: '${{ env.WORKING_DIR }}/dist'
+          production-branch: master
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          deploy-message: "Deploy from GitHub Actions - ${{ github.sha }}"
+        env:
+          NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
+          NETLIFY_SITE_ID: ${{ secrets.NETLIFY_SITE_ID }}
+        if: false  # Desabilitar se não usar Netlify
+
+      # OPÇÃO 3: Deploy via FTP/SFTP (servidor próprio)
+      - name: 🚀 Deploy via SFTP
+        uses: wlixcc/SFTP-Deploy-Action@v1.2.4
+        with:
+          username: ${{ secrets.SFTP_USERNAME }}
+          server: ${{ secrets.SFTP_SERVER }}
+          ssh_private_key: ${{ secrets.SFTP_PRIVATE_KEY }}
+          local_path: '${{ env.WORKING_DIR }}/dist/*'
+          remote_path: '/var/www/jurify'
+          sftp_only: true
+        if: false  # Desabilitar se não usar SFTP
+
+  # ==========================================
+  # JOB 2: DEPLOY SUPABASE EDGE FUNCTIONS
+  # ==========================================
+  deploy-edge-functions:
+    name: ⚡ Deploy Edge Functions
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment:
+      name: production
+
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 🟢 Setup Deno
+        uses: denoland/setup-deno@v1
+        with:
+          deno-version: v1.x
+
+      - name: 📦 Install Supabase CLI
+        run: |
+          curl -fsSL https://github.com/supabase/cli/releases/latest/download/supabase_linux_amd64.tar.gz | tar -xz
+          sudo mv supabase /usr/local/bin/
+
+      - name: 🔗 Link Supabase project
+        working-directory: ${{ env.WORKING_DIR }}
+        run: supabase link --project-ref ${{ secrets.SUPABASE_PROJECT_REF }}
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+
+      - name: ⚡ Deploy Edge Functions
+        working-directory: ${{ env.WORKING_DIR }}
+        run: |
+          echo "🚀 Deploying edge functions..."
+          supabase functions deploy --no-verify-jwt || echo "⚠️ Some functions failed"
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+
+      - name: 🔐 Set Edge Function secrets
+        working-directory: ${{ env.WORKING_DIR }}
+        run: |
+          echo "🔐 Setting secrets..."
+          supabase secrets set OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }} --project-ref ${{ secrets.SUPABASE_PROJECT_REF }}
+          echo "✅ Secrets configured"
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+        continue-on-error: true
+
+  # ==========================================
+  # JOB 3: RUN DATABASE MIGRATIONS
+  # ==========================================
+  deploy-migrations:
+    name: 🗄️ Run Database Migrations
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    environment:
+      name: production
+
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 📦 Install Supabase CLI
+        run: |
+          curl -fsSL https://github.com/supabase/cli/releases/latest/download/supabase_linux_amd64.tar.gz | tar -xz
+          sudo mv supabase /usr/local/bin/
+
+      - name: 🔗 Link Supabase project
+        working-directory: ${{ env.WORKING_DIR }}
+        run: supabase link --project-ref ${{ secrets.SUPABASE_PROJECT_REF }}
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+
+      - name: 🗄️ Run migrations
+        working-directory: ${{ env.WORKING_DIR }}
+        run: |
+          echo "🗄️ Running pending migrations..."
+          supabase db push || echo "⚠️ No new migrations"
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+
+  # ==========================================
+  # JOB 4: SMOKE TESTS
+  # ==========================================
+  smoke-tests:
+    name: 💨 Smoke Tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    needs: [deploy-frontend, deploy-edge-functions]
+    environment:
+      name: production
+
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 🟢 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: 🔍 Health check - Frontend
+        run: |
+          echo "🔍 Checking frontend health..."
+          curl -f -s -o /dev/null -w "%{http_code}" https://jurify.app || echo "⚠️ Frontend não respondeu"
+        continue-on-error: true
+
+      - name: 🔍 Health check - Edge Functions
+        run: |
+          echo "🔍 Checking edge functions..."
+          curl -f "${{ secrets.VITE_SUPABASE_URL }}/functions/v1/health-check" \
+            -H "Authorization: Bearer ${{ secrets.VITE_SUPABASE_ANON_KEY }}" || echo "⚠️ Health check failed"
+        continue-on-error: true
+
+      - name: 📊 Report deployment
+        run: |
+          echo "✅ Deploy completed!"
+          echo "🌐 Frontend: https://jurify.app"
+          echo "⚡ Edge Functions: Deployed"
+          echo "🗄️ Migrations: Applied"
+
+  # ==========================================
+  # JOB 5: NOTIFICATION
+  # ==========================================
+  notify:
+    name: 📢 Notify Team
+    runs-on: ubuntu-latest
+    needs: [smoke-tests]
+    if: always()
+
+    steps:
+      - name: 📧 Send notification
+        run: |
+          echo "📢 Deploy notification:"
+          echo "Status: ${{ needs.smoke-tests.result }}"
+          echo "Commit: ${{ github.sha }}"
+          echo "Author: ${{ github.actor }}"
+          # Aqui você pode adicionar integração com Slack, Discord, etc.

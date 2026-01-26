@@ -1,0 +1,58 @@
+name: 🔒 Pre-commit Security Check
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+jobs:
+  security-check:
+    name: 🔐 Detect Secrets & Security Issues
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: 🔍 Scan for secrets
+        uses: trufflesecurity/trufflehog@main
+        with:
+          path: ./
+          base: ${{ github.event.pull_request.base.sha }}
+          head: ${{ github.event.pull_request.head.sha }}
+          extra_args: --only-verified --fail
+
+      - name: 🔍 Check for hardcoded credentials
+        run: |
+          echo "🔍 Scanning for potential secrets..."
+
+          # Padrões perigosos
+          if grep -rE "(sk-[a-zA-Z0-9]{48}|eyJ[a-zA-Z0-9_-]{30,})" . --exclude-dir=node_modules --exclude-dir=.git --exclude-dir=dist; then
+            echo "❌ API keys encontradas no código!"
+            exit 1
+          fi
+
+          # Check .env files
+          if git diff --name-only ${{ github.event.pull_request.base.sha }}..${{ github.event.pull_request.head.sha }} | grep -E '\.env$'; then
+            echo "❌ Arquivo .env sendo commitado!"
+            exit 1
+          fi
+
+          echo "✅ No secrets detected"
+
+      - name: 📋 Verify .env.example exists
+        run: |
+          if [ ! -f "advo-ai-hub-main (1)/advo-ai-hub-main/.env.example" ]; then
+            echo "⚠️ .env.example não encontrado"
+          else
+            echo "✅ .env.example existe"
+          fi
+
+      - name: 📝 Check commit messages
+        run: |
+          echo "📝 Verificando mensagens de commit..."
+          git log --format=%B -n 1 ${{ github.event.pull_request.head.sha }} | \
+            grep -iE "(fix|feat|chore|docs|refactor|test|perf)" || \
+            echo "⚠️ Considere usar conventional commits (fix:, feat:, etc.)"
