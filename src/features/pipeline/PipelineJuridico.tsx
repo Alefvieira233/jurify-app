@@ -186,6 +186,8 @@ const PipelineJuridico = () => {
               stage={stage}
               leads={groupedLeads[stage.id] || []}
               stageIndex={stageIndex}
+              onUpdateLead={updateLead}
+              onRefresh={fetchLeads}
             />
           ))}
         </main>

@@ -1,7 +1,7 @@
 import { memo } from 'react';
 import { Droppable } from '@hello-pangea/dnd';
 import { PipelineCard } from './PipelineCard';
-import { type Lead } from '@/hooks/useLeads';
+import { type Lead, type LeadInput } from '@/hooks/useLeads';
 
 interface Stage {
     id: string;
@@ -13,9 +13,11 @@ interface PipelineColumnProps {
     stage: Stage;
     leads: Lead[];
     stageIndex: number;
+    onUpdateLead: (id: string, data: Partial<LeadInput>) => Promise<boolean>;
+    onRefresh: () => void;
 }
 
-export const PipelineColumn = memo(({ stage, leads, stageIndex }: PipelineColumnProps) => {
+export const PipelineColumn = memo(({ stage, leads, stageIndex, onUpdateLead, onRefresh }: PipelineColumnProps) => {
     return (
         <div
             className="flex flex-col h-full bg-card border-r border-border transition-all duration-700 hover:bg-muted/30 scrollbar-premium reveal-up"
@@ -46,7 +48,13 @@ export const PipelineColumn = memo(({ stage, leads, stageIndex }: PipelineColumn
                             }`}
                     >
                         {leads.map((lead, index) => (
-                            <PipelineCard key={lead.id} lead={lead} index={index} />
+                            <PipelineCard
+                                key={lead.id}
+                                lead={lead}
+                                index={index}
+                                onUpdateLead={onUpdateLead}
+                                onRefresh={onRefresh}
+                            />
                         ))}
                         {provided.placeholder}
                     </div>
