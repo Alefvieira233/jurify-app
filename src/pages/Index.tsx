@@ -4,7 +4,7 @@ import { useAuth } from "@/contexts/AuthContext";
 
 import Sidebar from "@/components/Sidebar";
 import Dashboard from "@/features/dashboard/Dashboard";
-import LeadsPanel from "@/features/leads/LeadsPanel";
+import EliteCrmLeadsPage from "@/features/leads/EliteCrmLeadsPage";
 import PipelineJuridico from "@/features/pipeline/PipelineJuridico";
 import AgendamentosManager from "@/features/scheduling/AgendamentosManager";
 import ContratosManager from "@/features/contracts/ContratosManager";
@@ -52,7 +52,7 @@ const Index = () => {
       case 'dashboard':
         return <Dashboard />;
       case 'leads':
-        return <LeadsPanel />;
+        return <EliteCrmLeadsPage />;
       case 'pipeline':
         return <PipelineJuridico />;
       case 'agendamentos':
