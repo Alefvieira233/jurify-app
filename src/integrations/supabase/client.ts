@@ -1,38 +1,34 @@
 /**
- * Supabase client defaults.
- * Keeps default config and validates envs early.
+ * Supabase client - Production Ready
  */
 
 import { createClient } from '@supabase/supabase-js';
 
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+// Fallback values for production (anon key is public by design)
+const FALLBACK_URL = 'https://yfxgncbopvnsltjqetxw.supabase.co';
+const FALLBACK_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlmeGduY2JvcHZuc2x0anFldHh3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDk5MzIzMTksImV4cCI6MjA2NTUwODMxOX0.NqVjMB81nBlAE4h7jvsHfDBOpMKXohNsquVIvEFH46A';
 
-// Fail fast if credentials are missing.
-if (!supabaseUrl || !supabaseAnonKey) {
-  console.error('Supabase environment variables are missing.');
-  console.error('Check your .env file:');
-  console.error('  - VITE_SUPABASE_URL');
-  console.error('  - VITE_SUPABASE_ANON_KEY');
-  throw new Error('Supabase URL and Anon Key are required in .env');
-}
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || FALLBACK_URL;
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || FALLBACK_ANON_KEY;
 
-// Note: session persistence enabled for stable auth.
+console.log('[supabase] Initializing client...', {
+  url: supabaseUrl,
+  hasEnvUrl: !!import.meta.env.VITE_SUPABASE_URL,
+  hasEnvKey: !!import.meta.env.VITE_SUPABASE_ANON_KEY,
+  usingFallback: !import.meta.env.VITE_SUPABASE_URL || !import.meta.env.VITE_SUPABASE_ANON_KEY
+});
+
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {
     persistSession: true,
     autoRefreshToken: true,
     detectSessionInUrl: true,
+    storageKey: 'jurify-auth',
+    storage: window.localStorage,
   },
   global: {
     headers: { 'x-application-name': 'jurify' },
   },
 });
 
-// Init log (always - for debugging production)
-console.log('[supabase] client initialized', {
-  url: supabaseUrl,
-  mode: import.meta.env.MODE,
-  hasAnonKey: !!supabaseAnonKey,
-  anonKeyPrefix: supabaseAnonKey?.substring(0, 20) + '...',
-});
+console.log('[supabase] Client ready ✓');
