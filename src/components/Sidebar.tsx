@@ -147,7 +147,7 @@ const Sidebar = ({ activeSection, onSectionChange }: SidebarProps) => {
   };
 
   return (
-    <div className="w-80 bg-sidebar text-sidebar-foreground h-screen flex flex-col shadow-2xl relative overflow-hidden border-r border-sidebar-border">
+    <div className="w-72 lg:w-80 bg-sidebar text-sidebar-foreground h-screen flex flex-col shadow-2xl relative overflow-hidden border-r border-sidebar-border">
       {/* Ultra-Premium Background Effects */}
       <div className="absolute inset-0 bg-gradient-to-br from-[hsl(var(--sidebar-primary)_/_0.08)] via-transparent to-[hsl(var(--accent)_/_0.05)] pointer-events-none" />
 

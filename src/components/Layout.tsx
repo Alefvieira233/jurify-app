@@ -6,22 +6,27 @@ import { useAuth } from "@/contexts/AuthContext";
 import LoadingSpinner from "@/components/LoadingSpinner";
 import OnboardingFlow from "@/components/OnboardingFlow";
 import { useKeyboardShortcuts } from "@/hooks/useKeyboardShortcuts";
+import { Menu, X } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 const Layout = () => {
     const { user, loading } = useAuth();
     const location = useLocation();
     const navigate = useNavigate();
+    const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
     // Map current path to active section for Sidebar highlighting
     const getActiveSection = (path: string) => {
         if (path === '/' || path === '/dashboard') return 'dashboard';
-        return path.substring(1).split('/')[0]; // e.g., 'leads' from '/leads/new'
+        return path.substring(1).split('/')[0];
     };
 
     const [activeSection, setActiveSection] = useState(getActiveSection(location.pathname));
 
     useEffect(() => {
         setActiveSection(getActiveSection(location.pathname));
+        // Close mobile menu on navigation
+        setMobileMenuOpen(false);
     }, [location.pathname]);
 
     const handleSectionChange = (section: string) => {
@@ -30,6 +35,7 @@ const Layout = () => {
         } else {
             navigate(`/${section}`);
         }
+        setMobileMenuOpen(false);
     };
 
     // Keyboard shortcuts for quick navigation
@@ -39,6 +45,25 @@ const Layout = () => {
         { key: 'a', ctrl: true, callback: () => navigate('/agentes'), description: 'Agentes IA' },
         { key: 'p', ctrl: true, callback: () => navigate('/pipeline'), description: 'Pipeline' },
     ]);
+
+    // Close menu on escape key
+    useEffect(() => {
+        const handleEscape = (e: KeyboardEvent) => {
+            if (e.key === 'Escape') setMobileMenuOpen(false);
+        };
+        window.addEventListener('keydown', handleEscape);
+        return () => window.removeEventListener('keydown', handleEscape);
+    }, []);
+
+    // Prevent body scroll when mobile menu is open
+    useEffect(() => {
+        if (mobileMenuOpen) {
+            document.body.style.overflow = 'hidden';
+        } else {
+            document.body.style.overflow = '';
+        }
+        return () => { document.body.style.overflow = ''; };
+    }, [mobileMenuOpen]);
 
     if (loading) {
         return <LoadingSpinner fullScreen text="Carregando aplicação..." />;
@@ -52,13 +77,50 @@ const Layout = () => {
         <div className="min-h-screen bg-background flex relative overflow-hidden transition-colors duration-500">
             <OnboardingFlow />
 
-            <Sidebar
-                activeSection={activeSection}
-                onSectionChange={handleSectionChange}
-            />
+            {/* Mobile Header */}
+            <div className="lg:hidden fixed top-0 left-0 right-0 z-50 bg-background/95 backdrop-blur-md border-b border-border px-4 py-3 flex items-center justify-between">
+                <div className="flex items-center space-x-3">
+                    <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+                        className="h-10 w-10"
+                    >
+                        {mobileMenuOpen ? (
+                            <X className="h-6 w-6" />
+                        ) : (
+                            <Menu className="h-6 w-6" />
+                        )}
+                    </Button>
+                    <span className="text-xl font-bold" style={{ fontFamily: "'Cormorant Garamond', serif" }}>
+                        Jurify
+                    </span>
+                </div>
+            </div>
 
-            <main className="flex-1 overflow-auto relative z-10 scrollbar-premium">
-                <div className="max-w-[1920px] mx-auto reveal-up">
+            {/* Mobile Menu Overlay */}
+            {mobileMenuOpen && (
+                <div
+                    className="lg:hidden fixed inset-0 z-40 bg-black/60 backdrop-blur-sm"
+                    onClick={() => setMobileMenuOpen(false)}
+                />
+            )}
+
+            {/* Sidebar - Desktop: always visible, Mobile: slide-in */}
+            <div className={`
+                fixed lg:relative inset-y-0 left-0 z-50
+                transform transition-transform duration-300 ease-in-out
+                ${mobileMenuOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
+            `}>
+                <Sidebar
+                    activeSection={activeSection}
+                    onSectionChange={handleSectionChange}
+                />
+            </div>
+
+            {/* Main Content */}
+            <main className="flex-1 overflow-auto relative z-10 scrollbar-premium pt-16 lg:pt-0">
+                <div className="max-w-[1920px] mx-auto reveal-up p-4 lg:p-0">
                     <Outlet />
                 </div>
             </main>
