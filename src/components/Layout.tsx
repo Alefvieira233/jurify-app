@@ -74,7 +74,7 @@ const Layout = () => {
     }
 
     return (
-        <div className="min-h-screen bg-background flex relative overflow-hidden transition-colors duration-500">
+        <div className="min-h-screen bg-background flex relative transition-colors duration-500">
             <OnboardingFlow />
 
             {/* Mobile Header */}
@@ -119,7 +119,7 @@ const Layout = () => {
             </div>
 
             {/* Main Content */}
-            <main className="flex-1 overflow-auto relative z-10 scrollbar-premium pt-16 lg:pt-0">
+            <main className="flex-1 relative z-10 pt-16 lg:pt-0">
                 <div className="max-w-[1920px] mx-auto reveal-up p-4 lg:p-0">
                     <Outlet />
                 </div>

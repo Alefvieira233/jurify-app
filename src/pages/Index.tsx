@@ -95,7 +95,7 @@ const Index = () => {
 
   // Main application
   return (
-    <div className="min-h-screen bg-gray-100 flex">
+    <div className="min-h-screen bg-background flex">
       <OnboardingFlow />
 
       <Sidebar
@@ -103,7 +103,7 @@ const Index = () => {
         onSectionChange={handleTabChange}
       />
 
-      <main className="flex-1 p-6 overflow-auto">
+      <main className="flex-1 p-6">
         {renderContent()}
       </main>
     </div>
