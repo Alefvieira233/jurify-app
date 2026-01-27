@@ -4,7 +4,6 @@ import { Card } from '@/components/ui/card';
 import { Lead } from '@/hooks/useLeads';
 import { MoreVertical, Phone, Mail, DollarSign } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { ScrollArea } from '@/components/ui/scroll-area';
 import { motion, AnimatePresence } from 'framer-motion';
 
 interface LeadsKanbanProps {
@@ -50,7 +49,7 @@ const LeadsKanban: React.FC<LeadsKanbanProps> = ({ leads, onDragEnd, onEditLead,
 
                         <Droppable droppableId={column.id}>
                             {(provided, snapshot) => (
-                                <ScrollArea className="flex-1 p-3">
+                                <div className="flex-1 p-3 overflow-y-auto">
                                     <div
                                         {...provided.droppableProps}
                                         ref={provided.innerRef}
@@ -142,7 +141,7 @@ const LeadsKanban: React.FC<LeadsKanbanProps> = ({ leads, onDragEnd, onEditLead,
                                         </AnimatePresence>
                                         {provided.placeholder}
                                     </div>
-                                </ScrollArea>
+                                </div>
                             )}
                         </Droppable>
                     </motion.div>
@@ -153,5 +152,6 @@ const LeadsKanban: React.FC<LeadsKanbanProps> = ({ leads, onDragEnd, onEditLead,
 };
 
 export default LeadsKanban;
+
 
 
