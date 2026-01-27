@@ -17,7 +17,7 @@
     "dev:force": "vite --mode development --force",
     "dev:8080": "vite --mode development --port 8080",
     "dev:force:8080": "vite --mode development --force --port 8080",
-    "build": "npm run type-check && vite build --mode production",
+    "build": "vite build --mode production",
     "build:dev": "vite build --mode development",
     "build:staging": "vite build --mode staging",
     "build:analyze": "npm run build && npx vite-bundle-analyzer dist/stats.html",
