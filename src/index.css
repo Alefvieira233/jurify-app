@@ -6,72 +6,82 @@
 
 @layer base {
   :root {
-    /* 🏛️ LIGHT THEME - ELITE LEGAL (Authority & Purity) */
-    --background: 0 0% 100%;
-    --foreground: 222 47% 4%;
+    /* 🏛️ LIGHT THEME - INSTITUTIONAL ELEGANCE */
+    /* Background com tom creme suave - não branco puro */
+    --background: 40 20% 98%;
+    --foreground: 222 30% 15%;
 
-    --card: 0 0% 98%;
-    --card-foreground: 222 47% 4%;
-    --card-border: 222 47% 90%;
+    /* Cards com contraste visível - branco puro vs background creme */
+    --card: 0 0% 100%;
+    --card-foreground: 222 30% 15%;
+    --card-border: 40 10% 88%;
 
-    --primary: 43 96% 45%;
-    /* Darker Gold for Light Theme */
+    /* Primary - Dourado institucional */
+    --primary: 38 80% 42%;
     --primary-foreground: 0 0% 100%;
 
-    --accent: 43 96% 45%;
+    /* Accent matching primary */
+    --accent: 38 80% 42%;
     --accent-foreground: 0 0% 100%;
 
-    --muted: 220 14% 96%;
-    --muted-foreground: 220 9% 46%;
+    /* Muted com mais presença */
+    --muted: 40 15% 94%;
+    --muted-foreground: 222 15% 40%;
 
-    --border: 220 13% 91%;
-    --ring: 43 96% 45%;
+    /* Borders mais visíveis */
+    --border: 40 10% 85%;
+    --ring: 38 80% 42%;
 
     --radius: 0px;
     /* 📐 SHARP GEOMETRY MANDATE */
 
-    /* Sidebar Variables - Light */
-    --sidebar-background: 0 0% 98%;
-    --sidebar-foreground: 222 47% 4%;
-    --sidebar-primary: 43 96% 45%;
+    /* Sidebar levemente diferenciada */
+    --sidebar-background: 40 15% 96%;
+    --sidebar-foreground: 222 30% 15%;
+    --sidebar-primary: 38 80% 42%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 220 14% 94%;
-    --sidebar-accent-foreground: 222 47% 4%;
-    --sidebar-border: 220 13% 91%;
-    --sidebar-ring: 43 96% 45%;
+    --sidebar-accent: 40 15% 92%;
+    --sidebar-accent-foreground: 222 30% 15%;
+    --sidebar-border: 40 10% 85%;
+    --sidebar-ring: 38 80% 42%;
   }
 
   .dark {
-    /* 🕋 DARK THEME - MONOLITH (Power & Mystery) */
-    --background: 222 47% 2%;
-    --foreground: 210 20% 98%;
+    /* 🕋 DARK THEME - EXECUTIVE NOIR */
+    /* Navy profundo, não preto puro */
+    --background: 222 40% 6%;
+    --foreground: 210 25% 95%;
 
-    --card: 222 47% 4%;
-    --card-foreground: 210 20% 98%;
-    --card-border: 222 47% 8%;
+    /* Cards com elevação visual */
+    --card: 222 35% 10%;
+    --card-foreground: 210 25% 95%;
+    --card-border: 222 30% 18%;
 
-    --primary: 43 96% 56%;
-    /* Bright Gold */
-    --primary-foreground: 222 47% 4%;
+    /* Primary - Dourado luminoso */
+    --primary: 43 90% 55%;
+    --primary-foreground: 222 40% 8%;
 
-    --accent: 43 96% 56%;
-    --accent-foreground: 222 47% 4%;
+    /* Accent matching primary */
+    --accent: 43 90% 55%;
+    --accent-foreground: 222 40% 8%;
 
-    --muted: 222 47% 8%;
-    --muted-foreground: 215 20% 65%;
+    /* Muted com contraste melhor */
+    --muted: 222 30% 14%;
+    --muted-foreground: 215 25% 60%;
 
-    --border: 222 47% 10%;
-    --ring: 43 96% 56%;
+    /* Borders que realmente aparecem */
+    --border: 222 25% 20%;
+    --ring: 43 90% 55%;
 
-    /* Sidebar Variables - Dark */
-    --sidebar-background: 222 47% 4%;
-    --sidebar-foreground: 210 20% 98%;
-    --sidebar-primary: 43 96% 56%;
-    --sidebar-primary-foreground: 222 47% 4%;
-    --sidebar-accent: 222 47% 10%;
-    --sidebar-accent-foreground: 210 20% 98%;
-    --sidebar-border: 222 47% 15%;
-    --sidebar-ring: 43 96% 56%;
+    /* Sidebar com diferenciação */
+    --sidebar-background: 222 40% 8%;
+    --sidebar-foreground: 210 25% 95%;
+    --sidebar-primary: 43 90% 55%;
+    --sidebar-primary-foreground: 222 40% 8%;
+    --sidebar-accent: 222 30% 14%;
+    --sidebar-accent-foreground: 210 25% 95%;
+    --sidebar-border: 222 30% 22%;
+    --sidebar-ring: 43 90% 55%;
   }
 
   body {
@@ -108,12 +118,21 @@
 @layer components {
 
   /* 💎 JURIFY MONOLITH UTILITIES */
+
+  /* Glass Effect Premium - Light */
   .glass-premium {
-    background-color: hsla(var(--background), 0.8);
-    backdrop-filter: blur(12px);
+    background-color: hsla(var(--card), 0.9);
+    backdrop-filter: blur(16px);
     border: 1px solid hsl(var(--border));
     transition: all 300ms cubic-bezier(0.4, 0, 0.2, 1);
-    box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08),
+                0 4px 12px rgba(0, 0, 0, 0.04);
+  }
+
+  /* Glass Effect Premium - Dark */
+  .dark .glass-premium {
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3),
+                0 4px 12px rgba(0, 0, 0, 0.2);
   }
 
   .premium-gradient-text {
@@ -124,15 +143,24 @@
     @apply relative overflow-hidden transition-all duration-300 active:scale-95 px-6 py-3 font-bold tracking-widest uppercase text-[10px];
   }
 
+  /* Card Monolith com elevação visual */
   .card-monolith {
     background-color: hsl(var(--card));
     border: 1px solid hsl(var(--card-border));
     padding: 1.5rem;
     transition: all 500ms cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
   }
 
+  /* Card Monolith Hover - Light */
   .card-monolith:hover {
-    border-color: hsla(var(--primary), 0.5);
+    border-color: hsl(var(--primary));
+    box-shadow: 0 4px 20px hsla(var(--primary), 0.15);
+  }
+
+  /* Card Monolith Hover - Dark (glow mais intenso) */
+  .dark .card-monolith:hover {
+    box-shadow: 0 4px 20px hsla(var(--primary), 0.25);
   }
 }
 
