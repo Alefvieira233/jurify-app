@@ -23,7 +23,7 @@
     "build:analyze": "npm run build && npx vite-bundle-analyzer dist/stats.html",
     "lint": "eslint . --ext .ts,.tsx --max-warnings 0",
     "lint:fix": "eslint . --ext .ts,.tsx --fix",
-    "type-check": "tsc --noEmit --skipLibCheck false",
+    "type-check": "tsc --noEmit --skipLibCheck",
     "format": "prettier --write \"src/**/*.{ts,tsx,js,jsx,json,css,md}\"",
     "format:check": "prettier --check \"src/**/*.{ts,tsx,js,jsx,json,css,md}\"",
     "test": "vitest run",
