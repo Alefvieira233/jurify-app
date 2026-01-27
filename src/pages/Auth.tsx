@@ -31,12 +31,22 @@ const Auth = () => {
 
     try {
       if (isLogin) {
-        const { error } = await signIn(email, password);
+        console.log('[Auth] Tentando login com:', email);
+        const { data, error } = await signIn(email, password);
+        console.log('[Auth] Resposta:', { data, error });
+
         if (error) {
+          console.error('[Auth] Erro detalhado:', error);
           toast({
             title: "Erro no login",
-            description: error.message,
+            description: `${error.message} (${error.status || 'sem status'})`,
             variant: "destructive",
+          });
+        } else if (data?.user) {
+          console.log('[Auth] Login OK, user:', data.user.id);
+          toast({
+            title: "Login realizado!",
+            description: "Redirecionando...",
           });
         }
       } else {

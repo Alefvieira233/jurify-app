@@ -29,11 +29,10 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   },
 });
 
-// Init log (dev only)
-if (import.meta.env.MODE === 'development') {
-  console.log('[supabase] client initialized', {
-    url: supabaseUrl,
-    mode: import.meta.env.MODE,
-    config: 'persistSession=true, autoRefreshToken=true',
-  });
-}
+// Init log (always - for debugging production)
+console.log('[supabase] client initialized', {
+  url: supabaseUrl,
+  mode: import.meta.env.MODE,
+  hasAnonKey: !!supabaseAnonKey,
+  anonKeyPrefix: supabaseAnonKey?.substring(0, 20) + '...',
+});
