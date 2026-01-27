@@ -59,26 +59,26 @@ const LogsPanel = () => {
   const getStatusIcon = (status: string) => {
     switch (status) {
       case 'success':
-        return <CheckCircle className="h-4 w-4 text-green-600" />;
+        return <CheckCircle className="h-4 w-4 text-emerald-200" />;
       case 'error':
-        return <AlertCircle className="h-4 w-4 text-red-600" />;
+        return <AlertCircle className="h-4 w-4 text-red-300" />;
       case 'processing':
-        return <Clock className="h-4 w-4 text-yellow-600" />;
+        return <Clock className="h-4 w-4 text-amber-300" />;
       default:
-        return <Activity className="h-4 w-4 text-gray-600" />;
+        return <Activity className="h-4 w-4 text-[hsl(var(--muted-foreground))]" />;
     }
   };
 
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'success':
-        return 'bg-green-100 text-green-800';
+        return 'bg-emerald-500/15 text-emerald-200 border border-emerald-400/30';
       case 'error':
-        return 'bg-red-100 text-red-800';
+        return 'bg-red-500/15 text-red-200 border border-red-400/30';
       case 'processing':
-        return 'bg-yellow-100 text-yellow-800';
+        return 'bg-amber-500/15 text-amber-200 border border-amber-400/30';
       default:
-        return 'bg-gray-100 text-gray-800';
+        return 'bg-slate-500/15 text-slate-200 border border-slate-400/30';
     }
   };
 
@@ -103,7 +103,7 @@ const LogsPanel = () => {
             <div className="flex justify-between items-center">
               <div>
                 <CardTitle className="text-2xl">Logs do Sistema</CardTitle>
-                <p className="text-gray-600">Histórico de execuções e atividades</p>
+                <p className="text-[hsl(var(--muted-foreground))]">Histórico de execuções e atividades</p>
               </div>
               <Skeleton className="h-10 w-32" />
             </div>
@@ -146,10 +146,10 @@ const LogsPanel = () => {
         <CardHeader>
           <div className="flex justify-between items-center">
             <div className="flex items-center gap-3">
-              <Activity className="h-8 w-8 text-purple-600" />
+              <Activity className="h-8 w-8 text-purple-300" />
               <div>
                 <CardTitle className="text-2xl">Logs do Sistema</CardTitle>
-                <p className="text-gray-600">
+                <p className="text-[hsl(var(--muted-foreground))]">
                   Histórico de execuções e atividades • {logs.length} registros
                 </p>
               </div>
@@ -167,18 +167,18 @@ const LogsPanel = () => {
         <CardContent className="p-4">
           <div className="flex gap-4">
             <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-[hsl(var(--muted-foreground))] h-4 w-4" />
               <Input
                 placeholder="Buscar por agente ou input..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10"
+                className="pl-10 bg-[hsl(var(--card))] border-[hsl(var(--border))] text-[hsl(var(--foreground))]"
               />
             </div>
             <select
               value={filterStatus}
               onChange={(e) => setFilterStatus(e.target.value)}
-              className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+              className="px-4 py-2 border border-[hsl(var(--border))] bg-[hsl(var(--card))] text-[hsl(var(--foreground))] rounded-lg focus:ring-2 focus:ring-[hsl(var(--accent))] focus:border-transparent"
             >
               <option value="">Todos os Status</option>
               <option value="success">Sucesso</option>
@@ -194,10 +194,10 @@ const LogsPanel = () => {
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
-              <CheckCircle className="h-8 w-8 text-green-600" />
+              <CheckCircle className="h-8 w-8 text-emerald-200" />
               <div>
-                <p className="text-sm font-medium text-gray-600">Execuções Bem-sucedidas</p>
-                <p className="text-2xl font-bold text-gray-900">
+                <p className="text-sm font-medium text-[hsl(var(--muted-foreground))]">Execuções Bem-sucedidas</p>
+                <p className="text-2xl font-bold text-[hsl(var(--foreground))]">
                   {logs.filter(l => l.status === 'success').length}
                 </p>
               </div>
@@ -208,10 +208,10 @@ const LogsPanel = () => {
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
-              <AlertCircle className="h-8 w-8 text-red-600" />
+              <AlertCircle className="h-8 w-8 text-red-300" />
               <div>
-                <p className="text-sm font-medium text-gray-600">Erros</p>
-                <p className="text-2xl font-bold text-gray-900">
+                <p className="text-sm font-medium text-[hsl(var(--muted-foreground))]">Erros</p>
+                <p className="text-2xl font-bold text-[hsl(var(--foreground))]">
                   {logs.filter(l => l.status === 'error').length}
                 </p>
               </div>
@@ -222,10 +222,10 @@ const LogsPanel = () => {
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
-              <Clock className="h-8 w-8 text-blue-600" />
+              <Clock className="h-8 w-8 text-blue-300" />
               <div>
-                <p className="text-sm font-medium text-gray-600">Tempo Médio</p>
-                <p className="text-2xl font-bold text-gray-900">
+                <p className="text-sm font-medium text-[hsl(var(--muted-foreground))]">Tempo Médio</p>
+                <p className="text-2xl font-bold text-[hsl(var(--foreground))]">
                   {Math.round(logs.reduce((acc, log) => acc + (log.tempo_execucao || 0), 0) / logs.length)}ms
                 </p>
               </div>
@@ -237,12 +237,12 @@ const LogsPanel = () => {
       {/* Lista de Logs */}
       <div className="space-y-4">
         {filteredLogs.length === 0 ? (
-          <Card className="border-blue-200 bg-blue-50">
+          <Card className="border-blue-500/30 bg-blue-500/10">
             <CardContent className="p-8">
               <div className="text-center">
-                <Activity className="h-16 w-16 text-blue-400 mx-auto mb-4" />
-                <h3 className="text-xl font-semibold text-blue-900 mb-2">Nenhum log encontrado</h3>
-                <p className="text-blue-700">
+                <Activity className="h-16 w-16 text-blue-300 mx-auto mb-4" />
+                <h3 className="text-xl font-semibold text-[hsl(var(--foreground))] mb-2">Nenhum log encontrado</h3>
+                <p className="text-[hsl(var(--muted-foreground))]">
                   {searchTerm 
                     ? `Não foram encontrados logs com o termo "${searchTerm}".`
                     : 'Aguardando execuções de agentes IA para gerar logs.'
@@ -262,8 +262,8 @@ const LogsPanel = () => {
                   <div className="flex-1 min-w-0">
                     <div className="flex items-start justify-between gap-4 mb-3">
                       <div>
-                        <h4 className="font-medium text-gray-900">{log.agente_nome}</h4>
-                        <p className="text-sm text-gray-600">ID: {log.agente_id}</p>
+                        <h4 className="font-medium text-[hsl(var(--foreground))]">{log.agente_nome}</h4>
+                        <p className="text-sm text-[hsl(var(--muted-foreground))]">ID: {log.agente_id}</p>
                       </div>
                       <div className="flex items-center gap-2">
                         <Badge className={getStatusColor(log.status)}>
@@ -279,16 +279,16 @@ const LogsPanel = () => {
 
                     <div className="space-y-3">
                       <div>
-                        <p className="text-sm font-medium text-gray-700 mb-1">Input do Usuário:</p>
-                        <p className="text-sm text-gray-600 bg-gray-50 p-2 rounded">
+                        <p className="text-sm font-medium text-[hsl(var(--foreground))] mb-1">Input do Usuário:</p>
+                        <p className="text-sm text-[hsl(var(--muted-foreground))] bg-[hsl(var(--surface-1))] border border-[hsl(var(--border))] p-2 rounded">
                           {log.input_recebido}
                         </p>
                       </div>
 
                       {log.resposta_ia && (
                         <div>
-                          <p className="text-sm font-medium text-gray-700 mb-1">Resposta da IA:</p>
-                          <p className="text-sm text-gray-600 bg-green-50 p-2 rounded">
+                          <p className="text-sm font-medium text-[hsl(var(--foreground))] mb-1">Resposta da IA:</p>
+                          <p className="text-sm text-[hsl(var(--muted-foreground))] bg-emerald-500/10 border border-emerald-500/25 p-2 rounded">
                             {log.resposta_ia.length > 200 
                               ? log.resposta_ia.substring(0, 200) + '...'
                               : log.resposta_ia
@@ -300,14 +300,14 @@ const LogsPanel = () => {
                       {log.erro_detalhes && (
                         <div>
                           <p className="text-sm font-medium text-red-700 mb-1">Detalhes do Erro:</p>
-                          <p className="text-sm text-red-600 bg-red-50 p-2 rounded">
+                          <p className="text-sm text-red-200 bg-red-500/10 border border-red-500/25 p-2 rounded">
                             {log.erro_detalhes}
                           </p>
                         </div>
                       )}
                     </div>
 
-                    <div className="flex justify-between items-center mt-4 pt-3 border-t border-gray-200 text-xs text-gray-500">
+                    <div className="flex justify-between items-center mt-4 pt-3 border-t border-[hsl(var(--border))] text-xs text-[hsl(var(--muted-foreground))]">
                       <span>
                         {new Date(log.created_at).toLocaleString('pt-BR')}
                       </span>
@@ -330,3 +330,4 @@ const LogsPanel = () => {
 };
 
 export default LogsPanel;
+

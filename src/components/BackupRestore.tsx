@@ -179,13 +179,13 @@ const BackupRestore = () => {
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <p className="text-sm text-gray-600">
+          <p className="text-sm text-[hsl(var(--muted-foreground))]">
             Exporte todas as configuracoes do sistema para backup.
           </p>
           <Button
             onClick={exportConfigurations}
             disabled={loading}
-            className="w-full"
+            className="w-full bg-[hsl(var(--accent))] hover:bg-[hsl(var(--accent-hover))] text-[hsl(var(--accent-foreground))]"
           >
             {loading ? 'Exportando...' : 'Criar Backup'}
           </Button>
@@ -214,7 +214,7 @@ const BackupRestore = () => {
           <Button
             onClick={importConfigurations}
             disabled={loading}
-            className="w-full"
+            className="w-full bg-[hsl(var(--accent))] hover:bg-[hsl(var(--accent-hover))] text-[hsl(var(--accent-foreground))]"
           >
             {loading ? 'Importando...' : 'Restaurar Backup'}
           </Button>
@@ -225,3 +225,5 @@ const BackupRestore = () => {
 };
 
 export default BackupRestore;
+
+

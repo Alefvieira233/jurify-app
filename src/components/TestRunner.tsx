@@ -1,5 +1,5 @@
-﻿/**
- * ðŸ§ª COMPONENTE DE TESTE DO SISTEMA MULTIAGENTES
+/**
+ * 🧪 COMPONENTE DE TESTE DO SISTEMA MULTIAGENTES
  * 
  * Interface para executar e visualizar testes do sistema multiagentes.
  */
@@ -29,11 +29,11 @@ export const TestRunner: React.FC = () => {
     setTestResults(null);
 
     try {
-      console.log('ðŸ§ª Iniciando testes do sistema multiagentes...');
+      console.log('🧪 Iniciando testes do sistema multiagentes...');
       const results = await runMultiAgentTests();
       setTestResults(results);
     } catch (error) {
-      console.error('âŒ Erro ao executar testes:', error);
+      console.error('❌ Erro ao executar testes:', error);
       setTestResults({
         overall_status: 'ERROR',
         error: (error instanceof Error ? error.message : String(error)),
@@ -46,17 +46,17 @@ export const TestRunner: React.FC = () => {
 
   const getStatusIcon = (status: string) => {
     switch (status) {
-      case 'passed': return <CheckCircle className="h-4 w-4 text-green-500" />;
-      case 'failed': return <XCircle className="h-4 w-4 text-red-500" />;
-      default: return <Clock className="h-4 w-4 text-yellow-500" />;
+      case 'passed': return <CheckCircle className="h-4 w-4 text-emerald-200" />;
+      case 'failed': return <XCircle className="h-4 w-4 text-red-300" />;
+      default: return <Clock className="h-4 w-4 text-amber-300" />;
     }
   };
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'passed': return 'bg-green-100 text-green-800';
-      case 'failed': return 'bg-red-100 text-red-800';
-      default: return 'bg-yellow-100 text-yellow-800';
+      case 'passed': return 'bg-emerald-500/15 text-emerald-200 border border-emerald-400/30';
+      case 'failed': return 'bg-red-500/15 text-red-200 border border-red-400/30';
+      default: return 'bg-amber-500/15 text-amber-200 border border-amber-400/30';
     }
   };
 
@@ -64,8 +64,8 @@ export const TestRunner: React.FC = () => {
     <div className="p-6 space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Testes do Sistema Multiagentes</h1>
-          <p className="text-gray-600">ValidaÃ§Ã£o completa do funcionamento do sistema</p>
+          <h1 className="text-2xl font-bold text-[hsl(var(--foreground))]">Testes do Sistema Multiagentes</h1>
+          <p className="text-[hsl(var(--muted-foreground))]">Validação completa do funcionamento do sistema</p>
         </div>
         <Button
           onClick={runTests}
@@ -99,28 +99,28 @@ export const TestRunner: React.FC = () => {
             <CardContent>
               <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                 <div className="text-center">
-                  <div className="text-2xl font-bold text-green-600">
+                  <div className="text-2xl font-bold text-emerald-200">
                     {testResults.passed || 0}
                   </div>
-                  <div className="text-sm text-gray-600">Passou</div>
+                  <div className="text-sm text-[hsl(var(--muted-foreground))]">Passou</div>
                 </div>
                 <div className="text-center">
-                  <div className="text-2xl font-bold text-red-600">
+                  <div className="text-2xl font-bold text-red-300">
                     {testResults.failed || 0}
                   </div>
-                  <div className="text-sm text-gray-600">Falhou</div>
+                  <div className="text-sm text-[hsl(var(--muted-foreground))]">Falhou</div>
                 </div>
                 <div className="text-center">
-                  <div className="text-2xl font-bold text-blue-600">
+                  <div className="text-2xl font-bold text-blue-300">
                     {testResults.success_rate || 0}%
                   </div>
-                  <div className="text-sm text-gray-600">Taxa de Sucesso</div>
+                  <div className="text-sm text-[hsl(var(--muted-foreground))]">Taxa de Sucesso</div>
                 </div>
                 <div className="text-center">
-                  <div className="text-2xl font-bold text-purple-600">
+                  <div className="text-2xl font-bold text-purple-300">
                     {testResults.total_time_ms || 0}ms
                   </div>
-                  <div className="text-sm text-gray-600">Tempo Total</div>
+                  <div className="text-sm text-[hsl(var(--muted-foreground))]">Tempo Total</div>
                 </div>
               </div>
 
@@ -144,7 +144,7 @@ export const TestRunner: React.FC = () => {
                   )}
                   {testResults.overall_status}
                 </Badge>
-                <span className="text-sm text-gray-600">
+                <span className="text-sm text-[hsl(var(--muted-foreground))]">
                   {new Date(testResults.timestamp).toLocaleString()}
                 </span>
               </div>
@@ -165,7 +165,7 @@ export const TestRunner: React.FC = () => {
                       <Badge className={getStatusColor(test.status)}>
                         {test.status.toUpperCase()}
                       </Badge>
-                      <span className="text-sm text-gray-600">
+                      <span className="text-sm text-[hsl(var(--muted-foreground))]">
                         {test.duration}ms
                       </span>
                     </div>
@@ -174,12 +174,12 @@ export const TestRunner: React.FC = () => {
                 <CardContent className="space-y-3">
                   {/* Detalhes do Teste */}
                   {test.details && Object.keys(test.details).length > 0 && (
-                    <div className="bg-gray-50 p-3 rounded-lg">
+                    <div className="bg-[hsl(var(--surface-1))] border border-[hsl(var(--border))] p-3 rounded-lg">
                       <h4 className="font-medium text-sm mb-2">Detalhes:</h4>
                       <div className="grid grid-cols-2 gap-2 text-sm">
                         {Object.entries(test.details).map(([key, value]: [string, any]) => (
                           <div key={key} className="flex justify-between">
-                            <span className="text-gray-600">{key}:</span>
+                            <span className="text-[hsl(var(--muted-foreground))]">{key}:</span>
                             <span className="font-medium">
                               {typeof value === 'object' ? JSON.stringify(value) : String(value)}
                             </span>
@@ -191,15 +191,15 @@ export const TestRunner: React.FC = () => {
 
                   {/* Erros */}
                   {test.errors && test.errors.length > 0 && (
-                    <div className="bg-red-50 p-3 rounded-lg">
-                      <h4 className="font-medium text-sm mb-2 text-red-800 flex items-center gap-1">
+                    <div className="bg-red-500/10 border border-red-500/25 p-3 rounded-lg">
+                      <h4 className="font-medium text-sm mb-2 text-red-200 flex items-center gap-1">
                         <AlertTriangle className="h-4 w-4" />
                         Erros:
                       </h4>
-                      <ul className="text-sm text-red-700 space-y-1">
+                      <ul className="text-sm text-red-200 space-y-1">
                         {test.errors.map((error: string, i: number) => (
                           <li key={i} className="flex items-start gap-2">
-                            <span className="text-red-500">â€¢</span>
+                            <span className="text-red-300">•</span>
                             <span>{error}</span>
                           </li>
                         ))}
@@ -214,16 +214,16 @@ export const TestRunner: React.FC = () => {
       )}
 
       {testResults?.error && (
-        <Card className="border-red-200">
+        <Card className="border-red-500/30">
           <CardHeader>
-            <CardTitle className="text-red-800 flex items-center gap-2">
+            <CardTitle className="text-red-200 flex items-center gap-2">
               <XCircle className="h-5 w-5" />
-              Erro na ExecuÃ§Ã£o dos Testes
+              Erro na Execução dos Testes
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="bg-red-50 p-4 rounded-lg">
-              <p className="text-red-700">{testResults.error}</p>
+            <div className="bg-red-500/10 border border-red-500/25 p-4 rounded-lg">
+              <p className="text-red-200">{testResults.error}</p>
             </div>
           </CardContent>
         </Card>
@@ -231,4 +231,6 @@ export const TestRunner: React.FC = () => {
     </div>
   );
 };
+
+
 

@@ -15,12 +15,12 @@ interface LeadsKanbanProps {
 }
 
 const COLUMNS = [
-    { id: 'novo_lead', title: 'Novo Lead', color: 'bg-blue-50 border-blue-200' },
-    { id: 'em_qualificacao', title: 'Em Qualificação', color: 'bg-yellow-50 border-yellow-200' },
-    { id: 'proposta_enviada', title: 'Proposta Enviada', color: 'bg-purple-50 border-purple-200' },
-    { id: 'contrato_assinado', title: 'Contrato Assinado', color: 'bg-green-50 border-green-200' },
-    { id: 'em_atendimento', title: 'Em Atendimento', color: 'bg-indigo-50 border-indigo-200' },
-    { id: 'lead_perdido', title: 'Perdido', color: 'bg-red-50 border-red-200' }
+    { id: 'novo_lead', title: 'Novo Lead', color: 'bg-blue-500/10 border-blue-500/30' },
+    { id: 'em_qualificacao', title: 'Em Qualificação', color: 'bg-amber-500/10 border-amber-500/30' },
+    { id: 'proposta_enviada', title: 'Proposta Enviada', color: 'bg-purple-500/10 border-purple-500/30' },
+    { id: 'contrato_assinado', title: 'Contrato Assinado', color: 'bg-emerald-500/10 border-emerald-500/30' },
+    { id: 'em_atendimento', title: 'Em Atendimento', color: 'bg-cyan-500/10 border-cyan-500/30' },
+    { id: 'lead_perdido', title: 'Perdido', color: 'bg-red-500/10 border-red-500/30' }
 ];
 
 const LeadsKanban: React.FC<LeadsKanbanProps> = ({ leads, onDragEnd, onEditLead, onViewTimeline }) => {
@@ -37,13 +37,13 @@ const LeadsKanban: React.FC<LeadsKanbanProps> = ({ leads, onDragEnd, onEditLead,
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ duration: 0.4, delay: colIndex * 0.1, ease: "easeOut" }}
-                        className="min-w-[300px] flex flex-col h-full bg-gray-50/50 rounded-xl border border-gray-200/60 shadow-sm"
+                        className="min-w-[300px] flex flex-col h-full bg-[hsl(var(--surface-1))] rounded-xl border border-[hsl(var(--border))] shadow-sm"
                     >
-                        <div className={`p-3 border-b flex justify-between items-center bg-white border-accent/20 rounded-t-xl`}>
+                        <div className={`p-3 border-b flex justify-between items-center bg-[hsl(var(--card))] border-[hsl(var(--border))] rounded-t-xl`}>
                             <h3 className="font-serif font-bold text-sm uppercase tracking-widest text-primary">
                                 {column.title}
                             </h3>
-                            <span className="text-xs font-mono font-medium text-accent-dark bg-accent/10 px-2 py-0.5 rounded-sm">
+                            <span className="text-xs font-mono font-medium text-[hsl(var(--accent))] bg-[hsl(var(--accent)_/_0.12)] border border-[hsl(var(--accent)_/_0.3)] px-2 py-0.5 rounded-sm">
                                 {getLeadsByStatus(column.id).length}
                             </span>
                         </div>
@@ -54,7 +54,7 @@ const LeadsKanban: React.FC<LeadsKanbanProps> = ({ leads, onDragEnd, onEditLead,
                                     <div
                                         {...provided.droppableProps}
                                         ref={provided.innerRef}
-                                        className={`space-y-3 min-h-[100px] transition-colors duration-200 ${snapshot.isDraggingOver ? 'bg-gray-100/50 rounded-lg' : ''}`}
+                                        className={`space-y-3 min-h-[100px] transition-colors duration-200 ${snapshot.isDraggingOver ? 'bg-[hsl(var(--muted)_/_0.6)] rounded-lg' : ''}`}
                                     >
                                         <AnimatePresence>
                                             {getLeadsByStatus(column.id).map((lead, index) => (
@@ -75,7 +75,7 @@ const LeadsKanban: React.FC<LeadsKanbanProps> = ({ leads, onDragEnd, onEditLead,
                                                             >
                                                                 <Card
                                                                     className={`
-                                                                        group relative bg-white border border-border hover:border-accent/50 transition-all duration-200
+                                                                        group relative bg-[hsl(var(--card))] border border-[hsl(var(--border))] hover:border-[hsl(var(--accent)_/_0.5)] transition-all duration-200
                                                                         rounded-sm shadow-sm hover:shadow-premium
                                                                         ${snapshot.isDragging ? 'shadow-2xl ring-1 ring-accent rotate-2 scale-105 z-50' : ''}
                                                                     `}
@@ -85,48 +85,48 @@ const LeadsKanban: React.FC<LeadsKanbanProps> = ({ leads, onDragEnd, onEditLead,
 
                                                                     <div className="p-4 space-y-3">
                                                                         <div className="flex justify-between items-start">
-                                                                            <h4 className="font-serif font-bold text-primary truncate pr-2 text-base">
+                                                                            <h4 className="font-serif font-bold text-[hsl(var(--foreground))] group-hover:text-[hsl(var(--accent))] truncate pr-2 text-base">
                                                                                 {lead.nome_completo}
                                                                             </h4>
                                                                             <Button
                                                                                 variant="ghost"
                                                                                 size="icon"
-                                                                                className="h-6 w-6 -mr-2 -mt-1 text-muted-foreground hover:text-accent"
+                                                                                className="h-6 w-6 -mr-2 -mt-1 text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--accent))]"
                                                                                 onClick={(e) => { e.stopPropagation(); onEditLead(lead); }}
                                                                             >
                                                                                 <MoreVertical className="h-4 w-4" />
                                                                             </Button>
                                                                         </div>
 
-                                                                        <div className="space-y-1.5 border-l-2 border-muted pl-3 ml-1">
+                                                                        <div className="space-y-1.5 border-l-2 border-[hsl(var(--border))] pl-3 ml-1">
                                                                             {lead.valor_causa && (
-                                                                                <div className="flex items-center text-xs font-medium text-emerald-700 bg-emerald-50/50 w-fit px-1.5 py-0.5 rounded-sm">
+                                                                                <div className="flex items-center text-xs font-medium text-emerald-200 bg-emerald-500/15 border border-emerald-400/30 w-fit px-1.5 py-0.5 rounded-sm">
                                                                                     <DollarSign className="h-3 w-3 mr-1" />
                                                                                     {Number(lead.valor_causa).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
                                                                                 </div>
                                                                             )}
                                                                             {lead.telefone && (
-                                                                                <div className="flex items-center text-[11px] text-muted-foreground font-mono">
+                                                                                <div className="flex items-center text-[11px] text-[hsl(var(--muted-foreground))] font-mono">
                                                                                     <Phone className="h-3 w-3 mr-2 opacity-50" />
                                                                                     {lead.telefone}
                                                                                 </div>
                                                                             )}
                                                                             {lead.email && (
-                                                                                <div className="flex items-center text-[11px] text-muted-foreground font-mono truncate">
+                                                                                <div className="flex items-center text-[11px] text-[hsl(var(--muted-foreground))] font-mono truncate">
                                                                                     <Mail className="h-3 w-3 mr-2 opacity-50" />
                                                                                     {lead.email}
                                                                                 </div>
                                                                             )}
                                                                         </div>
 
-                                                                        <div className="pt-3 mt-1 border-t border-border/50 flex justify-between items-center">
-                                                                            <span className="text-[10px] text-muted-foreground/70 font-mono uppercase tracking-wider">
+                                                                        <div className="pt-3 mt-1 border-t border-[hsl(var(--border))] flex justify-between items-center">
+                                                                            <span className="text-[10px] text-[hsl(var(--muted-foreground))] font-mono uppercase tracking-wider">
                                                                                 {new Date(lead.created_at).toLocaleDateString('pt-BR')}
                                                                             </span>
                                                                             <Button
                                                                                 variant="ghost"
                                                                                 size="sm"
-                                                                                className="h-5 text-[10px] uppercase tracking-wide font-bold text-primary hover:text-accent hover:bg-transparent p-0 flex items-center gap-1"
+                                                                                className="h-5 text-[10px] uppercase tracking-wide font-bold text-[hsl(var(--accent))] hover:text-[hsl(var(--accent))] hover:bg-transparent p-0 flex items-center gap-1"
                                                                                 onClick={(e) => { e.stopPropagation(); onViewTimeline(lead.id, lead.nome_completo); }}
                                                                             >
                                                                                 Abrir Deal <span className="text-xs">→</span>
@@ -153,3 +153,5 @@ const LeadsKanban: React.FC<LeadsKanbanProps> = ({ leads, onDragEnd, onEditLead,
 };
 
 export default LeadsKanban;
+
+

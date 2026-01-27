@@ -223,8 +223,8 @@ const Dashboard = () => {
               </CardTitle>
               <div className="relative">
                 <div className="absolute inset-0 bg-gradient-to-br from-blue-500 to-blue-600 rounded-2xl blur-md opacity-40" />
-                <div className="relative p-3.5 bg-gradient-to-br from-blue-500/15 to-blue-600/10 rounded-2xl">
-                  <Users className="h-6 w-6 text-blue-600" strokeWidth={2.5} />
+                <div className="relative p-3.5 bg-gradient-to-br from-blue-500/20 to-blue-600/15 rounded-2xl">
+                  <Users className="h-6 w-6 text-blue-300" strokeWidth={2.5} />
                 </div>
               </div>
             </CardHeader>
@@ -233,7 +233,7 @@ const Dashboard = () => {
                 {metrics.totalLeads}
               </div>
               <div className="flex items-center space-x-2.5">
-                <Badge className="bg-gradient-to-r from-green-500 to-emerald-600 text-white border-0 font-bold px-3 py-1.5 shadow-lg">
+                <Badge className="bg-gradient-to-r from-emerald-500/20 to-emerald-600/20 text-emerald-200 border border-emerald-400/30 font-bold px-3 py-1.5 shadow-lg">
                   <ArrowUpRight className="h-3.5 w-3.5 mr-1" strokeWidth={3} />
                   +{metrics.leadsNovoMes}
                 </Badge>
@@ -256,8 +256,8 @@ const Dashboard = () => {
               </CardTitle>
               <div className="relative">
                 <div className="absolute inset-0 bg-gradient-to-br from-purple-500 to-purple-600 rounded-2xl blur-md opacity-40" />
-                <div className="relative p-3.5 bg-gradient-to-br from-purple-500/15 to-purple-600/10 rounded-2xl">
-                  <FileText className="h-6 w-6 text-purple-600" strokeWidth={2.5} />
+                <div className="relative p-3.5 bg-gradient-to-br from-purple-500/20 to-purple-600/15 rounded-2xl">
+                  <FileText className="h-6 w-6 text-purple-300" strokeWidth={2.5} />
                 </div>
               </div>
             </CardHeader>
@@ -266,7 +266,7 @@ const Dashboard = () => {
                 {metrics.contratos}
               </div>
               <div className="flex items-center space-x-2.5">
-                <Badge className="bg-gradient-to-r from-purple-500 to-purple-600 text-white border-0 font-bold px-3 py-1.5 shadow-lg">
+                <Badge className="bg-gradient-to-r from-purple-500/20 to-purple-600/20 text-purple-200 border border-purple-400/30 font-bold px-3 py-1.5 shadow-lg">
                   <CheckCircle className="h-3.5 w-3.5 mr-1" strokeWidth={3} />
                   {metrics.contratosAssinados}
                 </Badge>
@@ -289,8 +289,8 @@ const Dashboard = () => {
               </CardTitle>
               <div className="relative">
                 <div className="absolute inset-0 bg-gradient-to-br from-orange-500 to-orange-600 rounded-2xl blur-md opacity-40" />
-                <div className="relative p-3.5 bg-gradient-to-br from-orange-500/15 to-orange-600/10 rounded-2xl">
-                  <Calendar className="h-6 w-6 text-orange-600" strokeWidth={2.5} />
+                <div className="relative p-3.5 bg-gradient-to-br from-orange-500/20 to-orange-600/15 rounded-2xl">
+                  <Calendar className="h-6 w-6 text-orange-300" strokeWidth={2.5} />
                 </div>
               </div>
             </CardHeader>
@@ -299,7 +299,7 @@ const Dashboard = () => {
                 {metrics.agendamentos}
               </div>
               <div className="flex items-center space-x-2.5">
-                <Badge className="bg-gradient-to-r from-orange-500 to-orange-600 text-white border-0 font-bold px-3 py-1.5 shadow-lg">
+                <Badge className="bg-gradient-to-r from-orange-500/20 to-orange-600/20 text-orange-200 border border-orange-400/30 font-bold px-3 py-1.5 shadow-lg">
                   <Clock className="h-3.5 w-3.5 mr-1" strokeWidth={3} />
                   {metrics.agendamentosHoje}
                 </Badge>
@@ -332,7 +332,7 @@ const Dashboard = () => {
                 {metrics.agentesAtivos}
               </div>
               <div className="flex items-center space-x-2.5">
-                <Badge className="bg-gradient-to-r from-[hsl(var(--accent))] to-[hsl(43_74%_49%)] text-[hsl(222_47%_11%)] border-0 font-bold px-3 py-1.5 shadow-lg">
+                <Badge className="bg-gradient-to-r from-[hsl(var(--accent)_/_0.2)] to-[hsl(43_74%_49%_/_0.2)] text-[hsl(var(--accent))] border border-[hsl(var(--accent)_/_0.35)] border-0 font-bold px-3 py-1.5 shadow-lg">
                   <Sparkles className="h-3.5 w-3.5 mr-1" strokeWidth={3} />
                   {metrics.execucoesAgentesHoje}
                 </Badge>
@@ -355,7 +355,7 @@ const Dashboard = () => {
                 <CardTitle className="text-lg font-bold" style={{ fontFamily: "'Playfair Display', serif" }}>
                   Pipeline de Leads
                 </CardTitle>
-                <CardDescription className="text-sm">Distribuição por status no funil</CardDescription>
+                <CardDescription className="text-sm text-[hsl(var(--muted-foreground))]">Distribuição por status no funil</CardDescription>
               </div>
             </div>
           </CardHeader>
@@ -412,7 +412,7 @@ const Dashboard = () => {
                 <CardTitle className="text-lg font-bold" style={{ fontFamily: "'Playfair Display', serif" }}>
                   Áreas Jurídicas
                 </CardTitle>
-                <CardDescription className="text-sm">Leads por especialização</CardDescription>
+                <CardDescription className="text-sm text-[hsl(var(--muted-foreground))]">Leads por especialização</CardDescription>
               </div>
             </div>
           </CardHeader>
@@ -484,7 +484,7 @@ const Dashboard = () => {
                 <CardTitle className="text-xl font-bold" style={{ fontFamily: "'Playfair Display', serif" }}>
                   Performance dos Agentes IA
                 </CardTitle>
-                <CardDescription className="text-sm mt-1">Execuções recentes e taxa de sucesso</CardDescription>
+                <CardDescription className="text-sm mt-1 text-[hsl(var(--muted-foreground))]">Execuções recentes e taxa de sucesso</CardDescription>
               </div>
             </div>
           </div>
@@ -515,7 +515,7 @@ const Dashboard = () => {
                     </div>
                   </div>
                   <div className="flex gap-2.5">
-                    <Badge className="bg-green-100 text-green-800 border-0 font-bold px-3 py-1.5">
+                    <Badge className="bg-emerald-500/15 text-emerald-200 border border-emerald-400/30 font-bold px-3 py-1.5">
                       <CheckCircle className="h-3.5 w-3.5 mr-1.5" />
                       {agente.sucesso}
                     </Badge>
@@ -537,3 +537,5 @@ const Dashboard = () => {
 };
 
 export default Dashboard;
+
+

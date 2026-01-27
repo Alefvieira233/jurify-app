@@ -100,9 +100,9 @@ export const DetalhesContrato = ({ contrato, onClose }: DetalhesContratoProps) =
 
   const getStatusBadge = (status: string) => {
     const statusConfig = {
-      rascunho: { label: 'Rascunho', className: 'bg-gray-100 text-gray-800' },
-      enviado: { label: 'Enviado', className: 'bg-blue-100 text-blue-800' },
-      assinado: { label: 'Assinado', className: 'bg-green-100 text-green-800' },
+      rascunho: { label: 'Rascunho', className: 'bg-slate-500/15 text-slate-200 border border-slate-400/30' },
+      enviado: { label: 'Enviado', className: 'bg-blue-500/15 text-blue-200 border border-blue-400/30' },
+      assinado: { label: 'Assinado', className: 'bg-emerald-500/15 text-emerald-200 border border-emerald-400/30' },
       cancelado: { label: 'Cancelado', className: 'bg-red-100 text-red-800' }
     };
     
@@ -127,7 +127,7 @@ export const DetalhesContrato = ({ contrato, onClose }: DetalhesContratoProps) =
       <div className="flex justify-between items-start">
         <div>
           <h3 className="text-lg font-semibold">{contrato.nome_cliente}</h3>
-          <p className="text-gray-600">{contrato.area_juridica}</p>
+          <p className="text-[hsl(var(--muted-foreground))]">{contrato.area_juridica}</p>
         </div>
         <div className="flex space-x-2">
           {!isEditing ? (
@@ -163,13 +163,13 @@ export const DetalhesContrato = ({ contrato, onClose }: DetalhesContratoProps) =
       </div>
 
       {/* Informações básicas */}
-      <div className="grid grid-cols-2 gap-4 p-4 bg-gray-50 rounded-lg">
+      <div className="grid grid-cols-2 gap-4 p-4 bg-[hsl(var(--muted))] rounded-lg">
         <div>
-          <Label className="text-sm font-medium text-gray-600">Valor da Causa</Label>
+          <Label className="text-sm font-medium text-[hsl(var(--muted-foreground))]">Valor da Causa</Label>
           <p className="text-lg font-semibold">{formatCurrency(contrato.valor_causa)}</p>
         </div>
         <div>
-          <Label className="text-sm font-medium text-gray-600">Status</Label>
+          <Label className="text-sm font-medium text-[hsl(var(--muted-foreground))]">Status</Label>
           {isEditing ? (
             <Select value={editedStatus} onValueChange={setEditedStatus}>
               <SelectTrigger className="mt-1">
@@ -187,22 +187,22 @@ export const DetalhesContrato = ({ contrato, onClose }: DetalhesContratoProps) =
           )}
         </div>
         <div>
-          <Label className="text-sm font-medium text-gray-600">Responsável</Label>
+          <Label className="text-sm font-medium text-[hsl(var(--muted-foreground))]">Responsável</Label>
           <p>{contrato.responsavel}</p>
         </div>
         <div>
-          <Label className="text-sm font-medium text-gray-600">Data de Criação</Label>
+          <Label className="text-sm font-medium text-[hsl(var(--muted-foreground))]">Data de Criação</Label>
           <p>{formatDate(contrato.created_at)}</p>
         </div>
         {contrato.data_envio && (
           <div>
-            <Label className="text-sm font-medium text-gray-600">Data de Envio</Label>
+            <Label className="text-sm font-medium text-[hsl(var(--muted-foreground))]">Data de Envio</Label>
             <p>{formatDate(contrato.data_envio)}</p>
           </div>
         )}
         {contrato.data_assinatura && (
           <div>
-            <Label className="text-sm font-medium text-gray-600">Data de Assinatura</Label>
+            <Label className="text-sm font-medium text-[hsl(var(--muted-foreground))]">Data de Assinatura</Label>
             <p>{formatDate(contrato.data_assinatura)}</p>
           </div>
         )}
@@ -229,7 +229,7 @@ export const DetalhesContrato = ({ contrato, onClose }: DetalhesContratoProps) =
       {/* Texto do contrato */}
       <div className="space-y-2">
         <Label className="text-sm font-medium">Texto do Contrato</Label>
-        <div className="border rounded-lg p-4 bg-white max-h-60 overflow-y-auto">
+        <div className="border rounded-lg p-4 bg-[hsl(var(--card))] max-h-60 overflow-y-auto">
           <pre className="text-sm whitespace-pre-wrap">{contrato.texto_contrato}</pre>
         </div>
       </div>
@@ -238,7 +238,7 @@ export const DetalhesContrato = ({ contrato, onClose }: DetalhesContratoProps) =
       {contrato.clausulas_customizadas && (
         <div className="space-y-2">
           <Label className="text-sm font-medium">Cláusulas Customizadas</Label>
-          <div className="border rounded-lg p-4 bg-gray-50">
+          <div className="border rounded-lg p-4 bg-[hsl(var(--muted))]">
             <pre className="text-sm whitespace-pre-wrap">{contrato.clausulas_customizadas}</pre>
           </div>
         </div>
@@ -255,7 +255,7 @@ export const DetalhesContrato = ({ contrato, onClose }: DetalhesContratoProps) =
             placeholder="Adicione observações sobre o contrato..."
           />
         ) : (
-          <div className="border rounded-lg p-4 bg-gray-50 min-h-16">
+          <div className="border rounded-lg p-4 bg-[hsl(var(--muted))] min-h-16">
             <p className="text-sm">{contrato.observacoes || 'Nenhuma observação adicionada'}</p>
           </div>
         )}
@@ -263,3 +263,4 @@ export const DetalhesContrato = ({ contrato, onClose }: DetalhesContratoProps) =
     </div>
   );
 };
+

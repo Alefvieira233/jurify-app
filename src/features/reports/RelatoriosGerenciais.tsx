@@ -122,8 +122,8 @@ const RelatoriosGerenciais = () => {
       <div className="p-6 space-y-6">
         <Card>
           <CardHeader>
-            <CardTitle className="text-2xl">Relatórios Gerenciais</CardTitle>
-            <p className="text-gray-600">Análises e insights do seu escritório jurídico</p>
+            <CardTitle className="text-2xl text-[hsl(var(--foreground))]">Relatórios Gerenciais</CardTitle>
+            <p className="text-[hsl(var(--muted-foreground))]">Análises e insights do seu escritório jurídico</p>
           </CardHeader>
         </Card>
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -147,19 +147,19 @@ const RelatoriosGerenciais = () => {
       <div className="p-6 space-y-6">
         <Card>
           <CardHeader>
-            <CardTitle className="text-2xl">Relatórios Gerenciais</CardTitle>
-            <p className="text-gray-600">Análises e insights do seu escritório jurídico</p>
+            <CardTitle className="text-2xl text-[hsl(var(--foreground))]">Relatórios Gerenciais</CardTitle>
+            <p className="text-[hsl(var(--muted-foreground))]">Análises e insights do seu escritório jurídico</p>
           </CardHeader>
         </Card>
-        <Card className="border-blue-200 bg-blue-50">
+        <Card className="border-blue-200 bg-blue-500/10 border border-blue-500/25">
           <CardContent className="p-8">
             <div className="text-center">
-              <TrendingUp className="h-16 w-16 text-blue-400 mx-auto mb-4" />
-              <h3 className="text-xl font-semibold text-blue-900 mb-2">Relatórios em preparação</h3>
-              <p className="text-blue-700 mb-6">
+              <TrendingUp className="h-16 w-16 text-blue-300 mx-auto mb-4" />
+              <h3 className="text-xl font-semibold text-[hsl(var(--foreground))] mb-2">Relatórios em preparação</h3>
+              <p className="text-[hsl(var(--muted-foreground))] mb-6">
                 Os relatórios serão gerados assim que houver dados suficientes no sistema.
               </p>
-              <Button className="bg-amber-500 hover:bg-amber-600" onClick={handleExportDemo}>
+              <Button className="bg-[hsl(var(--accent))] hover:bg-[hsl(var(--accent-hover))] text-[hsl(var(--accent-foreground))]" onClick={handleExportDemo}>
                 <Download className="h-4 w-4 mr-2" />
                 Gerar Relatório Demo
               </Button>
@@ -249,12 +249,12 @@ const RelatoriosGerenciais = () => {
                 <p className="text-4xl font-bold text-[hsl(var(--foreground))]" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
                   {metrics.totalLeads}
                 </p>
-                <p className="text-sm text-green-600 font-semibold">+{metrics.leadsNovoMes} este mês</p>
+                <p className="text-sm text-emerald-200 font-semibold">+{metrics.leadsNovoMes} este mês</p>
               </div>
               <div className="relative">
                 <div className="absolute inset-0 bg-gradient-to-br from-blue-500/20 via-blue-400/10 to-transparent rounded-2xl blur-md opacity-40 group-hover:opacity-60 transition-opacity duration-500" />
                 <div className="relative p-3.5 bg-gradient-to-br from-blue-500/20 via-blue-400/10 to-transparent rounded-2xl backdrop-blur-sm">
-                  <Users className="h-6 w-6 text-blue-600 group-hover:scale-110 transition-transform duration-500" strokeWidth={2.5} />
+                  <Users className="h-6 w-6 text-blue-300 group-hover:scale-110 transition-transform duration-500" strokeWidth={2.5} />
                 </div>
               </div>
             </div>
@@ -274,12 +274,12 @@ const RelatoriosGerenciais = () => {
                 <p className="text-4xl font-bold text-[hsl(var(--foreground))]" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
                   {metrics.contratos}
                 </p>
-                <p className="text-sm text-green-600 font-semibold">{metrics.contratosAssinados} assinados</p>
+                <p className="text-sm text-emerald-200 font-semibold">{metrics.contratosAssinados} assinados</p>
               </div>
               <div className="relative">
                 <div className="absolute inset-0 bg-gradient-to-br from-green-500/20 via-green-400/10 to-transparent rounded-2xl blur-md opacity-40 group-hover:opacity-60 transition-opacity duration-500" />
                 <div className="relative p-3.5 bg-gradient-to-br from-green-500/20 via-green-400/10 to-transparent rounded-2xl backdrop-blur-sm">
-                  <FileText className="h-6 w-6 text-green-600 group-hover:scale-110 transition-transform duration-500" strokeWidth={2.5} />
+                  <FileText className="h-6 w-6 text-emerald-200 group-hover:scale-110 transition-transform duration-500" strokeWidth={2.5} />
                 </div>
               </div>
             </div>
@@ -299,12 +299,12 @@ const RelatoriosGerenciais = () => {
                 <p className="text-4xl font-bold text-[hsl(var(--foreground))]" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
                   {metrics.agendamentos}
                 </p>
-                <p className="text-sm text-purple-600 font-semibold">{metrics.agendamentosHoje} hoje</p>
+                <p className="text-sm text-purple-200 font-semibold">{metrics.agendamentosHoje} hoje</p>
               </div>
               <div className="relative">
                 <div className="absolute inset-0 bg-gradient-to-br from-purple-500/20 via-purple-400/10 to-transparent rounded-2xl blur-md opacity-40 group-hover:opacity-60 transition-opacity duration-500" />
                 <div className="relative p-3.5 bg-gradient-to-br from-purple-500/20 via-purple-400/10 to-transparent rounded-2xl backdrop-blur-sm">
-                  <Calendar className="h-6 w-6 text-purple-600 group-hover:scale-110 transition-transform duration-500" strokeWidth={2.5} />
+                  <Calendar className="h-6 w-6 text-purple-200 group-hover:scale-110 transition-transform duration-500" strokeWidth={2.5} />
                 </div>
               </div>
             </div>
@@ -342,7 +342,7 @@ const RelatoriosGerenciais = () => {
         {/* Pipeline de Leads */}
         <Card>
           <CardHeader>
-            <CardTitle>Pipeline de Leads</CardTitle>
+            <CardTitle className="text-[hsl(var(--foreground))]">Pipeline de Leads</CardTitle>
           </CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={300}>
@@ -370,7 +370,7 @@ const RelatoriosGerenciais = () => {
         {/* Leads por Área Jurídica */}
         <Card>
           <CardHeader>
-            <CardTitle>Leads por Área Jurídica</CardTitle>
+            <CardTitle className="text-[hsl(var(--foreground))]">Leads por Área Jurídica</CardTitle>
           </CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={300}>
@@ -388,7 +388,7 @@ const RelatoriosGerenciais = () => {
         {/* Performance dos Agentes IA */}
         <Card>
           <CardHeader>
-            <CardTitle>Performance dos Agentes IA</CardTitle>
+            <CardTitle className="text-[hsl(var(--foreground))]">Performance dos Agentes IA</CardTitle>
           </CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={300}>
@@ -408,11 +408,11 @@ const RelatoriosGerenciais = () => {
         {/* Resumo Mensal */}
         <Card>
           <CardHeader>
-            <CardTitle>Resumo do Período</CardTitle>
+            <CardTitle className="text-[hsl(var(--foreground))]">Resumo do Período</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              <div className="flex justify-between items-center p-3 bg-blue-50 rounded-lg">
+              <div className="flex justify-between items-center p-3 bg-blue-500/10 border border-blue-500/25 rounded-lg">
                 <span className="text-sm font-medium">Taxa de Conversão</span>
                 <Badge variant="secondary">
                   {metrics.totalLeads > 0 
@@ -422,19 +422,19 @@ const RelatoriosGerenciais = () => {
                 </Badge>
               </div>
               
-              <div className="flex justify-between items-center p-3 bg-green-50 rounded-lg">
+              <div className="flex justify-between items-center p-3 bg-emerald-500/10 border border-emerald-500/25 rounded-lg">
                 <span className="text-sm font-medium">Leads Ativos</span>
                 <Badge variant="secondary">
                   {metrics.leadsPorStatus.em_qualificacao + metrics.leadsPorStatus.proposta_enviada}
                 </Badge>
               </div>
               
-              <div className="flex justify-between items-center p-3 bg-purple-50 rounded-lg">
+              <div className="flex justify-between items-center p-3 bg-purple-500/10 border border-purple-500/25 rounded-lg">
                 <span className="text-sm font-medium">Agendamentos Pendentes</span>
                 <Badge variant="secondary">{metrics.agendamentos}</Badge>
               </div>
               
-              <div className="flex justify-between items-center p-3 bg-amber-50 rounded-lg">
+              <div className="flex justify-between items-center p-3 bg-amber-500/10 border border-amber-500/25 rounded-lg">
                 <span className="text-sm font-medium">Execuções de IA</span>
                 <Badge variant="secondary">
                   {metrics.execucoesRecentesAgentes.reduce((acc, curr) => acc + curr.total_execucoes, 0)}
@@ -449,3 +449,5 @@ const RelatoriosGerenciais = () => {
 };
 
 export default RelatoriosGerenciais;
+
+

@@ -27,35 +27,35 @@ export const StatusAssinatura = ({ contrato, leadTelefone, onStatusUpdate }: Sta
     switch (status) {
       case 'assinado':
         return (
-          <Badge className="bg-green-100 text-green-800">
+          <Badge className="bg-emerald-500/15 text-emerald-200 border border-emerald-400/30">
             <CheckCircle className="h-3 w-3 mr-1" />
             Assinado
           </Badge>
         );
       case 'pendente':
         return (
-          <Badge className="bg-yellow-100 text-yellow-800">
+          <Badge className="bg-amber-500/15 text-amber-200 border border-amber-400/30">
             <Clock className="h-3 w-3 mr-1" />
             Pendente
           </Badge>
         );
       case 'cancelado':
         return (
-          <Badge className="bg-red-100 text-red-800">
+          <Badge className="bg-red-500/15 text-red-200 border border-red-400/30">
             <XCircle className="h-3 w-3 mr-1" />
             Cancelado
           </Badge>
         );
       case 'expirado':
         return (
-          <Badge className="bg-gray-100 text-gray-800">
+          <Badge className="bg-slate-500/15 text-slate-200 border border-slate-400/30">
             <AlertTriangle className="h-3 w-3 mr-1" />
             Expirado
           </Badge>
         );
       default:
         return (
-          <Badge className="bg-gray-100 text-gray-800">
+          <Badge className="bg-slate-500/15 text-slate-200 border border-slate-400/30">
             <Clock className="h-3 w-3 mr-1" />
             Não iniciado
           </Badge>
@@ -103,7 +103,7 @@ export const StatusAssinatura = ({ contrato, leadTelefone, onStatusUpdate }: Sta
   };
 
   return (
-    <div className="space-y-4 p-4 border rounded-lg bg-gray-50">
+    <div className="space-y-4 p-4 border rounded-lg bg-[hsl(var(--surface-1))]">
       <div className="flex items-center justify-between">
         <h4 className="font-medium">Status de Assinatura Digital</h4>
         {getStatusBadge(contrato.status_assinatura)}
@@ -111,7 +111,7 @@ export const StatusAssinatura = ({ contrato, leadTelefone, onStatusUpdate }: Sta
 
       {contrato.link_assinatura_zapsign && (
         <div className="space-y-3">
-          <div className="text-sm text-gray-600">
+          <div className="text-sm text-[hsl(var(--muted-foreground))]">
             <p><strong>Link gerado:</strong> {formatDate(contrato.data_geracao_link)}</p>
             {contrato.data_envio_whatsapp && (
               <p><strong>Enviado via WhatsApp:</strong> {formatDate(contrato.data_envio_whatsapp)}</p>
@@ -123,7 +123,7 @@ export const StatusAssinatura = ({ contrato, leadTelefone, onStatusUpdate }: Sta
 
           <div className="flex flex-wrap gap-2">
             <Button
-              variant="outline"
+              variant="outline" className="bg-[hsl(var(--card))] border-[hsl(var(--border))] hover:bg-[hsl(var(--muted))]"
               size="sm"
               onClick={handleVerificarStatus}
               disabled={isLoading}
@@ -133,7 +133,7 @@ export const StatusAssinatura = ({ contrato, leadTelefone, onStatusUpdate }: Sta
             </Button>
 
             <Button
-              variant="outline"
+              variant="outline" className="bg-[hsl(var(--card))] border-[hsl(var(--border))] hover:bg-[hsl(var(--muted))]"
               size="sm"
               onClick={handleAbrirLink}
             >
@@ -143,7 +143,7 @@ export const StatusAssinatura = ({ contrato, leadTelefone, onStatusUpdate }: Sta
 
             {(contrato.telefone || leadTelefone) && contrato.status_assinatura !== 'assinado' && (
               <Button
-                variant="outline"
+                variant="outline" className="bg-[hsl(var(--card))] border-[hsl(var(--border))] hover:bg-[hsl(var(--muted))]"
                 size="sm"
                 onClick={handleEnviarWhatsApp}
                 disabled={isLoading}
@@ -155,7 +155,7 @@ export const StatusAssinatura = ({ contrato, leadTelefone, onStatusUpdate }: Sta
 
             {contrato.status_assinatura === 'assinado' && (
               <Button
-                variant="outline"
+                variant="outline" className="bg-[hsl(var(--card))] border-[hsl(var(--border))] hover:bg-[hsl(var(--muted))]"
                 size="sm"
                 onClick={handleDownloadPDF}
               >
@@ -169,3 +169,4 @@ export const StatusAssinatura = ({ contrato, leadTelefone, onStatusUpdate }: Sta
     </div>
   );
 };
+

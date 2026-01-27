@@ -58,7 +58,7 @@ const CreateNotificationForm = ({ onSuccess, onCancel }: CreateNotificationFormP
       <CardContent>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-[hsl(var(--muted-foreground))] mb-1">
               Título
             </label>
             <Input
@@ -70,7 +70,7 @@ const CreateNotificationForm = ({ onSuccess, onCancel }: CreateNotificationFormP
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-[hsl(var(--muted-foreground))] mb-1">
               Tipo
             </label>
             <Select
@@ -79,7 +79,7 @@ const CreateNotificationForm = ({ onSuccess, onCancel }: CreateNotificationFormP
                 setFormData(prev => ({ ...prev, tipo: value }))
               }
             >
-              <SelectTrigger>
+              <SelectTrigger className="bg-[hsl(var(--card))] border-[hsl(var(--border))] text-[hsl(var(--foreground))]">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -92,7 +92,7 @@ const CreateNotificationForm = ({ onSuccess, onCancel }: CreateNotificationFormP
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-[hsl(var(--muted-foreground))] mb-1">
               Mensagem
             </label>
             <Textarea
@@ -105,11 +105,11 @@ const CreateNotificationForm = ({ onSuccess, onCancel }: CreateNotificationFormP
           </div>
 
           <div className="flex space-x-3">
-            <Button type="submit" disabled={loading} className="flex-1">
+            <Button type="submit" disabled={loading} className="flex-1 bg-[hsl(var(--accent))] hover:bg-[hsl(var(--accent-hover))] text-[hsl(var(--accent-foreground))]">
               {loading ? 'Criando...' : 'Criar Notificação'}
             </Button>
             {onCancel && (
-              <Button type="button" variant="outline" onClick={onCancel}>
+              <Button type="button" variant="outline" className="bg-[hsl(var(--card))] border-[hsl(var(--border))] hover:bg-[hsl(var(--muted))]" onClick={onCancel}>
                 Cancelar
               </Button>
             )}
@@ -121,3 +121,4 @@ const CreateNotificationForm = ({ onSuccess, onCancel }: CreateNotificationFormP
 };
 
 export default CreateNotificationForm;
+

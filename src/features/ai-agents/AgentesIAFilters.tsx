@@ -73,31 +73,31 @@ export const AgentesIAFilters: React.FC<AgentesIAFiltersProps> = ({
         <div className="flex flex-col lg:flex-row gap-4 items-start lg:items-end">
           {/* Search Input */}
           <div className="flex-1 min-w-0">
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-sm font-medium text-[hsl(var(--muted-foreground))] mb-2">
               Buscar Agentes
             </label>
             <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-[hsl(var(--muted-foreground))]" />
               <Input
                 type="text"
                 placeholder="Nome, área jurídica ou descrição..."
                 value={localSearch}
                 onChange={handleSearchChange}
-                className="pl-10"
+                className="pl-10 bg-[hsl(var(--card))] border-[hsl(var(--border))] text-[hsl(var(--foreground))]"
               />
             </div>
           </div>
 
           {/* Status Filter */}
           <div className="w-full lg:w-48">
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-sm font-medium text-[hsl(var(--muted-foreground))] mb-2">
               Status
             </label>
             <Select
               value={filters.statusFilter}
               onValueChange={(value) => onFilterChange('statusFilter', value)}
             >
-              <SelectTrigger>
+              <SelectTrigger className="bg-[hsl(var(--card))] border-[hsl(var(--border))] text-[hsl(var(--foreground))]">
                 <SelectValue placeholder="Todos os status" />
               </SelectTrigger>
               <SelectContent>
@@ -110,14 +110,14 @@ export const AgentesIAFilters: React.FC<AgentesIAFiltersProps> = ({
 
           {/* Tipo Filter */}
           <div className="w-full lg:w-48">
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-sm font-medium text-[hsl(var(--muted-foreground))] mb-2">
               Tipo
             </label>
             <Select
               value={filters.tipoFilter}
               onValueChange={(value) => onFilterChange('tipoFilter', value)}
             >
-              <SelectTrigger>
+              <SelectTrigger className="bg-[hsl(var(--card))] border-[hsl(var(--border))] text-[hsl(var(--foreground))]">
                 <SelectValue placeholder="Todos os tipos" />
               </SelectTrigger>
               <SelectContent>
@@ -133,14 +133,14 @@ export const AgentesIAFilters: React.FC<AgentesIAFiltersProps> = ({
 
           {/* Area Filter */}
           <div className="w-full lg:w-48">
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-sm font-medium text-[hsl(var(--muted-foreground))] mb-2">
               Área Jurídica
             </label>
             <Select
               value={filters.areaFilter}
               onValueChange={(value) => onFilterChange('areaFilter', value)}
             >
-              <SelectTrigger>
+              <SelectTrigger className="bg-[hsl(var(--card))] border-[hsl(var(--border))] text-[hsl(var(--foreground))]">
                 <SelectValue placeholder="Todas as áreas" />
               </SelectTrigger>
               <SelectContent>
@@ -169,19 +169,19 @@ export const AgentesIAFilters: React.FC<AgentesIAFiltersProps> = ({
         </div>
 
         {/* Results Summary */}
-        <div className="mt-4 pt-4 border-t border-gray-200">
-          <div className="flex flex-wrap gap-4 text-sm text-gray-600">
+        <div className="mt-4 pt-4 border-t border-[hsl(var(--border))]">
+          <div className="flex flex-wrap gap-4 text-sm text-[hsl(var(--muted-foreground))]">
             <span>
               <strong>{totalFiltrados}</strong> de <strong>{totalAgentes}</strong> agentes
             </span>
-            <span className="text-green-600">
+            <span className="text-emerald-200">
               <strong>{agentesAtivos}</strong> ativos
             </span>
             {(filters.searchTerm || 
               filters.statusFilter !== 'todos' || 
               filters.tipoFilter !== 'todos' || 
               filters.areaFilter !== 'todas') && (
-              <span className="text-blue-600">
+              <span className="text-[hsl(var(--accent))]">
                 <Filter className="inline h-3 w-3 mr-1" />
                 Filtros aplicados
               </span>
@@ -192,3 +192,4 @@ export const AgentesIAFilters: React.FC<AgentesIAFiltersProps> = ({
     </Card>
   );
 };
+

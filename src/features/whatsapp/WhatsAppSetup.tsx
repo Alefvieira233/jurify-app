@@ -132,18 +132,18 @@ export default function WhatsAppSetup({ onConnectionSuccess }: WhatsAppSetupProp
   return (
     <div className="p-6 space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
-          <ShieldCheck className="h-7 w-7 text-green-600" />
+        <h1 className="text-2xl font-bold text-[hsl(var(--foreground))] flex items-center gap-2">
+          <ShieldCheck className="h-7 w-7 text-emerald-200" />
           WhatsApp Business API (Oficial)
         </h1>
-        <p className="text-gray-600 mt-1">
+        <p className="text-[hsl(var(--muted-foreground))] mt-1">
           Conecte-se via API oficial da Meta para garantir estabilidade e evitar banimentos.
         </p>
       </div>
 
-      <Alert className="border-blue-200 bg-blue-50">
-        <ExternalLink className="h-4 w-4 text-blue-600" />
-        <AlertDescription className="text-blue-900">
+      <Alert className="border-blue-500/30 bg-blue-500/10">
+        <ExternalLink className="h-4 w-4 text-blue-300" />
+        <AlertDescription className="text-[hsl(var(--foreground))]">
           Voce precisa de uma conta no{' '}
           <a
             href="https://developers.facebook.com/"
@@ -171,7 +171,7 @@ export default function WhatsAppSetup({ onConnectionSuccess }: WhatsAppSetupProp
               value={config.phoneNumberId}
               onChange={(e) => setConfig({ ...config, phoneNumberId: e.target.value })}
             />
-            <p className="text-xs text-gray-500">
+            <p className="text-xs text-[hsl(var(--muted-foreground))]">
               Encontrado na secao "API Setup" do painel da Meta.
             </p>
           </div>
@@ -185,7 +185,7 @@ export default function WhatsAppSetup({ onConnectionSuccess }: WhatsAppSetupProp
               value={config.accessToken}
               onChange={(e) => setConfig({ ...config, accessToken: e.target.value })}
             />
-            <p className="text-xs text-gray-500">Recomendamos usar um Token de Sistema para nao expirar.</p>
+            <p className="text-xs text-[hsl(var(--muted-foreground))]">Recomendamos usar um Token de Sistema para nao expirar.</p>
           </div>
 
           <div className="space-y-2">
@@ -195,14 +195,14 @@ export default function WhatsAppSetup({ onConnectionSuccess }: WhatsAppSetupProp
               value={config.verifyToken}
               onChange={(e) => setConfig({ ...config, verifyToken: e.target.value })}
             />
-            <p className="text-xs text-gray-500">
+            <p className="text-xs text-[hsl(var(--muted-foreground))]">
               Defina este mesmo valor na configuracao do Webhook na Meta.
             </p>
           </div>
 
-          <div className="bg-gray-100 p-4 rounded-md border border-gray-200">
-            <p className="text-sm font-medium text-gray-700 mb-2">Webhook URL para configurar na Meta:</p>
-            <code className="block bg-white p-2 rounded text-xs font-mono break-all border">
+          <div className="bg-[hsl(var(--surface-1))] p-4 rounded-md border border-[hsl(var(--border))]">
+            <p className="text-sm font-medium text-[hsl(var(--foreground))] mb-2">Webhook URL para configurar na Meta:</p>
+            <code className="block bg-[hsl(var(--card))] p-2 rounded text-xs font-mono break-all border border-[hsl(var(--border))]">
               https://[YOUR_PROJECT_REF].supabase.co/functions/v1/whatsapp-webhook
             </code>
           </div>
@@ -210,7 +210,7 @@ export default function WhatsAppSetup({ onConnectionSuccess }: WhatsAppSetupProp
           <Button
             onClick={handleSave}
             disabled={loading || !config.phoneNumberId || !config.accessToken}
-            className="w-full bg-green-600 hover:bg-green-700"
+            className="w-full bg-[hsl(var(--accent))] hover:bg-[hsl(var(--accent-hover))] text-[hsl(var(--accent-foreground))]"
           >
             {loading ? (
               <>
@@ -226,10 +226,12 @@ export default function WhatsAppSetup({ onConnectionSuccess }: WhatsAppSetupProp
           </Button>
 
           {saved && (
-            <p className="text-xs text-green-600 text-center">Configuracao salva para este tenant.</p>
+            <p className="text-xs text-emerald-200 text-center">Configuracao salva para este tenant.</p>
           )}
         </CardContent>
       </Card>
     </div>
   );
 }
+
+

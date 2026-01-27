@@ -1,4 +1,4 @@
-﻿import React, { useState, useCallback, useRef } from 'react';
+import React, { useState, useCallback, useRef } from 'react';
 import { Upload, X, FileText, Shield, CheckCircle, AlertTriangle, Loader2, Download, Eye } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -51,7 +51,7 @@ const UploadContratos: React.FC<UploadContratosProps> = ({
   const { user, profile } = useAuth();
   const supabaseAny = supabase as typeof supabase & { from: (table: string) => any };
 
-  // ValidaÃ§Ã£o de seguranÃ§a de arquivos
+  // Validação de segurança de arquivos
   const validarSegurancaArquivo = async (file: File): Promise<{ aprovado: boolean; mensagem: string; metadados: any }> => {
     return new Promise((resolve) => {
       const reader = new FileReader();
@@ -60,7 +60,7 @@ const UploadContratos: React.FC<UploadContratosProps> = ({
           const buffer = e.target?.result as ArrayBuffer;
           const bytes = new Uint8Array(buffer);
           
-          // ðŸš€ VALIDAÃ‡Ã•ES DE SEGURANÃ‡A ENTERPRISE
+          // 🚀 VALIDAÇÕES DE SEGURANÇA ENTERPRISE
           const validacoes = {
             // Verificar magic numbers (assinatura do arquivo)
             magicNumber: verificarMagicNumber(bytes, file.type),
@@ -68,10 +68,10 @@ const UploadContratos: React.FC<UploadContratosProps> = ({
             // Verificar tamanho suspeito
             tamanhoSuspeito: file.size > maxFileSize * 1024 * 1024,
             
-            // Verificar extensÃ£o vs tipo MIME
+            // Verificar extensão vs tipo MIME
             extensaoValida: verificarExtensaoTipo(file.name, file.type),
             
-            // Detectar padrÃµes maliciosos simples
+            // Detectar padrões maliciosos simples
             conteudoSuspeito: detectarConteudoSuspeito(bytes),
             
             // Metadados do arquivo
@@ -85,12 +85,12 @@ const UploadContratos: React.FC<UploadContratosProps> = ({
 
           let mensagem = '';
           if (!aprovado) {
-            if (!validacoes.magicNumber) mensagem += 'Tipo de arquivo invÃ¡lido. ';
-            if (validacoes.tamanhoSuspeito) mensagem += `Arquivo muito grande (mÃ¡x ${maxFileSize}MB). `;
-            if (!validacoes.extensaoValida) mensagem += 'ExtensÃ£o nÃ£o corresponde ao tipo. ';
-            if (validacoes.conteudoSuspeito) mensagem += 'ConteÃºdo suspeito detectado. ';
+            if (!validacoes.magicNumber) mensagem += 'Tipo de arquivo inválido. ';
+            if (validacoes.tamanhoSuspeito) mensagem += `Arquivo muito grande (máx ${maxFileSize}MB). `;
+            if (!validacoes.extensaoValida) mensagem += 'Extensão não corresponde ao tipo. ';
+            if (validacoes.conteudoSuspeito) mensagem += 'Conteúdo suspeito detectado. ';
           } else {
-            mensagem = 'Arquivo validado com sucesso âœ“';
+            mensagem = 'Arquivo validado com sucesso ✓';
           }
 
           resolve({
@@ -101,7 +101,7 @@ const UploadContratos: React.FC<UploadContratosProps> = ({
         } catch (error) {
           resolve({
             aprovado: false,
-            mensagem: 'Erro na validaÃ§Ã£o de seguranÃ§a',
+            mensagem: 'Erro na validação de segurança',
             metadados: {}
           });
         }
@@ -115,7 +115,7 @@ const UploadContratos: React.FC<UploadContratosProps> = ({
       'application/pdf': [[0x25, 0x50, 0x44, 0x46]], // %PDF
       'application/msword': [[0xD0, 0xCF, 0x11, 0xE0]], // MS Office
       'application/vnd.openxmlformats-officedocument.wordprocessingml.document': [[0x50, 0x4B, 0x03, 0x04]], // ZIP-based
-      'text/plain': [[0x00, 0x00, 0x00, 0x00]] // Texto (mais flexÃ­vel)
+      'text/plain': [[0x00, 0x00, 0x00, 0x00]] // Texto (mais flexível)
     };
 
     const expectedMagic = magicNumbers[mimeType];
@@ -139,13 +139,13 @@ const UploadContratos: React.FC<UploadContratosProps> = ({
   };
 
   const detectarConteudoSuspeito = (bytes: Uint8Array): boolean => {
-    // PadrÃµes suspeitos bÃ¡sicos
+    // Padrões suspeitos básicos
     const padroesProibidos = [
       // Scripts maliciosos
       [0x3C, 0x73, 0x63, 0x72, 0x69, 0x70, 0x74], // <script
       [0x6A, 0x61, 0x76, 0x61, 0x73, 0x63, 0x72, 0x69, 0x70, 0x74], // javascript
-      // ExecutÃ¡veis
-      [0x4D, 0x5A], // MZ (executÃ¡vel)
+      // Executáveis
+      [0x4D, 0x5A], // MZ (executável)
       [0x7F, 0x45, 0x4C, 0x46], // ELF
     ];
 
@@ -175,8 +175,8 @@ const UploadContratos: React.FC<UploadContratosProps> = ({
   const processarArquivos = async (files: File[]) => {
     if (!user || !profile?.tenant_id) {
       toast({
-        title: 'Erro de autenticaÃ§Ã£o',
-        description: 'UsuÃ¡rio nÃ£o autenticado',
+        title: 'Erro de autenticação',
+        description: 'Usuário não autenticado',
         variant: 'destructive'
       });
       return;
@@ -185,7 +185,7 @@ const UploadContratos: React.FC<UploadContratosProps> = ({
     if (arquivos.length + files.length > maxFiles) {
       toast({
         title: 'Limite excedido',
-        description: `MÃ¡ximo ${maxFiles} arquivos permitidos`,
+        description: `Máximo ${maxFiles} arquivos permitidos`,
         variant: 'destructive'
       });
       return;
@@ -211,7 +211,7 @@ const UploadContratos: React.FC<UploadContratosProps> = ({
 
   const processarArquivoIndividual = async (arquivo: ArquivoUpload) => {
     try {
-      // 1. ValidaÃ§Ã£o de seguranÃ§a
+      // 1. Validação de segurança
       atualizarStatusArquivo(arquivo.id, 'validando', 10);
       
       const validacao = await validarSegurancaArquivo(arquivo.file);
@@ -223,7 +223,7 @@ const UploadContratos: React.FC<UploadContratosProps> = ({
 
       atualizarStatusArquivo(arquivo.id, 'aprovado', 30, validacao.mensagem);
 
-      // 2. Gerar hash de seguranÃ§a
+      // 2. Gerar hash de segurança
       const hash = await gerarHashSeguranca(arquivo.file);
       
       // 3. Upload para Supabase Storage
@@ -240,7 +240,7 @@ const UploadContratos: React.FC<UploadContratosProps> = ({
 
       if (uploadError) throw uploadError;
 
-      // 4. Obter URL pÃºblica
+      // 4. Obter URL pública
       const { data: urlData } = supabaseAny.storage
         .from('contratos')
         .getPublicUrl(nomeArquivoSeguro);
@@ -274,12 +274,12 @@ const UploadContratos: React.FC<UploadContratosProps> = ({
       });
 
       toast({
-        title: 'Upload concluÃ­do',
+        title: 'Upload concluído',
         description: `${arquivo.nome} foi enviado com sucesso`
       });
 
     } catch (error) {
-      console.error('âŒ Erro no upload:', error);
+      console.error('❌ Erro no upload:', error);
       atualizarStatusArquivo(arquivo.id, 'erro', 100, 'Erro no upload do arquivo');
       
       toast({
@@ -334,8 +334,8 @@ const UploadContratos: React.FC<UploadContratosProps> = ({
     
     if (filesValidos.length !== files.length) {
       toast({
-        title: 'Arquivos invÃ¡lidos',
-        description: `Apenas arquivos ${acceptedTypes.join(', ')} sÃ£o permitidos`,
+        title: 'Arquivos inválidos',
+        description: `Apenas arquivos ${acceptedTypes.join(', ')} são permitidos`,
         variant: 'destructive'
       });
     }
@@ -354,27 +354,27 @@ const UploadContratos: React.FC<UploadContratosProps> = ({
 
   const getStatusIcon = (status: ArquivoUpload['status']) => {
     switch (status) {
-      case 'pendente': return <FileText className="h-4 w-4 text-gray-500" />;
+      case 'pendente': return <FileText className="h-4 w-4 text-[hsl(var(--muted-foreground))]" />;
       case 'validando': return <Loader2 className="h-4 w-4 text-blue-500 animate-spin" />;
       case 'aprovado': return <Shield className="h-4 w-4 text-green-500" />;
       case 'rejeitado': return <AlertTriangle className="h-4 w-4 text-red-500" />;
       case 'enviando': return <Upload className="h-4 w-4 text-blue-500" />;
       case 'concluido': return <CheckCircle className="h-4 w-4 text-green-500" />;
       case 'erro': return <AlertTriangle className="h-4 w-4 text-red-500" />;
-      default: return <FileText className="h-4 w-4 text-gray-500" />;
+      default: return <FileText className="h-4 w-4 text-[hsl(var(--muted-foreground))]" />;
     }
   };
 
   const getStatusColor = (status: ArquivoUpload['status']) => {
     switch (status) {
-      case 'pendente': return 'bg-gray-100 text-gray-800';
+      case 'pendente': return 'bg-slate-500/15 text-slate-200 border border-slate-400/30';
       case 'validando': return 'bg-blue-100 text-blue-800';
       case 'aprovado': return 'bg-green-100 text-green-800';
       case 'rejeitado': return 'bg-red-100 text-red-800';
       case 'enviando': return 'bg-blue-100 text-blue-800';
-      case 'concluido': return 'bg-green-100 text-green-800';
-      case 'erro': return 'bg-red-100 text-red-800';
-      default: return 'bg-gray-100 text-gray-800';
+      case 'concluido': return 'bg-emerald-500/15 text-emerald-200 border border-emerald-400/30';
+      case 'erro': return 'bg-red-500/15 text-red-200 border border-red-400/30';
+      default: return 'bg-slate-500/15 text-slate-200 border border-slate-400/30';
     }
   };
 
@@ -388,15 +388,15 @@ const UploadContratos: React.FC<UploadContratosProps> = ({
 
   return (
     <div className="space-y-6">
-      {/* Ãrea de Upload */}
+      {/* Área de Upload */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Shield className="h-5 w-5" />
             Upload Seguro de Contratos
           </CardTitle>
-          <p className="text-sm text-gray-600">
-            Sistema enterprise com validaÃ§Ã£o de seguranÃ§a, detecÃ§Ã£o de malware e controle de integridade
+          <p className="text-sm text-[hsl(var(--muted-foreground))]">
+            Sistema enterprise com validação de segurança, detecção de malware e controle de integridade
           </p>
         </CardHeader>
         <CardContent>
@@ -404,32 +404,32 @@ const UploadContratos: React.FC<UploadContratosProps> = ({
             className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors cursor-pointer
               ${isDragging 
                 ? 'border-blue-500 bg-blue-50' 
-                : 'border-gray-300 hover:border-gray-400'
+                : 'border-[hsl(var(--border))] hover:border-[hsl(var(--accent)_/_0.5)]'
               }`}
             onDragOver={handleDragOver}
             onDragLeave={handleDragLeave}
             onDrop={handleDrop}
             onClick={() => fileInputRef.current?.click()}
           >
-            <Upload className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-            <h3 className="text-lg font-semibold text-gray-900 mb-2">
+            <Upload className="h-12 w-12 text-[hsl(var(--muted-foreground))] mx-auto mb-4" />
+            <h3 className="text-lg font-semibold text-[hsl(var(--foreground))] mb-2">
               Arraste arquivos aqui ou clique para selecionar
             </h3>
-            <p className="text-gray-600 mb-4">
-              Formatos aceitos: {acceptedTypes.join(', ')} â€¢ MÃ¡ximo {maxFileSize}MB por arquivo
+            <p className="text-[hsl(var(--muted-foreground))] mb-4">
+              Formatos aceitos: {acceptedTypes.join(', ')} • Máximo {maxFileSize}MB por arquivo
             </p>
-            <div className="flex items-center justify-center gap-4 text-xs text-gray-500">
+            <div className="flex items-center justify-center gap-4 text-xs text-[hsl(var(--muted-foreground))]">
               <span className="flex items-center gap-1">
                 <Shield className="h-3 w-3" />
-                ValidaÃ§Ã£o de seguranÃ§a
+                Validação de segurança
               </span>
               <span className="flex items-center gap-1">
                 <CheckCircle className="h-3 w-3" />
-                DetecÃ§Ã£o de malware
+                Detecção de malware
               </span>
               <span className="flex items-center gap-1">
                 <FileText className="h-3 w-3" />
-                VerificaÃ§Ã£o de integridade
+                Verificação de integridade
               </span>
             </div>
           </div>
@@ -464,9 +464,9 @@ const UploadContratos: React.FC<UploadContratosProps> = ({
                     <div className="flex items-center gap-3">
                       {getStatusIcon(arquivo.status)}
                       <div>
-                        <p className="font-medium text-gray-900">{arquivo.nome}</p>
-                        <p className="text-sm text-gray-500">
-                          {formatarTamanho(arquivo.tamanho)} â€¢ {arquivo.tipo}
+                        <p className="font-medium text-[hsl(var(--foreground))]">{arquivo.nome}</p>
+                        <p className="text-sm text-[hsl(var(--muted-foreground))]">
+                          {formatarTamanho(arquivo.tamanho)} • {arquivo.tipo}
                         </p>
                       </div>
                     </div>
@@ -509,7 +509,7 @@ const UploadContratos: React.FC<UploadContratosProps> = ({
                   )}
 
                   {arquivo.hashSeguranca && (
-                    <p className="text-xs text-gray-500 mt-1">
+                    <p className="text-xs text-[hsl(var(--muted-foreground))] mt-1">
                       Hash: {arquivo.hashSeguranca.substring(0, 16)}...
                     </p>
                   )}
@@ -524,4 +524,5 @@ const UploadContratos: React.FC<UploadContratosProps> = ({
 };
 
 export default UploadContratos;
+
 

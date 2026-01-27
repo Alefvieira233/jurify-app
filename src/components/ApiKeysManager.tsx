@@ -204,7 +204,7 @@ const ApiKeysManager = () => {
       <div className="flex items-center justify-center h-64">
         <div className="text-center">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mx-auto mb-4"></div>
-          <p className="text-gray-600">Carregando API keys...</p>
+          <p className="text-[hsl(var(--muted-foreground))]">Carregando API keys...</p>
         </div>
       </div>
     );
@@ -214,13 +214,13 @@ const ApiKeysManager = () => {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <div>
-          <h2 className="text-xl font-semibold text-gray-900">Gerenciamento de API Keys</h2>
-          <p className="text-gray-600">Gerencie as chaves de API para integracao com agentes IA</p>
+          <h2 className="text-xl font-semibold text-[hsl(var(--foreground))]">Gerenciamento de API Keys</h2>
+          <p className="text-[hsl(var(--muted-foreground))]">Gerencie as chaves de API para integracao com agentes IA</p>
         </div>
 
         <Dialog open={showNewKeyDialog} onOpenChange={setShowNewKeyDialog}>
           <DialogTrigger asChild>
-            <Button className="bg-blue-600 hover:bg-blue-700">
+            <Button className="bg-[hsl(var(--accent))] hover:bg-[hsl(var(--accent-hover))] text-[hsl(var(--accent-foreground))]">
               <Plus className="h-4 w-4 mr-2" />
               Nova API Key
             </Button>
@@ -243,10 +243,10 @@ const ApiKeysManager = () => {
                 />
               </div>
               <div className="flex justify-end space-x-2">
-                <Button variant="outline" onClick={() => setShowNewKeyDialog(false)}>
+                <Button variant="outline" className="bg-[hsl(var(--card))] border-[hsl(var(--border))] hover:bg-[hsl(var(--muted))]" onClick={() => setShowNewKeyDialog(false)}>
                   Cancelar
                 </Button>
-                <Button onClick={handleCreateKey} disabled={createKeyMutation.isPending}>
+                <Button onClick={handleCreateKey} disabled={createKeyMutation.isPending} className="bg-[hsl(var(--accent))] hover:bg-[hsl(var(--accent-hover))] text-[hsl(var(--accent-foreground))]">
                   {createKeyMutation.isPending ? 'Criando...' : 'Criar API Key'}
                 </Button>
               </div>
@@ -258,7 +258,7 @@ const ApiKeysManager = () => {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-gray-600">Total de Keys</CardTitle>
+            <CardTitle className="text-sm font-medium text-[hsl(var(--muted-foreground))]">Total de Keys</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{apiKeys?.length || 0}</div>
@@ -267,10 +267,10 @@ const ApiKeysManager = () => {
 
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-gray-600">Keys Ativas</CardTitle>
+            <CardTitle className="text-sm font-medium text-[hsl(var(--muted-foreground))]">Keys Ativas</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-green-600">
+            <div className="text-2xl font-bold text-emerald-200">
               {apiKeys?.filter((key) => key.ativo).length || 0}
             </div>
           </CardContent>
@@ -278,10 +278,10 @@ const ApiKeysManager = () => {
 
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-gray-600">Keys Inativas</CardTitle>
+            <CardTitle className="text-sm font-medium text-[hsl(var(--muted-foreground))]">Keys Inativas</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-red-600">
+            <div className="text-2xl font-bold text-red-300">
               {apiKeys?.filter((key) => !key.ativo).length || 0}
             </div>
           </CardContent>
@@ -290,10 +290,10 @@ const ApiKeysManager = () => {
 
       {!apiKeys || apiKeys.length === 0 ? (
         <div className="text-center py-8">
-          <Key className="h-12 w-12 mx-auto text-gray-400 mb-4" />
-          <h3 className="text-lg font-medium text-gray-900 mb-2">Nenhuma API key encontrada</h3>
-          <p className="text-gray-600 mb-4">Crie sua primeira API key para comecar a usar os agentes IA.</p>
-          <Button onClick={() => setShowNewKeyDialog(true)} className="bg-blue-600 hover:bg-blue-700">
+          <Key className="h-12 w-12 mx-auto text-[hsl(var(--muted-foreground))] mb-4" />
+          <h3 className="text-lg font-medium text-[hsl(var(--foreground))] mb-2">Nenhuma API key encontrada</h3>
+          <p className="text-[hsl(var(--muted-foreground))] mb-4">Crie sua primeira API key para comecar a usar os agentes IA.</p>
+          <Button onClick={() => setShowNewKeyDialog(true)} className="bg-[hsl(var(--accent))] hover:bg-[hsl(var(--accent-hover))] text-[hsl(var(--accent-foreground))]">
             <Plus className="h-4 w-4 mr-2" />
             Criar primeira API key
           </Button>
@@ -315,13 +315,13 @@ const ApiKeysManager = () => {
                 <TableRow key={key.id}>
                   <TableCell>
                     <div className="flex items-center space-x-2">
-                      <Key className="h-4 w-4 text-blue-500" />
+                      <Key className="h-4 w-4 text-blue-300" />
                       <span className="font-medium">{key.nome}</span>
                     </div>
                   </TableCell>
                   <TableCell>
                     <div className="flex items-center space-x-2">
-                      <code className="bg-gray-100 px-2 py-1 rounded text-sm font-mono">
+                      <code className="bg-[hsl(var(--muted))] border border-[hsl(var(--border))] px-2 py-1 rounded text-sm font-mono">
                         {visibleKeys.has(key.id) ? key.key_value : maskKey(key.key_value)}
                       </code>
                       <Button variant="ghost" size="sm" onClick={() => toggleKeyVisibility(key.id)}>
@@ -339,13 +339,13 @@ const ApiKeysManager = () => {
                   <TableCell>
                     <Badge
                       variant={key.ativo ? 'default' : 'secondary'}
-                      className={key.ativo ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-600'}
+                      className={key.ativo ? 'bg-emerald-500/15 text-emerald-200 border border-emerald-400/30' : 'bg-slate-500/15 text-slate-200 border border-slate-400/30'}
                     >
                       {key.ativo ? 'Ativa' : 'Inativa'}
                     </Badge>
                   </TableCell>
                   <TableCell>
-                    <span className="text-sm text-gray-500">
+                    <span className="text-sm text-[hsl(var(--muted-foreground))]">
                       {new Date(key.created_at).toLocaleDateString('pt-BR')}
                     </span>
                   </TableCell>
@@ -358,9 +358,9 @@ const ApiKeysManager = () => {
                         disabled={toggleStatusMutation.isPending}
                       >
                         {key.ativo ? (
-                          <PowerOff className="h-4 w-4 text-red-600" />
+                          <PowerOff className="h-4 w-4 text-red-300" />
                         ) : (
-                          <Power className="h-4 w-4 text-green-600" />
+                          <Power className="h-4 w-4 text-emerald-200" />
                         )}
                       </Button>
                       <Button
@@ -368,9 +368,9 @@ const ApiKeysManager = () => {
                         size="sm"
                         onClick={() => deleteKeyMutation.mutate(key.id)}
                         disabled={deleteKeyMutation.isPending}
-                        className="hover:bg-red-50"
+                        className="hover:bg-red-500/10"
                       >
-                        <Trash2 className="h-4 w-4 text-red-600" />
+                        <Trash2 className="h-4 w-4 text-red-300" />
                       </Button>
                     </div>
                   </TableCell>
@@ -385,3 +385,9 @@ const ApiKeysManager = () => {
 };
 
 export default ApiKeysManager;
+
+
+
+
+
+

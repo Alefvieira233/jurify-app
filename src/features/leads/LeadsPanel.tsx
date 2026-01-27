@@ -38,14 +38,14 @@ const LeadsPanel = () => {
 
   const getStatusColor = (status: string) => {
     const colors = {
-      novo_lead: 'bg-blue-100 text-blue-800',
-      em_qualificacao: 'bg-yellow-100 text-yellow-800',
-      proposta_enviada: 'bg-purple-100 text-purple-800',
-      contrato_assinado: 'bg-green-100 text-green-800',
-      em_atendimento: 'bg-indigo-100 text-indigo-800',
-      lead_perdido: 'bg-red-100 text-red-800'
+      novo_lead: 'bg-blue-500/15 text-blue-200 border border-blue-400/30',
+      em_qualificacao: 'bg-amber-500/15 text-amber-200 border border-amber-400/30',
+      proposta_enviada: 'bg-purple-500/15 text-purple-200 border border-purple-400/30',
+      contrato_assinado: 'bg-emerald-500/15 text-emerald-200 border border-emerald-400/30',
+      em_atendimento: 'bg-cyan-500/15 text-cyan-200 border border-cyan-400/30',
+      lead_perdido: 'bg-red-500/15 text-red-200 border border-red-400/30'
     };
-    return colors[status] || 'bg-gray-100 text-gray-800';
+    return colors[status] || 'bg-slate-500/15 text-slate-200 border border-slate-400/30';
   };
 
   const getStatusLabel = (status: string) => {
@@ -120,7 +120,7 @@ const LeadsPanel = () => {
             <div className="flex justify-between items-center">
               <div>
                 <CardTitle className="text-2xl">Gestao de Leads</CardTitle>
-                <p className="text-gray-600">Gerencie seus leads e oportunidades</p>
+                <p className="text-[hsl(var(--muted-foreground))]">Gerencie seus leads e oportunidades</p>
               </div>
               <Skeleton className="h-10 w-32" />
             </div>
@@ -165,7 +165,7 @@ const LeadsPanel = () => {
             <div className="flex justify-between items-center">
               <div>
                 <CardTitle className="text-2xl">Gestao de Leads</CardTitle>
-                <p className="text-gray-600">Gerencie seus leads e oportunidades</p>
+                <p className="text-[hsl(var(--muted-foreground))]">Gerencie seus leads e oportunidades</p>
               </div>
               <Button
                 className="bg-amber-500 hover:bg-amber-600"
@@ -216,7 +216,7 @@ const LeadsPanel = () => {
             <div className="flex justify-between items-center">
               <div>
                 <CardTitle className="text-2xl">Gestao de Leads</CardTitle>
-                <p className="text-gray-600">Gerencie seus leads e oportunidades</p>
+                <p className="text-[hsl(var(--muted-foreground))]">Gerencie seus leads e oportunidades</p>
               </div>
               <Button
                 className="bg-amber-500 hover:bg-amber-600"
@@ -279,12 +279,12 @@ const LeadsPanel = () => {
 
           <div className="flex gap-3">
             {/* View Toggle */}
-            <div className="flex bg-gray-100 p-1 rounded-lg border border-gray-200">
+            <div className="flex bg-[hsl(var(--muted))] p-1 rounded-lg border border-[hsl(var(--border))]">
               <Button
                 variant="ghost"
                 size="sm"
                 onClick={() => setViewMode('list')}
-                className={`h-8 px-2 ${viewMode === 'list' ? 'bg-white shadow-sm text-primary' : 'text-gray-500 hover:text-gray-700'}`}
+                className={`h-8 px-2 ${viewMode === 'list' ? 'bg-[hsl(var(--card))] shadow-sm text-[hsl(var(--accent))]' : 'text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))]'}`}
               >
                 <LayoutList className="h-4 w-4" />
               </Button>
@@ -292,7 +292,7 @@ const LeadsPanel = () => {
                 variant="ghost"
                 size="sm"
                 onClick={() => setViewMode('kanban')}
-                className={`h-8 px-2 ${viewMode === 'kanban' ? 'bg-white shadow-sm text-primary' : 'text-gray-500 hover:text-gray-700'}`}
+                className={`h-8 px-2 ${viewMode === 'kanban' ? 'bg-[hsl(var(--card))] shadow-sm text-[hsl(var(--accent))]' : 'text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))]'}`}
               >
                 <LayoutGrid className="h-4 w-4" />
               </Button>
@@ -303,7 +303,7 @@ const LeadsPanel = () => {
               onClick={handleRetry}
               variant="outline"
               size="sm"
-              className="relative group/btn overflow-hidden border-[hsl(var(--border))] hover:border-[hsl(var(--accent)_/_0.5)] transition-all duration-500"
+              className="relative group/btn overflow-hidden border-[hsl(var(--border))] bg-[hsl(var(--card))] text-[hsl(var(--foreground))] hover:text-[hsl(var(--accent))] hover:bg-[hsl(var(--muted))] hover:border-[hsl(var(--accent)_/_0.5)] transition-all duration-500"
               aria-label="Atualizar lista de leads"
             >
               <div className="absolute inset-0 bg-gradient-to-r from-transparent via-[hsl(var(--accent)_/_0.1)] to-transparent -translate-x-full group-hover/btn:translate-x-full transition-transform duration-1000" />
@@ -333,18 +333,18 @@ const LeadsPanel = () => {
         <CardContent className="p-4">
           <div className="flex gap-4">
             <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-[hsl(var(--muted-foreground))] h-4 w-4" />
               <Input
                 placeholder="Buscar por nome do lead..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10"
+                className="pl-10 bg-[hsl(var(--card))] border-[hsl(var(--border))] text-[hsl(var(--foreground))]"
               />
             </div>
             <select
               value={filterStatus}
               onChange={(e) => setFilterStatus(e.target.value)}
-              className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent"
+              className="px-4 py-2 border border-[hsl(var(--border))] bg-[hsl(var(--card))] text-[hsl(var(--foreground))] rounded-lg focus:ring-2 focus:ring-[hsl(var(--accent))] focus:border-transparent"
             >
               <option value="">Todos os Status</option>
               <option value="novo_lead">Novo Lead</option>
@@ -403,36 +403,36 @@ const LeadsPanel = () => {
                       </div>
                     </div>
 
-                    <div className="grid md:grid-cols-2 gap-4 text-sm text-gray-600">
+                    <div className="grid md:grid-cols-2 gap-4 text-sm text-[hsl(var(--muted-foreground))]">
                       <div>
-                        <span className="font-medium">Telefone:</span> {lead.telefone || 'N/A'}
+                        <span className="font-medium text-[hsl(var(--foreground))]">Telefone:</span> {lead.telefone || 'N/A'}
                       </div>
                       <div>
-                        <span className="font-medium">Email:</span> {lead.email || 'N/A'}
+                        <span className="font-medium text-[hsl(var(--foreground))]">Email:</span> {lead.email || 'N/A'}
                       </div>
                       <div>
-                        <span className="font-medium">Area Juridica:</span> {lead.area_juridica}
+                        <span className="font-medium text-[hsl(var(--foreground))]">Area Juridica:</span> {lead.area_juridica}
                       </div>
                       <div>
-                        <span className="font-medium">Responsavel:</span> {lead.responsavel}
+                        <span className="font-medium text-[hsl(var(--foreground))]">Responsavel:</span> {lead.responsavel}
                       </div>
                       <div>
-                        <span className="font-medium">Origem:</span> {lead.origem}
+                        <span className="font-medium text-[hsl(var(--foreground))]">Origem:</span> {lead.origem}
                       </div>
                       {lead.valor_causa && (
                         <div>
-                          <span className="font-medium">Valor da Causa:</span> R$ {Number(lead.valor_causa).toLocaleString('pt-BR')}
+                          <span className="font-medium text-[hsl(var(--foreground))]">Valor da Causa:</span> R$ {Number(lead.valor_causa).toLocaleString('pt-BR')}
                         </div>
                       )}
                     </div>
 
                     {lead.observacoes && (
-                      <div className="text-sm text-gray-600">
-                        <span className="font-medium">Observações:</span> {lead.observacoes}
+                      <div className="text-sm text-[hsl(var(--muted-foreground))]">
+                        <span className="font-medium text-[hsl(var(--foreground))]">Observações:</span> {lead.observacoes}
                       </div>
                     )}
 
-                    <div className="text-xs text-gray-500">
+                    <div className="text-xs text-[hsl(var(--muted-foreground))]">
                       Criado em: {new Date(lead.created_at).toLocaleDateString('pt-BR')}
                     </div>
                   </div>
@@ -443,7 +443,7 @@ const LeadsPanel = () => {
                       variant="outline"
                       size="sm"
                       onClick={() => handleViewTimeline(lead.id, lead.nome_completo)}
-                      className="relative group/btn overflow-hidden border-[hsl(var(--border))] hover:border-[hsl(var(--accent)_/_0.5)] transition-all duration-500"
+                      className="relative group/btn overflow-hidden border-[hsl(var(--border))] bg-[hsl(var(--card))] text-[hsl(var(--foreground))] hover:text-[hsl(var(--accent))] hover:bg-[hsl(var(--muted))] hover:border-[hsl(var(--accent)_/_0.5)] transition-all duration-500"
                       aria-label="Ver timeline de conversas"
                     >
                       <div className="absolute inset-0 bg-gradient-to-r from-transparent via-[hsl(var(--accent)_/_0.1)] to-transparent -translate-x-full group-hover/btn:translate-x-full transition-transform duration-1000" />
@@ -454,7 +454,7 @@ const LeadsPanel = () => {
                     <Button
                       variant="outline"
                       size="sm"
-                      className="relative group/btn overflow-hidden border-[hsl(var(--border))] hover:border-blue-500/50 transition-all duration-500"
+                      className="relative group/btn overflow-hidden border-[hsl(var(--border))] bg-[hsl(var(--card))] text-[hsl(var(--foreground))] hover:text-blue-300 hover:bg-[hsl(var(--muted))] hover:border-blue-500/50 transition-all duration-500"
                       aria-label="Visualizar detalhes do lead"
                     >
                       <div className="absolute inset-0 bg-gradient-to-r from-transparent via-blue-500/10 to-transparent -translate-x-full group-hover/btn:translate-x-full transition-transform duration-1000" />
@@ -466,7 +466,7 @@ const LeadsPanel = () => {
                       variant="outline"
                       size="sm"
                       onClick={() => handleEditLead(lead)}
-                      className="relative group/btn overflow-hidden border-[hsl(var(--border))] hover:border-purple-500/50 transition-all duration-500"
+                      className="relative group/btn overflow-hidden border-[hsl(var(--border))] bg-[hsl(var(--card))] text-[hsl(var(--foreground))] hover:text-purple-300 hover:bg-[hsl(var(--muted))] hover:border-purple-500/50 transition-all duration-500"
                       aria-label="Editar lead"
                     >
                       <div className="absolute inset-0 bg-gradient-to-r from-transparent via-purple-500/10 to-transparent -translate-x-full group-hover/btn:translate-x-full transition-transform duration-1000" />
@@ -478,7 +478,7 @@ const LeadsPanel = () => {
                       variant="outline"
                       size="sm"
                       onClick={() => handleDeleteLead(lead.id, lead.nome_completo)}
-                      className="relative group/btn overflow-hidden border-[hsl(var(--border))] hover:border-red-500/50 text-red-600 hover:text-red-700 transition-all duration-500"
+                      className="relative group/btn overflow-hidden border-[hsl(var(--border))] bg-[hsl(var(--card))] text-red-400 hover:text-red-300 hover:bg-[hsl(var(--muted))] hover:border-red-500/50 transition-all duration-500"
                       aria-label="Excluir lead"
                     >
                       <div className="absolute inset-0 bg-gradient-to-r from-transparent via-red-500/10 to-transparent -translate-x-full group-hover/btn:translate-x-full transition-transform duration-1000" />
@@ -546,3 +546,4 @@ const LeadsPanel = () => {
 };
 
 export default LeadsPanel;
+

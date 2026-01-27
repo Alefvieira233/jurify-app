@@ -50,7 +50,7 @@ const AgentesIAManager = () => {
   } = useAgentesIAFilters(agentes);
 
   const tiposAgente = [
-    { value: 'chat_interno', label: 'Chat Interno', icon: Bot, color: 'text-blue-500' },
+    { value: 'chat_interno', label: 'Chat Interno', icon: Bot, color: 'text-blue-300' },
     { value: 'analise_dados', label: 'Analise de Dados', icon: BarChart, color: 'text-green-500' },
     { value: 'api_externa', label: 'API Externa', icon: Zap, color: 'text-purple-500' }
   ];
@@ -120,7 +120,7 @@ const AgentesIAManager = () => {
     return (
       <div className="space-y-6">
         <div className="flex justify-between items-center">
-          <h1 className="text-2xl font-bold text-gray-900">Agentes de IA</h1>
+          <h1 className="text-2xl font-bold text-[hsl(var(--foreground))]">Agentes de IA</h1>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {[1, 2, 3].map((i) => (
@@ -146,7 +146,7 @@ const AgentesIAManager = () => {
     return (
       <div className="space-y-6">
         <div className="flex justify-between items-center">
-          <h1 className="text-2xl font-bold text-gray-900">Agentes de IA</h1>
+          <h1 className="text-2xl font-bold text-[hsl(var(--foreground))]">Agentes de IA</h1>
         </div>
         <Card className="border-red-200 bg-red-50">
           <CardContent className="p-6 text-center">
@@ -169,10 +169,10 @@ const AgentesIAManager = () => {
       {/* Header */}
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Agentes de IA</h1>
-          <p className="text-gray-600">Gerencie seus assistentes inteligentes</p>
+          <h1 className="text-2xl font-bold text-[hsl(var(--foreground))]">Agentes de IA</h1>
+          <p className="text-[hsl(var(--muted-foreground))]">Gerencie seus assistentes inteligentes</p>
         </div>
-        <Button onClick={handleCreateNew} className="bg-blue-600 hover:bg-blue-700">
+        <Button onClick={handleCreateNew} className="bg-[hsl(var(--accent))] hover:bg-[hsl(var(--accent-hover))] text-[hsl(var(--accent-foreground))]">
           <Plus className="h-4 w-4 mr-2" />
           Novo Agente
         </Button>
@@ -183,10 +183,10 @@ const AgentesIAManager = () => {
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center">
-              <Bot className="h-8 w-8 text-blue-500" />
+              <Bot className="h-8 w-8 text-blue-300" />
               <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">Total</p>
-                <p className="text-2xl font-bold text-gray-900">{totalAgentes}</p>
+                <p className="text-sm font-medium text-[hsl(var(--muted-foreground))]">Total</p>
+                <p className="text-2xl font-bold text-[hsl(var(--foreground))]">{totalAgentes}</p>
               </div>
             </div>
           </CardContent>
@@ -195,12 +195,12 @@ const AgentesIAManager = () => {
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center">
-              <div className="h-8 w-8 bg-green-100 rounded-full flex items-center justify-center">
+              <div className="h-8 w-8 bg-emerald-500/15 border border-emerald-400/30 rounded-full flex items-center justify-center">
                 <div className="h-3 w-3 bg-green-500 rounded-full"></div>
               </div>
               <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">Ativos</p>
-                <p className="text-2xl font-bold text-green-600">{agentesAtivos}</p>
+                <p className="text-sm font-medium text-[hsl(var(--muted-foreground))]">Ativos</p>
+                <p className="text-2xl font-bold text-emerald-200">{agentesAtivos}</p>
               </div>
             </div>
           </CardContent>
@@ -209,12 +209,12 @@ const AgentesIAManager = () => {
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center">
-              <div className="h-8 w-8 bg-blue-100 rounded-full flex items-center justify-center">
+              <div className="h-8 w-8 bg-blue-500/15 border border-blue-400/30 rounded-full flex items-center justify-center">
                 📊
               </div>
               <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">Execuções Hoje</p>
-                <p className="text-2xl font-bold text-blue-600">
+                <p className="text-sm font-medium text-[hsl(var(--muted-foreground))]">Execuções Hoje</p>
+                <p className="text-2xl font-bold text-blue-300">
                   {metricsLoading ? '...' : metrics.execucoesHoje}
                 </p>
               </div>
@@ -225,12 +225,12 @@ const AgentesIAManager = () => {
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center">
-              <div className="h-8 w-8 bg-orange-100 rounded-full flex items-center justify-center">
+              <div className="h-8 w-8 bg-orange-500/15 border border-orange-400/30 rounded-full flex items-center justify-center">
                 ⏰
               </div>
               <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">Última Execução</p>
-                <p className="text-sm font-bold text-gray-900">
+                <p className="text-sm font-medium text-[hsl(var(--muted-foreground))]">Última Execução</p>
+                <p className="text-sm font-bold text-[hsl(var(--foreground))]">
                   {metricsLoading ? '...' : ultimaExecucaoFormatada}
                 </p>
               </div>
@@ -246,10 +246,10 @@ const AgentesIAManager = () => {
             <CardContent className="p-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-gray-600">Execuções do Mês</p>
-                  <p className="text-2xl font-bold text-purple-600">{metrics.execucoesMes}</p>
+                  <p className="text-sm font-medium text-[hsl(var(--muted-foreground))]">Execuções do Mês</p>
+                  <p className="text-2xl font-bold text-purple-200">{metrics.execucoesMes}</p>
                 </div>
-                <div className="h-8 w-8 bg-purple-100 rounded-full flex items-center justify-center">
+                <div className="h-8 w-8 bg-purple-500/15 border border-purple-400/30 rounded-full flex items-center justify-center">
                   📈
                 </div>
               </div>
@@ -260,10 +260,10 @@ const AgentesIAManager = () => {
             <CardContent className="p-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-gray-600">Taxa de Sucesso</p>
-                  <p className="text-2xl font-bold text-green-600">{metrics.sucessoRate}%</p>
+                  <p className="text-sm font-medium text-[hsl(var(--muted-foreground))]">Taxa de Sucesso</p>
+                  <p className="text-2xl font-bold text-emerald-200">{metrics.sucessoRate}%</p>
                 </div>
-                <div className="h-8 w-8 bg-green-100 rounded-full flex items-center justify-center">
+                <div className="h-8 w-8 bg-emerald-500/15 border border-emerald-400/30 rounded-full flex items-center justify-center">
                   ✅
                 </div>
               </div>
@@ -275,12 +275,12 @@ const AgentesIAManager = () => {
               <CardContent className="p-4">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm font-medium text-gray-600">Mais Ativo</p>
-                    <p className="text-lg font-bold text-yellow-600 truncate">
+                    <p className="text-sm font-medium text-[hsl(var(--muted-foreground))]">Mais Ativo</p>
+                    <p className="text-lg font-bold text-amber-200 truncate">
                       {metrics.agenteMaisAtivo}
                     </p>
                   </div>
-                  <div className="h-8 w-8 bg-yellow-100 rounded-full flex items-center justify-center">
+                  <div className="h-8 w-8 bg-amber-500/15 border border-amber-400/30 rounded-full flex items-center justify-center">
                     🏆
                   </div>
                 </div>
@@ -291,7 +291,7 @@ const AgentesIAManager = () => {
       )}
 
       <Tabs defaultValue="agentes" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-3">
+        <TabsList className="grid w-full grid-cols-3 bg-[hsl(var(--muted))] border border-[hsl(var(--border))]">
           <TabsTrigger value="agentes">Agentes</TabsTrigger>
           <TabsTrigger value="api-keys">API Keys</TabsTrigger>
           <TabsTrigger value="logs">Logs</TabsTrigger>
@@ -313,13 +313,13 @@ const AgentesIAManager = () => {
             <Card>
               <CardContent className="p-12 text-center">
                 <Bot className="h-16 w-16 text-gray-300 mx-auto mb-4" />
-                <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                <h3 className="text-lg font-semibold text-[hsl(var(--foreground))] mb-2">
                   Nenhum agente encontrado
                 </h3>
-                <p className="text-gray-600 mb-6">
+                <p className="text-[hsl(var(--muted-foreground))] mb-6">
                   Crie seu primeiro agente de IA para comecar a automatizar processos juridicos.
                 </p>
-                <Button onClick={handleCreateNew} className="bg-blue-600 hover:bg-blue-700">
+                <Button onClick={handleCreateNew} className="bg-[hsl(var(--accent))] hover:bg-[hsl(var(--accent-hover))] text-[hsl(var(--accent-foreground))]">
                   <Plus className="h-4 w-4 mr-2" />
                   Criar Primeiro Agente
                 </Button>
@@ -372,6 +372,7 @@ const AgentesIAManager = () => {
 };
 
 export default AgentesIAManager;
+
 
 
 

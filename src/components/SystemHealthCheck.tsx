@@ -208,20 +208,20 @@ const SystemHealthCheck = () => {
   const getStatusIcon = (status: string) => {
     switch (status) {
       case 'healthy':
-        return <CheckCircle className="h-5 w-5 text-green-500" />;
+        return <CheckCircle className="h-5 w-5 text-emerald-200" />;
       case 'warning':
-        return <AlertTriangle className="h-5 w-5 text-yellow-500" />;
+        return <AlertTriangle className="h-5 w-5 text-amber-300" />;
       case 'critical':
-        return <XCircle className="h-5 w-5 text-red-500" />;
+        return <XCircle className="h-5 w-5 text-red-300" />;
       default:
-        return <Activity className="h-5 w-5 text-gray-500" />;
+        return <Activity className="h-5 w-5 text-[hsl(var(--muted-foreground))]" />;
     }
   };
 
   const getScoreColor = (score: number) => {
-    if (score >= 80) return 'text-green-600';
-    if (score >= 60) return 'text-yellow-600';
-    return 'text-red-600';
+    if (score >= 80) return 'text-emerald-200';
+    if (score >= 60) return 'text-amber-200';
+    return 'text-red-300';
   };
 
   const getScoreStatus = (score: number) => {
@@ -232,11 +232,11 @@ const SystemHealthCheck = () => {
   };
 
   return (
-    <Card className="border-2">
+    <Card className="border border-[hsl(var(--border))]">
       <CardHeader>
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-2">
-            <Shield className="h-6 w-6 text-blue-600" />
+            <Shield className="h-6 w-6 text-[hsl(var(--accent))]" />
             <div>
               <CardTitle>Verificacao de Saude do Sistema</CardTitle>
               <CardDescription>
@@ -248,7 +248,7 @@ const SystemHealthCheck = () => {
             <div className={`text-3xl font-bold ${getScoreColor(overallScore)}`}>
               {overallScore}%
             </div>
-            <div className="text-sm text-gray-500">
+            <div className="text-sm text-[hsl(var(--muted-foreground))]">
               {getScoreStatus(overallScore)}
             </div>
           </div>
@@ -272,23 +272,26 @@ const SystemHealthCheck = () => {
       <CardContent>
         <div className="space-y-4">
           {healthChecks.map((check) => (
-            <div key={check.id} className="flex items-center justify-between p-3 rounded-lg border">
+            <div key={check.id} className="flex items-center justify-between p-3 rounded-lg border border-[hsl(var(--border))] bg-[hsl(var(--card))]">
               <div className="flex items-center space-x-3">
                 {getStatusIcon(check.status)}
                 <div>
                   <h4 className="font-medium">{check.name}</h4>
-                  <p className="text-sm text-gray-600">{check.message}</p>
+                  <p className="text-sm text-[hsl(var(--muted-foreground))]">{check.message}</p>
                 </div>
               </div>
               <div className="text-right">
-                <Badge variant={
-                  check.status === 'healthy' ? 'default' :
-                  check.status === 'warning' ? 'secondary' : 'destructive'
-                }>
+                <Badge
+                  className={check.status === 'healthy'
+                    ? 'bg-emerald-500/15 text-emerald-200 border border-emerald-400/30'
+                    : check.status === 'warning'
+                    ? 'bg-amber-500/15 text-amber-200 border border-amber-400/30'
+                    : 'bg-red-500/15 text-red-200 border border-red-400/30'}
+                >
                   {check.status === 'healthy' ? 'Saudavel' :
                    check.status === 'warning' ? 'Atencao' : 'Critico'}
                 </Badge>
-                <p className="text-xs text-gray-500 mt-1">
+                <p className="text-xs text-[hsl(var(--muted-foreground))] mt-1">
                   {new Date(check.lastCheck).toLocaleTimeString('pt-BR')}
                 </p>
               </div>
@@ -297,7 +300,7 @@ const SystemHealthCheck = () => {
         </div>
 
         {healthChecks.length === 0 && !isLoading && (
-          <div className="text-center py-8 text-gray-500">
+          <div className="text-center py-8 text-[hsl(var(--muted-foreground))]">
             <Server className="h-12 w-12 mx-auto mb-4 opacity-50" />
             <p>Nenhuma verificacao realizada ainda</p>
           </div>
@@ -308,3 +311,4 @@ const SystemHealthCheck = () => {
 };
 
 export default SystemHealthCheck;
+

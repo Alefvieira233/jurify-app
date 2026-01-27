@@ -64,15 +64,15 @@ const SystemMonitor = () => {
   }, []);
 
   const getStatusIcon = (success: boolean) => {
-    if (success) return <CheckCircle className="h-4 w-4 text-green-500" />;
-    return <XCircle className="h-4 w-4 text-red-500" />;
+    if (success) return <CheckCircle className="h-4 w-4 text-emerald-200" />;
+    return <XCircle className="h-4 w-4 text-red-300" />;
   };
 
   const getStatusBadge = (success: boolean) => {
     if (success) {
-      return <Badge className="bg-green-100 text-green-800">Operacional</Badge>;
+      return <Badge className="bg-emerald-500/15 text-emerald-200 border border-emerald-400/30">Operacional</Badge>;
     }
-    return <Badge variant="destructive">Erro</Badge>;
+    return <Badge className="bg-red-500/15 text-red-200 border border-red-400/30">Erro</Badge>;
   };
 
   const getOverallStatusColor = (status: string) => {
@@ -80,11 +80,11 @@ const SystemMonitor = () => {
       case 'healthy':
         return 'text-green-600';
       case 'degraded':
-        return 'text-yellow-600';
+        return 'text-amber-200';
       case 'critical':
-        return 'text-red-600';
+        return 'text-red-300';
       default:
-        return 'text-gray-600';
+        return 'text-[hsl(var(--muted-foreground))]';
     }
   };
 
@@ -140,7 +140,7 @@ const SystemMonitor = () => {
             </div>
 
             {lastUpdate && (
-              <p className="text-sm text-gray-500">Ultima verificacao: {lastUpdate}</p>
+              <p className="text-sm text-[hsl(var(--muted-foreground))]">Ultima verificacao: {lastUpdate}</p>
             )}
           </div>
         </CardContent>
@@ -160,9 +160,9 @@ const SystemMonitor = () => {
                 {getStatusIcon(systemHealth.tests.database.success)}
                 {getStatusBadge(systemHealth.tests.database.success)}
               </div>
-              <p className="text-xs text-gray-600">{systemHealth.tests.database.message}</p>
+              <p className="text-xs text-[hsl(var(--muted-foreground))]">{systemHealth.tests.database.message}</p>
               {systemHealth.tests.database.details && (
-                <div className="text-xs bg-gray-50 p-2 rounded">
+                <div className="text-xs bg-[hsl(var(--surface-1))] p-2 rounded">
                   <p>Leitura: {systemHealth.tests.database.details.readable ? 'OK' : 'Falha'}</p>
                   <p>Escrita: {systemHealth.tests.database.details.writable ? 'OK' : 'Falha'}</p>
                 </div>
@@ -184,9 +184,9 @@ const SystemMonitor = () => {
                 {getStatusIcon(systemHealth.tests.authentication.success)}
                 {getStatusBadge(systemHealth.tests.authentication.success)}
               </div>
-              <p className="text-xs text-gray-600">{systemHealth.tests.authentication.message}</p>
+              <p className="text-xs text-[hsl(var(--muted-foreground))]">{systemHealth.tests.authentication.message}</p>
               {systemHealth.tests.authentication.details?.email && (
-                <div className="text-xs bg-gray-50 p-2 rounded">
+                <div className="text-xs bg-[hsl(var(--surface-1))] p-2 rounded">
                   <p>Usuario: {systemHealth.tests.authentication.details.email}</p>
                 </div>
               )}
@@ -207,7 +207,7 @@ const SystemMonitor = () => {
                 {getStatusIcon(systemHealth.tests.rls.success)}
                 {getStatusBadge(systemHealth.tests.rls.success)}
               </div>
-              <p className="text-xs text-gray-600">{systemHealth.tests.rls.message}</p>
+              <p className="text-xs text-[hsl(var(--muted-foreground))]">{systemHealth.tests.rls.message}</p>
             </div>
           </CardContent>
         </Card>
@@ -225,9 +225,9 @@ const SystemMonitor = () => {
                 {getStatusIcon(systemHealth.tests.integrations.success)}
                 {getStatusBadge(systemHealth.tests.integrations.success)}
               </div>
-              <p className="text-xs text-gray-600">{systemHealth.tests.integrations.message}</p>
+              <p className="text-xs text-[hsl(var(--muted-foreground))]">{systemHealth.tests.integrations.message}</p>
               {systemHealth.tests.integrations.details && (
-                <div className="text-xs bg-gray-50 p-2 rounded space-y-1">
+                <div className="text-xs bg-[hsl(var(--surface-1))] p-2 rounded space-y-1">
                   <p>N8N: {systemHealth.tests.integrations.details.n8n ? 'OK' : 'Falha'}</p>
                   <p>OpenAI: {systemHealth.tests.integrations.details.openai ? 'OK' : 'Falha'}</p>
                   <p>Health: {systemHealth.tests.integrations.details.healthCheck ? 'OK' : 'Falha'}</p>
@@ -250,9 +250,9 @@ const SystemMonitor = () => {
                 {getStatusIcon(systemHealth.tests.performance.success)}
                 {getStatusBadge(systemHealth.tests.performance.success)}
               </div>
-              <p className="text-xs text-gray-600">{systemHealth.tests.performance.message}</p>
+              <p className="text-xs text-[hsl(var(--muted-foreground))]">{systemHealth.tests.performance.message}</p>
               {systemHealth.tests.performance.details && (
-                <div className="text-xs bg-gray-50 p-2 rounded">
+                <div className="text-xs bg-[hsl(var(--surface-1))] p-2 rounded">
                   <Progress
                     value={Math.min(
                       (systemHealth.tests.performance.details.responseTime /
@@ -278,7 +278,7 @@ const SystemMonitor = () => {
           </CardHeader>
           <CardContent>
             <div className="space-y-2">
-              <div className="text-xs bg-blue-50 p-2 rounded">
+              <div className="text-xs bg-blue-500/10 border border-blue-500/25 p-2 rounded">
                 <p>
                   <strong>Jurify SaaS</strong>
                 </p>
@@ -295,3 +295,5 @@ const SystemMonitor = () => {
 };
 
 export default SystemMonitor;
+
+

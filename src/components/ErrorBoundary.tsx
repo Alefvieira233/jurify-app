@@ -64,28 +64,28 @@ export class ErrorBoundary extends Component<Props, State> {
       }
 
       return (
-        <div className="min-h-screen flex items-center justify-center p-4 bg-gray-50">
+        <div className="min-h-screen flex items-center justify-center p-4 bg-[hsl(var(--background))]">
           <Card className="w-full max-w-md">
             <CardContent className="p-6 text-center">
-              <AlertTriangle className="w-12 h-12 text-red-500 mx-auto mb-4" />
-              <h2 className="text-xl font-semibold text-gray-900 mb-2">
+              <AlertTriangle className="w-12 h-12 text-red-300 mx-auto mb-4" />
+              <h2 className="text-xl font-semibold text-[hsl(var(--foreground))] mb-2">
                 Ops! Algo deu errado
               </h2>
-              <p className="text-gray-600 mb-6">
+              <p className="text-[hsl(var(--muted-foreground))] mb-6">
                 Ocorreu um erro inesperado. Nossa equipe foi notificada automaticamente.
               </p>
               
               <div className="space-y-3">
                 <Button 
                   onClick={this.handleReset}
-                  className="w-full bg-blue-600 hover:bg-blue-700"
+                  className="w-full bg-[hsl(var(--accent))] hover:bg-[hsl(var(--accent-hover))] text-[hsl(var(--accent-foreground))]"
                 >
                   <RefreshCw className="w-4 h-4 mr-2" />
                   Tentar Novamente
                 </Button>
                 
                 <Button 
-                  variant="outline"
+                  variant="outline" className="w-full bg-[hsl(var(--card))] border-[hsl(var(--border))] hover:bg-[hsl(var(--muted))]"
                   onClick={this.handleReload}
                   className="w-full"
                 >
@@ -95,10 +95,10 @@ export class ErrorBoundary extends Component<Props, State> {
 
               {process.env.NODE_ENV === 'development' && this.state.error && (
                 <details className="mt-6 text-left">
-                  <summary className="cursor-pointer text-sm text-gray-500 hover:text-gray-700">
+                  <summary className="cursor-pointer text-sm text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))]">
                     Detalhes do erro (desenvolvimento)
                   </summary>
-                  <pre className="mt-2 text-xs bg-gray-100 p-2 rounded overflow-auto max-h-32">
+                  <pre className="mt-2 text-xs bg-[hsl(var(--muted))] border border-[hsl(var(--border))] p-2 rounded overflow-auto max-h-32">
                     {this.state.error.toString()}
                     {this.state.errorInfo?.componentStack}
                   </pre>
@@ -115,3 +115,4 @@ export class ErrorBoundary extends Component<Props, State> {
 }
 
 export default ErrorBoundary;
+
