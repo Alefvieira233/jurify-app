@@ -22,7 +22,7 @@ import NotFound from "./pages/NotFound";
 
 // Lazy loading para features (carregamento sob demanda)
 const Dashboard = lazy(() => import("./features/dashboard/Dashboard"));
-const EliteCrmLeadsPage = lazy(() => import("./features/leads/EliteCrmLeadsPage"));
+const LeadsPanel = lazy(() => import("./features/leads/LeadsPanel"));
 const PipelineJuridico = lazy(() => import("./features/pipeline/PipelineJuridico"));
 const AgendamentosManager = lazy(() => import("./features/scheduling/AgendamentosManager"));
 const ContratosManager = lazy(() => import("./features/contracts/ContratosManager"));
@@ -73,7 +73,7 @@ const App = () => (
                 <Route path="/" element={<ProtectedRoute><Layout /></ProtectedRoute>}>
                   <Route index element={<Dashboard />} />
                   <Route path="dashboard" element={<Navigate to="/" replace />} />
-                  <Route path="leads" element={<EliteCrmLeadsPage />} />
+                  <Route path="leads" element={<LeadsPanel />} />
                   <Route path="pipeline" element={<PipelineJuridico />} />
                   <Route path="agendamentos" element={<AgendamentosManager />} />
                   <Route path="contratos" element={<ContratosManager />} />

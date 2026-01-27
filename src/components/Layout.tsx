@@ -14,7 +14,6 @@ const Layout = () => {
     const location = useLocation();
     const navigate = useNavigate();
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-    const isLeadsView = location.pathname.startsWith('/leads');
 
     // Map current path to active section for Sidebar highlighting
     const getActiveSection = (path: string) => {
@@ -58,17 +57,13 @@ const Layout = () => {
 
     // Prevent body scroll when mobile menu is open
     useEffect(() => {
-        if (isLeadsView) {
-            document.body.style.overflow = '';
-            return;
-        }
         if (mobileMenuOpen) {
             document.body.style.overflow = 'hidden';
         } else {
             document.body.style.overflow = '';
         }
         return () => { document.body.style.overflow = ''; };
-    }, [mobileMenuOpen, isLeadsView]);
+    }, [mobileMenuOpen]);
 
     if (loading) {
         return <LoadingSpinner fullScreen text="Carregando aplicação..." />;
@@ -83,7 +78,6 @@ const Layout = () => {
             <OnboardingFlow />
 
             {/* Mobile Header */}
-            {!isLeadsView && (
             <div className="lg:hidden fixed top-0 left-0 right-0 z-50 bg-background/95 backdrop-blur-md border-b border-border px-4 py-3 flex items-center justify-between">
                 <div className="flex items-center space-x-3">
                     <Button
@@ -103,10 +97,9 @@ const Layout = () => {
                     </span>
                 </div>
             </div>
-            )}
 
             {/* Mobile Menu Overlay */}
-            {!isLeadsView && mobileMenuOpen && (
+            {mobileMenuOpen && (
                 <div
                     className="lg:hidden fixed inset-0 z-40 bg-black/60 backdrop-blur-sm"
                     onClick={() => setMobileMenuOpen(false)}
@@ -114,7 +107,6 @@ const Layout = () => {
             )}
 
             {/* Sidebar - Desktop: always visible, Mobile: slide-in */}
-            {!isLeadsView && (
             <div className={`
                 fixed lg:relative inset-y-0 left-0 z-50
                 transform transition-transform duration-300 ease-in-out
@@ -125,11 +117,10 @@ const Layout = () => {
                     onSectionChange={handleSectionChange}
                 />
             </div>
-            )}
 
             {/* Main Content */}
-            <main className={`flex-1 relative z-10 ${isLeadsView ? '' : 'pt-16 lg:pt-0'}`}>
-                <div className={`mx-auto reveal-up ${isLeadsView ? 'p-0 max-w-none' : 'max-w-[1920px] p-4 lg:p-0'}`}>
+            <main className="flex-1 relative z-10 pt-16 lg:pt-0">
+                <div className="max-w-[1920px] mx-auto reveal-up p-4 lg:p-0">
                     <Outlet />
                 </div>
             </main>
