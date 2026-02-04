@@ -96,8 +96,7 @@ function cleanupExpiredRecords() {
   }
 }
 
-// Executar limpeza a cada 5 minutos
-setInterval(cleanupExpiredRecords, 5 * 60 * 1000);
+// Edge runtime é stateless: limpeza ocorre sob demanda
 
 // =========================================================
 // RATE LIMITER - IN-MEMORY
@@ -106,6 +105,7 @@ setInterval(cleanupExpiredRecords, 5 * 60 * 1000);
 async function checkRateLimitMemory(
   config: RateLimitConfig
 ): Promise<RateLimitResult> {
+  cleanupExpiredRecords();
   const key = `${config.namespace || "default"}:${config.identifier}`;
   const now = Date.now();
   const windowMs = config.windowSeconds * 1000;
