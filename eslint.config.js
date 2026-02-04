@@ -48,6 +48,7 @@ export default tseslint.config(
       "src/scripts/**",
       "src/**/*.test.{ts,tsx}",
       "src/**/*.spec.{ts,tsx}",
+      "src/lib/multiagents/examples/**",
     ],
     languageOptions: {
       ecmaVersion: 2020,
