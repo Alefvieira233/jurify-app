@@ -644,8 +644,45 @@ AÇÕES:
     response: string,
     rule: EscalationRule
   ): Promise<number> {
-    // Implementar análise de necessidade de escalação usando IA
-    return 0.8; // Mock
+    const systemPrompt =
+      'Você é um classificador de necessidade de escalacao. Retorne APENAS JSON válido no formato {"score":0.0} ' +
+      'onde score varia de 0 (não precisa escalar) a 1 (precisa escalar). ' +
+      'Considere urgência, risco, necessidade humana e prazo.';
+
+    const userPrompt = `
+AGENTE: ${agent.name} (${agent.type})
+REGRA: ${rule.condition}
+PALAVRAS-CHAVE: ${rule.trigger_keywords.join(', ')}
+MENSAGEM DO LEAD: ${message}
+RESPOSTA DO AGENTE: ${response}
+`;
+
+    try {
+      const { data, error } = await supabase.functions.invoke('chat-completion', {
+        body: {
+          messages: [
+            { role: 'system', content: systemPrompt },
+            { role: 'user', content: userPrompt.trim() }
+          ],
+          model: DEFAULT_OPENAI_MODEL,
+          temperature: 0
+        }
+      });
+
+      if (error) {
+        throw error;
+      }
+
+      const score = this.extractScoreFromReply(data?.reply);
+      if (score === null) {
+        throw new Error('Invalid escalation score');
+      }
+
+      return score;
+    } catch (error) {
+      console.warn('[agent-engine] Escalation analysis failed, using neutral fallback.');
+      return 0.5;
+    }
   }
 
   private async generateTransitionMessage(agent: AgentConfig, lead: any): Promise<string> {
