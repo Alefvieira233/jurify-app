@@ -70,7 +70,6 @@ export const SubscriptionManager = () => {
     const [usage, setUsage] = useState<UsageLimits | null>(null);
     const [loading, setLoading] = useState(true);
     const [upgrading, setUpgrading] = useState(false);
-    const supabaseAny = supabase as typeof supabase & { from: (table: string) => any };
 
     const currentPlan = subscription?.plan_id || profile?.subscription_tier || 'free';
 
@@ -81,7 +80,7 @@ export const SubscriptionManager = () => {
             setLoading(true);
 
             // Load subscription
-            const { data: subData } = await supabaseAny
+            const { data: subData } = await supabase
                 .from('subscriptions')
                 .select('*')
                 .eq('user_id', profile.id)
@@ -103,16 +102,16 @@ export const SubscriptionManager = () => {
                 { count: leadsCount },
                 { count: usersCount },
             ] = await Promise.all([
-                supabaseAny
+                supabase
                     .from('agent_ai_logs')
                     .select('*', { count: 'exact', head: true })
                     .eq('tenant_id', tenantId)
                     .gte('created_at', thirtyDaysAgo.toISOString()),
-                supabaseAny
+                supabase
                     .from('leads')
                     .select('*', { count: 'exact', head: true })
                     .eq('tenant_id', tenantId),
-                supabaseAny
+                supabase
                     .from('profiles')
                     .select('*', { count: 'exact', head: true })
                     .eq('tenant_id', tenantId),
@@ -120,10 +119,10 @@ export const SubscriptionManager = () => {
 
             const planLimits = PLAN_LIMITS[currentPlan] ?? PLAN_LIMITS.free;
             setUsage({
-                ai_calls: { ...planLimits!.ai_calls, used: aiCalls || 0 },
-                leads: { ...planLimits!.leads, used: leadsCount || 0 },
-                users: { ...planLimits!.users, used: usersCount || 0 },
-                storage_mb: { ...planLimits!.storage_mb, used: 50 }, // Placeholder
+                ai_calls: { ...planLimits.ai_calls, used: aiCalls || 0 },
+                leads: { ...planLimits.leads, used: leadsCount || 0 },
+                users: { ...planLimits.users, used: usersCount || 0 },
+                storage_mb: { ...planLimits.storage_mb, used: 50 }, // Placeholder
             });
 
         } catch (error) {
@@ -134,7 +133,7 @@ export const SubscriptionManager = () => {
     }, [profile, currentPlan]);
 
     useEffect(() => {
-        loadSubscriptionData();
+        void loadSubscriptionData();
     }, [loadSubscriptionData]);
 
     const handleUpgrade = async (newPlan: string) => {
@@ -339,7 +338,7 @@ export const SubscriptionManager = () => {
                                             <li>✅ Suporte prioritário</li>
                                         </ul>
                                         <Button
-                                            onClick={() => handleUpgrade('pro')}
+                                            onClick={() => { void handleUpgrade('pro'); }}
                                             disabled={upgrading}
                                             className="w-full"
                                         >
@@ -366,7 +365,7 @@ export const SubscriptionManager = () => {
                                         <li>✅ Suporte dedicado</li>
                                     </ul>
                                     <Button
-                                        onClick={() => handleUpgrade('enterprise')}
+                                        onClick={() => { void handleUpgrade('enterprise'); }}
                                         disabled={upgrading}
                                         className="w-full bg-purple-600 hover:bg-purple-700"
                                     >

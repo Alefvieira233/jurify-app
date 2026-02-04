@@ -141,10 +141,10 @@ export const AnalyticsDashboard = () => {
     }, [profile?.tenant_id, selectedPeriod]);
 
     useEffect(() => {
-        loadAnalytics();
+        void loadAnalytics();
     }, [loadAnalytics]);
 
-    const generateTimeSeriesData = (leads: any[], contracts: any[], days: number) => {
+    const generateTimeSeriesData = (leads: LeadRecord[], contracts: ContractRecord[], days: number) => {
         const data = [];
         for (let i = days - 1; i >= 0; i--) {
             const date = new Date();
@@ -163,7 +163,7 @@ export const AnalyticsDashboard = () => {
         return data;
     };
 
-    const groupByField = (items: any[], field: string) => {
+    const groupByField = (items: Array<Record<string, string | null | undefined>>, field: string) => {
         const groups: Record<string, number> = {};
         items.forEach(item => {
             const key = item[field] || 'Não informado';
@@ -172,7 +172,7 @@ export const AnalyticsDashboard = () => {
         return Object.entries(groups).map(([name, value]) => ({ name, value })).slice(0, 6);
     };
 
-    const generateAgentMetrics = (logs: any[]) => {
+    const generateAgentMetrics = (logs: AiLogRecord[]) => {
         const agents = ['Coordenador', 'Qualificador', 'Jurídico', 'Comercial', 'Comunicador'];
         return agents.map(agent => ({
             agent,
@@ -181,7 +181,7 @@ export const AnalyticsDashboard = () => {
         }));
     };
 
-    const MetricCard = ({ title, value, change, icon: Icon, trend }: { title: string; value: string | number; change?: number; icon: any; trend?: 'up' | 'down' }) => (
+    const MetricCard = ({ title, value, change, icon: Icon }: { title: string; value: string | number; change?: number; icon: React.ComponentType<{ className?: string }> }) => (
         <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium text-muted-foreground">{title}</CardTitle>
@@ -228,7 +228,7 @@ export const AnalyticsDashboard = () => {
                             </Button>
                         ))}
                     </div>
-                    <Button variant="outline" size="sm" onClick={loadAnalytics}>
+                    <Button variant="outline" size="sm" onClick={() => { void loadAnalytics(); }}>
                         <RefreshCw className="h-4 w-4 mr-2" />
                         Atualizar
                     </Button>

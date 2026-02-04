@@ -4,7 +4,6 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { X, User, Phone, Mail, Briefcase, DollarSign, FileText, MapPin } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import {
   Select,
@@ -120,7 +119,7 @@ const NovoLeadForm: React.FC<NovoLeadFormProps> = ({ open, onOpenChange, onSucce
         </DialogHeader>
 
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+          <form onSubmit={(event) => { void form.handleSubmit(onSubmit)(event); }} className="space-y-6">
             {/* Informações Pessoais */}
             <div className="space-y-4">
               <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">

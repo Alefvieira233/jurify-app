@@ -20,6 +20,27 @@ interface AgenteStats {
   valorGerado: number;
 }
 
+
+type LeadMetadata = {
+  responsavel_nome?: string | null;
+};
+
+type LeadRow = {
+  area_juridica?: string | null;
+  metadata?: LeadMetadata | null;
+  valor_causa?: number | null;
+  status?: string | null;
+  created_at?: string | null;
+};
+
+type ContractRow = {
+  responsavel?: string | null;
+  valor_causa?: number | null;
+  status?: string | null;
+  status_assinatura?: string | null;
+  created_at?: string | null;
+};
+
 const normalizeLabel = (value: string) => value.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
 
 const getDataInicio = (periodo: string): string => {
@@ -76,11 +97,14 @@ const RankingAgentesTable: React.FC<RankingAgentesTableProps> = ({ periodo }) =>
 
       const agentesStats: AgenteStats[] = [];
 
+      const leadRows: LeadRow[] = Array.isArray(leads) ? leads : [];
+      const contractRows: ContractRow[] = Array.isArray(contratos) ? contratos : [];
+
       if (agentesIA && Array.isArray(agentesIA) && agentesIA.length > 0) {
         agentesIA.forEach(agente => {
           if (agente && agente.nome && agente.area_juridica) {
-            const leadsDoAgente = leads?.filter(lead => lead?.area_juridica === agente.area_juridica) || [];
-            const contratosDoAgente = contratos?.filter(contrato =>
+            const leadsDoAgente = leadRows.filter(lead => lead?.area_juridica === agente.area_juridica);
+            const contratosDoAgente = contractRows.filter(contrato =>
               normalizeLabel(contrato?.responsavel || '') === iaResponsavel &&
               (contrato?.status === 'assinado' || contrato?.status_assinatura === 'assinado')
             ) || [];
@@ -97,17 +121,17 @@ const RankingAgentesTable: React.FC<RankingAgentesTableProps> = ({ periodo }) =>
         });
       }
 
-      const responsaveisHumanos = leads ?
-        [...new Set(leads
-          .map(lead => (lead?.metadata as any)?.responsavel_nome)
+      const responsaveisHumanos = leadRows.length > 0 ?
+        [...new Set(leadRows
+          .map(lead => lead?.metadata?.responsavel_nome)
           .filter(resp => resp && normalizeLabel(resp) !== iaResponsavel && typeof resp === 'string')
         )] : [];
 
       if (responsaveisHumanos.length > 0) {
         responsaveisHumanos.forEach(responsavel => {
           if (responsavel && typeof responsavel === 'string') {
-            const leadsDoResponsavel = leads?.filter(lead => (lead?.metadata as any)?.responsavel_nome === responsavel) || [];
-            const contratosDoResponsavel = contratos?.filter(contrato =>
+            const leadsDoResponsavel = leadRows.filter(lead => lead?.metadata?.responsavel_nome === responsavel);
+            const contratosDoResponsavel = contractRows.filter(contrato =>
               contrato?.responsavel === responsavel &&
               (contrato?.status === 'assinado' || contrato?.status_assinatura === 'assinado')
             ) || [];

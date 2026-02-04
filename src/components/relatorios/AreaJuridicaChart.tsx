@@ -8,6 +8,14 @@ interface AreaJuridicaChartProps {
 
 const COLORS = ['#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6', '#EC4899'];
 
+type PieLabelProps = {
+  cx: number;
+  cy: number;
+  midAngle: number;
+  innerRadius: number;
+  outerRadius: number;
+  percent: number;
+};
 const AreaJuridicaChart: React.FC<AreaJuridicaChartProps> = ({ data }) => {
   if (!data) {
     return <div className="h-64 flex items-center justify-center text-gray-500">Carregando dados...</div>;
@@ -19,7 +27,7 @@ const AreaJuridicaChart: React.FC<AreaJuridicaChartProps> = ({ data }) => {
     color: COLORS[index % COLORS.length]
   }));
 
-  const renderCustomizedLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, percent }: any) => {
+  const renderCustomizedLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, percent }: PieLabelProps) => {
     if (percent < 0.05) return null; // Não mostrar labels para fatias muito pequenas
     
     const RADIAN = Math.PI / 180;

@@ -1,14 +1,13 @@
 
 import React from 'react';
 import { Card, CardContent } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
 import { TrendingUp, TrendingDown, Users, Target, DollarSign } from 'lucide-react';
 
 interface KPI {
   titulo: string;
   valor: string | number;
   mudanca?: number;
-  icon: React.ComponentType<any>;
+  icon: React.ComponentType<{ className?: string }>;
   cor: string;
 }
 

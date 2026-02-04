@@ -133,7 +133,7 @@ const EditarLeadForm: React.FC<EditarLeadFormProps> = ({ open, onOpenChange, lea
         </DialogHeader>
 
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+          <form onSubmit={(event) => { void form.handleSubmit(onSubmit)(event); }} className="space-y-6">
             {/* Informações Pessoais */}
             <div className="space-y-4">
               <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">

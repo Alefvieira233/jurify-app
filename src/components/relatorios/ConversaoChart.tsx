@@ -71,7 +71,7 @@ const ConversaoChart: React.FC<ConversaoChartProps> = ({ periodo }) => {
             label={{ value: 'Taxa (%)', angle: -90, position: 'insideLeft' }}
           />
           <Tooltip
-            formatter={(value) => [`${value}%`, 'Taxa de Conversao']}
+            formatter={(value) => [`${Number(value)}%`, 'Taxa de Conversao']}
           />
           <Line
             type="monotone"
