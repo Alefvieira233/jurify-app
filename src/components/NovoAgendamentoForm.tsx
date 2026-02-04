@@ -79,7 +79,7 @@ export const NovoAgendamentoForm = ({ onClose }: NovoAgendamentoFormProps) => {
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['agendamentos'] });
+      void queryClient.invalidateQueries({ queryKey: ['agendamentos'] });
       toast.success('Agendamento criado com sucesso!');
       onClose();
     },
@@ -137,7 +137,7 @@ export const NovoAgendamentoForm = ({ onClose }: NovoAgendamentoFormProps) => {
   ];
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+    <form onSubmit={(event) => { void handleSubmit(onSubmit)(event); }} className="space-y-4">
       <input type="hidden" {...register('lead_id', { required: true })} />
       <input type="hidden" {...register('area_juridica', { required: true })} />
       <input type="hidden" {...register('responsavel', { required: true })} />

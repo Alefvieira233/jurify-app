@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -35,7 +35,7 @@ const ProductionReadiness = () => {
   const { profile } = useAuth();
   const tenantId = profile?.tenant_id || null;
 
-  const runProductionChecks = async () => {
+  const runProductionChecks = useCallback(async () => {
     setLoading(true);
 
     const productionChecks: ProductionCheck[] = [];
@@ -191,11 +191,11 @@ const ProductionReadiness = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [runValidation, tenantId]);
 
   useEffect(() => {
-    runProductionChecks();
-  }, [tenantId]);
+    void runProductionChecks();
+  }, [runProductionChecks]);
 
   const getStatusIcon = (status: 'pass' | 'fail' | 'warning') => {
     switch (status) {
@@ -252,7 +252,7 @@ const ProductionReadiness = () => {
             </div>
           </div>
         </div>
-        <Button variant="outline" size="sm" onClick={runProductionChecks}>
+        <Button variant="outline" size="sm" onClick={() => { void runProductionChecks(); }}>
           Revalidar
         </Button>
       </CardHeader>

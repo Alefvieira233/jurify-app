@@ -29,7 +29,6 @@ import {
   TestTube,
   RefreshCw,
   CheckCircle,
-  AlertCircle,
   Clock,
   Phone,
   Mail,
@@ -48,14 +47,17 @@ export const MultiAgentDashboard: React.FC = () => {
     loadSystemStats
   } = useMultiAgentSystem();
 
+  type UrgencyLevel = 'low' | 'medium' | 'high' | 'critical';
+  type LeadSource = 'whatsapp' | 'email' | 'chat' | 'form';
+
   const [newLead, setNewLead] = useState({
     name: '',
     email: '',
     phone: '',
     message: '',
     legal_area: '',
-    urgency: 'medium' as 'low' | 'medium' | 'high' | 'critical',
-    source: 'chat' as 'whatsapp' | 'email' | 'chat' | 'form'
+    urgency: 'medium' as UrgencyLevel,
+    source: 'chat' as LeadSource
   });
 
   // 🎯 Submete novo lead
@@ -74,6 +76,18 @@ export const MultiAgentDashboard: React.FC = () => {
         urgency: 'medium',
         source: 'chat'
       });
+    }
+  };
+
+  const handleUrgencyChange = (value: string) => {
+    if (value === 'low' || value === 'medium' || value === 'high' || value === 'critical') {
+      setNewLead({ ...newLead, urgency: value });
+    }
+  };
+
+  const handleSourceChange = (value: string) => {
+    if (value === 'whatsapp' || value === 'email' || value === 'chat' || value === 'form') {
+      setNewLead({ ...newLead, source: value });
     }
   };
 
@@ -111,7 +125,7 @@ export const MultiAgentDashboard: React.FC = () => {
         </div>
         <div className="flex gap-3">
           <Button
-            onClick={testSystem}
+            onClick={() => { void testSystem(); }}
             disabled={isProcessing}
             variant="outline"
             className="flex items-center gap-2"
@@ -120,7 +134,7 @@ export const MultiAgentDashboard: React.FC = () => {
             Testar Sistema
           </Button>
           <Button
-            onClick={triggerAnalysis}
+            onClick={() => { void triggerAnalysis(); }}
             disabled={isProcessing}
             variant="outline"
             className="flex items-center gap-2"
@@ -129,7 +143,7 @@ export const MultiAgentDashboard: React.FC = () => {
             Analisar Performance
           </Button>
           <Button
-            onClick={loadSystemStats}
+            onClick={() => { void loadSystemStats(); }}
             disabled={isProcessing}
             className="flex items-center gap-2"
           >
@@ -259,7 +273,7 @@ export const MultiAgentDashboard: React.FC = () => {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <form onSubmit={handleSubmitLead} className="space-y-4">
+              <form onSubmit={(event) => { void handleSubmitLead(event); }} className="space-y-4">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="name">Nome *</Label>
@@ -317,7 +331,7 @@ export const MultiAgentDashboard: React.FC = () => {
                     <Label htmlFor="urgency">Urgência</Label>
                     <Select
                       value={newLead.urgency}
-                      onValueChange={(value: any) => setNewLead({...newLead, urgency: value})}
+                      onValueChange={handleUrgencyChange}
                     >
                       <SelectTrigger>
                         <SelectValue />
@@ -335,7 +349,7 @@ export const MultiAgentDashboard: React.FC = () => {
                     <Label htmlFor="source">Canal</Label>
                     <Select
                       value={newLead.source}
-                      onValueChange={(value: any) => setNewLead({...newLead, source: value})}
+                      onValueChange={handleSourceChange}
                     >
                       <SelectTrigger>
                         <SelectValue />

@@ -9,7 +9,6 @@ import { TrendingUp, Users, FileText, Activity, AlertTriangle } from 'lucide-rea
 const PerformanceDashboard = () => {
   const { profile } = useAuth();
   const tenantId = profile?.tenant_id || null;
-  const supabaseAny = supabase as typeof supabase & { from: (table: string) => any };
   const inicio30Dias = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
   const inicio7Dias = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
   const inicio24h = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
@@ -18,7 +17,7 @@ const PerformanceDashboard = () => {
     queryKey: ['leads-stats', tenantId],
     queryFn: async () => {
       if (!tenantId) return 0;
-      const { data, error } = await supabaseAny
+      const { data, error } = await supabase
         .from('leads')
         .select('id')
         .eq('tenant_id', tenantId)
@@ -33,7 +32,7 @@ const PerformanceDashboard = () => {
     queryKey: ['contratos-stats', tenantId],
     queryFn: async () => {
       if (!tenantId) return 0;
-      const { data, error } = await supabaseAny
+      const { data, error } = await supabase
         .from('contratos')
         .select('id')
         .eq('tenant_id', tenantId)
@@ -48,7 +47,7 @@ const PerformanceDashboard = () => {
     queryKey: ['agent-executions', tenantId],
     queryFn: async () => {
       if (!tenantId) return 0;
-      const { data, error } = await supabaseAny
+      const { data, error } = await supabase
         .from('logs_execucao_agentes')
         .select('id')
         .eq('tenant_id', tenantId)
@@ -63,7 +62,7 @@ const PerformanceDashboard = () => {
     queryKey: ['error-logs', tenantId],
     queryFn: async () => {
       if (!tenantId) return 0;
-      const { data, error } = await supabaseAny
+      const { data, error } = await supabase
         .from('logs_atividades')
         .select('id')
         .eq('tenant_id', tenantId)

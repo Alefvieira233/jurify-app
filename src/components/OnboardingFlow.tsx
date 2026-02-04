@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -23,19 +23,18 @@ const OnboardingFlow = () => {
   const { user, profile, hasRole } = useAuth();
   const { toast } = useToast();
   const tenantId = profile?.tenant_id || null;
-  const supabaseAny = supabase as typeof supabase & { from: (table: string) => any };
 
   useEffect(() => {
     if (user && profile && hasRole('administrador')) {
-      checkOnboardingStatus();
+      void checkOnboardingStatus();
     }
-  }, [user, profile]);
+  }, [user, profile, hasRole, checkOnboardingStatus]);
 
-  const checkOnboardingStatus = async () => {
+  const checkOnboardingStatus = useCallback(async () => {
     if (!tenantId) return;
 
     try {
-      const { data: setting } = await supabaseAny
+      const { data: setting } = await supabase
         .from('system_settings')
         .select('value')
         .eq('tenant_id', tenantId)
@@ -52,10 +51,10 @@ const OnboardingFlow = () => {
         { data: agentes },
         { data: usuarios }
       ] = await Promise.all([
-        supabaseAny.from('google_calendar_settings').select('id').eq('tenant_id', tenantId).limit(1),
-        supabaseAny.from('api_keys').select('id').eq('tenant_id', tenantId).limit(1),
-        supabaseAny.from('agentes_ia').select('id').eq('tenant_id', tenantId).limit(1),
-        supabaseAny.from('user_roles').select('id').eq('tenant_id', tenantId).gt('created_at', new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString())
+        supabase.from('google_calendar_settings').select('id').eq('tenant_id', tenantId).limit(1),
+        supabase.from('api_keys').select('id').eq('tenant_id', tenantId).limit(1),
+        supabase.from('agentes_ia').select('id').eq('tenant_id', tenantId).limit(1),
+        supabase.from('user_roles').select('id').eq('tenant_id', tenantId).gt('created_at', new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString())
       ]);
 
       const onboardingSteps: OnboardingStep[] = [
@@ -104,13 +103,13 @@ const OnboardingFlow = () => {
     } catch (error) {
       console.error('Erro ao verificar onboarding:', error);
     }
-  };
+  }, [tenantId]);
 
   const completeOnboarding = async () => {
     if (!tenantId) return;
 
     try {
-      await supabaseAny
+      await supabase
         .from('system_settings')
         .upsert({
           tenant_id: tenantId,
@@ -235,7 +234,7 @@ const OnboardingFlow = () => {
             </Button>
 
             {progress === 100 && (
-              <Button onClick={completeOnboarding}>
+              <Button onClick={() => { void completeOnboarding(); }}>
                 Finalizar Configuracao
               </Button>
             )}

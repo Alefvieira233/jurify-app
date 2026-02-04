@@ -58,17 +58,18 @@ const NovoUsuarioForm = ({ onClose }: NovoUsuarioFormProps) => {
       return result;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['usuarios'] });
+      void queryClient.invalidateQueries({ queryKey: ['usuarios'] });
       toast({
         title: "UsuÃ¡rio criado",
         description: "O usuÃ¡rio foi criado com sucesso.",
       });
       onClose();
     },
-    onError: (error: any) => {
+    onError: (error: unknown) => {
+      const message = error instanceof Error ? error.message : "Erro ao criar usuÃ¡rio.";
       toast({
         title: "Erro",
-        description: error.message || "Erro ao criar usuÃ¡rio.",
+        description: message,
         variant: "destructive",
       });
       console.error('Erro ao criar usuÃ¡rio:', error);
@@ -175,7 +176,7 @@ const NovoUsuarioForm = ({ onClose }: NovoUsuarioFormProps) => {
               <Checkbox
                 id={role.value}
                 checked={formData.selectedRoles.includes(role.value)}
-                onCheckedChange={(checked) => handleRoleChange(role.value, checked as boolean)}
+                onCheckedChange={(checked) => handleRoleChange(role.value, checked === true)}
               />
               <Label htmlFor={role.value} className="text-sm font-normal">
                 {role.label}

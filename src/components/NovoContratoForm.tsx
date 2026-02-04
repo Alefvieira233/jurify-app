@@ -20,6 +20,19 @@ interface NovoContratoFormProps {
   onClose: () => void;
 }
 
+type ContratoInsert = {
+  tenant_id: string;
+  lead_id: string | null;
+  nome_cliente: string;
+  area_juridica: string;
+  valor_causa: number;
+  responsavel: string;
+  texto_contrato: string;
+  clausulas_customizadas: string | null;
+  status: 'rascunho';
+  created_at: string;
+};
+
 export const NovoContratoForm = ({ onClose }: NovoContratoFormProps) => {
   const { profile } = useAuth();
   const tenantId = profile?.tenant_id || null;
@@ -81,7 +94,7 @@ _____________________          _____________________
   });
 
   const createContratoMutation = useMutation({
-    mutationFn: async (contratoData: any) => {
+    mutationFn: async (contratoData: ContratoInsert) => {
       const { error } = await supabase
         .from('contratos')
         .insert([contratoData]);
@@ -89,7 +102,7 @@ _____________________          _____________________
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['contratos'] });
+      void queryClient.invalidateQueries({ queryKey: ['contratos'] });
       toast.success('Contrato criado com sucesso!');
       onClose();
     },

@@ -1,14 +1,13 @@
 
 import React, { useState } from 'react';
-import { 
-  Activity, 
-  CheckCircle, 
-  XCircle, 
-  Clock, 
-  Eye, 
+import {
+  Activity,
+  CheckCircle,
+  XCircle,
+  Clock,
+  Eye,
   Trash2,
-  Filter,
-  Download
+  Filter
 } from 'lucide-react';
 import { useLogsExecucao } from '@/hooks/useLogsExecucao';
 import { Button } from '@/components/ui/button';
@@ -39,7 +38,8 @@ import {
 
 const LogsMonitoramento = () => {
   const { logs, loading, stats, limparLogs, refetch } = useLogsExecucao();
-  const [selectedLog, setSelectedLog] = useState<any>(null);
+  type LogEntry = (typeof logs)[number];
+  const [selectedLog, setSelectedLog] = useState<LogEntry | null>(null);
   const [statusFilter, setStatusFilter] = useState<string>('todos');
 
   const filteredLogs = logs.filter(log => {
@@ -85,11 +85,11 @@ const LogsMonitoramento = () => {
   };
 
   const handleRefetch = () => {
-    refetch();
+    void refetch();
   };
 
   const handleLimparLogs = () => {
-    limparLogs();
+    void limparLogs();
   };
 
   if (loading) {

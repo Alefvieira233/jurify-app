@@ -130,7 +130,7 @@ export const PaginationControls: React.FC<PaginationControlsProps> = ({
               );
             }
 
-            const pageNum = page as number;
+            const pageNum = page;
             const isActive = pageNum === currentPage;
 
             return (

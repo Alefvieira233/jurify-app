@@ -117,14 +117,14 @@ const NovoAgenteForm: React.FC<NovoAgenteFormProps> = ({ agente, defaultType, on
     }
   }, [agente]);
 
-  const handleInputChange = (field: string, value: any) => {
+  const handleInputChange = <K extends keyof typeof formData>(field: K, value: (typeof formData)[K]) => {
     setFormData(prev => ({
       ...prev,
       [field]: value
     }));
   };
 
-  const handleParametroChange = (field: string, value: number) => {
+  const handleParametroChange = (field: keyof typeof formData.parametros_avancados, value: number) => {
     setFormData(prev => ({
       ...prev,
       parametros_avancados: {
@@ -257,7 +257,7 @@ const NovoAgenteForm: React.FC<NovoAgenteFormProps> = ({ agente, defaultType, on
         </div>
 
         {/* Form */}
-        <form onSubmit={handleSubmit} className="p-6 space-y-6">
+        <form onSubmit={(event) => { void handleSubmit(event); }} className="p-6 space-y-6">
           {/* Informações Básicas */}
           <Card>
             <CardHeader>
@@ -339,7 +339,7 @@ const NovoAgenteForm: React.FC<NovoAgenteFormProps> = ({ agente, defaultType, on
               {/* Status */}
               <div>
                 <Label htmlFor="status">Status</Label>
-                <Select value={formData.status} onValueChange={(value: string) => handleInputChange('status', value)}>
+                <Select value={formData.status} onValueChange={(value) => handleInputChange('status', value)}>
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
