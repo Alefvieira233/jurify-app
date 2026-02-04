@@ -47,7 +47,6 @@ interface AgentAIResponse {
   };
   model: string;
   agentName: string;
-  agentName: string;
   timestamp: string;
   // Function Calling Result
   tool_calls?: any[];
@@ -121,7 +120,6 @@ async function processAIRequest(
   const completion = await openai.chat.completions.create({
     model,
     messages,
-    temperature,
     temperature,
     max_tokens: maxTokens,
     tools,
@@ -442,7 +440,6 @@ Deno.serve(async (req) => {
     );
   }
 });
-
 
 
 
