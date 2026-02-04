@@ -3,7 +3,6 @@ import React, { useState } from 'react';
 import { Users, FileText, Calendar, Bot, TrendingUp, Clock, CheckCircle, AlertTriangle, Sparkles, ArrowUpRight, BarChart3, Activity } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Progress } from '@/components/ui/progress';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
 import { useDashboardMetrics } from '@/hooks/useDashboardMetrics';
@@ -38,11 +37,12 @@ const Dashboard = () => {
         refetch();
       }, 1000);
 
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Erro ao gerar dados:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Tente novamente.';
       toast({
         title: 'Erro ao gerar dados',
-        description: error.message || 'Tente novamente.',
+        description: errorMessage,
         variant: 'destructive',
       });
     } finally {
@@ -106,7 +106,7 @@ const Dashboard = () => {
               <h3 className="text-lg font-medium text-red-900 mb-2">Erro ao carregar dashboard</h3>
               <p className="text-red-700 mb-4">{error}</p>
               <Button
-                onClick={refetch}
+                onClick={() => void refetch()}
                 className="bg-red-600 hover:bg-red-700"
               >
                 Tentar novamente
@@ -140,7 +140,7 @@ const Dashboard = () => {
 
             <div className="flex gap-4 w-full sm:w-auto">
               <Button
-                onClick={handleGenerateTestData}
+                onClick={() => void handleGenerateTestData()}
                 disabled={isSeeding}
                 className="bg-[hsl(var(--accent))] hover:bg-[hsl(var(--accent-hover))] text-[hsl(var(--accent-foreground))] font-bold px-8 py-6 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 w-full sm:w-auto text-base"
               >
@@ -196,7 +196,7 @@ const Dashboard = () => {
         <div className="relative group">
           <div className="absolute -inset-1 bg-gradient-to-r from-[hsl(var(--accent))] to-[hsl(var(--accent)_/_0.5)] rounded-2xl blur-lg opacity-0 group-hover:opacity-50 transition-opacity duration-500" />
           <Button
-            onClick={refetch}
+            onClick={() => void refetch()}
             variant="outline"
             className="relative border-[hsl(var(--border))] hover:bg-[hsl(var(--accent))] hover:text-[hsl(var(--accent-foreground))] hover:border-[hsl(var(--accent))] transition-all duration-300 px-6 py-3 rounded-2xl shadow-lg group-hover:shadow-2xl"
             aria-label="Atualizar métricas do dashboard"

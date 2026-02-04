@@ -1,6 +1,6 @@
 
 import React, { useState, useMemo } from 'react';
-import { Plus, Search, Filter, Eye, Edit, Trash2, AlertCircle, RefreshCw, MessageCircle } from 'lucide-react';
+import { Plus, Search, Eye, Edit, Trash2, AlertCircle, RefreshCw, MessageCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -62,10 +62,10 @@ const LeadsPanel = () => {
 
   const handleRetry = () => {
     console.log('🔄 Tentando recarregar leads...');
-    fetchLeads();
+    void fetchLeads();
   };
 
-  const handleViewTimeline = (leadId: string, leadName: string) => {
+  const handleViewTimeline = (leadId: string, _leadName: string) => {
     setSelectedLead(leadId);
     setShowTimeline(true);
   };
@@ -77,7 +77,7 @@ const LeadsPanel = () => {
 
   const handleFormSuccess = () => {
     setShowFormModal(false);
-    fetchLeads();
+    void fetchLeads();
   };
 
   const handleEditLead = (lead: Lead) => {
@@ -86,7 +86,7 @@ const LeadsPanel = () => {
 
   const handleEditSuccess = () => {
     setEditingLead(null);
-    fetchLeads();
+    void fetchLeads();
   };
 
   const handleDeleteLead = async (id: string, nome: string) => {
@@ -108,7 +108,7 @@ const LeadsPanel = () => {
     if (result.source.droppableId === destination.droppableId) return;
 
     // Atualiza status do lead
-    updateLead(draggableId, { status: destination.droppableId });
+    void updateLead(draggableId, { status: destination.droppableId });
   };
 
   // Loading State
@@ -477,7 +477,7 @@ const LeadsPanel = () => {
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={() => handleDeleteLead(lead.id, lead.nome_completo)}
+                      onClick={() => void handleDeleteLead(lead.id, lead.nome_completo)}
                       className="relative group/btn overflow-hidden border-[hsl(var(--border))] bg-[hsl(var(--card))] text-red-400 hover:text-red-300 hover:bg-[hsl(var(--muted))] hover:border-red-500/50 transition-all duration-500"
                       aria-label="Excluir lead"
                     >
@@ -546,4 +546,5 @@ const LeadsPanel = () => {
 };
 
 export default LeadsPanel;
+
 

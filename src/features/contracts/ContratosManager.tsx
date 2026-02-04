@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { Plus, Search, Filter, Eye, Edit, FileSignature, Send, AlertCircle, RefreshCw, Upload } from 'lucide-react';
+import { Plus, Search, Eye, Edit, FileSignature, Send, AlertCircle, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -9,6 +9,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { useContratos } from '@/hooks/useContratos';
+import type { Contrato } from '@/hooks/useContratos';
 import UploadContratos from '@/components/UploadContratos';
 import { NovoContratoForm } from '@/components/NovoContratoForm';
 import { DetalhesContrato } from '@/components/DetalhesContrato';
@@ -18,7 +19,7 @@ const ContratosManager = () => {
   const [filterStatus, setFilterStatus] = useState('');
   const [isNovoContratoOpen, setIsNovoContratoOpen] = useState(false);
   const [isDetalhesOpen, setIsDetalhesOpen] = useState(false);
-  const [selectedContrato, setSelectedContrato] = useState<any | null>(null);
+  const [selectedContrato, setSelectedContrato] = useState<Contrato | null>(null);
   const { contratos, loading, error, isEmpty, fetchContratos } = useContratos();
 
   const filteredContratos = contratos.filter(contrato => {
@@ -52,7 +53,7 @@ const ContratosManager = () => {
     fetchContratos();
   };
 
-  const handleOpenDetails = (contrato: any) => {
+  const handleOpenDetails = (contrato: Contrato) => {
     setSelectedContrato(contrato);
     setIsDetalhesOpen(true);
   };
