@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
@@ -12,7 +12,7 @@ export interface LogAtividade {
   descricao: string;
   data_hora: string;
   ip_usuario?: string;
-  detalhes_adicionais?: any;
+  detalhes_adicionais?: Record<string, unknown> | null;
 }
 
 export interface FiltrosLog {
@@ -31,7 +31,7 @@ export const useActivityLogs = () => {
   const tenantId = profile?.tenant_id || null;
   const { toast } = useToast();
 
-  const fetchLogs = async (
+  const fetchLogs = useCallback(async (
     limite = 50,
     offset = 0,
     filtros: FiltrosLog = {}
@@ -69,13 +69,13 @@ export const useActivityLogs = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [user, tenantId, toast]);
 
   const logActivity = async (
     tipo_acao: 'criacao' | 'edicao' | 'exclusao' | 'login' | 'logout' | 'erro' | 'outro',
     modulo: string,
     descricao: string,
-    detalhes_adicionais?: any
+    detalhes_adicionais?: Record<string, unknown> | null
   ) => {
     if (!user || !tenantId) return;
 
@@ -180,9 +180,9 @@ export const useActivityLogs = () => {
 
   useEffect(() => {
     if (user) {
-      fetchLogs();
+      void fetchLogs();
     }
-  }, [user, tenantId]);
+  }, [fetchLogs, user]);
 
   return {
     logs,

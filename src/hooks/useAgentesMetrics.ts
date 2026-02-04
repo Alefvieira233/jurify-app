@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 
@@ -25,7 +25,7 @@ export const useAgentesMetrics = () => {
 
   const { profile } = useAuth();
 
-  const fetchMetrics = async () => {
+  const fetchMetrics = useCallback(async () => {
     if (!profile?.tenant_id) {
       setLoading(false);
       return;
@@ -97,10 +97,14 @@ export const useAgentesMetrics = () => {
         : 0;
 
       // Agente mais ativo
+      type AgenteMaisAtivoRow = {
+        agente_id: string | null;
+        agentes_ia?: { nome?: string | null } | null;
+      };
       const agenteCounts: Record<string, { count: number; nome: string }> = {};
-      agenteMaisAtivo?.forEach(log => {
-        const agentId = log.agente_id as string | null;
-        const agentNome = (log.agentes_ia as any)?.nome || 'Agente Desconhecido';
+      (agenteMaisAtivo as AgenteMaisAtivoRow[] | null | undefined)?.forEach(log => {
+        const agentId = log.agente_id;
+        const agentNome = log.agentes_ia?.nome || 'Agente Desconhecido';
         if (agentId) {
           if (!agenteCounts[agentId]) {
             agenteCounts[agentId] = { count: 0, nome: agentNome };
@@ -127,11 +131,11 @@ export const useAgentesMetrics = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [profile?.tenant_id]);
 
   useEffect(() => {
-    fetchMetrics();
-  }, [profile?.tenant_id]);
+    void fetchMetrics();
+  }, [fetchMetrics]);
 
   // Formatar ultima execucao
   const getUltimaExecucaoFormatada = (): string => {

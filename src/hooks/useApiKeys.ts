@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
@@ -22,7 +22,7 @@ export const useApiKeys = () => {
 
   const tenantId = profile?.tenant_id ?? null;
 
-  const fetchApiKeys = async () => {
+  const fetchApiKeys = useCallback(async () => {
     if (!tenantId) return;
 
     try {
@@ -44,7 +44,7 @@ export const useApiKeys = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [tenantId]);
 
   const criarApiKey = async (nome: string) => {
     if (!tenantId) {
@@ -144,8 +144,8 @@ export const useApiKeys = () => {
   };
 
   useEffect(() => {
-    fetchApiKeys();
-  }, [tenantId]);
+    void fetchApiKeys();
+  }, [fetchApiKeys]);
 
   return {
     apiKeys,
