@@ -1,6 +1,7 @@
 ﻿import React, { createContext, useContext, useEffect, useRef, useState, ReactNode } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
+import { Action, Resource, ROLE_PERMISSIONS, UserRole } from '@/types/rbac';
 
 interface Profile {
   id: string;
@@ -112,7 +113,17 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     window.location.href = '/auth';
   };
   const hasRole = (role: string) => profile?.role === role || role === 'admin';
-  const hasPermission = async () => true;
+  const hasPermission = async (module: string, permission: string) => {
+    if (!user || !profile?.role) return false;
+    const role = profile.role as UserRole;
+    const permissions = ROLE_PERMISSIONS[role];
+    if (!permissions) return false;
+
+    const resource = module as Resource;
+    const action = permission as Action;
+    const resourcePermission = permissions.find((p) => p.resource === resource);
+    return resourcePermission?.actions.includes(action) ?? false;
+  };
 
   return (
     <AuthContext.Provider value={{ user, session, profile, signIn, signUp, signOut, loading, hasRole, hasPermission }}>
