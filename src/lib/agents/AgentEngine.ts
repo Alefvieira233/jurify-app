@@ -584,8 +584,58 @@ AÇÕES:
   }
 
   private async analyzeSentiment(message: string): Promise<number> {
-    // Implementar análise de sentimento
-    return 0.5; // Neutro por padrão
+    const systemPrompt =
+      'Você é um classificador de sentimento. Responda APENAS com JSON válido no formato {"score":0.0} ' +
+      'onde score varia de 0 (muito negativo) a 1 (muito positivo).';
+
+    try {
+      const { data, error } = await supabase.functions.invoke('chat-completion', {
+        body: {
+          messages: [
+            { role: 'system', content: systemPrompt },
+            { role: 'user', content: message }
+          ],
+          model: DEFAULT_OPENAI_MODEL,
+          temperature: 0
+        }
+      });
+
+      if (error) {
+        throw error;
+      }
+
+      const score = this.extractScoreFromReply(data?.reply);
+      if (score === null) {
+        throw new Error('Invalid sentiment score');
+      }
+
+      return score;
+    } catch (error) {
+      console.warn('[agent-engine] Sentiment analysis failed, using neutral fallback.');
+      return 0.5;
+    }
+  }
+
+  private extractScoreFromReply(reply: string | undefined | null): number | null {
+    if (!reply) return null;
+
+    try {
+      const parsed = JSON.parse(reply) as { score?: number };
+      if (typeof parsed.score === 'number') {
+        return Math.max(0, Math.min(1, parsed.score));
+      }
+    } catch {
+      // Fall through to regex parsing
+    }
+
+    const jsonScoreMatch = reply.match(/"score"\s*:\s*([01](?:\.\d+)?)/);
+    const rawMatch = jsonScoreMatch ?? reply.match(/\b([01](?:\.\d+)?)\b/);
+    if (!rawMatch || !rawMatch[1]) return null;
+
+    const numeric = Number(rawMatch[1]);
+    if (Number.isNaN(numeric)) return null;
+
+    return Math.max(0, Math.min(1, numeric));
   }
 
   private async analyzeEscalationNeed(
