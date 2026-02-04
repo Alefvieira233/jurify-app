@@ -399,7 +399,7 @@ const TimelineConversas: React.FC<TimelineConversasProps> = ({ leadId, className
         </CardContent>
       </Card>
     </div>
-  );\n}, [profile?.tenant_id, leadId]);
+  );
 
 export default TimelineConversas;
 

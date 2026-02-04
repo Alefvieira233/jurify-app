@@ -72,7 +72,7 @@ const WhatsAppIA = () => {
 
   const handleSelectConversation = (id: string) => {
     selectConversation(id);
-    markAsRead(id);
+    void markAsRead(id);
   };
 
   const formatTime = (dateString: string) => {
@@ -105,7 +105,7 @@ const WhatsAppIA = () => {
       <WhatsAppSetup
         onConnectionSuccess={() => {
           setShowSetup(false);
-          fetchConversations();
+          void fetchConversations();
         }}
       />
     );
@@ -153,7 +153,7 @@ const WhatsAppIA = () => {
               <p className="text-red-700 mb-4">{error}</p>
               <div className="flex gap-3 justify-center">
                 <Button
-                  onClick={fetchConversations}
+                  onClick={() => void fetchConversations()}
                   className="bg-red-600 hover:bg-red-700"
                 >
                   <RefreshCw className="h-4 w-4 mr-2" />
@@ -451,12 +451,16 @@ const WhatsAppIA = () => {
                   type="text"
                   value={newMessage}
                   onChange={(e) => setNewMessage(e.target.value)}
-                  onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
+                  onKeyPress={(e) => {
+                    if (e.key === 'Enter') {
+                      void handleSendMessage();
+                    }
+                  }}
                   placeholder="Digite uma mensagem..."
                   className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent"
                 />
                 <button
-                  onClick={handleSendMessage}
+                  onClick={() => void handleSendMessage()}
                   className="bg-amber-500 hover:bg-amber-600 text-white p-2 rounded-lg"
                 >
                   <Send className="h-4 w-4" />

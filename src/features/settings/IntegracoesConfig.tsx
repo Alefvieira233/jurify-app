@@ -285,7 +285,7 @@ const IntegracoesConfig = () => {
                   <div className="flex items-center space-x-2">
                     <Switch
                       checked={integracao.status === 'ativa'}
-                      onCheckedChange={() => toggleStatus(integracao.id, integracao.status)}
+                      onCheckedChange={() => void toggleStatus(integracao.id, integracao.status)}
                     />
                     <Button variant="outline" size="sm" onClick={() => handleEdit(integracao)}>
                       <Settings className="h-4 w-4" />

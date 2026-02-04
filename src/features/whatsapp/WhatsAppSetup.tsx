@@ -62,7 +62,7 @@ export default function WhatsAppSetup({ onConnectionSuccess }: WhatsAppSetupProp
       }
     };
 
-    loadConfig();
+    void loadConfig();
   }, [tenantId]);
 
   const handleSave = async () => {
@@ -208,7 +208,7 @@ export default function WhatsAppSetup({ onConnectionSuccess }: WhatsAppSetupProp
           </div>
 
           <Button
-            onClick={handleSave}
+            onClick={() => void handleSave()}
             disabled={loading || !config.phoneNumberId || !config.accessToken}
             className="w-full bg-[hsl(var(--accent))] hover:bg-[hsl(var(--accent-hover))] text-[hsl(var(--accent-foreground))]"
           >
