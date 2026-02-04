@@ -135,7 +135,7 @@ export const GerarAssinaturaZapSign = ({ contrato, onSuccess }: GerarAssinaturaZ
               Cancelar
             </Button>
             <Button
-              onClick={handleGerarLink}
+              onClick={() => void handleGerarLink()}
               disabled={isLoading || !email}
             >
               <Send className="h-4 w-4 mr-2" />

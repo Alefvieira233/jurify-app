@@ -33,7 +33,7 @@ const GerenciarPermissoesForm = ({ usuario, onClose }: GerenciarPermissoesFormPr
   const queryClient = useQueryClient();
   const [selectedRoles, setSelectedRoles] = useState<string[]>([]);
 
-  const { data: userRoles = [], isLoading } = useQuery({
+  const { isLoading } = useQuery({
     queryKey: ['user-roles', usuario.id],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -64,7 +64,7 @@ const GerenciarPermissoesForm = ({ usuario, onClose }: GerenciarPermissoesFormPr
       if (newRoles.length > 0) {
         const rolesToInsert = newRoles.map(role => ({
           user_id: usuario.id,
-          role: role as any,
+          role,
           ativo: true
         }));
 
@@ -79,8 +79,8 @@ const GerenciarPermissoesForm = ({ usuario, onClose }: GerenciarPermissoesFormPr
       }
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['usuarios'] });
-      queryClient.invalidateQueries({ queryKey: ['user-roles', usuario.id] });
+      void queryClient.invalidateQueries({ queryKey: ['usuarios'] });
+      void queryClient.invalidateQueries({ queryKey: ['user-roles', usuario.id] });
       toast({
         title: "Permissões atualizadas",
         description: "As permissões do usuário foram atualizadas com sucesso.",

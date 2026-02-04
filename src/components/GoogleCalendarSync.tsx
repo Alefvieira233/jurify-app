@@ -40,7 +40,7 @@ const GoogleCalendarSync: React.FC<GoogleCalendarSyncProps> = ({
   } = useGoogleCalendar();
 
   useEffect(() => {
-    loadSettings();
+    void loadSettings();
   }, [loadSettings]);
 
   useEffect(() => {
@@ -98,19 +98,23 @@ Agendamento criado via Jurify
         }
 
         onComplete?.(success);
-      } catch (error: any) {
+      } catch (error: unknown) {
+        const message =
+          error instanceof Error
+            ? error.message
+            : 'Não foi possível sincronizar com o Google Calendar.';
         console.error('Error syncing with Google Calendar:', error);
         // Mostrar erro de sincronização no UI.
         toast({
           title: 'Erro na sincronização',
-          description: error.message || 'Não foi possível sincronizar com o Google Calendar.',
+          description: message,
           variant: 'destructive',
         });
         onComplete?.(false);
       }
     };
 
-    syncEvent();
+    void syncEvent();
   }, [
     agendamento,
     action,
@@ -119,7 +123,8 @@ Agendamento criado via Jurify
     createCalendarEvent,
     updateCalendarEvent,
     deleteCalendarEvent,
-    onComplete
+    onComplete,
+    toast
   ]);
 
   return null; // Este componente não renderiza nada visualmente

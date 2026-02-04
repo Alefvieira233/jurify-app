@@ -19,7 +19,6 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import {
   Activity,
-  AlertTriangle,
   BarChart3,
   Brain,
   CheckCircle,
@@ -29,10 +28,8 @@ import {
   MessageSquare,
   Phone,
   RefreshCw,
-  Send,
   Shield,
   Target,
-  TestTube,
   TrendingUp,
   Users,
   Zap,
@@ -157,7 +154,7 @@ export const EnterpriseDashboard: React.FC = () => {
             </div>
 
             <button
-              onClick={runSystemTest}
+              onClick={() => void runSystemTest()}
               disabled={isProcessing}
               className="btn-sharp border border-foreground/10 hover:border-primary/50"
             >
@@ -165,7 +162,7 @@ export const EnterpriseDashboard: React.FC = () => {
             </button>
 
             <button
-              onClick={loadRealTimeMetrics}
+              onClick={() => void loadRealTimeMetrics()}
               disabled={isProcessing}
               className="btn-sharp bg-primary text-background hover:bg-white hover:text-black font-black"
             >
@@ -329,7 +326,7 @@ export const EnterpriseDashboard: React.FC = () => {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <form onSubmit={handleSubmitLead} className="space-y-6">
+              <form onSubmit={(e) => void handleSubmitLead(e)} className="space-y-6">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="name">Nome Completo *</Label>
@@ -391,7 +388,7 @@ export const EnterpriseDashboard: React.FC = () => {
                     <Label htmlFor="urgency">Urgência</Label>
                     <Select
                       value={newLead.urgency}
-                      onValueChange={(value: any) => setNewLead({ ...newLead, urgency: value })}
+                      onValueChange={(value: string) => setNewLead({ ...newLead, urgency: value as Priority })}
                     >
                       <SelectTrigger className="border-gray-300">
                         <SelectValue />
@@ -409,7 +406,7 @@ export const EnterpriseDashboard: React.FC = () => {
                     <Label htmlFor="source">Canal de Origem</Label>
                     <Select
                       value={newLead.source}
-                      onValueChange={(value: any) => setNewLead({ ...newLead, source: value })}
+                      onValueChange={(value: string) => setNewLead({ ...newLead, source: value as typeof newLead.source })}
                     >
                       <SelectTrigger className="border-gray-300">
                         <SelectValue />

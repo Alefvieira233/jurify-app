@@ -1,5 +1,5 @@
 
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
@@ -23,15 +23,16 @@ const GoogleCalendarConfig = () => {
   } = useGoogleCalendar();
   
   const [isConnected, setIsConnected] = useState(false);
-  const [syncLogs, setSyncLogs] = useState<any[]>([]);
+  type SyncLog = {
+    id: string;
+    status: string;
+    action: string;
+    created_at: string;
+    error_message?: string | null;
+  };
+  const [syncLogs, setSyncLogs] = useState<SyncLog[]>([]);
 
-  useEffect(() => {
-    loadSettings();
-    checkConnection();
-    loadSyncLogs();
-  }, [loadSettings]);
-
-  const checkConnection = async () => {
+  const checkConnection = useCallback(async () => {
     if (!user?.id) return;
 
     const { data } = await supabase
@@ -41,9 +42,9 @@ const GoogleCalendarConfig = () => {
       .single();
 
     setIsConnected(!!data);
-  };
+  }, [user?.id]);
 
-  const loadSyncLogs = async () => {
+  const loadSyncLogs = useCallback(async () => {
     if (!user?.id) return;
 
     const { data } = await supabase
@@ -53,11 +54,17 @@ const GoogleCalendarConfig = () => {
       .order('created_at', { ascending: false })
       .limit(10);
 
-    setSyncLogs(data || []);
-  };
+    setSyncLogs((data as SyncLog[] | null) || []);
+  }, [user?.id]);
+
+  useEffect(() => {
+    void loadSettings();
+    void checkConnection();
+    void loadSyncLogs();
+  }, [loadSettings, checkConnection, loadSyncLogs]);
 
   const handleConnect = () => {
-    initializeGoogleAuth();
+    void initializeGoogleAuth();
   };
 
   const handleDisconnect = async () => {
@@ -65,7 +72,7 @@ const GoogleCalendarConfig = () => {
     setIsConnected(false);
   };
 
-  const handleSettingChange = async (key: string, value: any) => {
+  const handleSettingChange = async (key: string, value: boolean | string) => {
     await updateSettings({ [key]: value });
   };
 
@@ -108,7 +115,7 @@ const GoogleCalendarConfig = () => {
                 <Button 
                   variant="outline" 
                   size="sm" 
-                  onClick={handleDisconnect}
+                  onClick={() => void handleDisconnect()}
                   disabled={loading}
                 >
                   Desconectar
@@ -147,7 +154,7 @@ const GoogleCalendarConfig = () => {
               <Switch
                 id="calendar-enabled"
                 checked={settings?.calendar_enabled || false}
-                onCheckedChange={(checked) => handleSettingChange('calendar_enabled', checked)}
+                    onCheckedChange={(checked) => void handleSettingChange('calendar_enabled', checked)}
               />
             </div>
 
@@ -157,7 +164,7 @@ const GoogleCalendarConfig = () => {
                   <Label>Direção da Sincronização</Label>
                   <Select
                     value={settings.sync_direction}
-                    onValueChange={(value) => handleSettingChange('sync_direction', value)}
+                    onValueChange={(value) => void handleSettingChange('sync_direction', value)}
                   >
                     <SelectTrigger>
                       <SelectValue />
@@ -189,7 +196,7 @@ const GoogleCalendarConfig = () => {
                   <Switch
                     id="notifications"
                     checked={settings?.notification_enabled || false}
-                    onCheckedChange={(checked) => handleSettingChange('notification_enabled', checked)}
+                    onCheckedChange={(checked) => void handleSettingChange('notification_enabled', checked)}
                   />
                 </div>
               </>

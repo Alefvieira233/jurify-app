@@ -16,10 +16,10 @@ const ExportDataButton = ({ table, filename, className }: ExportDataButtonProps)
   const { toast } = useToast();
   const { hasPermission, profile } = useAuth();
   const tenantId = profile?.tenant_id || null;
-  const supabaseAny = supabase as typeof supabase & { from: (table: string) => any };
 
   const exportToCSV = async () => {
-    if (!hasPermission('usuarios', 'read')) {
+    const allowed = await hasPermission('usuarios', 'read');
+    if (!allowed) {
       toast({
         title: 'Sem permissao',
         description: 'Voce nao tem permissao para exportar dados.',
@@ -39,7 +39,7 @@ const ExportDataButton = ({ table, filename, className }: ExportDataButtonProps)
 
     setLoading(true);
     try {
-      const query = supabaseAny
+      const query = supabase
         .from(table)
         .select('*')
         .eq('tenant_id', tenantId)
@@ -60,16 +60,30 @@ const ExportDataButton = ({ table, filename, className }: ExportDataButtonProps)
         return;
       }
 
-      const headers = Object.keys(data[0]);
+      const rows = data as Record<string, unknown>[];
+      const headers = Object.keys(rows[0] ?? {});
       const csvContent = [
         headers.join(','),
-        ...data.map(row =>
+        ...rows.map(row =>
           headers.map(header => {
-            const value = (row as any)[header];
-            if (typeof value === 'string' && (value.includes(',') || value.includes('"') || value.includes('\n'))) {
-              return `"${value.replace(/"/g, '""')}"`;
+            const value = row[header];
+            if (value == null) return '';
+            if (typeof value === 'string') {
+              if (value.includes(',') || value.includes('"') || value.includes('\n')) {
+                return `"${value.replace(/"/g, '""')}"`;
+              }
+              return value;
             }
-            return value ?? '';
+            if (typeof value === 'object') {
+              return JSON.stringify(value);
+            }
+            if (typeof value === 'number' || typeof value === 'boolean' || typeof value === 'bigint') {
+              return value.toString();
+            }
+            if (typeof value === 'symbol') {
+              return value.description ?? '';
+            }
+            return '';
           }).join(',')
         )
       ].join('\n');
@@ -102,7 +116,7 @@ const ExportDataButton = ({ table, filename, className }: ExportDataButtonProps)
 
   return (
     <Button
-      onClick={exportToCSV}
+      onClick={() => void exportToCSV()}
       disabled={loading}
       variant="outline"
       size="sm"
