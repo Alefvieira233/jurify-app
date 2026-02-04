@@ -1,16 +1,25 @@
 import React, { useState, useEffect } from 'react';
-import { CheckCircle2, XCircle, AlertCircle } from 'lucide-react';
+import { CheckCircle2, XCircle } from 'lucide-react';
 
 interface PasswordStrengthProps {
     password: string;
     showRequirements?: boolean;
 }
 
+type Requirement = {
+    met: boolean;
+    text: string;
+    icon: React.ComponentType<React.SVGProps<SVGSVGElement>>;
+};
+
 export const PasswordStrength: React.FC<PasswordStrengthProps> = ({
     password,
     showRequirements = true
 }) => {
-    const [strength, setStrength] = useState({ score: 0, requirements: [] as any[] });
+    const [strength, setStrength] = useState<{
+        score: number;
+        requirements: Requirement[];
+    }>({ score: 0, requirements: [] });
 
     useEffect(() => {
         const hasUpperCase = /[A-Z]/.test(password);

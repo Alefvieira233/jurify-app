@@ -10,12 +10,15 @@ const ThinkingIndicator: React.FC<ThinkingIndicatorProps> = ({
     message = 'Analisando sua solicitação...',
     variant = 'default'
 }) => {
-    const messages = [
-        'Analisando jurisprudência...',
-        'Consultando base de conhecimento...',
-        'Processando informações...',
-        'Elaborando resposta...',
-    ];
+    const messages = React.useMemo(
+        () => [
+            'Analisando jurisprudência...',
+            'Consultando base de conhecimento...',
+            'Processando informações...',
+            'Elaborando resposta...',
+        ],
+        []
+    );
 
     const [currentMessage, setCurrentMessage] = React.useState(message);
     const [messageIndex, setMessageIndex] = React.useState(0);
@@ -28,13 +31,13 @@ const ThinkingIndicator: React.FC<ThinkingIndicatorProps> = ({
             return () => clearInterval(interval);
         }
         return undefined;
-    }, [variant]);
+    }, [variant, messages.length]);
 
     React.useEffect(() => {
         if (variant === 'default') {
             setCurrentMessage(messages[messageIndex]);
         }
-    }, [messageIndex, variant]);
+    }, [messageIndex, messages, variant]);
 
     if (variant === 'compact') {
         return (
@@ -76,3 +79,4 @@ const ThinkingIndicator: React.FC<ThinkingIndicatorProps> = ({
 };
 
 export default ThinkingIndicator;
+
