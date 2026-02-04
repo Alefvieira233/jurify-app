@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Plus, Bot, BarChart, Zap } from 'lucide-react';
+import { Plus, Bot } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -49,12 +49,6 @@ const AgentesIAManager = () => {
     totalFiltrados
   } = useAgentesIAFilters(agentes);
 
-  const tiposAgente = [
-    { value: 'chat_interno', label: 'Chat Interno', icon: Bot, color: 'text-blue-300' },
-    { value: 'analise_dados', label: 'Analise de Dados', icon: BarChart, color: 'text-green-500' },
-    { value: 'api_externa', label: 'API Externa', icon: Zap, color: 'text-purple-500' }
-  ];
-
   const toggleStatus = async (agente: AgenteIA) => {
     const statusLabel = agente.status === 'ativo' ? 'inativo' : 'ativo';
     console.log(`Alterando status do agente ${agente.nome} para ${statusLabel}`);
@@ -85,6 +79,10 @@ const AgentesIAManager = () => {
       agentId: agente.id,
       agentName: agente.nome
     });
+  };
+
+  const handleToggleStatus = (agente: AgenteIA) => {
+    void toggleStatus(agente);
   };
 
   const handleViewDetails = (agente: AgenteIA) => {
@@ -333,7 +331,7 @@ const AgentesIAManager = () => {
                   agente={agente}
                   onEdit={handleEdit}
                   onViewDetails={handleViewDetails}
-                  onToggleStatus={toggleStatus}
+                  onToggleStatus={handleToggleStatus}
                 />
               ))}
             </div>

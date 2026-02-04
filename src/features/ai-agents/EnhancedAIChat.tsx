@@ -24,7 +24,7 @@ interface EnhancedAIChatProps {
 }
 
 const EnhancedAIChat: React.FC<EnhancedAIChatProps> = ({
-    agentId,
+    agentId: _agentId,
     agentName,
     agentArea
 }) => {
@@ -104,8 +104,10 @@ const EnhancedAIChat: React.FC<EnhancedAIChatProps> = ({
                 description: `Processado em ${duration}ms`,
             });
 
-        } catch (err: any) {
-            const errorMessage = err.message || 'Erro ao comunicar com o agente';
+        } catch (err: unknown) {
+            const errorMessage = err instanceof Error
+                ? err.message
+                : 'Erro ao comunicar com o agente';
             setError(errorMessage);
 
             toast({
@@ -121,7 +123,7 @@ const EnhancedAIChat: React.FC<EnhancedAIChatProps> = ({
     const handleKeyPress = (e: React.KeyboardEvent) => {
         if (e.key === 'Enter' && !e.shiftKey) {
             e.preventDefault();
-            sendMessage();
+            void sendMessage();
         }
     };
 
@@ -242,7 +244,7 @@ const EnhancedAIChat: React.FC<EnhancedAIChatProps> = ({
                         disabled={isLoading}
                     />
                     <Button
-                        onClick={sendMessage}
+                        onClick={() => void sendMessage()}
                         disabled={!input.trim() || isLoading}
                         className="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white px-6 h-[60px] transition-all transform hover:scale-105"
                     >

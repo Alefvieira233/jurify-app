@@ -54,14 +54,14 @@ export const AgentesIAFilters: React.FC<AgentesIAFiltersProps> = ({
     if (filters.searchTerm !== debouncedSearch) {
        setLocalSearch(filters.searchTerm);
     }
-  }, [filters.searchTerm]);
+  }, [filters.searchTerm, debouncedSearch]);
 
   // Trigger filter change when debounced value updates
   useEffect(() => {
     if (debouncedSearch !== filters.searchTerm) {
       onFilterChange('searchTerm', debouncedSearch);
     }
-  }, [debouncedSearch]);
+  }, [debouncedSearch, filters.searchTerm, onFilterChange]);
 
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setLocalSearch(e.target.value);
