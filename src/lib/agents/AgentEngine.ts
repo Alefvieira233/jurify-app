@@ -28,6 +28,10 @@ export enum LeadStatus {
   LOST = 'lead_perdido'
 }
 
+const SCORING_TEMPERATURE = 0;
+const SCORING_MAX_TOKENS = 120;
+const SCORING_TIMEOUT_MS = 7000;
+
 // 🎯 CONFIGURAÇÃO DO AGENTE
 export interface AgentConfig {
   id: string;
@@ -588,6 +592,9 @@ AÇÕES:
       'Você é um classificador de sentimento. Responda APENAS com JSON válido no formato {"score":0.0} ' +
       'onde score varia de 0 (muito negativo) a 1 (muito positivo).';
 
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), SCORING_TIMEOUT_MS);
+
     try {
       const { data, error } = await supabase.functions.invoke('chat-completion', {
         body: {
@@ -596,8 +603,11 @@ AÇÕES:
             { role: 'user', content: message }
           ],
           model: DEFAULT_OPENAI_MODEL,
-          temperature: 0
-        }
+          temperature: SCORING_TEMPERATURE,
+          max_tokens: SCORING_MAX_TOKENS,
+          response_format: { type: 'json_object' }
+        },
+        signal: controller.signal
       });
 
       if (error) {
@@ -613,6 +623,8 @@ AÇÕES:
     } catch (error) {
       console.warn('[agent-engine] Sentiment analysis failed, using neutral fallback.');
       return 0.5;
+    } finally {
+      clearTimeout(timeoutId);
     }
   }
 
@@ -657,6 +669,9 @@ MENSAGEM DO LEAD: ${message}
 RESPOSTA DO AGENTE: ${response}
 `;
 
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), SCORING_TIMEOUT_MS);
+
     try {
       const { data, error } = await supabase.functions.invoke('chat-completion', {
         body: {
@@ -665,8 +680,11 @@ RESPOSTA DO AGENTE: ${response}
             { role: 'user', content: userPrompt.trim() }
           ],
           model: DEFAULT_OPENAI_MODEL,
-          temperature: 0
-        }
+          temperature: SCORING_TEMPERATURE,
+          max_tokens: SCORING_MAX_TOKENS,
+          response_format: { type: 'json_object' }
+        },
+        signal: controller.signal
       });
 
       if (error) {
@@ -682,6 +700,8 @@ RESPOSTA DO AGENTE: ${response}
     } catch (error) {
       console.warn('[agent-engine] Escalation analysis failed, using neutral fallback.');
       return 0.5;
+    } finally {
+      clearTimeout(timeoutId);
     }
   }
 
@@ -698,3 +718,49 @@ RESPOSTA DO AGENTE: ${response}
 
 // 🚀 INSTÂNCIA GLOBAL DO MOTOR
 export const agentEngine = new AgentEngine();
+
+/*
+Manual test snippet (no UI):
+(async () => {
+  const engine = agentEngine as unknown as {
+    analyzeSentiment: (message: string) => Promise<number>;
+    analyzeEscalationNeed: (
+      agent: AgentConfig,
+      message: string,
+      response: string,
+      rule: EscalationRule
+    ) => Promise<number>;
+  };
+
+  const sentiment = await engine.analyzeSentiment('Estou muito insatisfeito com o serviço.');
+  console.log('Sentiment score:', sentiment);
+
+  const mockAgent: AgentConfig = {
+    id: 'agent-1',
+    name: 'SDR Test',
+    type: AgentType.SDR,
+    area_juridica: 'Trabalhista',
+    prompt_base: '',
+    personality: 'Profissional',
+    specialization: ['geral'],
+    max_interactions: 10,
+    escalation_rules: [],
+    active: true
+  };
+
+  const mockRule: EscalationRule = {
+    condition: 'Urgência alta',
+    next_agent_type: AgentType.CLOSER,
+    trigger_keywords: ['urgente', 'prazo'],
+    confidence_threshold: 0.7
+  };
+
+  const escalation = await engine.analyzeEscalationNeed(
+    mockAgent,
+    'Tenho prazo amanhã e risco alto.',
+    'Entendo, posso ajudar.',
+    mockRule
+  );
+  console.log('Escalation score:', escalation);
+})();
+*/
