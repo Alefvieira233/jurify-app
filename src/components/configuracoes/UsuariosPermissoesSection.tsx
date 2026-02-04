@@ -6,20 +6,34 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Users, Shield, Edit } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRBAC } from '@/hooks/useRBAC';
 
-const UsuariosPermissoesSection = () => {
-  const { toast } = useToast();
+
+type RoleGroupUser = {
+  id: string;
+  nome?: string | null;
+  email?: string | null;
+};
+
+type RoleGroup = {
+  role: string;
+  users: RoleGroupUser[];
+};
+
+type RolePermission = {
+  role: string;
+  module: string;
+  permission: string;
+};const UsuariosPermissoesSection = () => {
   const { profile } = useAuth();
   const { isAdmin } = useRBAC();
-  const [isRoleDialogOpen, setIsRoleDialogOpen] = useState(false);
-  const [editingRole, setEditingRole] = useState<any>(null);
+  const [_isRoleDialogOpen, setIsRoleDialogOpen] = useState(false);
+  const [_editingRole, setEditingRole] = useState<RoleGroup | null>(null);
 
   const tenantId = profile?.tenant_id ?? null;
 
-  const { data: roles = [] } = useQuery({
+  const { data: roles = [] } = useQuery<RoleGroup[]>({
     queryKey: ['user-roles-list', tenantId],
     enabled: !!tenantId,
     queryFn: async () => {
@@ -35,7 +49,7 @@ const UsuariosPermissoesSection = () => {
 
       if (error) throw error;
 
-      const roleGroups = data.reduce((acc: any, item) => {
+      const roleGroups = data.reduce((acc: Record<string, RoleGroup>, item) => {
         const profileData = Array.isArray(item.profiles) ? item.profiles[0] : item.profiles;
         if (!acc[item.role]) {
           acc[item.role] = {
@@ -49,13 +63,13 @@ const UsuariosPermissoesSection = () => {
           email: profileData?.email,
         });
         return acc;
-      }, {} as Record<string, any>);
+      }, {} as Record<string, RoleGroup>);
 
       return Object.values(roleGroups);
     },
   });
 
-  const { data: permissions = [] } = useQuery({
+  const { data: permissions = [] } = useQuery<RolePermission[]>({
     queryKey: ['role-permissions'],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -139,14 +153,14 @@ const UsuariosPermissoesSection = () => {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {roles.map((roleGroup: any) => (
+              {roles.map((roleGroup) => (
                 <TableRow key={roleGroup.role}>
                   <TableCell>
                     <Badge className={getRoleColor(roleGroup.role)}>{getRoleLabel(roleGroup.role)}</Badge>
                   </TableCell>
                   <TableCell>
                     <div className="space-y-1">
-                      {roleGroup.users.map((user: any) => (
+                      {roleGroup.users.map((user) => (
                         <div key={user.id} className="text-sm">
                           <div className="font-medium">{user.nome}</div>
                           <div className="text-gray-500">{user.email}</div>

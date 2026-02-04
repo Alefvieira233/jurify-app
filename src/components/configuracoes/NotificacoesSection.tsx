@@ -12,10 +12,20 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Bell, Plus, Edit, Save } from 'lucide-react';
 import { useNotificationTemplates } from '@/hooks/useNotificationTemplates';
 
+type NotificationTemplate = {
+  id: string;
+  name: string;
+  title: string;
+  template: string;
+  event_type: string;
+  is_active: boolean;
+  roles_enabled?: string[];
+};
+
 const NotificacoesSection = () => {
   const { templates, updateTemplate, createTemplate, isUpdating } = useNotificationTemplates();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [editingTemplate, setEditingTemplate] = useState<any>(null);
+  const [editingTemplate, setEditingTemplate] = useState<NotificationTemplate | null>(null);
   const [formData, setFormData] = useState({
     name: '',
     title: '',
@@ -41,7 +51,7 @@ const NotificacoesSection = () => {
     { value: 'payment_received', label: 'Pagamento Recebido' }
   ];
 
-  const handleEdit = (template: any) => {
+  const handleEdit = (template: NotificationTemplate) => {
     setEditingTemplate(template);
     setFormData({
       name: template.name,

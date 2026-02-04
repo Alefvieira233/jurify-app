@@ -1,4 +1,5 @@
-﻿import React, { createContext, useContext, useEffect, useRef, useState, ReactNode } from 'react';
+/* eslint-disable react-refresh/only-export-components */
+import React, { createContext, useContext, useEffect, useState, ReactNode, useCallback } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { Action, Resource, ROLE_PERMISSIONS, UserRole } from '@/types/rbac';
@@ -17,8 +18,8 @@ interface AuthContextType {
   user: User | null;
   session: Session | null;
   profile: Profile | null;
-  signIn: (email: string, password: string) => Promise<any>;
-  signUp: (email: string, password: string, userData?: any) => Promise<any>;
+  signIn: (email: string, password: string) => ReturnType<typeof supabase.auth.signInWithPassword>;
+  signUp: (email: string, password: string, userData?: Record<string, unknown>) => ReturnType<typeof supabase.auth.signUp>;
   signOut: () => Promise<void>;
   loading: boolean;
   hasRole: (role: string) => boolean;
@@ -42,9 +43,9 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const allowEmergencyProfile = import.meta.env.VITE_ALLOW_EMERGENCY_PROFILE === 'true';
   const sessionTimeoutMs = 5000;
 
-  const fetchProfile = async (userId: string) => {
+  const fetchProfile = useCallback(async (userId: string) => {
     try {
-      console.log(`📡 [auth] Tentando carregar perfil real...`);
+      console.log(`?? [auth] Tentando carregar perfil real...`);
 
       const { data, error } = await supabase
         .from('profiles')
@@ -54,12 +55,12 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
       if (error || !data) throw new Error('RLS_BLOCK_OR_NOT_FOUND');
 
-      console.log('✅ [auth] Perfil REAL carregado.');
+      console.log('? [auth] Perfil REAL carregado.');
       setProfile(data);
-    } catch (err) {
+    } catch (_err) {
       if (allowEmergencyProfile) {
         console.warn(
-          '⚡ [auth] MODO DEV: Emergency Profile habilitado via VITE_ALLOW_EMERGENCY_PROFILE.'
+          '? [auth] MODO DEV: Emergency Profile habilitado via VITE_ALLOW_EMERGENCY_PROFILE.'
         );
         setProfile({
           id: userId,
@@ -70,16 +71,16 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           subscription_status: 'dev',
         });
       } else {
-        console.error('❌ [auth] Perfil indisponível. Operando sem permissões.');
+        console.error('? [auth] Perfil indispon�vel. Operando sem permiss�es.');
         setProfile(null);
       }
     }
-  };
+  }, [allowEmergencyProfile]);
 
   useEffect(() => {
     const initialize = async () => {
       setLoading(true);
-      console.log('🚀 [auth] Iniciando Sessão...');
+      console.log('?? [auth] Iniciando Sess�o...');
 
       const getSessionPromise = supabase.auth.getSession();
       const timeoutPromise = new Promise<never>((_, reject) => {
@@ -99,7 +100,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           setProfile(null);
         }
       } catch (error) {
-        console.error('❌ [auth] Falha ao verificar sessão:', error);
+        console.error('? [auth] Falha ao verificar sess�o:', error);
         setUser(null);
         setSession(null);
         setProfile(null);
@@ -108,15 +109,15 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       }
     };
 
-    initialize();
+    void initialize();
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, s) => {
-      console.log(`🔐 [auth] Evento Auth: ${event}`);
+      console.log(`?? [auth] Evento Auth: ${event}`);
       setLoading(true);
       setUser(s?.user ?? null);
       setSession(s);
       if (s?.user) {
-        fetchProfile(s.user.id).finally(() => setLoading(false));
+        void fetchProfile(s.user.id).finally(() => setLoading(false));
       } else {
         setProfile(null);
         setLoading(false);
@@ -124,16 +125,17 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     });
 
     return () => subscription.unsubscribe();
-  }, []);
+  }, [fetchProfile, sessionTimeoutMs]);
 
   const signIn = (email: string, password: string) => supabase.auth.signInWithPassword({ email, password });
-  const signUp = (email: string, password: string, userData?: any) => supabase.auth.signUp({ email, password, options: { data: userData } });
+  const signUp = (email: string, password: string, userData?: Record<string, unknown>) =>
+    supabase.auth.signUp({ email, password, options: { data: userData } });
   const signOut = async () => {
     await supabase.auth.signOut();
     window.location.href = '/auth';
   };
   const hasRole = (role: string) => profile?.role === role || role === 'admin';
-  const hasPermission = async (module: string, permission: string) => {
+  const hasPermission = (module: string, permission: string) => {
     if (!user || !profile?.role) return false;
     const role = profile.role as UserRole;
     const permissions = ROLE_PERMISSIONS[role];
@@ -142,7 +144,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     const resource = module as Resource;
     const action = permission as Action;
     const resourcePermission = permissions.find((p) => p.resource === resource);
-    return resourcePermission?.actions.includes(action) ?? false;
+    return Promise.resolve(resourcePermission?.actions.includes(action) ?? false);
   };
 
   return (

@@ -7,6 +7,8 @@ import { Separator } from '@/components/ui/separator';
 import { Eye, EyeOff, Calendar, FileSignature, MessageSquare, Bot } from 'lucide-react';
 import { useSystemSettings } from '@/hooks/useSystemSettings';
 
+type IntegrationSetting = { key: string; description: string; is_sensitive?: boolean };
+
 const IntegracoesSection = () => {
   const { getSettingsByCategory, updateSetting, isUpdating, getSettingValue } = useSystemSettings();
   const [showSensitive, setShowSensitive] = useState<Record<string, boolean>>({});
@@ -28,7 +30,7 @@ const IntegracoesSection = () => {
     setShowSensitive((prev) => ({ ...prev, [key]: !prev[key] }));
   };
 
-  const renderSettingField = (setting: any) => {
+  const renderSettingField = (setting: IntegrationSetting) => {
     const currentValue = formData[setting.key] !== undefined ? formData[setting.key] : getSettingValue(setting.key);
     const isVisible = showSensitive[setting.key];
 
