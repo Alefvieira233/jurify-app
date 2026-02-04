@@ -33,7 +33,7 @@ CREATE TABLE IF NOT EXISTS public.agent_ai_logs (
   lead_id UUID REFERENCES public.leads(id) ON DELETE SET NULL,
   tenant_id UUID NOT NULL,
   user_id UUID REFERENCES auth.users(id) ON DELETE SET NULL,
-  model TEXT DEFAULT 'gpt-4-turbo-preview',
+  model TEXT DEFAULT 'gpt-4o',
   status TEXT DEFAULT 'completed',
   prompt_tokens INTEGER DEFAULT 0,
   completion_tokens INTEGER DEFAULT 0,
@@ -86,3 +86,4 @@ SELECT
 FROM public.agent_executions e
 LEFT JOIN public.leads l ON e.lead_id = l.id
 WHERE e.status IN ('pending', 'processing');
+

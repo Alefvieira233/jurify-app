@@ -94,7 +94,7 @@ INSERT INTO agent_ai_logs (agent_name, lead_id, model, prompt_tokens, completion
 SELECT
   'QualificadorAgent',
   id,
-  'gpt-4-turbo-preview',
+  'gpt-4o',
   (500 + random() * 1000)::int,
   (200 + random() * 500)::int,
   (700 + random() * 1500)::int,
@@ -123,3 +123,4 @@ SELECT 'LOGS_IA', COUNT(*)::text FROM agent_ai_logs;
 -- ✅ SCRIPT CONCLUÍDO
 -- Acesse http://localhost:8080 para ver os dados!
 -- ========================================
+

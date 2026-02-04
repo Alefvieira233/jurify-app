@@ -62,7 +62,7 @@ const { data, error } = await supabase.functions.invoke('ai-agent-processor', {
     systemPrompt: 'Você é um assistente útil.',
     userPrompt: 'Diga olá!',
     context: {},
-    model: 'gpt-4-turbo-preview',
+    model: 'gpt-4o',
     temperature: 0.7,
     maxTokens: 100
   }
@@ -399,3 +399,4 @@ Se tiver dúvidas sobre alguma integração:
 ---
 
 **Última atualização**: 2025-12-11
+

@@ -4,6 +4,7 @@ import { createClient } from "jsr:@supabase/supabase-js@2";
 import { OpenAI } from "https://deno.land/x/openai@v4.24.0/mod.ts";
 import { getCorsHeaders } from "../_shared/cors.ts";
 import { applyRateLimit } from "../_shared/rate-limiter.ts";
+import { DEFAULT_OPENAI_MODEL } from "../_shared/ai-model.ts";
 
 Deno.serve(async (req) => {
   const corsHeaders = getCorsHeaders(req.headers.get("origin") || undefined);
@@ -59,7 +60,7 @@ Deno.serve(async (req) => {
       return rateLimitCheck.response;
     }
 
-    const { messages, model = "gpt-4-turbo-preview", temperature = 0.7 } = await req.json();
+    const { messages, model = DEFAULT_OPENAI_MODEL, temperature = 0.7 } = await req.json();
 
     const apiKey = Deno.env.get("OPENAI_API_KEY");
     if (!apiKey) {

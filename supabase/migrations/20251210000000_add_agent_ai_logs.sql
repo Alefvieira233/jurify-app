@@ -13,7 +13,7 @@ CREATE TABLE IF NOT EXISTS public.agent_ai_logs (
   user_id UUID REFERENCES auth.users(id) ON DELETE SET NULL,
 
   -- Informações da requisição
-  model TEXT NOT NULL DEFAULT 'gpt-4-turbo-preview',
+  model TEXT NOT NULL DEFAULT 'gpt-4o',
   prompt_tokens INTEGER DEFAULT 0,
   completion_tokens INTEGER DEFAULT 0,
   total_tokens INTEGER DEFAULT 0,
@@ -156,3 +156,4 @@ COMMENT ON COLUMN public.agent_ai_logs.result_preview IS
 
 COMMENT ON MATERIALIZED VIEW public.agent_ai_logs_stats IS
   'View materializada com estatísticas agregadas de uso de IA por agente, tenant e dia. Refreshada automaticamente após inserções.';
+

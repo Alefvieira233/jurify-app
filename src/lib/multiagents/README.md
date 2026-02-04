@@ -429,7 +429,7 @@ class MyAgent extends BaseAgent {
 
     // Configurar parâmetros de IA
     this.configureAI({
-      model: 'gpt-4-turbo-preview',
+      model: 'gpt-4o',
       temperature: 0.9,  // Mais criativo
       maxTokens: 2000    // Respostas mais longas
     });
@@ -541,3 +541,4 @@ Para dúvidas ou problemas:
 ---
 
 **✅ JURIFY MULTIAGENT SYSTEM v2.0 - READY FOR PRODUCTION**
+

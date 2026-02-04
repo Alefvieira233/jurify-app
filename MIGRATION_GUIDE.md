@@ -63,7 +63,7 @@ const openai = new OpenAI({
 });
 
 const completion = await openai.chat.completions.create({
-  model: "gpt-4-turbo-preview",
+  model: "gpt-4o",
   messages: [...]
 });
 ```
@@ -79,7 +79,7 @@ const request: AgentAIRequest = {
   systemPrompt: 'Você é o coordenador...',
   userPrompt: 'Analise este lead...',
   context: { leadId: '123' },
-  model: 'gpt-4-turbo-preview',
+  model: 'gpt-4o',
   temperature: 0.7,
   maxTokens: 1500
 };
@@ -147,7 +147,7 @@ export class CoordinatorAgent extends BaseAgent {
 // Método processWithAI chamava OpenAI diretamente
 protected async processWithAI(prompt: string, context?: any): Promise<string> {
   const completion = await this.openai.chat.completions.create({
-    model: "gpt-4-turbo-preview",
+    model: "gpt-4o",
     messages: [...]
   });
   return completion.choices[0]?.message?.content || 'Erro';
@@ -465,3 +465,4 @@ Se encontrar problemas durante a migração:
 ---
 
 **✅ MIGRAÇÃO COMPLETA - BEM-VINDO AO MULTIAGENT SYSTEM v2.0!**
+

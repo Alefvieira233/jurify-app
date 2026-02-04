@@ -9,6 +9,7 @@
  */
 
 import { BaseAgent } from '../core/BaseAgent';
+import { DEFAULT_OPENAI_MODEL } from '@/lib/ai/model';
 import { Priority, MessageType } from '../types';
 import type { AgentMessage, TaskRequestPayload } from '../types';
 
@@ -38,7 +39,7 @@ export class AdvancedReasoningAgent extends BaseAgent {
 
         // Configure for deeper thinking
         this.configureAI({
-            model: 'gpt-4-turbo-preview',
+            model: DEFAULT_OPENAI_MODEL,
             temperature: 0.3, // Lower for more consistent reasoning
             maxTokens: 2500,  // Higher for detailed analysis
         });

@@ -163,7 +163,7 @@ export async function testeFluxoAgenteIA() {
         systemPrompt: 'Você é um coordenador de agentes.',
         userPrompt: 'Teste de conexão',
         context: {},
-        model: 'gpt-4-turbo-preview',
+        model: 'gpt-4o',
         temperature: 0.7,
         maxTokens: 50,
         leadId: lead.id,
@@ -532,3 +532,4 @@ if (typeof window !== 'undefined') {
   console.log('✅ Testes E2E carregados!');
   console.log('Execute no console: JurifyTestes.executarTodos()');
 }
+

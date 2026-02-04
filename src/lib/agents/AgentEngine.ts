@@ -9,6 +9,7 @@
  */
 
 import { supabase } from '@/integrations/supabase/client';
+import { DEFAULT_OPENAI_MODEL } from '@/lib/ai/model';
 
 // 🤖 TIPOS DE AGENTES ESPECIALIZADOS
 export enum AgentType {
@@ -272,7 +273,7 @@ export class AgentEngine {
               content: message
             }
           ],
-          model: "gpt-4-turbo-preview",
+          model: DEFAULT_OPENAI_MODEL,
           temperature: 0.7
         }
       });

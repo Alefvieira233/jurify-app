@@ -9,6 +9,7 @@
  */
 
 import { supabase } from '@/integrations/supabase/client';
+import { DEFAULT_OPENAI_MODEL } from '@/lib/ai/model';
 import {
   Priority,
   MessageType
@@ -31,7 +32,7 @@ export abstract class BaseAgent implements IAgent {
   protected isProcessing = false;
 
   // 🎯 Configurações de IA
-  protected model: string = 'gpt-4-turbo-preview';
+  protected model: string = DEFAULT_OPENAI_MODEL;
   protected temperature: number = 0.7;
   protected maxTokens: number = 1500;
 

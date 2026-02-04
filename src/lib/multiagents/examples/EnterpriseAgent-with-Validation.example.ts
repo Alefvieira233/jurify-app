@@ -372,7 +372,7 @@ export async function logAgentActivity(params: {
     execution_id: params.executionId || null,
     tenant_id: params.tenantId,
     status: params.status,
-    model: params.model || 'gpt-4-turbo-preview',
+    model: params.model || 'gpt-4o',
     prompt_tokens: params.usage?.prompt_tokens || 0,
     completion_tokens: params.usage?.completion_tokens || 0,
     total_tokens: params.usage?.total_tokens || 0,
@@ -418,3 +418,4 @@ export async function exampleFullFlow() {
     // Error handling robusto
   }
 }
+

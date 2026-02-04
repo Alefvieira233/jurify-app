@@ -203,7 +203,7 @@ CREATE TRIGGER trigger_agent_executions_updated_at
 CREATE OR REPLACE FUNCTION calculate_execution_cost(
   p_prompt_tokens INTEGER,
   p_completion_tokens INTEGER,
-  p_model TEXT DEFAULT 'gpt-4-turbo-preview'
+  p_model TEXT DEFAULT 'gpt-4o'
 )
 RETURNS DECIMAL AS $$
 DECLARE
@@ -388,3 +388,4 @@ $$ LANGUAGE plpgsql SECURITY DEFINER;
 
 COMMENT ON FUNCTION create_agent_execution IS
   'Helper function para criar uma nova execução de agente. Retorna o UUID da execução criada.';
+

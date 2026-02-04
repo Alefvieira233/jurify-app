@@ -14,6 +14,7 @@ import { OpenAI } from "https://deno.land/x/openai@v4.24.0/mod.ts";
 import { applyRateLimit } from "../_shared/rate-limiter.ts";
 import { getCorsHeaders } from "../_shared/cors.ts";
 import { initSentry, captureError } from "../_shared/sentry.ts";
+import { DEFAULT_OPENAI_MODEL } from "../_shared/ai-model.ts";
 
 // 🚀 INIT SENTRY
 initSentry();
@@ -86,7 +87,7 @@ async function processAIRequest(
     systemPrompt,
     userPrompt,
     context,
-    model = "gpt-4-turbo-preview",
+    model = DEFAULT_OPENAI_MODEL,
     temperature = 0.7,
     maxTokens = 1500,
     tools,
@@ -440,7 +441,6 @@ Deno.serve(async (req) => {
     );
   }
 });
-
 
 
 

@@ -9,6 +9,7 @@
 
 import { z } from 'zod';
 import { MessageType, Priority } from '../types';
+import { DEFAULT_OPENAI_MODEL } from '@/lib/ai/model';
 
 // 🎯 SCHEMAS DE ENUMS
 export const MessageTypeSchema = z.nativeEnum(MessageType);
@@ -90,7 +91,7 @@ export const AgentAIRequestSchema = z.object({
   systemPrompt: z.string().min(1, 'System prompt is required'),
   userPrompt: z.string().min(1, 'User prompt is required'),
   context: z.record(z.unknown()).optional(),
-  model: z.string().default('gpt-4-turbo-preview'),
+  model: z.string().default(DEFAULT_OPENAI_MODEL),
   temperature: z.number().min(0).max(2).default(0.7),
   maxTokens: z.number().min(1).max(4000).default(1500),
   leadId: z.string().optional(),

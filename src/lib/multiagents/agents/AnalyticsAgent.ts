@@ -9,6 +9,7 @@
  */
 
 import { BaseAgent } from '../core/BaseAgent';
+import { DEFAULT_OPENAI_MODEL } from '@/lib/ai/model';
 import { AgentMessage, MessageType, Priority, TaskRequestPayload } from '../types';
 
 interface AnalyticsReport {
@@ -38,7 +39,7 @@ export class AnalyticsAgent extends BaseAgent {
         );
 
         this.configureAI({
-            model: 'gpt-4-turbo-preview',
+            model: DEFAULT_OPENAI_MODEL,
             temperature: 0.4,
             maxTokens: 2000,
         });

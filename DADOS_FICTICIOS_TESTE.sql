@@ -204,37 +204,37 @@ INSERT INTO agent_executions (
 
 -- Logs da Execução 1 (Maria Silva - Completada)
 INSERT INTO agent_ai_logs (execution_id, agent_name, lead_id, tenant_id, model, status, prompt_tokens, completion_tokens, total_tokens, latency_ms, result_preview, created_at) VALUES
-('e0000000-0000-0000-0000-000000000001', 'RouterAgent', '11111111-1111-1111-1111-111111111111', '00000000-0000-0000-0000-000000000001', 'gpt-4-turbo-preview', 'completed', 850, 320, 1170, 1234, 'Roteado para QualificationAgent - Área: Direito Trabalhista', NOW() - INTERVAL '2 hours'),
-('e0000000-0000-0000-0000-000000000001', 'QualificationAgent', '11111111-1111-1111-1111-111111111111', '00000000-0000-0000-0000-000000000001', 'gpt-4-turbo-preview', 'completed', 1200, 450, 1650, 2345, 'Lead qualificado com 92% de confiança - Valor estimado: R$ 35.000', NOW() - INTERVAL '2 hours' + INTERVAL '2 minutes'),
-('e0000000-0000-0000-0000-000000000001', 'DocumentAgent', '11111111-1111-1111-1111-111111111111', '00000000-0000-0000-0000-000000000001', 'gpt-4-turbo-preview', 'completed', 400, 120, 520, 987, 'Documentos necessários identificados e solicitados ao lead', NOW() - INTERVAL '2 hours' + INTERVAL '4 minutes');
+('e0000000-0000-0000-0000-000000000001', 'RouterAgent', '11111111-1111-1111-1111-111111111111', '00000000-0000-0000-0000-000000000001', 'gpt-4o', 'completed', 850, 320, 1170, 1234, 'Roteado para QualificationAgent - Área: Direito Trabalhista', NOW() - INTERVAL '2 hours'),
+('e0000000-0000-0000-0000-000000000001', 'QualificationAgent', '11111111-1111-1111-1111-111111111111', '00000000-0000-0000-0000-000000000001', 'gpt-4o', 'completed', 1200, 450, 1650, 2345, 'Lead qualificado com 92% de confiança - Valor estimado: R$ 35.000', NOW() - INTERVAL '2 hours' + INTERVAL '2 minutes'),
+('e0000000-0000-0000-0000-000000000001', 'DocumentAgent', '11111111-1111-1111-1111-111111111111', '00000000-0000-0000-0000-000000000001', 'gpt-4o', 'completed', 400, 120, 520, 987, 'Documentos necessários identificados e solicitados ao lead', NOW() - INTERVAL '2 hours' + INTERVAL '4 minutes');
 
 -- Logs da Execução 2 (João Pedro - Completada)
 INSERT INTO agent_ai_logs (execution_id, agent_name, lead_id, tenant_id, model, status, prompt_tokens, completion_tokens, total_tokens, latency_ms, result_preview, created_at) VALUES
-('e0000000-0000-0000-0000-000000000002', 'RouterAgent', '11111111-1111-1111-1111-111111111112', '00000000-0000-0000-0000-000000000001', 'gpt-4-turbo-preview', 'completed', 820, 310, 1130, 1156, 'Roteado para QualificationAgent - Área: Direito de Família', NOW() - INTERVAL '1 hour'),
-('e0000000-0000-0000-0000-000000000002', 'QualificationAgent', '11111111-1111-1111-1111-111111111112', '00000000-0000-0000-0000-000000000001', 'gpt-4-turbo-preview', 'completed', 1000, 344, 1344, 2234, 'Lead qualificado - Divórcio consensual - Confiança: 88%', NOW() - INTERVAL '1 hour' + INTERVAL '2 minutes');
+('e0000000-0000-0000-0000-000000000002', 'RouterAgent', '11111111-1111-1111-1111-111111111112', '00000000-0000-0000-0000-000000000001', 'gpt-4o', 'completed', 820, 310, 1130, 1156, 'Roteado para QualificationAgent - Área: Direito de Família', NOW() - INTERVAL '1 hour'),
+('e0000000-0000-0000-0000-000000000002', 'QualificationAgent', '11111111-1111-1111-1111-111111111112', '00000000-0000-0000-0000-000000000001', 'gpt-4o', 'completed', 1000, 344, 1344, 2234, 'Lead qualificado - Divórcio consensual - Confiança: 88%', NOW() - INTERVAL '1 hour' + INTERVAL '2 minutes');
 
 -- Logs da Execução 3 (Fernanda Lima - Em Processamento)
 INSERT INTO agent_ai_logs (execution_id, agent_name, lead_id, tenant_id, model, status, prompt_tokens, completion_tokens, total_tokens, latency_ms, result_preview, created_at) VALUES
-('e0000000-0000-0000-0000-000000000003', 'RouterAgent', '11111111-1111-1111-1111-111111111115', '00000000-0000-0000-0000-000000000001', 'gpt-4-turbo-preview', 'completed', 750, 290, 1040, 1089, 'Roteado para QualificationAgent - Área: Direito do Consumidor', NOW() - INTERVAL '30 minutes'),
-('e0000000-0000-0000-0000-000000000003', 'QualificationAgent', '11111111-1111-1111-1111-111111111115', '00000000-0000-0000-0000-000000000001', 'gpt-4-turbo-preview', 'completed', 900, 330, 1230, 1987, 'Lead qualificado - Defeito em produto - Valor: R$ 8.500', NOW() - INTERVAL '28 minutes'),
-('e0000000-0000-0000-0000-000000000003', 'DocumentAgent', '11111111-1111-1111-1111-111111111115', '00000000-0000-0000-0000-000000000001', 'gpt-4-turbo-preview', 'processing', 300, 100, 400, NULL, 'Analisando nota fiscal e protocolos...', NOW() - INTERVAL '5 minutes');
+('e0000000-0000-0000-0000-000000000003', 'RouterAgent', '11111111-1111-1111-1111-111111111115', '00000000-0000-0000-0000-000000000001', 'gpt-4o', 'completed', 750, 290, 1040, 1089, 'Roteado para QualificationAgent - Área: Direito do Consumidor', NOW() - INTERVAL '30 minutes'),
+('e0000000-0000-0000-0000-000000000003', 'QualificationAgent', '11111111-1111-1111-1111-111111111115', '00000000-0000-0000-0000-000000000001', 'gpt-4o', 'completed', 900, 330, 1230, 1987, 'Lead qualificado - Defeito em produto - Valor: R$ 8.500', NOW() - INTERVAL '28 minutes'),
+('e0000000-0000-0000-0000-000000000003', 'DocumentAgent', '11111111-1111-1111-1111-111111111115', '00000000-0000-0000-0000-000000000001', 'gpt-4o', 'processing', 300, 100, 400, NULL, 'Analisando nota fiscal e protocolos...', NOW() - INTERVAL '5 minutes');
 
 -- Logs da Execução 4 (Ana Carolina - Pendente)
 INSERT INTO agent_ai_logs (execution_id, agent_name, lead_id, tenant_id, model, status, prompt_tokens, completion_tokens, total_tokens, latency_ms, result_preview, created_at) VALUES
-('e0000000-0000-0000-0000-000000000004', 'RouterAgent', '11111111-1111-1111-1111-111111111113', '00000000-0000-0000-0000-000000000001', 'gpt-4-turbo-preview', 'pending', 450, 0, 450, NULL, 'Inicializando análise...', NOW() - INTERVAL '15 minutes');
+('e0000000-0000-0000-0000-000000000004', 'RouterAgent', '11111111-1111-1111-1111-111111111113', '00000000-0000-0000-0000-000000000001', 'gpt-4o', 'pending', 450, 0, 450, NULL, 'Inicializando análise...', NOW() - INTERVAL '15 minutes');
 
 -- Logs da Execução 5 (Roberto Santos - Completada com múltiplos agentes)
 INSERT INTO agent_ai_logs (execution_id, agent_name, lead_id, tenant_id, model, status, prompt_tokens, completion_tokens, total_tokens, latency_ms, result_preview, created_at) VALUES
-('e0000000-0000-0000-0000-000000000005', 'RouterAgent', '22222222-2222-2222-2222-222222222221', '00000000-0000-0000-0000-000000000001', 'gpt-4-turbo-preview', 'completed', 900, 350, 1250, 1345, 'Roteado para QualificationAgent - Área: Direito Trabalhista (Acidente)', NOW() - INTERVAL '1 day'),
-('e0000000-0000-0000-0000-000000000005', 'QualificationAgent', '22222222-2222-2222-2222-222222222221', '00000000-0000-0000-0000-000000000001', 'gpt-4-turbo-preview', 'completed', 1300, 500, 1800, 2456, 'Lead altamente qualificado - Acidente de trabalho grave - 95% confiança', NOW() - INTERVAL '1 day' + INTERVAL '2 minutes'),
-('e0000000-0000-0000-0000-000000000005', 'DocumentAgent', '22222222-2222-2222-2222-222222222221', '00000000-0000-0000-0000-000000000001', 'gpt-4-turbo-preview', 'completed', 600, 200, 800, 1678, 'Laudos médicos recebidos e validados. Documentação completa.', NOW() - INTERVAL '1 day' + INTERVAL '5 minutes'),
-('e0000000-0000-0000-0000-000000000005', 'NegotiationAgent', '22222222-2222-2222-2222-222222222221', '00000000-0000-0000-0000-000000000001', 'gpt-4-turbo-preview', 'completed', 400, 100, 500, 1234, 'Proposta de honorários gerada: 30% sobre êxito', NOW() - INTERVAL '1 day' + INTERVAL '7 minutes');
+('e0000000-0000-0000-0000-000000000005', 'RouterAgent', '22222222-2222-2222-2222-222222222221', '00000000-0000-0000-0000-000000000001', 'gpt-4o', 'completed', 900, 350, 1250, 1345, 'Roteado para QualificationAgent - Área: Direito Trabalhista (Acidente)', NOW() - INTERVAL '1 day'),
+('e0000000-0000-0000-0000-000000000005', 'QualificationAgent', '22222222-2222-2222-2222-222222222221', '00000000-0000-0000-0000-000000000001', 'gpt-4o', 'completed', 1300, 500, 1800, 2456, 'Lead altamente qualificado - Acidente de trabalho grave - 95% confiança', NOW() - INTERVAL '1 day' + INTERVAL '2 minutes'),
+('e0000000-0000-0000-0000-000000000005', 'DocumentAgent', '22222222-2222-2222-2222-222222222221', '00000000-0000-0000-0000-000000000001', 'gpt-4o', 'completed', 600, 200, 800, 1678, 'Laudos médicos recebidos e validados. Documentação completa.', NOW() - INTERVAL '1 day' + INTERVAL '5 minutes'),
+('e0000000-0000-0000-0000-000000000005', 'NegotiationAgent', '22222222-2222-2222-2222-222222222221', '00000000-0000-0000-0000-000000000001', 'gpt-4o', 'completed', 400, 100, 500, 1234, 'Proposta de honorários gerada: 30% sobre êxito', NOW() - INTERVAL '1 day' + INTERVAL '7 minutes');
 
 -- Logs da Execução 6 (Carlos Eduardo - Falha)
 INSERT INTO agent_ai_logs (execution_id, agent_name, lead_id, tenant_id, model, status, prompt_tokens, completion_tokens, total_tokens, latency_ms, result_preview, error_message, created_at) VALUES
-('e0000000-0000-0000-0000-000000000006', 'RouterAgent', '11111111-1111-1111-1111-111111111114', '00000000-0000-0000-0000-000000000001', 'gpt-4-turbo-preview', 'completed', 700, 180, 880, 1123, 'Roteado para QualificationAgent - Área: Direito Civil', NOW() - INTERVAL '10 minutes'),
-('e0000000-0000-0000-0000-000000000006', 'QualificationAgent', '11111111-1111-1111-1111-111111111114', '00000000-0000-0000-0000-000000000001', 'gpt-4-turbo-preview', 'completed', 300, 40, 340, 876, 'Lead em análise...', NOW() - INTERVAL '9 minutes'),
-('e0000000-0000-0000-0000-000000000006', 'DocumentAgent', '11111111-1111-1111-1111-111111111114', '00000000-0000-0000-0000-000000000001', 'gpt-4-turbo-preview', 'failed', 100, 14, 114, 456, 'Erro ao processar documentos', 'API timeout - Falha ao acessar serviço de análise de documentos', NOW() - INTERVAL '8 minutes');
+('e0000000-0000-0000-0000-000000000006', 'RouterAgent', '11111111-1111-1111-1111-111111111114', '00000000-0000-0000-0000-000000000001', 'gpt-4o', 'completed', 700, 180, 880, 1123, 'Roteado para QualificationAgent - Área: Direito Civil', NOW() - INTERVAL '10 minutes'),
+('e0000000-0000-0000-0000-000000000006', 'QualificationAgent', '11111111-1111-1111-1111-111111111114', '00000000-0000-0000-0000-000000000001', 'gpt-4o', 'completed', 300, 40, 340, 876, 'Lead em análise...', NOW() - INTERVAL '9 minutes'),
+('e0000000-0000-0000-0000-000000000006', 'DocumentAgent', '11111111-1111-1111-1111-111111111114', '00000000-0000-0000-0000-000000000001', 'gpt-4o', 'failed', 100, 14, 114, 456, 'Erro ao processar documentos', 'API timeout - Falha ao acessar serviço de análise de documentos', NOW() - INTERVAL '8 minutes');
 
 -- =========================================================================
 -- PRONTO! Dados fictícios completos inseridos
@@ -252,3 +252,4 @@ UNION ALL
 SELECT 'Logs de IA:', COUNT(*) FROM agent_ai_logs;
 
 -- ✅ DADOS FICTÍCIOS PRONTOS PARA TESTE!
+
