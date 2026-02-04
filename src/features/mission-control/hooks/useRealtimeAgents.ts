@@ -151,9 +151,12 @@ export function useRealtimeAgents(tenantId?: string) {
 
       setActiveExecutions(executions || []);
 
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('âŒ [Mission Control] Error fetching initial metrics:', err);
-      setError(err.message || 'Erro ao conectar com banco de dados');
+      const message = err instanceof Error
+        ? err.message
+        : 'Erro ao conectar com banco de dados';
+      setError(message);
     }
   }, [tenantId]);
 
@@ -181,14 +184,17 @@ export function useRealtimeAgents(tenantId?: string) {
 
       if (logsError) throw logsError;
       setRecentLogs(logs || []);
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Æ’?O [Mission Control] Fallback polling error:', err);
-      setError(err.message || 'Erro ao atualizar dados do Mission Control');
+      const message = err instanceof Error
+        ? err.message
+        : 'Erro ao atualizar dados do Mission Control';
+      setError(message);
     }
   }, [tenantId]);
 
   useEffect(() => {
-    fetchInitialMetrics();
+    void fetchInitialMetrics();
   }, [fetchInitialMetrics]);
 
   // Setup Realtime subscriptions
@@ -220,9 +226,10 @@ export function useRealtimeAgents(tenantId?: string) {
             if (execution.current_agent) {
               setAgentStatuses(prev => {
                 const newMap = new Map(prev);
-                const agent = newMap.get(execution.current_agent!);
+                const agentId = execution.current_agent;
+                const agent = newMap.get(agentId);
                 if (agent) {
-                  newMap.set(execution.current_agent!, {
+                  newMap.set(agentId, {
                     ...agent,
                     status: 'processing',
                     lastActivity: new Date(),
@@ -243,7 +250,8 @@ export function useRealtimeAgents(tenantId?: string) {
             if (execution.current_agent) {
               setAgentStatuses(prev => {
                 const newMap = new Map(prev);
-                const agent = newMap.get(execution.current_agent!);
+                const agentId = execution.current_agent;
+                const agent = newMap.get(agentId);
                 if (agent) {
                   const newStatus = execution.status === 'completed' || execution.status === 'failed'
                     ? 'idle'
@@ -251,7 +259,7 @@ export function useRealtimeAgents(tenantId?: string) {
                     ? 'processing'
                     : 'idle';
 
-                  newMap.set(execution.current_agent!, {
+                  newMap.set(agentId, {
                     ...agent,
                     status: newStatus,
                     lastActivity: new Date(),
@@ -300,10 +308,10 @@ export function useRealtimeAgents(tenantId?: string) {
         }
       )
       .subscribe((status) => {
-        if (status === 'SUBSCRIBED') {
+        if (String(status) === 'SUBSCRIBED') {
           console.log('âœ… Subscribed to executions');
           setIsConnected(true);
-        } else if (status === 'CLOSED') {
+        } else if (String(status) === 'CLOSED') {
           console.log('âŒ Executions subscription closed');
           setIsConnected(false);
         }
@@ -371,7 +379,7 @@ export function useRealtimeAgents(tenantId?: string) {
         }
       )
       .subscribe((status) => {
-        if (status === 'SUBSCRIBED') {
+        if (String(status) === 'SUBSCRIBED') {
           console.log('âœ… Subscribed to logs');
         }
       });
@@ -382,7 +390,7 @@ export function useRealtimeAgents(tenantId?: string) {
     return () => {
       console.log('ðŸ”Œ Unsubscribing from realtime channels');
       channels.forEach(channel => {
-        supabase.removeChannel(channel);
+        void supabase.removeChannel(channel);
       });
       setIsConnected(false);
     };
@@ -394,7 +402,7 @@ export function useRealtimeAgents(tenantId?: string) {
       const stale =
         !lastRealtimeEventAt || Date.now() - lastRealtimeEventAt > 15000;
       if (stale) {
-        fetchRealtimeFallback();
+        void fetchRealtimeFallback();
       }
     }, 10000);
 
