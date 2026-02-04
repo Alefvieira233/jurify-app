@@ -31,11 +31,11 @@ import { useToast } from '@/hooks/use-toast';
 interface ExecutionResult {
   success: boolean;
   executionId?: string;
-  qualificationResult?: any;
-  legalValidation?: any;
-  proposal?: any;
-  formattedMessages?: any;
-  finalResult?: any;
+  qualificationResult?: unknown;
+  legalValidation?: unknown;
+  proposal?: unknown;
+  formattedMessages?: unknown;
+  finalResult?: unknown;
   error?: string;
   executionTime?: number;
   totalTokens?: number;
@@ -242,7 +242,7 @@ export default function AgentsPlayground() {
           />
           <div className="flex gap-3">
             <Button
-              onClick={handleProcessMessage}
+              onClick={() => void handleProcessMessage()}
               disabled={loading || !message.trim()}
               className="bg-blue-600 hover:bg-blue-700"
             >

@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Navigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -64,7 +64,7 @@ const Auth = () => {
           });
         }
       }
-    } catch (error) {
+    } catch (_error) {
       toast({
         title: "Erro",
         description: "Algo deu errado. Tente novamente.",
@@ -280,7 +280,7 @@ const Auth = () => {
               </CardHeader>
 
           <CardContent className="space-y-6">
-            <form onSubmit={handleSubmit} className="space-y-5">
+            <form onSubmit={(e) => void handleSubmit(e)} className="space-y-5">
               {!isLogin && (
                 <div className="space-y-2">
                   <Label htmlFor="nomeCompleto" className="text-sm font-semibold text-[hsl(var(--foreground))]">

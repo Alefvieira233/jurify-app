@@ -54,10 +54,11 @@ const GoogleAuthCallback: React.FC = () => {
           throw new Error('Falha ao processar callback');
         }
 
-      } catch (error: any) {
+      } catch (error: unknown) {
         console.error('❌ [GoogleAuthCallback] Erro:', error);
+        const message = error instanceof Error ? error.message : 'Erro desconhecido';
         setStatus('error');
-        setErrorMessage(error.message || 'Erro desconhecido');
+        setErrorMessage(message);
 
         // Redirecionar para configurações após 5 segundos
         setTimeout(() => {
@@ -66,7 +67,7 @@ const GoogleAuthCallback: React.FC = () => {
       }
     };
 
-    processCallback();
+    void processCallback();
   }, [searchParams, handleOAuthCallback, navigate]);
 
   return (
@@ -118,3 +119,4 @@ const GoogleAuthCallback: React.FC = () => {
 };
 
 export default GoogleAuthCallback;
+

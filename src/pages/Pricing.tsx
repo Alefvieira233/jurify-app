@@ -130,10 +130,11 @@ const Pricing = () => {
         throw new Error('URL de checkout não retornada');
       }
 
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Erro ao iniciar checkout:', err);
+      const message = err instanceof Error ? err.message : 'Tente novamente mais tarde.';
       toast.error('Erro ao iniciar pagamento', {
-        description: err.message || 'Tente novamente mais tarde.'
+        description: message
       });
     } finally {
       setLoading(null);
@@ -195,7 +196,7 @@ const Pricing = () => {
               <Button
                 className="w-full"
                 variant={plan.highlight ? 'default' : 'outline'}
-                onClick={() => handleSubscribe(plan.id)}
+                onClick={() => void handleSubscribe(plan.id)}
                 disabled={loading === plan.id || plan.id === 'free'}
               >
                 {loading === plan.id ? 'Processando...' : plan.buttonText}
@@ -227,3 +228,4 @@ const Pricing = () => {
 };
 
 export default Pricing;
+

@@ -23,17 +23,31 @@ import { useSearchParams } from "react-router-dom";
 
 type ActiveTab = 'dashboard' | 'leads' | 'pipeline' | 'agendamentos' | 'contratos' | 'relatorios' | 'whatsapp' | 'agentes' | 'usuarios' | 'configuracoes' | 'notificacoes' | 'logs' | 'integracoes' | 'timeline';
 
+const VALID_TABS: ActiveTab[] = [
+  'dashboard',
+  'leads',
+  'pipeline',
+  'agendamentos',
+  'contratos',
+  'relatorios',
+  'whatsapp',
+  'agentes',
+  'usuarios',
+  'configuracoes',
+  'notificacoes',
+  'logs',
+  'integracoes',
+  'timeline',
+];
 const Index = () => {
   const { user, loading } = useAuth();
   const [searchParams, setSearchParams] = useSearchParams();
   const [activeTab, setActiveTab] = useState<ActiveTab>('dashboard');
 
-  const validTabs = ['dashboard', 'leads', 'pipeline', 'agendamentos', 'contratos', 'relatorios', 'whatsapp', 'agentes', 'usuarios', 'configuracoes', 'notificacoes', 'logs', 'integracoes', 'timeline'];
-
   // Tab management from URL
   useEffect(() => {
     const tab = searchParams.get('tab') as ActiveTab;
-    if (tab && validTabs.includes(tab)) {
+    if (tab && VALID_TABS.includes(tab)) {
       console.log(`🔄 Navegando para aba: ${tab}`);
       setActiveTab(tab);
     }
@@ -111,3 +125,4 @@ const Index = () => {
 };
 
 export default Index;
+
