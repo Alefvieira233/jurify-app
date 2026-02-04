@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { 
@@ -27,41 +27,70 @@ const QuickActions = ({
   onNewUser
 }: QuickActionsProps) => {
   const { hasPermission } = useAuth();
+  const [permissions, setPermissions] = useState<Record<string, boolean>>({});
+
+  useEffect(() => {
+    const loadPermissions = async () => {
+      const [
+        leads,
+        agendamentos,
+        contratos,
+        whatsappIa,
+        usuarios,
+      ] = await Promise.all([
+        hasPermission('leads', 'write'),
+        hasPermission('agendamentos', 'write'),
+        hasPermission('contratos', 'write'),
+        hasPermission('whatsapp_ia', 'write'),
+        hasPermission('usuarios', 'write'),
+      ]);
+
+      setPermissions({
+        leads,
+        agendamentos,
+        contratos,
+        whatsapp_ia: whatsappIa,
+        usuarios,
+      });
+    };
+
+    void loadPermissions();
+  }, [hasPermission]);
 
   const actions = [
     {
       title: 'Novo Lead',
       icon: UserPlus,
       onClick: onNewLead,
-      permission: hasPermission('leads', 'write'),
+      permission: permissions.leads,
       color: 'bg-blue-500 hover:bg-blue-600'
     },
     {
       title: 'Novo Agendamento',
       icon: CalendarPlus,
       onClick: onNewAppointment,
-      permission: hasPermission('agendamentos', 'write'),
+      permission: permissions.agendamentos,
       color: 'bg-green-500 hover:bg-green-600'
     },
     {
       title: 'Novo Contrato',
       icon: FileText,
       onClick: onNewContract,
-      permission: hasPermission('contratos', 'write'),
+      permission: permissions.contratos,
       color: 'bg-purple-500 hover:bg-purple-600'
     },
     {
       title: 'Novo Agente IA',
       icon: MessageSquarePlus,
       onClick: onNewAgent,
-      permission: hasPermission('whatsapp_ia', 'write'),
+      permission: permissions.whatsapp_ia,
       color: 'bg-orange-500 hover:bg-orange-600'
     },
     {
       title: 'Novo Usuário',
       icon: PlusCircle,
       onClick: onNewUser,
-      permission: hasPermission('usuarios', 'write'),
+      permission: permissions.usuarios,
       color: 'bg-red-500 hover:bg-red-600'
     }
   ];
