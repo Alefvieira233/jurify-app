@@ -1,5 +1,4 @@
-
-import React, { createContext, useContext, useEffect, useRef, useState, ReactNode } from 'react';
+﻿import React, { createContext, useContext, useEffect, useRef, useState, ReactNode } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -39,14 +38,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
 
-  // IDENTIDADE DE EMERGÊNCIA (Caso o banco trave por recursão de RLS)
-  const EMERGENCY_PROFILE: Profile = {
-    id: '',
-    email: 'alef_christian01@hotmail.com',
-    nome_completo: 'Alef Christian (Mestre)',
-    role: 'admin',
-    tenant_id: '885eb31d-4b3c-4704-b3de-f62e40c3c378'
-  };
+  const allowEmergencyProfile = import.meta.env.VITE_ALLOW_EMERGENCY_PROFILE === 'true';
 
   const fetchProfile = async (userId: string) => {
     try {
@@ -63,8 +55,22 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       console.log('✅ [auth] Perfil REAL carregado.');
       setProfile(data);
     } catch (err) {
-      console.warn('⚡ [auth] MODO DE EMERGÊNCIA ATIVADO: Ignorando trava do banco.');
-      setProfile({ ...EMERGENCY_PROFILE, id: userId });
+      if (allowEmergencyProfile) {
+        console.warn(
+          '⚡ [auth] MODO DEV: Emergency Profile habilitado via VITE_ALLOW_EMERGENCY_PROFILE.'
+        );
+        setProfile({
+          id: userId,
+          email: 'dev@local',
+          nome_completo: 'Emergency Dev Profile',
+          role: 'viewer',
+          tenant_id: 'dev-tenant',
+          subscription_status: 'dev',
+        });
+      } else {
+        console.error('❌ [auth] Perfil indisponível. Operando sem permissões.');
+        setProfile(null);
+      }
     }
   };
 
