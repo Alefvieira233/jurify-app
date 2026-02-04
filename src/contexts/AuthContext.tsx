@@ -40,6 +40,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const [loading, setLoading] = useState(true);
 
   const allowEmergencyProfile = import.meta.env.VITE_ALLOW_EMERGENCY_PROFILE === 'true';
+  const sessionTimeoutMs = 5000;
 
   const fetchProfile = async (userId: string) => {
     try {
@@ -80,27 +81,46 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       setLoading(true);
       console.log('🚀 [auth] Iniciando Sessão...');
 
-      const { data: { session: s } } = await supabase.auth.getSession();
+      const getSessionPromise = supabase.auth.getSession();
+      const timeoutPromise = new Promise<never>((_, reject) => {
+        setTimeout(() => reject(new Error('Auth session check timed out')), sessionTimeoutMs);
+      });
 
-      if (s) {
-        setUser(s.user);
-        setSession(s);
-        // NÃO damos await aqui para não travar o carregamento da UI se o banco estiver em loop
-        fetchProfile(s.user.id);
+      try {
+        const { data: { session: s } } = await Promise.race([getSessionPromise, timeoutPromise]);
+
+        if (s) {
+          setUser(s.user);
+          setSession(s);
+          await fetchProfile(s.user.id);
+        } else {
+          setUser(null);
+          setSession(null);
+          setProfile(null);
+        }
+      } catch (error) {
+        console.error('❌ [auth] Falha ao verificar sessão:', error);
+        setUser(null);
+        setSession(null);
+        setProfile(null);
+      } finally {
+        setLoading(false);
       }
-
-      // LIBERA A TELA EM 100ms independente do banco
-      setTimeout(() => setLoading(false), 100);
     };
 
     initialize();
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, s) => {
       console.log(`🔐 [auth] Evento Auth: ${event}`);
+      setLoading(true);
       setUser(s?.user ?? null);
       setSession(s);
-      if (s?.user) fetchProfile(s.user.id);
-      setLoading(false);
+      if (s?.user) {
+        fetchProfile(s.user.id).finally(() => setLoading(false));
+      } else {
+        setProfile(null);
+        setLoading(false);
+      }
     });
 
     return () => subscription.unsubscribe();
