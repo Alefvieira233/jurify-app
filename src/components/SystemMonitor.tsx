@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -20,11 +20,11 @@ import {
 interface SystemHealth {
   overall: 'healthy' | 'degraded' | 'critical';
   tests: {
-    database: { success: boolean; message: string; details?: any };
-    authentication: { success: boolean; message: string; details?: any };
-    rls: { success: boolean; message: string; details?: any };
-    integrations: { success: boolean; message: string; details?: any };
-    performance: { success: boolean; message: string; details?: any };
+    database: { success: boolean; message: string; details?: { readable?: boolean; writable?: boolean } };
+    authentication: { success: boolean; message: string; details?: { email?: string } };
+    rls: { success: boolean; message: string; details?: Record<string, never> };
+    integrations: { success: boolean; message: string; details?: { n8n?: boolean; openai?: boolean; healthCheck?: boolean } };
+    performance: { success: boolean; message: string; details?: { responseTime: number; threshold: number } };
   };
   timestamp: string;
 }
@@ -35,7 +35,7 @@ const SystemMonitor = () => {
   const [lastUpdate, setLastUpdate] = useState<string>('');
   const { runValidation } = useSystemValidator();
 
-  const checkSystemHealth = async () => {
+  const checkSystemHealth = useCallback(async () => {
     setLoading(true);
     try {
       console.log('[SystemMonitor] Running health check');
@@ -54,14 +54,14 @@ const SystemMonitor = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [runValidation]);
 
   useEffect(() => {
-    checkSystemHealth();
+    void checkSystemHealth();
 
-    const interval = setInterval(checkSystemHealth, 300000);
+    const interval = setInterval(() => { void checkSystemHealth(); }, 300000);
     return () => clearInterval(interval);
-  }, []);
+  }, [checkSystemHealth]);
 
   const getStatusIcon = (success: boolean) => {
     if (success) return <CheckCircle className="h-4 w-4 text-emerald-200" />;
@@ -116,7 +116,7 @@ const SystemMonitor = () => {
               <Shield className="h-5 w-5" />
               Monitor do Sistema
             </CardTitle>
-            <Button onClick={checkSystemHealth} disabled={loading} variant="outline" size="sm">
+            <Button onClick={() => { void checkSystemHealth(); }} disabled={loading} variant="outline" size="sm">
               {loading ? (
                 <RefreshCw className="h-4 w-4 animate-spin mr-2" />
               ) : (

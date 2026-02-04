@@ -125,7 +125,7 @@ export const StatusAssinatura = ({ contrato, leadTelefone, onStatusUpdate }: Sta
             <Button
               variant="outline" className="bg-[hsl(var(--card))] border-[hsl(var(--border))] hover:bg-[hsl(var(--muted))]"
               size="sm"
-              onClick={handleVerificarStatus}
+              onClick={() => { void handleVerificarStatus(); }}
               disabled={isLoading}
             >
               <CheckCircle className="h-4 w-4 mr-2" />
@@ -145,7 +145,7 @@ export const StatusAssinatura = ({ contrato, leadTelefone, onStatusUpdate }: Sta
               <Button
                 variant="outline" className="bg-[hsl(var(--card))] border-[hsl(var(--border))] hover:bg-[hsl(var(--muted))]"
                 size="sm"
-                onClick={handleEnviarWhatsApp}
+                onClick={() => { void handleEnviarWhatsApp(); }}
                 disabled={isLoading}
               >
                 <MessageSquare className="h-4 w-4 mr-2" />

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -28,16 +28,15 @@ const SystemHealthCheck = () => {
   const [healthChecks, setHealthChecks] = useState<HealthCheck[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [overallScore, setOverallScore] = useState(0);
-  const supabaseAny = supabase as typeof supabase & { from: (table: string) => any };
 
-  const performHealthCheck = async () => {
+  const performHealthCheck = useCallback(async () => {
     setIsLoading(true);
     const checks: HealthCheck[] = [];
     let score = 0;
 
     try {
       try {
-        const { error } = await supabaseAny
+        const { error } = await supabase
           .from('profiles')
           .select('count')
           .eq('tenant_id', tenantId)
@@ -97,7 +96,7 @@ const SystemHealthCheck = () => {
       }
 
       try {
-        const { error } = await supabaseAny
+        const { error } = await supabase
           .from('profiles')
           .select('id')
           .eq('tenant_id', tenantId)
@@ -128,7 +127,7 @@ const SystemHealthCheck = () => {
       }
 
       try {
-        const { data: workflows } = await supabaseAny
+        const { data: workflows } = await supabase
           .from('n8n_workflows')
           .select('id')
           .eq('tenant_id', tenantId)
@@ -165,7 +164,7 @@ const SystemHealthCheck = () => {
       }
 
       try {
-        const { error } = await supabaseAny
+        const { error } = await supabase
           .from('logs_atividades')
           .select('count')
           .eq('tenant_id', tenantId)
@@ -199,11 +198,11 @@ const SystemHealthCheck = () => {
     setHealthChecks(checks);
     setOverallScore(score);
     setIsLoading(false);
-  };
+  }, [tenantId, user?.id]);
 
   useEffect(() => {
-    performHealthCheck();
-  }, [user, tenantId]);
+    void performHealthCheck();
+  }, [performHealthCheck]);
 
   const getStatusIcon = (status: string) => {
     switch (status) {
@@ -254,7 +253,7 @@ const SystemHealthCheck = () => {
           </div>
         </div>
         <Button
-          onClick={performHealthCheck}
+          onClick={() => { void performHealthCheck(); }}
           disabled={isLoading}
           variant="outline"
           size="sm"

@@ -2,7 +2,6 @@
 import React, { useState } from 'react';
 import { Play, Copy, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
@@ -50,7 +49,7 @@ const TesteAgenteIA: React.FC<TesteAgenteIAProps> = ({ agenteId, agenteName }) =
       }
     } catch (error) {
       console.error('Erro ao executar teste:', error);
-      const message = error instanceof Error ? error.message : String(error);
+      const message = error instanceof Error ? error.message : 'Erro desconhecido';
       setResposta(`Erro: ${message}`);
       toast({
         title: "Erro",
@@ -63,7 +62,7 @@ const TesteAgenteIA: React.FC<TesteAgenteIAProps> = ({ agenteId, agenteName }) =
   };
 
   const copiarResposta = () => {
-    navigator.clipboard.writeText(resposta);
+    void navigator.clipboard.writeText(resposta);
     toast({
       title: "Copiado!",
       description: "Resposta copiada para a Ã¡rea de transferÃªncia",
@@ -75,7 +74,7 @@ const TesteAgenteIA: React.FC<TesteAgenteIAProps> = ({ agenteId, agenteName }) =
       <div className="flex items-center justify-between">
         <h3 className="font-semibold text-gray-900">Teste RÃ¡pido - {agenteName}</h3>
         <Button
-          onClick={executarTeste}
+          onClick={() => { void executarTeste(); }}
           disabled={loading}
           className="bg-blue-600 hover:bg-blue-700"
         >

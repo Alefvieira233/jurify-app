@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   Scale,
   MessageSquare,
@@ -19,7 +19,6 @@ import {
   CreditCard,
   Rocket,
   FlaskConical,
-  ChevronRight
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
@@ -35,10 +34,18 @@ interface SidebarProps {
 const Sidebar = ({ activeSection, onSectionChange }: SidebarProps) => {
   const { signOut, profile, user, hasPermission } = useAuth();
   const [unreadCount, setUnreadCount] = useState(0);
-  const [visibleMenuItems, setVisibleMenuItems] = useState<any[]>([]);
+  type MenuItem = {
+    id: string;
+    label: string;
+    icon: React.ComponentType<{ className?: string; strokeWidth?: number }>;
+    resource: string;
+    action: string;
+    adminOnly?: boolean;
+  };
+  const [visibleMenuItems, setVisibleMenuItems] = useState<MenuItem[]>([]);
 
   // 🔒 RBAC SEGURO: Menu baseado em permissões reais
-  const allMenuItems = [
+  const allMenuItems = useMemo<MenuItem[]>(() => ([
     { id: 'dashboard', label: 'Dashboard', icon: BarChart3, resource: 'dashboard', action: 'read' },
     { id: 'leads', label: 'Leads', icon: Users, resource: 'leads', action: 'read' },
     { id: 'pipeline', label: 'Pipeline Jurídico', icon: TrendingUp, resource: 'leads', action: 'read' },
@@ -58,7 +65,7 @@ const Sidebar = ({ activeSection, onSectionChange }: SidebarProps) => {
     { id: 'billing', label: '💳 Billing', icon: CreditCard, resource: 'dashboard', action: 'read' },
     { id: 'planos', label: 'Planos & Assinatura', icon: CreditCard, resource: 'dashboard', action: 'read' },
     { id: 'configuracoes', label: 'Configurações', icon: Settings, resource: 'configuracoes', action: 'read', adminOnly: true },
-  ];
+  ]), []);
 
   // Filtrar menu baseado em permissões
   useEffect(() => {
@@ -96,7 +103,7 @@ const Sidebar = ({ activeSection, onSectionChange }: SidebarProps) => {
           if (hasAccess) {
             filteredItems.push(item);
           }
-        } catch (error) {
+        } catch (_error) {
           console.warn(`⚠️ Erro ao verificar permissão para ${item.resource}, liberando acesso padrão`);
           // Se erro ao verificar permissão, liberar itens não-admin
           if (!item.adminOnly) {
@@ -115,8 +122,8 @@ const Sidebar = ({ activeSection, onSectionChange }: SidebarProps) => {
       }
     };
 
-    filterMenuItems();
-  }, [user, profile, hasPermission]);
+    void filterMenuItems();
+  }, [user, profile, hasPermission, allMenuItems]);
 
   // Buscar contagem de notificações não lidas
   useEffect(() => {
@@ -135,10 +142,10 @@ const Sidebar = ({ activeSection, onSectionChange }: SidebarProps) => {
       }
     };
 
-    fetchUnreadCount();
+    void fetchUnreadCount();
 
     // Atualizar a cada 30 segundos
-    const interval = setInterval(fetchUnreadCount, 30000);
+    const interval = setInterval(() => { void fetchUnreadCount(); }, 30000);
     return () => clearInterval(interval);
   }, [user?.id]);
 
@@ -335,7 +342,7 @@ const Sidebar = ({ activeSection, onSectionChange }: SidebarProps) => {
 
           {/* Premium Logout Button */}
           <Button
-            onClick={handleLogout}
+            onClick={() => { void handleLogout(); }}
             variant="ghost"
             size="sm"
             className="w-full justify-center text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-sidebar-foreground/10 hover:backdrop-blur-sm transition-all duration-500 py-3.5 rounded-none group relative overflow-hidden border border-sidebar-foreground/10 hover:border-sidebar-foreground/20"

@@ -1,5 +1,5 @@
-import React, { useState, useCallback, useRef } from 'react';
-import { Upload, X, FileText, Shield, CheckCircle, AlertTriangle, Loader2, Download, Eye } from 'lucide-react';
+import React, { useState, useRef } from 'react';
+import { Upload, X, FileText, Shield, CheckCircle, AlertTriangle, Loader2, Eye } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -44,18 +44,16 @@ const UploadContratos: React.FC<UploadContratosProps> = ({
 }) => {
   const [arquivos, setArquivos] = useState<ArquivoUpload[]>([]);
   const [isDragging, setIsDragging] = useState(false);
-  const [isUploading, setIsUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   
   const { toast } = useToast();
   const { user, profile } = useAuth();
-  const supabaseAny = supabase as typeof supabase & { from: (table: string) => any };
 
   // Validação de segurança de arquivos
-  const validarSegurancaArquivo = async (file: File): Promise<{ aprovado: boolean; mensagem: string; metadados: any }> => {
+  const validarSegurancaArquivo = (file: File): Promise<{ aprovado: boolean; mensagem: string; metadados: ArquivoMetadados }> => {
     return new Promise((resolve) => {
       const reader = new FileReader();
-      reader.onload = async (e) => {
+      reader.onload = (e) => {
         try {
           const buffer = e.target?.result as ArrayBuffer;
           const bytes = new Uint8Array(buffer);
@@ -98,7 +96,7 @@ const UploadContratos: React.FC<UploadContratosProps> = ({
             mensagem: mensagem.trim(),
             metadados: validacoes.metadados
           });
-        } catch (error) {
+        } catch (_error) {
           resolve({
             aprovado: false,
             mensagem: 'Erro na validação de segurança',
@@ -156,7 +154,7 @@ const UploadContratos: React.FC<UploadContratosProps> = ({
     );
   };
 
-  const extrairMetadados = (file: File) => {
+  const extrairMetadados = (file: File): ArquivoMetadados => {
     return {
       dataUltimaModificacao: new Date(file.lastModified).toISOString(),
       tamanhoBytes: file.size,
@@ -207,6 +205,8 @@ const UploadContratos: React.FC<UploadContratosProps> = ({
     for (const arquivo of novosArquivos) {
       await processarArquivoIndividual(arquivo);
     }
+
+    onUploadComplete?.(novosArquivos);
   };
 
   const processarArquivoIndividual = async (arquivo: ArquivoUpload) => {
@@ -231,7 +231,7 @@ const UploadContratos: React.FC<UploadContratosProps> = ({
 
       const nomeArquivoSeguro = `${profile.tenant_id}/${Date.now()}-${sanitizeText(arquivo.file.name)}`;
       
-      const { data: uploadData, error: uploadError } = await supabaseAny.storage
+      const { error: uploadError } = await supabase.storage
         .from('contratos')
         .upload(nomeArquivoSeguro, arquivo.file, {
           cacheControl: '3600',
@@ -241,14 +241,14 @@ const UploadContratos: React.FC<UploadContratosProps> = ({
       if (uploadError) throw uploadError;
 
       // 4. Obter URL pública
-      const { data: urlData } = supabaseAny.storage
+      const { data: urlData } = supabase.storage
         .from('contratos')
         .getPublicUrl(nomeArquivoSeguro);
 
       // 5. Salvar metadados no banco
       atualizarStatusArquivo(arquivo.id, 'enviando', 80);
 
-      const { error: dbError } = await supabaseAny
+      const { error: dbError } = await supabase
         .from('contratos_uploads')
         .insert({
           tenant_id: profile.tenant_id,
@@ -278,7 +278,7 @@ const UploadContratos: React.FC<UploadContratosProps> = ({
         description: `${arquivo.nome} foi enviado com sucesso`
       });
 
-    } catch (error) {
+    } catch (_error) {
       console.error('❌ Erro no upload:', error);
       atualizarStatusArquivo(arquivo.id, 'erro', 100, 'Erro no upload do arquivo');
       
@@ -313,17 +313,17 @@ const UploadContratos: React.FC<UploadContratosProps> = ({
   };
 
   // Drag & Drop handlers
-  const handleDragOver = useCallback((e: React.DragEvent) => {
+  const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault();
     setIsDragging(true);
-  }, []);
+  };
 
-  const handleDragLeave = useCallback((e: React.DragEvent) => {
+  const handleDragLeave = (e: React.DragEvent) => {
     e.preventDefault();
     setIsDragging(false);
-  }, []);
+  };
 
-  const handleDrop = useCallback((e: React.DragEvent) => {
+  const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
     setIsDragging(false);
     
@@ -341,14 +341,14 @@ const UploadContratos: React.FC<UploadContratosProps> = ({
     }
     
     if (filesValidos.length > 0) {
-      processarArquivos(filesValidos);
+      void processarArquivos(filesValidos);
     }
-  }, [acceptedTypes, processarArquivos]);
+  };
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
     if (files.length > 0) {
-      processarArquivos(files);
+      void processarArquivos(files);
     }
   };
 

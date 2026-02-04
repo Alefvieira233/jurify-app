@@ -1,11 +1,10 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
-import { Shield, Lock, Eye, AlertTriangle, CheckCircle, Key, Database, UserCheck } from 'lucide-react';
-import { supabase } from '@/integrations/supabase/client';
+import { Shield, Lock, AlertTriangle, CheckCircle } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 
@@ -30,7 +29,7 @@ const SecurityDashboard = () => {
   const { user } = useAuth();
   const { toast } = useToast();
 
-  const performSecurityAudit = async () => {
+  const performSecurityAudit = useCallback(() => {
     setLoading(true);
     const metrics: SecurityMetric[] = [];
 
@@ -180,7 +179,7 @@ const SecurityDashboard = () => {
         description: `Score geral: ${overall}%`,
       });
 
-    } catch (error) {
+    } catch (_error) {
       toast({
         title: "Erro na Auditoria",
         description: "Falha ao executar auditoria de segurança",
@@ -189,11 +188,11 @@ const SecurityDashboard = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [toast, user]);
 
   useEffect(() => {
     performSecurityAudit();
-  }, []);
+  }, [performSecurityAudit]);
 
   const getStatusColor = (status: string) => {
     switch (status) {

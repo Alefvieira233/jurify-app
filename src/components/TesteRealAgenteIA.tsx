@@ -1,6 +1,6 @@
-﻿
+
 import React, { useState } from 'react';
-import { Play, AlertCircle, CheckCircle, Clock, Brain, Send, Zap } from 'lucide-react';
+import { AlertCircle, CheckCircle, Clock, Brain, Send, Zap } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -19,7 +19,7 @@ interface ExecutionLog {
 
 interface ExecutionResult {
   success: boolean;
-  response?: any;
+  response?: string;
   error?: string;
   executionTime: number;
   source: 'n8n_edge_function';
@@ -34,7 +34,7 @@ const TesteRealAgenteIA = () => {
   const [executionLogs, setExecutionLogs] = useState<ExecutionLog[]>([]);
   const [result, setResult] = useState<ExecutionResult | null>(null);
   const [selectedAgentId, setSelectedAgentId] = useState<string>('');
-  const [userInput, setUserInput] = useState('Como elaborar um contrato de prestaÃ§Ã£o de serviÃ§os advocatÃ­cios?');
+  const [userInput, setUserInput] = useState('Como elaborar um contrato de prestação de serviços advocatícios?');
   const { toast } = useToast();
   const { logAgenteExecution, logError } = useLogActivity();
   const { agentes, loading: agentesLoading } = useAgentesIA();
@@ -56,7 +56,7 @@ const TesteRealAgenteIA = () => {
   const executeRealTest = async () => {
     if (!selectedAgentId || !userInput.trim()) {
       toast({
-        title: "âŒ Dados Incompletos",
+        title: "❌ Dados Incompletos",
         description: "Selecione um agente e insira um prompt para testar.",
         variant: "destructive",
       });
@@ -70,10 +70,10 @@ const TesteRealAgenteIA = () => {
     const startTime = Date.now();
     const selectedAgent = agentes.find(a => a.id === selectedAgentId);
     
-    addLog('info', 'ðŸ¤– Iniciando execuÃ§Ã£o REAL do Agente IA via N8N...');
-    addLog('info', `ðŸŽ¯ Agente: ${selectedAgent?.nome || 'Desconhecido'}`);
-    addLog('info', `ðŸ“ Input: "${userInput.substring(0, 100)}${userInput.length > 100 ? '...' : ''}"`);
-    addLog('info', 'ðŸ”— Chamando edge function n8n-webhook-forwarder...');
+    addLog('info', '🤖 Iniciando execução REAL do Agente IA via N8N...');
+    addLog('info', `🎯 Agente: ${selectedAgent?.nome || 'Desconhecido'}`);
+    addLog('info', `📝 Input: "${userInput.substring(0, 100)}${userInput.length > 100 ? '...' : ''}"`);
+    addLog('info', '🔗 Chamando edge function n8n-webhook-forwarder...');
 
     const payload = {
       agentId: selectedAgentId,
@@ -86,10 +86,10 @@ const TesteRealAgenteIA = () => {
       }
     };
 
-    addLog('info', `ðŸ“¦ Payload preparado com ${Object.keys(payload).length} propriedades`);
+    addLog('info', `📦 Payload preparado com ${Object.keys(payload).length} propriedades`);
 
     try {
-      addLog('info', 'ðŸš€ Enviando via Supabase Edge Function...');
+      addLog('info', '🚀 Enviando via Supabase Edge Function...');
       
       const { data, error } = await supabase.functions.invoke('n8n-webhook-forwarder', {
         body: payload
@@ -98,7 +98,7 @@ const TesteRealAgenteIA = () => {
       const endTime = Date.now();
       const duration = endTime - startTime;
 
-      addLog('info', `â±ï¸ Tempo total: ${duration}ms`);
+      addLog('info', `⏱️ Tempo total: ${duration}ms`);
 
       if (error) {
         throw new Error(`Edge Function Error: ${error.message}`);
@@ -108,19 +108,19 @@ const TesteRealAgenteIA = () => {
         throw new Error('Resposta vazia da edge function');
       }
 
-      addLog('info', `ðŸ“¥ Resposta recebida`);
-      addLog('info', `âœ… Status: ${data.success ? 'Sucesso' : 'Erro'}`);
+      addLog('info', `📥 Resposta recebida`);
+      addLog('info', `✅ Status: ${data.success ? 'Sucesso' : 'Erro'}`);
       
       if (data.status) {
-        addLog('info', `ðŸ“Š HTTP Status N8N: ${data.status}`);
+        addLog('info', `📊 HTTP Status N8N: ${data.status}`);
       }
 
       if (data.log_id) {
-        addLog('info', `ðŸ“‹ Log ID: ${data.log_id}`);
+        addLog('info', `📋 Log ID: ${data.log_id}`);
       }
 
       if (data.success && data.response) {
-        addLog('success', 'ðŸŽ‰ Resposta do agente IA recebida com sucesso!');
+        addLog('success', '🎉 Resposta do agente IA recebida com sucesso!');
         
         let aiResponse = '';
         if (typeof data.response === 'string') {
@@ -149,13 +149,13 @@ const TesteRealAgenteIA = () => {
         }
 
         toast({
-          title: "âœ… Teste Executado!",
+          title: "✅ Teste Executado!",
           description: `Agente IA respondeu em ${duration}ms via N8N`,
         });
 
       } else {
-        const errorMessage = data.error || 'Erro desconhecido na execuÃ§Ã£o';
-        addLog('error', `âŒ Erro: ${errorMessage}`);
+        const errorMessage = data.error || 'Erro desconhecido na execução';
+        addLog('error', `❌ Erro: ${errorMessage}`);
         
         setResult({
           success: false,
@@ -173,37 +173,38 @@ const TesteRealAgenteIA = () => {
         }
 
         toast({
-          title: "âŒ Erro na ExecuÃ§Ã£o",
+          title: "❌ Erro na Execução",
           description: errorMessage,
           variant: "destructive",
         });
       }
 
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : 'Erro desconhecido';
       const endTime = Date.now();
       const duration = endTime - startTime;
 
-      addLog('error', `âŒ ERRO CRÃTICO: ${error.message}`);
+      addLog('error', `❌ ERRO CRÍTICO: \${message}`);
       
       setResult({
         success: false,
-        error: error.message,
+        error: message,
         executionTime: duration,
         source: 'n8n_edge_function',
         agente_nome: selectedAgent?.nome
       });
 
-      logError('Agentes IA', 'Falha crÃ­tica na execuÃ§Ã£o via N8N', {
+      logError('Agentes IA', 'Falha crítica na execução via N8N', {
         agenteId: selectedAgentId,
         agenteName: selectedAgent?.nome,
-        error: error.message,
+        error: message,
         input: userInput.substring(0, 100),
         executionTime: duration
       });
 
       toast({
-        title: "âŒ Erro CrÃ­tico",
-        description: `Falha na comunicaÃ§Ã£o: ${error.message}`,
+        title: "❌ Erro Crítico",
+        description: `Falha na comunicação: ${message}`,
         variant: "destructive",
       });
     } finally {
@@ -213,10 +214,10 @@ const TesteRealAgenteIA = () => {
 
   const getLogIcon = (level: ExecutionLog['level']) => {
     switch (level) {
-      case 'success': return 'âœ…';
-      case 'error': return 'âŒ';
-      case 'warning': return 'âš ï¸';
-      default: return 'â„¹ï¸';
+      case 'success': return '✅';
+      case 'error': return '❌';
+      case 'warning': return '⚠️';
+      default: return 'ℹ️';
     }
   };
 
@@ -256,9 +257,9 @@ const TesteRealAgenteIA = () => {
                 <Brain className="h-6 w-6 text-purple-600" />
               </div>
               <div>
-                <CardTitle className="text-purple-900">ðŸš€ Teste Real - Agente IA + N8N</CardTitle>
+                <CardTitle className="text-purple-900">🚀 Teste Real - Agente IA + N8N</CardTitle>
                 <CardDescription className="text-purple-700">
-                  ExecuÃ§Ã£o completa via edge function â†’ N8N â†’ OpenAI â†’ resposta
+                  Execução completa via edge function → N8N → OpenAI → resposta
                 </CardDescription>
               </div>
             </div>
@@ -272,7 +273,7 @@ const TesteRealAgenteIA = () => {
                 Limpar
               </Button>
               <Button
-                onClick={executeRealTest}
+                onClick={() => { void executeRealTest(); }}
                 disabled={isExecuting || !selectedAgentId || !userInput.trim() || agentes.length === 0}
                 className="bg-purple-600 hover:bg-purple-700"
               >
@@ -284,7 +285,7 @@ const TesteRealAgenteIA = () => {
                 ) : (
                   <>
                     <Zap className="h-4 w-4 mr-2" />
-                    ðŸš€ EXECUTAR TESTE REAL
+                    🚀 EXECUTAR TESTE REAL
                   </>
                 )}
               </Button>
@@ -293,12 +294,12 @@ const TesteRealAgenteIA = () => {
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-            {/* SeleÃ§Ã£o do Agente */}
+            {/* Seleção do Agente */}
             <div>
               <label className="block text-sm font-medium mb-2">Agente IA:</label>
               <Select value={selectedAgentId} onValueChange={setSelectedAgentId}>
                 <SelectTrigger>
-                  <SelectValue placeholder={agentes.length === 0 ? "Nenhum agente disponÃ­vel" : "Selecione um agente..."} />
+                  <SelectValue placeholder={agentes.length === 0 ? "Nenhum agente disponível" : "Selecione um agente..."} />
                 </SelectTrigger>
                 <SelectContent>
                   {agentes.map((agente) => (
@@ -322,12 +323,12 @@ const TesteRealAgenteIA = () => {
                   const agente = agentes.find(a => a.id === selectedAgentId);
                   return agente ? (
                     <div className="text-sm">
-                      <div className="font-semibold text-purple-900 mb-1">ðŸ“‹ {agente.nome}</div>
+                      <div className="font-semibold text-purple-900 mb-1">📋 {agente.nome}</div>
                       <div className="text-gray-600">{agente.area_juridica}</div>
                       <div className="text-xs text-gray-500 mt-1">{agente.descricao_funcao}</div>
                     </div>
                   ) : (
-                    <div className="text-sm text-gray-500">Agente nÃ£o encontrado</div>
+                    <div className="text-sm text-gray-500">Agente não encontrado</div>
                   );
                 })()}
               </div>
@@ -346,15 +347,15 @@ const TesteRealAgenteIA = () => {
             />
           </div>
 
-          {/* InformaÃ§Ã£o do Sistema */}
+          {/* Informação do Sistema */}
           <div className="mt-4 p-3 bg-blue-50 rounded border">
             <div className="text-sm">
-              <div className="font-medium text-blue-900">ðŸŽ¯ Sistema de ProduÃ§Ã£o:</div>
-              <div className="text-blue-700">Edge Function â†’ N8N Webhook â†’ OpenAI API â†’ Resposta</div>
+              <div className="font-medium text-blue-900">🎯 Sistema de Produção:</div>
+              <div className="text-blue-700">Edge Function → N8N Webhook → OpenAI API → Resposta</div>
               <div className="text-xs text-blue-600 mt-1">
                 {agentes.length === 0 
-                  ? "âš ï¸ Nenhum agente cadastrado. Crie um agente primeiro." 
-                  : `âœ… ${agentes.length} agente(s) disponÃ­vel(is)`
+                  ? "⚠️ Nenhum agente cadastrado. Crie um agente primeiro." 
+                  : `✅ ${agentes.length} agente(s) disponível(is)`
                 }
               </div>
             </div>
@@ -362,13 +363,13 @@ const TesteRealAgenteIA = () => {
         </CardContent>
       </Card>
 
-      {/* Logs de ExecuÃ§Ã£o */}
+      {/* Logs de Execução */}
       {executionLogs.length > 0 && (
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center space-x-2">
               <Send className="h-5 w-5" />
-              <span>Logs de ExecuÃ§Ã£o em Tempo Real</span>
+              <span>Logs de Execução em Tempo Real</span>
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -384,7 +385,7 @@ const TesteRealAgenteIA = () => {
               {isExecuting && (
                 <div className="flex items-center space-x-2 animate-pulse">
                   <span className="text-gray-500">[{new Date().toLocaleTimeString('pt-BR')}]</span>
-                  <span className="text-yellow-400">â³ Aguardando resposta do N8N...</span>
+                  <span className="text-yellow-400">⏳ Aguardando resposta do N8N...</span>
                 </div>
               )}
             </div>
@@ -402,7 +403,7 @@ const TesteRealAgenteIA = () => {
               ) : (
                 <AlertCircle className="h-5 w-5 text-red-600" />
               )}
-              <span>Resultado da ExecuÃ§Ã£o</span>
+              <span>Resultado da Execução</span>
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -411,7 +412,7 @@ const TesteRealAgenteIA = () => {
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 <div className="text-center">
                   <div className={`text-2xl font-bold ${result.success ? 'text-green-600' : 'text-red-600'}`}>
-                    {result.success ? 'âœ…' : 'âŒ'}
+                    {result.success ? '✅' : '❌'}
                   </div>
                   <div className="text-sm text-gray-600">Status</div>
                 </div>
@@ -438,7 +439,7 @@ const TesteRealAgenteIA = () => {
               {/* Resposta da IA */}
               {result.success && result.response && (
                 <div>
-                  <h4 className="font-semibold mb-2 text-green-900">ðŸ¤– Resposta do Agente IA:</h4>
+                  <h4 className="font-semibold mb-2 text-green-900">🤖 Resposta do Agente IA:</h4>
                   <div className="bg-white p-4 rounded border max-h-96 overflow-y-auto">
                     <div className="prose max-w-none">
                       <p className="whitespace-pre-wrap">{result.response}</p>
@@ -450,14 +451,14 @@ const TesteRealAgenteIA = () => {
               {/* Detalhes do Erro */}
               {!result.success && result.error && (
                 <div>
-                  <h4 className="font-semibold mb-2 text-red-900">âŒ Erro Detalhado:</h4>
+                  <h4 className="font-semibold mb-2 text-red-900">❌ Erro Detalhado:</h4>
                   <div className="bg-red-100 p-4 rounded border border-red-200">
                     <p className="text-red-800 font-mono text-sm">{result.error}</p>
                   </div>
                 </div>
               )}
 
-              {/* InformaÃ§Ãµes TÃ©cnicas */}
+              {/* Informações Técnicas */}
               <div className="text-xs text-gray-500 space-y-1">
                 {result.log_id && <div>Log ID: {result.log_id}</div>}
                 {result.webhook_url && <div>Webhook: {result.webhook_url}</div>}
@@ -468,18 +469,18 @@ const TesteRealAgenteIA = () => {
         </Card>
       )}
 
-      {/* InformaÃ§Ãµes do Sistema */}
+      {/* Informações do Sistema */}
       <Card className="border-blue-200 bg-blue-50">
         <CardHeader>
-          <CardTitle className="text-blue-900">â„¹ï¸ Fluxo de ExecuÃ§Ã£o</CardTitle>
+          <CardTitle className="text-blue-900">ℹ️ Fluxo de Execução</CardTitle>
         </CardHeader>
         <CardContent className="text-blue-800 text-sm space-y-2">
-          <p>â€¢ <strong>1. Frontend:</strong> Envia payload com agentId, prompt e parÃ¢metros</p>
-          <p>â€¢ <strong>2. Edge Function:</strong> n8n-webhook-forwarder processa e valida dados</p>
-          <p>â€¢ <strong>3. N8N Webhook:</strong> Recebe POST no endpoint de produÃ§Ã£o</p>
-          <p>â€¢ <strong>4. OpenAI API:</strong> N8N processa via ChatGPT</p>
-          <p>â€¢ <strong>5. Resposta:</strong> JSON retorna com conteÃºdo da IA</p>
-          <p>â€¢ <strong>6. Logs:</strong> Tudo registrado na tabela logs_execucao_agentes</p>
+          <p>• <strong>1. Frontend:</strong> Envia payload com agentId, prompt e parâmetros</p>
+          <p>• <strong>2. Edge Function:</strong> n8n-webhook-forwarder processa e valida dados</p>
+          <p>• <strong>3. N8N Webhook:</strong> Recebe POST no endpoint de produção</p>
+          <p>• <strong>4. OpenAI API:</strong> N8N processa via ChatGPT</p>
+          <p>• <strong>5. Resposta:</strong> JSON retorna com conteúdo da IA</p>
+          <p>• <strong>6. Logs:</strong> Tudo registrado na tabela logs_execucao_agentes</p>
         </CardContent>
       </Card>
     </div>

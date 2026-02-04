@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { CheckCircle, AlertCircle, XCircle, Database, Server, Wifi } from 'lucide-react';
@@ -20,13 +20,7 @@ const SystemStatus = () => {
     realtime: 'checking'
   });
 
-  useEffect(() => {
-    checkSystemStatus();
-    const interval = setInterval(checkSystemStatus, 60000);
-    return () => clearInterval(interval);
-  }, [tenantId]);
-
-  const checkSystemStatus = async () => {
+  const checkSystemStatus = useCallback(async () => {
     try {
       const query = supabase.from('profiles').select('id').limit(1);
       const { error } = tenantId ? await query.eq('tenant_id', tenantId) : await query;
@@ -43,7 +37,13 @@ const SystemStatus = () => {
     }
 
     setStatus(prev => ({ ...prev, realtime: 'online' }));
-  };
+  }, [tenantId]);
+
+  useEffect(() => {
+    void checkSystemStatus();
+    const interval = setInterval(() => { void checkSystemStatus(); }, 60000);
+    return () => clearInterval(interval);
+  }, [checkSystemStatus]);
 
   const getStatusIcon = (serviceStatus: string) => {
     switch (serviceStatus) {

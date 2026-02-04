@@ -6,7 +6,7 @@
 
 import React, { useState } from 'react';
 import { runMultiAgentTests } from '@/tests/MultiAgentSystemTest';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
@@ -22,7 +22,25 @@ import {
 
 export const TestRunner: React.FC = () => {
   const [isRunning, setIsRunning] = useState(false);
-  const [testResults, setTestResults] = useState<any>(null);
+  type TestDetailValue = string | number | boolean | null | Record<string, unknown> | unknown[];
+  type TestCase = {
+    name: string;
+    status: string;
+    duration: number;
+    details?: Record<string, TestDetailValue>;
+    errors?: string[];
+  };
+  type TestResults = {
+    passed?: number;
+    failed?: number;
+    success_rate?: number;
+    total_time_ms?: number;
+    overall_status?: string;
+    timestamp?: string;
+    tests?: TestCase[];
+    error?: string;
+  };
+  const [testResults, setTestResults] = useState<TestResults | null>(null);
 
   const runTests = async () => {
     setIsRunning(true);
@@ -32,11 +50,12 @@ export const TestRunner: React.FC = () => {
       console.log('🧪 Iniciando testes do sistema multiagentes...');
       const results = await runMultiAgentTests();
       setTestResults(results);
-    } catch (error) {
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : 'Erro desconhecido';
       console.error('❌ Erro ao executar testes:', error);
       setTestResults({
         overall_status: 'ERROR',
-        error: (error instanceof Error ? error.message : String(error)),
+        error: message,
         tests: []
       });
     } finally {
@@ -46,17 +65,17 @@ export const TestRunner: React.FC = () => {
 
   const getStatusIcon = (status: string) => {
     switch (status) {
-      case 'passed': return <CheckCircle className="h-4 w-4 text-emerald-200" />;
-      case 'failed': return <XCircle className="h-4 w-4 text-red-300" />;
+      case "passed": return <CheckCircle className="h-4 w-4 text-emerald-200" />;
+      case "failed": return <XCircle className="h-4 w-4 text-red-300" />;
       default: return <Clock className="h-4 w-4 text-amber-300" />;
     }
   };
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'passed': return 'bg-emerald-500/15 text-emerald-200 border border-emerald-400/30';
-      case 'failed': return 'bg-red-500/15 text-red-200 border border-red-400/30';
-      default: return 'bg-amber-500/15 text-amber-200 border border-amber-400/30';
+      case "passed": return "bg-emerald-500/15 text-emerald-200 border border-emerald-400/30";
+      case "failed": return "bg-red-500/15 text-red-200 border border-red-400/30";
+      default: return "bg-amber-500/15 text-amber-200 border border-amber-400/30";
     }
   };
 
@@ -68,7 +87,7 @@ export const TestRunner: React.FC = () => {
           <p className="text-[hsl(var(--muted-foreground))]">Validação completa do funcionamento do sistema</p>
         </div>
         <Button
-          onClick={runTests}
+          onClick={() => { void runTests(); }}
           disabled={isRunning}
           className="flex items-center gap-2"
         >
@@ -153,7 +172,7 @@ export const TestRunner: React.FC = () => {
 
           {/* Detalhes dos Testes */}
           <div className="grid grid-cols-1 gap-4">
-            {testResults.tests?.map((test: any, index: number) => (
+            {testResults.tests?.map((test, index) => (
               <Card key={index}>
                 <CardHeader className="pb-3">
                   <div className="flex items-center justify-between">
@@ -177,7 +196,7 @@ export const TestRunner: React.FC = () => {
                     <div className="bg-[hsl(var(--surface-1))] border border-[hsl(var(--border))] p-3 rounded-lg">
                       <h4 className="font-medium text-sm mb-2">Detalhes:</h4>
                       <div className="grid grid-cols-2 gap-2 text-sm">
-                        {Object.entries(test.details).map(([key, value]: [string, any]) => (
+                        {Object.entries(test.details).map(([key, value]) => (
                           <div key={key} className="flex justify-between">
                             <span className="text-[hsl(var(--muted-foreground))]">{key}:</span>
                             <span className="font-medium">
