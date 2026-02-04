@@ -1,15 +1,22 @@
 
 import React, { useState, useMemo } from 'react';
-import { Search, Filter, Plus, AlertCircle, RefreshCw, Layers, User } from 'lucide-react';
+import { Search, Filter, Plus, RefreshCw, Layers, User } from 'lucide-react';
 import { DragDropContext, DropResult } from '@hello-pangea/dnd';
 import { useToast } from '@/hooks/use-toast';
 import { useLeads, type Lead } from '@/hooks/useLeads';
 import { useDebounce } from '@/hooks/useDebounce';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Button } from '@/components/ui/button';
 import NovoLeadForm from '@/components/forms/NovoLeadForm';
 import PipelineColumn from './PipelineColumn';
 
+const PIPELINE_STAGES = [
+  { id: 'novo_lead', title: 'Captação', color: 'primary' },
+  { id: 'em_qualificacao', title: 'Qualificação', color: 'amber' },
+  { id: 'proposta_enviada', title: 'Proposta', color: 'indigo' },
+  { id: 'contrato_assinado', title: 'Contrato', color: 'emerald' },
+  { id: 'em_atendimento', title: 'Execução', color: 'blue' },
+  { id: 'lead_perdido', title: 'Arquivados', color: 'rose' }
+];
 const PipelineJuridico = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterArea, setFilterArea] = useState('');
@@ -17,18 +24,9 @@ const PipelineJuridico = () => {
   const [showFormModal, setShowFormModal] = useState(false);
   const { toast } = useToast();
 
-  const { leads, loading, error, isEmpty, updateLead, fetchLeads } = useLeads();
+  const { leads, loading, updateLead, fetchLeads } = useLeads();
 
   const debouncedSearchTerm = useDebounce(searchTerm, 300);
-
-  const stages = [
-    { id: 'novo_lead', title: 'Captação', color: 'primary' },
-    { id: 'em_qualificacao', title: 'Qualificação', color: 'amber' },
-    { id: 'proposta_enviada', title: 'Proposta', color: 'indigo' },
-    { id: 'contrato_assinado', title: 'Contrato', color: 'emerald' },
-    { id: 'em_atendimento', title: 'Execução', color: 'blue' },
-    { id: 'lead_perdido', title: 'Arquivados', color: 'rose' }
-  ];
 
   const filteredLeads = useMemo(() => {
     if (!leads) return [];
@@ -43,11 +41,11 @@ const PipelineJuridico = () => {
   }, [leads, debouncedSearchTerm, filterArea, filterResponsavel]);
 
   const groupedLeads = useMemo(() => {
-    return stages.reduce((acc, stage) => {
+    return PIPELINE_STAGES.reduce((acc, stage) => {
       acc[stage.id] = filteredLeads.filter(lead => lead.status === stage.id);
       return acc;
     }, {} as Record<string, Lead[]>);
-  }, [filteredLeads, stages]);
+  }, [filteredLeads]);
 
   const areasJuridicas = useMemo(() => {
     return [...new Set(leads?.map(lead => lead.area_juridica).filter(Boolean) || [])];
@@ -57,26 +55,28 @@ const PipelineJuridico = () => {
     return [...new Set(leads?.map(lead => lead.responsavel).filter(Boolean) || [])];
   }, [leads]);
 
-  const onDragEnd = async (result: DropResult) => {
+  const handleDragEnd = (result: DropResult) => {
     const { destination, source, draggableId } = result;
 
     if (!destination) return;
     if (destination.droppableId === source.droppableId) return;
 
-    const success = await updateLead(draggableId, { status: destination.droppableId });
+    void (async () => {
+      const success = await updateLead(draggableId, { status: destination.droppableId });
 
-    if (success) {
-      toast({
-        title: "Status Atualizado",
-        description: "O lead foi movido com sucesso no pipeline.",
-      });
-    }
+      if (success) {
+        toast({
+          title: "Status Atualizado",
+          description: "O lead foi movido com sucesso no pipeline.",
+        });
+      }
+    })();
   };
 
-  const handleRetry = () => fetchLeads();
+  const handleRetry = () => void fetchLeads();
   const handleFormSuccess = () => {
     setShowFormModal(false);
-    fetchLeads();
+    void fetchLeads();
   };
 
   if (loading) {
@@ -178,16 +178,16 @@ const PipelineJuridico = () => {
       </section>
 
       {/* 🏗️ MONOLITH GRID */}
-      <DragDropContext onDragEnd={onDragEnd}>
+      <DragDropContext onDragEnd={handleDragEnd}>
         <main className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 h-[calc(100vh-450px)] overflow-x-auto overflow-y-hidden reveal-up" style={{ animationDelay: '0.3s' }}>
-          {stages.map((stage, stageIndex) => (
+          {PIPELINE_STAGES.map((stage, stageIndex) => (
             <PipelineColumn
               key={stage.id}
               stage={stage}
               leads={groupedLeads[stage.id] || []}
               stageIndex={stageIndex}
               onUpdateLead={updateLead}
-              onRefresh={fetchLeads}
+              onRefresh={handleRetry}
             />
           ))}
         </main>
@@ -203,3 +203,4 @@ const PipelineJuridico = () => {
 };
 
 export default PipelineJuridico;
+

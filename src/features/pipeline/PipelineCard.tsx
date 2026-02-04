@@ -229,7 +229,7 @@ export const PipelineCard = memo(({ lead, index, onUpdateLead, onRefresh }: Pipe
                                 <Button variant="outline" onClick={() => setShowStatusDialog(false)}>
                                     Cancelar
                                 </Button>
-                                <Button onClick={handleSaveStatus}>Salvar</Button>
+                                <Button onClick={() => void handleSaveStatus()}>Salvar</Button>
                             </DialogFooter>
                         </DialogContent>
                     </Dialog>
@@ -254,7 +254,7 @@ export const PipelineCard = memo(({ lead, index, onUpdateLead, onRefresh }: Pipe
                                 <Button variant="outline" onClick={() => setShowNotesDialog(false)}>
                                     Cancelar
                                 </Button>
-                                <Button onClick={handleSaveNotes}>Salvar</Button>
+                                <Button onClick={() => void handleSaveNotes()}>Salvar</Button>
                             </DialogFooter>
                         </DialogContent>
                     </Dialog>
@@ -278,7 +278,7 @@ export const PipelineCard = memo(({ lead, index, onUpdateLead, onRefresh }: Pipe
                                 <Button variant="outline" onClick={() => setShowDateDialog(false)}>
                                     Cancelar
                                 </Button>
-                                <Button onClick={handleSaveDate}>Salvar</Button>
+                                <Button onClick={() => void handleSaveDate()}>Salvar</Button>
                             </DialogFooter>
                         </DialogContent>
                     </Dialog>

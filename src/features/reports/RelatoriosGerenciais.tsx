@@ -1,10 +1,10 @@
 
 import React from 'react';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Download, TrendingUp, Users, FileText, Calendar, DollarSign } from 'lucide-react';
+import { Download, TrendingUp, Users, FileText, Calendar } from 'lucide-react';
 import { useDashboardMetrics } from '@/hooks/useDashboardMetrics';
 
 const RelatoriosGerenciais = () => {
@@ -23,7 +23,7 @@ const RelatoriosGerenciais = () => {
   const toCsv = (rows: CsvRow[]) => {
     const escapeCell = (value: string | number | undefined) => {
       const text = value === undefined || value === null ? '' : String(value);
-      return `"${text.replace(/\"/g, '""')}"`;
+      return `"${text.replace(/"/g, '""')}"`;
     };
 
     return [

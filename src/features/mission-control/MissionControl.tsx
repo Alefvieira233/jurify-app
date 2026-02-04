@@ -363,7 +363,7 @@ export function MissionControl() {
               {isConnected ? 'Conectado' : 'Desconectado'}
             </span>
           </div>
-          <Button onClick={refresh} variant="outline" size="sm">
+          <Button onClick={() => void refresh()} variant="outline" size="sm">
             <RefreshCw className="h-4 w-4 mr-2" />
             Atualizar
           </Button>

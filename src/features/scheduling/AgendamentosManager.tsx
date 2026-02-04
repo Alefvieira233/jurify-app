@@ -1,12 +1,13 @@
 
 import React, { useState } from 'react';
-import { Plus, Search, Calendar, Clock, User, AlertCircle, RefreshCw, Eye, Edit } from 'lucide-react';
+import { Plus, Search, Calendar, User, AlertCircle, RefreshCw, Eye, Edit } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useAgendamentos } from '@/hooks/useAgendamentos';
+import type { Agendamento } from '@/hooks/useAgendamentos';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { NovoAgendamentoForm } from '@/components/NovoAgendamentoForm';
 import { DetalhesAgendamento } from '@/components/DetalhesAgendamento';
@@ -16,7 +17,7 @@ const AgendamentosManager = () => {
   const [filterStatus, setFilterStatus] = useState('');
   const [isNovoAgendamentoOpen, setIsNovoAgendamentoOpen] = useState(false);
   const [isDetalhesOpen, setIsDetalhesOpen] = useState(false);
-  const [selectedAgendamento, setSelectedAgendamento] = useState<any | null>(null);
+  const [selectedAgendamento, setSelectedAgendamento] = useState<Agendamento | null>(null);
   const { agendamentos, loading, error, isEmpty, fetchAgendamentos } = useAgendamentos();
 
   const filteredAgendamentos = agendamentos.filter(agendamento => {
@@ -52,7 +53,7 @@ const AgendamentosManager = () => {
     fetchAgendamentos();
   };
 
-  const handleOpenDetails = (agendamento: any) => {
+  const handleOpenDetails = (agendamento: Agendamento) => {
     setSelectedAgendamento(agendamento);
     setIsDetalhesOpen(true);
   };
