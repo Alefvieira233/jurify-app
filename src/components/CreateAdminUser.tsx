@@ -38,9 +38,12 @@ const CreateAdminUser = () => {
 
     try {
       const user = await createAdminUserInAuth(adminData);
+      if (!user?.id) {
+        throw new Error('Usuario nao criado');
+      }
 
       setAdminCreated(true);
-      setAdminData(prev => ({ ...prev, userId: user!.id }));
+      setAdminData(prev => ({ ...prev, userId: user.id }));
 
       await performAutoLogin(adminData);
 
@@ -50,11 +53,12 @@ const CreateAdminUser = () => {
       });
 
       redirectToDashboard();
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('[CreateAdminUser] erro completo:', error);
+      const message = error instanceof Error ? error.message : 'Erro desconhecido';
       toast({
         title: 'Erro ao criar administrador',
-        description: error.message || 'Erro desconhecido',
+        description: message,
         variant: 'destructive',
       });
     } finally {
@@ -81,7 +85,7 @@ const CreateAdminUser = () => {
         <AdminUserForm
           adminData={adminData}
           setAdminData={setAdminData}
-          onCreateAdmin={createAdminUser}
+          onCreateAdmin={() => void createAdminUser()}
           isCreating={isCreating}
         />
       </CardContent>

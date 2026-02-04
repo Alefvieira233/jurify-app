@@ -22,7 +22,19 @@ const BackupRestore = () => {
     'api_keys',
     'google_calendar_settings',
     'configuracoes_integracoes'
-  ];
+  ] as const;
+
+  type BackupTable = (typeof BACKUP_TABLES)[number];
+  type BackupRecord = Record<string, unknown>;
+  type BackupPayload = {
+    version: string;
+    exported_at: string;
+    tenant_id: string;
+    data: Record<BackupTable, BackupRecord[]>;
+  };
+
+  const isSensitiveSetting = (item: BackupRecord): boolean =>
+    (item as { is_sensitive?: boolean }).is_sensitive === true;
 
   const exportConfigurations = async () => {
     if (!user || !tenantId) {
@@ -36,16 +48,23 @@ const BackupRestore = () => {
 
     setLoading(true);
     try {
-      const backupObj: any = {
+      const backupObj: BackupPayload = {
         version: '1.0',
         exported_at: new Date().toISOString(),
         tenant_id: tenantId,
-        data: {}
+        data: {
+          system_settings: [],
+          notification_templates: [],
+          agentes_ia: [],
+          api_keys: [],
+          google_calendar_settings: [],
+          configuracoes_integracoes: []
+        }
       };
 
       for (const table of BACKUP_TABLES) {
         const { data, error } = await supabase
-          .from(table as any)
+          .from(table)
           .select('*')
           .eq('tenant_id', tenantId);
 
@@ -55,9 +74,9 @@ const BackupRestore = () => {
         }
 
         if (table === 'system_settings') {
-          backupObj.data[table] = data?.filter((item: any) => !item.is_sensitive) || [];
+          backupObj.data[table] = (data as BackupRecord[] | null)?.filter((item) => !isSensitiveSetting(item)) || [];
         } else {
-          backupObj.data[table] = data || [];
+          backupObj.data[table] = (data as BackupRecord[] | null) || [];
         }
       }
 
@@ -111,7 +130,7 @@ const BackupRestore = () => {
 
     setLoading(true);
     try {
-      const parsedData = JSON.parse(backupData);
+      const parsedData = JSON.parse(backupData) as { data?: Record<string, BackupRecord[]> };
 
       if (!parsedData.data) {
         throw new Error('Formato de backup invalido');
@@ -127,22 +146,23 @@ const BackupRestore = () => {
       }
 
       for (const table of BACKUP_TABLES) {
-        if (parsedData.data[table] && Array.isArray(parsedData.data[table])) {
+        const tableData = parsedData.data[table];
+        if (tableData && Array.isArray(tableData)) {
           if (table !== 'api_keys') {
             await supabase
-              .from(table as any)
+              .from(table)
               .delete()
               .eq('tenant_id', tenantId)
               .neq('id', '00000000-0000-0000-0000-000000000000');
           }
 
-          const payload = parsedData.data[table].map((item: any) => ({
+          const payload = tableData.map((item) => ({
             ...item,
             tenant_id: tenantId
           }));
 
           const { error } = await supabase
-            .from(table as any)
+            .from(table)
             .insert(payload);
 
           if (error) {
@@ -183,7 +203,7 @@ const BackupRestore = () => {
             Exporte todas as configuracoes do sistema para backup.
           </p>
           <Button
-            onClick={exportConfigurations}
+            onClick={() => void exportConfigurations()}
             disabled={loading}
             className="w-full bg-[hsl(var(--accent))] hover:bg-[hsl(var(--accent-hover))] text-[hsl(var(--accent-foreground))]"
           >
@@ -212,7 +232,7 @@ const BackupRestore = () => {
           </div>
 
           <Button
-            onClick={importConfigurations}
+            onClick={() => void importConfigurations()}
             disabled={loading}
             className="w-full bg-[hsl(var(--accent))] hover:bg-[hsl(var(--accent-hover))] text-[hsl(var(--accent-foreground))]"
           >

@@ -3,7 +3,6 @@ import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Calendar, Clock, User, Phone, Mail, FileText, MapPin } from 'lucide-react';
-import GoogleCalendarSync from './GoogleCalendarSync';
 import { useGoogleCalendar } from '@/hooks/useGoogleCalendar';
 
 interface AgendamentoDetalhes {
@@ -201,7 +200,7 @@ Agendamento criado via Jurify
               <Button 
                 size="sm" 
                 variant="outline"
-                onClick={handleSyncToGoogle}
+                onClick={() => void handleSyncToGoogle()}
                 disabled={syncingToGoogle}
               >
                 {syncingToGoogle ? 'Sincronizando...' : 'Sincronizar'}

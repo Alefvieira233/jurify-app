@@ -54,7 +54,13 @@ const DetalhesAgente: FC<DetalhesAgenteProps> = ({ agente, onClose, onEdit }) =>
   };
 
   const tipoInfo = getTipoAgenteInfo(agente.tipo_agente ?? defaultTipo.value);
-  const parametros = (agente.parametros_avancados as ParametrosAvancados | null) ?? {};
+  const rawParametros = agente.parametros_avancados ?? {};
+  const parametros: ParametrosAvancados = {
+    temperatura: typeof rawParametros.temperatura === 'number' ? rawParametros.temperatura : undefined,
+    top_p: typeof rawParametros.top_p === 'number' ? rawParametros.top_p : undefined,
+    frequency_penalty: typeof rawParametros.frequency_penalty === 'number' ? rawParametros.frequency_penalty : undefined,
+    presence_penalty: typeof rawParametros.presence_penalty === 'number' ? rawParametros.presence_penalty : undefined,
+  };
   const agenteAtivo = agente.status === 'ativo';
   const perguntas = agente.perguntas_qualificacao ?? [];
   const TipoIcon = tipoInfo.icon;

@@ -49,7 +49,7 @@ const EditarUsuarioForm = ({ usuario, onClose }: EditarUsuarioFormProps) => {
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['usuarios'] });
+      void queryClient.invalidateQueries({ queryKey: ['usuarios'] });
       toast({
         title: 'Usuario atualizado',
         description: 'Os dados do usuario foram atualizados com sucesso.'

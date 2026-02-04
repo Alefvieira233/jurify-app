@@ -53,8 +53,9 @@ export default function DebugSupabase() {
             }
           }
           addLog(`✅ localStorage verificado (${supabaseKeys.length} chaves Supabase encontradas)`, 'success');
-        } catch (err: any) {
-          addLog(`⚠️ Erro ao verificar localStorage: ${err.message}`, 'warning');
+        } catch (err: unknown) {
+          const message = err instanceof Error ? err.message : 'Erro desconhecido';
+          addLog(`⚠️ Erro ao verificar localStorage: ${message}`, 'warning');
         }
 
         // ============================================
@@ -85,7 +86,7 @@ export default function DebugSupabase() {
         // ============================================
         addLog('🌐 Testando conexão de rede direta...', 'info');
 
-        const networkTimeout = new Promise((_, reject) =>
+        const networkTimeout = new Promise<Response>((_, reject) =>
           setTimeout(() => reject(new Error('Network timeout após 5s')), 5000)
         );
 
@@ -97,15 +98,16 @@ export default function DebugSupabase() {
             },
           });
 
-          const response = await Promise.race([networkTest, networkTimeout]) as Response;
+          const response = await Promise.race([networkTest, networkTimeout]);
 
           if (response.ok || response.status === 404 || response.status === 400) {
             addLog(`✅ Rede OK (Status: ${response.status})`, 'success');
           } else {
             addLog(`⚠️ Rede respondeu com status: ${response.status}`, 'warning');
           }
-        } catch (netErr: any) {
-          addLog(`❌ Erro de rede: ${netErr.message}`, 'error');
+        } catch (netErr: unknown) {
+          const message = netErr instanceof Error ? netErr.message : 'Erro desconhecido';
+          addLog(`❌ Erro de rede: ${message}`, 'error');
           setStatus('error');
           return;
         }
@@ -115,13 +117,13 @@ export default function DebugSupabase() {
         // ============================================
         addLog('🔐 Testando Supabase Auth...', 'info');
 
-        const authTimeout = new Promise((_, reject) =>
+        const authTimeout = new Promise<Awaited<ReturnType<typeof supabase.auth.getSession>>>((_, reject) =>
           setTimeout(() => reject(new Error('Auth timeout após 5s')), 5000)
         );
 
         try {
           const authTest = supabase.auth.getSession();
-          const { data, error } = await Promise.race([authTest, authTimeout]) as any;
+          const { data, error } = await Promise.race([authTest, authTimeout]);
 
           if (error) {
             addLog(`❌ Erro Auth: ${error.message}`, 'error');
@@ -130,8 +132,9 @@ export default function DebugSupabase() {
           }
 
           addLog(`✅ Auth OK (Session: ${data.session ? 'Ativa' : 'Nenhuma'})`, 'success');
-        } catch (authErr: any) {
-          addLog(`❌ Erro Auth: ${authErr.message}`, 'error');
+        } catch (authErr: unknown) {
+          const message = authErr instanceof Error ? authErr.message : 'Erro desconhecido';
+          addLog(`❌ Erro Auth: ${message}`, 'error');
           setStatus('error');
           return;
         }
@@ -141,7 +144,8 @@ export default function DebugSupabase() {
         // ============================================
         addLog('🗄️ Testando Database Query...', 'info');
 
-        const dbTimeout = new Promise((_, reject) =>
+        const dbTimeout = new Promise<{ data: unknown[] | null; error: { message?: string; code?: string } | null }>(
+          (_, reject) =>
           setTimeout(() => reject(new Error('Database timeout após 5s')), 5000)
         );
 
@@ -151,7 +155,7 @@ export default function DebugSupabase() {
             .select('id')
             .limit(1);
 
-          const { data, error } = await Promise.race([dbTest, dbTimeout]) as any;
+          const { data, error } = await Promise.race([dbTest, dbTimeout]);
 
           if (error) {
             // PGRST116 = No rows found, mas conexão OK
@@ -163,8 +167,9 @@ export default function DebugSupabase() {
           } else {
             addLog(`✅ Database OK (${data?.length || 0} registros)`, 'success');
           }
-        } catch (dbErr: any) {
-          addLog(`❌ Erro Database: ${dbErr.message}`, 'error');
+        } catch (dbErr: unknown) {
+          const message = dbErr instanceof Error ? dbErr.message : 'Erro desconhecido';
+          addLog(`❌ Erro Database: ${message}`, 'error');
           setStatus('error');
           return;
         }
@@ -175,9 +180,10 @@ export default function DebugSupabase() {
         addLog('🎉 TODOS OS TESTES PASSARAM!', 'success');
         setStatus('success');
 
-      } catch (err: any) {
+      } catch (err: unknown) {
         console.error('Erro fatal no diagnóstico:', err);
-        addLog(`🔴 ERRO FATAL: ${err.message || JSON.stringify(err)}`, 'error');
+        const message = err instanceof Error ? err.message : 'Erro desconhecido';
+        addLog(`🔴 ERRO FATAL: ${message}`, 'error');
         setStatus('error');
       } finally {
         // ✅ CRÍTICO: Limpar timeout assim que diagnóstico completar
@@ -195,7 +201,7 @@ export default function DebugSupabase() {
     }, 10000);
 
     // Executar diagnóstico imediatamente
-    runDiagnostics();
+    void runDiagnostics();
 
     // Cleanup no unmount
     return () => {
@@ -203,7 +209,7 @@ export default function DebugSupabase() {
         clearTimeout(timeoutRef.current);
       }
     };
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, []);
 
   // Não renderizar em produção
   if (import.meta.env.MODE === 'production') {

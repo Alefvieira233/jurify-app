@@ -39,7 +39,9 @@ interface DetalhesContratoProps {
   onClose: () => void;
 }
 
-export const DetalhesContrato = ({ contrato, onClose }: DetalhesContratoProps) => {
+type ContratoUpdate = Partial<Pick<Contrato, 'status' | 'observacoes' | 'data_envio' | 'data_assinatura'>>;
+
+export const DetalhesContrato = ({ contrato, onClose: _onClose }: DetalhesContratoProps) => {
   const [isEditing, setIsEditing] = useState(false);
   const [editedStatus, setEditedStatus] = useState(contrato.status);
   const [editedObservacoes, setEditedObservacoes] = useState(contrato.observacoes || '');
@@ -48,7 +50,7 @@ export const DetalhesContrato = ({ contrato, onClose }: DetalhesContratoProps) =
 
   // Mutation para atualizar contrato
   const updateContratoMutation = useMutation({
-    mutationFn: async (updates: any) => {
+    mutationFn: async (updates: ContratoUpdate) => {
       const { error } = await supabase
         .from('contratos')
         .update(updates)
@@ -57,7 +59,7 @@ export const DetalhesContrato = ({ contrato, onClose }: DetalhesContratoProps) =
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['contratos'] });
+      void queryClient.invalidateQueries({ queryKey: ['contratos'] });
       toast.success('Contrato atualizado com sucesso!');
       setIsEditing(false);
     },
@@ -67,7 +69,7 @@ export const DetalhesContrato = ({ contrato, onClose }: DetalhesContratoProps) =
   });
 
   const handleSave = () => {
-    const updates: any = {
+    const updates: ContratoUpdate = {
       status: editedStatus,
       observacoes: editedObservacoes
     };
@@ -95,7 +97,7 @@ export const DetalhesContrato = ({ contrato, onClose }: DetalhesContratoProps) =
   };
 
   const handleZapSignSuccess = () => {
-    queryClient.invalidateQueries({ queryKey: ['contratos'] });
+    void queryClient.invalidateQueries({ queryKey: ['contratos'] });
   };
 
   const getStatusBadge = (status: string) => {

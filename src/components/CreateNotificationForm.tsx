@@ -56,7 +56,7 @@ const CreateNotificationForm = ({ onSuccess, onCancel }: CreateNotificationFormP
       </CardHeader>
       
       <CardContent>
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={(e) => void handleSubmit(e)} className="space-y-4">
           <div>
             <label className="block text-sm font-medium text-[hsl(var(--muted-foreground))] mb-1">
               Título

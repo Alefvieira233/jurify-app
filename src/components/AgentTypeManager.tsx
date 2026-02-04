@@ -119,6 +119,9 @@ const AgentTypeManager = () => {
   const [showCreateForm, setShowCreateForm] = useState(false);
   const { getAgentsByType } = useAgentEngine();
 
+  type AgentTypeConfig = (typeof AGENT_TYPES)[AgentType];
+  const agentEntries = Object.entries(AGENT_TYPES) as Array<[AgentType, AgentTypeConfig]>;
+
   const agentTypeConfig = AGENT_TYPES[selectedType];
   const agentsOfType = getAgentsByType(selectedType);
 
@@ -151,8 +154,8 @@ const AgentTypeManager = () => {
 
       {/* Cards de Tipos */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        {Object.entries(AGENT_TYPES).map(([type, config]) => {
-          const stats = getAgentTypeStats(type as AgentType);
+        {agentEntries.map(([type, config]) => {
+          const stats = getAgentTypeStats(type);
           const IconComponent = config.icon;
 
           return (
@@ -160,7 +163,7 @@ const AgentTypeManager = () => {
               key={type}
               className={`cursor-pointer transition-all hover:shadow-lg ${selectedType === type ? `ring-2 ring-blue-500 ${config.bgColor}` : ''
                 }`}
-              onClick={() => setSelectedType(type as AgentType)}
+              onClick={() => setSelectedType(type)}
             >
               <CardHeader className="pb-3">
                 <div className="flex items-center justify-between">

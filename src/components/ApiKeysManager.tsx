@@ -77,7 +77,7 @@ const ApiKeysManager = () => {
       return data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['api_keys', tenantId] });
+      void queryClient.invalidateQueries({ queryKey: ['api_keys', tenantId] });
       setShowNewKeyDialog(false);
       setNewKeyName('');
       toast({
@@ -108,7 +108,7 @@ const ApiKeysManager = () => {
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['api_keys', tenantId] });
+      void queryClient.invalidateQueries({ queryKey: ['api_keys', tenantId] });
       toast({
         title: 'Sucesso',
         description: 'Status da API key atualizado com sucesso.',
@@ -137,7 +137,7 @@ const ApiKeysManager = () => {
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['api_keys', tenantId] });
+      void queryClient.invalidateQueries({ queryKey: ['api_keys', tenantId] });
       toast({
         title: 'Sucesso',
         description: 'API key removida com sucesso.',
@@ -176,11 +176,21 @@ const ApiKeysManager = () => {
   };
 
   const copyToClipboard = (text: string) => {
-    navigator.clipboard.writeText(text);
-    toast({
-      title: 'Copiado',
-      description: 'API key copiada para a area de transferencia.',
-    });
+    void navigator.clipboard.writeText(text).then(
+      () => {
+        toast({
+          title: 'Copiado',
+          description: 'API key copiada para a area de transferencia.',
+        });
+      },
+      () => {
+        toast({
+          title: 'Erro',
+          description: 'Nao foi possivel copiar a API key.',
+          variant: 'destructive',
+        });
+      }
+    );
   };
 
   const maskKey = (key: string) => {
