@@ -8,7 +8,7 @@ interface CacheItem<T> {
 }
 
 class CacheManager {
-  private cache = new Map<string, CacheItem<any>>();
+  private cache = new Map<string, CacheItem<unknown>>();
   private readonly DEFAULT_TTL = 300000; // 5 minutos
 
   set<T>(key: string, data: T, ttl: number = this.DEFAULT_TTL): void {

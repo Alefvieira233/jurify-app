@@ -125,16 +125,17 @@ export const useAgendamentos = () => {
       });
 
       return true;
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('❌ [useAgendamentos] Erro ao criar agendamento:', error);
+      const message = error instanceof Error ? error.message : 'Não foi possível criar o agendamento.';
       toast({
         title: 'Erro',
-        description: error.message || 'Não foi possível criar o agendamento.',
+        description: message,
         variant: 'destructive',
       });
       return false;
     }
-  }, [user, toast, setAgendamentos]);
+  }, [user, toast, setAgendamentos, normalizeAgendamento]);
 
   const updateAgendamento = useCallback(async (id: string, updateData: Partial<AgendamentoInput>): Promise<boolean> => {
     if (!user) return false;
@@ -167,16 +168,17 @@ export const useAgendamentos = () => {
       });
 
       return true;
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('❌ [useAgendamentos] Erro ao atualizar agendamento:', error);
+      const message = error instanceof Error ? error.message : 'Não foi possível atualizar o agendamento.';
       toast({
         title: 'Erro',
-        description: error.message || 'Não foi possível atualizar o agendamento.',
+        description: message,
         variant: 'destructive',
       });
       return false;
     }
-  }, [user, toast, setAgendamentos]);
+  }, [user, toast, setAgendamentos, normalizeAgendamento]);
 
   // ✅ NOVO: Implementar deleteAgendamento (estava faltando)
   const deleteAgendamento = useCallback(async (id: string): Promise<boolean> => {
@@ -202,11 +204,12 @@ export const useAgendamentos = () => {
       });
 
       return true;
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('❌ [useAgendamentos] Erro ao deletar agendamento:', error);
+      const message = error instanceof Error ? error.message : 'Não foi possível deletar o agendamento.';
       toast({
         title: 'Erro',
-        description: error.message || 'Não foi possível deletar o agendamento.',
+        description: message,
         variant: 'destructive',
       });
       return false;
@@ -224,6 +227,7 @@ export const useAgendamentos = () => {
     deleteAgendamento, // ✅ NOVO: Exportar deleteAgendamento
   };
 };
+
 
 
 

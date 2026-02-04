@@ -14,7 +14,7 @@ export const useErrorBoundary = () => {
   const [errors, setErrors] = useState<ErrorInfo[]>([]);
   const { toast } = useToast();
 
-  const logError = useCallback((error: Error, errorInfo?: any) => {
+  const logError = useCallback((error: Error, errorInfo?: { componentStack?: string }) => {
     const errorDetail: ErrorInfo = {
       message: error.message,
       stack: error.stack,
