@@ -5,10 +5,36 @@ import reactRefresh from "eslint-plugin-react-refresh";
 import tseslint from "typescript-eslint";
 
 export default tseslint.config(
-  { ignores: ["dist", "node_modules"] },
+  {
+    ignores: [
+      "dist",
+      "node_modules",
+      "supabase/functions/**",
+      "tests/**",
+      "e2e/**",
+      "scripts/**",
+      "apply-test-data.js",
+      "test-supabase-connection.js",
+      "*.config.{js,ts}",
+      "vite.config.ts",
+      "vitest.config.ts",
+      "tailwind.config.ts",
+      "src/**/__tests__/**",
+      "src/tests/**",
+      "src/scripts/**",
+    ],
+  },
   {
     extends: [js.configs.recommended, ...tseslint.configs.recommended],
     files: ["**/*.{ts,tsx}"],
+    ignores: [
+      "src/**/__tests__/**",
+      "src/tests/**",
+      "src/scripts/**",
+      "src/**/*.test.{ts,tsx}",
+      "src/**/*.spec.{ts,tsx}",
+      "src/lib/multiagents/examples/**",
+    ],
     languageOptions: {
       ecmaVersion: 2020,
     },
