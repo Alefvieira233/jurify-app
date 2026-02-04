@@ -1,8 +1,8 @@
 
-import React, { useState } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import React from 'react';
+import { Card, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Settings, Plug, Users, Bell, Server, TestTube, ShieldAlert } from 'lucide-react';
+import { Plug, Users, Bell, Server, TestTube, ShieldAlert } from 'lucide-react';
 import { useRBAC } from '@/hooks/useRBAC';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import IntegracoesSection from '@/components/configuracoes/IntegracoesSection';
@@ -12,7 +12,7 @@ import SistemaSection from '@/components/configuracoes/SistemaSection';
 
 const ConfiguracoesGerais = () => {
   // ✅ RBAC: Verificação de permissões
-  const { can, canManageConfig, userRole } = useRBAC();
+  const { can, userRole } = useRBAC();
 
   // Se não pode acessar configurações, mostrar mensagem
   if (!can('configuracoes', 'read')) {

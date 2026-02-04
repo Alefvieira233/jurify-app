@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -34,7 +33,7 @@ interface Usuario {
 }
 
 const UsuariosManager = () => {
-  const { user, profile } = useAuth();
+  const { profile } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [searchTerm, setSearchTerm] = useState('');
@@ -43,27 +42,11 @@ const UsuariosManager = () => {
   const [isEditarUsuarioOpen, setIsEditarUsuarioOpen] = useState(false);
   const [isPermissoesOpen, setIsPermissoesOpen] = useState(false);
 
-  // ‚úÖ RBAC: Verifica√ß√£o de permiss√µes real
-  const { can, canManageUsers, canDeleteUsers, userRole } = useRBAC();
+  // ? RBAC: VerificaÁ„o de permissıes real
+  const { can, canDeleteUsers, userRole } = useRBAC();
 
-  // S√≥ pode visualizar usu√°rios se tiver permiss√£o de read
+  // SÛ pode visualizar usu·rios se tiver permiss„o de read
   const canViewUsers = can('usuarios', 'read');
-
-  // Se n√£o tem permiss√£o para visualizar, mostrar mensagem
-  if (!canViewUsers) {
-    return (
-      <div className="p-6">
-        <Alert variant="destructive">
-          <ShieldAlert className="h-4 w-4" />
-          <AlertDescription>
-            Voc√™ n√£o tem permiss√£o para acessar esta se√ß√£o.
-            <br />
-            <span className="text-sm text-gray-500">Role atual: {userRole}</span>
-          </AlertDescription>
-        </Alert>
-      </div>
-    );
-  }
 
   const { data: usuarios = [], isLoading } = useQuery({
     queryKey: ['usuarios'],
@@ -93,9 +76,9 @@ const UsuariosManager = () => {
 
   const deleteMutation = useMutation({
     mutationFn: async (userId: string) => {
-      // Verifica√ß√£o adicional de seguran√ßa
+      // VerificaÁ„o adicional de seguranÁa
       if (!canDeleteUsers) {
-        throw new Error('Sem permiss√£o para desativar usu√°rios');
+        throw new Error('Sem permiss„o para desativar usu·rios');
       }
 
       const { error } = await supabase
@@ -106,21 +89,37 @@ const UsuariosManager = () => {
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['usuarios'] });
+      void queryClient.invalidateQueries({ queryKey: ['usuarios'] });
       toast({
-        title: "Usu√°rio desativado",
-        description: "O usu√°rio foi desativado com sucesso.",
+        title: "Usu·rio desativado",
+        description: "O usu·rio foi desativado com sucesso.",
       });
     },
-    onError: (error) => {
+    onError: (_error) => {
       toast({
         title: "Erro",
-        description: "Erro ao desativar usu√°rio.",
+        description: "Erro ao desativar usu·rio.",
         variant: "destructive",
       });
       // Error logged to monitoring
     }
   });
+
+  // Se n„o tem permiss„o para visualizar, mostrar mensagem
+  if (!canViewUsers) {
+    return (
+      <div className="p-6">
+        <Alert variant="destructive">
+          <ShieldAlert className="h-4 w-4" />
+          <AlertDescription>
+            VocÍ n„o tem permiss„o para acessar esta seÁ„o.
+            <br />
+            <span className="text-sm text-gray-500">Role atual: {userRole}</span>
+          </AlertDescription>
+        </Alert>
+      </div>
+    );
+  }
 
   const filteredUsuarios = usuarios.filter(usuario =>
     usuario.nome_completo.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -143,7 +142,7 @@ const UsuariosManager = () => {
       administrador: 'Administrador',
       advogado: 'Advogado',
       comercial: 'Comercial',
-      pos_venda: 'P√≥s-venda',
+      pos_venda: 'PÛs-venda',
       suporte: 'Suporte'
     };
     return labels[role as keyof typeof labels] || role;
@@ -153,20 +152,20 @@ const UsuariosManager = () => {
     <div className="p-6 space-y-6">
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Gerenciamento de Usu√°rios</h1>
-          <p className="text-gray-600 mt-1">Gerencie usu√°rios e suas permiss√µes no sistema</p>
+          <h1 className="text-2xl font-bold text-gray-900">Gerenciamento de Usu·rios</h1>
+          <p className="text-gray-600 mt-1">Gerencie usu·rios e suas permissıes no sistema</p>
         </div>
         {can('usuarios', 'create') && (
           <Dialog open={isNovoUsuarioOpen} onOpenChange={setIsNovoUsuarioOpen}>
             <DialogTrigger asChild>
               <Button className="bg-amber-500 hover:bg-amber-600">
                 <Plus className="h-4 w-4 mr-2" />
-                Novo Usu√°rio
+                Novo Usu·rio
               </Button>
             </DialogTrigger>
             <DialogContent className="max-w-2xl">
               <DialogHeader>
-                <DialogTitle>Novo Usu√°rio</DialogTitle>
+                <DialogTitle>Novo Usu·rio</DialogTitle>
               </DialogHeader>
               <NovoUsuarioForm onClose={() => setIsNovoUsuarioOpen(false)} />
             </DialogContent>
@@ -191,16 +190,16 @@ const UsuariosManager = () => {
         </CardContent>
       </Card>
 
-      {/* Tabela de Usu√°rios */}
+      {/* Tabela de Usu·rios */}
       <Card>
         <CardHeader>
-          <CardTitle>Usu√°rios Cadastrados ({filteredUsuarios.length})</CardTitle>
+          <CardTitle>Usu·rios Cadastrados ({filteredUsuarios.length})</CardTitle>
         </CardHeader>
         <CardContent>
           {isLoading ? (
             <div className="text-center py-8">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-amber-500 mx-auto"></div>
-              <p className="mt-2 text-gray-600">Carregando usu√°rios...</p>
+              <p className="mt-2 text-gray-600">Carregando usu·rios...</p>
             </div>
           ) : (
             <Table>
@@ -211,8 +210,8 @@ const UsuariosManager = () => {
                   <TableHead>Cargo</TableHead>
                   <TableHead>Roles</TableHead>
                   <TableHead>Status</TableHead>
-                  <TableHead>√öltimo Acesso</TableHead>
-                  <TableHead className="w-[50px]">A√ß√µes</TableHead>
+                  <TableHead>⁄ltimo Acesso</TableHead>
+                  <TableHead className="w-[50px]">AÁıes</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -269,7 +268,7 @@ const UsuariosManager = () => {
                             }}
                           >
                             <UserPlus className="h-4 w-4 mr-2" />
-                            Permiss√µes
+                            Permissıes
                           </DropdownMenuItem>
                           <DropdownMenuItem
                             onClick={() => deleteMutation.mutate(usuario.id)}
@@ -289,11 +288,11 @@ const UsuariosManager = () => {
         </CardContent>
       </Card>
 
-      {/* Di√°logos */}
+      {/* Di·logos */}
       <Dialog open={isEditarUsuarioOpen} onOpenChange={setIsEditarUsuarioOpen}>
         <DialogContent className="max-w-2xl">
           <DialogHeader>
-            <DialogTitle>Editar Usu√°rio</DialogTitle>
+            <DialogTitle>Editar Usu·rio</DialogTitle>
           </DialogHeader>
           {selectedUser && (
             <EditarUsuarioForm
@@ -307,7 +306,7 @@ const UsuariosManager = () => {
       <Dialog open={isPermissoesOpen} onOpenChange={setIsPermissoesOpen}>
         <DialogContent className="max-w-4xl">
           <DialogHeader>
-            <DialogTitle>Gerenciar Permiss√µes</DialogTitle>
+            <DialogTitle>Gerenciar Permissıes</DialogTitle>
           </DialogHeader>
           {selectedUser && (
             <GerenciarPermissoesForm

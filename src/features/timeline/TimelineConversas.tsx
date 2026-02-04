@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { MessageCircle, Phone, Mail, Clock, User, Bot, Filter, Search, ChevronDown, ChevronUp } from 'lucide-react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { MessageCircle, Clock, User, Bot, Search, ChevronDown, ChevronUp } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -47,7 +47,7 @@ const TimelineConversas: React.FC<TimelineConversasProps> = ({ leadId, className
   
   const { profile } = useAuth();
 
-  const fetchConversas = async () => {
+  const fetchConversas = useCallback(async () => {
     if (!profile?.tenant_id) return;
 
     try {
@@ -87,15 +87,15 @@ const TimelineConversas: React.FC<TimelineConversasProps> = ({ leadId, className
     } finally {
       setLoading(false);
     }
-  };
-
-  useEffect(() => {
-    fetchConversas();
   }, [profile?.tenant_id, leadId]);
 
   useEffect(() => {
+    void fetchConversas();
+  }, [fetchConversas]);
+
+  useEffect(() => {
     if (isAutoRefresh) {
-      intervalRef.current = setInterval(fetchConversas, 30000); // Atualiza a cada 30 segundos
+      intervalRef.current = setInterval(() => { void fetchConversas(); }, 30000); // Atualiza a cada 30 segundos
     } else {
       if (intervalRef.current) {
         clearInterval(intervalRef.current);
@@ -108,7 +108,7 @@ const TimelineConversas: React.FC<TimelineConversasProps> = ({ leadId, className
         clearInterval(intervalRef.current);
       }
     };
-  }, [isAutoRefresh]);
+  }, [isAutoRefresh, fetchConversas]);
 
   const filteredConversas = conversas.filter(conversa => {
     const matchesSearch = 
@@ -217,7 +217,7 @@ const TimelineConversas: React.FC<TimelineConversasProps> = ({ leadId, className
               <h3 className="text-lg font-semibold">Erro ao carregar conversas</h3>
               <p className="text-sm">{error}</p>
             </div>
-            <Button onClick={fetchConversas} variant="outline" className="border-red-300 text-red-700">
+            <Button onClick={() => void fetchConversas()} variant="outline" className="border-red-300 text-red-700">
               Tentar Novamente
             </Button>
           </CardContent>
@@ -250,7 +250,7 @@ const TimelineConversas: React.FC<TimelineConversasProps> = ({ leadId, className
                 <Clock className="h-3 w-3 mr-1" />
                 {isAutoRefresh ? 'Auto' : 'Manual'}
               </Button>
-              <Button onClick={fetchConversas} variant="outline" size="sm">
+              <Button onClick={() => void fetchConversas()} variant="outline" size="sm">
                 Atualizar
               </Button>
             </div>
@@ -399,7 +399,8 @@ const TimelineConversas: React.FC<TimelineConversasProps> = ({ leadId, className
         </CardContent>
       </Card>
     </div>
-  );
-};
+  );\n}, [profile?.tenant_id, leadId]);
 
 export default TimelineConversas;
+
+

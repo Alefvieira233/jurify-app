@@ -156,7 +156,7 @@ const IntegracoesConfig = () => {
             </Button>
           </DialogTrigger>
           <DialogContent className="sm:max-w-[600px]">
-            <form onSubmit={handleSubmit}>
+            <form onSubmit={(event) => { void handleSubmit(event); }}>
               <DialogHeader>
                 <DialogTitle>{editingIntegracao ? 'Editar Integracao' : 'Nova Integracao'}</DialogTitle>
                 <DialogDescription>Configure uma nova integracao externa para o sistema.</DialogDescription>
@@ -290,10 +290,10 @@ const IntegracoesConfig = () => {
                     <Button variant="outline" size="sm" onClick={() => handleEdit(integracao)}>
                       <Settings className="h-4 w-4" />
                     </Button>
-                    <Button variant="outline" size="sm" onClick={() => updateSincronizacao(integracao.id)}>
+                    <Button variant="outline" size="sm" onClick={() => void updateSincronizacao(integracao.id)}>
                       <RefreshCw className="h-4 w-4" />
                     </Button>
-                    <Button variant="outline" size="sm" onClick={() => deleteIntegracao(integracao.id)}>
+                    <Button variant="outline" size="sm" onClick={() => void deleteIntegracao(integracao.id)}>
                       <Trash2 className="h-4 w-4 text-red-500" />
                     </Button>
                   </div>
@@ -346,7 +346,7 @@ const IntegracoesConfig = () => {
 
       <Dialog open={!!editingIntegracao} onOpenChange={(open) => !open && setEditingIntegracao(null)}>
         <DialogContent className="sm:max-w-[600px]">
-          <form onSubmit={handleSubmit}>
+          <form onSubmit={(event) => { void handleSubmit(event); }}>
             <DialogHeader>
               <DialogTitle>Editar Integracao</DialogTitle>
               <DialogDescription>Atualize as configuracoes da integracao.</DialogDescription>
@@ -442,3 +442,4 @@ const IntegracoesConfig = () => {
 };
 
 export default IntegracoesConfig;
+
