@@ -1,11 +1,26 @@
 /**
- * 🚀 JURIFY AUTOMATION ENGINE - SPACEX GRADE
+ * ⚠️ DEPRECATED - ARQUITETURA LEGADO
  * 
- * Motor principal de automação que orquestra todos os agentes IA
- * e processa leads através de workflows inteligentes.
+ * Este módulo foi ISOLADO na Sprint 4 (Unificação de Arquitetura).
  * 
- * @author SpaceX Dev Team
- * @version 1.0.0
+ * NÃO USE ESTE MÓDULO PARA NOVOS DESENVOLVIMENTOS.
+ * 
+ * Arquitetura oficial: @/lib/multiagents (MultiAgentSystem)
+ * 
+ * Motivo da depreciação:
+ * - Não integra RAG (Sprint 2)
+ * - Não integra Streaming SSE (Sprint 3)
+ * - Modelo simplificado de 3 agentes vs 7 agentes especializados
+ * - Não é o caminho de produção (WhatsApp, Playground usam multiagents)
+ * 
+ * Este código é mantido apenas para:
+ * - Referência histórica
+ * - Tipos (AgentType enum) usados em componentes de UI legados
+ * - Rollback emergencial (não recomendado)
+ * 
+ * @deprecated Use @/lib/multiagents/MultiAgentSystem
+ * @see src/lib/multiagents/README.md
+ * @version 1.0.0 (LEGACY)
  */
 
 import { supabase } from '@/integrations/supabase/client';

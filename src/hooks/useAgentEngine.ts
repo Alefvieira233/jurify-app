@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useToast } from '@/hooks/use-toast';
-import { agentEngine, AgentType, AgentConfig } from '@/lib/agents/AgentEngine';
+import { AgentType, AgentConfig } from '@/lib/agents-legacy/AgentEngine';
+import { multiAgentSystem } from '@/lib/multiagents';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 
@@ -340,9 +341,19 @@ export const useAgentEngine = () => {
   const testAgent = async (agentId: string, testMessage: string): Promise<string> => {
     try {
       const testLeadId = `test_${Date.now()}`;
-      const response = await agentEngine.processLeadMessage(testLeadId, testMessage);
-
-      return response;
+      
+      // ✅ SPRINT 4: Unificado para usar multiAgentSystem (arquitetura oficial)
+      const testLead = {
+        id: testLeadId,
+        name: 'Lead de Teste',
+        message: testMessage,
+        source: 'chat' as const,
+        tenantId: tenantId || undefined,
+      };
+      
+      const result = await multiAgentSystem.processLead(testLead, testMessage, 'chat');
+      
+      return result?.finalResult?.toString() || 'Teste processado com sucesso pelo sistema multiagentes.';
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Erro ao testar agente';
       toast({

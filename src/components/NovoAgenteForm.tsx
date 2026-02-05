@@ -22,7 +22,7 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
-import { AgentType } from '@/lib/agents/AgentEngine';
+import { AgentType } from '@/lib/agents-legacy/AgentEngine';
 import type { AgenteIA } from '@/hooks/useAgentesIA';
 
 interface NovoAgenteFormProps {
