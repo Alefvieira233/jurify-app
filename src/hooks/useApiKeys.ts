@@ -44,7 +44,7 @@ export const useApiKeys = () => {
     } finally {
       setLoading(false);
     }
-  }, [tenantId]);
+  }, [tenantId, toast]);
 
   const criarApiKey = async (nome: string) => {
     if (!tenantId) {

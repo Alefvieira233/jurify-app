@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
@@ -29,16 +29,15 @@ export const useIntegracoesConfig = () => {
   const [loading, setLoading] = useState(false);
   const { user, profile } = useAuth();
   const { toast } = useToast();
-  const supabaseAny = supabase as any;
 
   const tenantId = profile?.tenant_id ?? null;
 
-  const fetchIntegracoes = async () => {
+  const fetchIntegracoes = useCallback(async () => {
     if (!user || !tenantId) return;
 
     setLoading(true);
     try {
-      const { data, error } = await supabaseAny
+      const { data, error } = await supabase
         .from('configuracoes_integracoes')
         .select('*')
         .eq('tenant_id', tenantId)
@@ -56,13 +55,13 @@ export const useIntegracoesConfig = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [user, tenantId, toast]);
 
   const createIntegracao = async (data: CreateIntegracaoData) => {
     if (!user || !tenantId) return false;
 
     try {
-      const { error } = await supabaseAny
+      const { error } = await supabase
         .from('configuracoes_integracoes')
         .insert([{ ...data, tenant_id: tenantId }]);
 
@@ -90,7 +89,7 @@ export const useIntegracoesConfig = () => {
     if (!user || !tenantId) return false;
 
     try {
-      const { error } = await supabaseAny
+      const { error } = await supabase
         .from('configuracoes_integracoes')
         .update({ ...data, atualizado_em: new Date().toISOString() })
         .eq('id', id)
@@ -131,7 +130,7 @@ export const useIntegracoesConfig = () => {
     if (!user || !tenantId) return false;
 
     try {
-      const { error } = await supabaseAny
+      const { error } = await supabase
         .from('configuracoes_integracoes')
         .delete()
         .eq('id', id)
@@ -158,8 +157,8 @@ export const useIntegracoesConfig = () => {
   };
 
   useEffect(() => {
-    fetchIntegracoes();
-  }, [user, tenantId]);
+    void fetchIntegracoes();
+  }, [fetchIntegracoes]);
 
   return {
     integracoes,
@@ -172,3 +171,5 @@ export const useIntegracoesConfig = () => {
     deleteIntegracao,
   };
 };
+
+

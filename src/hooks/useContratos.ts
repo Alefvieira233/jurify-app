@@ -107,16 +107,17 @@ export const useContratos = () => {
       });
 
       return true;
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('❌ [useContratos] Erro ao criar contrato:', error);
+      const message = error instanceof Error ? error.message : 'Não foi possível criar o contrato.';
       toast({
         title: 'Erro',
-        description: error.message || 'Não foi possível criar o contrato.',
+        description: message,
         variant: 'destructive',
       });
       return false;
     }
-  }, [user, toast, setContratos]);
+  }, [user, toast, setContratos, normalizeContrato]);
 
   const updateContrato = useCallback(async (id: string, updateData: Partial<ContratoInput>): Promise<boolean> => {
     if (!user) return false;
@@ -147,16 +148,17 @@ export const useContratos = () => {
       });
 
       return true;
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('❌ [useContratos] Erro ao atualizar contrato:', error);
+      const message = error instanceof Error ? error.message : 'Não foi possível atualizar o contrato.';
       toast({
         title: 'Erro',
-        description: error.message || 'Não foi possível atualizar o contrato.',
+        description: message,
         variant: 'destructive',
       });
       return false;
     }
-  }, [user, toast, setContratos]);
+  }, [user, toast, setContratos, normalizeContrato]);
 
   return {
     contratos,
@@ -168,5 +170,6 @@ export const useContratos = () => {
     updateContrato,
   };
 };
+
 
 

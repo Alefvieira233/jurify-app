@@ -1,7 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { agentEngine, AgentType, AgentConfig } from '@/lib/agents/AgentEngine';
-import { workflowProcessor, WorkflowType } from '@/lib/agents/WorkflowProcessor';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 
@@ -47,50 +46,7 @@ export const useAgentEngine = () => {
 
   const tenantId = profile?.tenant_id ?? null;
 
-  const loadAgents = useCallback(async () => {
-    if (!user || !tenantId) return;
-
-    setLoading(true);
-    setError(null);
-
-    try {
-      const { data, error: fetchError } = await supabase
-        .from('agentes_ia')
-        .select('*')
-        .eq('tenant_id', tenantId)
-        .order('created_at', { ascending: false });
-
-      if (fetchError) throw fetchError;
-
-      const agentConfigs = data.map((agent) => ({
-        id: agent.id,
-        name: agent.nome,
-        type: agent.tipo_agente as AgentType,
-        area_juridica: agent.area_juridica,
-        prompt_base: agent.prompt_base || '',
-        personality: agent.parametros_avancados?.personality || 'Profissional e acessivel',
-        specialization: agent.parametros_avancados?.specialization || ['geral'],
-        max_interactions: agent.parametros_avancados?.max_interactions || 50,
-        escalation_rules: agent.parametros_avancados?.escalation_rules || [],
-        active: agent.ativo,
-      }));
-
-      setAgents(agentConfigs);
-      await loadAgentStats(agentConfigs.map((a) => a.id));
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Erro ao carregar agentes';
-      setError(errorMessage);
-      toast({
-        title: 'Erro',
-        description: errorMessage,
-        variant: 'destructive',
-      });
-    } finally {
-      setLoading(false);
-    }
-  }, [tenantId, toast, user]);
-
-  const loadAgentStats = async (agentIds: string[]) => {
+  const loadAgentStats = useCallback(async (agentIds: string[]) => {
     if (!tenantId) return;
 
     const statsMap = new Map<string, AgentStats>();
@@ -132,7 +88,50 @@ export const useAgentEngine = () => {
     }
 
     setAgentStats(statsMap);
-  };
+  }, [tenantId]);
+
+  const loadAgents = useCallback(async () => {
+    if (!user || !tenantId) return;
+
+    setLoading(true);
+    setError(null);
+
+    try {
+      const { data, error: fetchError } = await supabase
+        .from('agentes_ia')
+        .select('*')
+        .eq('tenant_id', tenantId)
+        .order('created_at', { ascending: false });
+
+      if (fetchError) throw fetchError;
+
+      const agentConfigs = data.map((agent) => ({
+        id: agent.id,
+        name: agent.nome,
+        type: agent.tipo_agente as AgentType,
+        area_juridica: agent.area_juridica,
+        prompt_base: agent.prompt_base || '',
+        personality: agent.parametros_avancados?.personality || 'Profissional e acessivel',
+        specialization: agent.parametros_avancados?.specialization || ['geral'],
+        max_interactions: agent.parametros_avancados?.max_interactions || 50,
+        escalation_rules: agent.parametros_avancados?.escalation_rules || [],
+        active: agent.ativo,
+      }));
+
+      setAgents(agentConfigs);
+      await loadAgentStats(agentConfigs.map((a) => a.id));
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Erro ao carregar agentes';
+      setError(errorMessage);
+      toast({
+        title: 'Erro',
+        description: errorMessage,
+        variant: 'destructive',
+      });
+    } finally {
+      setLoading(false);
+    }
+  }, [tenantId, toast, user, loadAgentStats]);
 
   const createAgent = async (agentData: CreateAgentRequest): Promise<boolean> => {
     if (!user || !tenantId) {
@@ -204,7 +203,7 @@ export const useAgentEngine = () => {
     setLoading(true);
 
     try {
-      const updateData: any = {};
+      const updateData: Record<string, unknown> = {};
 
       if (updates.name) updateData.nome = updates.name;
       if (updates.area_juridica) updateData.area_juridica = updates.area_juridica;
@@ -414,14 +413,14 @@ export const useAgentEngine = () => {
   };
 
   useEffect(() => {
-    loadAgents();
+    void loadAgents();
   }, [loadAgents]);
 
   useEffect(() => {
     if (agents.length > 0) {
-      loadPerformance();
+      void loadPerformance();
     }
-  }, [agents]);
+  }, [agents, loadPerformance]);
 
   return {
     agents,

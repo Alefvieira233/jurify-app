@@ -271,9 +271,10 @@ export const useDashboardMetrics = () => {
 
       setMetrics(finalMetrics);
       console.log('[useDashboardMetrics] Metricas carregadas:', finalMetrics);
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('[useDashboardMetrics] Erro ao carregar metricas:', error);
-      setError(error.message || 'Erro ao conectar com banco de dados');
+      const message = error instanceof Error ? error.message : 'Erro ao conectar com banco de dados';
+      setError(message);
       setMetrics(DEFAULT_METRICS);
     } finally {
       setLoading(false);
@@ -281,20 +282,22 @@ export const useDashboardMetrics = () => {
   }, [user, profile?.tenant_id]);
 
   const refetch = useCallback(() => {
-    fetchMetrics();
+    void fetchMetrics();
   }, [fetchMetrics]);
 
   useEffect(() => {
-    fetchMetrics();
+    void fetchMetrics();
 
-    const interval = setInterval(fetchMetrics, 300000);
+    const interval = setInterval(() => {
+      void fetchMetrics();
+    }, 300000);
     const handleVisibility = () => {
       if (!document.hidden) {
-        fetchMetrics();
+        void fetchMetrics();
       }
     };
     const handleFocus = () => {
-      fetchMetrics();
+      void fetchMetrics();
     };
 
     document.addEventListener('visibilitychange', handleVisibility);

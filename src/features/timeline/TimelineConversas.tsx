@@ -400,6 +400,7 @@ const TimelineConversas: React.FC<TimelineConversasProps> = ({ leadId, className
       </Card>
     </div>
   );
+};
 
 export default TimelineConversas;
 
