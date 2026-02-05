@@ -71,20 +71,16 @@ Qualificar leads para determinar se são casos viáveis para o escritório, usan
 
   private async analyzeLead(payload: any): Promise<void> {
     try {
+      console.log(`🔍 [Qualifier] Analisando lead: ${payload.leadId || 'novo'}`);
+      
       const analysis = await this.processWithAIRetry(
         `Analise este lead: ${JSON.stringify(payload.data)}. Determine área jurídica, urgência e viabilidade.`
       );
 
-      // Tenta extrair JSON da análise
-      let parsedAnalysis: Record<string, unknown> = {};
-      try {
-        const jsonMatch = analysis.match(/\{[\s\S]*\}/);
-        if (jsonMatch) {
-          parsedAnalysis = JSON.parse(jsonMatch[0]);
-        }
-      } catch {
-        parsedAnalysis = { raw_analysis: analysis };
-      }
+      // Usa o safeParseJSON do BaseAgent para parsing robusto
+      let parsedAnalysis: Record<string, unknown> = this.safeParseJSON(analysis) || { raw_analysis: analysis };
+      
+      console.log(`✅ [Qualifier] Análise concluída:`, Object.keys(parsedAnalysis));
 
       this.updateContext(payload.leadId, { 
         stage: 'qualified', 

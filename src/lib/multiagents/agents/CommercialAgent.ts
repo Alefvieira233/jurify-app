@@ -87,20 +87,19 @@ Criar propostas comerciais personalizadas, negociar condições e fechar contrat
 
   private async createProposal(payload: any): Promise<void> {
     try {
+      console.log(`💼 [Commercial] Criando proposta para lead: ${payload.leadId || 'novo'}`);
+      
       const proposal = await this.processWithAIRetry(
         `Crie proposta comercial para: ${JSON.stringify(payload.data)}. Inclua valor, prazo, forma de pagamento.`
       );
 
-      // Tenta extrair JSON da proposta
-      let parsedProposal: Record<string, unknown> = {};
-      try {
-        const jsonMatch = proposal.match(/\{[\s\S]*\}/);
-        if (jsonMatch) {
-          parsedProposal = JSON.parse(jsonMatch[0]);
-        }
-      } catch {
-        parsedProposal = { raw_proposal: proposal, mensagem_cliente: proposal };
-      }
+      // Usa o safeParseJSON do BaseAgent para parsing robusto
+      let parsedProposal: Record<string, unknown> = this.safeParseJSON(proposal) || { 
+        raw_proposal: proposal, 
+        mensagem_cliente: proposal 
+      };
+      
+      console.log(`✅ [Commercial] Proposta criada:`, Object.keys(parsedProposal));
 
       this.updateContext(payload.leadId, { 
         stage: 'proposal_created', 

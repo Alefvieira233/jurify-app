@@ -11,7 +11,17 @@
 import { supabase } from '@/integrations/supabase/client';
 import { BaseAgent } from '../core/BaseAgent';
 import { AgentMessage, AGENT_CONFIG } from '../types';
-import { whatsAppMultiAgent } from '@/lib/integrations/WhatsAppMultiAgent';
+
+// Lazy import para evitar circular dependency
+// WhatsAppMultiAgent importa MultiAgentSystem, que importa CommunicatorAgent
+let whatsAppMultiAgentInstance: any = null;
+async function getWhatsAppClient(): Promise<any> {
+  if (!whatsAppMultiAgentInstance) {
+    const module = await import('@/lib/integrations/WhatsAppMultiAgent');
+    whatsAppMultiAgentInstance = module.whatsAppMultiAgent;
+  }
+  return whatsAppMultiAgentInstance;
+}
 
 export class CommunicatorAgent extends BaseAgent {
   constructor() {
@@ -147,11 +157,16 @@ Formatar e enviar mensagens profissionais via WhatsApp, Email e Chat, adaptando 
       const channel = this.context?.metadata?.channel;
       if (lead?.telefone && (channel === 'whatsapp' || !channel)) {
         console.log(`📱 [Communicator] Enviando proposta via WhatsApp para ${lead.telefone}...`);
-        const sent = await whatsAppMultiAgent.sendMessage(lead.telefone, messageToSend, payload.leadId);
-        if (sent) {
-          console.log(`✅ [Communicator] Mensagem WhatsApp enviada com sucesso`);
-        } else {
-          console.warn(`⚠️ [Communicator] Falha ao enviar WhatsApp (credenciais não configuradas?)`);
+        try {
+          const whatsAppClient = await getWhatsAppClient();
+          const sent = await whatsAppClient.sendMessage(lead.telefone, messageToSend, payload.leadId);
+          if (sent) {
+            console.log(`✅ [Communicator] Mensagem WhatsApp enviada com sucesso`);
+          } else {
+            console.warn(`⚠️ [Communicator] Falha ao enviar WhatsApp (credenciais não configuradas?)`);
+          }
+        } catch (whatsAppError) {
+          console.warn(`⚠️ [Communicator] Erro ao enviar WhatsApp:`, whatsAppError);
         }
       }
 

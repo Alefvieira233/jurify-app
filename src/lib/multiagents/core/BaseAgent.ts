@@ -491,4 +491,89 @@ export abstract class BaseAgent implements IAgent {
   private sleep(ms: number): Promise<void> {
     return new Promise(resolve => setTimeout(resolve, ms));
   }
+
+  // =========================================================================
+  // 🔧 UTILITÁRIOS DE PARSING JSON ROBUSTO
+  // =========================================================================
+
+  /**
+   * Parse JSON de forma segura com múltiplas estratégias de fallback
+   * Usado por todos os agentes para extrair dados estruturados das respostas da IA
+   */
+  protected safeParseJSON<T = Record<string, unknown>>(text: string): T | null {
+    if (!text || typeof text !== 'string') {
+      return null;
+    }
+
+    // Estratégia 1: Extrair JSON com regex (mais comum)
+    const jsonMatch = text.match(/\{[\s\S]*\}/);
+    if (jsonMatch) {
+      try {
+        return JSON.parse(jsonMatch[0]) as T;
+      } catch {
+        // Tenta limpar o JSON antes de parsear
+        try {
+          const cleaned = this.cleanJSONString(jsonMatch[0]);
+          return JSON.parse(cleaned) as T;
+        } catch {
+          // Continua para próxima estratégia
+        }
+      }
+    }
+
+    // Estratégia 2: Tentar parsear o texto inteiro
+    try {
+      return JSON.parse(text) as T;
+    } catch {
+      // Continua para próxima estratégia
+    }
+
+    // Estratégia 3: Extrair JSON de blocos de código markdown
+    const codeBlockMatch = text.match(/```(?:json)?\s*([\s\S]*?)```/);
+    if (codeBlockMatch) {
+      try {
+        return JSON.parse(codeBlockMatch[1].trim()) as T;
+      } catch {
+        // Continua para próxima estratégia
+      }
+    }
+
+    console.warn(`⚠️ [${this.name}] Falha ao parsear JSON da resposta`);
+    return null;
+  }
+
+  /**
+   * Limpa string JSON removendo caracteres problemáticos
+   */
+  private cleanJSONString(jsonStr: string): string {
+    return jsonStr
+      .replace(/[\x00-\x1F\x7F]/g, '') // Remove caracteres de controle
+      .replace(/,\s*}/g, '}')          // Remove vírgulas trailing antes de }
+      .replace(/,\s*]/g, ']')          // Remove vírgulas trailing antes de ]
+      .replace(/'/g, '"')              // Substitui aspas simples por duplas
+      .replace(/(\w+):/g, '"$1":')     // Adiciona aspas em chaves sem aspas
+      .trim();
+  }
+
+  /**
+   * Extrai um valor específico de uma resposta de texto
+   * Útil quando o JSON falha completamente
+   */
+  protected extractValueFromText(text: string, key: string): string | null {
+    // Tenta extrair valor de padrões comuns
+    const patterns = [
+      new RegExp(`${key}["\s:]+["']?([^"'\n,}]+)["']?`, 'i'),
+      new RegExp(`"${key}"\\s*:\\s*"([^"]+)"`, 'i'),
+      new RegExp(`${key}\\s*=\\s*["']?([^"'\n,}]+)["']?`, 'i'),
+    ];
+
+    for (const pattern of patterns) {
+      const match = text.match(pattern);
+      if (match && match[1]) {
+        return match[1].trim();
+      }
+    }
+
+    return null;
+  }
 }

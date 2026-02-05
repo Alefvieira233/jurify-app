@@ -73,23 +73,27 @@ Validar a viabilidade jurídica de casos, analisar fundamentos legais e recomend
 
   private async validateCase(payload: any): Promise<void> {
     try {
+      console.log(`⚖️ [Legal] Validando caso: ${payload.leadId || 'novo'}`);
+      
       const validation = await this.processWithAIRetry(
         `Valide juridicamente este caso: ${JSON.stringify(payload.data)}. Analise viabilidade, complexidade e estratégia.`
       );
 
-      // Tenta extrair JSON da validação
-      let parsedValidation: Record<string, unknown> = {};
+      // Usa o safeParseJSON do BaseAgent para parsing robusto
+      let parsedValidation: Record<string, unknown> = this.safeParseJSON(validation) || { raw_validation: validation };
+      
+      // Determina viabilidade
       let viable = false;
-      try {
-        const jsonMatch = validation.match(/\{[\s\S]*\}/);
-        if (jsonMatch) {
-          parsedValidation = JSON.parse(jsonMatch[0]);
-          viable = parsedValidation.viavel === true || parsedValidation.viable === true;
-        }
-      } catch {
-        parsedValidation = { raw_validation: validation };
+      if (parsedValidation.viavel !== undefined) {
+        viable = parsedValidation.viavel === true;
+      } else if (parsedValidation.viable !== undefined) {
+        viable = parsedValidation.viable === true;
+      } else {
+        // Fallback: busca no texto
         viable = validation.toLowerCase().includes('viável') || validation.toLowerCase().includes('viable');
       }
+      
+      console.log(`✅ [Legal] Validação concluída: viável=${viable}`);
 
       this.updateContext(payload.leadId, { 
         stage: 'validated', 

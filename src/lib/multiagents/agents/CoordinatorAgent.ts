@@ -1,7 +1,28 @@
 import { BaseAgent } from '../core/BaseAgent';
 import { AgentMessage, MessageType, Priority, AGENT_CONFIG } from '../types';
 
+/**
+ * 🎯 COORDINATOR AGENT - Orquestrador do Fluxo de Agentes
+ * 
+ * Responsável por:
+ * - Rotear leads para agentes especializados
+ * - Monitorar progresso do fluxo
+ * - Implementar fallback quando agentes falham
+ * - Garantir que o fluxo sempre chegue ao fim
+ */
 export class CoordinatorAgent extends BaseAgent {
+  // Mapa de fallback: se um agente falhar, qual é o próximo?
+  private static readonly FALLBACK_MAP: Record<string, string> = {
+    [AGENT_CONFIG.NAMES.QUALIFIER]: AGENT_CONFIG.NAMES.LEGAL,      // Se Qualifier falhar → Legal
+    [AGENT_CONFIG.NAMES.LEGAL]: AGENT_CONFIG.NAMES.COMMERCIAL,     // Se Legal falhar → Commercial
+    [AGENT_CONFIG.NAMES.COMMERCIAL]: AGENT_CONFIG.NAMES.COMMUNICATOR, // Se Commercial falhar → Communicator
+    [AGENT_CONFIG.NAMES.COMMUNICATOR]: 'ESCALATE_HUMAN',           // Se Communicator falhar → Escalar
+  };
+
+  // Contador de tentativas por lead
+  private retryCount: Map<string, Map<string, number>> = new Map();
+  private static readonly MAX_RETRIES_PER_AGENT = 2;
+
   constructor() {
     super(AGENT_CONFIG.NAMES.COORDINATOR, 'Orquestracao', AGENT_CONFIG.IDS.COORDINATOR);
   }
@@ -92,11 +113,16 @@ Analisar cada solicitação e rotear para o agente especialista correto, monitor
       case MessageType.STATUS_UPDATE:
         await this.monitorProgress(message.payload);
         break;
+      case MessageType.ERROR_REPORT:
+        await this.handleAgentError(message);
+        break;
     }
   }
 
   private async planExecution(payload: any): Promise<void> {
-    const plan = await this.processWithAI(
+    console.log(`🎯 [Coordinator] Planejando execução para lead: ${payload.leadId || 'novo'}`);
+
+    const plan = await this.processWithAIRetry(
       `Analise este lead e decida qual o próximo passo.
       Lead: ${payload.message}
       
@@ -114,57 +140,227 @@ Analisar cada solicitação e rotear para o agente especialista correto, monitor
       payload.context
     );
 
-    let nextAgent = AGENT_CONFIG.NAMES.QUALIFIER;
-    let task = 'analyze_lead';
+    let nextAgent: string = AGENT_CONFIG.NAMES.QUALIFIER;
+    let task: string = 'analyze_lead';
+    let reason: string = 'Fallback para qualificação inicial';
 
     try {
-      // More robust JSON extraction
-      const jsonMatch = plan.match(/\{[\s\S]*\}/);
-      if (jsonMatch) {
-        const jsonStr = jsonMatch[0];
-        const decision = JSON.parse(jsonStr);
-
-        if (decision.next_agent && Object.values(AGENT_CONFIG.NAMES).includes(decision.next_agent)) {
-          nextAgent = decision.next_agent;
-          task = decision.task || 'analyze_lead';
-        }
-      } else {
-        console.warn('Nenhum JSON encontrado na resposta do Coordenador');
+      const parsed = this.safeParseJSON<{ next_agent?: string; task?: string; reason?: string }>(plan);
+      if (parsed && parsed.next_agent && Object.values(AGENT_CONFIG.NAMES).includes(parsed.next_agent as any)) {
+        nextAgent = parsed.next_agent;
+        task = parsed.task || 'analyze_lead';
+        reason = parsed.reason || 'Decisão da IA';
       }
     } catch (e) {
-      console.warn('Falha ao parsear decisão do Coordenador, usando fallback:', e);
+      console.warn(`⚠️ [Coordinator] Falha ao parsear decisão, usando fallback: ${e}`);
     }
 
-    this.updateContext(payload.leadId, { stage: 'planned', plan });
+    console.log(`📋 [Coordinator] Decisão: ${nextAgent} (${task}) - ${reason}`);
+
+    this.updateContext(payload.leadId, { stage: 'planned', plan, nextAgent, task });
+
+    // Registra no ExecutionTracker
+    await this.recordStageResult('coordination', { nextAgent, task, reason }, true);
+
+    await this.routeToAgentWithFallback(
+      nextAgent,
+      task,
+      payload.leadId,
+      payload
+    );
+  }
+
+  /**
+   * Roteia para um agente com suporte a fallback automático
+   */
+  private async routeToAgentWithFallback(
+    targetAgent: string,
+    task: string,
+    leadId: string,
+    payload: any
+  ): Promise<void> {
+    const retries = this.getRetryCount(leadId, targetAgent);
+    
+    if (retries >= CoordinatorAgent.MAX_RETRIES_PER_AGENT) {
+      console.warn(`⚠️ [Coordinator] Máximo de tentativas atingido para ${targetAgent}, aplicando fallback`);
+      await this.applyFallback(targetAgent, leadId, payload);
+      return;
+    }
+
+    this.incrementRetryCount(leadId, targetAgent);
+
+    console.log(`📤 [Coordinator] Roteando para ${targetAgent} (tentativa ${retries + 1}/${CoordinatorAgent.MAX_RETRIES_PER_AGENT})`);
 
     await this.sendMessage(
-      nextAgent,
+      targetAgent,
       MessageType.TASK_REQUEST,
-      { task, leadId: payload.leadId, data: payload },
+      { task, leadId, data: payload },
       Priority.HIGH
     );
   }
 
+  /**
+   * Aplica fallback quando um agente falha repetidamente
+   */
+  private async applyFallback(failedAgent: string, leadId: string, payload: any): Promise<void> {
+    const fallbackAgent = CoordinatorAgent.FALLBACK_MAP[failedAgent];
+
+    if (!fallbackAgent || fallbackAgent === 'ESCALATE_HUMAN') {
+      console.error(`🚨 [Coordinator] Escalonando para humano - todos os agentes falharam para lead ${leadId}`);
+      await this.escalateToHuman(leadId, payload, failedAgent);
+      return;
+    }
+
+    console.log(`🔄 [Coordinator] Fallback: ${failedAgent} → ${fallbackAgent}`);
+
+    // Determina a task apropriada para o agente de fallback
+    const fallbackTask = this.getTaskForAgent(fallbackAgent);
+
+    await this.routeToAgentWithFallback(
+      fallbackAgent,
+      fallbackTask,
+      leadId,
+      { ...payload, fallbackFrom: failedAgent }
+    );
+  }
+
+  /**
+   * Escala para atendimento humano quando todos os agentes falham
+   */
+  private async escalateToHuman(leadId: string, payload: any, lastFailedAgent: string): Promise<void> {
+    console.error(`🚨 [Coordinator] ESCALAÇÃO HUMANA NECESSÁRIA para lead ${leadId}`);
+
+    // Registra a escalação no ExecutionTracker
+    await this.recordStageResult('human_escalation', {
+      leadId,
+      lastFailedAgent,
+      reason: 'Todos os agentes falharam ou atingiram limite de tentativas',
+      timestamp: new Date().toISOString()
+    }, false, 'Escalação para humano necessária');
+
+    // Marca a execução como falha com mensagem clara
+    await this.markExecutionFailed(`Escalação humana necessária - último agente: ${lastFailedAgent}`);
+
+    // Limpa contadores de retry para este lead
+    this.retryCount.delete(leadId);
+  }
+
+  /**
+   * Determina a task apropriada para cada agente
+   */
+  private getTaskForAgent(agentName: string): string {
+    const taskMap: Record<string, string> = {
+      [AGENT_CONFIG.NAMES.QUALIFIER]: 'analyze_lead',
+      [AGENT_CONFIG.NAMES.LEGAL]: 'validate_case',
+      [AGENT_CONFIG.NAMES.COMMERCIAL]: 'create_proposal',
+      [AGENT_CONFIG.NAMES.COMMUNICATOR]: 'send_proposal',
+      [AGENT_CONFIG.NAMES.CUSTOMER_SUCCESS]: 'onboard_client',
+      [AGENT_CONFIG.NAMES.ANALYST]: 'generate_report',
+    };
+    return taskMap[agentName] || 'process';
+  }
+
+  /**
+   * Trata erros reportados por outros agentes
+   */
+  private async handleAgentError(message: AgentMessage): Promise<void> {
+    const { agentName, leadId, error } = message.payload as any;
+    console.error(`❌ [Coordinator] Erro reportado por ${agentName}: ${error}`);
+
+    // Aplica fallback para o agente que falhou
+    if (agentName && leadId) {
+      await this.applyFallback(agentName, leadId, message.payload);
+    }
+  }
+
   private async monitorProgress(payload: any): Promise<void> {
     const { stage, leadId } = payload;
+    console.log(`📊 [Coordinator] Progresso: lead ${leadId} → estágio ${stage}`);
 
     switch (stage) {
       case 'qualified':
-        await this.sendMessage(
+        console.log(`✅ [Coordinator] Lead qualificado, enviando para validação jurídica`);
+        await this.routeToAgentWithFallback(
           AGENT_CONFIG.NAMES.LEGAL,
-          MessageType.TASK_REQUEST,
-          { task: 'validate_case', leadId, data: payload },
-          Priority.HIGH
+          'validate_case',
+          leadId,
+          payload
         );
         break;
+
       case 'validated':
-        await this.sendMessage(
+        console.log(`✅ [Coordinator] Caso validado, enviando para proposta comercial`);
+        await this.routeToAgentWithFallback(
           AGENT_CONFIG.NAMES.COMMERCIAL,
-          MessageType.TASK_REQUEST,
-          { task: 'create_proposal', leadId, data: payload },
-          Priority.HIGH
+          'create_proposal',
+          leadId,
+          payload
         );
         break;
+
+      case 'proposal_created':
+        console.log(`✅ [Coordinator] Proposta criada, enviando para comunicação`);
+        await this.routeToAgentWithFallback(
+          AGENT_CONFIG.NAMES.COMMUNICATOR,
+          'send_proposal',
+          leadId,
+          payload
+        );
+        break;
+
+      case 'proposal_sent':
+        console.log(`🎉 [Coordinator] Fluxo completo! Proposta enviada para lead ${leadId}`);
+        // Limpa contadores de retry
+        this.retryCount.delete(leadId);
+        break;
+
+      default:
+        console.log(`📋 [Coordinator] Estágio não mapeado: ${stage}`);
     }
+  }
+
+  // =========================================================================
+  // UTILITÁRIOS DE RETRY
+  // =========================================================================
+
+  private getRetryCount(leadId: string, agentName: string): number {
+    const leadRetries = this.retryCount.get(leadId);
+    if (!leadRetries) return 0;
+    return leadRetries.get(agentName) || 0;
+  }
+
+  private incrementRetryCount(leadId: string, agentName: string): void {
+    if (!this.retryCount.has(leadId)) {
+      this.retryCount.set(leadId, new Map());
+    }
+    const leadRetries = this.retryCount.get(leadId)!;
+    const current = leadRetries.get(agentName) || 0;
+    leadRetries.set(agentName, current + 1);
+  }
+
+  /**
+   * Override do safeParseJSON para adicionar extração manual de campos específicos do Coordinator
+   */
+  protected override safeParseJSON<T = Record<string, unknown>>(text: string): T | null {
+    // Primeiro tenta o parsing padrão do BaseAgent
+    const result = super.safeParseJSON<T>(text);
+    if (result) {
+      return result;
+    }
+
+    // Fallback: Extrair campos manualmente para decisões de roteamento
+    const nextAgentMatch = text.match(/next_agent["\s:]+["']?(\w+)["']?/i);
+    const taskMatch = text.match(/task["\s:]+["']?(\w+)["']?/i);
+    const reasonMatch = text.match(/reason["\s:]+["']?([^"'\n]+)["']?/i);
+
+    if (nextAgentMatch) {
+      return {
+        next_agent: nextAgentMatch[1],
+        task: taskMatch?.[1] || 'analyze_lead',
+        reason: reasonMatch?.[1] || 'Extraído manualmente'
+      } as T;
+    }
+
+    return null;
   }
 }
