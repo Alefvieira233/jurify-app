@@ -97,7 +97,7 @@ Deno.serve(async (req) => {
           } catch (streamError) {
             console.error("Streaming error:", streamError);
             controller.enqueue(
-              encoder.encode(`data: ${JSON.stringify({ error: "stream_error" })}\n\n`)
+              encoder.encode(`event: error\ndata: ${JSON.stringify({ error: "stream_error" })}\n\n`)
             );
             controller.enqueue(encoder.encode("data: [DONE]\n\n"));
             controller.close();
@@ -111,6 +111,7 @@ Deno.serve(async (req) => {
           "Content-Type": "text/event-stream",
           "Cache-Control": "no-cache",
           Connection: "keep-alive",
+          "X-Accel-Buffering": "no",
         },
         status: 200,
       });
