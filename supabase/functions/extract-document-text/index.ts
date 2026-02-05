@@ -8,6 +8,9 @@ initSentry();
 
 const OCR_SPACE_URL = "https://api.ocr.space/parse/image";
 const OCR_DEFAULT_LANG = "por";
+const OCR_TIMEOUT_MS = 10_000;
+const OCR_MAX_RETRIES = 1;
+const MAX_BASE64_BYTES = 5 * 1024 * 1024;
 
 interface ExtractRequest {
   file_url?: string;
@@ -36,6 +39,22 @@ function decodeBase64(base64: string): Uint8Array {
     bytes[i] = raw.charCodeAt(i);
   }
   return bytes;
+}
+
+function logRequestMeta(meta: {
+  tenantId?: string;
+  docId?: string;
+  detectedType?: string;
+  sourceBytes?: number;
+  base64Length?: number;
+}) {
+  console.info("[extract-document-text] request", {
+    tenant_id: meta.tenantId,
+    doc_id: meta.docId,
+    detected_type: meta.detectedType,
+    source_bytes: meta.sourceBytes,
+    base64_length: meta.base64Length,
+  });
 }
 
 async function extractPdfText(data: Uint8Array): Promise<{ text: string; pages: number }> {
@@ -78,19 +97,36 @@ async function ocrImage(params: {
     throw new Error("No image source provided");
   }
 
-  const response = await fetch(OCR_SPACE_URL, {
-    method: "POST",
-    body: formData,
-  });
+  let lastError: Error | null = null;
+  for (let attempt = 0; attempt <= OCR_MAX_RETRIES; attempt += 1) {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), OCR_TIMEOUT_MS);
+    try {
+      const response = await fetch(OCR_SPACE_URL, {
+        method: "POST",
+        body: formData,
+        signal: controller.signal,
+      });
 
-  const payload = await response.json();
-  if (!response.ok || payload.IsErroredOnProcessing) {
-    const message = payload.ErrorMessage?.[0] || payload.ErrorDetails || "OCR failed";
-    throw new Error(message);
+      const payload = await response.json();
+      if (!response.ok || payload.IsErroredOnProcessing) {
+        const message = payload.ErrorMessage?.[0] || payload.ErrorDetails || "OCR failed";
+        throw new Error(message);
+      }
+
+      const text = payload.ParsedResults?.[0]?.ParsedText || "";
+      return text.trim();
+    } catch (error) {
+      lastError = error instanceof Error ? error : new Error("OCR failed");
+      if (attempt >= OCR_MAX_RETRIES) {
+        throw lastError;
+      }
+    } finally {
+      clearTimeout(timeoutId);
+    }
   }
 
-  const text = payload.ParsedResults?.[0]?.ParsedText || "";
-  return text.trim();
+  throw lastError || new Error("OCR failed");
 }
 
 Deno.serve(async (req) => {
@@ -128,7 +164,8 @@ Deno.serve(async (req) => {
       });
     }
 
-    const { file_url, base64, filename, content_type, tenant_id }: ExtractRequest = await req.json();
+    const { file_url, base64, filename, content_type, tenant_id, doc_id }: ExtractRequest =
+      await req.json();
 
     if (!tenant_id || typeof tenant_id !== "string") {
       return new Response(JSON.stringify({ error: "tenant_id is required" }), {
@@ -166,21 +203,53 @@ Deno.serve(async (req) => {
 
     let detectedType = inferContentType(filename, content_type) || "";
     let bytes: Uint8Array | null = null;
+    let base64Length = 0;
+    let sourceBytes = 0;
 
     if (base64) {
       const normalized = base64.includes(",") ? base64.split(",")[1] : base64;
+      base64Length = normalized.length;
       bytes = decodeBase64(normalized);
+      sourceBytes = bytes.byteLength;
+      if (sourceBytes > MAX_BASE64_BYTES) {
+        return new Response(
+          JSON.stringify({ error: "base64 payload exceeds 5MB limit" }),
+          { status: 413, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
     } else if (file_url) {
       const response = await fetch(file_url);
       if (!response.ok) {
         throw new Error("Failed to fetch file_url");
       }
+      const contentLength = response.headers.get("content-length");
+      if (contentLength && Number(contentLength) > MAX_BASE64_BYTES) {
+        return new Response(
+          JSON.stringify({ error: "file_url payload exceeds 5MB limit" }),
+          { status: 413, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
       const buffer = new Uint8Array(await response.arrayBuffer());
       bytes = buffer;
+      sourceBytes = bytes.byteLength;
+      if (sourceBytes > MAX_BASE64_BYTES) {
+        return new Response(
+          JSON.stringify({ error: "file_url payload exceeds 5MB limit" }),
+          { status: 413, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
       if (!detectedType) {
         detectedType = response.headers.get("content-type") || "";
       }
     }
+
+    logRequestMeta({
+      tenantId: tenant_id,
+      docId: doc_id,
+      detectedType,
+      sourceBytes,
+      base64Length: base64Length || undefined,
+    });
 
     if (!detectedType) {
       return new Response(JSON.stringify({ error: "content_type or filename required to detect type" }), {
