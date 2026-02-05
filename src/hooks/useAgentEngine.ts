@@ -354,7 +354,7 @@ export const useAgentEngine = () => {
     }
   };
 
-  const loadPerformance = async () => {
+  const loadPerformance = useCallback(async () => {
     if (!tenantId) return;
 
     try {
@@ -368,7 +368,7 @@ export const useAgentEngine = () => {
     } catch (error) {
       console.error('Failed to load performance:', error);
     }
-  };
+  }, [tenantId]);
 
   const generateEscalationRules = (agentType: AgentType, keywords: string[]) => {
     const baseRules = [];
