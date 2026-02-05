@@ -16,9 +16,11 @@ import type {
   MessageType,
   LeadData,
   Priority,
-  IMessageRouter
+  IMessageRouter,
+  ExecutionResult
 } from '../types';
 import type { BaseAgent } from './BaseAgent';
+import { ExecutionTracker } from './ExecutionTracker';
 
 // Importações dinâmicas dos agentes para evitar circular dependencies
 import { CoordinatorAgent } from '../agents/CoordinatorAgent';
@@ -124,13 +126,15 @@ export class MultiAgentSystem implements IMessageRouter {
    * @param leadData - Dados do lead
    * @param message - Mensagem inicial do lead
    * @param channel - Canal de origem (whatsapp, email, etc)
+   * @param options - Opções de execução (waitForCompletion, timeoutMs)
    * @returns Resultado do processamento com executionId e dados dos agentes
    */
   public async processLead(
     leadData: LeadData,
     message: string,
-    channel: 'whatsapp' | 'email' | 'chat' | 'phone' | 'playground' = 'whatsapp'
-  ): Promise<any> {
+    channel: 'whatsapp' | 'email' | 'chat' | 'phone' | 'playground' = 'whatsapp',
+    options?: { waitForCompletion?: boolean; timeoutMs?: number }
+  ): Promise<ExecutionResult> {
     if (!this.isInitialized) {
       await this.initialize();
     }
@@ -139,8 +143,18 @@ export class MultiAgentSystem implements IMessageRouter {
 
     // Cria contexto compartilhado
     const tenantId = (leadData as any)?.tenantId || (leadData as any)?.tenant_id;
+    const leadId = leadData.id || `lead_${Date.now()}`;
+
+    // Cria ExecutionTracker para rastrear esta execução
+    const tracker = await ExecutionTracker.create(
+      leadId,
+      tenantId,
+      undefined, // userId
+      { timeoutMs: options?.timeoutMs ?? 60000 }
+    );
+
     const context: SharedContext = {
-      leadId: leadData.id || `lead_${Date.now()}`,
+      leadId,
       conversationHistory: [],
       leadData,
       currentStage: 'new',
@@ -149,6 +163,7 @@ export class MultiAgentSystem implements IMessageRouter {
         channel,
         timestamp: new Date(),
         tenantId,
+        executionId: tracker.executionId, // Passa executionId para os agentes
       }
     };
 
@@ -158,6 +173,7 @@ export class MultiAgentSystem implements IMessageRouter {
     // Busca agente coordenador
     const coordinator = this.agents.get('Coordenador');
     if (!coordinator) {
+      await tracker.markFailed('Coordinator agent not found');
       throw new Error('Coordinator agent not found');
     }
 
@@ -167,8 +183,8 @@ export class MultiAgentSystem implements IMessageRouter {
     // Importa tipos dinamicamente
     const { MessageType, Priority } = await import('../types');
 
-    // Gera execution ID único
-    const executionId = `exec_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    // Marca execução como em processamento
+    await tracker.markProcessing();
 
     // Envia tarefa inicial para coordenador
     await coordinator.receiveMessage({
@@ -179,26 +195,32 @@ export class MultiAgentSystem implements IMessageRouter {
       payload: {
         message,
         context,
-        leadData
+        leadData,
+        leadId
       },
       timestamp: new Date(),
       priority: Priority.HIGH,
       requires_response: false
     });
 
-    // ✅ RETORNAR resultado estruturado
-    // TODO: Implementar coleta real de resultados dos agentes via context
-    // Por enquanto, retorna estrutura básica para não quebrar o Playground
-    return {
-      executionId,
-      qualificationResult: context.decisions?.qualification || null,
-      legalValidation: context.decisions?.legalValidation || null,
-      proposal: context.decisions?.proposal || null,
-      formattedMessages: context.decisions?.formattedMessages || null,
-      finalResult: context.decisions?.finalResult || null,
-      totalTokens: 0, // TODO: Implementar tracking de tokens
-      estimatedCost: 0 // TODO: Implementar cálculo de custo
-    };
+    // Se waitForCompletion = true (ou não especificado), aguarda o fluxo completar
+    const shouldWait = options?.waitForCompletion !== false;
+    
+    if (shouldWait) {
+      try {
+        console.log(`⏳ Aguardando conclusão do fluxo (timeout: ${options?.timeoutMs ?? 60000}ms)...`);
+        const result = await tracker.waitForCompletion(options?.timeoutMs);
+        console.log(`✅ Fluxo completo: ${tracker.executionId}`);
+        return result;
+      } catch (error) {
+        console.error(`❌ Erro ou timeout no fluxo:`, error);
+        // Retorna resultado parcial mesmo em caso de erro/timeout
+        return tracker.getResult();
+      }
+    }
+
+    // Se waitForCompletion = false, retorna imediatamente com resultado parcial
+    return tracker.getResult();
   }
 
   /**

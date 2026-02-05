@@ -3,11 +3,15 @@
  *
  * Especialista em comunicação multicanal (WhatsApp, Email, Chat).
  * Formata e envia mensagens de forma profissional.
+ * 
+ * IMPORTANTE: Este é o último agente do fluxo padrão.
+ * Responsável por marcar a execução como completa.
  */
 
 import { supabase } from '@/integrations/supabase/client';
 import { BaseAgent } from '../core/BaseAgent';
 import { AgentMessage, AGENT_CONFIG } from '../types';
+import { whatsAppMultiAgent } from '@/lib/integrations/WhatsAppMultiAgent';
 
 export class CommunicatorAgent extends BaseAgent {
   constructor() {
@@ -96,41 +100,107 @@ Formatar e enviar mensagens profissionais via WhatsApp, Email e Chat, adaptando 
   }
 
   private async sendProposal(payload: any): Promise<void> {
-    const formatted = await this.processWithAI(
-      `Formate esta proposta para WhatsApp: ${payload.proposal}. Use linguagem profissional e emojis apropriados.`
-    );
+    try {
+      const proposalText = typeof payload.proposal === 'string' 
+        ? payload.proposal 
+        : JSON.stringify(payload.proposal);
 
-    // Salva no banco
-    await supabase.from('lead_interactions').insert({
-      lead_id: payload.leadId,
-      message: 'Proposta enviada',
-      response: formatted,
-      tipo: 'message',
-      metadata: {
-        agent_id: this.agentId,
-        agent_name: this.name,
+      const formatted = await this.processWithAIRetry(
+        `Formate esta proposta para WhatsApp: ${proposalText}. Use linguagem profissional e emojis apropriados.`
+      );
+
+      // Extrai mensagem formatada do JSON se possível
+      let messageToSend = formatted;
+      try {
+        const jsonMatch = formatted.match(/\{[\s\S]*\}/);
+        if (jsonMatch) {
+          const parsed = JSON.parse(jsonMatch[0]);
+          messageToSend = parsed.mensagem_formatada || parsed.message || formatted;
+        }
+      } catch {
+        // Usa o texto como está
+      }
+
+      // Busca telefone do lead para enviar via WhatsApp
+      const { data: lead } = await supabase
+        .from('leads')
+        .select('telefone, nome, tenant_id')
+        .eq('id', payload.leadId)
+        .single();
+
+      // Salva no banco
+      await supabase.from('lead_interactions').insert({
+        lead_id: payload.leadId,
+        message: 'Proposta enviada',
+        response: messageToSend,
+        tenant_id: lead?.tenant_id || this.context?.metadata?.tenantId || null,
+        channel: this.context?.metadata?.channel || 'whatsapp',
+        tipo: 'message',
+        metadata: {
+          agent_id: this.agentId,
+          agent_name: this.name,
+          stage: 'proposal_sent',
+        },
+      });
+
+      // Envia via WhatsApp se tiver telefone e canal for whatsapp
+      const channel = this.context?.metadata?.channel;
+      if (lead?.telefone && (channel === 'whatsapp' || !channel)) {
+        console.log(`📱 [Communicator] Enviando proposta via WhatsApp para ${lead.telefone}...`);
+        const sent = await whatsAppMultiAgent.sendMessage(lead.telefone, messageToSend, payload.leadId);
+        if (sent) {
+          console.log(`✅ [Communicator] Mensagem WhatsApp enviada com sucesso`);
+        } else {
+          console.warn(`⚠️ [Communicator] Falha ao enviar WhatsApp (credenciais não configuradas?)`);
+        }
+      }
+
+      this.updateContext(payload.leadId, {
         stage: 'proposal_sent',
-      },
-    });
+        formatted_message: messageToSend
+      });
 
-    this.updateContext(payload.leadId, {
-      stage: 'proposal_sent',
-      formatted_message: formatted
-    });
+      // Registra resultado no ExecutionTracker
+      await this.recordStageResult('message_sent', messageToSend, true);
+
+      // IMPORTANTE: Marca a execução como completa (último agente do fluxo)
+      await this.markExecutionCompleted();
+
+      console.log(`✅ [Communicator] Fluxo completo - proposta enviada para lead ${payload.leadId}`);
+
+    } catch (error) {
+      const errorMsg = error instanceof Error ? error.message : 'Unknown error';
+      await this.recordStageResult('message_sent', null, false, errorMsg);
+      await this.markExecutionFailed(`Communicator failed: ${errorMsg}`);
+      throw error;
+    }
   }
 
   private async sendOnboarding(payload: any): Promise<void> {
-    console.log('📱 Comunicador enviando onboarding...');
+    try {
+      console.log('📱 Comunicador enviando onboarding...');
 
-    const formattedMessage = await this.processWithAI(
-      `Formate este plano de onboarding para envio ao cliente:
+      const formattedMessage = await this.processWithAIRetry(
+        `Formate este plano de onboarding para envio ao cliente:
 
-      Plano: ${payload.plan}
+        Plano: ${payload.plan}
 
-      Seja acolhedor, claro e organize as informações de forma visual.`,
-      payload.client_data
-    );
+        Seja acolhedor, claro e organize as informações de forma visual.`,
+        payload.client_data
+      );
 
-    console.log('📤 Onboarding formatado:', formattedMessage);
+      // Registra resultado
+      await this.recordStageResult('onboarding_sent', formattedMessage, true);
+
+      // Marca execução como completa
+      await this.markExecutionCompleted();
+
+      console.log('📤 Onboarding formatado e enviado');
+    } catch (error) {
+      const errorMsg = error instanceof Error ? error.message : 'Unknown error';
+      await this.recordStageResult('onboarding_sent', null, false, errorMsg);
+      await this.markExecutionFailed(`Onboarding failed: ${errorMsg}`);
+      throw error;
+    }
   }
 }

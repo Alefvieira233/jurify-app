@@ -211,3 +211,52 @@ export interface IAgent {
   getSpecialization(): string;
   receiveMessage(message: AgentMessage): Promise<void>;
 }
+
+// =========================================================================
+// 🎯 EXECUTION TRACKER TYPES - Sistema de rastreamento de execução
+// =========================================================================
+
+export type ExecutionStatus = 'pending' | 'processing' | 'completed' | 'failed' | 'timeout';
+
+export interface StageResult {
+  stageName: string;
+  agentName: string;
+  result: unknown;
+  tokens: number;
+  startedAt: Date;
+  completedAt: Date;
+  durationMs: number;
+  success: boolean;
+  error?: string;
+}
+
+export interface ExecutionResult {
+  executionId: string;
+  leadId: string;
+  tenantId: string;
+  status: ExecutionStatus;
+  stages: StageResult[];
+  qualificationResult: unknown | null;
+  legalValidation: unknown | null;
+  proposal: unknown | null;
+  formattedMessages: string | null;
+  finalResult: unknown | null;
+  totalTokens: number;
+  estimatedCost: number;
+  startedAt: Date;
+  completedAt?: Date;
+  totalDurationMs?: number;
+  error?: string;
+}
+
+export interface ExecutionTrackerConfig {
+  timeoutMs?: number;
+  maxRetries?: number;
+  retryDelayMs?: number;
+}
+
+export const DEFAULT_EXECUTION_CONFIG: ExecutionTrackerConfig = {
+  timeoutMs: 60000,
+  maxRetries: 3,
+  retryDelayMs: 2000,
+};

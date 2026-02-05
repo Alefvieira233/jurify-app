@@ -70,21 +70,42 @@ Qualificar leads para determinar se são casos viáveis para o escritório, usan
   }
 
   private async analyzeLead(payload: any): Promise<void> {
-    const analysis = await this.processWithAI(
-      `Analise este lead: ${JSON.stringify(payload.data)}. Determine área jurídica, urgência e viabilidade.`
-    );
+    try {
+      const analysis = await this.processWithAIRetry(
+        `Analise este lead: ${JSON.stringify(payload.data)}. Determine área jurídica, urgência e viabilidade.`
+      );
 
-    this.updateContext(payload.leadId, { 
-      stage: 'qualified', 
-      analysis,
-      legal_area: 'trabalhista' // Extrair da análise
-    });
+      // Tenta extrair JSON da análise
+      let parsedAnalysis: Record<string, unknown> = {};
+      try {
+        const jsonMatch = analysis.match(/\{[\s\S]*\}/);
+        if (jsonMatch) {
+          parsedAnalysis = JSON.parse(jsonMatch[0]);
+        }
+      } catch {
+        parsedAnalysis = { raw_analysis: analysis };
+      }
 
-    await this.sendMessage(
-      AGENT_CONFIG.NAMES.COORDINATOR,
-      MessageType.STATUS_UPDATE,
-      { stage: 'qualified', leadId: payload.leadId, analysis },
-      Priority.HIGH
-    );
+      this.updateContext(payload.leadId, { 
+        stage: 'qualified', 
+        analysis: parsedAnalysis,
+        legal_area: parsedAnalysis.area_juridica || 'trabalhista'
+      });
+
+      // Registra resultado no ExecutionTracker
+      await this.recordStageResult('qualification', parsedAnalysis, true);
+
+      await this.sendMessage(
+        AGENT_CONFIG.NAMES.COORDINATOR,
+        MessageType.STATUS_UPDATE,
+        { stage: 'qualified', leadId: payload.leadId, analysis: parsedAnalysis },
+        Priority.HIGH
+      );
+    } catch (error) {
+      const errorMsg = error instanceof Error ? error.message : 'Unknown error';
+      await this.recordStageResult('qualification', null, false, errorMsg);
+      await this.markExecutionFailed(`Qualifier failed: ${errorMsg}`);
+      throw error;
+    }
   }
 }

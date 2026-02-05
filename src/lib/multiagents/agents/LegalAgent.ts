@@ -72,23 +72,45 @@ Validar a viabilidade jurídica de casos, analisar fundamentos legais e recomend
   }
 
   private async validateCase(payload: any): Promise<void> {
-    const validation = await this.processWithAI(
-      `Valide juridicamente este caso: ${JSON.stringify(payload.data)}. Analise viabilidade, complexidade e estratégia.`
-    );
+    try {
+      const validation = await this.processWithAIRetry(
+        `Valide juridicamente este caso: ${JSON.stringify(payload.data)}. Analise viabilidade, complexidade e estratégia.`
+      );
 
-    const viable = validation.toLowerCase().includes('viável');
+      // Tenta extrair JSON da validação
+      let parsedValidation: Record<string, unknown> = {};
+      let viable = false;
+      try {
+        const jsonMatch = validation.match(/\{[\s\S]*\}/);
+        if (jsonMatch) {
+          parsedValidation = JSON.parse(jsonMatch[0]);
+          viable = parsedValidation.viavel === true || parsedValidation.viable === true;
+        }
+      } catch {
+        parsedValidation = { raw_validation: validation };
+        viable = validation.toLowerCase().includes('viável') || validation.toLowerCase().includes('viable');
+      }
 
-    this.updateContext(payload.leadId, { 
-      stage: 'validated', 
-      validation,
-      viable 
-    });
+      this.updateContext(payload.leadId, { 
+        stage: 'validated', 
+        validation: parsedValidation,
+        viable 
+      });
 
-    await this.sendMessage(
-      AGENT_CONFIG.NAMES.COORDINATOR,
-      MessageType.STATUS_UPDATE,
-      { stage: 'validated', leadId: payload.leadId, validation, viable },
-      Priority.HIGH
-    );
+      // Registra resultado no ExecutionTracker
+      await this.recordStageResult('legal_validation', { ...parsedValidation, viable }, true);
+
+      await this.sendMessage(
+        AGENT_CONFIG.NAMES.COORDINATOR,
+        MessageType.STATUS_UPDATE,
+        { stage: 'validated', leadId: payload.leadId, validation: parsedValidation, viable },
+        Priority.HIGH
+      );
+    } catch (error) {
+      const errorMsg = error instanceof Error ? error.message : 'Unknown error';
+      await this.recordStageResult('legal_validation', null, false, errorMsg);
+      await this.markExecutionFailed(`Legal validation failed: ${errorMsg}`);
+      throw error;
+    }
   }
 }

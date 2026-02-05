@@ -86,20 +86,41 @@ Criar propostas comerciais personalizadas, negociar condições e fechar contrat
   }
 
   private async createProposal(payload: any): Promise<void> {
-    const proposal = await this.processWithAI(
-      `Crie proposta comercial para: ${JSON.stringify(payload.data)}. Inclua valor, prazo, forma de pagamento.`
-    );
+    try {
+      const proposal = await this.processWithAIRetry(
+        `Crie proposta comercial para: ${JSON.stringify(payload.data)}. Inclua valor, prazo, forma de pagamento.`
+      );
 
-    this.updateContext(payload.leadId, { 
-      stage: 'proposal_created', 
-      proposal 
-    });
+      // Tenta extrair JSON da proposta
+      let parsedProposal: Record<string, unknown> = {};
+      try {
+        const jsonMatch = proposal.match(/\{[\s\S]*\}/);
+        if (jsonMatch) {
+          parsedProposal = JSON.parse(jsonMatch[0]);
+        }
+      } catch {
+        parsedProposal = { raw_proposal: proposal, mensagem_cliente: proposal };
+      }
 
-    await this.sendMessage(
-      AGENT_CONFIG.NAMES.COMMUNICATOR,
-      MessageType.TASK_REQUEST,
-      { task: 'send_proposal', leadId: payload.leadId, proposal },
-      Priority.MEDIUM
-    );
+      this.updateContext(payload.leadId, { 
+        stage: 'proposal_created', 
+        proposal: parsedProposal 
+      });
+
+      // Registra resultado no ExecutionTracker
+      await this.recordStageResult('proposal', parsedProposal, true);
+
+      await this.sendMessage(
+        AGENT_CONFIG.NAMES.COMMUNICATOR,
+        MessageType.TASK_REQUEST,
+        { task: 'send_proposal', leadId: payload.leadId, proposal: parsedProposal },
+        Priority.MEDIUM
+      );
+    } catch (error) {
+      const errorMsg = error instanceof Error ? error.message : 'Unknown error';
+      await this.recordStageResult('proposal', null, false, errorMsg);
+      await this.markExecutionFailed(`Commercial proposal failed: ${errorMsg}`);
+      throw error;
+    }
   }
 }

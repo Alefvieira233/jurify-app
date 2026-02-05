@@ -10,9 +10,11 @@
 
 import { supabase } from '@/integrations/supabase/client';
 import { DEFAULT_OPENAI_MODEL } from '@/lib/ai/model';
+import { ExecutionTracker } from './ExecutionTracker';
 import {
   Priority,
-  MessageType
+  MessageType,
+  DEFAULT_EXECUTION_CONFIG
 } from '../types';
 import type {
   AgentMessage,
@@ -37,6 +39,9 @@ export abstract class BaseAgent implements IAgent {
   protected maxTokens: number = 1500;
   private static readonly MAX_CONTEXT_CHUNKS = 5;
   private static readonly MAX_CONTEXT_CHARS = 2000;
+
+  // ðŸŽ¯ Tracking de execução
+  protected lastTokensUsed: number = 0;
 
   constructor(name: string, specialization: string, agentId?: string) {
     this.name = name;
@@ -204,7 +209,9 @@ export abstract class BaseAgent implements IAgent {
         throw new Error('Invalid response from AI processor');
       }
 
-      console.log(`âœ… ${this.name} recebeu resposta da IA (${data.usage?.total_tokens || 0} tokens)`);
+      const tokensUsed = data.usage?.total_tokens || 0;
+      this.lastTokensUsed = tokensUsed;
+      console.log(`✅ ${this.name} recebeu resposta da IA (${tokensUsed} tokens)`);
 
       if (this.context?.leadId) {
         const { error: logError } = await supabase
@@ -380,5 +387,108 @@ export abstract class BaseAgent implements IAgent {
     if (config.temperature !== undefined) this.temperature = config.temperature;
     if (config.maxTokens) this.maxTokens = config.maxTokens;
   }
-}
 
+  // =========================================================================
+  // 🎯 EXECUTION TRACKER INTEGRATION
+  // =========================================================================
+
+  /**
+   * Obtém o ExecutionTracker da execução atual (se existir)
+   */
+  protected getExecutionTracker(): ExecutionTracker | undefined {
+    const executionId = this.context?.metadata?.executionId as string | undefined;
+    if (executionId) {
+      return ExecutionTracker.get(executionId);
+    }
+    return undefined;
+  }
+
+  /**
+   * Registra resultado de um estágio no ExecutionTracker
+   */
+  protected async recordStageResult(
+    stageName: string,
+    result: unknown,
+    success: boolean = true,
+    error?: string
+  ): Promise<void> {
+    const tracker = this.getExecutionTracker();
+    if (tracker) {
+      await tracker.recordStageResult(
+        stageName,
+        this.name,
+        result,
+        this.lastTokensUsed,
+        success,
+        error
+      );
+    }
+  }
+
+  /**
+   * Marca a execução como completa (chamado pelo último agente do fluxo)
+   */
+  protected async markExecutionCompleted(): Promise<void> {
+    const tracker = this.getExecutionTracker();
+    if (tracker) {
+      await tracker.markCompleted();
+    }
+  }
+
+  /**
+   * Marca a execução como falha
+   */
+  protected async markExecutionFailed(errorMessage: string): Promise<void> {
+    const tracker = this.getExecutionTracker();
+    if (tracker) {
+      await tracker.markFailed(errorMessage);
+    }
+  }
+
+  /**
+   * Obtém o total de tokens usados na última chamada de IA
+   */
+  protected getLastTokensUsed(): number {
+    return this.lastTokensUsed;
+  }
+
+  // =========================================================================
+  // 🔄 RETRY COM BACKOFF EXPONENCIAL
+  // =========================================================================
+
+  /**
+   * Executa processamento de IA com retry automático
+   */
+  protected async processWithAIRetry(
+    prompt: string,
+    context?: Record<string, unknown>,
+    options?: { stream?: boolean; onToken?: (token: string) => void; maxRetries?: number }
+  ): Promise<string> {
+    const maxRetries = options?.maxRetries ?? DEFAULT_EXECUTION_CONFIG.maxRetries ?? 3;
+    let lastError: Error | null = null;
+
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        return await this.processWithAI(prompt, context, options);
+      } catch (error) {
+        lastError = error instanceof Error ? error : new Error(String(error));
+        console.warn(`⚠️ [${this.name}] Tentativa ${attempt}/${maxRetries} falhou:`, lastError.message);
+
+        if (attempt < maxRetries) {
+          const delayMs = Math.pow(2, attempt) * 1000; // 2s, 4s, 8s
+          console.log(`⏳ [${this.name}] Aguardando ${delayMs}ms antes de retry...`);
+          await this.sleep(delayMs);
+        }
+      }
+    }
+
+    throw lastError || new Error('All retry attempts failed');
+  }
+
+  /**
+   * Utilitário para aguardar um tempo
+   */
+  private sleep(ms: number): Promise<void> {
+    return new Promise(resolve => setTimeout(resolve, ms));
+  }
+}
