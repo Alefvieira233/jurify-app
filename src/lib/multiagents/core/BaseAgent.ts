@@ -1,8 +1,8 @@
-/**
- * 🚀 JURIFY MULTIAGENT SYSTEM - BASE AGENT
+﻿/**
+ * ðŸš€ JURIFY MULTIAGENT SYSTEM - BASE AGENT
  *
  * Classe base abstrata para todos os agentes.
- * Refatorada para usar Supabase Edge Function em vez de chamada direta à OpenAI.
+ * Refatorada para usar Supabase Edge Function em vez de chamada direta Ã  OpenAI.
  *
  * @version 2.0.0
  * @security Enterprise Grade - API keys protegidas
@@ -31,10 +31,12 @@ export abstract class BaseAgent implements IAgent {
   protected context: SharedContext | null = null;
   protected isProcessing = false;
 
-  // 🎯 Configurações de IA
+  // ðŸŽ¯ ConfiguraÃ§Ãµes de IA
   protected model: string = DEFAULT_OPENAI_MODEL;
   protected temperature: number = 0.7;
   protected maxTokens: number = 1500;
+  private static readonly MAX_CONTEXT_CHUNKS = 5;
+  private static readonly MAX_CONTEXT_CHARS = 2000;
 
   constructor(name: string, specialization: string, agentId?: string) {
     this.name = name;
@@ -42,7 +44,7 @@ export abstract class BaseAgent implements IAgent {
     this.agentId = agentId || specialization;
   }
 
-  // 🏷️ Getters públicos
+  // ðŸ·ï¸ Getters pÃºblicos
   public getName(): string {
     return this.name;
   }
@@ -55,9 +57,9 @@ export abstract class BaseAgent implements IAgent {
     return this.agentId;
   }
 
-  // 📨 Recebe mensagem de outro agente
+  // ðŸ“¨ Recebe mensagem de outro agente
   public async receiveMessage(message: AgentMessage): Promise<void> {
-    console.log(`🤖 ${this.name} recebeu mensagem de ${message.from}: ${message.type}`);
+    console.log(`ðŸ¤– ${this.name} recebeu mensagem de ${message.from}: ${message.type}`);
 
     this.messageQueue.push(message);
 
@@ -66,7 +68,7 @@ export abstract class BaseAgent implements IAgent {
     }
   }
 
-  // 📤 Envia mensagem para outro agente
+  // ðŸ“¤ Envia mensagem para outro agente
   protected async sendMessage(
     to: string,
     type: MessageType,
@@ -89,7 +91,7 @@ export abstract class BaseAgent implements IAgent {
     await MultiAgentSystem.getInstance().routeMessage(message);
   }
 
-  // 🔄 Processa fila de mensagens
+  // ðŸ”„ Processa fila de mensagens
   private async processMessages(): Promise<void> {
     if (this.isProcessing || this.messageQueue.length === 0) return;
 
@@ -101,7 +103,7 @@ export abstract class BaseAgent implements IAgent {
         try {
           await this.handleMessage(message);
         } catch (error) {
-          console.error(`❌ Erro ao processar mensagem em ${this.name}:`, error);
+          console.error(`âŒ Erro ao processar mensagem em ${this.name}:`, error);
 
           if (message.requires_response) {
             const { MessageType } = await import('../types');
@@ -122,23 +124,52 @@ export abstract class BaseAgent implements IAgent {
     this.isProcessing = false;
   }
 
-  // 🎯 Método abstrato para cada agente implementar
+  // ðŸŽ¯ MÃ©todo abstrato para cada agente implementar
   protected abstract handleMessage(message: AgentMessage): Promise<void>;
 
-  // 🧠 Usa IA para processar informação via Edge Function (SEGURO)
+  // ðŸ§  Usa IA para processar informaÃ§Ã£o via Edge Function (SEGURO)
   protected async processWithAI(
     prompt: string,
     context?: Record<string, unknown>
   ): Promise<string> {
     try {
-      console.log(`🧠 ${this.name} chamando Edge Function de IA...`);
+      console.log(`🤖 ${this.name} chamando Edge Function de IA...`);
+
+      let augmentedPrompt = prompt;
+      const tenantId = this.context?.metadata?.tenantId as string | undefined;
+
+      if (tenantId) {
+        try {
+          const { data: searchData, error: searchError } = await supabase.functions.invoke<{
+            results: Array<{ content: string; similarity: number; metadata?: Record<string, unknown> }>;
+          }>(
+            'vector-search',
+            {
+              body: {
+                query: prompt,
+                tenant_id: tenantId,
+                top_k: BaseAgent.MAX_CONTEXT_CHUNKS,
+              },
+            }
+          );
+
+          if (!searchError && searchData?.results?.length) {
+            const contextText = BaseAgent.buildContext(searchData.results);
+            if (contextText) {
+              augmentedPrompt = `${prompt}\n\nCONTEXT:\n${contextText}`;
+            }
+          }
+        } catch {
+          console.warn(`[rag] Falha ao buscar contexto para ${this.name}.`);
+        }
+      }
 
       // Prepara payload para Edge Function
       const aiRequest: AgentAIRequest = {
         agentName: this.name,
         agentSpecialization: this.specialization,
         systemPrompt: this.getSystemPrompt(),
-        userPrompt: prompt,
+        userPrompt: augmentedPrompt,
         context: context || {},
         model: this.model,
         temperature: this.temperature,
@@ -147,7 +178,7 @@ export abstract class BaseAgent implements IAgent {
         tenantId: this.context?.metadata?.tenantId as string | undefined
       };
 
-      // 🔐 Chama Edge Function (API key fica no servidor)
+      // ðŸ” Chama Edge Function (API key fica no servidor)
       const { data, error } = await supabase.functions.invoke<AgentAIResponse>(
         'ai-agent-processor',
         {
@@ -156,7 +187,7 @@ export abstract class BaseAgent implements IAgent {
       );
 
       if (error) {
-        console.error(`❌ Erro na Edge Function para ${this.name}:`, error);
+        console.error(`âŒ Erro na Edge Function para ${this.name}:`, error);
         throw new Error(`AI processing failed: ${error.message}`);
       }
 
@@ -164,7 +195,7 @@ export abstract class BaseAgent implements IAgent {
         throw new Error('Invalid response from AI processor');
       }
 
-      console.log(`✅ ${this.name} recebeu resposta da IA (${data.usage?.total_tokens || 0} tokens)`);
+      console.log(`âœ… ${this.name} recebeu resposta da IA (${data.usage?.total_tokens || 0} tokens)`);
 
       if (this.context?.leadId) {
         const { error: logError } = await supabase
@@ -190,22 +221,41 @@ export abstract class BaseAgent implements IAgent {
       return data.result;
 
     } catch (error) {
-      console.error(`❌ Erro no processamento de IA para ${this.name}:`, error);
+      console.error(`âŒ Erro no processamento de IA para ${this.name}:`, error);
       throw error;
     }
   }
 
-  // 📋 Prompt específico de cada agente (abstrato)
+  // ðŸ§  ConstrÃ³i contexto com base nos chunks recuperados
+  private static buildContext(
+    results: Array<{ content: string; similarity: number; metadata?: Record<string, unknown> }>
+  ): string {
+    let totalChars = 0;
+    const lines: string[] = [];
+
+    for (const item of results) {
+      const chunk = item.content?.trim();
+      if (!chunk) continue;
+      if (totalChars + chunk.length > BaseAgent.MAX_CONTEXT_CHARS) break;
+      lines.push(`- ${chunk}`);
+      totalChars += chunk.length;
+      if (lines.length >= BaseAgent.MAX_CONTEXT_CHUNKS) break;
+    }
+
+    return lines.join("\n");
+  }
+
+  // ðŸ“‹ Prompt especÃ­fico de cada agente (abstrato)
   protected abstract getSystemPrompt(): string;
 
-  // 🔍 Atualiza contexto compartilhado
+  // ðŸ” Atualiza contexto compartilhado
   protected updateSharedContext(updates: Partial<SharedContext>): void {
     if (this.context) {
       this.context = { ...this.context, ...updates };
     }
   }
 
-  // 🔍 Alias para compatibilidade - atualiza contexto por leadId
+  // ðŸ” Alias para compatibilidade - atualiza contexto por leadId
   protected updateContext(leadId: string, updates: Record<string, any>): void {
     if (!this.context) {
       this.context = {
@@ -227,17 +277,17 @@ export abstract class BaseAgent implements IAgent {
     }
   }
 
-  // 🎯 Define contexto inicial
+  // ðŸŽ¯ Define contexto inicial
   public setContext(context: SharedContext): void {
     this.context = context;
   }
 
-  // 📊 Obtém contexto atual
+  // ðŸ“Š ObtÃ©m contexto atual
   public getContext(): SharedContext | null {
     return this.context;
   }
 
-  // ⚙️ Permite configurar parâmetros de IA
+  // âš™ï¸ Permite configurar parÃ¢metros de IA
   protected configureAI(config: {
     model?: string;
     temperature?: number;
@@ -248,3 +298,4 @@ export abstract class BaseAgent implements IAgent {
     if (config.maxTokens) this.maxTokens = config.maxTokens;
   }
 }
+
