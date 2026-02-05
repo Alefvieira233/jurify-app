@@ -79,6 +79,13 @@ serve(async (req) => {
       });
     }
 
+    if (!tenant_id || typeof tenant_id !== "string") {
+      return new Response(JSON.stringify({ error: "tenant_id is required" }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     const { data: profile, error: profileError } = await supabaseUser
       .from("profiles")
       .select("tenant_id")
@@ -109,6 +116,18 @@ serve(async (req) => {
     }
 
     const supabaseService = createClient(supabaseUrl, serviceRoleKey);
+
+    if (doc_id && typeof doc_id === "string") {
+      const { error: deleteError } = await supabaseService
+        .from("documents")
+        .delete()
+        .eq("tenant_id", effectiveTenantId)
+        .eq("metadata->>doc_id", doc_id);
+
+      if (deleteError) {
+        throw deleteError;
+      }
+    }
 
     const rows = [] as Array<{
       tenant_id: string;

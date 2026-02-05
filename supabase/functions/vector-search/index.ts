@@ -59,6 +59,13 @@ serve(async (req) => {
       });
     }
 
+    if (!tenant_id || typeof tenant_id !== "string") {
+      return new Response(JSON.stringify({ error: "tenant_id is required" }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     const { data: profile, error: profileError } = await supabaseUser
       .from("profiles")
       .select("tenant_id")
@@ -84,10 +91,13 @@ serve(async (req) => {
 
     const supabaseService = createClient(supabaseUrl, serviceRoleKey);
 
+    const requestedTopK = typeof top_k === "number" ? top_k : 5;
+    const safeTopK = Math.min(Math.max(requestedTopK, 1), 10);
+
     const { data, error } = await supabaseService.rpc("match_documents", {
       query_embedding: embedding,
       match_threshold: typeof match_threshold === "number" ? match_threshold : 0.75,
-      match_count: typeof top_k === "number" ? top_k : 5,
+      match_count: safeTopK,
       filter_tenant_id: effectiveTenantId,
     });
 
