@@ -130,7 +130,8 @@ export abstract class BaseAgent implements IAgent {
   // ðŸ§  Usa IA para processar informaÃ§Ã£o via Edge Function (SEGURO)
   protected async processWithAI(
     prompt: string,
-    context?: Record<string, unknown>
+    context?: Record<string, unknown>,
+    options?: { stream?: boolean; onToken?: (token: string) => void }
   ): Promise<string> {
     try {
       console.log(`🤖 ${this.name} chamando Edge Function de IA...`);
@@ -161,6 +162,14 @@ export abstract class BaseAgent implements IAgent {
           }
         } catch {
           console.warn(`[rag] Falha ao buscar contexto para ${this.name}.`);
+        }
+      }
+
+      if (options?.stream) {
+        try {
+          return await this.streamChatCompletion(augmentedPrompt, options.onToken);
+        } catch (streamError) {
+          console.warn(`[stream] Falha no streaming para ${this.name}, usando fallback non-stream.`);
         }
       }
 
@@ -243,6 +252,80 @@ export abstract class BaseAgent implements IAgent {
     }
 
     return lines.join("\n");
+  }
+
+  private async streamChatCompletion(
+    prompt: string,
+    onToken?: (token: string) => void
+  ): Promise<string> {
+    const { data } = await supabase.auth.getSession();
+    const accessToken = data.session?.access_token;
+    if (!accessToken) {
+      throw new Error("Missing access token for streaming");
+    }
+
+    const baseUrl = import.meta.env.VITE_SUPABASE_URL;
+    if (!baseUrl) {
+      throw new Error("Missing VITE_SUPABASE_URL for streaming");
+    }
+
+    const response = await fetch(`${baseUrl}/functions/v1/chat-completion`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        messages: [
+          { role: "system", content: this.getSystemPrompt() },
+          { role: "user", content: prompt },
+        ],
+        model: this.model,
+        temperature: this.temperature,
+        stream: true,
+      }),
+    });
+
+    if (!response.ok || !response.body) {
+      throw new Error("Streaming request failed");
+    }
+
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = "";
+    let fullText = "";
+
+    while (true) {
+      const { value, done } = await reader.read();
+      if (done) break;
+
+      buffer += decoder.decode(value, { stream: true });
+      let boundaryIndex = buffer.indexOf("\n\n");
+
+      while (boundaryIndex !== -1) {
+        const chunk = buffer.slice(0, boundaryIndex).trim();
+        buffer = buffer.slice(boundaryIndex + 2);
+        boundaryIndex = buffer.indexOf("\n\n");
+
+        if (!chunk.startsWith("data:")) continue;
+        const payload = chunk.replace(/^data:\s*/, "");
+        if (payload === "[DONE]") {
+          return fullText;
+        }
+
+        try {
+          const parsed = JSON.parse(payload) as { delta?: string };
+          if (parsed.delta) {
+            fullText += parsed.delta;
+            if (onToken) onToken(parsed.delta);
+          }
+        } catch {
+          // Ignore malformed chunks
+        }
+      }
+    }
+
+    return fullText;
   }
 
   // ðŸ“‹ Prompt especÃ­fico de cada agente (abstrato)
