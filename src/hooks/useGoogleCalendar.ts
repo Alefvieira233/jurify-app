@@ -124,7 +124,7 @@ export const useGoogleCalendar = () => {
     }
   }, [user?.id, tenantId, settings, toast]);
 
-  const initializeGoogleAuth = useCallback(async () => {
+  const initializeGoogleAuth = useCallback(() => {
     if (!user?.id) {
       toast({
         title: 'Erro',
@@ -415,7 +415,7 @@ export const useGoogleCalendar = () => {
 
   useEffect(() => {
     if (user?.id) {
-      loadSettings();
+      void loadSettings();
     }
   }, [user?.id, loadSettings]);
 

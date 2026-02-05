@@ -51,7 +51,7 @@ export const useEnterpriseMultiAgent = () => {
 
   const tenantId = profile?.tenant_id ?? null;
 
-  const initializeSystem = useCallback(async () => {
+  const initializeSystem = useCallback(() => {
     try {
       console.log('[enterprise] Initializing system');
 
@@ -306,17 +306,18 @@ export const useEnterpriseMultiAgent = () => {
         await loadRealTimeMetrics();
 
         return true;
-      } catch (error: any) {
-        console.error('Failed to process lead:', error);
-        toast({
-          title: 'Erro no processamento',
-          description: error?.message || 'Falha ao processar lead.',
-          variant: 'destructive',
-        });
-        return false;
-      } finally {
-        setIsProcessing(false);
-      }
+    } catch (error: unknown) {
+      console.error('Failed to process lead:', error);
+      const message = error instanceof Error ? error.message : 'Falha ao processar lead.';
+      toast({
+        title: 'Erro no processamento',
+        description: message,
+        variant: 'destructive',
+      });
+      return false;
+    } finally {
+      setIsProcessing(false);
+    }
     },
     [isInitialized, loadRealTimeMetrics, tenantId, toast]
   );
@@ -352,7 +353,7 @@ export const useEnterpriseMultiAgent = () => {
   };
 
   const isValidPhone = (phone: string): boolean => {
-    return /^\+?[\d\s\-\(\)]{10,}$/.test(phone);
+    return /^\+?[\d\s()-]{10,}$/.test(phone);
   };
 
   const runSystemTest = useCallback(async (): Promise<boolean> => {
@@ -419,11 +420,15 @@ export const useEnterpriseMultiAgent = () => {
 
   useEffect(() => {
     if (isInitialized) {
-      loadRealTimeMetrics();
-      loadRecentActivity();
+      void loadRealTimeMetrics();
+      void loadRecentActivity();
 
-      const metricsInterval = setInterval(loadRealTimeMetrics, 30000);
-      const activityInterval = setInterval(loadRecentActivity, 10000);
+      const metricsInterval = setInterval(() => {
+        void loadRealTimeMetrics();
+      }, 30000);
+      const activityInterval = setInterval(() => {
+        void loadRecentActivity();
+      }, 10000);
 
       return () => {
         clearInterval(metricsInterval);

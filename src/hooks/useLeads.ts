@@ -165,7 +165,7 @@ export const useLeads = (options?: { enablePagination?: boolean; pageSize?: numb
   // Carregar leads na montagem
   useEffect(() => {
     if (user) {
-      fetchLeads(currentPage);
+      void fetchLeads(currentPage);
     }
   }, [user, currentPage, fetchLeads]);
 
@@ -189,7 +189,7 @@ export const useLeads = (options?: { enablePagination?: boolean; pageSize?: numb
   }, [currentPage]);
 
   const refreshLeads = useCallback(() => {
-    fetchLeads(currentPage);
+    void fetchLeads(currentPage);
   }, [fetchLeads, currentPage]);
 
   const createLead = useCallback(async (data: LeadInput): Promise<boolean> => {

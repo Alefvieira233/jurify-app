@@ -15,39 +15,45 @@ export const useLogIntegration = () => {
 
   // Exemplo de uso em operações CRUD de leads
   const handleLeadOperation = {
-    onCreate: async (leadData: any) => {
+    onCreate: (leadData: Record<string, unknown>) => {
       try {
         // Aqui faria a operação de criação do lead
         // const result = await createLead(leadData);
         
         // Registrar log de sucesso
-        logLeadCreated(leadData.nome_completo);
+        const leadName =
+          typeof leadData.nome_completo === 'string' ? leadData.nome_completo : '';
+        logLeadCreated(leadName);
         
         return { success: true };
-      } catch (error: any) {
+      } catch (error: unknown) {
         // Registrar log de erro
-        logError('Leads', `Falha ao criar lead: ${error.message}`, { leadData });
+        const message = error instanceof Error ? error.message : 'Erro desconhecido';
+        logError('Leads', `Falha ao criar lead: ${message}`, { leadData });
         throw error;
       }
     },
 
-    onUpdate: async (leadId: string, leadData: any) => {
+    onUpdate: (leadId: string, leadData: Record<string, unknown>) => {
       try {
         // Aqui faria a operação de atualização do lead
         // const result = await updateLead(leadId, leadData);
         
         // Registrar log de sucesso
-        logLeadUpdated(leadData.nome_completo);
+        const leadName =
+          typeof leadData.nome_completo === 'string' ? leadData.nome_completo : '';
+        logLeadUpdated(leadName);
         
         return { success: true };
-      } catch (error: any) {
+      } catch (error: unknown) {
         // Registrar log de erro
-        logError('Leads', `Falha ao atualizar lead: ${error.message}`, { leadId, leadData });
+        const message = error instanceof Error ? error.message : 'Erro desconhecido';
+        logError('Leads', `Falha ao atualizar lead: ${message}`, { leadId, leadData });
         throw error;
       }
     },
 
-    onDelete: async (leadId: string, leadName: string) => {
+    onDelete: (leadId: string, leadName: string) => {
       try {
         // Aqui faria a operação de exclusão do lead
         // const result = await deleteLead(leadId);
@@ -56,9 +62,10 @@ export const useLogIntegration = () => {
         logLeadDeleted(leadName);
         
         return { success: true };
-      } catch (error: any) {
+      } catch (error: unknown) {
         // Registrar log de erro
-        logError('Leads', `Falha ao excluir lead: ${error.message}`, { leadId, leadName });
+        const message = error instanceof Error ? error.message : 'Erro desconhecido';
+        logError('Leads', `Falha ao excluir lead: ${message}`, { leadId, leadName });
         throw error;
       }
     }
@@ -66,24 +73,32 @@ export const useLogIntegration = () => {
 
   // Exemplo de uso em operações de contratos
   const handleContractOperation = {
-    onCreate: async (contractData: any) => {
+    onCreate: (contractData: Record<string, unknown>) => {
       try {
         // Operação de criação
-        logContractCreated(contractData.id, contractData.nome_cliente);
+        const contractIdValue =
+          typeof contractData.id === 'string' ? contractData.id : '';
+        const contractClient =
+          typeof contractData.nome_cliente === 'string' ? contractData.nome_cliente : '';
+        logContractCreated(contractIdValue, contractClient);
         return { success: true };
-      } catch (error: any) {
-        logError('Contratos', `Falha ao criar contrato: ${error.message}`, { contractData });
+      } catch (error: unknown) {
+        const message = error instanceof Error ? error.message : 'Erro desconhecido';
+        logError('Contratos', `Falha ao criar contrato: ${message}`, { contractData });
         throw error;
       }
     },
 
-    onUpdate: async (contractId: string, contractData: any) => {
+    onUpdate: (contractId: string, contractData: Record<string, unknown>) => {
       try {
         // Operação de atualização
-        logContractUpdated(contractId, contractData.nome_cliente);
+        const contractClient =
+          typeof contractData.nome_cliente === 'string' ? contractData.nome_cliente : '';
+        logContractUpdated(contractId, contractClient);
         return { success: true };
-      } catch (error: any) {
-        logError('Contratos', `Falha ao atualizar contrato: ${error.message}`, { contractId, contractData });
+      } catch (error: unknown) {
+        const message = error instanceof Error ? error.message : 'Erro desconhecido';
+        logError('Contratos', `Falha ao atualizar contrato: ${message}`, { contractId, contractData });
         throw error;
       }
     }
@@ -91,13 +106,14 @@ export const useLogIntegration = () => {
 
   // Exemplo de uso em agendamentos
   const handleAppointmentOperation = {
-    onCreate: async (appointmentData: any) => {
+    onCreate: (appointmentData: Record<string, unknown>) => {
       try {
         // Operação de criação
         logAppointmentCreated(appointmentData);
         return { success: true };
-      } catch (error: any) {
-        logError('Agendamentos', `Falha ao criar agendamento: ${error.message}`, { appointmentData });
+      } catch (error: unknown) {
+        const message = error instanceof Error ? error.message : 'Erro desconhecido';
+        logError('Agendamentos', `Falha ao criar agendamento: ${message}`, { appointmentData });
         throw error;
       }
     }
