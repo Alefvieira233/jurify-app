@@ -60,7 +60,8 @@ Deno.serve(async (req) => {
       return rateLimitCheck.response;
     }
 
-    const { messages, model = DEFAULT_OPENAI_MODEL, temperature = 0.7 } = await req.json();
+    const { messages, model = DEFAULT_OPENAI_MODEL, temperature = 0.7, stream = false } =
+      await req.json();
 
     const apiKey = Deno.env.get("OPENAI_API_KEY");
     if (!apiKey) {
@@ -72,6 +73,48 @@ Deno.serve(async (req) => {
     });
 
     console.log(`Processing chat completion with model ${model}`);
+
+    if (stream) {
+      const encoder = new TextEncoder();
+      const streamResponse = await openai.chat.completions.create({
+        model,
+        messages,
+        temperature,
+        stream: true,
+      });
+
+      const readableStream = new ReadableStream({
+        async start(controller) {
+          try {
+            for await (const chunk of streamResponse) {
+              const delta = chunk.choices?.[0]?.delta?.content;
+              if (delta) {
+                controller.enqueue(encoder.encode(`data: ${JSON.stringify({ delta })}\n\n`));
+              }
+            }
+            controller.enqueue(encoder.encode("data: [DONE]\n\n"));
+            controller.close();
+          } catch (streamError) {
+            console.error("Streaming error:", streamError);
+            controller.enqueue(
+              encoder.encode(`data: ${JSON.stringify({ error: "stream_error" })}\n\n`)
+            );
+            controller.enqueue(encoder.encode("data: [DONE]\n\n"));
+            controller.close();
+          }
+        },
+      });
+
+      return new Response(readableStream, {
+        headers: {
+          ...corsHeaders,
+          "Content-Type": "text/event-stream",
+          "Cache-Control": "no-cache",
+          Connection: "keep-alive",
+        },
+        status: 200,
+      });
+    }
 
     const completion = await openai.chat.completions.create({
       model,
