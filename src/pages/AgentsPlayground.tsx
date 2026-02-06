@@ -28,13 +28,39 @@ import { multiAgentSystem } from '@/lib/multiagents';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 
+interface QualificationResult {
+  legal_area?: string;
+  urgency?: string;
+  potential_score?: number;
+  estimated_complexity?: string;
+}
+
+interface LegalValidation {
+  is_viable?: boolean;
+  success_probability?: number;
+  complexity_assessment?: string;
+  estimated_duration_months?: number;
+}
+
+interface Proposal {
+  base_value?: number;
+  final_value?: number;
+  installments?: number;
+  valid_until?: string;
+}
+
+interface FormattedMessages {
+  whatsapp_message?: string;
+  email_message?: string;
+}
+
 interface ExecutionResult {
   success: boolean;
   executionId?: string;
-  qualificationResult?: unknown;
-  legalValidation?: unknown;
-  proposal?: unknown;
-  formattedMessages?: unknown;
+  qualificationResult?: QualificationResult;
+  legalValidation?: LegalValidation;
+  proposal?: Proposal;
+  formattedMessages?: FormattedMessages | string | null;
   finalResult?: unknown;
   error?: string;
   executionTime?: number;
@@ -486,21 +512,32 @@ export default function AgentsPlayground() {
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-3">
-                    {result.formattedMessages.whatsapp_message && (
+                    {typeof result.formattedMessages === 'string' ? (
                       <div>
-                        <p className="text-xs text-muted-foreground mb-1">WhatsApp</p>
+                        <p className="text-xs text-muted-foreground mb-1">Mensagem</p>
                         <p className="text-sm bg-gray-100 p-2 rounded">
-                          {result.formattedMessages.whatsapp_message.substring(0, 150)}...
+                          {result.formattedMessages.substring(0, 150)}...
                         </p>
                       </div>
-                    )}
-                    {result.formattedMessages.email_message && (
-                      <div>
-                        <p className="text-xs text-muted-foreground mb-1">E-mail</p>
-                        <p className="text-sm bg-gray-100 p-2 rounded">
-                          {result.formattedMessages.email_message.substring(0, 150)}...
-                        </p>
-                      </div>
+                    ) : (
+                      <>
+                        {result.formattedMessages.whatsapp_message && (
+                          <div>
+                            <p className="text-xs text-muted-foreground mb-1">WhatsApp</p>
+                            <p className="text-sm bg-gray-100 p-2 rounded">
+                              {result.formattedMessages.whatsapp_message.substring(0, 150)}...
+                            </p>
+                          </div>
+                        )}
+                        {result.formattedMessages.email_message && (
+                          <div>
+                            <p className="text-xs text-muted-foreground mb-1">E-mail</p>
+                            <p className="text-sm bg-gray-100 p-2 rounded">
+                              {result.formattedMessages.email_message.substring(0, 150)}...
+                            </p>
+                          </div>
+                        )}
+                      </>
                     )}
                   </CardContent>
                 </Card>

@@ -1,7 +1,7 @@
 import { useState, useCallback } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
-import { AgentType, AgentConfig } from '@/lib/agents-legacy/AgentEngine';
+import { AgentType, LegacyAgentConfig as AgentConfig } from '@/lib/multiagents/types';
 
 export interface CreateAgentRequest {
   name: string;

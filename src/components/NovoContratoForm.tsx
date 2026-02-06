@@ -208,8 +208,8 @@ _____________________          _____________________
 
     const valorCausaParsed = Number.parseFloat(valorCausa);
 
-    const contratoData = {
-      tenant_id: tenantId,
+    const contratoData: ContratoInsert = {
+      tenant_id: tenantId!,
       lead_id: selectedLeadId || null,
       nome_cliente: nomeCliente.trim().substring(0, 200),
       area_juridica: areaJuridica.trim(),
@@ -217,7 +217,7 @@ _____________________          _____________________
       responsavel: responsavel.trim(),
       texto_contrato: textoContrato.trim().substring(0, 10000),
       clausulas_customizadas: clausulasCustomizadas?.trim().substring(0, 5000) || null,
-      status: 'rascunho',
+      status: 'rascunho' as const,
       created_at: new Date().toISOString()
     };
 

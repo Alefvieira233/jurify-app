@@ -1,4 +1,4 @@
-/* eslint-disable react-refresh/only-export-components */
+Ôªø/* eslint-disable react-refresh/only-export-components */
 import React, { createContext, useContext, useEffect, useState, ReactNode, useCallback } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
@@ -40,7 +40,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
 
-  const allowEmergencyProfile = import.meta.env.VITE_ALLOW_EMERGENCY_PROFILE === 'true';
+  const allowEmergencyProfile = import.meta.env.VITE_ALLOW_EMERGENCY_PROFILE === 'true' && import.meta.env.MODE !== 'production';
   const sessionTimeoutMs = 5000;
 
   const fetchProfile = useCallback(async (userId: string) => {
@@ -71,7 +71,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           subscription_status: 'dev',
         });
       } else {
-        console.error('? [auth] Perfil indisponÌvel. Operando sem permissıes.');
+        console.error('? [auth] Perfil indispon√≠vel. Operando sem permiss√µes.');
         setProfile(null);
       }
     }
@@ -80,7 +80,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   useEffect(() => {
     const initialize = async () => {
       setLoading(true);
-      console.log('?? [auth] Iniciando Sess„o...');
+      console.log('?? [auth] Iniciando Sess√£o...');
 
       const getSessionPromise = supabase.auth.getSession();
       const timeoutPromise = new Promise<never>((_, reject) => {
@@ -100,7 +100,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           setProfile(null);
         }
       } catch (error) {
-        console.error('? [auth] Falha ao verificar sess„o:', error);
+        console.error('? [auth] Falha ao verificar sess√£o:', error);
         setUser(null);
         setSession(null);
         setProfile(null);
@@ -134,12 +134,12 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     await supabase.auth.signOut();
     window.location.href = '/auth';
   };
-  const hasRole = (role: string) => profile?.role === role || role === 'admin';
+  const hasRole = (role: string) => profile?.role === role;
   const hasPermission = (module: string, permission: string) => {
-    if (!user || !profile?.role) return false;
+    if (!user || !profile?.role) return Promise.resolve(false);
     const role = profile.role as UserRole;
     const permissions = ROLE_PERMISSIONS[role];
-    if (!permissions) return false;
+    if (!permissions) return Promise.resolve(false);
 
     const resource = module as Resource;
     const action = permission as Action;
@@ -153,3 +153,5 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     </AuthContext.Provider>
   );
 };
+
+

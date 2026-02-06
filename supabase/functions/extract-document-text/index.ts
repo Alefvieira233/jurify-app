@@ -1,6 +1,7 @@
 ﻿import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2";
-import * as pdfjsLib from "https://esm.sh/pdfjs-dist@3.11.174/legacy/build/pdf.js";
+// Usar build minimal sem dependência de canvas
+import * as pdfjsLib from "https://esm.sh/pdfjs-dist@3.11.174/build/pdf.min.js";
 import { getCorsHeaders } from "../_shared/cors.ts";
 import { initSentry, captureError } from "../_shared/sentry.ts";
 

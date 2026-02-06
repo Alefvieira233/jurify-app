@@ -13,6 +13,8 @@ export * from './types';
 // Core exports
 export { BaseAgent } from './core/BaseAgent';
 export { MultiAgentSystem, multiAgentSystem } from './core/MultiAgentSystem';
+export { AgentMemoryService, agentMemory } from './core/AgentMemory';
+export { WorkflowQueueService, workflowQueue } from './core/WorkflowQueue';
 
 // Agent exports
 export { CoordinatorAgent } from './agents/CoordinatorAgent';

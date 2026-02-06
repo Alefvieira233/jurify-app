@@ -85,9 +85,9 @@ export class ErrorBoundary extends Component<Props, State> {
                 </Button>
                 
                 <Button 
-                  variant="outline" className="w-full bg-[hsl(var(--card))] border-[hsl(var(--border))] hover:bg-[hsl(var(--muted))]"
+                  variant="outline"
                   onClick={this.handleReload}
-                  className="w-full"
+                  className="w-full bg-[hsl(var(--card))] border-[hsl(var(--border))] hover:bg-[hsl(var(--muted))]"
                 >
                   Recarregar Página
                 </Button>

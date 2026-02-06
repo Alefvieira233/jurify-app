@@ -24,12 +24,6 @@ const OnboardingFlow = () => {
   const { toast } = useToast();
   const tenantId = profile?.tenant_id || null;
 
-  useEffect(() => {
-    if (user && profile && hasRole('administrador')) {
-      void checkOnboardingStatus();
-    }
-  }, [user, profile, hasRole, checkOnboardingStatus]);
-
   const checkOnboardingStatus = useCallback(async () => {
     if (!tenantId) return;
 
@@ -104,6 +98,12 @@ const OnboardingFlow = () => {
       console.error('Erro ao verificar onboarding:', error);
     }
   }, [tenantId]);
+
+  useEffect(() => {
+    if (user && profile && hasRole('administrador')) {
+      void checkOnboardingStatus();
+    }
+  }, [user, profile, hasRole, checkOnboardingStatus]);
 
   const completeOnboarding = async () => {
     if (!tenantId) return;

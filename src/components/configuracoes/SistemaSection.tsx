@@ -1,6 +1,6 @@
-
 import React from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Activity, Lock, Brain, Database, Server, Shield } from 'lucide-react';
 import BackupRestore from '../BackupRestore';
 import SystemStatus from '../SystemStatus';
 import PerformanceDashboard from '../PerformanceDashboard';

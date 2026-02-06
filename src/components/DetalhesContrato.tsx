@@ -22,7 +22,7 @@ interface Contrato {
   created_at: string;
   data_envio?: string;
   data_assinatura?: string;
-  texto_contrato: string;
+  texto_contrato?: string;
   clausulas_customizadas?: string;
   observacoes?: string;
   lead_id?: string;

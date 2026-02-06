@@ -22,12 +22,11 @@ import {
 
 export const TestRunner: React.FC = () => {
   const [isRunning, setIsRunning] = useState(false);
-  type TestDetailValue = string | number | boolean | null | Record<string, unknown> | unknown[];
   type TestCase = {
     name: string;
     status: string;
     duration: number;
-    details?: Record<string, TestDetailValue>;
+    details?: Record<string, unknown>;
     errors?: string[];
   };
   type TestResults = {
@@ -148,7 +147,7 @@ export const TestRunner: React.FC = () => {
                   <span>Progresso Geral</span>
                   <span>{testResults.success_rate || 0}%</span>
                 </div>
-                <Progress value={parseFloat(testResults.success_rate || '0')} className="h-2" />
+                <Progress value={testResults.success_rate || 0} className="h-2" />
               </div>
 
               <div className="mt-4 flex items-center gap-2">

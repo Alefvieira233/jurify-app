@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Users, FileText, Calendar, Bot, TrendingUp, Clock, CheckCircle, AlertTriangle, Sparkles, ArrowUpRight, BarChart3, Activity } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -11,11 +11,24 @@ import { useToast } from '@/hooks/use-toast';
 import { ConversionFunnel } from '@/components/analytics/ConversionFunnel';
 import { RevenueCard } from '@/components/analytics/RevenueCard';
 import { ResponseTimeChart } from '@/components/analytics/ResponseTimeChart';
+import { useSearchParams } from 'react-router-dom';
 
 const Dashboard = () => {
   const { metrics, loading, error, refetch, isEmpty } = useDashboardMetrics();
   const [isSeeding, setIsSeeding] = useState(false);
   const { toast } = useToast();
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  useEffect(() => {
+    const sessionId = searchParams.get('session_id');
+    if (sessionId) {
+      toast({
+        title: 'Pagamento realizado com sucesso!',
+        description: 'Seu plano foi ativado. Aproveite todos os recursos premium do Jurify.',
+      });
+      setSearchParams({}, { replace: true });
+    }
+  }, [searchParams, setSearchParams, toast]);
 
   const handleGenerateTestData = async () => {
     try {

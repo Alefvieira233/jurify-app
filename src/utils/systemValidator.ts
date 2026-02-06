@@ -1,13 +1,13 @@
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 
-interface ValidationResult {
+export interface ValidationResult {
   success: boolean;
   message: string;
   details?: unknown;
 }
 
-interface SystemHealth {
+export interface SystemHealth {
   overall: 'healthy' | 'degraded' | 'critical';
   tests: {
     database: ValidationResult;

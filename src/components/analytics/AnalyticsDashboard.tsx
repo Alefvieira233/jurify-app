@@ -37,6 +37,29 @@ import {
     RefreshCw,
 } from 'lucide-react';
 
+// Tipos para dados do banco
+interface LeadRecord {
+    id: string;
+    created_at: string;
+    area_juridica?: string | null;
+    origem?: string | null;
+    status?: string | null;
+}
+
+interface ContractRecord {
+    id: string;
+    created_at: string;
+    area_juridica?: string | null;
+    status?: string | null;
+    valor_causa?: number | null;
+}
+
+interface AiLogRecord {
+    id: string;
+    agent_name?: string | null;
+    created_at: string;
+}
+
 interface DashboardMetrics {
     totalLeads: number;
     leadsThisMonth: number;

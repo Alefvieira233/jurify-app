@@ -11,7 +11,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useToast } from '@/hooks/use-toast';
-import { AgentType, AgentConfig } from '@/lib/agents-legacy/AgentEngine';
+import { AgentType, LegacyAgentConfig as AgentConfig } from '@/lib/multiagents/types';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useAgentStats, useAgentCrud, useAgentTest } from './agents';

@@ -3,6 +3,9 @@ import { useCallback, useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
+import { createLogger } from '@/lib/logger';
+
+const log = createLogger('Leads');
 
 type LeadMetadata = Record<string, unknown>;
 
@@ -110,7 +113,7 @@ export const useLeads = (options?: { enablePagination?: boolean; pageSize?: numb
     try {
       setLoading(true);
       setError(null);
-      console.log(`🔍 [useLeads] Buscando leads (página ${page})...`);
+      log.debug(`Buscando leads (página ${page})`);
 
       let query = supabase
         .from('leads')
@@ -121,10 +124,10 @@ export const useLeads = (options?: { enablePagination?: boolean; pageSize?: numb
       const effectiveTenantId = profile?.tenant_id || (user as any).user_metadata?.tenant_id;
 
       if (effectiveTenantId) {
-        console.log(`🎯 [useLeads] Filtrando por tenant: ${effectiveTenantId}`);
+        log.debug(`Filtrando por tenant: ${effectiveTenantId}`);
         query = query.eq('tenant_id', effectiveTenantId);
       } else {
-        console.warn('⚠️ [useLeads] Sem tenant_id disponível para filtro. RLS deve atuar.');
+        log.warn('Sem tenant_id disponível para filtro. RLS deve atuar.');
       }
 
       // Aplicar paginação
@@ -137,11 +140,11 @@ export const useLeads = (options?: { enablePagination?: boolean; pageSize?: numb
       const { data, error: fetchError, count } = await query;
 
       if (fetchError) {
-        console.error('❌ [useLeads] Erro técnico Supabase:', fetchError.message);
+        log.error('Erro técnico Supabase', fetchError);
         throw fetchError;
       }
 
-      console.log(`📊 [useLeads] Resultado: ${data?.length || 0} leads encontrados.`);
+      log.debug(`${data?.length || 0} leads encontrados`);
 
       const normalizedLeads = (data || []).map(normalizeLead);
       setLeads(normalizedLeads);
@@ -153,7 +156,7 @@ export const useLeads = (options?: { enablePagination?: boolean; pageSize?: numb
       }
 
     } catch (error: any) {
-      console.error('❌ [useLeads] Falha na busca:', error);
+      log.error('Falha na busca', error);
       setError(error.message || 'Erro ao carregar leads');
       setLeads([]);
       setIsEmpty(true);
@@ -203,7 +206,7 @@ export const useLeads = (options?: { enablePagination?: boolean; pageSize?: numb
     }
 
     try {
-      console.log('🔄 [useLeads] Criando novo lead...');
+      log.info('Criando novo lead');
       const payload = mapLeadInputToDb(data);
       const { data: newLead, error } = await supabase
         .from('leads')
@@ -223,7 +226,7 @@ export const useLeads = (options?: { enablePagination?: boolean; pageSize?: numb
 
       return true;
     } catch (error: any) {
-      console.error('❌ [useLeads] Erro ao criar lead:', error);
+      log.error('Erro ao criar lead', error);
       toast({
         title: 'Erro',
         description: error.message || 'Não foi possível criar o lead.',
@@ -237,7 +240,7 @@ export const useLeads = (options?: { enablePagination?: boolean; pageSize?: numb
     if (!user) return false;
 
     try {
-      console.log(`🔄 [useLeads] Atualizando lead ${id}...`);
+      log.info('Atualizando lead', { id });
       const payload = mapLeadInputToDb(updateData);
       const { data: updatedLead, error } = await supabase
         .from('leads')
@@ -260,7 +263,7 @@ export const useLeads = (options?: { enablePagination?: boolean; pageSize?: numb
 
       return true;
     } catch (error: any) {
-      console.error('❌ [useLeads] Erro ao atualizar:', error);
+      log.error('Erro ao atualizar lead', error);
       toast({
         title: 'Erro',
         description: error.message || 'Não foi possível atualizar o lead.',
@@ -289,7 +292,7 @@ export const useLeads = (options?: { enablePagination?: boolean; pageSize?: numb
 
       return true;
     } catch (error: any) {
-      console.error('❌ [useLeads] Erro ao deletar:', error);
+      log.error('Erro ao deletar lead', error);
       toast({
         title: 'Erro',
         description: error.message || 'Não foi possível remover o lead.',

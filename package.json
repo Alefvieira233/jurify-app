@@ -6,6 +6,7 @@
   "description": "🚀 Jurify - Legal SaaS Platform with AI Agents (Elon Musk/xAI Standard)",
   "author": "Jurify Team",
   "license": "PROPRIETARY",
+  "packageManager": "npm@10.9.2",
   "engines": {
     "node": "20.x"
   },

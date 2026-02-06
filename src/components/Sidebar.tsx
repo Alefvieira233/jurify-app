@@ -37,7 +37,7 @@ const Sidebar = ({ activeSection, onSectionChange }: SidebarProps) => {
   type MenuItem = {
     id: string;
     label: string;
-    icon: React.ComponentType<{ className?: string; strokeWidth?: number }>;
+    icon: React.ComponentType<{ className?: string }>;
     resource: string;
     action: string;
     adminOnly?: boolean;
@@ -205,6 +205,16 @@ const Sidebar = ({ activeSection, onSectionChange }: SidebarProps) => {
               </div>
             </div>
           </div>
+
+          {/* Quick Search Trigger */}
+          <button
+            onClick={() => document.dispatchEvent(new KeyboardEvent('keydown', { key: 'k', ctrlKey: true, bubbles: true }))}
+            className="mt-4 w-full flex items-center gap-3 px-4 py-2.5 rounded-lg border border-sidebar-foreground/10 bg-sidebar-foreground/5 hover:bg-sidebar-foreground/10 transition-colors text-sidebar-foreground/50 hover:text-sidebar-foreground/70"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+            <span className="text-xs flex-1 text-left">Buscar...</span>
+            <kbd className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-sidebar-foreground/10 text-sidebar-foreground/40">Ctrl+K</kbd>
+          </button>
         </div>
 
         {/* Ultra-Premium Navigation */}
@@ -245,7 +255,7 @@ const Sidebar = ({ activeSection, onSectionChange }: SidebarProps) => {
                       : 'bg-white/5 group-hover:bg-white/10 group-hover:scale-105'
                     }
                   `}>
-                    <Icon className="h-5 w-5" strokeWidth={isActive ? 2.8 : 2.2} />
+                    <Icon className={`h-5 w-5 ${isActive ? 'stroke-[2.8]' : 'stroke-[2.2]'}`} />
                   </div>
 
                   {/* Label */}

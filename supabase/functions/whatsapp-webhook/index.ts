@@ -97,17 +97,24 @@ serve(async (req) => {
       );
 
       const payload = await req.json();
-      console.log("[whatsapp-webhook] Payload:", JSON.stringify(payload, null, 2));
+      console.log("[whatsapp-webhook] Received webhook event");
 
       for (const entry of payload.entry || []) {
         for (const change of entry.changes || []) {
           const value = change.value;
+          const phoneNumberId = value?.metadata?.phone_number_id;
 
-          if (value && value.messages) {
-            const phoneNumberId = value.metadata?.phone_number_id;
-
+          // Processar mensagens recebidas
+          if (value?.messages) {
             for (const message of value.messages) {
               await processMessage(supabase, message, phoneNumberId);
+            }
+          }
+
+          // Processar status de entrega (sent, delivered, read, failed)
+          if (value?.statuses) {
+            for (const status of value.statuses) {
+              await processStatusUpdate(supabase, status);
             }
           }
         }
@@ -129,16 +136,80 @@ serve(async (req) => {
   }
 });
 
-async function processMessage(supabase: any, message: any, phoneNumberId?: string) {
+// 📊 Processa status de entrega (sent, delivered, read, failed)
+async function processStatusUpdate(supabase: any, status: any) {
   try {
-    if (message.type !== "text") {
-      console.log("[whatsapp-webhook] Skipping non-text message type:", message.type);
-      return;
+    const waMessageId = status.id;
+    const statusValue = status.status; // sent | delivered | read | failed
+    const recipientId = status.recipient_id;
+    const timestamp = status.timestamp;
+
+    console.log(`[whatsapp-webhook] Status update: ${statusValue} for ${waMessageId}`);
+
+    // Atualiza o status da mensagem no banco se tivermos o ID
+    // As mensagens enviadas pelo sistema salvam o wa_message_id no metadata
+    if (statusValue === "read") {
+      // Marca mensagens como lidas quando o lead leu
+      const { error } = await supabase
+        .from("whatsapp_messages")
+        .update({ read: true })
+        .eq("sender", "ia")
+        .ilike("content", `%${recipientId}%`)
+        .is("read", false);
+
+      if (error) {
+        console.warn("[whatsapp-webhook] Failed to update read status:", error.message);
+      }
     }
 
+    if (statusValue === "failed") {
+      const errorInfo = status.errors?.[0];
+      console.error("[whatsapp-webhook] Message delivery failed:", {
+        recipient: recipientId,
+        error_code: errorInfo?.code,
+        error_title: errorInfo?.title,
+      });
+    }
+  } catch (error) {
+    console.error("[whatsapp-webhook] Error processing status update:", error);
+  }
+}
+
+async function processMessage(supabase: any, message: any, phoneNumberId?: string) {
+  try {
     const from = message.from;
-    const text = message.text.body;
     const name = message._vendor?.name || "Unknown";
+    const messageType = message.type || "text";
+
+    // Extrai conteúdo baseado no tipo de mensagem
+    let text = "";
+    let mediaUrl: string | null = null;
+
+    switch (messageType) {
+      case "text":
+        text = message.text?.body || "";
+        break;
+      case "image":
+        text = message.image?.caption || "[Imagem recebida]";
+        mediaUrl = message.image?.id || null;
+        break;
+      case "document":
+        text = message.document?.caption || `[Documento: ${message.document?.filename || "arquivo"}]`;
+        mediaUrl = message.document?.id || null;
+        break;
+      case "audio":
+        text = "[Áudio recebido]";
+        mediaUrl = message.audio?.id || null;
+        break;
+      default:
+        text = `[${messageType} recebido]`;
+        break;
+    }
+
+    if (!text) {
+      console.log("[whatsapp-webhook] Empty message content, skipping");
+      return;
+    }
 
     console.log(`[whatsapp-webhook] Processing message from ${from}: ${text}`);
 
@@ -164,24 +235,19 @@ async function processMessage(supabase: any, message: any, phoneNumberId?: strin
     }
 
     if (!tenantId) {
+      // Fallback seguro: busca tenant por conversa existente do mesmo número
       const { data: existingConv } = await supabase
         .from("whatsapp_conversations")
         .select("tenant_id")
         .eq("phone_number", from)
+        .order("last_message_at", { ascending: false })
         .limit(1)
-        .single();
+        .maybeSingle();
 
       if (existingConv) {
         tenantId = existingConv.tenant_id;
-      } else {
-        const { data: tenant } = await supabase
-          .from("profiles")
-          .select("tenant_id")
-          .limit(1)
-          .single();
-
-        tenantId = tenant?.tenant_id;
       }
+      // NÃO faz fallback genérico para qualquer tenant — isso é inseguro em multi-tenant
     }
 
     if (!tenantId) {
@@ -270,7 +336,8 @@ async function processMessage(supabase: any, message: any, phoneNumberId?: strin
       conversation_id: conversationId,
       sender: "lead",
       content: text,
-      message_type: "text",
+      message_type: messageType,
+      media_url: mediaUrl,
       timestamp: new Date().toISOString(),
     });
 

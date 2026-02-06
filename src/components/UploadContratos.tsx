@@ -9,6 +9,17 @@ import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { sanitizeText } from '@/utils/validation';
 
+interface ArquivoMetadados {
+  paginas?: number;
+  dataUltimaModificacao?: string;
+  versao?: string;
+  tipoContrato?: string;
+  classificacaoSeguranca?: string;
+  tamanhoBytes?: number;
+  tipoMime?: string;
+  nome?: string;
+}
+
 interface ArquivoUpload {
   id: string;
   file: File;
@@ -20,13 +31,7 @@ interface ArquivoUpload {
   mensagemValidacao?: string;
   url?: string;
   hashSeguranca?: string;
-  metadados?: {
-    paginas?: number;
-    dataUltimaModificacao?: string;
-    versao?: string;
-    tipoContrato?: string;
-    classificacaoSeguranca?: string;
-  };
+  metadados?: ArquivoMetadados;
 }
 
 interface UploadContratosProps {
@@ -279,7 +284,7 @@ const UploadContratos: React.FC<UploadContratosProps> = ({
       });
 
     } catch (_error) {
-      console.error('❌ Erro no upload:', error);
+      console.error('❌ Erro no upload:', _error);
       atualizarStatusArquivo(arquivo.id, 'erro', 100, 'Erro no upload do arquivo');
       
       toast({

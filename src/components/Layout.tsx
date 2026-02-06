@@ -8,6 +8,7 @@ import OnboardingFlow from "@/components/OnboardingFlow";
 import { useKeyboardShortcuts } from "@/hooks/useKeyboardShortcuts";
 import { Menu, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import GlobalSearch from "@/components/GlobalSearch";
 
 const Layout = () => {
     const { user, loading } = useAuth();
@@ -76,6 +77,7 @@ const Layout = () => {
     return (
         <div className="min-h-screen bg-background flex relative transition-colors duration-500">
             <OnboardingFlow />
+            <GlobalSearch />
 
             {/* Mobile Header */}
             <div className="lg:hidden fixed top-0 left-0 right-0 z-50 bg-background/95 backdrop-blur-md border-b border-border px-4 py-3 flex items-center justify-between">

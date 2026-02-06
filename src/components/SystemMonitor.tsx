@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
-import { useSystemValidator } from '@/utils/systemValidator';
+import { useSystemValidator, SystemHealth } from '@/utils/systemValidator';
 import { supabase } from '@/integrations/supabase/client';
 import {
   Shield,
@@ -17,17 +17,18 @@ import {
   AlertTriangle,
 } from 'lucide-react';
 
-interface SystemHealth {
-  overall: 'healthy' | 'degraded' | 'critical';
-  tests: {
-    database: { success: boolean; message: string; details?: { readable?: boolean; writable?: boolean } };
-    authentication: { success: boolean; message: string; details?: { email?: string } };
-    rls: { success: boolean; message: string; details?: Record<string, never> };
-    integrations: { success: boolean; message: string; details?: { n8n?: boolean; openai?: boolean; healthCheck?: boolean } };
-    performance: { success: boolean; message: string; details?: { responseTime: number; threshold: number } };
-  };
-  timestamp: string;
-}
+// Type helpers para acessar details com segurança
+const getDbDetails = (d: unknown): { readable?: boolean; writable?: boolean } | null => 
+  d && typeof d === 'object' ? d as { readable?: boolean; writable?: boolean } : null;
+
+const getAuthDetails = (d: unknown): { email?: string } | null => 
+  d && typeof d === 'object' ? d as { email?: string } : null;
+
+const getIntegrationDetails = (d: unknown): { n8n?: boolean; openai?: boolean; healthCheck?: boolean } | null => 
+  d && typeof d === 'object' ? d as { n8n?: boolean; openai?: boolean; healthCheck?: boolean } : null;
+
+const getPerfDetails = (d: unknown): { responseTime?: number; threshold?: number } | null => 
+  d && typeof d === 'object' ? d as { responseTime?: number; threshold?: number } : null;
 
 const SystemMonitor = () => {
   const [systemHealth, setSystemHealth] = useState<SystemHealth | null>(null);
@@ -161,12 +162,15 @@ const SystemMonitor = () => {
                 {getStatusBadge(systemHealth.tests.database.success)}
               </div>
               <p className="text-xs text-[hsl(var(--muted-foreground))]">{systemHealth.tests.database.message}</p>
-              {systemHealth.tests.database.details && (
-                <div className="text-xs bg-[hsl(var(--surface-1))] p-2 rounded">
-                  <p>Leitura: {systemHealth.tests.database.details.readable ? 'OK' : 'Falha'}</p>
-                  <p>Escrita: {systemHealth.tests.database.details.writable ? 'OK' : 'Falha'}</p>
-                </div>
-              )}
+              {(() => {
+                const dbDetails = getDbDetails(systemHealth.tests.database.details);
+                return dbDetails && (
+                  <div className="text-xs bg-[hsl(var(--surface-1))] p-2 rounded">
+                    <p>Leitura: {dbDetails.readable ? 'OK' : 'Falha'}</p>
+                    <p>Escrita: {dbDetails.writable ? 'OK' : 'Falha'}</p>
+                  </div>
+                );
+              })()}
             </div>
           </CardContent>
         </Card>
@@ -185,11 +189,14 @@ const SystemMonitor = () => {
                 {getStatusBadge(systemHealth.tests.authentication.success)}
               </div>
               <p className="text-xs text-[hsl(var(--muted-foreground))]">{systemHealth.tests.authentication.message}</p>
-              {systemHealth.tests.authentication.details?.email && (
-                <div className="text-xs bg-[hsl(var(--surface-1))] p-2 rounded">
-                  <p>Usuario: {systemHealth.tests.authentication.details.email}</p>
-                </div>
-              )}
+              {(() => {
+                const authDetails = getAuthDetails(systemHealth.tests.authentication.details);
+                return authDetails?.email && (
+                  <div className="text-xs bg-[hsl(var(--surface-1))] p-2 rounded">
+                    <p>Usuario: {authDetails.email}</p>
+                  </div>
+                );
+              })()}
             </div>
           </CardContent>
         </Card>
@@ -226,13 +233,16 @@ const SystemMonitor = () => {
                 {getStatusBadge(systemHealth.tests.integrations.success)}
               </div>
               <p className="text-xs text-[hsl(var(--muted-foreground))]">{systemHealth.tests.integrations.message}</p>
-              {systemHealth.tests.integrations.details && (
-                <div className="text-xs bg-[hsl(var(--surface-1))] p-2 rounded space-y-1">
-                  <p>N8N: {systemHealth.tests.integrations.details.n8n ? 'OK' : 'Falha'}</p>
-                  <p>OpenAI: {systemHealth.tests.integrations.details.openai ? 'OK' : 'Falha'}</p>
-                  <p>Health: {systemHealth.tests.integrations.details.healthCheck ? 'OK' : 'Falha'}</p>
-                </div>
-              )}
+              {(() => {
+                const intDetails = getIntegrationDetails(systemHealth.tests.integrations.details);
+                return intDetails && (
+                  <div className="text-xs bg-[hsl(var(--surface-1))] p-2 rounded space-y-1">
+                    <p>N8N: {intDetails.n8n ? 'OK' : 'Falha'}</p>
+                    <p>OpenAI: {intDetails.openai ? 'OK' : 'Falha'}</p>
+                    <p>Health: {intDetails.healthCheck ? 'OK' : 'Falha'}</p>
+                  </div>
+                );
+              })()}
             </div>
           </CardContent>
         </Card>
@@ -251,20 +261,21 @@ const SystemMonitor = () => {
                 {getStatusBadge(systemHealth.tests.performance.success)}
               </div>
               <p className="text-xs text-[hsl(var(--muted-foreground))]">{systemHealth.tests.performance.message}</p>
-              {systemHealth.tests.performance.details && (
-                <div className="text-xs bg-[hsl(var(--surface-1))] p-2 rounded">
-                  <Progress
-                    value={Math.min(
-                      (systemHealth.tests.performance.details.responseTime /
-                        systemHealth.tests.performance.details.threshold) *
-                        100,
-                      100
-                    )}
-                    className="h-2 mb-1"
-                  />
-                  <p>Limite: {systemHealth.tests.performance.details.threshold}ms</p>
-                </div>
-              )}
+              {(() => {
+                const perfDetails = getPerfDetails(systemHealth.tests.performance.details);
+                return perfDetails && perfDetails.responseTime !== undefined && perfDetails.threshold !== undefined && (
+                  <div className="text-xs bg-[hsl(var(--surface-1))] p-2 rounded">
+                    <Progress
+                      value={Math.min(
+                        (perfDetails.responseTime / perfDetails.threshold) * 100,
+                        100
+                      )}
+                      className="h-2 mb-1"
+                    />
+                    <p>Limite: {perfDetails.threshold}ms</p>
+                  </div>
+                );
+              })()}
             </div>
           </CardContent>
         </Card>

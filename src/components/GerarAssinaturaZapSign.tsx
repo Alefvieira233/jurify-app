@@ -16,7 +16,7 @@ interface GerarAssinaturaZapSignProps {
     nome_cliente: string;
     area_juridica: string;
     valor_causa: number;
-    texto_contrato: string;
+    texto_contrato?: string;
     lead_id?: string;
   };
   onSuccess?: () => void;

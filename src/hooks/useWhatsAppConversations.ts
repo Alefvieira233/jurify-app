@@ -3,6 +3,9 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import type { RealtimeChannel } from '@supabase/supabase-js';
+import { createLogger } from '@/lib/logger';
+
+const log = createLogger('WhatsApp');
 
 export interface WhatsAppConversation {
   id: string;
@@ -64,7 +67,7 @@ export const useWhatsAppConversations = (): UseWhatsAppConversationsReturn => {
     }
 
     try {
-      console.log('📞 [useWhatsAppConversations] Carregando conversas...');
+      log.debug('Carregando conversas');
       setLoading(true);
       setError(null);
 
@@ -82,9 +85,9 @@ export const useWhatsAppConversations = (): UseWhatsAppConversationsReturn => {
       if (fetchError) throw fetchError;
 
       setConversations(data || []);
-      console.log(`✅ [useWhatsAppConversations] ${data?.length || 0} conversas carregadas`);
+      log.debug(`${data?.length || 0} conversas carregadas`);
     } catch (err: any) {
-      console.error('❌ [useWhatsAppConversations] Erro ao carregar conversas:', err);
+      log.error('Erro ao carregar conversas', err);
       setError(err.message || 'Erro ao carregar conversas');
       toast({
         title: 'Erro ao carregar conversas',
@@ -99,7 +102,7 @@ export const useWhatsAppConversations = (): UseWhatsAppConversationsReturn => {
   // Fetch mensagens de uma conversa específica
   const fetchMessages = useCallback(async (conversationId: string) => {
     try {
-      console.log(`💬 [useWhatsAppConversations] Carregando mensagens da conversa ${conversationId}...`);
+      log.debug(`Carregando mensagens da conversa ${conversationId}`);
 
       const { data, error: fetchError } = await supabase
         .from('whatsapp_messages')
@@ -110,9 +113,9 @@ export const useWhatsAppConversations = (): UseWhatsAppConversationsReturn => {
       if (fetchError) throw fetchError;
 
       setMessages(data || []);
-      console.log(`✅ [useWhatsAppConversations] ${data?.length || 0} mensagens carregadas`);
+      log.debug(`${data?.length || 0} mensagens carregadas`);
     } catch (err: any) {
-      console.error('❌ [useWhatsAppConversations] Erro ao carregar mensagens:', err);
+      log.error('Erro ao carregar mensagens', err);
       toast({
         title: 'Erro ao carregar mensagens',
         description: err.message,
@@ -149,7 +152,7 @@ export const useWhatsAppConversations = (): UseWhatsAppConversationsReturn => {
       }
 
       // 2. Envia mensagem via WhatsApp API (Edge Function)
-      console.log('📤 [useWhatsAppConversations] Enviando mensagem via WhatsApp API...');
+      log.info('Enviando mensagem via WhatsApp API');
       const { data: sendResult, error: sendError } = await supabase.functions.invoke(
         'send-whatsapp-message',
         {
@@ -164,7 +167,7 @@ export const useWhatsAppConversations = (): UseWhatsAppConversationsReturn => {
       );
 
       if (sendError) {
-        console.error('❌ [useWhatsAppConversations] Erro ao enviar via API:', sendError);
+        log.error('Erro ao enviar via API', sendError);
         throw new Error(sendError.message || 'Erro ao enviar mensagem via WhatsApp');
       }
 
@@ -172,7 +175,7 @@ export const useWhatsAppConversations = (): UseWhatsAppConversationsReturn => {
         throw new Error(sendResult?.error || 'Falha ao enviar mensagem via WhatsApp');
       }
 
-      console.log('✅ [useWhatsAppConversations] Mensagem enviada via WhatsApp:', sendResult.messageId);
+      log.info('Mensagem enviada via WhatsApp', { messageId: sendResult.messageId });
 
       // 3. A Edge Function já salva a mensagem no banco, mas vamos garantir que a UI atualize
       // Atualizar última mensagem da conversa (caso a Edge Function não tenha feito)
@@ -191,7 +194,7 @@ export const useWhatsAppConversations = (): UseWhatsAppConversationsReturn => {
 
       return true;
     } catch (err: any) {
-      console.error('❌ [useWhatsAppConversations] Erro ao enviar mensagem:', err);
+      log.error('Erro ao enviar mensagem', err);
       toast({
         title: 'Erro ao enviar mensagem',
         description: err.message || 'Erro ao processar mensagem',
@@ -224,7 +227,7 @@ export const useWhatsAppConversations = (): UseWhatsAppConversationsReturn => {
         )
       );
     } catch (err: any) {
-      console.error('❌ [useWhatsAppConversations] Erro ao marcar como lido:', err);
+      log.error('Erro ao marcar como lido', err);
       // ✅ CORREÇÃO: Adicionar toast de erro
       toast({
         title: 'Erro',
@@ -263,7 +266,7 @@ export const useWhatsAppConversations = (): UseWhatsAppConversationsReturn => {
             table: 'whatsapp_conversations',
           },
           (payload) => {
-            console.log('🔄 [useWhatsAppConversations] Mudança em conversa:', payload);
+            log.debug('Mudança em conversa', { event: payload.eventType });
 
             if (payload.eventType === 'INSERT') {
               setConversations(prev => [payload.new as WhatsAppConversation, ...prev]);
@@ -296,7 +299,7 @@ export const useWhatsAppConversations = (): UseWhatsAppConversationsReturn => {
               filter: `conversation_id=eq.${selectedConversation.id}`, // ✅ FILTRO adicionado
             },
             (payload) => {
-              console.log('🔄 [useWhatsAppConversations] Nova mensagem:', payload);
+              log.debug('Nova mensagem recebida');
 
               if (payload.eventType === 'INSERT') {
                 const newMessage = payload.new as WhatsAppMessage;

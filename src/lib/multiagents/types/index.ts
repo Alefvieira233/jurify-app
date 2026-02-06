@@ -260,3 +260,46 @@ export const DEFAULT_EXECUTION_CONFIG: ExecutionTrackerConfig = {
   maxRetries: 3,
   retryDelayMs: 2000,
 };
+
+// =========================================================================
+// 🔄 TIPOS MIGRADOS DO LEGACY (agents-legacy/AgentEngine)
+// Mantidos para compatibilidade com componentes de UI existentes
+// =========================================================================
+
+export enum AgentType {
+  SDR = 'sdr',
+  CLOSER = 'closer',
+  CS = 'customer_success',
+}
+
+export interface LegacyAgentConfig {
+  id: string;
+  name: string;
+  type: AgentType;
+  area_juridica: string;
+  prompt_base: string;
+  personality: string;
+  specialization: string[];
+  max_interactions: number;
+  escalation_rules: EscalationRule[];
+  active: boolean;
+}
+
+export interface EscalationRule {
+  condition: string;
+  next_agent_type: AgentType;
+  trigger_keywords: string[];
+  confidence_threshold: number;
+}
+
+export interface LeadInteraction {
+  id: string;
+  lead_id: string;
+  agent_id: string;
+  message: string;
+  response: string;
+  sentiment: number;
+  confidence: number;
+  next_action: string;
+  created_at: Date;
+}

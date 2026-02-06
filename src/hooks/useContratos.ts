@@ -4,6 +4,9 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { useSupabaseQuery } from './useSupabaseQuery';
+import { createLogger } from '@/lib/logger';
+
+const log = createLogger('Contratos');
 
 type ContratoRow = {
   id: string;
@@ -12,8 +15,8 @@ type ContratoRow = {
   nome_cliente: string | null;
   area_juridica: string | null;
   valor_causa: number | null;
-  texto_contrato: string | null;
-  clausulas_customizadas: string | null;
+  texto_contrato?: string | null;
+  clausulas_customizadas?: string | null;
   status: string | null;
   status_assinatura: string | null;
   link_assinatura_zapsign: string | null;
@@ -39,12 +42,13 @@ export const useContratos = () => {
   const normalizeContrato = useCallback((contrato: ContratoRow): Contrato => ({ ...contrato }), []);
 
   const fetchContratosQuery = useCallback(async () => {
-    console.log('🔍 [useContratos] Buscando contratos...');
-    
+    const listColumns = 'id,lead_id,tenant_id,nome_cliente,area_juridica,valor_causa,status,status_assinatura,link_assinatura_zapsign,zapsign_document_id,data_geracao_link,data_envio_whatsapp,responsavel,data_envio,data_assinatura,observacoes,created_at,updated_at';
+
     let query = supabase
       .from('contratos')
-      .select('*')
-      .order('created_at', { ascending: false });
+      .select(listColumns)
+      .order('created_at', { ascending: false })
+      .limit(100);
 
     if (profile?.tenant_id) {
       query = query.eq('tenant_id', profile.tenant_id);
@@ -53,9 +57,9 @@ export const useContratos = () => {
     const { data, error } = await query;
 
     if (error) {
-      console.error('❌ [useContratos] Erro ao buscar contratos:', error);
+      log.error('Erro ao buscar contratos', error);
     } else {
-      console.log(`✅ [useContratos] ${data?.length || 0} contratos encontrados`);
+      log.debug(`${data?.length || 0} contratos encontrados`);
     }
 
     const normalized = (data || []).map(normalizeContrato);
@@ -85,7 +89,7 @@ export const useContratos = () => {
     }
 
     try {
-      console.log('🔄 [useContratos] Criando novo contrato...');
+      log.info('Criando novo contrato...');
 
       const { data: newContrato, error } = await supabase
         .from('contratos')
@@ -95,7 +99,7 @@ export const useContratos = () => {
 
       if (error) throw error;
 
-      console.log('✅ [useContratos] Contrato criado com sucesso:', newContrato.id);
+      log.info('Contrato criado', { id: newContrato.id });
 
       // ✅ CORREÇÃO: Usar setter callback para evitar dependência circular
       const normalized = normalizeContrato(newContrato);
@@ -108,7 +112,7 @@ export const useContratos = () => {
 
       return true;
     } catch (error: unknown) {
-      console.error('❌ [useContratos] Erro ao criar contrato:', error);
+      log.error('Erro ao criar contrato', error);
       const message = error instanceof Error ? error.message : 'Não foi possível criar o contrato.';
       toast({
         title: 'Erro',
@@ -123,7 +127,7 @@ export const useContratos = () => {
     if (!user) return false;
 
     try {
-      console.log(`🔄 [useContratos] Atualizando contrato ${id}...`);
+      log.info('Atualizando contrato', { id });
 
       const { data: updatedContrato, error } = await supabase
         .from('contratos')
@@ -134,7 +138,7 @@ export const useContratos = () => {
 
       if (error) throw error;
 
-      console.log('✅ [useContratos] Contrato atualizado com sucesso');
+      log.info('Contrato atualizado');
 
       // ✅ CORREÇÃO: Usar setter callback para evitar dependência circular
       const normalized = normalizeContrato(updatedContrato);
@@ -149,7 +153,7 @@ export const useContratos = () => {
 
       return true;
     } catch (error: unknown) {
-      console.error('❌ [useContratos] Erro ao atualizar contrato:', error);
+      log.error('Erro ao atualizar contrato', error);
       const message = error instanceof Error ? error.message : 'Não foi possível atualizar o contrato.';
       toast({
         title: 'Erro',

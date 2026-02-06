@@ -11,6 +11,8 @@
 import { supabase } from '@/integrations/supabase/client';
 import { DEFAULT_OPENAI_MODEL } from '@/lib/ai/model';
 import { ExecutionTracker } from './ExecutionTracker';
+import { agentMemory } from './AgentMemory';
+import { createLogger } from '@/lib/logger';
 import {
   Priority,
   MessageType,
@@ -24,6 +26,8 @@ import type {
   AgentAIResponse,
   IAgent
 } from '../types';
+
+const log = createLogger('BaseAgent');
 
 export abstract class BaseAgent implements IAgent {
   protected readonly name: string;
@@ -139,12 +143,29 @@ export abstract class BaseAgent implements IAgent {
     options?: { stream?: boolean; onToken?: (token: string) => void }
   ): Promise<string> {
     try {
-      console.log(`🤖 ${this.name} chamando Edge Function de IA...`);
+      log.debug(`${this.name} calling AI Edge Function`);
 
       let augmentedPrompt = prompt;
       const tenantId = this.context?.metadata?.tenantId as string | undefined;
+      const leadId = this.context?.leadId;
 
       if (tenantId) {
+        // 🧠 MCP: Busca memórias de longo prazo relevantes
+        try {
+          const memoryContext = await agentMemory.buildMemoryContext(
+            prompt,
+            tenantId,
+            leadId,
+            this.name
+          );
+          if (memoryContext.summary) {
+            augmentedPrompt = `${prompt}\n\n${memoryContext.summary}`;
+          }
+        } catch {
+          log.warn(`MCP memory recall failed for ${this.name}`);
+        }
+
+        // 📚 RAG: Busca documentos relevantes no banco vetorial
         try {
           const { data: searchData, error: searchError } = await supabase.functions.invoke<{
             results: Array<{ content: string; similarity: number; metadata?: Record<string, unknown> }>;
@@ -162,11 +183,11 @@ export abstract class BaseAgent implements IAgent {
           if (!searchError && searchData?.results?.length) {
             const contextText = BaseAgent.buildContext(searchData.results);
             if (contextText) {
-              augmentedPrompt = `${prompt}\n\nCONTEXT:\n${contextText}`;
+              augmentedPrompt = `${augmentedPrompt}\n\nDOCUMENT CONTEXT:\n${contextText}`;
             }
           }
         } catch {
-          console.warn(`[rag] Falha ao buscar contexto para ${this.name}.`);
+          log.warn(`RAG context fetch failed for ${this.name}`);
         }
       }
 
@@ -211,7 +232,7 @@ export abstract class BaseAgent implements IAgent {
 
       const tokensUsed = data.usage?.total_tokens || 0;
       this.lastTokensUsed = tokensUsed;
-      console.log(`✅ ${this.name} recebeu resposta da IA (${tokensUsed} tokens)`);
+      log.info(`${this.name} AI response received (${tokensUsed} tokens)`);
 
       if (this.context?.leadId) {
         const { error: logError } = await supabase
@@ -230,7 +251,25 @@ export abstract class BaseAgent implements IAgent {
           });
 
         if (logError) {
-          console.warn('Failed to log lead interaction:', logError);
+          log.warn('Failed to log lead interaction', { error: logError.message });
+        }
+
+        // 🧠 MCP: Salva resultado como memória de longo prazo
+        if (tenantId) {
+          const summary = data.result.length > 500 ? data.result.substring(0, 500) + '...' : data.result;
+          agentMemory.store({
+            tenant_id: tenantId,
+            lead_id: this.context.leadId,
+            agent_name: this.name,
+            memory_type: 'conversation',
+            content: `[${this.name}] Prompt: ${prompt.substring(0, 200)}... | Response: ${summary}`,
+            importance: 5,
+            metadata: {
+              tokens_used: tokensUsed,
+              channel: this.context.metadata?.channel,
+              execution_id: this.context.metadata?.executionId,
+            },
+          }).catch(() => { /* non-blocking */ });
         }
       }
 
