@@ -106,36 +106,64 @@ export default function WhatsAppEvolutionSetup({ onConnectionSuccess }: WhatsApp
     void loadExisting();
   }, [tenantId]);
 
-  // Polling de status quando aguardando QR
+  // Polling de status quando aguardando QR (refs para evitar stale closures)
+  const instanceRef = useRef(instance);
+  instanceRef.current = instance;
+  const onSuccessRef = useRef(onConnectionSuccess);
+  onSuccessRef.current = onConnectionSuccess;
+
   useEffect(() => {
-    if (instance.state === 'qr_ready' && instance.instanceName && !polling) {
-      setPolling(true);
-
-      pollIntervalRef.current = setInterval(async () => {
-        try {
-          const result = await callEvolutionManager('status', instance.instanceName);
-
-          if (result?.connected) {
-            setInstance((prev) => ({ ...prev, state: 'connected', qrCode: null }));
-            setPolling(false);
-
-            toast({
-              title: 'WhatsApp conectado!',
-              description: 'Seu numero foi vinculado com sucesso.',
-            });
-
-            onConnectionSuccess?.();
-
-            if (pollIntervalRef.current) {
-              clearInterval(pollIntervalRef.current);
-              pollIntervalRef.current = null;
-            }
-          }
-        } catch {
-          // Silently retry
-        }
-      }, 5000);
+    if (instance.state !== 'qr_ready' || !instance.instanceName) {
+      setPolling(false);
+      return undefined;
     }
+
+    setPolling(true);
+    let attempts = 0;
+    const MAX_ATTEMPTS = 24; // 24 * 5s = 2 min, depois auto-refresh QR
+
+    pollIntervalRef.current = setInterval(async () => {
+      attempts++;
+      try {
+        const result = await callEvolutionManager('status', instanceRef.current.instanceName);
+
+        if (result?.connected) {
+          if (pollIntervalRef.current) {
+            clearInterval(pollIntervalRef.current);
+            pollIntervalRef.current = null;
+          }
+          setPolling(false);
+          setInstance((prev) => ({ ...prev, state: 'connected', qrCode: null }));
+          toast({ title: 'WhatsApp conectado!', description: 'Seu numero foi vinculado com sucesso.' });
+          onSuccessRef.current?.();
+          return;
+        }
+
+        // QR Code expira ~60s na Evolution API, auto-refresh a cada 50s
+        if (attempts % 10 === 0 && instanceRef.current.instanceName) {
+          const qrResult = await callEvolutionManager('qrcode', instanceRef.current.instanceName);
+          if (qrResult?.qrcode) {
+            setInstance((prev) => ({ ...prev, qrCode: qrResult.qrcode }));
+          }
+        }
+
+        // Timeout: para de tentar após MAX_ATTEMPTS
+        if (attempts >= MAX_ATTEMPTS) {
+          if (pollIntervalRef.current) {
+            clearInterval(pollIntervalRef.current);
+            pollIntervalRef.current = null;
+          }
+          setPolling(false);
+          setInstance((prev) => ({
+            ...prev,
+            state: 'error',
+            error: 'Tempo esgotado. Clique em "Conectar WhatsApp" para gerar um novo QR Code.',
+          }));
+        }
+      } catch {
+        // Silently retry — network hiccups are expected
+      }
+    }, 5000);
 
     return () => {
       if (pollIntervalRef.current) {
@@ -144,7 +172,7 @@ export default function WhatsAppEvolutionSetup({ onConnectionSuccess }: WhatsApp
       }
       setPolling(false);
     };
-  }, [instance.state, instance.instanceName, callEvolutionManager, onConnectionSuccess, toast, polling]);
+  }, [instance.state, instance.instanceName, callEvolutionManager, toast]);
 
   // Criar instância / Obter QR Code
   const handleConnect = async () => {

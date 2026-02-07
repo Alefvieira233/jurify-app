@@ -283,25 +283,31 @@ serve(async (req) => {
 
     // Inicializa Supabase Client
     const supabaseUrl = Deno.env.get("SUPABASE_URL");
+    const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY");
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
 
-    if (!supabaseUrl || !supabaseServiceKey) {
+    if (!supabaseUrl || !supabaseAnonKey || !supabaseServiceKey) {
       throw new Error("Missing Supabase environment variables");
     }
 
-    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+    // Cliente com ANON key para validar JWT do usuário
+    const supabaseAuth = createClient(supabaseUrl, supabaseAnonKey);
 
-    // Verifica usuário autenticado
+    // Verifica usuário autenticado usando ANON key
+    const token = authHeader.replace("Bearer ", "");
     const {
       data: { user },
       error: authError,
-    } = await supabase.auth.getUser(authHeader.replace("Bearer ", ""));
+    } = await supabaseAuth.auth.getUser(token);
 
     if (authError || !user) {
       throw new Error("Unauthorized: Invalid token");
     }
 
     console.log(`✅ Authenticated user: ${user.id}`);
+
+    // Cliente com SERVICE ROLE para operações no banco (bypass RLS)
+    const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
     // 🛡️ Rate Limiting - Limite por usuário
     // Limite: 30 mensagens por minuto por usuário
