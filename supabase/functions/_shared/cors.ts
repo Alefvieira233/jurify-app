@@ -11,6 +11,7 @@ function parseAllowedOrigins(): string[] {
       "http://localhost:5173",
       "http://localhost:3000",
       "https://jurify.vercel.app",
+      "https://jurify-app.vercel.app",
       "https://jurify.com.br",
     ];
   }

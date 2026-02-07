@@ -2,9 +2,10 @@
  * 🚀 SEND WHATSAPP MESSAGE - EDGE FUNCTION (SECURE)
  *
  * Edge Function segura para envio de mensagens WhatsApp.
- * Todas as credenciais são mantidas no servidor (Supabase Secrets).
+ * Suporta Evolution API (self-hosted) e Meta Official API.
+ * Detecta automaticamente o provider do tenant.
  *
- * @version 1.0.0
+ * @version 2.0.0
  * @security Enterprise Grade
  */
 
@@ -13,7 +14,10 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { getCorsHeaders } from "../_shared/cors.ts";
 import { applyRateLimit } from "../_shared/rate-limiter.ts";
 
-console.log("🚀 Send WhatsApp Message Function Started");
+console.log("🚀 Send WhatsApp Message Function Started (Evolution + Meta)");
+
+const EVOLUTION_API_URL = Deno.env.get("EVOLUTION_API_URL");
+const EVOLUTION_API_KEY = Deno.env.get("EVOLUTION_API_KEY");
 
 // 🔒 TIPOS DE REQUISIÇÃO
 interface SendMessageRequest {
@@ -57,8 +61,57 @@ function validateRequest(data: unknown): data is SendMessageRequest {
   return true;
 }
 
-// 📤 Envia mensagem via WhatsApp Business API
-async function sendWhatsAppMessage(
+// 📤 Envia mensagem via Evolution API (self-hosted)
+async function sendViaEvolution(
+  to: string,
+  text: string,
+  instanceName: string
+): Promise<{ success: boolean; messageId?: string; error?: string }> {
+  if (!EVOLUTION_API_URL || !EVOLUTION_API_KEY) {
+    return { success: false, error: "Evolution API credentials not configured" };
+  }
+
+  try {
+    const response = await fetch(
+      `${EVOLUTION_API_URL}/message/sendText/${instanceName}`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          apikey: EVOLUTION_API_KEY,
+        },
+        body: JSON.stringify({
+          number: to,
+          text: text,
+        }),
+      }
+    );
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      console.error("❌ Evolution API Error:", data);
+      return {
+        success: false,
+        error: data.message || `Evolution API error: ${response.status}`,
+      };
+    }
+
+    const messageId = data.key?.id || data.messageId || "sent";
+    console.log(`✅ Evolution message sent to ${to} via ${instanceName}: ${messageId}`);
+
+    return { success: true, messageId };
+  } catch (error) {
+    console.error("❌ Network error (Evolution):", error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Network error",
+    };
+  }
+}
+
+// 📤 Envia mensagem via WhatsApp Business API (Meta Official)
+async function sendViaMeta(
   to: string,
   text: string,
   phoneNumberId: string,
@@ -85,7 +138,7 @@ async function sendWhatsAppMessage(
     const data = await response.json();
 
     if (!response.ok) {
-      console.error("❌ WhatsApp API Error:", data);
+      console.error("❌ Meta API Error:", data);
       return {
         success: false,
         error: data.error?.message || `WhatsApp API error: ${response.status}`,
@@ -93,14 +146,11 @@ async function sendWhatsAppMessage(
     }
 
     const messageId = data.messages?.[0]?.id;
-    console.log(`✅ WhatsApp message sent successfully: ${messageId}`);
+    console.log(`✅ Meta message sent successfully: ${messageId}`);
 
-    return {
-      success: true,
-      messageId,
-    };
+    return { success: true, messageId };
   } catch (error) {
-    console.error("❌ Network error sending WhatsApp message:", error);
+    console.error("❌ Network error (Meta):", error);
     return {
       success: false,
       error: error instanceof Error ? error.message : "Network error",
@@ -149,26 +199,70 @@ async function saveMessageToDatabase(
   }
 }
 
-// 🔑 Busca credenciais do WhatsApp para o tenant
+// 🔑 Busca credenciais do WhatsApp para o tenant (Evolution ou Meta)
+interface WhatsAppCredentials {
+  provider: "evolution" | "meta";
+  instanceName?: string;   // Evolution: nome da instância
+  phoneNumberId?: string;  // Meta: phone number ID
+  accessToken?: string;    // Meta: access token
+}
+
 async function getWhatsAppCredentials(
   supabase: ReturnType<typeof createClient>,
   tenantId?: string
-): Promise<{ phoneNumberId: string; accessToken: string } | null> {
-  // Estratégia de credenciais:
-  // 1. Se o tenant tem credenciais próprias configuradas, usa as dele
-  // 2. Caso contrário, usa as credenciais globais (Supabase Secrets)
-
-  // TODO: Implementar tabela 'whatsapp_configs' para credenciais por tenant
-  // Por enquanto, usamos as credenciais globais
-  const phoneNumberId = Deno.env.get("WHATSAPP_PHONE_NUMBER_ID");
-  const accessToken = Deno.env.get("WHATSAPP_ACCESS_TOKEN");
-
-  if (!phoneNumberId || !accessToken) {
-    console.error("❌ WhatsApp credentials not configured in Supabase Secrets");
+): Promise<WhatsAppCredentials | null> {
+  if (!tenantId) {
+    // Fallback para credenciais globais Meta
+    const phoneNumberId = Deno.env.get("WHATSAPP_PHONE_NUMBER_ID");
+    const accessToken = Deno.env.get("WHATSAPP_ACCESS_TOKEN");
+    if (phoneNumberId && accessToken) {
+      return { provider: "meta", phoneNumberId, accessToken };
+    }
     return null;
   }
 
-  return { phoneNumberId, accessToken };
+  // 1. Tenta Evolution API primeiro (prioridade)
+  const { data: evolutionConfig } = await supabase
+    .from("configuracoes_integracoes")
+    .select("phone_number_id, status")
+    .eq("tenant_id", tenantId)
+    .eq("nome_integracao", "whatsapp_evolution")
+    .eq("status", "ativa")
+    .maybeSingle();
+
+  if (evolutionConfig?.phone_number_id && EVOLUTION_API_URL && EVOLUTION_API_KEY) {
+    return {
+      provider: "evolution",
+      instanceName: evolutionConfig.phone_number_id,
+    };
+  }
+
+  // 2. Tenta Meta Official API
+  const { data: metaConfig } = await supabase
+    .from("configuracoes_integracoes")
+    .select("api_key, phone_number_id")
+    .eq("tenant_id", tenantId)
+    .eq("nome_integracao", "whatsapp_oficial")
+    .eq("status", "ativa")
+    .maybeSingle();
+
+  if (metaConfig?.api_key && metaConfig?.phone_number_id) {
+    return {
+      provider: "meta",
+      phoneNumberId: metaConfig.phone_number_id,
+      accessToken: metaConfig.api_key,
+    };
+  }
+
+  // 3. Fallback para credenciais globais Meta
+  const phoneNumberId = Deno.env.get("WHATSAPP_PHONE_NUMBER_ID");
+  const accessToken = Deno.env.get("WHATSAPP_ACCESS_TOKEN");
+  if (phoneNumberId && accessToken) {
+    return { provider: "meta", phoneNumberId, accessToken };
+  }
+
+  console.error("❌ No WhatsApp credentials found for tenant:", tenantId);
+  return null;
 }
 
 // 🚀 HANDLER PRINCIPAL
@@ -255,13 +349,27 @@ serve(async (req) => {
       );
     }
 
-    // 📤 Envia mensagem via WhatsApp API
-    const result = await sendWhatsAppMessage(
-      messageRequest.to,
-      messageRequest.text,
-      credentials.phoneNumberId,
-      credentials.accessToken
-    );
+    // 📤 Envia mensagem via provider detectado
+    let result: { success: boolean; messageId?: string; error?: string };
+
+    if (credentials.provider === "evolution" && credentials.instanceName) {
+      console.log(`📤 Sending via Evolution API (instance: ${credentials.instanceName})`);
+      result = await sendViaEvolution(
+        messageRequest.to,
+        messageRequest.text,
+        credentials.instanceName
+      );
+    } else if (credentials.provider === "meta" && credentials.phoneNumberId && credentials.accessToken) {
+      console.log(`📤 Sending via Meta Official API`);
+      result = await sendViaMeta(
+        messageRequest.to,
+        messageRequest.text,
+        credentials.phoneNumberId,
+        credentials.accessToken
+      );
+    } else {
+      throw new Error("Invalid WhatsApp credentials configuration");
+    }
 
     if (!result.success) {
       throw new Error(result.error || "Failed to send WhatsApp message");

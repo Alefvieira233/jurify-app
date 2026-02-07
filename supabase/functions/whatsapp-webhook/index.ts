@@ -3,13 +3,155 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { getCorsHeaders } from "../_shared/cors.ts";
 import { applyRateLimit, getRequestIdentifier } from "../_shared/rate-limiter.ts";
 
-console.log("[whatsapp-webhook] Function started");
+console.log("[whatsapp-webhook] Function started (Evolution API + Meta compatible)");
 
 const WHATSAPP_VERIFY_TOKEN = Deno.env.get("WHATSAPP_VERIFY_TOKEN");
-const WHATSAPP_ACCESS_TOKEN = Deno.env.get("WHATSAPP_ACCESS_TOKEN");
+const EVOLUTION_API_URL = Deno.env.get("EVOLUTION_API_URL");
+const EVOLUTION_API_KEY = Deno.env.get("EVOLUTION_API_KEY");
 
-const INTEGRATION_NAME = "whatsapp_oficial";
+const INTEGRATION_NAME_EVOLUTION = "whatsapp_evolution";
+const INTEGRATION_NAME_META = "whatsapp_oficial";
 
+// ============================================
+// 🔍 DETECTA ORIGEM DO WEBHOOK (Evolution vs Meta)
+// ============================================
+interface NormalizedMessage {
+  from: string;
+  name: string;
+  text: string;
+  messageType: string;
+  mediaUrl: string | null;
+  instanceName: string | null;
+  provider: "evolution" | "meta";
+}
+
+function isEvolutionPayload(payload: any): boolean {
+  return !!(payload?.event || payload?.instance || payload?.data?.key);
+}
+
+function normalizeEvolutionMessage(payload: any): NormalizedMessage | null {
+  const event = payload.event;
+
+  // Só processa mensagens recebidas (não enviadas pelo bot)
+  if (event !== "messages.upsert") return null;
+
+  const data = payload.data;
+  if (!data) return null;
+
+  const key = data.key;
+  // Ignora mensagens enviadas por nós (fromMe = true)
+  if (key?.fromMe) return null;
+
+  const remoteJid = key?.remoteJid || "";
+  // Extrai número do JID (formato: 5511999999999@s.whatsapp.net)
+  const from = remoteJid.replace("@s.whatsapp.net", "").replace("@g.us", "");
+
+  if (!from) return null;
+
+  const name = data.pushName || "Unknown";
+  const messageType = data.messageType || "conversation";
+  let text = "";
+  let mediaUrl: string | null = null;
+
+  const msg = data.message;
+  if (!msg) return null;
+
+  if (msg.conversation) {
+    text = msg.conversation;
+  } else if (msg.extendedTextMessage?.text) {
+    text = msg.extendedTextMessage.text;
+  } else if (msg.imageMessage) {
+    text = msg.imageMessage.caption || "[Imagem recebida]";
+    mediaUrl = msg.imageMessage.url || null;
+  } else if (msg.documentMessage) {
+    text = msg.documentMessage.caption || `[Documento: ${msg.documentMessage.fileName || "arquivo"}]`;
+    mediaUrl = msg.documentMessage.url || null;
+  } else if (msg.audioMessage) {
+    text = "[Audio recebido]";
+    mediaUrl = msg.audioMessage.url || null;
+  } else if (msg.videoMessage) {
+    text = msg.videoMessage.caption || "[Video recebido]";
+    mediaUrl = msg.videoMessage.url || null;
+  } else if (msg.stickerMessage) {
+    text = "[Sticker recebido]";
+  } else if (msg.contactMessage) {
+    text = `[Contato: ${msg.contactMessage.displayName || ""}]`;
+  } else if (msg.locationMessage) {
+    text = `[Localizacao: ${msg.locationMessage.degreesLatitude},${msg.locationMessage.degreesLongitude}]`;
+  } else {
+    text = `[${messageType} recebido]`;
+  }
+
+  if (!text) return null;
+
+  return {
+    from,
+    name,
+    text,
+    messageType: messageType === "conversation" ? "text" : messageType,
+    mediaUrl,
+    instanceName: payload.instance || null,
+    provider: "evolution",
+  };
+}
+
+function normalizeMetaMessages(payload: any): NormalizedMessage[] {
+  const results: NormalizedMessage[] = [];
+
+  for (const entry of payload.entry || []) {
+    for (const change of entry.changes || []) {
+      const value = change.value;
+      if (!value?.messages) continue;
+
+      for (const message of value.messages) {
+        const from = message.from;
+        const name = message._vendor?.name || "Unknown";
+        const msgType = message.type || "text";
+        let text = "";
+        let mediaUrl: string | null = null;
+
+        switch (msgType) {
+          case "text":
+            text = message.text?.body || "";
+            break;
+          case "image":
+            text = message.image?.caption || "[Imagem recebida]";
+            mediaUrl = message.image?.id || null;
+            break;
+          case "document":
+            text = message.document?.caption || `[Documento: ${message.document?.filename || "arquivo"}]`;
+            mediaUrl = message.document?.id || null;
+            break;
+          case "audio":
+            text = "[Audio recebido]";
+            mediaUrl = message.audio?.id || null;
+            break;
+          default:
+            text = `[${msgType} recebido]`;
+            break;
+        }
+
+        if (text) {
+          results.push({
+            from,
+            name,
+            text,
+            messageType: msgType,
+            mediaUrl,
+            instanceName: null,
+            provider: "meta",
+          });
+        }
+      }
+    }
+  }
+
+  return results;
+}
+
+// ============================================
+// 🚀 HANDLER PRINCIPAL
+// ============================================
 serve(async (req) => {
   const corsHeaders = getCorsHeaders(req.headers.get("origin") || undefined);
 
@@ -20,6 +162,7 @@ serve(async (req) => {
   try {
     const url = new URL(req.url);
 
+    // GET = Meta webhook verification (Evolution não usa GET)
     if (req.method === "GET") {
       const mode = url.searchParams.get("hub.mode");
       const token = url.searchParams.get("hub.verify_token");
@@ -30,7 +173,6 @@ serve(async (req) => {
       }
 
       if (WHATSAPP_VERIFY_TOKEN && token === WHATSAPP_VERIFY_TOKEN) {
-        console.log("[whatsapp-webhook] Verified via env token");
         return new Response(challenge, {
           headers: { "Content-Type": "text/plain" },
           status: 200,
@@ -42,28 +184,21 @@ serve(async (req) => {
         Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
       );
 
-      const { data, error } = await supabase
+      const { data } = await supabase
         .from("configuracoes_integracoes")
         .select("id")
-        .eq("nome_integracao", INTEGRATION_NAME)
+        .eq("nome_integracao", INTEGRATION_NAME_META)
         .eq("verify_token", token)
         .limit(1)
         .maybeSingle();
 
-      if (error) {
-        console.error("[whatsapp-webhook] Verify token lookup failed", error);
-        return new Response("Forbidden", { status: 403 });
-      }
-
       if (data) {
-        console.log("[whatsapp-webhook] Verified via stored token");
         return new Response(challenge, {
           headers: { "Content-Type": "text/plain" },
           status: 200,
         });
       }
 
-      console.error("[whatsapp-webhook] Verification failed");
       return new Response("Forbidden", { status: 403 });
     }
 
@@ -75,60 +210,103 @@ serve(async (req) => {
 
       const rateLimitCheck = await applyRateLimit(
         req,
-        {
-          maxRequests: 60,
-          windowSeconds: 60,
-          namespace: "whatsapp-webhook",
-        },
-        {
-          supabase,
-          corsHeaders,
-        }
+        { maxRequests: 120, windowSeconds: 60, namespace: "whatsapp-webhook" },
+        { supabase, corsHeaders }
       );
 
       if (!rateLimitCheck.allowed) {
-        console.warn("[whatsapp-webhook] Rate limit exceeded:", getRequestIdentifier(req), rateLimitCheck.result);
+        console.warn("[webhook] Rate limit exceeded");
         return rateLimitCheck.response;
       }
 
-      console.log(
-        "[whatsapp-webhook] Rate limit OK:",
-        `${rateLimitCheck.result.remaining}/${rateLimitCheck.result.limit} remaining`
-      );
-
       const payload = await req.json();
-      console.log("[whatsapp-webhook] Received webhook event");
 
-      for (const entry of payload.entry || []) {
-        for (const change of entry.changes || []) {
-          const value = change.value;
-          const phoneNumberId = value?.metadata?.phone_number_id;
+      // ============================================
+      // 🔀 ROTEAMENTO: Evolution ou Meta?
+      // ============================================
+      if (isEvolutionPayload(payload)) {
+        // --- EVOLUTION API ---
+        const event = payload.event;
+        console.log(`[webhook:evolution] Event: ${event}, Instance: ${payload.instance}`);
 
-          // Processar mensagens recebidas
-          if (value?.messages) {
-            for (const message of value.messages) {
-              await processMessage(supabase, message, phoneNumberId);
-            }
+        // Eventos de conexão (QR Code, status)
+        if (event === "connection.update") {
+          const state = payload.data?.state;
+          const instanceName = payload.instance;
+          console.log(`[webhook:evolution] Connection: ${instanceName} → ${state}`);
+
+          if (instanceName && state) {
+            await supabase
+              .from("configuracoes_integracoes")
+              .update({
+                status: state === "open" ? "ativa" : state === "close" ? "desconectada" : state,
+              })
+              .eq("nome_integracao", INTEGRATION_NAME_EVOLUTION)
+              .eq("phone_number_id", instanceName);
           }
 
-          // Processar status de entrega (sent, delivered, read, failed)
-          if (value?.statuses) {
-            for (const status of value.statuses) {
-              await processStatusUpdate(supabase, status);
+          return new Response("OK", { status: 200, headers: corsHeaders });
+        }
+
+        // QR Code atualizado
+        if (event === "qrcode.updated") {
+          const instanceName = payload.instance;
+          const qrCode = payload.data?.qrcode?.base64 || payload.data?.qrcode;
+          console.log(`[webhook:evolution] QR Code updated for: ${instanceName}`);
+
+          if (instanceName && qrCode) {
+            await supabase
+              .from("configuracoes_integracoes")
+              .update({
+                verify_token: qrCode,
+                status: "aguardando_qr",
+              })
+              .eq("nome_integracao", INTEGRATION_NAME_EVOLUTION)
+              .eq("phone_number_id", instanceName);
+          }
+
+          return new Response("OK", { status: 200, headers: corsHeaders });
+        }
+
+        // Mensagem recebida
+        if (event === "messages.upsert") {
+          const normalized = normalizeEvolutionMessage(payload);
+          if (normalized) {
+            await processNormalizedMessage(supabase, normalized);
+          }
+          return new Response("OK", { status: 200, headers: corsHeaders });
+        }
+
+        // Outros eventos (ignorar silenciosamente)
+        return new Response("OK", { status: 200, headers: corsHeaders });
+
+      } else {
+        // --- META OFFICIAL API (backward compatible) ---
+        console.log("[webhook:meta] Processing Meta webhook");
+
+        const messages = normalizeMetaMessages(payload);
+        for (const msg of messages) {
+          await processNormalizedMessage(supabase, msg);
+        }
+
+        // Status updates (Meta format)
+        for (const entry of payload.entry || []) {
+          for (const change of entry.changes || []) {
+            if (change.value?.statuses) {
+              for (const status of change.value.statuses) {
+                await processStatusUpdate(supabase, status);
+              }
             }
           }
         }
-      }
 
-      return new Response("OK", {
-        headers: { ...corsHeaders, "Content-Type": "text/plain" },
-        status: 200,
-      });
+        return new Response("OK", { status: 200, headers: corsHeaders });
+      }
     }
 
     return new Response("Method not allowed", { status: 405 });
   } catch (error) {
-    console.error("[whatsapp-webhook] Error:", error);
+    console.error("[webhook] Error:", error);
     return new Response(JSON.stringify({ error: error.message }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
       status: 500,
@@ -136,106 +314,62 @@ serve(async (req) => {
   }
 });
 
-// 📊 Processa status de entrega (sent, delivered, read, failed)
+// ============================================
+// 📊 STATUS UPDATES (Meta format)
+// ============================================
 async function processStatusUpdate(supabase: any, status: any) {
   try {
-    const waMessageId = status.id;
-    const statusValue = status.status; // sent | delivered | read | failed
+    const statusValue = status.status;
     const recipientId = status.recipient_id;
-    const timestamp = status.timestamp;
 
-    console.log(`[whatsapp-webhook] Status update: ${statusValue} for ${waMessageId}`);
-
-    // Atualiza o status da mensagem no banco se tivermos o ID
-    // As mensagens enviadas pelo sistema salvam o wa_message_id no metadata
     if (statusValue === "read") {
-      // Marca mensagens como lidas quando o lead leu
-      const { error } = await supabase
+      await supabase
         .from("whatsapp_messages")
         .update({ read: true })
         .eq("sender", "ia")
         .ilike("content", `%${recipientId}%`)
         .is("read", false);
-
-      if (error) {
-        console.warn("[whatsapp-webhook] Failed to update read status:", error.message);
-      }
     }
 
     if (statusValue === "failed") {
       const errorInfo = status.errors?.[0];
-      console.error("[whatsapp-webhook] Message delivery failed:", {
+      console.error("[webhook] Message delivery failed:", {
         recipient: recipientId,
         error_code: errorInfo?.code,
         error_title: errorInfo?.title,
       });
     }
   } catch (error) {
-    console.error("[whatsapp-webhook] Error processing status update:", error);
+    console.error("[webhook] Error processing status update:", error);
   }
 }
 
-async function processMessage(supabase: any, message: any, phoneNumberId?: string) {
+// ============================================
+// 📨 PROCESSA MENSAGEM NORMALIZADA (funciona para ambos providers)
+// ============================================
+async function processNormalizedMessage(supabase: any, msg: NormalizedMessage) {
   try {
-    const from = message.from;
-    const name = message._vendor?.name || "Unknown";
-    const messageType = message.type || "text";
+    const { from, name, text, messageType, mediaUrl, instanceName, provider } = msg;
 
-    // Extrai conteúdo baseado no tipo de mensagem
-    let text = "";
-    let mediaUrl: string | null = null;
+    console.log(`[webhook:${provider}] Message from ${from}: ${text.substring(0, 80)}`);
 
-    switch (messageType) {
-      case "text":
-        text = message.text?.body || "";
-        break;
-      case "image":
-        text = message.image?.caption || "[Imagem recebida]";
-        mediaUrl = message.image?.id || null;
-        break;
-      case "document":
-        text = message.document?.caption || `[Documento: ${message.document?.filename || "arquivo"}]`;
-        mediaUrl = message.document?.id || null;
-        break;
-      case "audio":
-        text = "[Áudio recebido]";
-        mediaUrl = message.audio?.id || null;
-        break;
-      default:
-        text = `[${messageType} recebido]`;
-        break;
-    }
-
-    if (!text) {
-      console.log("[whatsapp-webhook] Empty message content, skipping");
-      return;
-    }
-
-    console.log(`[whatsapp-webhook] Processing message from ${from}: ${text}`);
-
+    // --- RESOLVE TENANT ---
     let tenantId: string | null = null;
-    let accessToken: string | null = null;
 
-    if (phoneNumberId) {
-      const { data: config, error: configError } = await supabase
+    // 1. Busca por instanceName (Evolution) ou config
+    if (instanceName) {
+      const { data: config } = await supabase
         .from("configuracoes_integracoes")
-        .select("tenant_id, api_key, phone_number_id")
-        .eq("nome_integracao", INTEGRATION_NAME)
-        .eq("phone_number_id", phoneNumberId)
+        .select("tenant_id")
+        .eq("nome_integracao", INTEGRATION_NAME_EVOLUTION)
+        .eq("phone_number_id", instanceName)
         .maybeSingle();
 
-      if (configError) {
-        console.error("[whatsapp-webhook] Failed to load WhatsApp config:", configError);
-      }
-
-      if (config) {
-        tenantId = config.tenant_id;
-        accessToken = config.api_key;
-      }
+      if (config) tenantId = config.tenant_id;
     }
 
+    // 2. Fallback: busca por conversa existente
     if (!tenantId) {
-      // Fallback seguro: busca tenant por conversa existente do mesmo número
       const { data: existingConv } = await supabase
         .from("whatsapp_conversations")
         .select("tenant_id")
@@ -244,23 +378,21 @@ async function processMessage(supabase: any, message: any, phoneNumberId?: strin
         .limit(1)
         .maybeSingle();
 
-      if (existingConv) {
-        tenantId = existingConv.tenant_id;
-      }
-      // NÃO faz fallback genérico para qualquer tenant — isso é inseguro em multi-tenant
+      if (existingConv) tenantId = existingConv.tenant_id;
     }
 
     if (!tenantId) {
-      console.error("[whatsapp-webhook] No tenant found for message");
+      console.error(`[webhook:${provider}] No tenant found for ${from}`);
       return;
     }
 
+    // --- RESOLVE/CREATE LEAD ---
     const { data: lead } = await supabase
       .from("leads")
       .select("id")
       .eq("telefone", from)
       .eq("tenant_id", tenantId)
-      .single();
+      .maybeSingle();
 
     let leadId = lead?.id || null;
 
@@ -282,33 +414,29 @@ async function processMessage(supabase: any, message: any, phoneNumberId?: strin
         .single();
 
       if (leadError) {
-        console.error("[whatsapp-webhook] Error creating lead:", leadError);
+        console.error(`[webhook:${provider}] Error creating lead:`, leadError);
         return;
       }
       leadId = newLead.id;
     }
 
+    // --- RESOLVE/CREATE CONVERSATION ---
     let conversationId = null;
     const { data: conversation } = await supabase
       .from("whatsapp_conversations")
       .select("id")
       .eq("lead_id", leadId)
       .eq("tenant_id", tenantId)
-      .single();
+      .maybeSingle();
 
     if (conversation) {
       conversationId = conversation.id;
       await supabase
         .from("whatsapp_conversations")
-        .update({
-          last_message: text,
-          last_message_at: new Date().toISOString(),
-        })
+        .update({ last_message: text, last_message_at: new Date().toISOString() })
         .eq("id", conversationId);
 
-      await supabase.rpc("increment_unread_count", {
-        conversation_id: conversationId,
-      });
+      await supabase.rpc("increment_unread_count", { conversation_id: conversationId });
     } else {
       const { data: newConv, error: convError } = await supabase
         .from("whatsapp_conversations")
@@ -326,46 +454,102 @@ async function processMessage(supabase: any, message: any, phoneNumberId?: strin
         .single();
 
       if (convError) {
-        console.error("[whatsapp-webhook] Error creating conversation:", convError);
+        console.error(`[webhook:${provider}] Error creating conversation:`, convError);
         return;
       }
       conversationId = newConv.id;
     }
 
+    // --- SAVE MESSAGE ---
     await supabase.from("whatsapp_messages").insert({
       conversation_id: conversationId,
       sender: "lead",
       content: text,
-      message_type: messageType,
+      message_type: messageType === "conversation" ? "text" : messageType,
       media_url: mediaUrl,
       timestamp: new Date().toISOString(),
     });
 
-    console.log("[whatsapp-webhook] Invoking AI Agent");
+    // --- INVOKE AI AGENT (Coordenador = Recepcionista) ---
+    console.log(`[webhook:${provider}] Invoking AI Agent (Coordenador)`);
+
+    // Busca historico recente da conversa para contexto
+    let conversationHistory = "";
+    const { data: recentMessages } = await supabase
+      .from("whatsapp_messages")
+      .select("sender, content")
+      .eq("conversation_id", conversationId)
+      .order("timestamp", { ascending: false })
+      .limit(10);
+
+    if (recentMessages && recentMessages.length > 1) {
+      conversationHistory = recentMessages
+        .reverse()
+        .map((m: any) => `${m.sender === "lead" ? "Cliente" : "Assistente"}: ${m.content}`)
+        .join("\n");
+    }
+
+    const coordenadorPrompt = `Voce e a recepcionista virtual do escritorio de advocacia Jurify. Seu nome e Ana.
+
+REGRAS OBRIGATORIAS:
+1. Seja educada, profissional e acolhedora. Use linguagem simples e direta.
+2. Na PRIMEIRA mensagem de qualquer pessoa, cumprimente e pergunte como pode ajudar.
+3. Seu objetivo principal e QUALIFICAR o lead: entender o problema juridico, urgencia e dados basicos.
+4. Faca perguntas uma de cada vez, nao bombardeie o cliente.
+5. Colete: nome completo, tipo de problema juridico (trabalhista, familia, consumidor, etc), urgencia.
+6. Quando tiver informacoes suficientes, informe que um advogado especialista entrara em contato.
+7. NUNCA de orientacao juridica especifica. Diga que o advogado ira analisar o caso.
+8. Responda SEMPRE em portugues brasileiro.
+9. Mantenha respostas curtas (maximo 3 paragrafos) — e WhatsApp, ninguem le textao.
+10. Se o cliente mandar apenas "oi", "ola", "bom dia" etc, responda com uma saudacao e pergunte como pode ajudar.
+
+FLUXO DE QUALIFICACAO:
+- Saudacao → Entender problema → Coletar nome → Classificar area juridica → Verificar urgencia → Encaminhar
+
+${conversationHistory ? `HISTORICO DA CONVERSA:\n${conversationHistory}\n` : ""}`;
 
     const { data: aiResponse, error: aiError } = await supabase.functions.invoke("ai-agent-processor", {
       body: {
         agentName: "Coordenador",
-        agentSpecialization: "Triagem e Atendimento Inicial",
-        systemPrompt:
-          "Voce e um assistente juridico virtual. Seu objetivo e qualificar o lead e entender o problema juridico.",
+        agentSpecialization: "Recepcao e Qualificacao de Leads Juridicos",
+        systemPrompt: coordenadorPrompt,
         userPrompt: text,
         leadId: leadId,
         tenantId: tenantId,
+        temperature: 0.6,
+        maxTokens: 500,
         context: {
           channel: "whatsapp",
           phone: from,
+          contactName: name,
+          isFirstContact: !conversation,
         },
       },
     });
 
     if (aiError) {
-      console.error("[whatsapp-webhook] Error invoking AI agent:", aiError);
+      console.error(`[webhook:${provider}] Error invoking AI agent:`, aiError);
       return;
     }
 
     const aiText = aiResponse?.result || "Desculpe, nao consegui processar sua mensagem no momento.";
 
+    // --- UPDATE LEAD STATUS IN CRM ---
+    // Se é primeiro contato, atualiza status para "em_atendimento"
+    if (!conversation) {
+      await supabase
+        .from("leads")
+        .update({
+          status: "em_atendimento",
+          observacoes: `[WhatsApp] Primeiro contato: "${text.substring(0, 200)}"`,
+        })
+        .eq("id", leadId)
+        .eq("tenant_id", tenantId);
+
+      console.log(`[webhook:${provider}] Lead ${leadId} status updated to em_atendimento`);
+    }
+
+    // --- SAVE AI RESPONSE ---
     await supabase.from("whatsapp_messages").insert({
       conversation_id: conversationId,
       sender: "ia",
@@ -374,31 +558,83 @@ async function processMessage(supabase: any, message: any, phoneNumberId?: strin
       timestamp: new Date().toISOString(),
     });
 
-    await sendWhatsAppMessage(from, aiText, phoneNumberId, accessToken || WHATSAPP_ACCESS_TOKEN || "");
+    // --- SEND REPLY ---
+    if (provider === "evolution" && instanceName) {
+      await sendViaEvolution(instanceName, from, aiText);
+    } else {
+      await sendViaMeta(from, aiText, tenantId, supabase);
+    }
   } catch (error) {
-    console.error("[whatsapp-webhook] Error processing message:", error);
+    console.error(`[webhook] Error processing message:`, error);
   }
 }
 
-async function sendWhatsAppMessage(
-  to: string,
-  text: string,
-  phoneNumberId?: string,
-  accessToken?: string
-) {
-  const token = accessToken || "";
-  const idToSendFrom = Deno.env.get("WHATSAPP_PHONE_NUMBER_ID") || phoneNumberId;
+// ============================================
+// 📤 ENVIO VIA EVOLUTION API
+// ============================================
+async function sendViaEvolution(instanceName: string, to: string, text: string) {
+  const apiUrl = EVOLUTION_API_URL;
+  const apiKey = EVOLUTION_API_KEY;
 
-  if (!token || !idToSendFrom) {
-    console.error("[whatsapp-webhook] Missing WhatsApp credentials for sending");
+  if (!apiUrl || !apiKey) {
+    console.error("[webhook:evolution] EVOLUTION_API_URL or EVOLUTION_API_KEY not configured");
     return;
   }
 
   try {
-    const response = await fetch(`https://graph.facebook.com/v18.0/${idToSendFrom}/messages`, {
+    const response = await fetch(`${apiUrl}/message/sendText/${instanceName}`, {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+        apikey: apiKey,
+      },
+      body: JSON.stringify({
+        number: to,
+        text: text,
+      }),
+    });
+
+    const data = await response.json();
+    if (!response.ok) {
+      console.error("[webhook:evolution] Error sending message:", data);
+    } else {
+      console.log(`[webhook:evolution] Message sent to ${to} via ${instanceName}`);
+    }
+  } catch (error) {
+    console.error("[webhook:evolution] Network error:", error);
+  }
+}
+
+// ============================================
+// 📤 ENVIO VIA META OFFICIAL API (backward compatible)
+// ============================================
+async function sendViaMeta(to: string, text: string, tenantId: string, supabase: any) {
+  let accessToken = Deno.env.get("WHATSAPP_ACCESS_TOKEN") || "";
+  let phoneNumberId = Deno.env.get("WHATSAPP_PHONE_NUMBER_ID") || "";
+
+  // Tenta buscar credenciais do tenant
+  if (tenantId) {
+    const { data: config } = await supabase
+      .from("configuracoes_integracoes")
+      .select("api_key, phone_number_id")
+      .eq("nome_integracao", INTEGRATION_NAME_META)
+      .eq("tenant_id", tenantId)
+      .maybeSingle();
+
+    if (config?.api_key) accessToken = config.api_key;
+    if (config?.phone_number_id) phoneNumberId = config.phone_number_id;
+  }
+
+  if (!accessToken || !phoneNumberId) {
+    console.error("[webhook:meta] Missing credentials for sending");
+    return;
+  }
+
+  try {
+    const response = await fetch(`https://graph.facebook.com/v18.0/${phoneNumberId}/messages`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
@@ -411,11 +647,11 @@ async function sendWhatsAppMessage(
 
     const data = await response.json();
     if (!response.ok) {
-      console.error("[whatsapp-webhook] Error sending WhatsApp message:", data);
+      console.error("[webhook:meta] Error sending:", data);
     } else {
-      console.log("[whatsapp-webhook] WhatsApp message sent:", data.messages?.[0]?.id);
+      console.log("[webhook:meta] Message sent:", data.messages?.[0]?.id);
     }
   } catch (error) {
-    console.error("[whatsapp-webhook] Network error sending WhatsApp message:", error);
+    console.error("[webhook:meta] Network error:", error);
   }
 }
