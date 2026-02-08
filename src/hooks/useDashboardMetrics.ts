@@ -92,21 +92,11 @@ export const useDashboardMetrics = () => {
         .from('agentes_ia')
         .select('id, status, created_at');
 
-      let execucoesQuery = supabase
-        .from('agent_executions')
-        .select('id, created_at, status, current_agent, agents_involved');
-
-      let execucoesLegacyQuery = supabase
-        .from('logs_execucao_agentes')
-        .select('id, created_at, status, agentes_ia:agente_id(nome)');
-
       if (tenantId) {
         leadsQuery = leadsQuery.eq('tenant_id', tenantId);
         contratosQuery = contratosQuery.eq('tenant_id', tenantId);
         agendamentosQuery = agendamentosQuery.eq('tenant_id', tenantId);
         agentesQuery = agentesQuery.eq('tenant_id', tenantId);
-        execucoesQuery = execucoesQuery.eq('tenant_id', tenantId);
-        execucoesLegacyQuery = execucoesLegacyQuery.eq('tenant_id', tenantId);
       }
 
       // Executar queries sequencialmente com tratamento silencioso de erros
@@ -114,17 +104,14 @@ export const useDashboardMetrics = () => {
       let contratos: any[] = [];
       let agendamentos: any[] = [];
       let agentes: any[] = [];
-      let execucoesNovas: any[] = [];
-      let execucoesLegacy: any[] = [];
 
       try { const r = await leadsQuery; leads = r.data || []; } catch { leads = []; }
       try { const r = await contratosQuery; contratos = r.data || []; } catch { contratos = []; }
       try { const r = await agendamentosQuery; agendamentos = r.data || []; } catch { agendamentos = []; }
       try { const r = await agentesQuery; agentes = r.data || []; } catch { agentes = []; }
-      try { const r = await execucoesQuery; execucoesNovas = r.data || []; } catch { execucoesNovas = []; }
-      try { const r = await execucoesLegacyQuery; execucoesLegacy = r.data || []; } catch { execucoesLegacy = []; }
 
-      const execucoes = execucoesNovas.length > 0 ? execucoesNovas : execucoesLegacy;
+      // TODO: Criar tabelas agent_executions e logs_execucao_agentes no banco
+      const execucoes: any[] = [];
 
       const leadsNovoMes = leads.filter(lead =>
         new Date(lead.created_at) >= inicioMes
