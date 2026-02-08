@@ -84,7 +84,7 @@ async function createInstance(instanceName: string, supabase: any, tenantId: str
   const { error: dbError } = await supabase.from("configuracoes_integracoes").insert({
     tenant_id: tenantId,
     nome_integracao: "whatsapp_evolution",
-    status: "aguardando_qr",
+    status: "inativa",
     api_key: EVOLUTION_API_KEY,
     endpoint_url: EVOLUTION_API_URL,
     phone_number_id: instanceName,
@@ -148,7 +148,7 @@ async function disconnectInstance(instanceName: string, supabase: any) {
   // Atualiza status no banco
   await supabase
     .from("configuracoes_integracoes")
-    .update({ status: "desconectada" })
+    .update({ status: "inativa" })
     .eq("nome_integracao", "whatsapp_evolution")
     .eq("phone_number_id", instanceName);
 
@@ -303,7 +303,7 @@ serve(async (req) => {
 
         // Sincroniza status com o banco
         if (result.success) {
-          const dbStatus = result.connected ? "ativa" : "desconectada";
+          const dbStatus = result.connected ? "ativa" : "inativa";
           await supabase
             .from("configuracoes_integracoes")
             .update({ status: dbStatus })
