@@ -39,12 +39,39 @@ interface InstanceInfo {
 }
 
 export default function WhatsAppEvolutionSetup({ onConnectionSuccess }: WhatsAppEvolutionSetupProps) {
-  const [instance, setInstance] = useState<InstanceInfo>({
-    instanceName: '',
-    state: 'idle',
-    qrCode: null,
-    error: null,
+  const [instance, setInstanceState] = useState<InstanceInfo>(() => {
+    // Carregar do localStorage se existir
+    const saved = localStorage.getItem('whatsapp_evolution_instance');
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        // Só restaura se não for mais antigo que 2 horas
+        if (parsed.timestamp && Date.now() - parsed.timestamp < 2 * 60 * 60 * 1000) {
+          return parsed.data;
+        }
+      } catch {
+        // Ignore parse error
+      }
+    }
+    return {
+      instanceName: '',
+      state: 'idle',
+      qrCode: null,
+      error: null,
+    };
   });
+
+  // Salvar no localStorage quando mudar
+  const setInstance = useCallback((update: InstanceInfo | ((prev: InstanceInfo) => InstanceInfo)) => {
+    setInstanceState((prev) => {
+      const newState = typeof update === 'function' ? update(prev) : update;
+      localStorage.setItem('whatsapp_evolution_instance', JSON.stringify({
+        data: newState,
+        timestamp: Date.now(),
+      }));
+      return newState;
+    });
+  }, []);
   const [loading, setLoading] = useState(false);
   const [polling, setPolling] = useState(false);
   const pollIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -53,16 +80,22 @@ export default function WhatsAppEvolutionSetup({ onConnectionSuccess }: WhatsApp
 
   const tenantId = profile?.tenant_id ?? null;
 
-  // Chamada à Edge Function evolution-manager
+  // Chamada à Edge Function evolution-manager com timeout
   const callEvolutionManager = useCallback(
     async (action: string, instanceName?: string) => {
       const session = (await supabase.auth.getSession()).data.session;
       if (!session?.access_token) throw new Error('Not authenticated');
 
-      const { data, error } = await supabase.functions.invoke('evolution-manager', {
+      const invokePromise = supabase.functions.invoke('evolution-manager', {
         body: { action, instanceName },
         headers: { Authorization: `Bearer ${session.access_token}` },
       });
+
+      const timeoutPromise = new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error('Tempo esgotado (30s). A Evolution API não respondeu.')), 30000)
+      );
+
+      const { data, error } = await Promise.race([invokePromise, timeoutPromise]);
 
       if (error) throw error;
       return data;
@@ -285,6 +318,7 @@ export default function WhatsAppEvolutionSetup({ onConnectionSuccess }: WhatsApp
 
     try {
       await callEvolutionManager('delete', instance.instanceName);
+      localStorage.removeItem('whatsapp_evolution_instance');
       setInstance({ instanceName: '', state: 'idle', qrCode: null, error: null });
       toast({ title: 'Instancia removida' });
     } catch (err: unknown) {
