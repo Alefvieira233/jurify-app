@@ -82,13 +82,11 @@ async function createInstance(instanceName: string, supabase: any, tenantId: str
 
   // Salva configuração no banco
   const { error: dbError } = await supabase.from("configuracoes_integracoes").insert({
-    tenant_id: tenantId,
     nome_integracao: "whatsapp_evolution",
     status: "inativa",
     api_key: EVOLUTION_API_KEY,
     endpoint_url: EVOLUTION_API_URL,
-    phone_number_id: instanceName,
-    verify_token: null,
+    observacoes: `Instance: ${instanceName}`,
   });
 
   if (dbError) {
@@ -168,9 +166,8 @@ async function deleteInstance(instanceName: string, supabase: any, tenantId: str
   await supabase
     .from("configuracoes_integracoes")
     .delete()
-    .eq("tenant_id", tenantId)
     .eq("nome_integracao", "whatsapp_evolution")
-    .eq("phone_number_id", instanceName);
+    .ilike("observacoes", `%${instanceName}%`);
 
   return {
     success: result.ok,
@@ -270,7 +267,6 @@ serve(async (req) => {
         const { data: existing } = await supabase
           .from("configuracoes_integracoes")
           .select("id, phone_number_id, status")
-          .eq("tenant_id", profile.tenant_id)
           .eq("nome_integracao", "whatsapp_evolution")
           .maybeSingle();
 
@@ -307,9 +303,8 @@ serve(async (req) => {
           await supabase
             .from("configuracoes_integracoes")
             .update({ status: dbStatus })
-            .eq("tenant_id", profile.tenant_id)
             .eq("nome_integracao", "whatsapp_evolution")
-            .eq("phone_number_id", resolvedInstanceName);
+            .ilike("observacoes", `%${resolvedInstanceName}%`);
         }
         break;
 
