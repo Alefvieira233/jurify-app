@@ -16,7 +16,7 @@ jobs:
   # JOB 1: DEPLOY FRONTEND
   # ==========================================
   deploy-frontend:
-    name: 🌐 Deploy Frontend to Vercel/Netlify
+    name: 🌐 Deploy Frontend to Production
     runs-on: ubuntu-latest
     timeout-minutes: 15
     environment:
@@ -47,31 +47,17 @@ jobs:
           VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
           VITE_ZAPSIGN_API_KEY: ${{ secrets.VITE_ZAPSIGN_API_KEY }}
 
-      # OPÇÃO 1: Deploy para Vercel
-      - name: 🚀 Deploy to Vercel
-        uses: amondnet/vercel-action@v25
-        with:
-          vercel-token: ${{ secrets.VERCEL_TOKEN }}
-          vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
-          vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID }}
-          working-directory: ${{ env.WORKING_DIR }}
-          vercel-args: '--prod'
-        if: false  # Desabilitar se não usar Vercel
+      # OPÇÃO 1: Deploy para Vercel (desabilitado)
+      # - name: 🚀 Deploy to Vercel
+      #   uses: amondnet/vercel-action@v25
+      #   with:
+      #     vercel-token: ${{ secrets.VERCEL_TOKEN }}
+      #     vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
+      #     vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID }}
+      #     working-directory: ${{ env.WORKING_DIR }}
+      #     vercel-args: '--prod'
 
-      # OPÇÃO 2: Deploy para Netlify
-      - name: 🚀 Deploy to Netlify
-        uses: nwtgck/actions-netlify@v3
-        with:
-          publish-dir: '${{ env.WORKING_DIR }}/dist'
-          production-branch: master
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          deploy-message: "Deploy from GitHub Actions - ${{ github.sha }}"
-        env:
-          NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
-          NETLIFY_SITE_ID: ${{ secrets.NETLIFY_SITE_ID }}
-        if: false  # Desabilitar se não usar Netlify
-
-      # OPÇÃO 3: Deploy via FTP/SFTP (servidor próprio)
+      # OPÇÃO 2: Deploy via FTP/SFTP (servidor próprio)
       - name: 🚀 Deploy via SFTP
         uses: wlixcc/SFTP-Deploy-Action@v1.2.4
         with:
