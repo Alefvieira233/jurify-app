@@ -109,28 +109,20 @@ export const useDashboardMetrics = () => {
         execucoesLegacyQuery = execucoesLegacyQuery.eq('tenant_id', tenantId);
       }
 
-      const [
-        leadsResult,
-        contratosResult,
-        agendamentosResult,
-        agentesResult,
-        execucoesResult,
-        execucoesLegacyResult
-      ] = await Promise.allSettled([
-        leadsQuery,
-        contratosQuery,
-        agendamentosQuery,
-        agentesQuery,
-        execucoesQuery,
-        execucoesLegacyQuery,
-      ]);
+      // Executar queries sequencialmente com tratamento silencioso de erros
+      let leads: any[] = [];
+      let contratos: any[] = [];
+      let agendamentos: any[] = [];
+      let agentes: any[] = [];
+      let execucoesNovas: any[] = [];
+      let execucoesLegacy: any[] = [];
 
-      const leads = leadsResult.status === 'fulfilled' ? leadsResult.value.data || [] : [];
-      const contratos = contratosResult.status === 'fulfilled' ? contratosResult.value.data || [] : [];
-      const agendamentos = agendamentosResult.status === 'fulfilled' ? agendamentosResult.value.data || [] : [];
-      const agentes = agentesResult.status === 'fulfilled' ? agentesResult.value.data || [] : [];
-      const execucoesNovas = execucoesResult.status === 'fulfilled' ? execucoesResult.value.data || [] : [];
-      const execucoesLegacy = execucoesLegacyResult.status === 'fulfilled' ? execucoesLegacyResult.value.data || [] : [];
+      try { const r = await leadsQuery; leads = r.data || []; } catch { leads = []; }
+      try { const r = await contratosQuery; contratos = r.data || []; } catch { contratos = []; }
+      try { const r = await agendamentosQuery; agendamentos = r.data || []; } catch { agendamentos = []; }
+      try { const r = await agentesQuery; agentes = r.data || []; } catch { agentes = []; }
+      try { const r = await execucoesQuery; execucoesNovas = r.data || []; } catch { execucoesNovas = []; }
+      try { const r = await execucoesLegacyQuery; execucoesLegacy = r.data || []; } catch { execucoesLegacy = []; }
 
       const execucoes = execucoesNovas.length > 0 ? execucoesNovas : execucoesLegacy;
 

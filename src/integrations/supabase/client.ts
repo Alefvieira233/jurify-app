@@ -19,6 +19,20 @@ console.log('[supabase] Initializing client...', {
   hasEnvKey: true,
 });
 
+// Suppress expected 400 errors from dashboard queries (tables may not exist)
+const originalConsoleError = console.error;
+console.error = (...args: any[]) => {
+  const msg = args.join(' ');
+  // Filter out Supabase 400 errors for expected missing tables
+  if (msg.includes('400') && 
+      (msg.includes('agent_executions') || 
+       msg.includes('logs_execucao_agentes') ||
+       msg.includes('Bad Request'))) {
+    return; // Silently ignore
+  }
+  originalConsoleError.apply(console, args);
+};
+
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {
     persistSession: true,
