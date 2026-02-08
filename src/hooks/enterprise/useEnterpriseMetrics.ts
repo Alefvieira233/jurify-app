@@ -46,7 +46,14 @@ const AGENT_AVG_TIMES: Record<string, number> = {
   comunicador: 1.8,
 };
 
-const calculateSuccessRate = (interactions: any[]): number => {
+interface LeadInteraction {
+  created_at: string;
+  message?: string;
+  response?: string;
+  metadata?: { agent_id?: string };
+}
+
+const calculateSuccessRate = (interactions: LeadInteraction[]): number => {
   if (interactions.length === 0) return 100;
   const errors = interactions.filter(
     (i) => i.message?.toLowerCase().includes('erro') || i.response?.toLowerCase().includes('erro')
@@ -54,7 +61,7 @@ const calculateSuccessRate = (interactions: any[]): number => {
   return ((interactions.length - errors) / interactions.length) * 100;
 };
 
-const calculateErrorRate = (interactions: any[]): number => {
+const calculateErrorRate = (interactions: LeadInteraction[]): number => {
   if (interactions.length === 0) return 0;
   const errors = interactions.filter((i) => i.message?.toLowerCase().includes('erro')).length;
   return (errors / interactions.length) * 100;

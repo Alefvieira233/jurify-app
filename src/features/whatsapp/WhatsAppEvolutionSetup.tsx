@@ -111,27 +111,33 @@ export default function WhatsAppEvolutionSetup({ onConnectionSuccess }: WhatsApp
       try {
         const { data, error } = await supabase
           .from('configuracoes_integracoes')
-          .select('phone_number_id, status, verify_token')
-          .eq('tenant_id', tenantId)
+          .select('id, status, observacoes')
           .eq('nome_integracao', 'whatsapp_evolution')
           .maybeSingle();
 
         if (error) throw error;
         if (!data) return;
 
+        // Extrai instanceName do campo observacoes (formato: "Instance: nome")
+        const extractInstanceName = (obs: string | null): string => {
+          if (!obs) return '';
+          const match = obs.match(/Instance:\s*(.+)/);
+          return match ? match[1].trim() : '';
+        };
+
         const stateMap: Record<string, ConnectionState> = {
           ativa: 'connected',
-          desconectada: 'disconnected',
-          aguardando_qr: 'qr_ready',
+          inativa: 'disconnected',
+          erro: 'error',
         };
 
         setInstance({
-          instanceName: data.phone_number_id || '',
+          instanceName: extractInstanceName(data.observacoes),
           state: stateMap[data.status] || 'idle',
-          qrCode: data.status === 'aguardando_qr' ? data.verify_token : null,
+          qrCode: null,
           error: null,
         });
-      } catch (err) {
+      } catch {
         // Error handled silently
       }
     };

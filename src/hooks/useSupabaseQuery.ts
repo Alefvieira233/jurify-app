@@ -12,7 +12,7 @@ interface QueryOptions {
 
 export const useSupabaseQuery = <T>(
   queryKey: string,
-  queryFn: () => Promise<{ data: T[] | null; error: any }>,
+  queryFn: () => Promise<{ data: T[] | null; error: { message?: string; name?: string } | null }>,
   options: QueryOptions = {}
 ) => {
   const { enabled = true, refetchOnMount = true, staleTime = 30000 } = options;
@@ -80,13 +80,14 @@ export const useSupabaseQuery = <T>(
       
       console.log(`📊 [${queryKey}] ${resultData.length} registros carregados`);
       
-    } catch (error: any) {
+    } catch (error: unknown) {
       if (!mountedRef.current) return;
       
       console.error(`❌ [${queryKey}] Erro na query:`, error);
       
-      if (error.name !== 'AbortError') {
-        const errorMessage = error.message || 'Erro ao carregar dados';
+      const isAbort = error instanceof Error && error.name === 'AbortError';
+      if (!isAbort) {
+        const errorMessage = error instanceof Error ? error.message : 'Erro ao carregar dados';
         setError(errorMessage);
         setData([]);
       }

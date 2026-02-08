@@ -25,11 +25,19 @@ export const useGoogleCalendar = () => {
   const { user, profile } = useAuth();
   const tenantId = profile?.tenant_id || null;
   const { toast } = useToast();
-  const supabaseAny = supabase as any;
+  // Cast needed: google_calendar_settings table may not be in generated types yet
+  const supabaseAny = supabase as unknown as {
+    from: (table: string) => ReturnType<typeof supabase.from>;
+  };
   const [loading, setLoading] = useState(false);
   const [settings, setSettings] = useState<GoogleCalendarSettings | null>(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [calendars, setCalendars] = useState<any[]>([]);
+  interface GoogleCalendar {
+    id: string;
+    summary: string;
+    primary?: boolean;
+  }
+  const [calendars, setCalendars] = useState<GoogleCalendar[]>([]);
 
   const isOAuthConfigured = GoogleOAuthService.isConfigured();
 
@@ -75,7 +83,7 @@ export const useGoogleCalendar = () => {
 
       const token = await GoogleOAuthService.loadTokens(user.id);
       setIsAuthenticated(!!token);
-    } catch (error: any) {
+    } catch (_error: unknown) {
       toast({
         title: 'Erro',
         description: 'Nao foi possivel carregar as configuracoes do Google Calendar.',
@@ -110,7 +118,7 @@ export const useGoogleCalendar = () => {
       });
 
       return true;
-    } catch (error: any) {
+    } catch (_error: unknown) {
       toast({
         title: 'Erro',
         description: 'Nao foi possivel atualizar as configuracoes.',
@@ -149,10 +157,10 @@ export const useGoogleCalendar = () => {
       const authUrl = GoogleOAuthService.getAuthUrl(cryptoState);
       localStorage.setItem('google_oauth_state', cryptoState);
       window.location.href = authUrl;
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         title: 'Erro',
-        description: error.message || 'Erro ao iniciar autenticacao',
+        description: error instanceof Error ? error.message : 'Erro ao iniciar autenticacao',
         variant: 'destructive',
       });
     }
@@ -191,10 +199,10 @@ export const useGoogleCalendar = () => {
       });
 
       return true;
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         title: 'Erro',
-        description: error.message || 'Erro ao conectar Google Calendar',
+        description: error instanceof Error ? error.message : 'Erro ao conectar Google Calendar',
         variant: 'destructive',
       });
       return false;
@@ -224,7 +232,7 @@ export const useGoogleCalendar = () => {
       });
 
       return true;
-    } catch (error: any) {
+    } catch (_error: unknown) {
       toast({
         title: 'Erro',
         description: 'Nao foi possivel desconectar o Google Calendar.',
@@ -236,7 +244,20 @@ export const useGoogleCalendar = () => {
     }
   }, [user?.id, toast, updateSettings]);
 
-  const createCalendarEvent = useCallback(async (eventData: any, agendamentoId: string) => {
+  interface AgendamentoEventData {
+    titulo?: string;
+    descricao?: string;
+    data_hora?: string;
+    participantes?: string[];
+    // Google Calendar API format (used by components directly)
+    summary?: string;
+    description?: string;
+    start?: { dateTime: string; timeZone: string };
+    end?: { dateTime: string; timeZone: string };
+    attendees?: Array<{ email: string }>;
+  }
+
+  const createCalendarEvent = useCallback(async (eventData: AgendamentoEventData, agendamentoId: string) => {
     if (!user?.id || !settings?.calendar_id || !tenantId) {
       return null;
     }
@@ -280,14 +301,14 @@ export const useGoogleCalendar = () => {
       }]);
 
       return googleEvent.id;
-    } catch (error: any) {
+    } catch (error: unknown) {
       await supabase.from('google_calendar_sync_logs').insert([{
         tenant_id: tenantId,
         user_id: user.id,
         action: 'create',
         agendamento_id: agendamentoId,
         status: 'error',
-        error_message: error.message,
+        error_message: error instanceof Error ? error.message : 'Unknown error',
       }]);
 
       toast({
@@ -300,7 +321,7 @@ export const useGoogleCalendar = () => {
     }
   }, [user?.id, tenantId, settings?.calendar_id, toast]);
 
-  const updateCalendarEvent = useCallback(async (googleEventId: string, eventData: any, agendamentoId: string) => {
+  const updateCalendarEvent = useCallback(async (googleEventId: string, eventData: Partial<AgendamentoEventData>, agendamentoId: string) => {
     if (!user?.id || !settings?.calendar_id || !tenantId) {
       return false;
     }
@@ -333,7 +354,7 @@ export const useGoogleCalendar = () => {
       }]);
 
       return true;
-    } catch (error: any) {
+    } catch (error: unknown) {
       await supabase.from('google_calendar_sync_logs').insert([{
         tenant_id: tenantId,
         user_id: user.id,
@@ -341,7 +362,7 @@ export const useGoogleCalendar = () => {
         agendamento_id: agendamentoId,
         google_event_id: googleEventId,
         status: 'error',
-        error_message: error.message,
+        error_message: error instanceof Error ? error.message : 'Unknown error',
       }]);
 
       return false;
@@ -370,7 +391,7 @@ export const useGoogleCalendar = () => {
       }]);
 
       return true;
-    } catch (error: any) {
+    } catch (error: unknown) {
       await supabase.from('google_calendar_sync_logs').insert([{
         tenant_id: tenantId,
         user_id: user.id,
@@ -378,7 +399,7 @@ export const useGoogleCalendar = () => {
         agendamento_id: agendamentoId,
         google_event_id: googleEventId,
         status: 'error',
-        error_message: error.message,
+        error_message: error instanceof Error ? error.message : 'Unknown error',
       }]);
 
       return false;
@@ -392,7 +413,7 @@ export const useGoogleCalendar = () => {
       setLoading(true);
       const userCalendars = await GoogleOAuthService.listCalendars(user.id);
       setCalendars(userCalendars);
-    } catch (error: any) {
+    } catch (_error: unknown) {
       // Error handled silently
     } finally {
       setLoading(false);

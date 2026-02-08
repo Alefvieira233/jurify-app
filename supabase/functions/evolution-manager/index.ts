@@ -148,7 +148,7 @@ async function disconnectInstance(instanceName: string, supabase: any) {
     .from("configuracoes_integracoes")
     .update({ status: "inativa" })
     .eq("nome_integracao", "whatsapp_evolution")
-    .eq("phone_number_id", instanceName);
+    .ilike("observacoes", `%${instanceName}%`);
 
   return {
     success: result.ok,
@@ -266,21 +266,29 @@ serve(async (req) => {
         // Verifica se já existe uma instância para este tenant
         const { data: existing } = await supabase
           .from("configuracoes_integracoes")
-          .select("id, phone_number_id, status")
+          .select("id, observacoes, status")
           .eq("nome_integracao", "whatsapp_evolution")
           .maybeSingle();
 
+        // Extrai instanceName do campo observacoes (formato: "Instance: nome")
+        const extractInstanceName = (obs: string | null): string => {
+          if (!obs) return resolvedInstanceName;
+          const match = obs.match(/Instance:\s*(.+)/);
+          return match ? match[1].trim() : resolvedInstanceName;
+        };
+
         if (existing) {
+          const existingInstanceName = extractInstanceName(existing.observacoes);
           // Se já existe mas está desconectada, tenta reconectar
           if (existing.status !== "ativa") {
-            result = await getQRCode(existing.phone_number_id);
-            result.instanceName = existing.phone_number_id;
+            result = await getQRCode(existingInstanceName);
+            result.instanceName = existingInstanceName;
             result.reconnecting = true;
           } else {
             result = {
               success: true,
               message: "Instance already exists and is connected",
-              instanceName: existing.phone_number_id,
+              instanceName: existingInstanceName,
               status: existing.status,
             };
           }

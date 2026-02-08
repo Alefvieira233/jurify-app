@@ -31,9 +31,16 @@ const retryWithBackoff = async <T>(
   throw lastError!;
 };
 
+interface ContractData {
+  titulo?: string;
+  descricao?: string;
+  signatarios?: Array<{ nome: string; email: string; cpf?: string }>;
+  [key: string]: unknown;
+}
+
 interface UseZapSignIntegrationReturn {
   isLoading: boolean;
-  gerarLinkAssinatura: (contratoId: string, contractData: any) => Promise<boolean>;
+  gerarLinkAssinatura: (contratoId: string, contractData: ContractData) => Promise<boolean>;
   verificarStatusAssinatura: (contratoId: string) => Promise<void>;
   enviarViaWhatsApp: (contratoId: string, telefone: string, nomeCliente: string, linkAssinatura: string) => Promise<boolean>;
 }
@@ -41,7 +48,7 @@ interface UseZapSignIntegrationReturn {
 export const useZapSignIntegration = (): UseZapSignIntegrationReturn => {
   const [isLoading, setIsLoading] = useState(false);
 
-  const gerarLinkAssinatura = async (contratoId: string, contractData: any): Promise<boolean> => {
+  const gerarLinkAssinatura = async (contratoId: string, contractData: ContractData): Promise<boolean> => {
     setIsLoading(true);
     try {
       const result = await retryWithBackoff(async () => {
