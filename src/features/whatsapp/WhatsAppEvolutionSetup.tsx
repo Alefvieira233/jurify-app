@@ -209,14 +209,17 @@ export default function WhatsAppEvolutionSetup({ onConnectionSuccess }: WhatsApp
 
   // Criar instância / Obter QR Code
   const handleConnect = async () => {
+    console.log('[WhatsApp] Iniciando conexão...');
     setLoading(true);
     setInstance((prev) => ({ ...prev, state: 'creating', error: null }));
 
     try {
+      console.log('[WhatsApp] Chamando Edge Function evolution-manager...');
       const result = await callEvolutionManager('create');
+      console.log('[WhatsApp] Resposta da Edge Function:', result);
 
       if (!result?.success) {
-        throw new Error(result?.error || 'Failed to create instance');
+        throw new Error(result?.error || 'Falha ao criar instância');
       }
 
       // Se já está conectada
@@ -227,12 +230,13 @@ export default function WhatsAppEvolutionSetup({ onConnectionSuccess }: WhatsApp
           qrCode: null,
           error: null,
         });
-        toast({ title: 'WhatsApp ja conectado', description: 'Sua instancia ja esta ativa.' });
+        toast({ title: 'WhatsApp já conectado', description: 'Sua instância já está ativa.' });
         return;
       }
 
       // QR Code disponível
       const qr = result.qrcode?.base64 || result.qrcode || null;
+      console.log('[WhatsApp] QR Code recebido:', qr ? 'Sim' : 'Não');
 
       setInstance({
         instanceName: result.instanceName || '',
@@ -243,7 +247,9 @@ export default function WhatsAppEvolutionSetup({ onConnectionSuccess }: WhatsApp
 
       // Se não veio QR, tenta buscar
       if (!qr && result.instanceName) {
+        console.log('[WhatsApp] Buscando QR Code separadamente...');
         const qrResult = await callEvolutionManager('qrcode', result.instanceName);
+        console.log('[WhatsApp] Resposta do QR Code:', qrResult);
         if (qrResult?.qrcode) {
           setInstance((prev) => ({
             ...prev,
@@ -254,14 +260,14 @@ export default function WhatsAppEvolutionSetup({ onConnectionSuccess }: WhatsApp
       }
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : 'Erro ao conectar';
-      console.error('Connection error:', err);
+      console.error('[WhatsApp] Erro na conexão:', err);
       setInstance((prev) => ({
         ...prev,
         state: 'error',
         error: message,
       }));
       toast({
-        title: 'Erro ao conectar',
+        title: 'Erro ao conectar WhatsApp',
         description: message,
         variant: 'destructive',
       });
