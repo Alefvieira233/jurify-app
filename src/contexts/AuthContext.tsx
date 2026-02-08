@@ -40,13 +40,10 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
 
-  const allowEmergencyProfile = import.meta.env.VITE_ALLOW_EMERGENCY_PROFILE === 'true' && import.meta.env.MODE !== 'production';
   const sessionTimeoutMs = 5000;
 
   const fetchProfile = useCallback(async (userId: string) => {
     try {
-      console.log(`?? [auth] Tentando carregar perfil real...`);
-
       const { data, error } = await supabase
         .from('profiles')
         .select('*')
@@ -55,32 +52,15 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
       if (error || !data) throw new Error('RLS_BLOCK_OR_NOT_FOUND');
 
-      console.log('? [auth] Perfil REAL carregado.');
       setProfile(data);
     } catch (_err) {
-      if (allowEmergencyProfile) {
-        console.warn(
-          '? [auth] MODO DEV: Emergency Profile habilitado via VITE_ALLOW_EMERGENCY_PROFILE.'
-        );
-        setProfile({
-          id: userId,
-          email: 'dev@local',
-          nome_completo: 'Emergency Dev Profile',
-          role: 'viewer',
-          tenant_id: 'dev-tenant',
-          subscription_status: 'dev',
-        });
-      } else {
-        console.error('? [auth] Perfil indisponível. Operando sem permissões.');
-        setProfile(null);
-      }
+      setProfile(null);
     }
-  }, [allowEmergencyProfile]);
+  }, []);
 
   useEffect(() => {
     const initialize = async () => {
       setLoading(true);
-      console.log('?? [auth] Iniciando Sessão...');
 
       const getSessionPromise = supabase.auth.getSession();
       const timeoutPromise = new Promise<never>((_, reject) => {
@@ -100,7 +80,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           setProfile(null);
         }
       } catch (error) {
-        console.error('? [auth] Falha ao verificar sessão:', error);
         setUser(null);
         setSession(null);
         setProfile(null);
@@ -112,7 +91,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     void initialize();
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, s) => {
-      console.log(`?? [auth] Evento Auth: ${event}`);
       setLoading(true);
       setUser(s?.user ?? null);
       setSession(s);

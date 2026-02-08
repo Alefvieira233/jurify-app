@@ -32,10 +32,12 @@ serve(async (req) => {
         }
 
         // 3. Parse Body
-        const { priceId, planId, successUrl, cancelUrl } = await req.json();
+        const { priceId, planId, successUrl, cancelUrl, mode: requestMode } = await req.json();
         if (!priceId) {
             throw new Error('Missing priceId');
         }
+
+        const mode = requestMode === 'payment' ? 'payment' : 'subscription';
 
         // 4. Init Stripe
         const stripe = new Stripe(Deno.env.get('STRIPE_SECRET_KEY') ?? '', {
@@ -103,7 +105,7 @@ serve(async (req) => {
     } catch (error) {
         console.error("❌ Error creating checkout session:", error);
         return new Response(
-            JSON.stringify({ error: error.message }),
+            JSON.stringify({ error: "Internal server error" }),
             {
                 headers: { ...corsHeaders, "Content-Type": "application/json" },
                 status: 500,

@@ -67,12 +67,12 @@ export const useLeads = (options?: { enablePagination?: boolean; pageSize?: numb
   const [totalCount, setTotalCount] = useState(0);
   const [totalPages, setTotalPages] = useState(0);
 
-  const normalizeLead = useCallback((lead: any): Lead => {
+  const normalizeLead = useCallback((lead: Record<string, unknown>): Lead => {
     return {
-      ...lead,
-      nome_completo: lead?.nome_completo ?? lead?.nome ?? null,
-      responsavel: lead?.metadata?.responsavel_nome ?? null,
-      observacoes: lead?.descricao ?? null,
+      ...(lead as unknown as Lead),
+      nome_completo: (lead.nome_completo ?? lead.nome ?? null) as string | null,
+      responsavel: ((lead.metadata as LeadMetadata)?.responsavel_nome ?? null) as string | null,
+      observacoes: (lead.descricao ?? null) as string | null,
     };
   }, []);
 
@@ -82,27 +82,27 @@ export const useLeads = (options?: { enablePagination?: boolean; pageSize?: numb
       Object.prototype.hasOwnProperty.call(payload, 'nome_completo');
 
     if (hasNome) {
-      const nome = (payload as any).nome ?? (payload as any).nome_completo ?? '';
-      (payload as any).nome = nome;
+      const nome = (payload.nome ?? payload.nome_completo ?? '') as string;
+      payload.nome = nome;
     }
-    delete (payload as any).nome_completo;
+    delete payload.nome_completo;
 
-    const responsavel = (payload as any).responsavel as string | undefined;
+    const responsavel = payload.responsavel as string | undefined;
     if (responsavel) {
-      (payload as any).metadata = {
-        ...((payload as any).metadata || {}),
+      payload.metadata = {
+        ...((payload.metadata as LeadMetadata) || {}),
         responsavel_nome: responsavel,
       };
-      if (user?.id && !(payload as any).responsavel_id) {
-        (payload as any).responsavel_id = user.id;
+      if (user?.id && !payload.responsavel_id) {
+        payload.responsavel_id = user.id;
       }
     }
-    delete (payload as any).responsavel;
+    delete payload.responsavel;
 
-    if ((payload as any).observacoes && !(payload as any).descricao) {
-      (payload as any).descricao = (payload as any).observacoes;
+    if (payload.observacoes && !payload.descricao) {
+      payload.descricao = payload.observacoes;
     }
-    delete (payload as any).observacoes;
+    delete payload.observacoes;
 
     return payload;
   }, [user?.id]);
@@ -121,7 +121,7 @@ export const useLeads = (options?: { enablePagination?: boolean; pageSize?: numb
         .order('created_at', { ascending: false });
 
       // IMPORTANTE: Se o profile não carregou mas sabemos o tenant pelo metadata do auth, tentamos usar
-      const effectiveTenantId = profile?.tenant_id || (user as any).user_metadata?.tenant_id;
+      const effectiveTenantId = profile?.tenant_id || (user?.user_metadata as Record<string, unknown>)?.tenant_id;
 
       if (effectiveTenantId) {
         log.debug(`Filtrando por tenant: ${effectiveTenantId}`);
@@ -155,9 +155,9 @@ export const useLeads = (options?: { enablePagination?: boolean; pageSize?: numb
         setTotalPages(Math.ceil(count / pageSize));
       }
 
-    } catch (error: any) {
+    } catch (error: unknown) {
       log.error('Falha na busca', error);
-      setError(error.message || 'Erro ao carregar leads');
+      setError(error instanceof Error ? error.message : 'Erro ao carregar leads');
       setLeads([]);
       setIsEmpty(true);
     } finally {
@@ -225,11 +225,11 @@ export const useLeads = (options?: { enablePagination?: boolean; pageSize?: numb
       });
 
       return true;
-    } catch (error: any) {
+    } catch (error: unknown) {
       log.error('Erro ao criar lead', error);
       toast({
         title: 'Erro',
-        description: error.message || 'Não foi possível criar o lead.',
+        description: error instanceof Error ? error.message : 'Não foi possível criar o lead.',
         variant: 'destructive',
       });
       return false;
@@ -262,11 +262,11 @@ export const useLeads = (options?: { enablePagination?: boolean; pageSize?: numb
       });
 
       return true;
-    } catch (error: any) {
+    } catch (error: unknown) {
       log.error('Erro ao atualizar lead', error);
       toast({
         title: 'Erro',
-        description: error.message || 'Não foi possível atualizar o lead.',
+        description: error instanceof Error ? error.message : 'Não foi possível atualizar o lead.',
         variant: 'destructive',
       });
       return false;
@@ -291,11 +291,11 @@ export const useLeads = (options?: { enablePagination?: boolean; pageSize?: numb
       });
 
       return true;
-    } catch (error: any) {
+    } catch (error: unknown) {
       log.error('Erro ao deletar lead', error);
       toast({
         title: 'Erro',
-        description: error.message || 'Não foi possível remover o lead.',
+        description: error instanceof Error ? error.message : 'Não foi possível remover o lead.',
         variant: 'destructive',
       });
       return false;

@@ -93,6 +93,10 @@ const NovoAgenteForm: React.FC<NovoAgenteFormProps> = ({ agente, defaultType, on
     }));
   };
 
+  const handleFieldChange = (field: string, value: string | number) => {
+    setFormData(prev => ({ ...prev, [field]: value }));
+  };
+
   const handleParametroChange = (field: keyof typeof formData.parametros_avancados, value: number) => {
     setFormData(prev => ({
       ...prev,
@@ -226,13 +230,13 @@ const NovoAgenteForm: React.FC<NovoAgenteFormProps> = ({ agente, defaultType, on
           {/* Informações Básicas */}
           <BasicInfoSection
             formData={formData}
-            onInputChange={(field, value) => handleInputChange(field as keyof typeof formData, value as any)}
+            onInputChange={handleFieldChange}
           />
 
           {/* Configuração de IA */}
           <AIConfigSection
             formData={formData}
-            onInputChange={(field, value) => handleInputChange(field as keyof typeof formData, value as any)}
+            onInputChange={handleFieldChange}
           />
 
           {/* Parâmetros Avançados */}
@@ -244,7 +248,7 @@ const NovoAgenteForm: React.FC<NovoAgenteFormProps> = ({ agente, defaultType, on
           {/* Configurações de Interação */}
           <InteractionConfigSection
             formData={formData}
-            onInputChange={(field, value) => handleInputChange(field as keyof typeof formData, value as any)}
+            onInputChange={(field, value) => handleFieldChange(field, value)}
             onArrayChange={handleArrayChange}
             onAddArrayItem={addArrayItem}
             onRemoveArrayItem={removeArrayItem}

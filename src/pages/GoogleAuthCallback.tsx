@@ -39,8 +39,6 @@ const GoogleAuthCallback: React.FC = () => {
           throw new Error('Código ou state ausentes no callback');
         }
 
-        console.log('🔄 [GoogleAuthCallback] Processando callback...');
-
         // Processar callback
         const success = await handleOAuthCallback(code, state);
 
@@ -55,7 +53,6 @@ const GoogleAuthCallback: React.FC = () => {
         }
 
       } catch (error: unknown) {
-        console.error('❌ [GoogleAuthCallback] Erro:', error);
         const message = error instanceof Error ? error.message : 'Erro desconhecido';
         setStatus('error');
         setErrorMessage(message);

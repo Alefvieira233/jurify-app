@@ -120,8 +120,6 @@ Analisar cada solicitação e rotear para o agente especialista correto, monitor
   }
 
   private async planExecution(payload: any): Promise<void> {
-    console.log(`🎯 [Coordinator] Planejando execução para lead: ${payload.leadId || 'novo'}`);
-
     const plan = await this.processWithAIRetry(
       `Analise este lead e decida qual o próximo passo.
       Lead: ${payload.message}
@@ -152,10 +150,8 @@ Analisar cada solicitação e rotear para o agente especialista correto, monitor
         reason = parsed.reason || 'Decisão da IA';
       }
     } catch (e) {
-      console.warn(`⚠️ [Coordinator] Falha ao parsear decisão, usando fallback: ${e}`);
+      // Fallback to default agent
     }
-
-    console.log(`📋 [Coordinator] Decisão: ${nextAgent} (${task}) - ${reason}`);
 
     this.updateContext(payload.leadId, { stage: 'planned', plan, nextAgent, task });
 
@@ -182,14 +178,11 @@ Analisar cada solicitação e rotear para o agente especialista correto, monitor
     const retries = this.getRetryCount(leadId, targetAgent);
     
     if (retries >= CoordinatorAgent.MAX_RETRIES_PER_AGENT) {
-      console.warn(`⚠️ [Coordinator] Máximo de tentativas atingido para ${targetAgent}, aplicando fallback`);
       await this.applyFallback(targetAgent, leadId, payload);
       return;
     }
 
     this.incrementRetryCount(leadId, targetAgent);
-
-    console.log(`📤 [Coordinator] Roteando para ${targetAgent} (tentativa ${retries + 1}/${CoordinatorAgent.MAX_RETRIES_PER_AGENT})`);
 
     await this.sendMessage(
       targetAgent,
@@ -206,12 +199,9 @@ Analisar cada solicitação e rotear para o agente especialista correto, monitor
     const fallbackAgent = CoordinatorAgent.FALLBACK_MAP[failedAgent];
 
     if (!fallbackAgent || fallbackAgent === 'ESCALATE_HUMAN') {
-      console.error(`🚨 [Coordinator] Escalonando para humano - todos os agentes falharam para lead ${leadId}`);
       await this.escalateToHuman(leadId, payload, failedAgent);
       return;
     }
-
-    console.log(`🔄 [Coordinator] Fallback: ${failedAgent} → ${fallbackAgent}`);
 
     // Determina a task apropriada para o agente de fallback
     const fallbackTask = this.getTaskForAgent(fallbackAgent);
@@ -228,8 +218,6 @@ Analisar cada solicitação e rotear para o agente especialista correto, monitor
    * Escala para atendimento humano quando todos os agentes falham
    */
   private async escalateToHuman(leadId: string, payload: any, lastFailedAgent: string): Promise<void> {
-    console.error(`🚨 [Coordinator] ESCALAÇÃO HUMANA NECESSÁRIA para lead ${leadId}`);
-
     // Registra a escalação no ExecutionTracker
     await this.recordStageResult('human_escalation', {
       leadId,
@@ -264,8 +252,7 @@ Analisar cada solicitação e rotear para o agente especialista correto, monitor
    * Trata erros reportados por outros agentes
    */
   private async handleAgentError(message: AgentMessage): Promise<void> {
-    const { agentName, leadId, error } = message.payload as any;
-    console.error(`❌ [Coordinator] Erro reportado por ${agentName}: ${error}`);
+    const { agentName, leadId } = message.payload as any;
 
     // Aplica fallback para o agente que falhou
     if (agentName && leadId) {
@@ -275,11 +262,9 @@ Analisar cada solicitação e rotear para o agente especialista correto, monitor
 
   private async monitorProgress(payload: any): Promise<void> {
     const { stage, leadId } = payload;
-    console.log(`📊 [Coordinator] Progresso: lead ${leadId} → estágio ${stage}`);
 
     switch (stage) {
       case 'qualified':
-        console.log(`✅ [Coordinator] Lead qualificado, enviando para validação jurídica`);
         await this.routeToAgentWithFallback(
           AGENT_CONFIG.NAMES.LEGAL,
           'validate_case',
@@ -289,7 +274,6 @@ Analisar cada solicitação e rotear para o agente especialista correto, monitor
         break;
 
       case 'validated':
-        console.log(`✅ [Coordinator] Caso validado, enviando para proposta comercial`);
         await this.routeToAgentWithFallback(
           AGENT_CONFIG.NAMES.COMMERCIAL,
           'create_proposal',
@@ -299,7 +283,6 @@ Analisar cada solicitação e rotear para o agente especialista correto, monitor
         break;
 
       case 'proposal_created':
-        console.log(`✅ [Coordinator] Proposta criada, enviando para comunicação`);
         await this.routeToAgentWithFallback(
           AGENT_CONFIG.NAMES.COMMUNICATOR,
           'send_proposal',
@@ -309,13 +292,12 @@ Analisar cada solicitação e rotear para o agente especialista correto, monitor
         break;
 
       case 'proposal_sent':
-        console.log(`🎉 [Coordinator] Fluxo completo! Proposta enviada para lead ${leadId}`);
         // Limpa contadores de retry
         this.retryCount.delete(leadId);
         break;
 
       default:
-        console.log(`📋 [Coordinator] Estágio não mapeado: ${stage}`);
+        break;
     }
   }
 

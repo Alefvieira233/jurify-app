@@ -46,24 +46,24 @@ export const useAgentesIA = () => {
   const { toast } = useToast();
   const tenantId = profile?.tenant_id || null;
 
-  const normalizeAgente = useCallback((agente: any): AgenteIA => {
+  const normalizeAgente = useCallback((agente: Record<string, unknown>): AgenteIA => {
     return {
-      id: agente.id,
-      nome: agente.nome,
-      area_juridica: agente.area_juridica ?? null,
-      objetivo: agente.objetivo ?? null,
-      script_saudacao: agente.script_saudacao ?? null,
-      perguntas_qualificacao: agente.perguntas_qualificacao ?? null,
-      keywords_acao: agente.keywords_acao ?? null,
-      delay_resposta: agente.delay_resposta ?? null,
-      status: agente.status ?? 'ativo',
-      descricao_funcao: agente.descricao_funcao ?? null,
-      prompt_base: agente.prompt_base ?? agente.prompt_sistema ?? null,
-      tipo_agente: agente.tipo_agente ?? agente.tipo ?? null,
-      parametros_avancados: agente.parametros_avancados ?? null,
-      tenant_id: agente.tenant_id ?? null,
-      created_at: agente.created_at ?? null,
-      updated_at: agente.updated_at ?? null,
+      id: agente.id as string,
+      nome: agente.nome as string,
+      area_juridica: (agente.area_juridica as string) ?? null,
+      objetivo: (agente.objetivo as string) ?? null,
+      script_saudacao: (agente.script_saudacao as string) ?? null,
+      perguntas_qualificacao: (agente.perguntas_qualificacao as string[]) ?? null,
+      keywords_acao: (agente.keywords_acao as string[]) ?? null,
+      delay_resposta: (agente.delay_resposta as number) ?? null,
+      status: (agente.status as string) ?? 'ativo',
+      descricao_funcao: (agente.descricao_funcao as string) ?? null,
+      prompt_base: ((agente.prompt_base ?? agente.prompt_sistema) as string) ?? null,
+      tipo_agente: ((agente.tipo_agente ?? agente.tipo) as string) ?? null,
+      parametros_avancados: (agente.parametros_avancados as AgenteParams) ?? null,
+      tenant_id: (agente.tenant_id as string) ?? null,
+      created_at: (agente.created_at as string) ?? null,
+      updated_at: (agente.updated_at as string) ?? null,
     };
   }, []);
 
@@ -142,11 +142,12 @@ export const useAgentesIA = () => {
       });
 
       return true;
-    } catch (error: any) {
-      console.error('[useAgentesIA] erro ao criar agente:', error);
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Nao foi possivel criar o agente IA.';
+      console.error('[useAgentesIA] erro ao criar agente:', err);
       toast({
         title: 'Erro',
-        description: error.message || 'Nao foi possivel criar o agente IA.',
+        description: message,
         variant: 'destructive',
       });
       return false;
@@ -180,11 +181,12 @@ export const useAgentesIA = () => {
       });
 
       return true;
-    } catch (error: any) {
-      console.error('[useAgentesIA] erro ao atualizar agente:', error);
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Nao foi possivel atualizar o agente IA.';
+      console.error('[useAgentesIA] erro ao atualizar agente:', err);
       toast({
         title: 'Erro',
-        description: error.message || 'Nao foi possivel atualizar o agente IA.',
+        description: message,
         variant: 'destructive',
       });
       return false;
@@ -211,11 +213,12 @@ export const useAgentesIA = () => {
       });
 
       return true;
-    } catch (error: any) {
-      console.error('[useAgentesIA] erro ao remover agente:', error);
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Nao foi possivel remover o agente IA.';
+      console.error('[useAgentesIA] erro ao remover agente:', err);
       toast({
         title: 'Erro',
-        description: error.message || 'Nao foi possivel remover o agente IA.',
+        description: message,
         variant: 'destructive',
       });
       return false;
@@ -261,13 +264,14 @@ export const useAgentesIA = () => {
 
       console.log(`[useAgentesIA] execucao concluida em ${executionTime}ms`);
       return data;
-    } catch (error: any) {
+    } catch (err: unknown) {
       const executionTime = Date.now() - startTime;
-      console.error('[useAgentesIA] erro ao executar agente IA:', error, { executionTime });
+      const message = err instanceof Error ? err.message : 'Nao foi possivel executar o agente IA.';
+      console.error('[useAgentesIA] erro ao executar agente IA:', err, { executionTime });
 
       toast({
         title: 'Erro',
-        description: error.message || 'Nao foi possivel executar o agente IA.',
+        description: message,
         variant: 'destructive',
       });
       return null;

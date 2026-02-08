@@ -1,0 +1,4 @@
+# Environment files - NEVER commit secrets
+.env
+functions/.env
+functions/.env.local

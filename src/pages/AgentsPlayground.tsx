@@ -129,8 +129,6 @@ export default function AgentsPlayground() {
     const startTime = Date.now();
 
     try {
-      console.log('🧪 [Playground] Iniciando processamento...');
-
       // Inicializar o sistema se necessário
       if (!multiAgentSystem['initialized']) {
         await multiAgentSystem.initialize();
@@ -147,8 +145,6 @@ export default function AgentsPlayground() {
         tenantId: user.id // Usar o ID do usuário como tenant
       };
 
-      console.log('🧪 [Playground] Processando lead:', testLead);
-
       // Processar com o sistema multiagentes
       const agentResult = await multiAgentSystem.processLead(
         testLead,
@@ -158,20 +154,12 @@ export default function AgentsPlayground() {
 
       const executionTime = Date.now() - startTime;
 
-      console.log('✅ [Playground] Resultado recebido:', agentResult);
-
-      // ✅ VALIDAÇÃO ROBUSTA: Verificar se agentResult existe
+      // Verificar se agentResult existe
       if (!agentResult) {
-        console.error('❌ [Playground] ERRO: processLead() retornou undefined ou null');
         throw new Error(
           'Sistema multiagentes não retornou resultado. ' +
           'Possível problema: o método processLead() retorna Promise<void> em vez de um objeto com dados.'
         );
-      }
-
-      // ✅ VALIDAÇÃO: Verificar se tem executionId
-      if (!agentResult.executionId) {
-        console.warn('⚠️ [Playground] Resultado sem executionId, usando fallback');
       }
 
       setResult({
@@ -193,8 +181,6 @@ export default function AgentsPlayground() {
       });
 
     } catch (error: any) {
-      console.error('❌ [Playground] Erro:', error);
-
       const executionTime = Date.now() - startTime;
 
       setResult({

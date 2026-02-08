@@ -16,7 +16,7 @@ interface QueryOptions {
 
 export const useOptimizedQuery = <T>(
   queryKey: string,
-  queryFn: () => Promise<{ data: T[] | null; error: any }>,
+  queryFn: () => Promise<{ data: T[] | null; error: unknown }>,
   options: QueryOptions = {}
 ) => {
   const { 
@@ -104,12 +104,12 @@ export const useOptimizedQuery = <T>(
         
         console.log(`📊 [${queryKey}] ${resultData.length} registros carregados`);
         
-      } catch (error: any) {
+      } catch (err: unknown) {
         if (!mountedRef.current) return;
         
-        console.error(`❌ [${queryKey}] Erro na query (tentativa ${attempt + 1}):`, error);
+        console.error(`❌ [${queryKey}] Erro na query (tentativa ${attempt + 1}):`, err);
         
-        if (error.name === 'AbortError') return;
+        if (err instanceof DOMException && err.name === 'AbortError') return;
         
         if (attempt < retryAttempts - 1) {
           setRetryCount(attempt + 1);
@@ -117,7 +117,7 @@ export const useOptimizedQuery = <T>(
           return;
         }
         
-        const errorMessage = error.message || 'Erro ao carregar dados';
+        const errorMessage = err instanceof Error ? err.message : 'Erro ao carregar dados';
         setError(errorMessage);
         setData([]);
         setRetryCount(0);

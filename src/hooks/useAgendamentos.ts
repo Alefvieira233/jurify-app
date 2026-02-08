@@ -50,8 +50,6 @@ export const useAgendamentos = () => {
   }, []);
 
   const fetchAgendamentosQuery = useCallback(async () => {
-    console.log('🔍 [useAgendamentos] Buscando agendamentos...');
-    
     try {
       let query = supabase
         .from('agendamentos')
@@ -65,15 +63,12 @@ export const useAgendamentos = () => {
       const { data, error } = await query;
 
       if (error) {
-        console.error('❌ [useAgendamentos] Erro ao buscar agendamentos:', error);
         throw error;
       }
 
-      console.log(`✅ [useAgendamentos] ${data?.length || 0} agendamentos encontrados`);
       const normalized = (data || []).map(normalizeAgendamento);
       return { data: normalized, error: null };
     } catch (error) {
-      console.error('❌ [useAgendamentos] Erro na consulta:', error);
       return { data: null, error };
     }
   }, [profile?.tenant_id, normalizeAgendamento]);
@@ -101,8 +96,6 @@ export const useAgendamentos = () => {
     }
 
     try {
-      console.log('🔄 [useAgendamentos] Criando novo agendamento...');
-
       const { data: newAgendamento, error } = await supabase
         .from('agendamentos')
         .insert([data])
@@ -110,8 +103,6 @@ export const useAgendamentos = () => {
         .single();
 
       if (error) throw error;
-
-      console.log('✅ [useAgendamentos] Agendamento criado com sucesso:', newAgendamento.id);
 
       // ✅ CORREÇÃO: Usar setter callback para evitar dependência circular
       const normalized = normalizeAgendamento(newAgendamento as AgendamentoRow);
@@ -126,7 +117,6 @@ export const useAgendamentos = () => {
 
       return true;
     } catch (error: unknown) {
-      console.error('❌ [useAgendamentos] Erro ao criar agendamento:', error);
       const message = error instanceof Error ? error.message : 'Não foi possível criar o agendamento.';
       toast({
         title: 'Erro',
@@ -141,8 +131,6 @@ export const useAgendamentos = () => {
     if (!user) return false;
 
     try {
-      console.log(`🔄 [useAgendamentos] Atualizando agendamento ${id}...`);
-
       const { data: updatedAgendamento, error } = await supabase
         .from('agendamentos')
         .update({ ...updateData, updated_at: new Date().toISOString() })
@@ -151,8 +139,6 @@ export const useAgendamentos = () => {
         .single();
 
       if (error) throw error;
-
-      console.log('✅ [useAgendamentos] Agendamento atualizado com sucesso');
 
       // ✅ CORREÇÃO: Usar setter callback para evitar dependência circular
       const normalized = normalizeAgendamento(updatedAgendamento as AgendamentoRow);
@@ -169,7 +155,6 @@ export const useAgendamentos = () => {
 
       return true;
     } catch (error: unknown) {
-      console.error('❌ [useAgendamentos] Erro ao atualizar agendamento:', error);
       const message = error instanceof Error ? error.message : 'Não foi possível atualizar o agendamento.';
       toast({
         title: 'Erro',
@@ -185,15 +170,12 @@ export const useAgendamentos = () => {
     if (!user) return false;
 
     try {
-      console.log(`🔄 [useAgendamentos] Deletando agendamento ${id}...`);
       const { error } = await supabase
         .from('agendamentos')
         .delete()
         .eq('id', id);
 
       if (error) throw error;
-
-      console.log('✅ [useAgendamentos] Agendamento deletado com sucesso');
 
       // ✅ Usar setter callback
       setAgendamentos(prev => prev.filter(agendamento => agendamento.id !== id));
@@ -205,7 +187,6 @@ export const useAgendamentos = () => {
 
       return true;
     } catch (error: unknown) {
-      console.error('❌ [useAgendamentos] Erro ao deletar agendamento:', error);
       const message = error instanceof Error ? error.message : 'Não foi possível deletar o agendamento.';
       toast({
         title: 'Erro',

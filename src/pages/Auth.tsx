@@ -31,19 +31,15 @@ const Auth = () => {
 
     try {
       if (isLogin) {
-        console.log('[Auth] Tentando login com:', email);
         const { data, error } = await signIn(email, password);
-        console.log('[Auth] Resposta:', { data, error });
 
         if (error) {
-          console.error('[Auth] Erro detalhado:', error);
           toast({
             title: "Erro no login",
             description: `${error.message} (${error.status || 'sem status'})`,
             variant: "destructive",
           });
         } else if (data?.user) {
-          console.log('[Auth] Login OK, user:', data.user.id);
           toast({
             title: "Login realizado!",
             description: "Redirecionando...",
@@ -280,7 +276,7 @@ const Auth = () => {
               </CardHeader>
 
           <CardContent className="space-y-6">
-            <form onSubmit={(e) => void handleSubmit(e)} className="space-y-5">
+            <form onSubmit={(e) => void handleSubmit(e)} className="space-y-5" aria-label={isLogin ? 'Formulário de login' : 'Formulário de cadastro'}>
               {!isLogin && (
                 <div className="space-y-2">
                   <Label htmlFor="nomeCompleto" className="text-sm font-semibold text-[hsl(var(--foreground))]">

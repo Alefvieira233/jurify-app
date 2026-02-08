@@ -498,10 +498,10 @@ const WhatsAppIA = () => {
   // MAIN LAYOUT
   // ============================================
   return (
-    <div className="flex h-[calc(100vh-4rem)] bg-[hsl(var(--background))] overflow-hidden">
+    <main aria-label="WhatsApp IA" className="flex h-[calc(100vh-4rem)] bg-[hsl(var(--background))] overflow-hidden">
       <ConversationList />
       <ChatPanel />
-    </div>
+    </main>
   );
 };
 

@@ -89,15 +89,11 @@ const Pricing = () => {
       const priceId = priceIds[planId];
 
       if (!priceId) {
-        console.error('❌ Price ID não configurado para plano:', planId);
         toast.error('Configuração de preço não encontrada', {
           description: 'Entre em contato com o suporte para configurar seu plano.'
         });
         return;
       }
-
-      console.log('💳 Iniciando checkout para plano:', planId);
-      console.log('   Price ID:', priceId);
 
       // 2. Chama Edge Function para criar sessão de checkout
       const { data, error } = await supabase.functions.invoke('create-checkout-session', {
@@ -110,7 +106,6 @@ const Pricing = () => {
       });
 
       if (error) {
-        console.error('❌ Erro na Edge Function:', error);
         throw new Error(error.message || 'Erro ao criar sessão de pagamento');
       }
 
@@ -119,7 +114,6 @@ const Pricing = () => {
       }
 
       if (data.url) {
-        console.log('✅ Checkout URL recebida, redirecionando...');
         toast.success('Redirecionando para o pagamento seguro...');
 
         // Pequeno delay para o usuário ver o toast
@@ -131,7 +125,6 @@ const Pricing = () => {
       }
 
     } catch (err: unknown) {
-      console.error('Erro ao iniciar checkout:', err);
       const message = err instanceof Error ? err.message : 'Tente novamente mais tarde.';
       toast.error('Erro ao iniciar pagamento', {
         description: message

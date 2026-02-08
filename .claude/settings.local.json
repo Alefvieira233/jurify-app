@@ -1,4 +1,4 @@
-﻿{
+{
   "permissions": {
     "allow": [
       "Bash(npm run dev:*)",
@@ -22,8 +22,11 @@
       "Bash(npm run type-check:*)",
       "Bash(npm install:*)",
       "Bash(git add:*)",
-      "Bash(grep:*)"
+      "Bash(grep:*)",
+      "Bash(SUPABASE_ACCESS_TOKEN=sbp_37944894200d790929696be2546b37b666fc6c6b npx supabase functions deploy:*)",
+      "Bash(sort:*)",
+      "Bash(npx tsc:*)",
+      "Bash(npm run build:*)"
     ]
   }
 }
-

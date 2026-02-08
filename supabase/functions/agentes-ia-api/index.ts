@@ -199,8 +199,6 @@ serve(async (req) => {
     return new Response(
       JSON.stringify({
         error: 'Erro ao processar requisição',
-        message: error.message,
-        stack: error.stack
       }),
       {
         status: 500,

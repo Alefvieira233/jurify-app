@@ -70,11 +70,8 @@ export class MultiAgentSystem implements IMessageRouter {
    */
   public async initialize(): Promise<void> {
     if (this.isInitialized) {
-      console.log('⚠️ Sistema já inicializado, pulando...');
       return;
     }
-
-    console.log('🚀 Inicializando Sistema Multiagentes...');
 
     try {
       // Cria todos os agentes especializados
@@ -87,10 +84,8 @@ export class MultiAgentSystem implements IMessageRouter {
       this.agents.set('CustomerSuccess', new CustomerSuccessAgent());
 
       this.isInitialized = true;
-      console.log(`✅ ${this.agents.size} agentes inicializados com sucesso`);
 
     } catch (error) {
-      console.error('❌ Erro ao inicializar agentes:', error);
       throw new Error('Failed to initialize MultiAgentSystem');
     }
   }
@@ -112,7 +107,6 @@ export class MultiAgentSystem implements IMessageRouter {
     const targetAgent = this.agents.get(message.to);
 
     if (!targetAgent) {
-      console.error(`❌ Agente não encontrado: ${message.to}`);
       throw new Error(`Agent not found: ${message.to}`);
     }
 
@@ -138,8 +132,6 @@ export class MultiAgentSystem implements IMessageRouter {
     if (!this.isInitialized) {
       await this.initialize();
     }
-
-    console.log('🎯 Sistema Multiagentes processando lead...');
 
     // Cria contexto compartilhado
     const tenantId = (leadData as any)?.tenantId || (leadData as any)?.tenant_id;
@@ -208,12 +200,9 @@ export class MultiAgentSystem implements IMessageRouter {
     
     if (shouldWait) {
       try {
-        console.log(`⏳ Aguardando conclusão do fluxo (timeout: ${options?.timeoutMs ?? 60000}ms)...`);
         const result = await tracker.waitForCompletion(options?.timeoutMs);
-        console.log(`✅ Fluxo completo: ${tracker.executionId}`);
         return result;
       } catch (error) {
-        console.error(`❌ Erro ou timeout no fluxo:`, error);
         // Retorna resultado parcial mesmo em caso de erro/timeout
         return tracker.getResult();
       }
@@ -249,14 +238,12 @@ export class MultiAgentSystem implements IMessageRouter {
    */
   public clearHistory(): void {
     this.messageHistory = [];
-    console.log('🧹 Histórico de mensagens limpo');
   }
 
   /**
    * 🔄 Reseta sistema completamente (útil para testes)
    */
   public async reset(): Promise<void> {
-    console.log('🔄 Resetando sistema multiagentes...');
     this.agents.clear();
     this.messageHistory = [];
     this.isInitialized = false;

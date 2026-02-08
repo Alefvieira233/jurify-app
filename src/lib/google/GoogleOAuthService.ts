@@ -90,8 +90,6 @@ export class GoogleOAuthService {
    */
   static async exchangeCodeForTokens(code: string, userId: string): Promise<GoogleOAuthToken> {
     try {
-      console.log('🔄 [GoogleOAuth] Trocando código por tokens...');
-
       const response = await fetch(GOOGLE_TOKEN_URL, {
         method: 'POST',
         headers: {
@@ -124,11 +122,9 @@ export class GoogleOAuthService {
       // Salvar tokens no banco
       await this.saveTokens(userId, token);
 
-      console.log('✅ [GoogleOAuth] Tokens obtidos e salvos');
       return token;
 
     } catch (error: any) {
-      console.error('❌ [GoogleOAuth] Erro ao trocar código:', error);
       throw error;
     }
   }
@@ -190,8 +186,6 @@ export class GoogleOAuthService {
    */
   static async refreshAccessToken(userId: string, refreshToken: string): Promise<GoogleOAuthToken> {
     try {
-      console.log('🔄 [GoogleOAuth] Refreshing access token...');
-
       const response = await fetch(GOOGLE_TOKEN_URL, {
         method: 'POST',
         headers: {
@@ -222,11 +216,9 @@ export class GoogleOAuthService {
 
       await this.saveTokens(userId, token);
 
-      console.log('✅ [GoogleOAuth] Token refreshed');
       return token;
 
     } catch (error: any) {
-      console.error('❌ [GoogleOAuth] Erro ao refresh:', error);
       throw error;
     }
   }
@@ -271,10 +263,8 @@ export class GoogleOAuthService {
         .delete()
         .eq('user_id', userId);
 
-      console.log('✅ [GoogleOAuth] Tokens revogados');
 
     } catch (error: any) {
-      console.error('❌ [GoogleOAuth] Erro ao revogar tokens:', error);
       throw error;
     }
   }
@@ -304,7 +294,6 @@ export class GoogleOAuthService {
       return data.items || [];
 
     } catch (error: any) {
-      console.error('❌ [GoogleCalendar] Erro ao listar calendários:', error);
       throw error;
     }
   }
@@ -314,8 +303,6 @@ export class GoogleOAuthService {
    */
   static async createEvent(userId: string, calendarId: string, event: CalendarEvent): Promise<any> {
     try {
-      console.log('📅 [GoogleCalendar] Criando evento...');
-
       const accessToken = await this.getValidToken(userId);
 
       const response = await fetch(`${GOOGLE_CALENDAR_API}/calendars/${calendarId}/events`, {
@@ -333,12 +320,10 @@ export class GoogleOAuthService {
       }
 
       const data = await response.json();
-      console.log('✅ [GoogleCalendar] Evento criado:', data.id);
 
       return data;
 
     } catch (error: any) {
-      console.error('❌ [GoogleCalendar] Erro ao criar evento:', error);
       throw error;
     }
   }
@@ -348,8 +333,6 @@ export class GoogleOAuthService {
    */
   static async updateEvent(userId: string, calendarId: string, eventId: string, event: Partial<CalendarEvent>): Promise<any> {
     try {
-      console.log('📅 [GoogleCalendar] Atualizando evento...');
-
       const accessToken = await this.getValidToken(userId);
 
       const response = await fetch(`${GOOGLE_CALENDAR_API}/calendars/${calendarId}/events/${eventId}`, {
@@ -367,12 +350,10 @@ export class GoogleOAuthService {
       }
 
       const data = await response.json();
-      console.log('✅ [GoogleCalendar] Evento atualizado:', data.id);
 
       return data;
 
     } catch (error: any) {
-      console.error('❌ [GoogleCalendar] Erro ao atualizar evento:', error);
       throw error;
     }
   }
@@ -382,8 +363,6 @@ export class GoogleOAuthService {
    */
   static async deleteEvent(userId: string, calendarId: string, eventId: string): Promise<void> {
     try {
-      console.log('📅 [GoogleCalendar] Deletando evento...');
-
       const accessToken = await this.getValidToken(userId);
 
       const response = await fetch(`${GOOGLE_CALENDAR_API}/calendars/${calendarId}/events/${eventId}`, {
@@ -398,10 +377,8 @@ export class GoogleOAuthService {
         throw new Error(`Erro ao deletar evento: ${error.error?.message || 'Desconhecido'}`);
       }
 
-      console.log('✅ [GoogleCalendar] Evento deletado');
 
     } catch (error: any) {
-      console.error('❌ [GoogleCalendar] Erro ao deletar evento:', error);
       throw error;
     }
   }

@@ -154,7 +154,7 @@ const Sidebar = ({ activeSection, onSectionChange }: SidebarProps) => {
   };
 
   return (
-    <div className="w-72 lg:w-80 bg-sidebar text-sidebar-foreground h-screen flex flex-col shadow-2xl relative overflow-hidden border-r border-sidebar-border">
+    <nav aria-label="Menu principal" className="w-72 lg:w-80 bg-sidebar text-sidebar-foreground h-screen flex flex-col shadow-2xl relative overflow-hidden border-r border-sidebar-border">
       {/* Ultra-Premium Background Effects */}
       <div className="absolute inset-0 bg-gradient-to-br from-[hsl(var(--sidebar-primary)_/_0.08)] via-transparent to-[hsl(var(--accent)_/_0.05)] pointer-events-none" />
 
@@ -228,6 +228,8 @@ const Sidebar = ({ activeSection, onSectionChange }: SidebarProps) => {
               <button
                 key={item.id}
                 onClick={() => onSectionChange(item.id)}
+                aria-current={isActive ? 'page' : undefined}
+                aria-label={`Navegar para ${item.label}${isNotifications && unreadCount > 0 ? `, ${unreadCount} não lidas` : ''}`}
                 className={`
                   w-full group relative flex items-center justify-between px-5 py-4 rounded-none text-left
                   transition-all duration-500 ease-out
@@ -368,7 +370,7 @@ const Sidebar = ({ activeSection, onSectionChange }: SidebarProps) => {
           </Button>
         </div>
       </div>
-    </div>
+    </nav>
   );
 };
 

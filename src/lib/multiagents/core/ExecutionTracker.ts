@@ -80,7 +80,6 @@ export class ExecutionTracker {
     const tracker = new ExecutionTracker(executionId, leadId, tenantId, config);
     ExecutionTracker.instances.set(executionId, tracker);
 
-    console.log(`🎯 [ExecutionTracker] Criado: ${executionId}`);
     return tracker;
   }
 
@@ -162,7 +161,6 @@ export class ExecutionTracker {
     // Persiste no banco
     await ExecutionStore.recordStageResult(this.executionId, stageResult);
 
-    console.log(`📊 [ExecutionTracker] Estágio registrado: ${stageName} (${agentName}) - ${tokens} tokens`);
   }
 
   /**
@@ -193,8 +191,6 @@ export class ExecutionTracker {
       this.resolveCompletion(result);
     }
 
-    console.log(`✅ [ExecutionTracker] Execução completa: ${this.executionId}`);
-
     // Remove da memória após um tempo
     setTimeout(() => ExecutionTracker.remove(this.executionId), 60000);
   }
@@ -216,8 +212,6 @@ export class ExecutionTracker {
       this.rejectCompletion(new Error(errorMessage));
     }
 
-    console.log(`❌ [ExecutionTracker] Execução falhou: ${this.executionId} - ${errorMessage}`);
-
     // Remove da memória
     setTimeout(() => ExecutionTracker.remove(this.executionId), 60000);
   }
@@ -235,8 +229,6 @@ export class ExecutionTracker {
     if (this.rejectCompletion) {
       this.rejectCompletion(new Error('Execution timeout'));
     }
-
-    console.log(`⏰ [ExecutionTracker] Timeout: ${this.executionId}`);
 
     setTimeout(() => ExecutionTracker.remove(this.executionId), 60000);
   }

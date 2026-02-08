@@ -114,7 +114,7 @@ serve(async (req) => {
     } catch (error) {
         console.error("❌ Error processing webhook:", error);
         return new Response(
-            JSON.stringify({ error: error.message }),
+            JSON.stringify({ error: "Internal server error" }),
             {
                 headers: { "Content-Type": "application/json" },
                 status: 500,
@@ -136,15 +136,21 @@ async function manageSubscriptionStatusChange(
         .single();
 
     if (profileError || !profileData) {
-        console.error('❌ Customer lookup failed:', profileError);
+        console.error('Customer lookup failed for stripe customer:', customerId, profileError?.message);
         return;
     }
 
     const { id: uuid } = profileData;
 
-    const subscription = await stripe.subscriptions.retrieve(subscriptionId, {
-        expand: ['default_payment_method']
-    });
+    let subscription;
+    try {
+        subscription = await stripe.subscriptions.retrieve(subscriptionId, {
+            expand: ['default_payment_method']
+        });
+    } catch (stripeError) {
+        console.error('Failed to retrieve subscription from Stripe:', subscriptionId, stripeError.message);
+        return;
+    }
 
     const priceId = subscription.items.data[0]?.price?.id;
     const planId = priceId ? mapPriceToPlanId(priceId, subscription.metadata?.plan_id ?? null) : null;
@@ -152,13 +158,27 @@ async function manageSubscriptionStatusChange(
         console.warn("Plan mapping not found for price:", priceId);
     }
 
+    // Map Stripe status to internal status, handling edge cases
+    const stripeStatus = subscription.status;
+    const statusMap: Record<string, string> = {
+        active: 'active',
+        past_due: 'past_due',
+        canceled: 'canceled',
+        unpaid: 'past_due',
+        incomplete: 'incomplete',
+        incomplete_expired: 'canceled',
+        trialing: 'trialing',
+        paused: 'paused',
+    };
+    const mappedStatus = statusMap[stripeStatus] || stripeStatus;
+
     const { error } = await supabase
         .from('subscriptions')
         .upsert({
             user_id: uuid,
             stripe_subscription_id: subscription.id,
             stripe_customer_id: customerId,
-            status: subscription.status,
+            status: mappedStatus,
             plan_id: planId,
             current_period_start: new Date(subscription.current_period_start * 1000).toISOString(),
             current_period_end: new Date(subscription.current_period_end * 1000).toISOString(),
@@ -169,14 +189,14 @@ async function manageSubscriptionStatusChange(
         });
 
     if (error) {
-        console.error('❌ Error upserting subscription:', error);
+        console.error('Error upserting subscription:', error.message);
     } else {
-        console.log(`✅ Subscription ${subscription.id} updated for user ${uuid}`);
+        console.log(`Subscription ${subscription.id} updated for user ${uuid}`);
 
         await supabase
             .from('profiles')
             .update({
-                subscription_status: subscription.status,
+                subscription_status: mappedStatus,
                 subscription_tier: planId || 'free'
             })
             .eq('id', uuid);

@@ -99,7 +99,7 @@ export default function WhatsAppEvolutionSetup({ onConnectionSuccess }: WhatsApp
           error: null,
         });
       } catch (err) {
-        console.error('Failed to load Evolution config:', err);
+        // Error handled silently
       }
     };
 
@@ -219,16 +219,17 @@ export default function WhatsAppEvolutionSetup({ onConnectionSuccess }: WhatsApp
           }));
         }
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Erro ao conectar';
       console.error('Connection error:', err);
       setInstance((prev) => ({
         ...prev,
         state: 'error',
-        error: err.message || 'Erro ao conectar',
+        error: message,
       }));
       toast({
         title: 'Erro ao conectar',
-        description: err.message || 'Tente novamente.',
+        description: message,
         variant: 'destructive',
       });
     } finally {
@@ -246,10 +247,10 @@ export default function WhatsAppEvolutionSetup({ onConnectionSuccess }: WhatsApp
       if (result?.qrcode) {
         setInstance((prev) => ({ ...prev, qrCode: result.qrcode }));
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       toast({
         title: 'Erro ao atualizar QR',
-        description: err.message,
+        description: err instanceof Error ? err.message : 'Erro desconhecido',
         variant: 'destructive',
       });
     } finally {
@@ -266,10 +267,10 @@ export default function WhatsAppEvolutionSetup({ onConnectionSuccess }: WhatsApp
       await callEvolutionManager('disconnect', instance.instanceName);
       setInstance((prev) => ({ ...prev, state: 'disconnected', qrCode: null }));
       toast({ title: 'WhatsApp desconectado' });
-    } catch (err: any) {
+    } catch (err: unknown) {
       toast({
         title: 'Erro ao desconectar',
-        description: err.message,
+        description: err instanceof Error ? err.message : 'Erro desconhecido',
         variant: 'destructive',
       });
     } finally {
@@ -286,10 +287,10 @@ export default function WhatsAppEvolutionSetup({ onConnectionSuccess }: WhatsApp
       await callEvolutionManager('delete', instance.instanceName);
       setInstance({ instanceName: '', state: 'idle', qrCode: null, error: null });
       toast({ title: 'Instancia removida' });
-    } catch (err: any) {
+    } catch (err: unknown) {
       toast({
         title: 'Erro ao remover',
-        description: err.message,
+        description: err instanceof Error ? err.message : 'Erro desconhecido',
         variant: 'destructive',
       });
     } finally {

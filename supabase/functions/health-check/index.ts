@@ -128,19 +128,23 @@ serve(async (req) => {
     }
 
     try {
-      const n8nUrl = "https://primary-production-adcb.up.railway.app/webhook/health";
-      const response = await fetch(n8nUrl, {
-        method: "GET",
-        headers: {
-          "User-Agent": "Jurify-Health-Check/1.0",
-        },
-      });
-
-      if (response.ok || response.status === 404) {
-        healthStatus.services.n8n = "connected";
+      const n8nUrl = Deno.env.get("N8N_WEBHOOK_URL");
+      if (!n8nUrl) {
+        healthStatus.services.n8n = "not_configured";
       } else {
-        healthStatus.services.n8n = "error";
-        healthStatus.status = "degraded";
+        const response = await fetch(n8nUrl, {
+          method: "GET",
+          headers: {
+            "User-Agent": "Jurify-Health-Check/1.0",
+          },
+        });
+
+        if (response.ok || response.status === 404) {
+          healthStatus.services.n8n = "connected";
+        } else {
+          healthStatus.services.n8n = "error";
+          healthStatus.status = "degraded";
+        }
       }
     } catch (error) {
       console.error("[health-check] N8N error:", error);
@@ -168,7 +172,7 @@ serve(async (req) => {
     const errorResponse = {
       status: "error",
       timestamp: new Date().toISOString(),
-      error: error.message,
+      error: "Internal server error",
       uptime: Date.now() - startTime,
       services: healthStatus.services,
     };

@@ -27,6 +27,28 @@ serve(async (req) => {
 
         const { title, content, leadId } = await req.json();
 
+        // Validate tenant ownership of the lead
+        if (leadId) {
+            const { data: profile } = await supabase
+                .from("profiles")
+                .select("tenant_id")
+                .eq("id", user.id)
+                .single();
+
+            if (!profile?.tenant_id) throw new Error("Tenant not found for user");
+
+            const { data: lead, error: leadError } = await supabase
+                .from("leads")
+                .select("id")
+                .eq("id", leadId)
+                .eq("tenant_id", profile.tenant_id)
+                .maybeSingle();
+
+            if (leadError || !lead) {
+                throw new Error("Lead not found or access denied");
+            }
+        }
+
         // Create PDF
         const pdfDoc = await PDFDocument.create();
         const page = pdfDoc.addPage();
@@ -78,7 +100,7 @@ serve(async (req) => {
     } catch (error) {
         console.error("❌ Error generating document:", error);
         return new Response(
-            JSON.stringify({ error: error.message }),
+            JSON.stringify({ error: "Internal server error" }),
             { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
     }

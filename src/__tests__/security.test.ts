@@ -2,18 +2,18 @@
 // SECURITY TESTS - CRITICAL VALIDATIONS
 // ==========================================
 
-import { describe, it, expect, beforeEach, jest } from '@jest/globals';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { supabase } from '@/integrations/supabase/client';
 import { validation, validateEmail, validatePassword, validateCPF } from '@/utils/validation';
 import { encryption, encrypt, decrypt, hashPassword, verifyPassword } from '@/utils/encryption';
 
 // Mock Supabase
-jest.mock('@/integrations/supabase/client', () => ({
+vi.mock('@/integrations/supabase/client', () => ({
   supabase: {
-    from: jest.fn(() => ({
-      select: jest.fn(() => ({
-        eq: jest.fn(() => ({
-          single: jest.fn()
+    from: vi.fn(() => ({
+      select: vi.fn(() => ({
+        eq: vi.fn(() => ({
+          single: vi.fn()
         }))
       }))
     }))
@@ -23,7 +23,7 @@ jest.mock('@/integrations/supabase/client', () => ({
 describe('🛡️ Security Tests', () => {
   describe('RBAC & Permissions', () => {
     it('should deny access without proper permissions', async () => {
-      const mockSupabase = supabase.from as jest.MockedFunction<any>;
+      const mockSupabase = supabase.from as ReturnType<typeof vi.fn>;
       mockSupabase.mockReturnValue({
         select: () => ({
           eq: () => ({
@@ -50,7 +50,7 @@ describe('🛡️ Security Tests', () => {
     });
 
     it('should allow admin access to all resources', async () => {
-      const mockSupabase = supabase.from as jest.MockedFunction<any>;
+      const mockSupabase = supabase.from as ReturnType<typeof vi.fn>;
       mockSupabase.mockReturnValue({
         select: () => ({
           eq: () => ({

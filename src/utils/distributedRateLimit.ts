@@ -86,23 +86,10 @@ class DistributedRateLimitService {
         totalHits: validRequests.length
       };
 
-      // 🚀 LOGGING PARA MONITORAMENTO
-      if (finalConfig.enableLogging) {
-        if (!allowed) {
-          console.warn(`🚨 [RateLimit] BLOQUEADO: ${identifier} - ${validRequests.length}/${finalConfig.maxRequests} requests`);
-        } else if (validRequests.length > finalConfig.maxRequests * 0.8) {
-          console.warn(`⚠️ [RateLimit] ALTO USO: ${identifier} - ${validRequests.length}/${finalConfig.maxRequests} requests`);
-        }
-      }
-
       return result;
 
     } catch (error) {
-      console.error(`❌ [RateLimit] Erro ao verificar ${identifier}:`, error);
-      
-      // Em caso de erro, permitir (fail-open) mas logar
-      console.error('🚨 [RateLimit] FAIL-OPEN: Permitindo request devido a erro no sistema');
-      
+      // Fail-open: allow request on error
       return {
         allowed: true,
         remaining: finalConfig.maxRequests,
@@ -164,10 +151,9 @@ class DistributedRateLimitService {
       const key = this.defaultConfig.keyGenerator!(identifier);
       await distributedCache.delete(key);
       
-      console.log(`🔄 [RateLimit] Reset: ${identifier}`);
       return true;
     } catch (error) {
-      console.error(`❌ [RateLimit] Erro ao resetar ${identifier}:`, error);
+      // Error handled silently
       return false;
     }
   }
@@ -179,7 +165,7 @@ class DistributedRateLimitService {
       const result = await distributedCache.get<boolean>(whitelistKey);
       return result === true;
     } catch (error) {
-      console.error(`❌ [RateLimit] Erro ao verificar whitelist ${identifier}:`, error);
+      // Error handled silently
       return false;
     }
   }
@@ -190,7 +176,7 @@ class DistributedRateLimitService {
       const result = await distributedCache.get<boolean>(blacklistKey);
       return result === true;
     } catch (error) {
-      console.error(`❌ [RateLimit] Erro ao verificar blacklist ${identifier}:`, error);
+      // Error handled silently
       return false;
     }
   }
@@ -200,10 +186,9 @@ class DistributedRateLimitService {
       const whitelistKey = `whitelist:${identifier}`;
       await distributedCache.set(whitelistKey, true, ttl);
       
-      console.log(`✅ [RateLimit] Adicionado à whitelist: ${identifier}`);
       return true;
     } catch (error) {
-      console.error(`❌ [RateLimit] Erro ao adicionar à whitelist ${identifier}:`, error);
+      // Error handled silently
       return false;
     }
   }
@@ -213,10 +198,9 @@ class DistributedRateLimitService {
       const blacklistKey = `blacklist:${identifier}`;
       await distributedCache.set(blacklistKey, true, ttl);
       
-      console.log(`🚫 [RateLimit] Adicionado à blacklist: ${identifier}`);
       return true;
     } catch (error) {
-      console.error(`❌ [RateLimit] Erro ao adicionar à blacklist ${identifier}:`, error);
+      // Error handled silently
       return false;
     }
   }
@@ -236,7 +220,7 @@ class DistributedRateLimitService {
         cacheStats: distributedCache.getStats()
       };
     } catch (error) {
-      console.error('❌ [RateLimit] Erro ao buscar stats:', error);
+      // Error handled silently
       return null;
     }
   }

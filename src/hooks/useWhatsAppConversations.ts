@@ -86,12 +86,13 @@ export const useWhatsAppConversations = (): UseWhatsAppConversationsReturn => {
 
       setConversations(data || []);
       log.debug(`${data?.length || 0} conversas carregadas`);
-    } catch (err: any) {
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Erro ao carregar conversas';
       log.error('Erro ao carregar conversas', err);
-      setError(err.message || 'Erro ao carregar conversas');
+      setError(message);
       toast({
         title: 'Erro ao carregar conversas',
-        description: err.message,
+        description: message,
         variant: 'destructive',
       });
     } finally {
@@ -114,11 +115,12 @@ export const useWhatsAppConversations = (): UseWhatsAppConversationsReturn => {
 
       setMessages(data || []);
       log.debug(`${data?.length || 0} mensagens carregadas`);
-    } catch (err: any) {
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Erro ao carregar mensagens';
       log.error('Erro ao carregar mensagens', err);
       toast({
         title: 'Erro ao carregar mensagens',
-        description: err.message,
+        description: message,
         variant: 'destructive',
       });
     }
@@ -193,11 +195,12 @@ export const useWhatsAppConversations = (): UseWhatsAppConversationsReturn => {
       });
 
       return true;
-    } catch (err: any) {
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Erro ao processar mensagem';
       log.error('Erro ao enviar mensagem', err);
       toast({
         title: 'Erro ao enviar mensagem',
-        description: err.message || 'Erro ao processar mensagem',
+        description: message,
         variant: 'destructive',
       });
       return false;
@@ -226,7 +229,7 @@ export const useWhatsAppConversations = (): UseWhatsAppConversationsReturn => {
             : conv
         )
       );
-    } catch (err: any) {
+    } catch (err: unknown) {
       log.error('Erro ao marcar como lido', err);
       // ✅ CORREÇÃO: Adicionar toast de erro
       toast({

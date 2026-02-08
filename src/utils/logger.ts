@@ -43,7 +43,7 @@ class Logger {
     return this.levels[level] >= this.levels[this.config.level];
   }
 
-  private formatMessage(level: LogLevel, message: string, ...args: any[]): string {
+  private formatMessage(level: LogLevel, message: string, ..._args: unknown[]): string {
     const timestamp = new Date().toISOString();
     const prefix = {
       debug: '🐛',
@@ -56,7 +56,7 @@ class Logger {
     return `[${timestamp}] ${prefix} ${message}`;
   }
 
-  private async sendToRemote(level: LogLevel, message: string, data?: any) {
+  private async sendToRemote(level: LogLevel, message: string, data?: unknown) {
     if (!this.config.enableRemote || !this.config.remoteEndpoint) {
       return;
     }
@@ -87,7 +87,7 @@ class Logger {
    * @param message - Mensagem a ser logada
    * @param args - Argumentos adicionais
    */
-  debug(message: string, ...args: any[]): void {
+  debug(message: string, ...args: unknown[]): void {
     if (!this.shouldLog('debug')) return;
 
     if (this.config.enableConsole) {
@@ -100,7 +100,7 @@ class Logger {
    * @param message - Mensagem a ser logada
    * @param args - Argumentos adicionais
    */
-  info(message: string, ...args: any[]): void {
+  info(message: string, ...args: unknown[]): void {
     if (!this.shouldLog('info')) return;
 
     if (this.config.enableConsole) {
@@ -113,7 +113,7 @@ class Logger {
    * @param message - Mensagem a ser logada
    * @param args - Argumentos adicionais
    */
-  warn(message: string, ...args: any[]): void {
+  warn(message: string, ...args: unknown[]): void {
     if (!this.shouldLog('warn')) return;
 
     if (this.config.enableConsole) {
@@ -130,7 +130,7 @@ class Logger {
    * @param error - Objeto de erro (opcional)
    * @param context - Contexto adicional (opcional)
    */
-  error(message: string, error?: Error | any, context?: Record<string, any>): void {
+  error(message: string, error?: unknown, context?: Record<string, unknown>): void {
     if (!this.shouldLog('error')) return;
 
     const errorData = {

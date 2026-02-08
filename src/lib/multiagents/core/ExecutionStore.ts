@@ -70,14 +70,12 @@ export class ExecutionStore {
         .single();
 
       if (error) {
-        console.error('❌ [ExecutionStore] Erro ao criar execução:', error);
         return null;
       }
 
-      console.log(`✅ [ExecutionStore] Execução criada: ${executionId}`);
       return data?.id ?? null;
     } catch (error) {
-      console.error('❌ [ExecutionStore] Erro ao criar execução:', error);
+      // Error handled silently
       return null;
     }
   }
@@ -107,10 +105,10 @@ export class ExecutionStore {
         .eq('execution_id', executionId);
 
       if (error) {
-        console.error('❌ [ExecutionStore] Erro ao atualizar status:', error);
+        // Error handled silently
       }
     } catch (error) {
-      console.error('❌ [ExecutionStore] Erro ao atualizar status:', error);
+      // Error handled silently
     }
   }
 
@@ -130,7 +128,6 @@ export class ExecutionStore {
         .single();
 
       if (fetchError) {
-        console.error('❌ [ExecutionStore] Erro ao buscar execução:', fetchError);
         return;
       }
 
@@ -155,10 +152,10 @@ export class ExecutionStore {
         .eq('execution_id', executionId);
 
       if (error) {
-        console.error('❌ [ExecutionStore] Erro ao registrar estágio:', error);
+        // Error handled silently
       }
     } catch (error) {
-      console.error('❌ [ExecutionStore] Erro ao registrar estágio:', error);
+      // Error handled silently
     }
   }
 
@@ -197,12 +194,10 @@ export class ExecutionStore {
         .eq('execution_id', executionId);
 
       if (error) {
-        console.error('❌ [ExecutionStore] Erro ao completar execução:', error);
-      } else {
-        console.log(`✅ [ExecutionStore] Execução completada: ${executionId} (${durationMs}ms)`);
+        // Error handled silently
       }
     } catch (error) {
-      console.error('❌ [ExecutionStore] Erro ao completar execução:', error);
+      // Error handled silently
     }
   }
 
@@ -224,12 +219,10 @@ export class ExecutionStore {
         .eq('execution_id', executionId);
 
       if (error) {
-        console.error('❌ [ExecutionStore] Erro ao marcar falha:', error);
-      } else {
-        console.log(`❌ [ExecutionStore] Execução falhou: ${executionId}`);
+        // Error handled silently
       }
     } catch (error) {
-      console.error('❌ [ExecutionStore] Erro ao marcar falha:', error);
+      // Error handled silently
     }
   }
 
@@ -245,13 +238,12 @@ export class ExecutionStore {
         .single();
 
       if (error) {
-        console.error('❌ [ExecutionStore] Erro ao buscar execução:', error);
         return null;
       }
 
       return data as ExecutionRecord;
     } catch (error) {
-      console.error('❌ [ExecutionStore] Erro ao buscar execução:', error);
+      // Error handled silently
       return null;
     }
   }

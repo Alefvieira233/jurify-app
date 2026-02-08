@@ -13,7 +13,7 @@ class ErrorService {
     /**
      * Logs an error to Sentry and Console
      */
-    public log(error: any, context?: string): void {
+    public log(error: unknown, context?: string): void {
         const appError = AppError.from(error);
 
         // Console logging with styling
@@ -26,7 +26,7 @@ class ErrorService {
     /**
      * Handles an error by logging it and showing a user notification
      */
-    public handle(error: any, userMessage?: string): void {
+    public handle(error: unknown, userMessage?: string): void {
         const appError = AppError.from(error);
 
         this.log(appError);

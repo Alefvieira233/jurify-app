@@ -76,7 +76,6 @@ export const useGoogleCalendar = () => {
       const token = await GoogleOAuthService.loadTokens(user.id);
       setIsAuthenticated(!!token);
     } catch (error: any) {
-      console.error('[useGoogleCalendar] erro ao carregar configuracoes:', error);
       toast({
         title: 'Erro',
         description: 'Nao foi possivel carregar as configuracoes do Google Calendar.',
@@ -112,7 +111,6 @@ export const useGoogleCalendar = () => {
 
       return true;
     } catch (error: any) {
-      console.error('[useGoogleCalendar] erro ao atualizar configuracoes:', error);
       toast({
         title: 'Erro',
         description: 'Nao foi possivel atualizar as configuracoes.',
@@ -152,7 +150,6 @@ export const useGoogleCalendar = () => {
       localStorage.setItem('google_oauth_state', cryptoState);
       window.location.href = authUrl;
     } catch (error: any) {
-      console.error('[useGoogleCalendar] erro ao iniciar OAuth:', error);
       toast({
         title: 'Erro',
         description: error.message || 'Erro ao iniciar autenticacao',
@@ -195,7 +192,6 @@ export const useGoogleCalendar = () => {
 
       return true;
     } catch (error: any) {
-      console.error('[useGoogleCalendar] erro no callback OAuth:', error);
       toast({
         title: 'Erro',
         description: error.message || 'Erro ao conectar Google Calendar',
@@ -229,7 +225,6 @@ export const useGoogleCalendar = () => {
 
       return true;
     } catch (error: any) {
-      console.error('[useGoogleCalendar] erro ao desconectar:', error);
       toast({
         title: 'Erro',
         description: 'Nao foi possivel desconectar o Google Calendar.',
@@ -243,7 +238,6 @@ export const useGoogleCalendar = () => {
 
   const createCalendarEvent = useCallback(async (eventData: any, agendamentoId: string) => {
     if (!user?.id || !settings?.calendar_id || !tenantId) {
-      console.warn('[useGoogleCalendar] Google Calendar nao configurado');
       return null;
     }
 
@@ -287,8 +281,6 @@ export const useGoogleCalendar = () => {
 
       return googleEvent.id;
     } catch (error: any) {
-      console.error('[useGoogleCalendar] erro ao criar evento:', error);
-
       await supabase.from('google_calendar_sync_logs').insert([{
         tenant_id: tenantId,
         user_id: user.id,
@@ -310,7 +302,6 @@ export const useGoogleCalendar = () => {
 
   const updateCalendarEvent = useCallback(async (googleEventId: string, eventData: any, agendamentoId: string) => {
     if (!user?.id || !settings?.calendar_id || !tenantId) {
-      console.warn('[useGoogleCalendar] Google Calendar nao configurado');
       return false;
     }
 
@@ -343,8 +334,6 @@ export const useGoogleCalendar = () => {
 
       return true;
     } catch (error: any) {
-      console.error('[useGoogleCalendar] erro ao atualizar evento:', error);
-
       await supabase.from('google_calendar_sync_logs').insert([{
         tenant_id: tenantId,
         user_id: user.id,
@@ -361,7 +350,6 @@ export const useGoogleCalendar = () => {
 
   const deleteCalendarEvent = useCallback(async (googleEventId: string, agendamentoId: string) => {
     if (!user?.id || !settings?.calendar_id || !tenantId) {
-      console.warn('[useGoogleCalendar] Google Calendar nao configurado');
       return false;
     }
 
@@ -383,8 +371,6 @@ export const useGoogleCalendar = () => {
 
       return true;
     } catch (error: any) {
-      console.error('[useGoogleCalendar] erro ao deletar evento:', error);
-
       await supabase.from('google_calendar_sync_logs').insert([{
         tenant_id: tenantId,
         user_id: user.id,
@@ -407,7 +393,7 @@ export const useGoogleCalendar = () => {
       const userCalendars = await GoogleOAuthService.listCalendars(user.id);
       setCalendars(userCalendars);
     } catch (error: any) {
-      console.error('[useGoogleCalendar] erro ao carregar calendarios:', error);
+      // Error handled silently
     } finally {
       setLoading(false);
     }

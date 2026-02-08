@@ -68,8 +68,6 @@ export abstract class BaseAgent implements IAgent {
 
   // ðŸ“¨ Recebe mensagem de outro agente
   public async receiveMessage(message: AgentMessage): Promise<void> {
-    console.log(`ðŸ¤– ${this.name} recebeu mensagem de ${message.from}: ${message.type}`);
-
     this.messageQueue.push(message);
 
     if (!this.isProcessing) {

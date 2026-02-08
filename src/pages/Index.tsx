@@ -48,20 +48,16 @@ const Index = () => {
   useEffect(() => {
     const tab = searchParams.get('tab') as ActiveTab;
     if (tab && VALID_TABS.includes(tab)) {
-      console.log(`🔄 Navegando para aba: ${tab}`);
       setActiveTab(tab);
     }
   }, [searchParams]);
 
   const handleTabChange = useCallback((tab: string) => {
-    console.log(`🔄 Mudando para aba: ${tab}`);
     setActiveTab(tab as ActiveTab);
     setSearchParams({ tab });
   }, [setSearchParams]);
 
   const renderContent = useCallback(() => {
-    console.log(`📄 Renderizando conteúdo da aba: ${activeTab}`);
-
     switch (activeTab) {
       case 'dashboard':
         return <Dashboard />;
@@ -103,7 +99,6 @@ const Index = () => {
 
   // User not authenticated
   if (!user) {
-    console.log('🔄 Usuário não autenticado, redirecionando...');
     return <LoadingSpinner fullScreen text="Redirecionando para login..." />;
   }
 

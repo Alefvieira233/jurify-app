@@ -27,8 +27,6 @@ export class SystemValidator {
   }
 
   async runFullValidation(): Promise<SystemHealth> {
-    console.log('[SystemValidator] Starting full system validation');
-
     const results: SystemHealth = {
       overall: 'healthy',
       tests: {
@@ -46,7 +44,6 @@ export class SystemValidator {
       results.overall = 'degraded';
     }
 
-    console.log('[SystemValidator] Validation finished:', results.overall);
     return results;
   }
 
@@ -65,8 +62,6 @@ export class SystemValidator {
     if (tenantCheck) return tenantCheck;
 
     try {
-      console.log('[SystemValidator] Testing database connectivity');
-
       const { error } = await supabase
         .from('leads')
         .select('id', { count: 'exact', head: true })
@@ -117,8 +112,6 @@ export class SystemValidator {
 
   private async testAuthentication(): Promise<ValidationResult> {
     try {
-      console.log('[SystemValidator] Testing authentication system');
-
       const { data, error } = await supabase.auth.getUser();
 
       if (error) throw error;
@@ -146,8 +139,6 @@ export class SystemValidator {
     if (tenantCheck) return tenantCheck;
 
     try {
-      console.log('[SystemValidator] Testing Row Level Security');
-
       const tables = ['leads', 'contratos', 'agendamentos', 'agentes_ia'] as const;
       const rlsStatus: Record<string, boolean> = {};
 
@@ -185,8 +176,6 @@ export class SystemValidator {
 
   private async testIntegrations(): Promise<ValidationResult> {
     try {
-      console.log('[SystemValidator] Testing external integrations');
-
       const integrations = {
         healthCheck: false,
         n8n: false,
@@ -226,8 +215,6 @@ export class SystemValidator {
     if (tenantCheck) return tenantCheck;
 
     try {
-      console.log('[SystemValidator] Testing system performance');
-
       const startTime = performance.now();
 
       const operations = [

@@ -150,6 +150,37 @@ function normalizeMetaMessages(payload: any): NormalizedMessage[] {
 }
 
 // ============================================
+// 🔑 DEDUPLICATION: Track processed message IDs
+// ============================================
+const processedMessages = new Map<string, number>();
+const DEDUP_TTL_MS = 5 * 60 * 1000; // 5 minutes
+
+function isDuplicate(messageId: string): boolean {
+  const now = Date.now();
+  // Clean expired entries
+  for (const [key, timestamp] of processedMessages) {
+    if (now - timestamp > DEDUP_TTL_MS) processedMessages.delete(key);
+  }
+  if (processedMessages.has(messageId)) return true;
+  processedMessages.set(messageId, now);
+  return false;
+}
+
+function getMessageId(payload: any, provider: "evolution" | "meta"): string | null {
+  if (provider === "evolution") {
+    return payload?.data?.key?.id || null;
+  }
+  for (const entry of payload?.entry || []) {
+    for (const change of entry?.changes || []) {
+      for (const message of change?.value?.messages || []) {
+        return message.id || null;
+      }
+    }
+  }
+  return null;
+}
+
+// ============================================
 // 🚀 HANDLER PRINCIPAL
 // ============================================
 serve(async (req) => {
@@ -270,6 +301,11 @@ serve(async (req) => {
 
         // Mensagem recebida
         if (event === "messages.upsert") {
+          const msgId = getMessageId(payload, "evolution");
+          if (msgId && isDuplicate(msgId)) {
+            console.log(`[webhook:evolution] Duplicate message ignored: ${msgId}`);
+            return new Response("OK", { status: 200, headers: corsHeaders });
+          }
           const normalized = normalizeEvolutionMessage(payload);
           if (normalized) {
             await processNormalizedMessage(supabase, normalized);
@@ -283,6 +319,12 @@ serve(async (req) => {
       } else {
         // --- META OFFICIAL API (backward compatible) ---
         console.log("[webhook:meta] Processing Meta webhook");
+
+        const metaMsgId = getMessageId(payload, "meta");
+        if (metaMsgId && isDuplicate(metaMsgId)) {
+          console.log(`[webhook:meta] Duplicate message ignored: ${metaMsgId}`);
+          return new Response("OK", { status: 200, headers: corsHeaders });
+        }
 
         const messages = normalizeMetaMessages(payload);
         for (const msg of messages) {
@@ -307,7 +349,7 @@ serve(async (req) => {
     return new Response("Method not allowed", { status: 405 });
   } catch (error) {
     console.error("[webhook] Error:", error);
-    return new Response(JSON.stringify({ error: error.message }), {
+    return new Response(JSON.stringify({ error: "Internal server error" }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
       status: 500,
     });

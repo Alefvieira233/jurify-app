@@ -13,19 +13,19 @@ import { logger } from '@/utils/logger';
  * log.error('Failed to save', error, { userId: 123 });
  */
 export const useLogger = () => {
-  const debug = useCallback((message: string, ...args: any[]) => {
+  const debug = useCallback((message: string, ...args: unknown[]) => {
     logger.debug(message, ...args);
   }, []);
 
-  const info = useCallback((message: string, ...args: any[]) => {
+  const info = useCallback((message: string, ...args: unknown[]) => {
     logger.info(message, ...args);
   }, []);
 
-  const warn = useCallback((message: string, ...args: any[]) => {
+  const warn = useCallback((message: string, ...args: unknown[]) => {
     logger.warn(message, ...args);
   }, []);
 
-  const error = useCallback((message: string, err?: Error | any, context?: Record<string, any>) => {
+  const error = useCallback((message: string, err?: unknown, context?: Record<string, unknown>) => {
     logger.error(message, err, context);
   }, []);
 

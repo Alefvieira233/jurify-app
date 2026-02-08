@@ -15,15 +15,15 @@ export enum ErrorSeverity {
 export interface AppErrorOptions {
     code?: string;
     severity?: ErrorSeverity;
-    metadata?: Record<string, any>;
-    originalError?: any;
+    metadata?: Record<string, unknown>;
+    originalError?: unknown;
 }
 
 export class AppError extends Error {
     public readonly code: string;
     public readonly severity: ErrorSeverity;
-    public readonly metadata: Record<string, any>;
-    public readonly originalError: any;
+    public readonly metadata: Record<string, unknown>;
+    public readonly originalError: unknown;
 
     constructor(message: string, options: AppErrorOptions = {}) {
         super(message);
@@ -53,7 +53,7 @@ export class AppError extends Error {
     /**
      * Normalizes any error into an AppError
      */
-    static from(error: any, defaultMessage = 'An unexpected error occurred'): AppError {
+    static from(error: unknown, defaultMessage = 'An unexpected error occurred'): AppError {
         if (error instanceof AppError) {
             return error;
         }

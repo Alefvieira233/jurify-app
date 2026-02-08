@@ -33,6 +33,7 @@ export default defineConfig({
       'dist/**',
       'e2e/**', // Playwright E2E tests
       'tests/**', // Old test structure
+      'src/__tests__/security.test.ts', // Legacy Jest file - needs migration
     ],
   },
   resolve: {
