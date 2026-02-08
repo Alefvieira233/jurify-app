@@ -117,67 +117,20 @@ export const useDashboardMetrics = () => {
         execucoesResult,
         execucoesLegacyResult
       ] = await Promise.allSettled([
-        Promise.race([
-          leadsQuery,
-          new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), 5000))
-        ]),
-        Promise.race([
-          contratosQuery,
-          new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), 5000))
-        ]),
-        Promise.race([
-          agendamentosQuery,
-          new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), 5000))
-        ]),
-        Promise.race([
-          agentesQuery,
-          new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), 5000))
-        ]),
-        Promise.race([
-          execucoesQuery,
-          new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), 5000))
-        ]),
-        Promise.race([
-          execucoesLegacyQuery,
-          new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), 1000))
-        ]),
+        leadsQuery,
+        contratosQuery,
+        agendamentosQuery,
+        agentesQuery,
+        execucoesQuery,
+        execucoesLegacyQuery,
       ]);
 
-      const leads = leadsResult.status === 'fulfilled' &&
-                   leadsResult.value &&
-                   typeof leadsResult.value === 'object' &&
-                   'data' in leadsResult.value &&
-                   Array.isArray(leadsResult.value.data) ? leadsResult.value.data : [];
-
-      const contratos = contratosResult.status === 'fulfilled' &&
-                       contratosResult.value &&
-                       typeof contratosResult.value === 'object' &&
-                       'data' in contratosResult.value &&
-                       Array.isArray(contratosResult.value.data) ? contratosResult.value.data : [];
-
-      const agendamentos = agendamentosResult.status === 'fulfilled' &&
-                          agendamentosResult.value &&
-                          typeof agendamentosResult.value === 'object' &&
-                          'data' in agendamentosResult.value &&
-                          Array.isArray(agendamentosResult.value.data) ? agendamentosResult.value.data : [];
-
-      const agentes = agentesResult.status === 'fulfilled' &&
-                     agentesResult.value &&
-                     typeof agentesResult.value === 'object' &&
-                     'data' in agentesResult.value &&
-                     Array.isArray(agentesResult.value.data) ? agentesResult.value.data : [];
-
-      const execucoesNovas = execucoesResult.status === 'fulfilled' &&
-                       execucoesResult.value &&
-                       typeof execucoesResult.value === 'object' &&
-                       'data' in execucoesResult.value &&
-                       Array.isArray(execucoesResult.value.data) ? execucoesResult.value.data : [];
-
-      const execucoesLegacy = execucoesLegacyResult.status === 'fulfilled' &&
-                       execucoesLegacyResult.value &&
-                       typeof execucoesLegacyResult.value === 'object' &&
-                       'data' in execucoesLegacyResult.value &&
-                       Array.isArray(execucoesLegacyResult.value.data) ? execucoesLegacyResult.value.data : [];
+      const leads = leadsResult.status === 'fulfilled' ? leadsResult.value.data || [] : [];
+      const contratos = contratosResult.status === 'fulfilled' ? contratosResult.value.data || [] : [];
+      const agendamentos = agendamentosResult.status === 'fulfilled' ? agendamentosResult.value.data || [] : [];
+      const agentes = agentesResult.status === 'fulfilled' ? agentesResult.value.data || [] : [];
+      const execucoesNovas = execucoesResult.status === 'fulfilled' ? execucoesResult.value.data || [] : [];
+      const execucoesLegacy = execucoesLegacyResult.status === 'fulfilled' ? execucoesLegacyResult.value.data || [] : [];
 
       const execucoes = execucoesNovas.length > 0 ? execucoesNovas : execucoesLegacy;
 
