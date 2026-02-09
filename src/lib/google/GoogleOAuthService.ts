@@ -124,7 +124,7 @@ export class GoogleOAuthService {
 
       return token;
 
-    } catch (error: any) {
+    } catch (error: unknown) {
       throw error;
     }
   }
@@ -218,7 +218,7 @@ export class GoogleOAuthService {
 
       return token;
 
-    } catch (error: any) {
+    } catch (error: unknown) {
       throw error;
     }
   }
@@ -264,7 +264,7 @@ export class GoogleOAuthService {
         .eq('user_id', userId);
 
 
-    } catch (error: any) {
+    } catch (error: unknown) {
       throw error;
     }
   }
@@ -276,7 +276,7 @@ export class GoogleOAuthService {
   /**
    * Lista calendários do usuário
    */
-  static async listCalendars(userId: string): Promise<any[]> {
+  static async listCalendars(userId: string): Promise<Record<string, unknown>[]> {
     try {
       const accessToken = await this.getValidToken(userId);
 
@@ -293,7 +293,7 @@ export class GoogleOAuthService {
       const data = await response.json();
       return data.items || [];
 
-    } catch (error: any) {
+    } catch (error: unknown) {
       throw error;
     }
   }
@@ -301,7 +301,7 @@ export class GoogleOAuthService {
   /**
    * Cria evento no Google Calendar
    */
-  static async createEvent(userId: string, calendarId: string, event: CalendarEvent): Promise<any> {
+  static async createEvent(userId: string, calendarId: string, event: CalendarEvent): Promise<Record<string, unknown>> {
     try {
       const accessToken = await this.getValidToken(userId);
 
@@ -323,7 +323,7 @@ export class GoogleOAuthService {
 
       return data;
 
-    } catch (error: any) {
+    } catch (error: unknown) {
       throw error;
     }
   }
@@ -331,7 +331,7 @@ export class GoogleOAuthService {
   /**
    * Atualiza evento no Google Calendar
    */
-  static async updateEvent(userId: string, calendarId: string, eventId: string, event: Partial<CalendarEvent>): Promise<any> {
+  static async updateEvent(userId: string, calendarId: string, eventId: string, event: Partial<CalendarEvent>): Promise<Record<string, unknown>> {
     try {
       const accessToken = await this.getValidToken(userId);
 
@@ -353,7 +353,7 @@ export class GoogleOAuthService {
 
       return data;
 
-    } catch (error: any) {
+    } catch (error: unknown) {
       throw error;
     }
   }
@@ -378,7 +378,7 @@ export class GoogleOAuthService {
       }
 
 
-    } catch (error: any) {
+    } catch (error: unknown) {
       throw error;
     }
   }

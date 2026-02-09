@@ -85,7 +85,7 @@ Criar propostas comerciais personalizadas, negociar condições e fechar contrat
     }
   }
 
-  private async createProposal(payload: any): Promise<void> {
+  private async createProposal(payload: { task?: string; leadId?: string; data?: unknown; [key: string]: unknown }): Promise<void> {
     try {
       console.log(`💼 [Commercial] Criando proposta para lead: ${payload.leadId || 'novo'}`);
       
@@ -101,7 +101,7 @@ Criar propostas comerciais personalizadas, negociar condições e fechar contrat
       
       console.log(`✅ [Commercial] Proposta criada:`, Object.keys(parsedProposal));
 
-      this.updateContext(payload.leadId, { 
+      this.updateContext(payload.leadId || '', { 
         stage: 'proposal_created', 
         proposal: parsedProposal 
       });

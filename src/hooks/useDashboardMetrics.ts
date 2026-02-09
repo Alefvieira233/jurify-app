@@ -222,17 +222,17 @@ export const useDashboardMetrics = () => {
 
       // Executar queries sequencialmente com tratamento silencioso de erros
 
-      let leads: any[] = [];
+      let leads: Array<{ id: string; status: string; created_at: string; area_juridica: string }> = [];
 
-      let contratos: any[] = [];
+      let contratos: Array<{ id: string; status_assinatura: string; created_at: string }> = [];
 
-      let agendamentos: any[] = [];
+      let agendamentos: Array<{ id: string; data_hora: string; created_at: string }> = [];
 
-      let agentes: any[] = [];
+      let agentes: Array<{ id: string; status: string; created_at: string }> = [];
 
-      let execucoesNovas: any[] = [];
+      let execucoesNovas: Array<{ id: string; created_at: string; status: string; current_agent: string | null; agents_involved: string[] | null }> = [];
 
-      let execucoesLegacy: any[] = [];
+      let execucoesLegacy: Array<{ id: string; created_at: string; status: string; agentes_ia: { nome: string }[] | { nome: string } | null }> = [];
 
 
 
@@ -250,7 +250,17 @@ export const useDashboardMetrics = () => {
 
 
 
-      const execucoes = execucoesNovas.length > 0 ? execucoesNovas : execucoesLegacy;
+      type ExecucaoUnified = {
+        id: string;
+        created_at: string;
+        status: string;
+        current_agent?: string | null;
+        agents_involved?: string[] | null;
+        agentes_ia?: { nome: string }[] | { nome: string } | null;
+      };
+      const execucoes: ExecucaoUnified[] = execucoesNovas.length > 0
+        ? (execucoesNovas as ExecucaoUnified[])
+        : (execucoesLegacy as ExecucaoUnified[]);
 
 
 

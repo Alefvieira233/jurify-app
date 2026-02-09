@@ -101,11 +101,11 @@ export class SystemValidator {
         message: 'Database connected and operational',
         details: { writable: true, readable: true },
       };
-    } catch (error: any) {
+    } catch (error: unknown) {
       return {
         success: false,
         message: 'Database connection error',
-        details: { error: error?.message },
+        details: { error: error instanceof Error ? error.message : String(error) },
       };
     }
   }
@@ -125,11 +125,11 @@ export class SystemValidator {
           authenticated: !!data?.user,
         },
       };
-    } catch (error: any) {
+    } catch (error: unknown) {
       return {
         success: false,
         message: 'Authentication check failed',
-        details: { error: error?.message },
+        details: { error: error instanceof Error ? error.message : String(error) },
       };
     }
   }
@@ -165,11 +165,11 @@ export class SystemValidator {
           : 'RLS issues detected in tenant tables',
         details: rlsStatus,
       };
-    } catch (error: any) {
+    } catch (error: unknown) {
       return {
         success: false,
         message: 'RLS check failed',
-        details: { error: error?.message },
+        details: { error: error instanceof Error ? error.message : String(error) },
       };
     }
   }
@@ -201,11 +201,11 @@ export class SystemValidator {
           : 'Some integrations reported issues',
         details: integrations,
       };
-    } catch (error: any) {
+    } catch (error: unknown) {
       return {
         success: false,
         message: 'Integration check failed',
-        details: { error: error?.message },
+        details: { error: error instanceof Error ? error.message : String(error) },
       };
     }
   }
@@ -239,11 +239,11 @@ export class SystemValidator {
           performant: isPerformant,
         },
       };
-    } catch (error: any) {
+    } catch (error: unknown) {
       return {
         success: false,
         message: 'Performance check failed',
-        details: { error: error?.message },
+        details: { error: error instanceof Error ? error.message : String(error) },
       };
     }
   }

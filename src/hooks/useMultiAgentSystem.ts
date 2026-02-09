@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { multiAgentSystem } from '@/lib/multiagents/MultiAgentSystem';
+import type { SystemStats as MultiAgentSystemStats } from '@/lib/multiagents/types';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
@@ -15,7 +16,7 @@ export interface LeadData {
   legal_area?: string;
   urgency?: 'low' | 'medium' | 'high' | 'critical';
   source: LeadSource;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
 
 export interface AgentStats {
@@ -37,8 +38,8 @@ export interface SystemMetrics {
 
 export const useMultiAgentSystem = () => {
   const [isProcessing, setIsProcessing] = useState(false);
-  const [systemStats, setSystemStats] = useState<any>(null);
-  const [recentActivity, setRecentActivity] = useState<any[]>([]);
+  const [systemStats, setSystemStats] = useState<MultiAgentSystemStats | null>(null);
+  const [recentActivity, setRecentActivity] = useState<Record<string, unknown>[]>([]);
   const [metrics, setMetrics] = useState<SystemMetrics | null>(null);
   const { toast } = useToast();
   const { profile, user } = useAuth();
@@ -259,13 +260,14 @@ export const useMultiAgentSystem = () => {
 
   const triggerAnalysis = useCallback(async () => {
     try {
-      const analystAgent = (multiAgentSystem as any)['agents']?.get('Analista');
+      const system = multiAgentSystem as unknown as { agents?: Map<string, { receiveMessage: (msg: Record<string, unknown>) => Promise<void> }> };
+      const analystAgent = system.agents?.get('Analista');
       if (analystAgent) {
         await analystAgent.receiveMessage({
           id: `analysis_${Date.now()}`,
           from: 'Frontend',
           to: 'Analista',
-          type: 'task_request' as any,
+          type: 'task_request',
           payload: { task: 'analyze_performance' },
           timestamp: new Date(),
           priority: 'medium',

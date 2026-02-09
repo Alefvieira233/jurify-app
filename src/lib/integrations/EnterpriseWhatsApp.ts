@@ -102,11 +102,11 @@ export class EnterpriseWhatsAppIntegration {
 
       console.log('✅ [EnterpriseWhatsApp] Mensagem enviada:', data.messageId);
       return data;
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('❌ [EnterpriseWhatsApp] Erro na integração:', error);
       return {
         success: false,
-        error: error.message || 'Erro desconhecido',
+        error: error instanceof Error ? error.message : 'Erro desconhecido',
         timestamp: new Date().toISOString(),
       };
     }
@@ -139,10 +139,10 @@ export class EnterpriseWhatsAppIntegration {
         success: false,
         message: 'Edge Functions não estão respondendo corretamente',
       };
-    } catch (error: any) {
+    } catch (error: unknown) {
       return {
         success: false,
-        message: `Erro de conexão: ${error.message}`,
+        message: `Erro de conexão: ${error instanceof Error ? error.message : String(error)}`,
       };
     }
   }

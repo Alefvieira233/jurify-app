@@ -12,7 +12,7 @@ interface QueryOptions {
 
 export const useSupabaseQuery = <T>(
   queryKey: string,
-  queryFn: () => Promise<{ data: T[] | null; error: { message?: string; name?: string } | null }>,
+  queryFn: () => Promise<{ data: T[] | null; error: { message?: string; name?: string } | null | unknown }>,
   options: QueryOptions = {}
 ) => {
   const { enabled = true, refetchOnMount = true, staleTime = 30000 } = options;

@@ -69,7 +69,7 @@ Qualificar leads para determinar se são casos viáveis para o escritório, usan
     }
   }
 
-  private async analyzeLead(payload: any): Promise<void> {
+  private async analyzeLead(payload: { task?: string; leadId?: string; data?: unknown; [key: string]: unknown }): Promise<void> {
     try {
       console.log(`🔍 [Qualifier] Analisando lead: ${payload.leadId || 'novo'}`);
       
@@ -82,7 +82,7 @@ Qualificar leads para determinar se são casos viáveis para o escritório, usan
       
       console.log(`✅ [Qualifier] Análise concluída:`, Object.keys(parsedAnalysis));
 
-      this.updateContext(payload.leadId, { 
+      this.updateContext(payload.leadId || '', { 
         stage: 'qualified', 
         analysis: parsedAnalysis,
         legal_area: parsedAnalysis.area_juridica || 'trabalhista'

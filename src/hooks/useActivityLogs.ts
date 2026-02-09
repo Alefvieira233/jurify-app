@@ -148,7 +148,7 @@ export const useActivityLogs = () => {
       const headers = ['Data/Hora', 'Usuario', 'Tipo Acao', 'Modulo', 'Descricao', 'IP'];
       const csvContent = [
         headers.join(','),
-        ...data.map(log => [
+        ...data.map((log: { data_hora: string; nome_usuario: string; tipo_acao: string; modulo: string; descricao: string; ip_usuario: string | null }) => [
           new Date(log.data_hora).toLocaleString('pt-BR'),
           log.nome_usuario,
           log.tipo_acao,

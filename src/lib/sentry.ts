@@ -101,7 +101,7 @@ export function setSentryUser(user: User | null) {
 /**
  * Add custom context.
  */
-export function setSentryContext(key: string, value: Record<string, any>) {
+export function setSentryContext(key: string, value: Record<string, unknown>) {
   Sentry.setContext(key, value);
 }
 
@@ -120,7 +120,7 @@ export function addSentryBreadcrumb(message: string, category?: string, level?: 
 /**
  * Capture an error manually.
  */
-export function captureSentryError(error: Error, context?: Record<string, any>) {
+export function captureSentryError(error: Error, context?: Record<string, unknown>) {
   Sentry.captureException(error, {
     contexts: context ? { custom: context } : undefined,
   });
@@ -137,9 +137,9 @@ export function captureSentryMessage(message: string, level: Sentry.SeverityLeve
  * Performance transaction (legacy API). Returns null if unsupported.
  */
 export function startSentryTransaction(name: string, op: string = 'custom') {
-  const anySentry = Sentry as any;
-  if (typeof anySentry.startTransaction === 'function') {
-    return anySentry.startTransaction({
+  const sentryObj = Sentry as unknown as Record<string, unknown>;
+  if (typeof sentryObj.startTransaction === 'function') {
+    return (sentryObj.startTransaction as (opts: { name: string; op: string }) => unknown)({
       name,
       op,
     });

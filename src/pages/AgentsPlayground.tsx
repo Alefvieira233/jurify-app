@@ -130,7 +130,7 @@ export default function AgentsPlayground() {
 
     try {
       // Inicializar o sistema se necessário
-      if (!multiAgentSystem['initialized']) {
+      if (!(multiAgentSystem as unknown as Record<string, unknown>)['initialized']) {
         await multiAgentSystem.initialize();
       }
 
@@ -165,9 +165,9 @@ export default function AgentsPlayground() {
       setResult({
         success: true,
         executionId: agentResult.executionId || `exec_${Date.now()}`,
-        qualificationResult: agentResult.qualificationResult || null,
-        legalValidation: agentResult.legalValidation || null,
-        proposal: agentResult.proposal || null,
+        qualificationResult: agentResult.qualificationResult || undefined,
+        legalValidation: agentResult.legalValidation || undefined,
+        proposal: agentResult.proposal || undefined,
         formattedMessages: agentResult.formattedMessages || null,
         finalResult: agentResult.finalResult || null,
         executionTime,
@@ -180,18 +180,19 @@ export default function AgentsPlayground() {
         description: `Executado em ${(executionTime / 1000).toFixed(2)}s`,
       });
 
-    } catch (error: any) {
+    } catch (error: unknown) {
       const executionTime = Date.now() - startTime;
+      const errorMsg = error instanceof Error ? error.message : 'Erro desconhecido';
 
       setResult({
         success: false,
-        error: error.message || 'Erro desconhecido',
+        error: errorMsg,
         executionTime
       });
 
       toast({
         title: 'Erro no processamento',
-        description: error.message || 'Tente novamente.',
+        description: errorMsg || 'Tente novamente.',
         variant: 'destructive'
       });
     } finally {

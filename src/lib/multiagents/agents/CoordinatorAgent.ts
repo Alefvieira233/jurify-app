@@ -10,6 +10,15 @@ import { AgentMessage, MessageType, Priority, AGENT_CONFIG } from '../types';
  * - Implementar fallback quando agentes falham
  * - Garantir que o fluxo sempre chegue ao fim
  */
+interface CoordinatorPayload {
+  message?: string;
+  context?: unknown;
+  leadId?: string;
+  stage?: string;
+  agentName?: string;
+  [key: string]: unknown;
+}
+
 export class CoordinatorAgent extends BaseAgent {
   // Mapa de fallback: se um agente falhar, qual é o próximo?
   private static readonly FALLBACK_MAP: Record<string, string> = {
@@ -106,12 +115,13 @@ Analisar cada solicitação e rotear para o agente especialista correto, monitor
   }
 
   protected async handleMessage(message: AgentMessage): Promise<void> {
+    const payload = message.payload as CoordinatorPayload;
     switch (message.type) {
       case MessageType.TASK_REQUEST:
-        await this.planExecution(message.payload);
+        await this.planExecution(payload);
         break;
       case MessageType.STATUS_UPDATE:
-        await this.monitorProgress(message.payload);
+        await this.monitorProgress(payload);
         break;
       case MessageType.ERROR_REPORT:
         await this.handleAgentError(message);
@@ -119,7 +129,7 @@ Analisar cada solicitação e rotear para o agente especialista correto, monitor
     }
   }
 
-  private async planExecution(payload: any): Promise<void> {
+  private async planExecution(payload: CoordinatorPayload): Promise<void> {
     const plan = await this.processWithAIRetry(
       `Analise este lead e decida qual o próximo passo.
       Lead: ${payload.message}
@@ -135,7 +145,7 @@ Analisar cada solicitação e rotear para o agente especialista correto, monitor
         "reason": "motivo",
         "task": "nome_da_tarefa"
       }`,
-      payload.context
+      payload.context as Record<string, unknown> | undefined
     );
 
     let nextAgent: string = AGENT_CONFIG.NAMES.QUALIFIER;
@@ -144,7 +154,7 @@ Analisar cada solicitação e rotear para o agente especialista correto, monitor
 
     try {
       const parsed = this.safeParseJSON<{ next_agent?: string; task?: string; reason?: string }>(plan);
-      if (parsed && parsed.next_agent && Object.values(AGENT_CONFIG.NAMES).includes(parsed.next_agent as any)) {
+      if (parsed && parsed.next_agent && (Object.values(AGENT_CONFIG.NAMES) as string[]).includes(parsed.next_agent)) {
         nextAgent = parsed.next_agent;
         task = parsed.task || 'analyze_lead';
         reason = parsed.reason || 'Decisão da IA';
@@ -153,7 +163,7 @@ Analisar cada solicitação e rotear para o agente especialista correto, monitor
       // Fallback to default agent
     }
 
-    this.updateContext(payload.leadId, { stage: 'planned', plan, nextAgent, task });
+    this.updateContext(payload.leadId || '', { stage: 'planned', plan, nextAgent, task });
 
     // Registra no ExecutionTracker
     await this.recordStageResult('coordination', { nextAgent, task, reason }, true);
@@ -161,7 +171,7 @@ Analisar cada solicitação e rotear para o agente especialista correto, monitor
     await this.routeToAgentWithFallback(
       nextAgent,
       task,
-      payload.leadId,
+      payload.leadId || '',
       payload
     );
   }
@@ -173,7 +183,7 @@ Analisar cada solicitação e rotear para o agente especialista correto, monitor
     targetAgent: string,
     task: string,
     leadId: string,
-    payload: any
+    payload: CoordinatorPayload
   ): Promise<void> {
     const retries = this.getRetryCount(leadId, targetAgent);
     
@@ -195,7 +205,7 @@ Analisar cada solicitação e rotear para o agente especialista correto, monitor
   /**
    * Aplica fallback quando um agente falha repetidamente
    */
-  private async applyFallback(failedAgent: string, leadId: string, payload: any): Promise<void> {
+  private async applyFallback(failedAgent: string, leadId: string, payload: CoordinatorPayload): Promise<void> {
     const fallbackAgent = CoordinatorAgent.FALLBACK_MAP[failedAgent];
 
     if (!fallbackAgent || fallbackAgent === 'ESCALATE_HUMAN') {
@@ -217,7 +227,7 @@ Analisar cada solicitação e rotear para o agente especialista correto, monitor
   /**
    * Escala para atendimento humano quando todos os agentes falham
    */
-  private async escalateToHuman(leadId: string, payload: any, lastFailedAgent: string): Promise<void> {
+  private async escalateToHuman(leadId: string, _payload: CoordinatorPayload, lastFailedAgent: string): Promise<void> {
     // Registra a escalação no ExecutionTracker
     await this.recordStageResult('human_escalation', {
       leadId,
@@ -252,16 +262,17 @@ Analisar cada solicitação e rotear para o agente especialista correto, monitor
    * Trata erros reportados por outros agentes
    */
   private async handleAgentError(message: AgentMessage): Promise<void> {
-    const { agentName, leadId } = message.payload as any;
+    const { agentName, leadId } = message.payload as CoordinatorPayload;
 
     // Aplica fallback para o agente que falhou
     if (agentName && leadId) {
-      await this.applyFallback(agentName, leadId, message.payload);
+      await this.applyFallback(agentName, leadId, message.payload as CoordinatorPayload);
     }
   }
 
-  private async monitorProgress(payload: any): Promise<void> {
-    const { stage, leadId } = payload;
+  private async monitorProgress(payload: CoordinatorPayload): Promise<void> {
+    const stage = payload.stage || '';
+    const leadId = payload.leadId || '';
 
     switch (stage) {
       case 'qualified':

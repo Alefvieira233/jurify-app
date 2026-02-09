@@ -13,8 +13,22 @@ import { BaseAgent } from '../core/BaseAgent';
 import { AgentMessage, AGENT_CONFIG } from '../types';
 
 // Lazy import para evitar circular dependency
-let whatsAppClientInstance: any = null;
-async function getWhatsAppClient(): Promise<any> {
+let whatsAppClientInstance: EnterpriseWhatsAppIntegration | null = null;
+
+interface EnterpriseWhatsAppIntegration {
+  sendMessage(to: string, text: string, conversationId?: string, leadId?: string): Promise<{ success: boolean; messageId?: string; error?: string }>;
+}
+
+interface AgentTaskPayload {
+  task?: string;
+  leadId?: string;
+  proposal?: string | Record<string, unknown>;
+  plan?: string;
+  client_data?: unknown;
+  [key: string]: unknown;
+}
+
+async function getWhatsAppClient(): Promise<EnterpriseWhatsAppIntegration> {
   if (!whatsAppClientInstance) {
     const module = await import('@/lib/integrations/EnterpriseWhatsApp');
     whatsAppClientInstance = module.enterpriseWhatsApp;
@@ -100,7 +114,7 @@ Formatar e enviar mensagens profissionais via WhatsApp, Email e Chat, adaptando 
   }
 
   protected async handleMessage(message: AgentMessage): Promise<void> {
-    const payload = message.payload as any;
+    const payload = message.payload as AgentTaskPayload;
     if (payload.task === 'send_proposal') {
       await this.sendProposal(payload);
     } else if (payload.task === 'send_onboarding') {
@@ -108,7 +122,7 @@ Formatar e enviar mensagens profissionais via WhatsApp, Email e Chat, adaptando 
     }
   }
 
-  private async sendProposal(payload: any): Promise<void> {
+  private async sendProposal(payload: AgentTaskPayload): Promise<void> {
     try {
       const proposalText = typeof payload.proposal === 'string' 
         ? payload.proposal 
@@ -169,7 +183,7 @@ Formatar e enviar mensagens profissionais via WhatsApp, Email e Chat, adaptando 
         }
       }
 
-      this.updateContext(payload.leadId, {
+      this.updateContext(payload.leadId || '', {
         stage: 'proposal_sent',
         formatted_message: messageToSend
       });
@@ -190,7 +204,7 @@ Formatar e enviar mensagens profissionais via WhatsApp, Email e Chat, adaptando 
     }
   }
 
-  private async sendOnboarding(payload: any): Promise<void> {
+  private async sendOnboarding(payload: AgentTaskPayload): Promise<void> {
     try {
       console.log('📱 Comunicador enviando onboarding...');
 
@@ -200,7 +214,7 @@ Formatar e enviar mensagens profissionais via WhatsApp, Email e Chat, adaptando 
         Plano: ${payload.plan}
 
         Seja acolhedor, claro e organize as informações de forma visual.`,
-        payload.client_data
+        payload.client_data as Record<string, unknown> | undefined
       );
 
       // Registra resultado

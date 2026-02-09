@@ -71,7 +71,7 @@ Validar a viabilidade jurídica de casos, analisar fundamentos legais e recomend
     }
   }
 
-  private async validateCase(payload: any): Promise<void> {
+  private async validateCase(payload: { task?: string; leadId?: string; data?: unknown; [key: string]: unknown }): Promise<void> {
     try {
       console.log(`⚖️ [Legal] Validando caso: ${payload.leadId || 'novo'}`);
       
@@ -95,7 +95,7 @@ Validar a viabilidade jurídica de casos, analisar fundamentos legais e recomend
       
       console.log(`✅ [Legal] Validação concluída: viável=${viable}`);
 
-      this.updateContext(payload.leadId, { 
+      this.updateContext(payload.leadId || '', { 
         stage: 'validated', 
         validation: parsedValidation,
         viable 
