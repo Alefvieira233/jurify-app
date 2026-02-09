@@ -1,5 +1,6 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { MessageCircle, Clock, User, Bot, Search, ChevronDown, ChevronUp } from 'lucide-react';
+import { useDebounce } from '@/hooks/useDebounce';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -40,6 +41,7 @@ const TimelineConversas: React.FC<TimelineConversasProps> = ({ leadId, className
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
+  const debouncedSearchTerm = useDebounce(searchTerm, 300);
   const [filterTipo, setFilterTipo] = useState<string>('');
   const [expandedCards, setExpandedCards] = useState<Set<string>>(new Set());
   const [isAutoRefresh, setIsAutoRefresh] = useState(true);
@@ -110,17 +112,17 @@ const TimelineConversas: React.FC<TimelineConversasProps> = ({ leadId, className
     };
   }, [isAutoRefresh, fetchConversas]);
 
-  const filteredConversas = conversas.filter(conversa => {
-    const matchesSearch = 
-      conversa.lead_nome?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      conversa.conteudo?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      conversa.agente_ia_nome?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      conversa.usuario_nome?.toLowerCase().includes(searchTerm.toLowerCase());
-    
+  const filteredConversas = useMemo(() => conversas.filter(conversa => {
+    const matchesSearch =
+      conversa.lead_nome?.toLowerCase().includes(debouncedSearchTerm.toLowerCase()) ||
+      conversa.conteudo?.toLowerCase().includes(debouncedSearchTerm.toLowerCase()) ||
+      conversa.agente_ia_nome?.toLowerCase().includes(debouncedSearchTerm.toLowerCase()) ||
+      conversa.usuario_nome?.toLowerCase().includes(debouncedSearchTerm.toLowerCase());
+
     const matchesFilter = filterTipo === '' || conversa.tipo === filterTipo;
-    
+
     return matchesSearch && matchesFilter;
-  });
+  }), [conversas, debouncedSearchTerm, filterTipo]);
 
   const getTipoIcon = (tipo: string) => {
     switch (tipo) {

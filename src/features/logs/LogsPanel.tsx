@@ -1,6 +1,7 @@
 
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Activity, Search, AlertCircle, CheckCircle, Clock, RefreshCw } from 'lucide-react';
+import { useDebounce } from '@/hooks/useDebounce';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -10,6 +11,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 const LogsPanel = () => {
   const [loading] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
+  const debouncedSearchTerm = useDebounce(searchTerm, 300);
   const [filterStatus, setFilterStatus] = useState('');
   
   // Dados simulados de logs
@@ -49,12 +51,12 @@ const LogsPanel = () => {
     }
   ]);
 
-  const filteredLogs = logs.filter(log => {
-    const matchesSearch = log.agente_nome?.toLowerCase().includes(searchTerm.toLowerCase()) || 
-                         log.input_recebido?.toLowerCase().includes(searchTerm.toLowerCase());
+  const filteredLogs = useMemo(() => logs.filter(log => {
+    const matchesSearch = log.agente_nome?.toLowerCase().includes(debouncedSearchTerm.toLowerCase()) ||
+                         log.input_recebido?.toLowerCase().includes(debouncedSearchTerm.toLowerCase());
     const matchesStatus = filterStatus === '' || log.status === filterStatus;
     return matchesSearch && matchesStatus;
-  });
+  }), [logs, debouncedSearchTerm, filterStatus]);
 
   const getStatusIcon = (status: string) => {
     switch (status) {

@@ -1,6 +1,7 @@
 
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Plus, Search, Calendar, User, AlertCircle, RefreshCw, Eye, Edit } from 'lucide-react';
+import { useDebounce } from '@/hooks/useDebounce';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -14,17 +15,18 @@ import { DetalhesAgendamento } from '@/components/DetalhesAgendamento';
 
 const AgendamentosManager = () => {
   const [searchTerm, setSearchTerm] = useState('');
+  const debouncedSearchTerm = useDebounce(searchTerm, 300);
   const [filterStatus, setFilterStatus] = useState('');
   const [isNovoAgendamentoOpen, setIsNovoAgendamentoOpen] = useState(false);
   const [isDetalhesOpen, setIsDetalhesOpen] = useState(false);
   const [selectedAgendamento, setSelectedAgendamento] = useState<Agendamento | null>(null);
   const { agendamentos, loading, error, isEmpty, fetchAgendamentos } = useAgendamentos();
 
-  const filteredAgendamentos = agendamentos.filter(agendamento => {
-    const matchesSearch = agendamento.responsavel?.toLowerCase().includes(searchTerm.toLowerCase()) || false;
+  const filteredAgendamentos = useMemo(() => agendamentos.filter(agendamento => {
+    const matchesSearch = agendamento.responsavel?.toLowerCase().includes(debouncedSearchTerm.toLowerCase()) || false;
     const matchesStatus = filterStatus === '' || agendamento.status === filterStatus;
     return matchesSearch && matchesStatus;
-  });
+  }), [agendamentos, debouncedSearchTerm, filterStatus]);
 
   const getStatusColor = (status: string) => {
     const colors = {
@@ -34,7 +36,7 @@ const AgendamentosManager = () => {
       cancelado: 'bg-red-100 text-red-800',
       realizado: 'bg-purple-100 text-purple-800'
     };
-    return colors[status] || 'bg-gray-100 text-gray-800';
+    return (colors as Record<string, string>)[status] || 'bg-gray-100 text-gray-800';
   };
 
   const getStatusLabel = (status: string) => {
@@ -45,7 +47,7 @@ const AgendamentosManager = () => {
       cancelado: 'Cancelado',
       realizado: 'Realizado'
     };
-    return labels[status] || status;
+    return (labels as Record<string, string>)[status] || status;
   };
 
   const handleRetry = () => {
@@ -265,8 +267,8 @@ const AgendamentosManager = () => {
                     <h3 className="text-lg font-semibold text-gray-900">
                       {new Date(agendamento.data_hora).toLocaleDateString('pt-BR')} às {new Date(agendamento.data_hora).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
                     </h3>
-                    <Badge className={getStatusColor(agendamento.status)}>
-                      {getStatusLabel(agendamento.status)}
+                    <Badge className={getStatusColor(agendamento.status ?? '')}>
+                      {getStatusLabel(agendamento.status ?? '')}
                     </Badge>
                   </div>
                   
@@ -346,7 +348,7 @@ const AgendamentosManager = () => {
             <DialogTitle>Detalhes do Agendamento</DialogTitle>
           </DialogHeader>
           {selectedAgendamento && (
-            <DetalhesAgendamento agendamento={selectedAgendamento} onClose={handleCloseDetails} />
+            <DetalhesAgendamento agendamento={selectedAgendamento as unknown as Parameters<typeof DetalhesAgendamento>[0]['agendamento']} onClose={handleCloseDetails} />
           )}
         </DialogContent>
       </Dialog>

@@ -1,6 +1,7 @@
 
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Plus, Search, Eye, Edit, FileSignature, Send, AlertCircle, RefreshCw } from 'lucide-react';
+import { useDebounce } from '@/hooks/useDebounce';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -16,17 +17,18 @@ import { DetalhesContrato } from '@/components/DetalhesContrato';
 
 const ContratosManager = () => {
   const [searchTerm, setSearchTerm] = useState('');
+  const debouncedSearchTerm = useDebounce(searchTerm, 300);
   const [filterStatus, setFilterStatus] = useState('');
   const [isNovoContratoOpen, setIsNovoContratoOpen] = useState(false);
   const [isDetalhesOpen, setIsDetalhesOpen] = useState(false);
   const [selectedContrato, setSelectedContrato] = useState<Contrato | null>(null);
   const { contratos, loading, error, isEmpty, fetchContratos } = useContratos();
 
-  const filteredContratos = contratos.filter(contrato => {
-    const matchesSearch = contrato.nome_cliente?.toLowerCase().includes(searchTerm.toLowerCase()) || false;
+  const filteredContratos = useMemo(() => contratos.filter(contrato => {
+    const matchesSearch = contrato.nome_cliente?.toLowerCase().includes(debouncedSearchTerm.toLowerCase()) || false;
     const matchesStatus = filterStatus === '' || contrato.status === filterStatus;
     return matchesSearch && matchesStatus;
-  });
+  }), [contratos, debouncedSearchTerm, filterStatus]);
 
   const getStatusColor = (status: string) => {
     const colors = {
@@ -35,7 +37,7 @@ const ContratosManager = () => {
       assinado: 'bg-emerald-500/15 text-emerald-200 border border-emerald-400/30',
       cancelado: 'bg-red-500/15 text-red-200 border border-red-400/30'
     };
-    return colors[status] || 'bg-slate-500/15 text-slate-200 border border-slate-400/30';
+    return (colors as Record<string, string>)[status] || 'bg-slate-500/15 text-slate-200 border border-slate-400/30';
   };
 
   const getStatusLabel = (status: string) => {
@@ -45,7 +47,7 @@ const ContratosManager = () => {
       assinado: 'Assinado',
       cancelado: 'Cancelado'
     };
-    return labels[status] || status;
+    return (labels as Record<string, string>)[status] || status;
   };
 
   const handleRetry = () => {
@@ -296,8 +298,8 @@ const ContratosManager = () => {
                         <h3 className="text-lg font-semibold text-[hsl(var(--foreground))]">
                           {contrato.nome_cliente}
                         </h3>
-                        <Badge className={getStatusColor(contrato.status)}>
-                          {getStatusLabel(contrato.status)}
+                        <Badge className={getStatusColor(contrato.status ?? '')}>
+                          {getStatusLabel(contrato.status ?? '')}
                         </Badge>
                         {contrato.status_assinatura && (
                           <Badge variant="outline">
@@ -406,7 +408,7 @@ const ContratosManager = () => {
             <DialogTitle>Detalhes do Contrato</DialogTitle>
           </DialogHeader>
           {selectedContrato && (
-            <DetalhesContrato contrato={selectedContrato} onClose={handleCloseDetails} />
+            <DetalhesContrato contrato={selectedContrato as unknown as Parameters<typeof DetalhesContrato>[0]['contrato']} onClose={handleCloseDetails} />
           )}
         </DialogContent>
       </Dialog>
