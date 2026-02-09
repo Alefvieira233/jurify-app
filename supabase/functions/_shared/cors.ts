@@ -18,14 +18,30 @@ function parseAllowedOrigins(): string[] {
 
 export function getCorsHeaders(origin?: string): Record<string, string> {
   const allowedOrigins = parseAllowedOrigins();
-  const isAllowed = origin ? allowedOrigins.includes(origin) : false;
 
-  // Se a origin está na lista, retorna ela exatamente (necessário para CORS com credentials)
-  // Se não está na lista, usa wildcard para não bloquear (auth via JWT já protege)
-  const allowOrigin = isAllowed && origin ? origin : "*";
+  // No origin header = server-to-server request (webhooks, cron); no CORS restriction needed
+  if (!origin) {
+    return {
+      "Access-Control-Allow-Origin": allowedOrigins[0],
+      "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-application-name",
+      "Access-Control-Allow-Methods": "GET,POST,PUT,PATCH,DELETE,OPTIONS",
+      "Vary": "Origin",
+    };
+  }
 
+  // Known origin — reflect it back (required for credentials)
+  if (allowedOrigins.includes(origin)) {
+    return {
+      "Access-Control-Allow-Origin": origin,
+      "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-application-name",
+      "Access-Control-Allow-Methods": "GET,POST,PUT,PATCH,DELETE,OPTIONS",
+      "Vary": "Origin",
+    };
+  }
+
+  // Unknown origin — deny by not including it; browser will block the response
   return {
-    "Access-Control-Allow-Origin": allowOrigin,
+    "Access-Control-Allow-Origin": "null",
     "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-application-name",
     "Access-Control-Allow-Methods": "GET,POST,PUT,PATCH,DELETE,OPTIONS",
     "Vary": "Origin",

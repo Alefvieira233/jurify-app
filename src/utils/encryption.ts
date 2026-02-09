@@ -9,11 +9,16 @@ class EncryptionService {
   private readonly algorithm = 'AES';
 
   constructor() {
-    // Use environment variable or generate a secure key
-    this.secretKey = import.meta.env.VITE_ENCRYPTION_KEY || this.generateSecureKey();
-    
-    if (import.meta.env.DEV && !import.meta.env.VITE_ENCRYPTION_KEY) {
-      console.warn('⚠️ Using generated encryption key. Set VITE_ENCRYPTION_KEY in production!');
+    const envKey = import.meta.env.VITE_ENCRYPTION_KEY;
+
+    if (!envKey && import.meta.env.PROD) {
+      throw new Error('VITE_ENCRYPTION_KEY is required in production. Refusing to start with a random key.');
+    }
+
+    this.secretKey = envKey || this.generateSecureKey();
+
+    if (import.meta.env.DEV && !envKey) {
+      console.warn('⚠️ Using generated encryption key. Set VITE_ENCRYPTION_KEY for persistent encryption.');
     }
   }
 
@@ -88,12 +93,12 @@ class EncryptionService {
   }
 
   // Encrypt sensitive fields in objects
-  encryptSensitiveFields(data: any, sensitiveFields: string[]): any {
+  encryptSensitiveFields(data: Record<string, unknown>, sensitiveFields: string[]): Record<string, unknown> {
     const encrypted = { ...data };
     
     sensitiveFields.forEach(field => {
       if (encrypted[field]) {
-        encrypted[field] = this.encrypt(encrypted[field]);
+        encrypted[field] = this.encrypt(String(encrypted[field]));
         encrypted[`${field}_encrypted`] = true;
       }
     });
@@ -102,13 +107,13 @@ class EncryptionService {
   }
 
   // Decrypt sensitive fields in objects
-  decryptSensitiveFields(data: any, sensitiveFields: string[]): any {
+  decryptSensitiveFields(data: Record<string, unknown>, sensitiveFields: string[]): Record<string, unknown> {
     const decrypted = { ...data };
     
     sensitiveFields.forEach(field => {
       if (decrypted[field] && decrypted[`${field}_encrypted`]) {
         try {
-          decrypted[field] = this.decrypt(decrypted[field]);
+          decrypted[field] = this.decrypt(String(decrypted[field]));
           delete decrypted[`${field}_encrypted`];
         } catch (error) {
           console.error(`Failed to decrypt field ${field}:`, error);
@@ -125,20 +130,20 @@ class EncryptionService {
     email?: string;
     telefone?: string;
     endereco?: string;
-    [key: string]: any;
-  }): any {
+    [key: string]: unknown;
+  }): Record<string, unknown> {
     const piiFields = ['cpf', 'telefone', 'endereco'];
     return this.encryptSensitiveFields(data, piiFields);
   }
 
   // Decrypt PII data
-  decryptPII(data: any): any {
+  decryptPII(data: Record<string, unknown>): Record<string, unknown> {
     const piiFields = ['cpf', 'telefone', 'endereco'];
     return this.decryptSensitiveFields(data, piiFields);
   }
 
   // Generate LGPD compliant data anonymization
-  anonymizeData(data: any): any {
+  anonymizeData(data: Record<string, unknown>): Record<string, unknown> {
     const anonymized = { ...data };
     
     // Replace sensitive data with anonymized versions
@@ -146,7 +151,7 @@ class EncryptionService {
       anonymized.cpf = '***.***.***-**';
     }
     
-    if (anonymized.email) {
+    if (anonymized.email && typeof anonymized.email === 'string') {
       const [username, domain] = anonymized.email.split('@');
       anonymized.email = `${username.substring(0, 2)}***@${domain}`;
     }
@@ -155,7 +160,7 @@ class EncryptionService {
       anonymized.telefone = '(**) ****-****';
     }
     
-    if (anonymized.nome) {
+    if (anonymized.nome && typeof anonymized.nome === 'string') {
       const names = anonymized.nome.split(' ');
       anonymized.nome = names.map((name: string, index: number) => 
         index === 0 ? name : name.charAt(0) + '***'
@@ -166,7 +171,7 @@ class EncryptionService {
   }
 
   // Secure data transmission
-  prepareForTransmission(data: any): {
+  prepareForTransmission(data: Record<string, unknown>): {
     payload: string;
     checksum: string;
     timestamp: number;
@@ -188,7 +193,7 @@ class EncryptionService {
     payload: string;
     checksum: string;
     timestamp: number;
-  }): any {
+  }): Record<string, unknown> {
     // Verify checksum
     const computedChecksum = this.hashData(transmission.payload);
     if (computedChecksum !== transmission.checksum) {

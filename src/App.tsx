@@ -47,7 +47,8 @@ import { WhatsAppErrorBoundary } from "./features/whatsapp/WhatsAppErrorBoundary
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      retry: 1,
+      retry: 2,
+      retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 15000),
       refetchOnWindowFocus: false,
       staleTime: 5 * 60 * 1000, // 5 minutos
     },
@@ -84,17 +85,17 @@ const App = () => (
                     </WhatsAppErrorBoundary>
                   } />
                   <Route path="agentes" element={<AgentesIAManager />} />
-                  <Route path="usuarios" element={<UsuariosManager />} />
-                  <Route path="logs" element={<LogsPanel />} />
-                  <Route path="integracoes" element={<IntegracoesConfig />} />
-                  <Route path="configuracoes" element={<ConfiguracoesGerais />} />
+                  <Route path="usuarios" element={<ProtectedRoute requiredRoles={['admin', 'manager']}><UsuariosManager /></ProtectedRoute>} />
+                  <Route path="logs" element={<ProtectedRoute requiredRoles={['admin', 'manager']}><LogsPanel /></ProtectedRoute>} />
+                  <Route path="integracoes" element={<ProtectedRoute requiredRoles={['admin']}><IntegracoesConfig /></ProtectedRoute>} />
+                  <Route path="configuracoes" element={<ProtectedRoute requiredRoles={['admin']}><ConfiguracoesGerais /></ProtectedRoute>} />
                   <Route path="notificacoes" element={<NotificationsPanel />} />
                   <Route path="timeline" element={<TimelineConversas />} />
                   <Route path="planos" element={<Pricing />} />
                   <Route path="analytics" element={<AnalyticsDashboard />} />
                   <Route path="billing" element={<SubscriptionManager />} />
-                  <Route path="admin/playground" element={<AgentsPlayground />} />
-                  <Route path="admin/mission-control" element={<MissionControl />} />
+                  <Route path="admin/playground" element={<ProtectedRoute requiredRoles={['admin']}><AgentsPlayground /></ProtectedRoute>} />
+                  <Route path="admin/mission-control" element={<ProtectedRoute requiredRoles={['admin']}><MissionControl /></ProtectedRoute>} />
                 </Route>
 
                 <Route path="*" element={<NotFound />} />
