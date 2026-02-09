@@ -8,6 +8,7 @@ import { applyRateLimit } from "../_shared/rate-limiter.ts";
 const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
 const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
 const zapSignApiKey = Deno.env.get('ZAPSIGN_API_KEY');
+const zapSignBaseUrl = Deno.env.get('ZAPSIGN_API_URL') || 'https://api.zapsign.com.br';
 
 interface ZapSignDocument {
   uuid: string;
@@ -64,7 +65,29 @@ serve(async (req) => {
   }
 
   try {
-    const { action, contratoId, contractData } = await req.json();
+    const body = await req.json();
+    const { action, contratoId, contractData } = body;
+
+    if (!action || typeof action !== 'string') {
+      return new Response(JSON.stringify({ error: "Invalid payload: 'action' is required and must be a string" }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    if (!contratoId || typeof contratoId !== 'string') {
+      return new Response(JSON.stringify({ error: "Invalid payload: 'contratoId' is required and must be a string" }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    if (action === 'create_document' && (!contractData || typeof contractData !== 'object')) {
+      return new Response(JSON.stringify({ error: "Invalid payload: 'contractData' is required for create_document" }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
 
     if (!zapSignApiKey) {
       throw new Error('ZapSign API key não configurada');
@@ -73,7 +96,7 @@ serve(async (req) => {
     switch (action) {
       case 'create_document': {
         // Criar documento na ZapSign
-        const response = await fetch('https://sandbox.zapsign.com.br/api/v1/docs/', {
+        const response = await fetch(`${zapSignBaseUrl}/api/v1/docs/`, {
           method: 'POST',
           headers: {
             'Authorization': `Api-Key ${zapSignApiKey}`,
@@ -141,7 +164,7 @@ serve(async (req) => {
         }
 
         // Verificar status na ZapSign
-        const response = await fetch(`https://sandbox.zapsign.com.br/api/v1/docs/${contrato.zapsign_document_id}/`, {
+        const response = await fetch(`${zapSignBaseUrl}/api/v1/docs/${contrato.zapsign_document_id}/`, {
           headers: {
             'Authorization': `Api-Key ${zapSignApiKey}`,
           },
