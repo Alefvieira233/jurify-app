@@ -2,12 +2,8 @@ import { createRoot } from 'react-dom/client'
 import App from './App.tsx'
 import './index.css'
 import ErrorBoundary from './components/ErrorBoundary'
-import { initSentry } from './lib/sentry'
 
-// 🚀 INIT SENTRY (Elon Musk/xAI Standard: Observability First)
-initSentry();
-
-// 🚀 PADRÃO ELON MUSK: Error Boundary global para prevenir crashes completos
+// Sentry is initialized in App.tsx via initSentry()
 const rootElement = document.getElementById("root");
 
 if (!rootElement) {

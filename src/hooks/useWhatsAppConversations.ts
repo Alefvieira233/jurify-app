@@ -317,16 +317,12 @@ export const useWhatsAppConversations = (): UseWhatsAppConversationsReturn => {
     setupRealtime();
 
     return () => {
-      // ✅ CORREÇÃO: Cleanup assíncrono adequado
-      const cleanup = async () => {
-        if (conversationsChannel) {
-          await conversationsChannel.unsubscribe();
-        }
-        if (messagesChannel) {
-          await messagesChannel.unsubscribe();
-        }
-      };
-      cleanup();
+      if (conversationsChannel) {
+        supabase.removeChannel(conversationsChannel);
+      }
+      if (messagesChannel) {
+        supabase.removeChannel(messagesChannel);
+      }
     };
   }, [user, selectedConversation]);
 
