@@ -30,13 +30,16 @@ export default defineConfig(({ mode }) => {
           manualChunks: {
             vendor: ['react', 'react-dom'],
             router: ['react-router-dom'],
-            ui: ['@radix-ui/react-dialog', '@radix-ui/react-select', '@radix-ui/react-tabs'],
+            'ui-dialog': ['@radix-ui/react-dialog'],
+            'ui-select': ['@radix-ui/react-select'],
+            'ui-tabs': ['@radix-ui/react-tabs'],
             supabase: ['@supabase/supabase-js'],
             query: ['@tanstack/react-query'],
+            sentry: ['@sentry/react'],
           },
         }
       },
-      chunkSizeWarningLimit: 1500
+      chunkSizeWarningLimit: 800
     },
 
     server: {
