@@ -89,12 +89,13 @@ class DistributedRateLimitService {
       return result;
 
     } catch (error) {
-      // Fail-open: allow request on error
+      // Fail-closed: deny request on error to prevent rate limit bypass
+      console.error('[RateLimit] Error checking rate limit, failing closed:', error);
       return {
-        allowed: true,
-        remaining: finalConfig.maxRequests,
+        allowed: false,
+        remaining: 0,
         resetTime: now + finalConfig.windowMs,
-        totalHits: 0
+        totalHits: finalConfig.maxRequests
       };
     }
   }
@@ -226,7 +227,7 @@ class DistributedRateLimitService {
   }
 
   // 🚀 HEALTH CHECK
-  async healthCheck(): Promise<{ status: 'healthy' | 'degraded' | 'unhealthy'; details: any }> {
+  async healthCheck(): Promise<{ status: 'healthy' | 'degraded' | 'unhealthy'; details: Record<string, unknown> }> {
     try {
       // Testar operação básica
       const testResult = await this.checkRateLimit('health_check_test', {

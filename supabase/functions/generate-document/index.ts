@@ -2,6 +2,7 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { PDFDocument, StandardFonts, rgb } from "https://esm.sh/pdf-lib@1.17.1";
 import { getCorsHeaders } from "../_shared/cors.ts";
+import { applyRateLimit } from "../_shared/rate-limiter.ts";
 
 console.log("🚀 Generate Document Function Started");
 
@@ -13,6 +14,17 @@ serve(async (req) => {
     }
 
     try {
+        // Rate limit: 10 requests per 60 seconds (resource-intensive PDF generation)
+        const rateLimitCheck = await applyRateLimit(
+            req,
+            { maxRequests: 10, windowSeconds: 60, namespace: "generate-document" },
+            { corsHeaders }
+        );
+
+        if (!rateLimitCheck.allowed) {
+            return rateLimitCheck.response;
+        }
+
         const authHeader = req.headers.get("Authorization");
         if (!authHeader) throw new Error("Missing Authorization header");
 
@@ -25,7 +37,18 @@ serve(async (req) => {
         const { data: { user }, error: userError } = await supabase.auth.getUser();
         if (userError || !user) throw new Error("Unauthorized");
 
-        const { title, content, leadId } = await req.json();
+        const body = await req.json();
+        const { title, content, leadId } = body;
+
+        if (typeof title !== 'string' && title !== undefined) {
+            throw new Error("Invalid payload: 'title' must be a string");
+        }
+        if (typeof content !== 'string' && content !== undefined) {
+            throw new Error("Invalid payload: 'content' must be a string");
+        }
+        if (typeof leadId !== 'string' && leadId !== undefined) {
+            throw new Error("Invalid payload: 'leadId' must be a string");
+        }
 
         // Validate tenant ownership of the lead
         if (leadId) {

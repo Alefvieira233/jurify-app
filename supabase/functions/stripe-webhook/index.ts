@@ -56,6 +56,26 @@ serve(async (req) => {
 
         console.log(`🔔 Event received: ${event.type}`);
 
+        if (!event.type || !event.data?.object) {
+            return new Response("Invalid event structure", { status: 400 });
+        }
+
+        // Idempotency check: skip if event already processed
+        const { data: existingEvent } = await supabase
+            .from("webhook_events")
+            .select("id")
+            .eq("event_id", event.id)
+            .eq("source", "stripe")
+            .maybeSingle();
+
+        if (existingEvent) {
+            console.log(`🔁 Duplicate Stripe event ignored: ${event.id}`);
+            return new Response(JSON.stringify({ received: true, duplicate: true }), {
+                headers: { "Content-Type": "application/json" },
+                status: 200,
+            });
+        }
+
         switch (event.type) {
             case 'customer.subscription.created':
             case 'customer.subscription.updated':
@@ -106,6 +126,11 @@ serve(async (req) => {
                 console.log(`Unhandled event type ${event.type}`);
         }
 
+        // Record event as processed for idempotency
+        await supabase
+            .from("webhook_events")
+            .insert({ event_id: event.id, source: "stripe" });
+
         return new Response(JSON.stringify({ received: true }), {
             headers: { "Content-Type": "application/json" },
             status: 200,
@@ -124,7 +149,7 @@ serve(async (req) => {
 });
 
 async function manageSubscriptionStatusChange(
-    supabase: any,
+    supabase: ReturnType<typeof createClient>,
     subscriptionId: string,
     customerId: string,
     createAction = false

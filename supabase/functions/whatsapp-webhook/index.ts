@@ -5,9 +5,65 @@ import { applyRateLimit, getRequestIdentifier } from "../_shared/rate-limiter.ts
 
 console.log("[whatsapp-webhook] Function started (Evolution API + Meta compatible)");
 
+// --- Typed webhook payloads ---
+
+interface EvolutionMessageKey {
+  remoteJid?: string;
+  fromMe?: boolean;
+  id?: string;
+}
+
+interface EvolutionMessageData {
+  key?: EvolutionMessageKey;
+  pushName?: string;
+  messageType?: string;
+  message?: Record<string, unknown>;
+}
+
+interface EvolutionWebhookPayload {
+  event?: string;
+  instance?: string;
+  data?: EvolutionMessageData & Record<string, unknown>;
+}
+
+interface MetaWebhookMessage {
+  id?: string;
+  from?: string;
+  type?: string;
+  text?: { body?: string };
+  image?: { caption?: string; id?: string };
+  document?: { caption?: string; filename?: string; id?: string };
+  audio?: { id?: string };
+  _vendor?: { name?: string };
+}
+
+interface MetaWebhookStatus {
+  status?: string;
+  recipient_id?: string;
+  errors?: Array<{ code?: string; title?: string }>;
+}
+
+interface MetaWebhookChange {
+  value?: {
+    messages?: MetaWebhookMessage[];
+    statuses?: MetaWebhookStatus[];
+  };
+}
+
+interface MetaWebhookEntry {
+  changes?: MetaWebhookChange[];
+}
+
+interface MetaWebhookPayload {
+  entry?: MetaWebhookEntry[];
+}
+
+type WebhookPayload = EvolutionWebhookPayload & MetaWebhookPayload & Record<string, unknown>;
+
 const WHATSAPP_VERIFY_TOKEN = Deno.env.get("WHATSAPP_VERIFY_TOKEN");
 const EVOLUTION_API_URL = Deno.env.get("EVOLUTION_API_URL");
 const EVOLUTION_API_KEY = Deno.env.get("EVOLUTION_API_KEY");
+const EVOLUTION_WEBHOOK_SECRET = Deno.env.get("EVOLUTION_WEBHOOK_SECRET");
 
 const INTEGRATION_NAME_EVOLUTION = "whatsapp_evolution";
 const INTEGRATION_NAME_META = "whatsapp_oficial";
@@ -25,11 +81,11 @@ interface NormalizedMessage {
   provider: "evolution" | "meta";
 }
 
-function isEvolutionPayload(payload: any): boolean {
+function isEvolutionPayload(payload: WebhookPayload): boolean {
   return !!(payload?.event || payload?.instance || payload?.data?.key);
 }
 
-function normalizeEvolutionMessage(payload: any): NormalizedMessage | null {
+function normalizeEvolutionMessage(payload: WebhookPayload): NormalizedMessage | null {
   const event = payload.event;
 
   // Só processa mensagens recebidas (não enviadas pelo bot)
@@ -95,7 +151,7 @@ function normalizeEvolutionMessage(payload: any): NormalizedMessage | null {
   };
 }
 
-function normalizeMetaMessages(payload: any): NormalizedMessage[] {
+function normalizeMetaMessages(payload: WebhookPayload): NormalizedMessage[] {
   const results: NormalizedMessage[] = [];
 
   for (const entry of payload.entry || []) {
@@ -155,7 +211,7 @@ function normalizeMetaMessages(payload: any): NormalizedMessage[] {
 const processedMessages = new Map<string, number>();
 const DEDUP_TTL_MS = 5 * 60 * 1000; // 5 minutes
 
-function isDuplicate(messageId: string): boolean {
+function isInMemoryDuplicate(messageId: string): boolean {
   const now = Date.now();
   // Clean expired entries
   for (const [key, timestamp] of processedMessages) {
@@ -166,7 +222,34 @@ function isDuplicate(messageId: string): boolean {
   return false;
 }
 
-function getMessageId(payload: any, provider: "evolution" | "meta"): string | null {
+async function isDuplicate(
+  messageId: string,
+  supabase: ReturnType<typeof createClient>
+): Promise<boolean> {
+  // Fast path: in-memory check (survives within same instance)
+  if (isInMemoryDuplicate(messageId)) return true;
+
+  // Durable check: DB-backed idempotency
+  const { data: existing } = await supabase
+    .from("webhook_events")
+    .select("id")
+    .eq("event_id", messageId)
+    .eq("source", "whatsapp")
+    .maybeSingle();
+
+  if (existing) return true;
+
+  // Record event for future dedup
+  await supabase
+    .from("webhook_events")
+    .insert({ event_id: messageId, source: "whatsapp" })
+    .select()
+    .maybeSingle();
+
+  return false;
+}
+
+function getMessageId(payload: WebhookPayload, provider: "evolution" | "meta"): string | null {
   if (provider === "evolution") {
     return payload?.data?.key?.id || null;
   }
@@ -256,6 +339,16 @@ serve(async (req) => {
       // 🔀 ROTEAMENTO: Evolution ou Meta?
       // ============================================
       if (isEvolutionPayload(payload)) {
+        // Verify Evolution webhook signature if secret is configured
+        if (EVOLUTION_WEBHOOK_SECRET) {
+          const webhookSecret = req.headers.get("x-webhook-secret");
+          if (webhookSecret !== EVOLUTION_WEBHOOK_SECRET) {
+            console.error("[webhook:evolution] Invalid webhook secret — rejecting request");
+            return new Response("Unauthorized", { status: 401, headers: corsHeaders });
+          }
+        } else {
+          console.warn("[webhook:evolution] EVOLUTION_WEBHOOK_SECRET not set — skipping signature verification");
+        }
         // --- EVOLUTION API ---
         const event = payload.event;
         console.log(`[webhook:evolution] Event: ${event}, Instance: ${payload.instance}`);
@@ -267,13 +360,12 @@ serve(async (req) => {
           console.log(`[webhook:evolution] Connection: ${instanceName} → ${state}`);
 
           if (instanceName && state) {
+            const dbStatus = state === "open" ? "ativa" : "inativa";
             await supabase
               .from("configuracoes_integracoes")
-              .update({
-                status: state === "open" ? "ativa" : state === "close" ? "desconectada" : state,
-              })
+              .update({ status: dbStatus })
               .eq("nome_integracao", INTEGRATION_NAME_EVOLUTION)
-              .eq("phone_number_id", instanceName);
+              .ilike("observacoes", `%${instanceName}%`);
           }
 
           return new Response("OK", { status: 200, headers: corsHeaders });
@@ -289,11 +381,11 @@ serve(async (req) => {
             await supabase
               .from("configuracoes_integracoes")
               .update({
-                verify_token: qrCode,
-                status: "aguardando_qr",
+                status: "inativa",
+                observacoes: `Instance: ${instanceName} | QR: pending`,
               })
               .eq("nome_integracao", INTEGRATION_NAME_EVOLUTION)
-              .eq("phone_number_id", instanceName);
+              .ilike("observacoes", `%${instanceName}%`);
           }
 
           return new Response("OK", { status: 200, headers: corsHeaders });
@@ -302,7 +394,7 @@ serve(async (req) => {
         // Mensagem recebida
         if (event === "messages.upsert") {
           const msgId = getMessageId(payload, "evolution");
-          if (msgId && isDuplicate(msgId)) {
+          if (msgId && await isDuplicate(msgId, supabase)) {
             console.log(`[webhook:evolution] Duplicate message ignored: ${msgId}`);
             return new Response("OK", { status: 200, headers: corsHeaders });
           }
@@ -321,7 +413,7 @@ serve(async (req) => {
         console.log("[webhook:meta] Processing Meta webhook");
 
         const metaMsgId = getMessageId(payload, "meta");
-        if (metaMsgId && isDuplicate(metaMsgId)) {
+        if (metaMsgId && await isDuplicate(metaMsgId, supabase)) {
           console.log(`[webhook:meta] Duplicate message ignored: ${metaMsgId}`);
           return new Response("OK", { status: 200, headers: corsHeaders });
         }
@@ -359,7 +451,7 @@ serve(async (req) => {
 // ============================================
 // 📊 STATUS UPDATES (Meta format)
 // ============================================
-async function processStatusUpdate(supabase: any, status: any) {
+async function processStatusUpdate(supabase: ReturnType<typeof createClient>, status: MetaWebhookStatus) {
   try {
     const statusValue = status.status;
     const recipientId = status.recipient_id;
@@ -389,7 +481,7 @@ async function processStatusUpdate(supabase: any, status: any) {
 // ============================================
 // 📨 PROCESSA MENSAGEM NORMALIZADA (funciona para ambos providers)
 // ============================================
-async function processNormalizedMessage(supabase: any, msg: NormalizedMessage) {
+async function processNormalizedMessage(supabase: ReturnType<typeof createClient>, msg: NormalizedMessage) {
   try {
     const { from, name, text, messageType, mediaUrl, instanceName, provider } = msg;
 
@@ -398,16 +490,22 @@ async function processNormalizedMessage(supabase: any, msg: NormalizedMessage) {
     // --- RESOLVE TENANT ---
     let tenantId: string | null = null;
 
-    // 1. Busca por instanceName (Evolution) ou config
+    // 1. Busca tenant diretamente via configuracoes_integracoes.tenant_id
     if (instanceName) {
       const { data: config } = await supabase
         .from("configuracoes_integracoes")
         .select("tenant_id")
         .eq("nome_integracao", INTEGRATION_NAME_EVOLUTION)
-        .eq("phone_number_id", instanceName)
+        .ilike("observacoes", `%${instanceName}%`)
+        .not("tenant_id", "is", null)
         .maybeSingle();
 
-      if (config) tenantId = config.tenant_id;
+      if (config?.tenant_id) {
+        tenantId = config.tenant_id;
+        console.log(`[webhook] Tenant resolved via integration config: ${tenantId}`);
+      } else {
+        console.log(`[webhook] No config found for instance: ${instanceName}`);
+      }
     }
 
     // 2. Fallback: busca por conversa existente
@@ -443,7 +541,7 @@ async function processNormalizedMessage(supabase: any, msg: NormalizedMessage) {
         .from("leads")
         .insert({
           tenant_id: tenantId,
-          nome_completo: name,
+          nome: name,
           telefone: from,
           email: null,
           area_juridica: "Nao informado",
@@ -527,7 +625,7 @@ async function processNormalizedMessage(supabase: any, msg: NormalizedMessage) {
     if (recentMessages && recentMessages.length > 1) {
       conversationHistory = recentMessages
         .reverse()
-        .map((m: any) => `${m.sender === "lead" ? "Cliente" : "Assistente"}: ${m.content}`)
+        .map((m: { sender: string; content: string }) => `${m.sender === "lead" ? "Cliente" : "Assistente"}: ${m.content}`)
         .join("\n");
     }
 
@@ -650,22 +748,20 @@ async function sendViaEvolution(instanceName: string, to: string, text: string) 
 // ============================================
 // 📤 ENVIO VIA META OFFICIAL API (backward compatible)
 // ============================================
-async function sendViaMeta(to: string, text: string, tenantId: string, supabase: any) {
+async function sendViaMeta(to: string, text: string, _tenantId: string, supabase: ReturnType<typeof createClient>) {
   let accessToken = Deno.env.get("WHATSAPP_ACCESS_TOKEN") || "";
   let phoneNumberId = Deno.env.get("WHATSAPP_PHONE_NUMBER_ID") || "";
 
-  // Tenta buscar credenciais do tenant
-  if (tenantId) {
-    const { data: config } = await supabase
-      .from("configuracoes_integracoes")
-      .select("api_key, phone_number_id")
-      .eq("nome_integracao", INTEGRATION_NAME_META)
-      .eq("tenant_id", tenantId)
-      .maybeSingle();
+  // Tenta buscar credenciais da integração Meta
+  const { data: config } = await supabase
+    .from("configuracoes_integracoes")
+    .select("api_key, endpoint_url")
+    .eq("nome_integracao", INTEGRATION_NAME_META)
+    .eq("status", "ativa")
+    .maybeSingle();
 
-    if (config?.api_key) accessToken = config.api_key;
-    if (config?.phone_number_id) phoneNumberId = config.phone_number_id;
-  }
+  if (config?.api_key) accessToken = config.api_key;
+  if (config?.endpoint_url) phoneNumberId = config.endpoint_url;
 
   if (!accessToken || !phoneNumberId) {
     console.error("[webhook:meta] Missing credentials for sending");
