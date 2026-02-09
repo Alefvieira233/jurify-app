@@ -153,31 +153,31 @@ export const useSecurityPolicies = () => {
         });
       }
 
+      // WhatsApp Evolution API connectivity check
       try {
-        const { data: workflows, error } = await supabase
-          .from('n8n_workflows')
-          .select('id, ativo')
-          .eq('tenant_id', tenantId)
-          .eq('ativo', true)
-          .limit(1);
+        const { data: whatsappConfig, error } = await supabase
+          .from('configuracoes_integracoes')
+          .select('id, status')
+          .eq('nome_integracao', 'whatsapp_evolution')
+          .maybeSingle();
 
         if (!error) {
-          const activeWorkflows = workflows?.length || 0;
+          const isActive = whatsappConfig?.status === 'ativa';
           scanResults.push({
-            id: 'n8n-connectivity',
-            name: 'Conectividade N8N',
-            status: activeWorkflows > 0 ? 'pass' : 'warning',
-            message: `${activeWorkflows} workflow(s) N8N ativo(s)`,
+            id: 'whatsapp-connectivity',
+            name: 'WhatsApp Evolution API',
+            status: isActive ? 'pass' : whatsappConfig ? 'warning' : 'warning',
+            message: isActive ? 'WhatsApp conectado e ativo' : whatsappConfig ? 'WhatsApp configurado mas inativo' : 'WhatsApp nao configurado',
             severity: 'medium',
             category: 'network'
           });
         }
       } catch {
         scanResults.push({
-          id: 'n8n-error',
-          name: 'Conectividade N8N',
+          id: 'whatsapp-error',
+          name: 'WhatsApp Evolution API',
           status: 'fail',
-          message: 'Erro ao verificar workflows N8N',
+          message: 'Erro ao verificar integracao WhatsApp',
           severity: 'medium',
           category: 'network'
         });

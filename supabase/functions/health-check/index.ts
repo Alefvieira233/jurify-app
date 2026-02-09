@@ -13,13 +13,16 @@ serve(async (req) => {
   const startTime = Date.now();
   const healthStatus = {
     status: "ok",
+    version: "2.0.0",
     timestamp: new Date().toISOString(),
     uptime: 0,
     services: {
       supabase: "unknown",
-      openai: "unknown",
-      n8n: "unknown",
       database: "unknown",
+      openai: "unknown",
+      whatsapp_evolution: "unknown",
+      stripe: "unknown",
+      zapsign: "unknown",
     },
     performance: {
       responseTime: 0,
@@ -32,42 +35,26 @@ serve(async (req) => {
     const authHeader = req.headers.get("Authorization");
     const tokenHeader = req.headers.get("x-health-check-token");
 
-    if (healthToken) {
-      const bearer = authHeader?.replace("Bearer ", "");
-      if (tokenHeader !== healthToken && bearer !== healthToken) {
-        return new Response(JSON.stringify({ error: "Unauthorized" }), {
-          status: 401,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
-    } else if (!authHeader) {
-      return new Response(JSON.stringify({ error: "Authorization header required" }), {
+    if (!healthToken) {
+      return new Response(JSON.stringify({ error: "Health check token not configured" }), {
+        status: 503,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    const bearer = authHeader?.replace("Bearer ", "");
+    if (tokenHeader !== healthToken && bearer !== healthToken) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
         status: 401,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
-    const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY") ?? "";
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
 
-    if (!supabaseUrl || !supabaseAnonKey || !supabaseServiceKey) {
+    if (!supabaseUrl || !supabaseServiceKey) {
       throw new Error("Supabase environment variables not configured");
-    }
-
-    const supabaseAuthClient = createClient(supabaseUrl, supabaseAnonKey, {
-      auth: { autoRefreshToken: false, persistSession: false },
-    });
-
-    if (!healthToken) {
-      const token = authHeader?.replace("Bearer ", "") || "";
-      const { data: { user }, error: userError } = await supabaseAuthClient.auth.getUser(token);
-      if (userError || !user) {
-        return new Response(JSON.stringify({ error: "Unauthorized" }), {
-          status: 401,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
     }
 
     const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
@@ -127,28 +114,64 @@ serve(async (req) => {
       healthStatus.status = "degraded";
     }
 
+    // --- WhatsApp Evolution API Check ---
     try {
-      const n8nUrl = Deno.env.get("N8N_WEBHOOK_URL");
-      if (!n8nUrl) {
-        healthStatus.services.n8n = "not_configured";
+      const evolutionUrl = Deno.env.get("EVOLUTION_API_URL");
+      const evolutionKey = Deno.env.get("EVOLUTION_API_KEY");
+      if (!evolutionUrl || !evolutionKey) {
+        healthStatus.services.whatsapp_evolution = "not_configured";
       } else {
-        const response = await fetch(n8nUrl, {
+        const response = await fetch(`${evolutionUrl}/instance/fetchInstances`, {
           method: "GET",
-          headers: {
-            "User-Agent": "Jurify-Health-Check/1.0",
-          },
+          headers: { apikey: evolutionKey },
+          signal: AbortSignal.timeout(5000),
         });
-
-        if (response.ok || response.status === 404) {
-          healthStatus.services.n8n = "connected";
-        } else {
-          healthStatus.services.n8n = "error";
-          healthStatus.status = "degraded";
-        }
+        healthStatus.services.whatsapp_evolution = response.ok ? "connected" : "error";
+        if (!response.ok) healthStatus.status = "degraded";
       }
     } catch (error) {
-      console.error("[health-check] N8N error:", error);
-      healthStatus.services.n8n = "error";
+      console.error("[health-check] Evolution API error:", error);
+      healthStatus.services.whatsapp_evolution = "error";
+      healthStatus.status = "degraded";
+    }
+
+    // --- Stripe Check ---
+    try {
+      const stripeKey = Deno.env.get("STRIPE_SECRET_KEY");
+      if (!stripeKey) {
+        healthStatus.services.stripe = "not_configured";
+      } else {
+        const response = await fetch("https://api.stripe.com/v1/balance", {
+          method: "GET",
+          headers: { Authorization: `Bearer ${stripeKey}` },
+          signal: AbortSignal.timeout(5000),
+        });
+        healthStatus.services.stripe = response.ok ? "connected" : "error";
+        if (!response.ok) healthStatus.status = "degraded";
+      }
+    } catch (error) {
+      console.error("[health-check] Stripe error:", error);
+      healthStatus.services.stripe = "error";
+      healthStatus.status = "degraded";
+    }
+
+    // --- ZapSign Check ---
+    try {
+      const zapSignKey = Deno.env.get("ZAPSIGN_API_KEY");
+      if (!zapSignKey) {
+        healthStatus.services.zapsign = "not_configured";
+      } else {
+        const response = await fetch("https://sandbox.zapsign.com.br/api/v1/docs/", {
+          method: "GET",
+          headers: { Authorization: `Api-Key ${zapSignKey}` },
+          signal: AbortSignal.timeout(5000),
+        });
+        healthStatus.services.zapsign = (response.ok || response.status === 401) ? "connected" : "error";
+        if (!response.ok && response.status !== 401) healthStatus.status = "degraded";
+      }
+    } catch (error) {
+      console.error("[health-check] ZapSign error:", error);
+      healthStatus.services.zapsign = "error";
       healthStatus.status = "degraded";
     }
 
@@ -157,7 +180,7 @@ serve(async (req) => {
     healthStatus.performance.responseTime = endTime - startTime;
 
     try {
-      healthStatus.performance.memoryUsage = (performance as any).memory?.usedJSHeapSize || 0;
+      healthStatus.performance.memoryUsage = ((performance as unknown as Record<string, Record<string, number>>).memory)?.usedJSHeapSize || 0;
     } catch {
       healthStatus.performance.memoryUsage = 0;
     }

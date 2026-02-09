@@ -224,32 +224,35 @@ async function getWhatsAppCredentials(
   // 1. Tenta Evolution API primeiro (prioridade)
   const { data: evolutionConfig } = await supabase
     .from("configuracoes_integracoes")
-    .select("phone_number_id, status")
-    .eq("tenant_id", tenantId)
+    .select("observacoes, status")
     .eq("nome_integracao", "whatsapp_evolution")
     .eq("status", "ativa")
     .maybeSingle();
 
-  if (evolutionConfig?.phone_number_id && EVOLUTION_API_URL && EVOLUTION_API_KEY) {
-    return {
-      provider: "evolution",
-      instanceName: evolutionConfig.phone_number_id,
-    };
+  if (evolutionConfig?.observacoes && EVOLUTION_API_URL && EVOLUTION_API_KEY) {
+    // Extract instanceName from observacoes (format: "Instance: nome")
+    const match = evolutionConfig.observacoes.match(/Instance:\s*([^|]+)/);
+    const instanceName = match ? match[1].trim() : null;
+    if (instanceName) {
+      return {
+        provider: "evolution",
+        instanceName,
+      };
+    }
   }
 
   // 2. Tenta Meta Official API
   const { data: metaConfig } = await supabase
     .from("configuracoes_integracoes")
-    .select("api_key, phone_number_id")
-    .eq("tenant_id", tenantId)
+    .select("api_key, endpoint_url")
     .eq("nome_integracao", "whatsapp_oficial")
     .eq("status", "ativa")
     .maybeSingle();
 
-  if (metaConfig?.api_key && metaConfig?.phone_number_id) {
+  if (metaConfig?.api_key && metaConfig?.endpoint_url) {
     return {
       provider: "meta",
-      phoneNumberId: metaConfig.phone_number_id,
+      phoneNumberId: metaConfig.endpoint_url,
       accessToken: metaConfig.api_key,
     };
   }
