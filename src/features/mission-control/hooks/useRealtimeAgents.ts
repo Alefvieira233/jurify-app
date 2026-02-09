@@ -226,7 +226,7 @@ export function useRealtimeAgents(tenantId?: string) {
             if (execution.current_agent) {
               setAgentStatuses(prev => {
                 const newMap = new Map(prev);
-                const agentId = execution.current_agent;
+                const agentId = execution.current_agent!;
                 const agent = newMap.get(agentId);
                 if (agent) {
                   newMap.set(agentId, {
@@ -250,7 +250,7 @@ export function useRealtimeAgents(tenantId?: string) {
             if (execution.current_agent) {
               setAgentStatuses(prev => {
                 const newMap = new Map(prev);
-                const agentId = execution.current_agent;
+                const agentId = execution.current_agent!;
                 const agent = newMap.get(agentId);
                 if (agent) {
                   const newStatus = execution.status === 'completed' || execution.status === 'failed'

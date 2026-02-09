@@ -233,7 +233,7 @@ const IntegracoesConfig = () => {
                   </Label>
                   <Textarea
                     id="observacoes"
-                    value={formData.observacoes}
+                    value={formData.observacoes ?? ''}
                     onChange={(e) => setFormData({ ...formData, observacoes: e.target.value })}
                     className="col-span-3"
                     placeholder="Observacoes adicionais..."
@@ -420,7 +420,7 @@ const IntegracoesConfig = () => {
                 </Label>
                 <Textarea
                   id="edit-observacoes"
-                  value={formData.observacoes}
+                  value={formData.observacoes ?? ''}
                   onChange={(e) => setFormData({ ...formData, observacoes: e.target.value })}
                   className="col-span-3"
                   rows={3}

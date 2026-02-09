@@ -126,7 +126,7 @@ const LeadsKanban: React.FC<LeadsKanbanProps> = ({ leads, onDragEnd, onEditLead,
                                                                                 variant="ghost"
                                                                                 size="sm"
                                                                                 className="h-5 text-[10px] uppercase tracking-wide font-bold text-[hsl(var(--accent))] hover:text-[hsl(var(--accent))] hover:bg-transparent p-0 flex items-center gap-1"
-                                                                                onClick={(e) => { e.stopPropagation(); onViewTimeline(lead.id, lead.nome_completo); }}
+                                                                                onClick={(e) => { e.stopPropagation(); onViewTimeline(lead.id, lead.nome_completo ?? ''); }}
                                                                             >
                                                                                 Abrir Deal <span className="text-xs">→</span>
                                                                             </Button>

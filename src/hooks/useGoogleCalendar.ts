@@ -180,14 +180,14 @@ export const useGoogleCalendar = () => {
       await GoogleOAuthService.exchangeCodeForTokens(code, user.id);
       localStorage.removeItem('google_oauth_state');
 
-      const userCalendars = await GoogleOAuthService.listCalendars(user.id);
+      const userCalendars = await GoogleOAuthService.listCalendars(user.id) as unknown as GoogleCalendar[];
       setCalendars(userCalendars);
 
       const primaryCalendar = userCalendars.find(cal => cal.primary);
       if (primaryCalendar) {
         await updateSettings({
           calendar_enabled: true,
-          calendar_id: primaryCalendar.id,
+          calendar_id: primaryCalendar.id as string,
         });
       }
 
@@ -267,11 +267,11 @@ export const useGoogleCalendar = () => {
         summary: eventData.titulo || 'Agendamento Jurify',
         description: eventData.descricao || '',
         start: {
-          dateTime: new Date(eventData.data_hora).toISOString(),
+          dateTime: new Date(eventData.data_hora || new Date()).toISOString(),
           timeZone: 'America/Sao_Paulo',
         },
         end: {
-          dateTime: new Date(new Date(eventData.data_hora).getTime() + 60 * 60 * 1000).toISOString(),
+          dateTime: new Date(new Date(eventData.data_hora || new Date()).getTime() + 60 * 60 * 1000).toISOString(),
           timeZone: 'America/Sao_Paulo',
         },
         attendees: eventData.participantes?.map((email: string) => ({ email })) || [],
@@ -411,7 +411,7 @@ export const useGoogleCalendar = () => {
 
     try {
       setLoading(true);
-      const userCalendars = await GoogleOAuthService.listCalendars(user.id);
+      const userCalendars = await GoogleOAuthService.listCalendars(user.id) as unknown as GoogleCalendar[];
       setCalendars(userCalendars);
     } catch (_error: unknown) {
       // Error handled silently

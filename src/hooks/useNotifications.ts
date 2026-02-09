@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
@@ -28,7 +28,7 @@ export const useNotifications = () => {
 
   const tenantId = profile?.tenant_id ?? null;
 
-  const fetchNotifications = async () => {
+  const fetchNotifications = useCallback(async () => {
     if (!user?.id || !tenantId) return;
 
     try {
@@ -55,7 +55,7 @@ export const useNotifications = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [user?.id, tenantId, toast]);
 
   const markAsRead = async (notificationId: string) => {
     if (!user?.id) return;

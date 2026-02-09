@@ -234,7 +234,7 @@ const UploadContratos: React.FC<UploadContratosProps> = ({
       // 3. Upload para Supabase Storage
       atualizarStatusArquivo(arquivo.id, 'enviando', 50);
 
-      const nomeArquivoSeguro = `${profile.tenant_id}/${Date.now()}-${sanitizeText(arquivo.file.name)}`;
+      const nomeArquivoSeguro = `${profile!.tenant_id}/${Date.now()}-${sanitizeText(arquivo.file.name)}`;
       
       const { error: uploadError } = await supabase.storage
         .from('contratos')
@@ -256,7 +256,7 @@ const UploadContratos: React.FC<UploadContratosProps> = ({
       const { error: dbError } = await supabase
         .from('contratos_uploads')
         .insert({
-          tenant_id: profile.tenant_id,
+          tenant_id: profile!.tenant_id,
           nome_arquivo: arquivo.nome,
           caminho_storage: nomeArquivoSeguro,
           url_publica: urlData.publicUrl,
@@ -264,7 +264,7 @@ const UploadContratos: React.FC<UploadContratosProps> = ({
           tipo_mime: arquivo.tipo,
           hash_seguranca: hash,
           metadados: validacao.metadados,
-          usuario_upload: user.id
+          usuario_upload: user!.id
         });
 
       if (dbError) throw dbError;

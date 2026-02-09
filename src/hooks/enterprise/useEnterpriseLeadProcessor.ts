@@ -106,7 +106,7 @@ export const useEnterpriseLeadProcessor = (
 
         if (error) throw error;
 
-        await multiAgentSystem.processLead(savedLead, leadData.message);
+        await multiAgentSystem.processLead(savedLead, leadData.message || '');
 
         toast({
           title: 'Lead processado',

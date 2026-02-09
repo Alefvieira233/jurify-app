@@ -30,6 +30,7 @@ import {
 } from '@/components/ui/form';
 import { type Lead, type LeadInput } from '@/hooks/useLeads';
 import { leadFormSchema, AREAS_JURIDICAS, ORIGENS_LEAD, type LeadFormData } from '@/schemas/leadSchema';
+import { useToast } from '@/hooks/use-toast';
 
 interface LeadFormProps {
   open: boolean;
@@ -113,6 +114,7 @@ const LeadForm: React.FC<LeadFormProps> = ({
   submitLabel,
   onSuccess,
 }) => {
+  const { toast } = useToast();
   const form = useForm<LeadFormData>({
     resolver: zodResolver(leadFormSchema),
     defaultValues: lead ? leadToFormData(lead) : EMPTY_DEFAULTS,
@@ -132,8 +134,12 @@ const LeadForm: React.FC<LeadFormProps> = ({
         onOpenChange(false);
         onSuccess?.();
       }
-    } catch (_error) {
-      // Error handled by the caller via toast/notification
+    } catch (error) {
+      toast({
+        title: 'Erro ao salvar',
+        description: error instanceof Error ? error.message : 'Não foi possível salvar o lead.',
+        variant: 'destructive',
+      });
     }
   };
 
@@ -294,7 +300,7 @@ const LeadForm: React.FC<LeadFormProps> = ({
                       <FormControl>
                         <Input
                           placeholder="R$ 0,00"
-                          value={formatCurrency(field.value)}
+                          value={formatCurrency(field.value ?? undefined)}
                           onChange={(e) => field.onChange(parseCurrency(e.target.value))}
                         />
                       </FormControl>

@@ -3,6 +3,7 @@ import { Search, X, FileText, Users, Calendar, Bot, MessageSquare, ArrowRight } 
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { useToast } from '@/hooks/use-toast';
 
 interface SearchResult {
   id: string;
@@ -37,6 +38,7 @@ export default function GlobalSearch() {
   const inputRef = useRef<HTMLInputElement>(null);
   const navigate = useNavigate();
   const { profile } = useAuth();
+  const { toast } = useToast();
 
   // Ctrl+K to open
   useEffect(() => {
@@ -133,6 +135,11 @@ export default function GlobalSearch() {
       setSelectedIndex(0);
     } catch (err) {
       console.error('Search error:', err);
+      toast({
+        title: 'Erro na busca',
+        description: 'Não foi possível realizar a busca. Tente novamente.',
+        variant: 'destructive',
+      });
     } finally {
       setLoading(false);
     }

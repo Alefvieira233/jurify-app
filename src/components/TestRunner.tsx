@@ -163,7 +163,7 @@ export const TestRunner: React.FC = () => {
                   {testResults.overall_status}
                 </Badge>
                 <span className="text-sm text-[hsl(var(--muted-foreground))]">
-                  {new Date(testResults.timestamp).toLocaleString()}
+                  {new Date(testResults.timestamp || '').toLocaleString()}
                 </span>
               </div>
             </CardContent>

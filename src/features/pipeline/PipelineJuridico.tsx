@@ -155,7 +155,7 @@ const PipelineJuridico = () => {
             >
               <option value="">FILTRAR ÁREA</option>
               {areasJuridicas.map(area => (
-                <option key={area} value={area}>{area}</option>
+                <option key={area} value={area ?? ''}>{area}</option>
               ))}
             </select>
             <Filter className="absolute right-6 top-1/2 -translate-y-1/2 h-4 w-4 text-foreground/20 pointer-events-none" />
@@ -169,7 +169,7 @@ const PipelineJuridico = () => {
             >
               <option value="">FILTRAR RESPONSÁVEL</option>
               {responsaveis.map(resp => (
-                <option key={resp} value={resp}>{resp}</option>
+                <option key={resp} value={resp ?? ''}>{resp}</option>
               ))}
             </select>
             <User className="absolute right-6 top-1/2 -translate-y-1/2 h-4 w-4 text-foreground/20 pointer-events-none" />

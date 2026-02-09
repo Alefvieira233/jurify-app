@@ -163,7 +163,7 @@ const GoogleCalendarConfig = () => {
                 <div className="space-y-2">
                   <Label>Direção da Sincronização</Label>
                   <Select
-                    value={settings.sync_direction}
+                    value={settings.sync_direction ?? undefined}
                     onValueChange={(value) => void handleSettingChange('sync_direction', value)}
                   >
                     <SelectTrigger>

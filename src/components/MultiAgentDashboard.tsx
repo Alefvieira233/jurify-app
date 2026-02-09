@@ -428,22 +428,28 @@ export const MultiAgentDashboard: React.FC = () => {
             <CardContent>
               <div className="space-y-4">
                 {recentActivity?.length > 0 ? (
-                  recentActivity.map((activity, index) => (
-                    <div key={index} className="flex items-center gap-4 p-3 bg-gray-50 rounded-lg">
-                      <div className="p-2 bg-blue-100 rounded-full">
-                        {getAgentIcon(activity.agent_id)}
+                  recentActivity.map((activity, index) => {
+                    const agentId = String(activity.agent_id ?? '');
+                    const message = String(activity.message ?? '');
+                    const createdAt = String(activity.created_at ?? '');
+                    const leadId = String(activity.lead_id ?? '');
+                    return (
+                      <div key={index} className="flex items-center gap-4 p-3 bg-gray-50 rounded-lg">
+                        <div className="p-2 bg-blue-100 rounded-full">
+                          {getAgentIcon(agentId)}
+                        </div>
+                        <div className="flex-1">
+                          <p className="font-medium">{message}</p>
+                          <p className="text-sm text-muted-foreground">
+                            {agentId} • {new Date(createdAt).toLocaleString()}
+                          </p>
+                        </div>
+                        <Badge variant="outline">
+                          {leadId.substring(0, 8)}
+                        </Badge>
                       </div>
-                      <div className="flex-1">
-                        <p className="font-medium">{activity.message}</p>
-                        <p className="text-sm text-muted-foreground">
-                          {activity.agent_id} • {new Date(activity.created_at).toLocaleString()}
-                        </p>
-                      </div>
-                      <Badge variant="outline">
-                        {activity.lead_id?.substring(0, 8)}
-                      </Badge>
-                    </div>
-                  ))
+                    );
+                  })
                 ) : (
                   <div className="text-center py-8 text-muted-foreground">
                     <Activity className="h-12 w-12 mx-auto mb-4 opacity-50" />

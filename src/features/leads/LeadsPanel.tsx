@@ -45,7 +45,7 @@ const LeadsPanel = () => {
       em_atendimento: 'bg-cyan-500/15 text-cyan-200 border border-cyan-400/30',
       lead_perdido: 'bg-red-500/15 text-red-200 border border-red-400/30'
     };
-    return colors[status] || 'bg-slate-500/15 text-slate-200 border border-slate-400/30';
+    return (colors as Record<string, string>)[status] || 'bg-slate-500/15 text-slate-200 border border-slate-400/30';
   };
 
   const getStatusLabel = (status: string) => {
@@ -57,7 +57,7 @@ const LeadsPanel = () => {
       em_atendimento: 'Em Atendimento',
       lead_perdido: 'Lead Perdido'
     };
-    return labels[status] || status;
+    return (labels as Record<string, string>)[status] || status;
   };
 
   const handleRetry = () => {
@@ -394,10 +394,10 @@ const LeadsPanel = () => {
 
                       {/* Premium Status Badge */}
                       <div className="relative group/badge">
-                        <div className={`absolute inset-0 ${getStatusColor(lead.status)} rounded-full blur opacity-50 group-hover/badge:opacity-75 transition-opacity duration-300`} />
-                        <Badge className={`relative ${getStatusColor(lead.status)} px-3 py-1 shadow-sm`}>
+                        <div className={`absolute inset-0 ${getStatusColor(lead.status ?? '')} rounded-full blur opacity-50 group-hover/badge:opacity-75 transition-opacity duration-300`} />
+                        <Badge className={`relative ${getStatusColor(lead.status ?? '')} px-3 py-1 shadow-sm`}>
                           <span className="font-semibold text-xs" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
-                            {getStatusLabel(lead.status)}
+                            {getStatusLabel(lead.status ?? '')}
                           </span>
                         </Badge>
                       </div>
@@ -442,7 +442,7 @@ const LeadsPanel = () => {
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={() => handleViewTimeline(lead.id, lead.nome_completo)}
+                      onClick={() => handleViewTimeline(lead.id, lead.nome_completo ?? '')}
                       className="relative group/btn overflow-hidden border-[hsl(var(--border))] bg-[hsl(var(--card))] text-[hsl(var(--foreground))] hover:text-[hsl(var(--accent))] hover:bg-[hsl(var(--muted))] hover:border-[hsl(var(--accent)_/_0.5)] transition-all duration-500"
                       aria-label="Ver timeline de conversas"
                     >
@@ -477,7 +477,7 @@ const LeadsPanel = () => {
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={() => void handleDeleteLead(lead.id, lead.nome_completo)}
+                      onClick={() => void handleDeleteLead(lead.id, lead.nome_completo ?? '')}
                       className="relative group/btn overflow-hidden border-[hsl(var(--border))] bg-[hsl(var(--card))] text-red-400 hover:text-red-300 hover:bg-[hsl(var(--muted))] hover:border-red-500/50 transition-all duration-500"
                       aria-label="Excluir lead"
                     >

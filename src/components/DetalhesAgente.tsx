@@ -263,7 +263,7 @@ const DetalhesAgente: FC<DetalhesAgenteProps> = ({ agente, onClose, onEdit }) =>
             <EnhancedAIChat
               agentId={agente.id}
               agentName={agente.nome}
-              agentArea={agente.area_juridica}
+              agentArea={agente.area_juridica ?? undefined}
             />
           </TabsContent>
         </Tabs>

@@ -66,7 +66,7 @@ export const AgentesIACard: React.FC<AgentesIACardProps> = ({
 
         <div className="flex items-center justify-between text-sm text-[hsl(var(--muted-foreground))] mb-4">
           <span>
-            Atualizado: {new Date(agente.updated_at).toLocaleDateString('pt-BR')}
+            Atualizado: {new Date(agente.updated_at || '').toLocaleDateString('pt-BR')}
           </span>
           <span className="text-[hsl(var(--accent))] font-medium">
             0 execucoes
