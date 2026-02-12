@@ -10,7 +10,7 @@
  * @architecture Enterprise Grade
  */
 
-import { supabase } from '@/integrations/supabase/client';
+import { supabaseUntyped as supabase } from '@/integrations/supabase/client';
 import { createLogger } from '@/lib/logger';
 
 const log = createLogger('WorkflowQueue');

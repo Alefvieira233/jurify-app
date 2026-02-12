@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useAuth } from '@/contexts/AuthContext';
-import { supabase } from '@/integrations/supabase/client';
+import { supabaseUntyped as supabase } from '@/integrations/supabase/client';
 import { formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
@@ -84,7 +84,7 @@ const TimelineConversas: React.FC<TimelineConversasProps> = ({ leadId, className
 
       setConversas(data || []);
     } catch (err) {
-      console.error('❌ Erro ao buscar conversas:', err);
+      console.error('âŒ Erro ao buscar conversas:', err);
       setError('Erro ao carregar timeline de conversas');
     } finally {
       setLoading(false);
@@ -126,11 +126,11 @@ const TimelineConversas: React.FC<TimelineConversasProps> = ({ leadId, className
 
   const getTipoIcon = (tipo: string) => {
     switch (tipo) {
-      case 'whatsapp': return '💬';
-      case 'email': return '📧';
-      case 'telefone': return '📞';
-      case 'agente_ia': return '🤖';
-      default: return '💬';
+      case 'whatsapp': return 'ðŸ’¬';
+      case 'email': return 'ðŸ“§';
+      case 'telefone': return 'ðŸ“ž';
+      case 'agente_ia': return 'ðŸ¤–';
+      default: return 'ðŸ’¬';
     }
   };
 
@@ -306,14 +306,14 @@ const TimelineConversas: React.FC<TimelineConversasProps> = ({ leadId, className
                   <Card key={conversa.id} className="relative border-l-4 border-l-blue-500 hover:shadow-md transition-shadow">
                     <CardContent className="p-4">
                       <div className="flex gap-4">
-                        {/* Avatar/Ícone */}
+                        {/* Avatar/Ãcone */}
                         <div className={`h-10 w-10 rounded-full ${getRemetenteColor(conversa.remetente)} flex items-center justify-center text-white font-bold text-sm`}>
                           {conversa.remetente === 'lead' ? <User className="h-4 w-4" /> :
                            conversa.remetente === 'agente' ? <Bot className="h-4 w-4" /> :
                            conversa.usuario_nome?.charAt(0).toUpperCase() || 'U'}
                         </div>
 
-                        {/* Conteúdo */}
+                        {/* ConteÃºdo */}
                         <div className="flex-1 min-w-0">
                           {/* Header */}
                           <div className="flex items-center justify-between mb-2">
@@ -327,7 +327,7 @@ const TimelineConversas: React.FC<TimelineConversasProps> = ({ leadId, className
                                 {getTipoIcon(conversa.tipo)} {conversa.tipo.replace('_', ' ')}
                               </Badge>
                               <span className={`text-xs ${getStatusColor(conversa.status)}`}>
-                                ● {conversa.status}
+                                â— {conversa.status}
                               </span>
                             </div>
                             <span className="text-xs text-gray-500">
@@ -335,14 +335,14 @@ const TimelineConversas: React.FC<TimelineConversasProps> = ({ leadId, className
                             </span>
                           </div>
 
-                          {/* Lead Info (se não for específico de um lead) */}
+                          {/* Lead Info (se nÃ£o for especÃ­fico de um lead) */}
                           {!leadId && (
                             <div className="text-sm text-gray-600 mb-2">
                               <span className="font-medium">Lead:</span> {conversa.lead_nome}
                             </div>
                           )}
 
-                          {/* Conteúdo da mensagem */}
+                          {/* ConteÃºdo da mensagem */}
                           <div className="bg-gray-50 rounded-lg p-3 mb-2">
                             <p className="text-gray-800 whitespace-pre-wrap">
                               {conteudoExibido}
@@ -367,16 +367,16 @@ const TimelineConversas: React.FC<TimelineConversasProps> = ({ leadId, className
                           {conversa.metadata && (
                             <div className="flex flex-wrap gap-4 text-xs text-gray-500">
                               {conversa.metadata.telefone && (
-                                <span>📞 {conversa.metadata.telefone}</span>
+                                <span>ðŸ“ž {conversa.metadata.telefone}</span>
                               )}
                               {conversa.metadata.email && (
-                                <span>📧 {conversa.metadata.email}</span>
+                                <span>ðŸ“§ {conversa.metadata.email}</span>
                               )}
                               {conversa.metadata.tempo_resposta && (
-                                <span>⏱️ {conversa.metadata.tempo_resposta}ms</span>
+                                <span>â±ï¸ {conversa.metadata.tempo_resposta}ms</span>
                               )}
                               {conversa.metadata.resposta_agente && (
-                                <span className="text-orange-600">🤖 Resposta automática</span>
+                                <span className="text-orange-600">ðŸ¤– Resposta automÃ¡tica</span>
                               )}
                             </div>
                           )}

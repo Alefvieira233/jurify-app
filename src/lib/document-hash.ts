@@ -9,7 +9,7 @@
  * @architecture Enterprise Grade
  */
 
-import { supabase } from '@/integrations/supabase/client';
+import { supabaseUntyped as supabase } from '@/integrations/supabase/client';
 import { createLogger } from '@/lib/logger';
 import CryptoJS from 'crypto-js';
 
@@ -68,10 +68,10 @@ export class DocumentHashService {
           const hash = CryptoJS.SHA256(wordArray).toString(CryptoJS.enc.Hex);
           resolve(hash);
         } catch (error) {
-          reject(error);
+          reject(error instanceof Error ? error : new Error(String(error)));
         }
       };
-      reader.onerror = () => reject(reader.error);
+      reader.onerror = () => reject(new Error(reader.error?.message ?? 'FileReader error'));
       reader.readAsArrayBuffer(file);
     });
   }

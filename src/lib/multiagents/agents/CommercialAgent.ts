@@ -94,7 +94,7 @@ Criar propostas comerciais personalizadas, negociar condições e fechar contrat
       );
 
       // Usa o safeParseJSON do BaseAgent para parsing robusto
-      let parsedProposal: Record<string, unknown> = this.safeParseJSON(proposal) || { 
+      const parsedProposal: Record<string, unknown> = this.safeParseJSON(proposal) || { 
         raw_proposal: proposal, 
         mensagem_cliente: proposal 
       };

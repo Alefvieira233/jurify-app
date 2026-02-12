@@ -8,7 +8,7 @@
  * Responsável por marcar a execução como completa.
  */
 
-import { supabase } from '@/integrations/supabase/client';
+import { supabaseUntyped as supabase } from '@/integrations/supabase/client';
 import { BaseAgent } from '../core/BaseAgent';
 import { AgentMessage, AGENT_CONFIG } from '../types';
 
@@ -152,7 +152,7 @@ Formatar e enviar mensagens profissionais via WhatsApp, Email e Chat, adaptando 
         .single();
 
       // Salva no banco
-      await supabase.from('lead_interactions').insert({
+      const { error: insertError } = await supabase.from('lead_interactions').insert({
         lead_id: payload.leadId,
         message: 'Proposta enviada',
         response: messageToSend,
@@ -165,6 +165,9 @@ Formatar e enviar mensagens profissionais via WhatsApp, Email e Chat, adaptando 
           stage: 'proposal_sent',
         },
       });
+      if (insertError) {
+        console.error(`[Communicator] Failed to save interaction:`, insertError.message);
+      }
 
       // Envia via WhatsApp se tiver telefone e canal for whatsapp
       const channel = this.context?.metadata?.channel;

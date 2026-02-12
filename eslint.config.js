@@ -20,6 +20,7 @@ export default tseslint.config(
       "vitest.config.ts",
       "tailwind.config.ts",
       "src/lib/multiagents/examples/**",
+      "src/integrations/supabase/types.ts",
       "src/**/__tests__/**",
       "src/tests/**",
       "src/scripts/**",
@@ -50,6 +51,7 @@ export default tseslint.config(
       "src/**/*.test.{ts,tsx}",
       "src/**/*.spec.{ts,tsx}",
       "src/lib/multiagents/examples/**",
+      "src/integrations/supabase/types.ts",
     ],
     languageOptions: {
       ecmaVersion: 2020,

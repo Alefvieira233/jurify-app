@@ -32,10 +32,10 @@
     "noImplicitThis": true,
     "noImplicitReturns": true,
     "noFallthroughCasesInSwitch": true,
-    "noUncheckedIndexedAccess": false,
-    /* Code Quality - relaxed for pragmatic development */
-    "noUnusedLocals": false,
-    "noUnusedParameters": false,
+    "noUncheckedIndexedAccess": true,
+    /* Code Quality - maximum strictness */
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
     "noImplicitOverride": true,
     /* Performance & Security */
     "skipLibCheck": true,

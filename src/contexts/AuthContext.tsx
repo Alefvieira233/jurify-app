@@ -3,6 +3,7 @@ import React, { createContext, useContext, useEffect, useState, ReactNode, useCa
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { Action, Resource, ROLE_PERMISSIONS, UserRole } from '@/types/rbac';
+import { useInactivityLogout } from '@/hooks/useInactivityLogout';
 
 interface Profile {
   id: string;
@@ -52,7 +53,13 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
       if (error || !data) throw new Error('RLS_BLOCK_OR_NOT_FOUND');
 
-      setProfile(data);
+      setProfile({
+        id: data.id,
+        nome_completo: data.nome_completo ?? '',
+        email: data.email,
+        role: data.role ?? undefined,
+        tenant_id: data.tenant_id ?? undefined,
+      });
     } catch (_err) {
       setProfile(null);
     }
@@ -79,7 +86,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           setSession(null);
           setProfile(null);
         }
-      } catch (error) {
+      } catch (_error) {
         setUser(null);
         setSession(null);
         setProfile(null);
@@ -90,7 +97,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
     void initialize();
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, s) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, s) => {
       setLoading(true);
       setUser(s?.user ?? null);
       setSession(s);
@@ -112,6 +119,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     await supabase.auth.signOut();
     window.location.href = '/auth';
   };
+  useInactivityLogout(signOut, 30 * 60 * 1000, !!user);
+
   const hasRole = (role: string) => profile?.role === role;
   const hasPermission = (module: string, permission: string) => {
     if (!user || !profile?.role) return Promise.resolve(false);

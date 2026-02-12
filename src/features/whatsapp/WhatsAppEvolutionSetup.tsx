@@ -41,17 +41,17 @@ interface InstanceInfo {
 export default function WhatsAppEvolutionSetup({ onConnectionSuccess }: WhatsAppEvolutionSetupProps) {
   const [instance, setInstanceState] = useState<InstanceInfo>(() => {
     // Carregar do localStorage se existir
-    const saved = localStorage.getItem('whatsapp_evolution_instance');
-    if (saved) {
-      try {
+    try {
+      const saved = localStorage.getItem('whatsapp_evolution_instance');
+      if (saved) {
         const parsed = JSON.parse(saved);
         // Só restaura se não for mais antigo que 2 horas
         if (parsed.timestamp && Date.now() - parsed.timestamp < 2 * 60 * 60 * 1000) {
           return parsed.data;
         }
-      } catch {
-        // Ignore parse error
       }
+    } catch {
+      // Ignore parse/storage error (private browsing, etc.)
     }
     return {
       instanceName: '',
@@ -65,10 +65,12 @@ export default function WhatsAppEvolutionSetup({ onConnectionSuccess }: WhatsApp
   const setInstance = useCallback((update: InstanceInfo | ((prev: InstanceInfo) => InstanceInfo)) => {
     setInstanceState((prev) => {
       const newState = typeof update === 'function' ? update(prev) : update;
-      localStorage.setItem('whatsapp_evolution_instance', JSON.stringify({
-        data: newState,
-        timestamp: Date.now(),
-      }));
+      try {
+        localStorage.setItem('whatsapp_evolution_instance', JSON.stringify({
+          data: newState,
+          timestamp: Date.now(),
+        }));
+      } catch { /* storage full or private browsing */ }
       return newState;
     });
   }, []);
@@ -122,7 +124,7 @@ export default function WhatsAppEvolutionSetup({ onConnectionSuccess }: WhatsApp
         const extractInstanceName = (obs: string | null): string => {
           if (!obs) return '';
           const match = obs.match(/Instance:\s*(.+)/);
-          return match ? match[1].trim() : '';
+          return match?.[1]?.trim() ?? '';
         };
 
         const stateMap: Record<string, ConnectionState> = {
@@ -143,6 +145,7 @@ export default function WhatsAppEvolutionSetup({ onConnectionSuccess }: WhatsApp
     };
 
     void loadExisting();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tenantId]);
 
   // Polling de status quando aguardando QR (refs para evitar stale closures)
@@ -161,7 +164,7 @@ export default function WhatsAppEvolutionSetup({ onConnectionSuccess }: WhatsApp
     let attempts = 0;
     const MAX_ATTEMPTS = 24; // 24 * 5s = 2 min, depois auto-refresh QR
 
-    pollIntervalRef.current = setInterval(async () => {
+    pollIntervalRef.current = setInterval(() => void (async () => {
       attempts++;
       try {
         const result = await callEvolutionManager('status', instanceRef.current.instanceName);
@@ -202,7 +205,7 @@ export default function WhatsAppEvolutionSetup({ onConnectionSuccess }: WhatsApp
       } catch {
         // Silently retry — network hiccups are expected
       }
-    }, 5000);
+    })(), 5000);
 
     return () => {
       if (pollIntervalRef.current) {
@@ -211,6 +214,7 @@ export default function WhatsAppEvolutionSetup({ onConnectionSuccess }: WhatsApp
       }
       setPolling(false);
     };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [instance.state, instance.instanceName, callEvolutionManager, toast]);
 
   // Criar instância / Obter QR Code
@@ -330,7 +334,7 @@ export default function WhatsAppEvolutionSetup({ onConnectionSuccess }: WhatsApp
 
     try {
       await callEvolutionManager('delete', instance.instanceName);
-      localStorage.removeItem('whatsapp_evolution_instance');
+      try { localStorage.removeItem('whatsapp_evolution_instance'); } catch { /* ignore */ }
       setInstance({ instanceName: '', state: 'idle', qrCode: null, error: null });
       toast({ title: 'Instancia removida' });
     } catch (err: unknown) {

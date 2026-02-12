@@ -30,19 +30,20 @@ Seja analítico, preciso e focado em resultados mensuráveis.
 
   protected async handleMessage(message: AgentMessage): Promise<void> {
     switch (message.type) {
-      case MessageType.TASK_REQUEST:
+      case MessageType.TASK_REQUEST: {
         const payload = message.payload as TaskRequestPayload;
         if (payload.task === 'analyze_performance') {
           await this.analyzePerformance(payload);
         }
         break;
+      }
 
       default:
         console.log(`⚠️ Analista recebeu mensagem não tratada: ${message.type}`);
     }
   }
 
-  private async analyzePerformance(payload: TaskRequestPayload): Promise<void> {
+  private async analyzePerformance(_payload: TaskRequestPayload): Promise<void> {
     console.log('📊 Analista analisando performance...');
 
     // Busca dados do Supabase

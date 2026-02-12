@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
+import { supabaseUntyped as supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
 
@@ -49,7 +49,7 @@ export const useNotificationTemplates = () => {
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['notification-templates', tenantId] });
+      void queryClient.invalidateQueries({ queryKey: ['notification-templates', tenantId] });
       toast({
         title: 'Template atualizado',
         description: 'O template foi salvo com sucesso.',
@@ -76,7 +76,7 @@ export const useNotificationTemplates = () => {
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['notification-templates', tenantId] });
+      void queryClient.invalidateQueries({ queryKey: ['notification-templates', tenantId] });
       toast({
         title: 'Template criado',
         description: 'O template foi criado com sucesso.',

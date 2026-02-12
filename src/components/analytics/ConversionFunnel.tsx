@@ -7,7 +7,7 @@
  * @version 1.0.0
  */
 
-import React from 'react';
+import { Fragment } from 'react';
 import { FunnelChart, Funnel, LabelList, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { TrendingDown, ArrowRight } from 'lucide-react';
@@ -30,37 +30,39 @@ interface ConversionFunnelProps {
     };
 }
 
-const STAGE_CONFIG: Record<string, { label: string; fill: string }> = {
+type StageKey = 'novo_lead' | 'em_qualificacao' | 'proposta_enviada' | 'contrato_assinado';
+
+const STAGE_CONFIG: Record<StageKey, { label: string; fill: string }> = {
     novo_lead: { label: 'Novos Leads', fill: 'hsl(217, 91%, 60%)' },
     em_qualificacao: { label: 'Em Qualificação', fill: 'hsl(45, 93%, 47%)' },
     proposta_enviada: { label: 'Proposta Enviada', fill: 'hsl(262, 83%, 58%)' },
     contrato_assinado: { label: 'Contrato Assinado', fill: 'hsl(142, 76%, 36%)' },
 };
 
-export const ConversionFunnel: React.FC<ConversionFunnelProps> = ({ data }) => {
+export const ConversionFunnel = ({ data }: ConversionFunnelProps) => {
     // Transform data for funnel chart (exclude lost leads and em_atendimento for funnel logic)
     const funnelData: FunnelStage[] = [
         {
             stage: 'novo_lead',
-            value: data.novo_lead || 0,
+            value: data.novo_lead ?? 0,
             fill: STAGE_CONFIG.novo_lead.fill,
             label: STAGE_CONFIG.novo_lead.label,
         },
         {
             stage: 'em_qualificacao',
-            value: data.em_qualificacao || 0,
+            value: data.em_qualificacao ?? 0,
             fill: STAGE_CONFIG.em_qualificacao.fill,
             label: STAGE_CONFIG.em_qualificacao.label,
         },
         {
             stage: 'proposta_enviada',
-            value: data.proposta_enviada || 0,
+            value: data.proposta_enviada ?? 0,
             fill: STAGE_CONFIG.proposta_enviada.fill,
             label: STAGE_CONFIG.proposta_enviada.label,
         },
         {
             stage: 'contrato_assinado',
-            value: data.contrato_assinado || 0,
+            value: data.contrato_assinado ?? 0,
             fill: STAGE_CONFIG.contrato_assinado.fill,
             label: STAGE_CONFIG.contrato_assinado.label,
         },
@@ -69,14 +71,14 @@ export const ConversionFunnel: React.FC<ConversionFunnelProps> = ({ data }) => {
     // Calculate conversion rates between stages
     const conversionRates = funnelData.map((stage, index) => {
         if (index === 0) return 100;
-        const prevValue = funnelData[index - 1].value;
+        const prevValue = funnelData[index - 1]?.value ?? 0;
         if (prevValue === 0) return 0;
         return ((stage.value / prevValue) * 100).toFixed(1);
     });
 
     // Overall conversion rate (from first to last stage)
-    const totalLeads = funnelData[0].value;
-    const converted = funnelData[funnelData.length - 1].value;
+    const totalLeads = funnelData[0]?.value ?? 0;
+    const converted = funnelData[funnelData.length - 1]?.value ?? 0;
     const overallRate = totalLeads > 0 ? ((converted / totalLeads) * 100).toFixed(1) : '0';
 
     return (
@@ -142,7 +144,7 @@ export const ConversionFunnel: React.FC<ConversionFunnelProps> = ({ data }) => {
                 {/* Conversion Rate Indicators */}
                 <div className="mt-4 flex justify-between items-center px-4">
                     {funnelData.map((stage, index) => (
-                        <React.Fragment key={stage.stage}>
+                        <Fragment key={stage.stage}>
                             <div className="text-center">
                                 <div className="text-xs font-medium text-muted-foreground">{stage.label.split(' ')[0]}</div>
                                 <div className="text-sm font-bold text-foreground">{stage.value}</div>
@@ -153,7 +155,7 @@ export const ConversionFunnel: React.FC<ConversionFunnelProps> = ({ data }) => {
                                     <span className="text-[10px] text-muted-foreground">{conversionRates[index + 1]}%</span>
                                 </div>
                             )}
-                        </React.Fragment>
+                        </Fragment>
                     ))}
                 </div>
             </CardContent>

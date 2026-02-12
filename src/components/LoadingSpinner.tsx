@@ -1,5 +1,5 @@
 
-import React from 'react';
+
 import { Scale } from 'lucide-react';
 
 interface LoadingSpinnerProps {
@@ -24,13 +24,14 @@ const LoadingSpinner = ({
     : 'flex items-center justify-center p-4';
 
   return (
-    <div className={containerClasses}>
+    <div className={containerClasses} role="status" aria-busy="true">
       <div className="text-center">
         <div className="bg-amber-500 p-3 rounded-lg inline-flex items-center justify-center mb-4">
           <Scale className={`${sizeClasses[size]} text-white animate-pulse`} />
         </div>
         <div className={`animate-spin rounded-full border-b-2 border-amber-500 mx-auto mb-4 ${sizeClasses[size]}`}></div>
         <p className="text-gray-600 font-medium">{text}</p>
+        <span className="sr-only">{text}</span>
       </div>
     </div>
   );

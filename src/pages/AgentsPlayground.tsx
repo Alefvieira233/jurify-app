@@ -7,7 +7,7 @@
  * @version 1.0.0
  */
 
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -131,7 +131,7 @@ export default function AgentsPlayground() {
     try {
       // Inicializar o sistema se necessário
       if (!(multiAgentSystem as unknown as Record<string, unknown>)['initialized']) {
-        await multiAgentSystem.initialize();
+        multiAgentSystem.initialize();
       }
 
       // Criar lead de teste

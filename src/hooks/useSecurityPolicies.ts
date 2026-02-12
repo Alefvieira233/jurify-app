@@ -1,3 +1,15 @@
+/**
+ * @module useSecurityPolicies
+ * @description Hook para auditoria de segurança do sistema.
+ * Executa scans automáticos verificando autenticação, RLS, API keys,
+ * logs de auditoria e conectividade WhatsApp. Retorna score de segurança
+ * e checks individuais com severidade.
+ *
+ * @example
+ * ```tsx
+ * const { checks, metrics, isSecure, runSecurityScan } = useSecurityPolicies();
+ * ```
+ */
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -212,8 +224,9 @@ export const useSecurityPolicies = () => {
 
   useEffect(() => {
     if (user) {
-      runSecurityScan();
+      void runSecurityScan();
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user, tenantId]);
 
   return {

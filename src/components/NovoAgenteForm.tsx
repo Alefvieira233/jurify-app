@@ -1,14 +1,14 @@
 /**
- * 🤖 NOVO AGENTE FORM - REFATORADO
+ * ðŸ¤– NOVO AGENTE FORM - REFATORADO
  * 
- * Formulário para criação e edição de agentes IA.
- * REFATORADO: Componentes quebrados em subcomponentes menores para melhor manutenção.
+ * FormulÃ¡rio para criaÃ§Ã£o e ediÃ§Ã£o de agentes IA.
+ * REFATORADO: Componentes quebrados em subcomponentes menores para melhor manutenÃ§Ã£o.
  * @see src/components/agente-form/
  */
 
 import React, { useState, useEffect } from 'react';
 import { X, Bot } from 'lucide-react';
-import { supabase } from '@/integrations/supabase/client';
+import { supabaseUntyped as supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
 import { validateAgenteIA } from '@/schemas/agenteSchema';
@@ -86,12 +86,6 @@ const NovoAgenteForm: React.FC<NovoAgenteFormProps> = ({ agente, defaultType, on
     }
   }, [agente]);
 
-  const handleInputChange = <K extends keyof typeof formData>(field: K, value: (typeof formData)[K]) => {
-    setFormData(prev => ({
-      ...prev,
-      [field]: value
-    }));
-  };
 
   const handleFieldChange = (field: string, value: string | number) => {
     setFormData(prev => ({ ...prev, [field]: value }));
@@ -138,9 +132,9 @@ const NovoAgenteForm: React.FC<NovoAgenteFormProps> = ({ agente, defaultType, on
     const validation = validateAgenteIA(dataToValidate);
 
     if (!validation.success && validation.errors.length > 0) {
-      const firstError = validation.errors[0];
+      const firstError = validation.errors[0] ?? { field: 'unknown', message: 'Erro desconhecido' };
       toast({
-        title: "Erro de Validação",
+        title: "Erro de ValidaÃ§Ã£o",
         description: `${firstError.field}: ${firstError.message}`,
         variant: "destructive",
       });
@@ -178,7 +172,7 @@ const NovoAgenteForm: React.FC<NovoAgenteFormProps> = ({ agente, defaultType, on
 
         toast({
           title: "Agente Atualizado",
-          description: "As configurações do agente foram atualizadas com sucesso",
+          description: "As configuraÃ§Ãµes do agente foram atualizadas com sucesso",
         });
       } else {
         const { error } = await supabase
@@ -198,7 +192,7 @@ const NovoAgenteForm: React.FC<NovoAgenteFormProps> = ({ agente, defaultType, on
       console.error('Erro ao salvar agente:', error);
       toast({
         title: "Erro",
-        description: "Não foi possível salvar o agente. Verifique os dados e tente novamente.",
+        description: "NÃ£o foi possÃ­vel salvar o agente. Verifique os dados e tente novamente.",
         variant: "destructive",
       });
     } finally {
@@ -227,25 +221,25 @@ const NovoAgenteForm: React.FC<NovoAgenteFormProps> = ({ agente, defaultType, on
 
         {/* Form */}
         <form onSubmit={(event) => { void handleSubmit(event); }} className="p-6 space-y-6">
-          {/* Informações Básicas */}
+          {/* InformaÃ§Ãµes BÃ¡sicas */}
           <BasicInfoSection
             formData={formData}
             onInputChange={handleFieldChange}
           />
 
-          {/* Configuração de IA */}
+          {/* ConfiguraÃ§Ã£o de IA */}
           <AIConfigSection
             formData={formData}
             onInputChange={handleFieldChange}
           />
 
-          {/* Parâmetros Avançados */}
+          {/* ParÃ¢metros AvanÃ§ados */}
           <AdvancedParamsSection
             parametros={formData.parametros_avancados}
             onParametroChange={handleParametroChange}
           />
 
-          {/* Configurações de Interação */}
+          {/* ConfiguraÃ§Ãµes de InteraÃ§Ã£o */}
           <InteractionConfigSection
             formData={formData}
             onInputChange={(field, value) => handleFieldChange(field, value)}

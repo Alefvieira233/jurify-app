@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { supabase } from '@/integrations/supabase/client';
+import { supabaseUntyped as supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
@@ -42,38 +42,38 @@ export const NovoContratoForm = ({ onClose }: NovoContratoFormProps) => {
   const [areaJuridica, setAreaJuridica] = useState('');
   const [valorCausa, setValorCausa] = useState('');
   const [responsavel, setResponsavel] = useState('');
-  const [textoContrato, setTextoContrato] = useState(`CONTRATO DE PRESTAÇÃO DE SERVIÇOS ADVOCATÍCIOS
+  const [textoContrato, setTextoContrato] = useState(`CONTRATO DE PRESTAÃ‡ÃƒO DE SERVIÃ‡OS ADVOCATÃCIOS
 
 CONTRATANTE: {nome_cliente}
-ÁREA JURÍDICA: {area_juridica}
+ÃREA JURÃDICA: {area_juridica}
 VALOR DA CAUSA: R$ {valor_causa}
 
-PRESTADOR DE SERVIÇOS: {responsavel}
+PRESTADOR DE SERVIÃ‡OS: {responsavel}
 
-CLÁUSULA 1ª - DO OBJETO
-O presente contrato tem por objeto a prestação de serviços advocatícios especializados em {area_juridica}, conforme descrito neste instrumento.
+CLÃUSULA 1Âª - DO OBJETO
+O presente contrato tem por objeto a prestaÃ§Ã£o de serviÃ§os advocatÃ­cios especializados em {area_juridica}, conforme descrito neste instrumento.
 
-CLÁUSULA 2ª - DOS HONORÁRIOS
-Pelos serviços objeto deste contrato, o CONTRATANTE pagará ao PRESTADOR DE SERVIÇOS o valor correspondente a 30% do valor da causa, ou seja, R$ {valor_honorarios}.
+CLÃUSULA 2Âª - DOS HONORÃRIOS
+Pelos serviÃ§os objeto deste contrato, o CONTRATANTE pagarÃ¡ ao PRESTADOR DE SERVIÃ‡OS o valor correspondente a 30% do valor da causa, ou seja, R$ {valor_honorarios}.
 
-CLÁUSULA 3ª - DAS OBRIGAÇÕES
-O PRESTADOR DE SERVIÇOS obriga-se a:
-- Prestar os serviços com diligência e competência técnica;
+CLÃUSULA 3Âª - DAS OBRIGAÃ‡Ã•ES
+O PRESTADOR DE SERVIÃ‡OS obriga-se a:
+- Prestar os serviÃ§os com diligÃªncia e competÃªncia tÃ©cnica;
 - Manter o CONTRATANTE informado sobre o andamento do processo;
-- Zelar pelos interesses do CONTRATANTE dentro dos limites legais e éticos.
+- Zelar pelos interesses do CONTRATANTE dentro dos limites legais e Ã©ticos.
 
-CLÁUSULA 4ª - DO PRAZO
-Este contrato terá vigência até a conclusão dos serviços contratados.
+CLÃUSULA 4Âª - DO PRAZO
+Este contrato terÃ¡ vigÃªncia atÃ© a conclusÃ£o dos serviÃ§os contratados.
 
-CLÁUSULA 5ª - DO FORO
-Fica eleito o foro da comarca local para dirimir quaisquer controvérsias oriundas deste contrato.
+CLÃUSULA 5Âª - DO FORO
+Fica eleito o foro da comarca local para dirimir quaisquer controvÃ©rsias oriundas deste contrato.
 
 Por estarem de acordo, as partes assinam o presente contrato em duas vias de igual teor.
 
 Data: ___/___/______
 
 _____________________          _____________________
-   CONTRATANTE                    PRESTADOR DE SERVIÇOS`);
+   CONTRATANTE                    PRESTADOR DE SERVIÃ‡OS`);
   const [clausulasCustomizadas, setClausulasCustomizadas] = useState('');
 
   const queryClient = useQueryClient();
@@ -160,7 +160,7 @@ _____________________          _____________________
     e.preventDefault();
 
     if (!tenantId) {
-      toast.error('Tenant não encontrado. Refaça o login.');
+      toast.error('Tenant nÃ£o encontrado. RefaÃ§a o login.');
       return;
     }
 
@@ -171,15 +171,15 @@ _____________________          _____________________
     }
 
     if (!areaJuridica || areaJuridica.length < 2) {
-      validationErrors.push('Área jurídica é obrigatória');
+      validationErrors.push('Ãrea jurÃ­dica Ã© obrigatÃ³ria');
     }
 
     if (!valorCausa || !validateInput(valorCausa, 'currency')) {
-      validationErrors.push('Valor da causa deve ser um número válido');
+      validationErrors.push('Valor da causa deve ser um nÃºmero vÃ¡lido');
     }
 
     if (!responsavel || responsavel.length < 2) {
-      validationErrors.push('Responsável é obrigatório');
+      validationErrors.push('ResponsÃ¡vel Ã© obrigatÃ³rio');
     }
 
     if (textoContrato.length < 50) {
@@ -198,18 +198,18 @@ _____________________          _____________________
     );
 
     if (hasDangerousContent) {
-      validationErrors.push('Conteúdo contém elementos não permitidos por segurança');
+      validationErrors.push('ConteÃºdo contÃ©m elementos nÃ£o permitidos por seguranÃ§a');
     }
 
     if (validationErrors.length > 0) {
-      toast.error(`Erros de validação:\n${validationErrors.join('\n')}`);
+      toast.error(`Erros de validaÃ§Ã£o:\n${validationErrors.join('\n')}`);
       return;
     }
 
     const valorCausaParsed = Number.parseFloat(valorCausa);
 
     const contratoData: ContratoInsert = {
-      tenant_id: tenantId!,
+      tenant_id: tenantId,
       lead_id: selectedLeadId || null,
       nome_cliente: nomeCliente.trim().substring(0, 200),
       area_juridica: areaJuridica.trim(),
@@ -249,7 +249,7 @@ _____________________          _____________________
         </div>
 
         <div className="space-y-2">
-          <Label>Área Jurídica</Label>
+          <Label>Ãrea JurÃ­dica</Label>
           <Input value={areaJuridica} onChange={(e) => setAreaJuridica(e.target.value)} required />
         </div>
 
@@ -264,7 +264,7 @@ _____________________          _____________________
         </div>
 
         <div className="space-y-2">
-          <Label>Responsável</Label>
+          <Label>ResponsÃ¡vel</Label>
           <Input value={responsavel} onChange={(e) => setResponsavel(e.target.value)} required />
         </div>
       </div>
@@ -280,7 +280,7 @@ _____________________          _____________________
       </div>
 
       <div className="space-y-2">
-        <Label>Cláusulas Customizadas (Opcional)</Label>
+        <Label>ClÃ¡usulas Customizadas (Opcional)</Label>
         <Textarea
           value={clausulasCustomizadas}
           onChange={(e) => setClausulasCustomizadas(e.target.value)}

@@ -35,7 +35,7 @@ const ThinkingIndicator: React.FC<ThinkingIndicatorProps> = ({
 
     React.useEffect(() => {
         if (variant === 'default') {
-            setCurrentMessage(messages[messageIndex]);
+            setCurrentMessage(messages[messageIndex] ?? '');
         }
     }, [messageIndex, messages, variant]);
 

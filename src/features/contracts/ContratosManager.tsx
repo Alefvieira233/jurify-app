@@ -1,5 +1,5 @@
 
-import React, { useState, useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import { Plus, Search, Eye, Edit, FileSignature, Send, AlertCircle, RefreshCw } from 'lucide-react';
 import { useDebounce } from '@/hooks/useDebounce';
 import { Button } from '@/components/ui/button';

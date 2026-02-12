@@ -26,8 +26,8 @@ function createChainableQuery(data: unknown = { id: 'mock-id' }, error: unknown 
 }
 
 // Mock Supabase client
-vi.mock('../integrations/supabase/client', () => ({
-  supabase: {
+vi.mock('../integrations/supabase/client', () => {
+  const client = {
     functions: {
       invoke: vi.fn()
     },
@@ -46,8 +46,9 @@ vi.mock('../integrations/supabase/client', () => ({
     auth: {
       getSession: vi.fn().mockResolvedValue({ data: { session: { access_token: 'mock-token' } } })
     }
-  }
-}));
+  };
+  return { supabase: client, supabaseUntyped: client };
+});
 
 // Mock WhatsApp integration
 vi.mock('../lib/integrations/WhatsAppMultiAgent', () => ({

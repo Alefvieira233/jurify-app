@@ -3,7 +3,7 @@
  */
 
 import { useState, useCallback, useEffect } from 'react';
-import { supabase } from '@/integrations/supabase/client';
+import { supabaseUntyped as supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { GoogleOAuthService, type CalendarEvent } from '@/lib/google/GoogleOAuthService';
@@ -92,6 +92,7 @@ export const useGoogleCalendar = () => {
     } finally {
       setLoading(false);
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.id, tenantId, toast]);
 
   const updateSettings = useCallback(async (updates: Partial<GoogleCalendarSettings>) => {
@@ -128,6 +129,7 @@ export const useGoogleCalendar = () => {
     } finally {
       setLoading(false);
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.id, tenantId, settings, toast]);
 
   const initializeGoogleAuth = useCallback(() => {
@@ -143,7 +145,7 @@ export const useGoogleCalendar = () => {
     if (!isOAuthConfigured) {
       toast({
         title: 'Configuracao necessaria',
-        description: 'Configure VITE_GOOGLE_CLIENT_ID e VITE_GOOGLE_CLIENT_SECRET no .env',
+        description: 'Configure VITE_GOOGLE_CLIENT_ID no .env e GOOGLE_CLIENT_SECRET nos Supabase Secrets.',
         variant: 'destructive',
       });
       return;
@@ -187,7 +189,7 @@ export const useGoogleCalendar = () => {
       if (primaryCalendar) {
         await updateSettings({
           calendar_enabled: true,
-          calendar_id: primaryCalendar.id as string,
+          calendar_id: primaryCalendar.id,
         });
       }
 

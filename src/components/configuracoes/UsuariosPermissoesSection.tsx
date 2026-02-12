@@ -1,11 +1,11 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Users, Shield, Edit } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
+import { supabaseUntyped as supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRBAC } from '@/hooks/useRBAC';
 
@@ -57,11 +57,14 @@ type RolePermission = {
             users: [],
           };
         }
-        acc[item.role].users.push({
-          id: item.user_id,
-          nome: profileData?.nome_completo,
-          email: profileData?.email,
-        });
+        const group = acc[item.role];
+        if (group) {
+          group.users.push({
+            id: item.user_id,
+            nome: profileData?.nome_completo,
+            email: profileData?.email,
+          });
+        }
         return acc;
       }, {} as Record<string, RoleGroup>);
 

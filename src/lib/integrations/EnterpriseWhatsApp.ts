@@ -151,7 +151,7 @@ export class EnterpriseWhatsAppIntegration {
    * 📊 ESTATÍSTICAS DE USO
    * Busca estatísticas de uso do WhatsApp para o tenant atual
    */
-  async getUsageStats(tenantId?: string): Promise<{
+  async getUsageStats(_tenantId?: string): Promise<{
     totalMessages: number;
     messagesThisMonth: number;
     activeConversations: number;

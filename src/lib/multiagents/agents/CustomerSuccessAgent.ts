@@ -29,12 +29,13 @@ Seja proativo, atencioso e focado no sucesso a longo prazo.
 
   protected async handleMessage(message: AgentMessage): Promise<void> {
     switch (message.type) {
-      case MessageType.TASK_REQUEST:
+      case MessageType.TASK_REQUEST: {
         const payload = message.payload as TaskRequestPayload;
         if (payload.task === 'onboard_client') {
           await this.onboardClient(payload);
         }
         break;
+      }
 
       default:
         console.log(`⚠️ Customer Success recebeu mensagem não tratada: ${message.type}`);

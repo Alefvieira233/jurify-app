@@ -1,5 +1,5 @@
 
-import React, { useState, useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import { Plus, Search, Eye, Edit, Trash2, AlertCircle, RefreshCw, MessageCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -285,6 +285,7 @@ const LeadsPanel = () => {
                 size="sm"
                 onClick={() => setViewMode('list')}
                 className={`h-8 px-2 ${viewMode === 'list' ? 'bg-[hsl(var(--card))] shadow-sm text-[hsl(var(--accent))]' : 'text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))]'}`}
+                aria-label="Visualizar em lista"
               >
                 <LayoutList className="h-4 w-4" />
               </Button>
@@ -293,6 +294,7 @@ const LeadsPanel = () => {
                 size="sm"
                 onClick={() => setViewMode('kanban')}
                 className={`h-8 px-2 ${viewMode === 'kanban' ? 'bg-[hsl(var(--card))] shadow-sm text-[hsl(var(--accent))]' : 'text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))]'}`}
+                aria-label="Visualizar em kanban"
               >
                 <LayoutGrid className="h-4 w-4" />
               </Button>

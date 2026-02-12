@@ -65,7 +65,7 @@ export class ErrorBoundary extends Component<Props, State> {
 
       return (
         <div className="min-h-screen flex items-center justify-center p-4 bg-[hsl(var(--background))]">
-          <Card className="w-full max-w-md">
+          <Card className="w-full max-w-md" role="alert">
             <CardContent className="p-6 text-center">
               <AlertTriangle className="w-12 h-12 text-red-300 mx-auto mb-4" />
               <h2 className="text-xl font-semibold text-[hsl(var(--foreground))] mb-2">

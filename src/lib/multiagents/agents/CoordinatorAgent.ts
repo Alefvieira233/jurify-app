@@ -159,7 +159,7 @@ Analisar cada solicitação e rotear para o agente especialista correto, monitor
         task = parsed.task || 'analyze_lead';
         reason = parsed.reason || 'Decisão da IA';
       }
-    } catch (e) {
+    } catch (_e) {
       // Fallback to default agent
     }
 

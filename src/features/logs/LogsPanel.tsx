@@ -1,5 +1,5 @@
 
-import React, { useState, useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import { Activity, Search, AlertCircle, CheckCircle, Clock, RefreshCw } from 'lucide-react';
 import { useDebounce } from '@/hooks/useDebounce';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';

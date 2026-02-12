@@ -1,7 +1,20 @@
+/**
+ * @module useMultiAgentSystem
+ * @description Hook para interagir com o sistema multiagentes de IA.
+ * Gerencia inicializaÃ§Ã£o, processamento de leads, mÃ©tricas em tempo real
+ * e estatÃ­sticas de performance dos agentes (Coordenador, Qualificador,
+ * JurÃ­dico, Comercial, Analista, Comunicador, CustomerSuccess).
+ *
+ * @example
+ * ```tsx
+ * const { processLead, isProcessing, metrics, systemStats } = useMultiAgentSystem();
+ * await processLead({ name: 'JoÃ£o', message: 'Preciso de ajuda', source: 'whatsapp' });
+ * ```
+ */
 import { useState, useEffect, useCallback } from 'react';
 import { multiAgentSystem } from '@/lib/multiagents/MultiAgentSystem';
 import type { SystemStats as MultiAgentSystemStats } from '@/lib/multiagents/types';
-import { supabase } from '@/integrations/supabase/client';
+import { supabaseUntyped as supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
 
@@ -221,6 +234,7 @@ export const useMultiAgentSystem = () => {
         setIsProcessing(false);
       }
     },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     [loadMetrics, loadSystemStats, tenantId, toast]
   );
 
@@ -285,12 +299,12 @@ export const useMultiAgentSystem = () => {
   }, [toast]);
 
   useEffect(() => {
-    loadSystemStats();
-    loadMetrics();
+    void loadSystemStats();
+    void loadMetrics();
 
     const interval = setInterval(() => {
-      loadSystemStats();
-      loadMetrics();
+      void loadSystemStats();
+      void loadMetrics();
     }, 30000);
 
     return () => clearInterval(interval);

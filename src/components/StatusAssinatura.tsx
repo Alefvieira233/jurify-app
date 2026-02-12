@@ -1,5 +1,4 @@
 
-import React from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { CheckCircle, Clock, XCircle, AlertTriangle, MessageSquare, ExternalLink, Download } from 'lucide-react';

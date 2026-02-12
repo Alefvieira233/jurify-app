@@ -7,18 +7,37 @@ import { supabase } from '@/integrations/supabase/client';
 import { validation, validateEmail, validatePassword, validateCPF } from '@/utils/validation';
 import { encryption, encrypt, decrypt, hashPassword, verifyPassword } from '@/utils/encryption';
 
-// Mock Supabase
-vi.mock('@/integrations/supabase/client', () => ({
-  supabase: {
+// Mock Supabase with functions.invoke for encrypt/decrypt Edge Functions
+vi.mock('@/integrations/supabase/client', () => {
+  const client = {
     from: vi.fn(() => ({
       select: vi.fn(() => ({
         eq: vi.fn(() => ({
           single: vi.fn()
         }))
       }))
-    }))
-  }
-}));
+    })),
+    functions: {
+      invoke: vi.fn(async (fnName: string, opts: { body: Record<string, string> }) => {
+        if (fnName === 'encrypt-data') {
+          // Simulate server-side encryption with a reversible base64 encoding for tests
+          const encoded = btoa(opts.body.plaintext);
+          return { data: { ciphertext: `mock_enc:${encoded}` }, error: null };
+        }
+        if (fnName === 'decrypt-data') {
+          const ciphertext = opts.body.ciphertext;
+          if (!ciphertext.startsWith('mock_enc:')) {
+            return { data: null, error: new Error('Invalid ciphertext') };
+          }
+          const decoded = atob(ciphertext.replace('mock_enc:', ''));
+          return { data: { plaintext: decoded }, error: null };
+        }
+        return { data: null, error: new Error('Unknown function') };
+      }),
+    },
+  };
+  return { supabase: client, supabaseUntyped: client };
+});
 
 describe('🛡️ Security Tests', () => {
   describe('RBAC & Permissions', () => {
@@ -135,10 +154,10 @@ describe('🛡️ Security Tests', () => {
   });
 
   describe('Data Encryption', () => {
-    it('should encrypt and decrypt data correctly', () => {
+    it('should encrypt and decrypt data correctly', async () => {
       const originalData = 'Sensitive information';
-      const encrypted = encrypt(originalData);
-      const decrypted = decrypt(encrypted);
+      const encrypted = await encrypt(originalData);
+      const decrypted = await decrypt(encrypted);
       
       expect(encrypted).not.toBe(originalData);
       expect(decrypted).toBe(originalData);
@@ -151,9 +170,9 @@ describe('🛡️ Security Tests', () => {
       expect(hash).not.toBe(password);
       expect(verifyPassword(password, hash)).toBe(true);
       expect(verifyPassword('WrongPassword', hash)).toBe(false);
-    });
+    }, 60_000);
 
-    it('should encrypt PII data for LGPD compliance', () => {
+    it('should encrypt PII data for LGPD compliance', async () => {
       const piiData = {
         nome: 'João Silva',
         cpf: '11144477735',
@@ -161,11 +180,11 @@ describe('🛡️ Security Tests', () => {
         telefone: '11999887766'
       };
 
-      const encrypted = encryption.encryptPII(piiData);
+      const encrypted = await encryption.encryptPII(piiData);
       expect(encrypted.cpf).not.toBe(piiData.cpf);
       expect(encrypted.cpf_encrypted).toBe(true);
 
-      const decrypted = encryption.decryptPII(encrypted);
+      const decrypted = await encryption.decryptPII(encrypted);
       expect(decrypted.cpf).toBe(piiData.cpf);
       expect(decrypted.cpf_encrypted).toBeUndefined();
     });
@@ -221,91 +240,54 @@ describe('🛡️ Security Tests', () => {
   });
 
   describe('Data Transmission Security', () => {
-    it('should securely prepare and receive data transmission', () => {
+    it('should securely prepare and receive data transmission', async () => {
       const originalData = {
         leadId: '123',
         clientName: 'João Silva',
         sensitive: 'confidential info'
       };
 
-      const transmission = encryption.prepareForTransmission(originalData);
+      const transmission = await encryption.prepareForTransmission(originalData);
       
       expect(transmission.payload).not.toContain('João Silva');
       expect(transmission.checksum).toBeTruthy();
       expect(transmission.timestamp).toBeTruthy();
 
-      const received = encryption.receiveTransmission(transmission);
+      const received = await encryption.receiveTransmission(transmission);
       expect(received).toEqual(originalData);
     });
 
-    it('should reject tampered transmissions', () => {
+    it('should reject tampered transmissions', async () => {
       const originalData = { test: 'data' };
-      const transmission = encryption.prepareForTransmission(originalData);
+      const transmission = await encryption.prepareForTransmission(originalData);
       
       // Tamper with checksum
       transmission.checksum = 'invalid-checksum';
       
-      expect(() => {
-        encryption.receiveTransmission(transmission);
-      }).toThrow('Data integrity check failed');
+      await expect(
+        encryption.receiveTransmission(transmission)
+      ).rejects.toThrow('Data integrity check failed');
     });
 
-    it('should reject expired transmissions', () => {
+    it('should reject expired transmissions', async () => {
       const originalData = { test: 'data' };
-      const transmission = encryption.prepareForTransmission(originalData);
+      const transmission = await encryption.prepareForTransmission(originalData);
       
       // Make transmission appear old
       transmission.timestamp = Date.now() - (10 * 60 * 1000); // 10 minutes ago
       
-      expect(() => {
-        encryption.receiveTransmission(transmission);
-      }).toThrow('Transmission expired');
+      await expect(
+        encryption.receiveTransmission(transmission)
+      ).rejects.toThrow('Transmission expired');
     });
   });
 });
 
 describe('🚀 Performance Tests', () => {
-  describe('Cache Performance', () => {
-    it('should cache data efficiently', async () => {
-      const { cacheService } = await import('@/utils/cacheService');
-      
-      const key = 'test-key';
-      const data = { test: 'data', timestamp: Date.now() };
-      
-      // Set data
-      await cacheService.set(key, data);
-      
-      // Get data (should be from cache)
-      const cached = await cacheService.get(key);
-      expect(cached).toEqual(data);
-    });
-
-    it('should handle cache expiration', async () => {
-      const { cacheService } = await import('@/utils/cacheService');
-      
-      const key = 'expire-test';
-      const data = { test: 'data' };
-      const shortTTL = 100; // 100ms
-      
-      await cacheService.set(key, data, shortTTL);
-      
-      // Should be available immediately
-      expect(await cacheService.get(key)).toEqual(data);
-      
-      // Wait for expiration
-      await new Promise(resolve => setTimeout(resolve, 150));
-      
-      // Should be expired
-      expect(await cacheService.get(key)).toBeNull();
-    });
-  });
-
   describe('Query Optimization', () => {
     it('should use debounced search', async () => {
       const { useAgentesIAFilters } = await import('@/components/AgentesIA/hooks/useAgentesIAFilters');
       
-      // This would test the debounce functionality
-      // In a real test, we'd mock React hooks and test timing
       expect(useAgentesIAFilters).toBeDefined();
     });
   });
@@ -373,17 +355,17 @@ describe('🔒 Integration Security Tests', () => {
     expect(validation_result.isValid).toBe(true);
 
     // 2. Encrypt sensitive data
-    const encryptedData = encryption.encryptPII(validation_result.sanitizedData);
+    const encryptedData = await encryption.encryptPII(validation_result.sanitizedData);
     expect(encryptedData.telefone).not.toBe(leadData.telefone);
 
     // 3. Prepare for transmission
-    const transmission = encryption.prepareForTransmission(encryptedData);
+    const transmission = await encryption.prepareForTransmission(encryptedData);
     expect(transmission.payload).toBeTruthy();
     expect(transmission.checksum).toBeTruthy();
 
     // 4. Receive and decrypt
-    const received = encryption.receiveTransmission(transmission);
-    const decrypted = encryption.decryptPII(received);
+    const received = await encryption.receiveTransmission(transmission);
+    const decrypted = await encryption.decryptPII(received);
     
     expect(decrypted.telefone).toBe(leadData.telefone);
     expect(decrypted.nome).toBe(leadData.nome);

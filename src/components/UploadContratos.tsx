@@ -6,7 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
-import { supabase } from '@/integrations/supabase/client';
+import { supabaseUntyped as supabase } from '@/integrations/supabase/client';
 import { sanitizeText } from '@/utils/validation';
 
 interface ArquivoMetadados {
@@ -54,7 +54,7 @@ const UploadContratos: React.FC<UploadContratosProps> = ({
   const { toast } = useToast();
   const { user, profile } = useAuth();
 
-  // Validação de segurança de arquivos
+  // ValidaÃ§Ã£o de seguranÃ§a de arquivos
   const validarSegurancaArquivo = (file: File): Promise<{ aprovado: boolean; mensagem: string; metadados: ArquivoMetadados }> => {
     return new Promise((resolve) => {
       const reader = new FileReader();
@@ -63,7 +63,7 @@ const UploadContratos: React.FC<UploadContratosProps> = ({
           const buffer = e.target?.result as ArrayBuffer;
           const bytes = new Uint8Array(buffer);
           
-          // 🚀 VALIDAÇÕES DE SEGURANÇA ENTERPRISE
+          // ðŸš€ VALIDAÃ‡Ã•ES DE SEGURANÃ‡A ENTERPRISE
           const validacoes = {
             // Verificar magic numbers (assinatura do arquivo)
             magicNumber: verificarMagicNumber(bytes, file.type),
@@ -71,10 +71,10 @@ const UploadContratos: React.FC<UploadContratosProps> = ({
             // Verificar tamanho suspeito
             tamanhoSuspeito: file.size > maxFileSize * 1024 * 1024,
             
-            // Verificar extensão vs tipo MIME
+            // Verificar extensÃ£o vs tipo MIME
             extensaoValida: verificarExtensaoTipo(file.name, file.type),
             
-            // Detectar padrões maliciosos simples
+            // Detectar padrÃµes maliciosos simples
             conteudoSuspeito: detectarConteudoSuspeito(bytes),
             
             // Metadados do arquivo
@@ -88,12 +88,12 @@ const UploadContratos: React.FC<UploadContratosProps> = ({
 
           let mensagem = '';
           if (!aprovado) {
-            if (!validacoes.magicNumber) mensagem += 'Tipo de arquivo inválido. ';
-            if (validacoes.tamanhoSuspeito) mensagem += `Arquivo muito grande (máx ${maxFileSize}MB). `;
-            if (!validacoes.extensaoValida) mensagem += 'Extensão não corresponde ao tipo. ';
-            if (validacoes.conteudoSuspeito) mensagem += 'Conteúdo suspeito detectado. ';
+            if (!validacoes.magicNumber) mensagem += 'Tipo de arquivo invÃ¡lido. ';
+            if (validacoes.tamanhoSuspeito) mensagem += `Arquivo muito grande (mÃ¡x ${maxFileSize}MB). `;
+            if (!validacoes.extensaoValida) mensagem += 'ExtensÃ£o nÃ£o corresponde ao tipo. ';
+            if (validacoes.conteudoSuspeito) mensagem += 'ConteÃºdo suspeito detectado. ';
           } else {
-            mensagem = 'Arquivo validado com sucesso ✓';
+            mensagem = 'Arquivo validado com sucesso âœ“';
           }
 
           resolve({
@@ -104,7 +104,7 @@ const UploadContratos: React.FC<UploadContratosProps> = ({
         } catch (_error) {
           resolve({
             aprovado: false,
-            mensagem: 'Erro na validação de segurança',
+            mensagem: 'Erro na validaÃ§Ã£o de seguranÃ§a',
             metadados: {}
           });
         }
@@ -118,7 +118,7 @@ const UploadContratos: React.FC<UploadContratosProps> = ({
       'application/pdf': [[0x25, 0x50, 0x44, 0x46]], // %PDF
       'application/msword': [[0xD0, 0xCF, 0x11, 0xE0]], // MS Office
       'application/vnd.openxmlformats-officedocument.wordprocessingml.document': [[0x50, 0x4B, 0x03, 0x04]], // ZIP-based
-      'text/plain': [[0x00, 0x00, 0x00, 0x00]] // Texto (mais flexível)
+      'text/plain': [[0x00, 0x00, 0x00, 0x00]] // Texto (mais flexÃ­vel)
     };
 
     const expectedMagic = magicNumbers[mimeType];
@@ -142,13 +142,13 @@ const UploadContratos: React.FC<UploadContratosProps> = ({
   };
 
   const detectarConteudoSuspeito = (bytes: Uint8Array): boolean => {
-    // Padrões suspeitos básicos
+    // PadrÃµes suspeitos bÃ¡sicos
     const padroesProibidos = [
       // Scripts maliciosos
       [0x3C, 0x73, 0x63, 0x72, 0x69, 0x70, 0x74], // <script
       [0x6A, 0x61, 0x76, 0x61, 0x73, 0x63, 0x72, 0x69, 0x70, 0x74], // javascript
-      // Executáveis
-      [0x4D, 0x5A], // MZ (executável)
+      // ExecutÃ¡veis
+      [0x4D, 0x5A], // MZ (executÃ¡vel)
       [0x7F, 0x45, 0x4C, 0x46], // ELF
     ];
 
@@ -178,8 +178,8 @@ const UploadContratos: React.FC<UploadContratosProps> = ({
   const processarArquivos = async (files: File[]) => {
     if (!user || !profile?.tenant_id) {
       toast({
-        title: 'Erro de autenticação',
-        description: 'Usuário não autenticado',
+        title: 'Erro de autenticaÃ§Ã£o',
+        description: 'UsuÃ¡rio nÃ£o autenticado',
         variant: 'destructive'
       });
       return;
@@ -188,7 +188,7 @@ const UploadContratos: React.FC<UploadContratosProps> = ({
     if (arquivos.length + files.length > maxFiles) {
       toast({
         title: 'Limite excedido',
-        description: `Máximo ${maxFiles} arquivos permitidos`,
+        description: `MÃ¡ximo ${maxFiles} arquivos permitidos`,
         variant: 'destructive'
       });
       return;
@@ -216,7 +216,7 @@ const UploadContratos: React.FC<UploadContratosProps> = ({
 
   const processarArquivoIndividual = async (arquivo: ArquivoUpload) => {
     try {
-      // 1. Validação de segurança
+      // 1. ValidaÃ§Ã£o de seguranÃ§a
       atualizarStatusArquivo(arquivo.id, 'validando', 10);
       
       const validacao = await validarSegurancaArquivo(arquivo.file);
@@ -228,7 +228,7 @@ const UploadContratos: React.FC<UploadContratosProps> = ({
 
       atualizarStatusArquivo(arquivo.id, 'aprovado', 30, validacao.mensagem);
 
-      // 2. Gerar hash de segurança
+      // 2. Gerar hash de seguranÃ§a
       const hash = await gerarHashSeguranca(arquivo.file);
       
       // 3. Upload para Supabase Storage
@@ -245,7 +245,7 @@ const UploadContratos: React.FC<UploadContratosProps> = ({
 
       if (uploadError) throw uploadError;
 
-      // 4. Obter URL pública
+      // 4. Obter URL pÃºblica
       const { data: urlData } = supabase.storage
         .from('contratos')
         .getPublicUrl(nomeArquivoSeguro);
@@ -279,12 +279,12 @@ const UploadContratos: React.FC<UploadContratosProps> = ({
       });
 
       toast({
-        title: 'Upload concluído',
+        title: 'Upload concluÃ­do',
         description: `${arquivo.nome} foi enviado com sucesso`
       });
 
     } catch (_error) {
-      console.error('❌ Erro no upload:', _error);
+      console.error('âŒ Erro no upload:', _error);
       atualizarStatusArquivo(arquivo.id, 'erro', 100, 'Erro no upload do arquivo');
       
       toast({
@@ -339,8 +339,8 @@ const UploadContratos: React.FC<UploadContratosProps> = ({
     
     if (filesValidos.length !== files.length) {
       toast({
-        title: 'Arquivos inválidos',
-        description: `Apenas arquivos ${acceptedTypes.join(', ')} são permitidos`,
+        title: 'Arquivos invÃ¡lidos',
+        description: `Apenas arquivos ${acceptedTypes.join(', ')} sÃ£o permitidos`,
         variant: 'destructive'
       });
     }
@@ -393,7 +393,7 @@ const UploadContratos: React.FC<UploadContratosProps> = ({
 
   return (
     <div className="space-y-6">
-      {/* Área de Upload */}
+      {/* Ãrea de Upload */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
@@ -401,7 +401,7 @@ const UploadContratos: React.FC<UploadContratosProps> = ({
             Upload Seguro de Contratos
           </CardTitle>
           <p className="text-sm text-[hsl(var(--muted-foreground))]">
-            Sistema enterprise com validação de segurança, detecção de malware e controle de integridade
+            Sistema enterprise com validaÃ§Ã£o de seguranÃ§a, detecÃ§Ã£o de malware e controle de integridade
           </p>
         </CardHeader>
         <CardContent>
@@ -421,20 +421,20 @@ const UploadContratos: React.FC<UploadContratosProps> = ({
               Arraste arquivos aqui ou clique para selecionar
             </h3>
             <p className="text-[hsl(var(--muted-foreground))] mb-4">
-              Formatos aceitos: {acceptedTypes.join(', ')} • Máximo {maxFileSize}MB por arquivo
+              Formatos aceitos: {acceptedTypes.join(', ')} â€¢ MÃ¡ximo {maxFileSize}MB por arquivo
             </p>
             <div className="flex items-center justify-center gap-4 text-xs text-[hsl(var(--muted-foreground))]">
               <span className="flex items-center gap-1">
                 <Shield className="h-3 w-3" />
-                Validação de segurança
+                ValidaÃ§Ã£o de seguranÃ§a
               </span>
               <span className="flex items-center gap-1">
                 <CheckCircle className="h-3 w-3" />
-                Detecção de malware
+                DetecÃ§Ã£o de malware
               </span>
               <span className="flex items-center gap-1">
                 <FileText className="h-3 w-3" />
-                Verificação de integridade
+                VerificaÃ§Ã£o de integridade
               </span>
             </div>
           </div>
@@ -471,7 +471,7 @@ const UploadContratos: React.FC<UploadContratosProps> = ({
                       <div>
                         <p className="font-medium text-[hsl(var(--foreground))]">{arquivo.nome}</p>
                         <p className="text-sm text-[hsl(var(--muted-foreground))]">
-                          {formatarTamanho(arquivo.tamanho)} • {arquivo.tipo}
+                          {formatarTamanho(arquivo.tamanho)} â€¢ {arquivo.tipo}
                         </p>
                       </div>
                     </div>

@@ -1,0 +1,83 @@
+# =====================================================================
+# JURIFY — Production Docker Compose
+# =====================================================================
+# Inclui: App (Nginx) + Evolution API (WhatsApp)
+#
+# Uso:
+#   docker compose -f docker-compose.production.yml up -d
+#
+# Pré-requisitos:
+#   1. Copie .env.example → .env e preencha os valores
+#   2. Build da imagem: docker compose -f docker-compose.production.yml build
+# =====================================================================
+
+services:
+  # ─── Jurify Frontend ───────────────────────────────────────────
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile.production
+      args:
+        VITE_SUPABASE_URL: ${VITE_SUPABASE_URL}
+        VITE_SUPABASE_ANON_KEY: ${VITE_SUPABASE_ANON_KEY}
+        VITE_SENTRY_DSN: ${VITE_SENTRY_DSN}
+        VITE_APP_VERSION: ${VITE_APP_VERSION:-1.0.0}
+        VITE_ENCRYPTION_KEY: ${VITE_ENCRYPTION_KEY}
+    ports:
+      - "80:80"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost/health"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+    networks:
+      - jurify-net
+
+  # ─── Evolution API (WhatsApp) ──────────────────────────────────
+  evolution-api:
+    image: atendai/evolution-api:latest
+    ports:
+      - "8080:8080"
+    environment:
+      # Auth
+      AUTHENTICATION_API_KEY: ${EVOLUTION_API_KEY}
+      AUTHENTICATION_EXPOSE_IN_FETCH_INSTANCES: "true"
+
+      # Server
+      SERVER_URL: https://evo.${APP_DOMAIN:-localhost}
+      SERVER_PORT: 8080
+
+      # Database (PostgreSQL — usa o mesmo Supabase ou DB separado)
+      DATABASE_ENABLED: "true"
+      DATABASE_PROVIDER: postgresql
+      DATABASE_CONNECTION_URI: ${EVOLUTION_DATABASE_URL:-postgresql://postgres:postgres@db:5432/evolution}
+
+      # Webhook global → Supabase Edge Function
+      WEBHOOK_GLOBAL_ENABLED: "true"
+      WEBHOOK_GLOBAL_URL: ${VITE_SUPABASE_URL}/functions/v1/whatsapp-webhook
+      WEBHOOK_GLOBAL_WEBHOOK_BY_EVENTS: "true"
+      WEBHOOK_EVENTS: "MESSAGES_UPSERT,CONNECTION_UPDATE,QRCODE_UPDATED"
+
+      # Logs
+      LOG_LEVEL: "warn"
+
+      # Chatwoot (opcional)
+      CHATWOOT_ENABLED: "false"
+    volumes:
+      - evolution-instances:/evolution/instances
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:8080/"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    networks:
+      - jurify-net
+
+volumes:
+  evolution-instances:
+
+networks:
+  jurify-net:
+    driver: bridge

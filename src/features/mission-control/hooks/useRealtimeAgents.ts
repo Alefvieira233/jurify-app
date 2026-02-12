@@ -1,4 +1,4 @@
-﻿/**
+/**
  * ðŸš€ MISSION CONTROL - REALTIME AGENTS HOOK
  *
  * Hook para monitoramento em tempo real dos agentes via Supabase Realtime.
@@ -8,7 +8,7 @@
  */
 
 import { useState, useEffect, useCallback } from 'react';
-import { supabase } from '@/integrations/supabase/client';
+import { supabaseUntyped as supabase } from '@/integrations/supabase/client';
 import type { RealtimeChannel } from '@supabase/supabase-js';
 
 export interface AgentStatus {

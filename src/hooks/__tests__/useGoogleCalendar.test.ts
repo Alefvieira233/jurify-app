@@ -71,11 +71,10 @@ function createChainableQuery() {
   return new Proxy({}, handler);
 }
 
-vi.mock('@/integrations/supabase/client', () => ({
-  supabase: {
-    from: () => createChainableQuery(),
-  },
-}));
+vi.mock('@/integrations/supabase/client', () => {
+  const client = { from: () => createChainableQuery() };
+  return { supabase: client, supabaseUntyped: client };
+});
 
 // Mock GoogleOAuthService - configured = true
 vi.mock('@/lib/google/GoogleOAuthService', () => ({

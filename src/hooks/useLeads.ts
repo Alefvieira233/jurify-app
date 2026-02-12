@@ -1,6 +1,16 @@
-﻿
+/**
+ * @module useLeads
+ * @description Hook principal para gerenciamento de leads jurídicos.
+ * Suporta paginação, busca, filtros por status/área jurídica,
+ * e operações CRUD com validação e sanitização integradas.
+ *
+ * @example
+ * ```tsx
+ * const { leads, loading, fetchLeads, createLead, updateLead } = useLeads({ enablePagination: true });
+ * ```
+ */
 import { useCallback, useState, useEffect } from 'react';
-import { supabase } from '@/integrations/supabase/client';
+import { supabaseUntyped as supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { createLogger } from '@/lib/logger';
@@ -121,7 +131,8 @@ export const useLeads = (options?: { enablePagination?: boolean; pageSize?: numb
         .order('created_at', { ascending: false });
 
       // IMPORTANTE: Se o profile não carregou mas sabemos o tenant pelo metadata do auth, tentamos usar
-      const effectiveTenantId = profile?.tenant_id || (user?.user_metadata as Record<string, unknown>)?.tenant_id;
+      const rawTenantId = profile?.tenant_id || (user?.user_metadata as Record<string, unknown>)?.tenant_id;
+      const effectiveTenantId = typeof rawTenantId === 'string' ? rawTenantId : undefined;
 
       if (effectiveTenantId) {
         log.debug(`Filtrando por tenant: ${effectiveTenantId}`);

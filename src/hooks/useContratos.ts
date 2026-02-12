@@ -1,6 +1,6 @@
 
 import { useCallback } from 'react';
-import { supabase } from '@/integrations/supabase/client';
+import { supabaseUntyped as supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { useSupabaseQuery } from './useSupabaseQuery';
@@ -81,8 +81,8 @@ export const useContratos = () => {
   const createContrato = useCallback(async (data: ContratoInput): Promise<boolean> => {
     if (!user) {
       toast({
-        title: 'Erro de autenticação',
-        description: 'Usuário não autenticado',
+        title: 'Erro de autenticaÃ§Ã£o',
+        description: 'UsuÃ¡rio nÃ£o autenticado',
         variant: 'destructive',
       });
       return false;
@@ -101,7 +101,7 @@ export const useContratos = () => {
 
       log.info('Contrato criado', { id: newContrato.id });
 
-      // ✅ CORREÇÃO: Usar setter callback para evitar dependência circular
+      // âœ… CORREÃ‡ÃƒO: Usar setter callback para evitar dependÃªncia circular
       const normalized = normalizeContrato(newContrato);
       setContratos(prev => [normalized, ...prev]);
 
@@ -113,7 +113,7 @@ export const useContratos = () => {
       return true;
     } catch (error: unknown) {
       log.error('Erro ao criar contrato', error);
-      const message = error instanceof Error ? error.message : 'Não foi possível criar o contrato.';
+      const message = error instanceof Error ? error.message : 'NÃ£o foi possÃ­vel criar o contrato.';
       toast({
         title: 'Erro',
         description: message,
@@ -140,7 +140,7 @@ export const useContratos = () => {
 
       log.info('Contrato atualizado');
 
-      // ✅ CORREÇÃO: Usar setter callback para evitar dependência circular
+      // âœ… CORREÃ‡ÃƒO: Usar setter callback para evitar dependÃªncia circular
       const normalized = normalizeContrato(updatedContrato);
       setContratos(prev => prev.map(contrato =>
         contrato.id === id ? { ...contrato, ...normalized } : contrato
@@ -154,7 +154,7 @@ export const useContratos = () => {
       return true;
     } catch (error: unknown) {
       log.error('Erro ao atualizar contrato', error);
-      const message = error instanceof Error ? error.message : 'Não foi possível atualizar o contrato.';
+      const message = error instanceof Error ? error.message : 'NÃ£o foi possÃ­vel atualizar o contrato.';
       toast({
         title: 'Erro',
         description: message,

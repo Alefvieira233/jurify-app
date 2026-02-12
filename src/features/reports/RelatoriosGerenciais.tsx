@@ -1,5 +1,4 @@
 
-import React from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -357,7 +356,7 @@ const RelatoriosGerenciais = () => {
                   fill="#8884d8"
                   dataKey="value"
                 >
-                  {statusData.map((entry, index) => (
+                  {statusData.map((_entry, index) => (
                     <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                   ))}
                 </Pie>

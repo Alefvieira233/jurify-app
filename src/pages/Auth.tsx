@@ -9,6 +9,7 @@ import { Scale, ArrowRight, Shield, Sparkles, Zap } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import PasswordStrength from '@/components/ui/password-strength';
+import { validatePasswordStrength } from '@/components/ui/password-strength';
 
 const Auth = () => {
   const [isLogin, setIsLogin] = useState(true);
@@ -36,7 +37,7 @@ const Auth = () => {
         if (error) {
           toast({
             title: "Erro no login",
-            description: `${error.message} (${error.status || 'sem status'})`,
+            description: "Email ou senha incorretos.",
             variant: "destructive",
           });
         } else if (data?.user) {
@@ -46,6 +47,17 @@ const Auth = () => {
           });
         }
       } else {
+        const { isStrong } = validatePasswordStrength(password);
+        if (!isStrong) {
+          toast({
+            title: "Senha fraca",
+            description: "A senha deve atender pelo menos 4 dos 5 requisitos de segurança.",
+            variant: "destructive",
+          });
+          setLoading(false);
+          return;
+        }
+
         const { error } = await signUp(email, password, { full_name: nomeCompleto });
         if (error) {
           toast({

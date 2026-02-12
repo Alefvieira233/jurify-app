@@ -47,7 +47,7 @@ const DetalhesAgente: FC<DetalhesAgenteProps> = ({ agente, onClose, onEdit }) =>
     { value: 'api_externa', label: 'API Externa', icon: Settings }
   ];
 
-  const defaultTipo = tiposAgente[0];
+  const defaultTipo = { value: 'chat_interno', label: 'Chat Interno', icon: Bot };
 
   const getTipoAgenteInfo = (tipo: string) => {
     return tiposAgente.find(t => t.value === tipo) ?? defaultTipo;

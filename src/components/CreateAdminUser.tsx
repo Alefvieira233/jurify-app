@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import { UserPlus } from 'lucide-react';
@@ -19,9 +19,9 @@ const CreateAdminUser = () => {
   const [isCreating, setIsCreating] = useState(false);
   const [adminCreated, setAdminCreated] = useState(false);
   const [adminData, setAdminData] = useState<AdminData>({
-    email: 'admin@jurify.com',
-    password: 'Jurify@Admin123',
-    name: 'Administrador do Sistema'
+    email: '',
+    password: '',
+    name: ''
   });
 
   const createAdminUser = async () => {

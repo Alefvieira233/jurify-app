@@ -1,80 +1,68 @@
 // ==========================================
 // ENCRYPTION & SECURITY SERVICE
 // ==========================================
+// encrypt/decrypt delegate to server-side Edge Functions.
+// VITE_ENCRYPTION_KEY is NO LONGER used — the key lives only in Supabase Secrets.
+// hashPassword, hashData, generateToken, anonymizeData remain client-side (no secret needed).
 
 import CryptoJS from 'crypto-js';
+import { supabase } from '@/integrations/supabase/client';
 
 class EncryptionService {
-  private readonly secretKey: string;
-  private readonly algorithm = 'AES';
+  // Encrypt sensitive data via server-side Edge Function
+  async encrypt(plaintext: string): Promise<string> {
+    const { data, error } = await supabase.functions.invoke('encrypt-data', {
+      body: { plaintext },
+    });
 
-  constructor() {
-    const envKey = import.meta.env.VITE_ENCRYPTION_KEY;
-
-    if (!envKey && import.meta.env.PROD) {
-      throw new Error('VITE_ENCRYPTION_KEY is required in production. Refusing to start with a random key.');
-    }
-
-    this.secretKey = envKey || this.generateSecureKey();
-
-    if (import.meta.env.DEV && !envKey) {
-      console.warn('⚠️ Using generated encryption key. Set VITE_ENCRYPTION_KEY for persistent encryption.');
-    }
-  }
-
-  // Generate a secure random key
-  private generateSecureKey(): string {
-    return CryptoJS.lib.WordArray.random(256/8).toString();
-  }
-
-  // Encrypt sensitive data
-  encrypt(plaintext: string): string {
-    try {
-      const encrypted = CryptoJS.AES.encrypt(plaintext, this.secretKey).toString();
-      return encrypted;
-    } catch (error) {
+    if (error || !data?.ciphertext) {
       console.error('Encryption error:', error);
       throw new Error('Failed to encrypt data');
     }
+
+    return data.ciphertext as string;
   }
 
-  // Decrypt sensitive data
-  decrypt(ciphertext: string): string {
-    try {
-      const bytes = CryptoJS.AES.decrypt(ciphertext, this.secretKey);
-      const decrypted = bytes.toString(CryptoJS.enc.Utf8);
-      
-      if (!decrypted) {
-        throw new Error('Invalid ciphertext or key');
-      }
-      
-      return decrypted;
-    } catch (error) {
+  // Decrypt sensitive data via server-side Edge Function
+  async decrypt(ciphertext: string): Promise<string> {
+    const { data, error } = await supabase.functions.invoke('decrypt-data', {
+      body: { ciphertext },
+    });
+
+    if (error || data?.plaintext === undefined || data?.plaintext === null) {
       console.error('Decryption error:', error);
       throw new Error('Failed to decrypt data');
     }
+
+    return data.plaintext as string;
   }
 
-  // Hash passwords (one-way)
+  // Hash passwords (one-way) — OWASP 2023: 600k iterations with SHA-256
   hashPassword(password: string): string {
-    const salt = CryptoJS.lib.WordArray.random(128/8);
+    const salt = CryptoJS.lib.WordArray.random(128 / 8);
     const hash = CryptoJS.PBKDF2(password, salt, {
-      keySize: 256/32,
-      iterations: 10000
+      keySize: 256 / 32,
+      iterations: 600000,
+      hasher: CryptoJS.algo.SHA256,
     });
-    
+
     return salt.toString() + ':' + hash.toString();
   }
 
   // Verify password against hash
-  verifyPassword(password: string, hash: string): boolean {
+  verifyPassword(password: string, storedHash: string): boolean {
     try {
-      const [salt, originalHash] = hash.split(':');
-      const computedHash = CryptoJS.PBKDF2(password, CryptoJS.enc.Hex.parse(salt), {
-        keySize: 256/32,
-        iterations: 10000
-      });
-      
+      const [salt, originalHash] = storedHash.split(':');
+      const computedHash = CryptoJS.PBKDF2(
+        password,
+        CryptoJS.enc.Hex.parse(salt ?? ''),
+        {
+          keySize: 256 / 32,
+          iterations: 600000,
+          hasher: CryptoJS.algo.SHA256,
+        }
+      );
+
       return computedHash.toString() === originalHash;
     } catch (error) {
       console.error('Password verification error:', error);
@@ -82,9 +70,11 @@ class EncryptionService {
     }
   }
 
-  // Generate secure tokens
+  // Generate secure tokens using crypto.getRandomValues
   generateToken(length: number = 32): string {
-    return CryptoJS.lib.WordArray.random(length).toString();
+    const array = new Uint8Array(length);
+    crypto.getRandomValues(array);
+    return Array.from(array, (b) => b.toString(16).padStart(2, '0')).join('');
   }
 
   // Hash data for integrity checks
@@ -92,52 +82,70 @@ class EncryptionService {
     return CryptoJS.SHA256(data).toString();
   }
 
-  // Encrypt sensitive fields in objects
-  encryptSensitiveFields(data: Record<string, unknown>, sensitiveFields: string[]): Record<string, unknown> {
+  // Encrypt sensitive fields in objects (async)
+  async encryptSensitiveFields(
+    data: Record<string, unknown>,
+    sensitiveFields: string[]
+  ): Promise<Record<string, unknown>> {
     const encrypted = { ...data };
-    
-    sensitiveFields.forEach(field => {
-      if (encrypted[field]) {
-        encrypted[field] = this.encrypt(String(encrypted[field]));
+
+    for (const field of sensitiveFields) {
+      const value = encrypted[field];
+      if (
+        typeof value === 'string' ||
+        typeof value === 'number' ||
+        typeof value === 'boolean'
+      ) {
+        encrypted[field] = await this.encrypt(String(value));
         encrypted[`${field}_encrypted`] = true;
       }
-    });
-    
+    }
+
     return encrypted;
   }
 
-  // Decrypt sensitive fields in objects
-  decryptSensitiveFields(data: Record<string, unknown>, sensitiveFields: string[]): Record<string, unknown> {
+  // Decrypt sensitive fields in objects (async)
+  async decryptSensitiveFields(
+    data: Record<string, unknown>,
+    sensitiveFields: string[]
+  ): Promise<Record<string, unknown>> {
     const decrypted = { ...data };
-    
-    sensitiveFields.forEach(field => {
-      if (decrypted[field] && decrypted[`${field}_encrypted`]) {
+
+    for (const field of sensitiveFields) {
+      const value = decrypted[field];
+      if (
+        value != null &&
+        typeof value === 'string' &&
+        decrypted[`${field}_encrypted`]
+      ) {
         try {
-          decrypted[field] = this.decrypt(String(decrypted[field]));
+          decrypted[field] = await this.decrypt(value);
           delete decrypted[`${field}_encrypted`];
         } catch (error) {
           console.error(`Failed to decrypt field ${field}:`, error);
         }
       }
-    });
-    
+    }
+
     return decrypted;
   }
 
-  // Encrypt PII data for LGPD compliance
-  encryptPII(data: {
+  // Encrypt PII data for LGPD compliance (async)
+  async encryptPII(data: {
     cpf?: string;
     email?: string;
     telefone?: string;
     endereco?: string;
     [key: string]: unknown;
-  }): Record<string, unknown> {
+  }): Promise<Record<string, unknown>> {
     const piiFields = ['cpf', 'telefone', 'endereco'];
     return this.encryptSensitiveFields(data, piiFields);
   }
 
-  // Decrypt PII data
-  decryptPII(data: Record<string, unknown>): Record<string, unknown> {
+  // Decrypt PII data (async)
+  async decryptPII(
+    data: Record<string, unknown>
+  ): Promise<Record<string, unknown>> {
     const piiFields = ['cpf', 'telefone', 'endereco'];
     return this.decryptSensitiveFields(data, piiFields);
   }
@@ -145,76 +153,69 @@ class EncryptionService {
   // Generate LGPD compliant data anonymization
   anonymizeData(data: Record<string, unknown>): Record<string, unknown> {
     const anonymized = { ...data };
-    
-    // Replace sensitive data with anonymized versions
+
     if (anonymized.cpf) {
       anonymized.cpf = '***.***.***-**';
     }
-    
+
     if (anonymized.email && typeof anonymized.email === 'string') {
       const [username, domain] = anonymized.email.split('@');
-      anonymized.email = `${username.substring(0, 2)}***@${domain}`;
+      anonymized.email = `${(username ?? '').substring(0, 2)}***@${domain ?? ''}`;
     }
-    
+
     if (anonymized.telefone) {
       anonymized.telefone = '(**) ****-****';
     }
-    
+
     if (anonymized.nome && typeof anonymized.nome === 'string') {
       const names = anonymized.nome.split(' ');
-      anonymized.nome = names.map((name: string, index: number) => 
-        index === 0 ? name : name.charAt(0) + '***'
-      ).join(' ');
+      anonymized.nome = names
+        .map((name: string, index: number) =>
+          index === 0 ? name : name.charAt(0) + '***'
+        )
+        .join(' ');
     }
-    
+
     return anonymized;
   }
 
-  // Secure data transmission
-  prepareForTransmission(data: Record<string, unknown>): {
+  // Secure data transmission (async)
+  async prepareForTransmission(data: Record<string, unknown>): Promise<{
     payload: string;
     checksum: string;
     timestamp: number;
-  } {
+  }> {
     const timestamp = Date.now();
     const payload = JSON.stringify({ ...data, timestamp });
-    const encrypted = this.encrypt(payload);
+    const encrypted = await this.encrypt(payload);
     const checksum = this.hashData(encrypted);
-    
-    return {
-      payload: encrypted,
-      checksum,
-      timestamp
-    };
+
+    return { payload: encrypted, checksum, timestamp };
   }
 
-  // Verify and decrypt transmitted data
-  receiveTransmission(transmission: {
+  // Verify and decrypt transmitted data (async)
+  async receiveTransmission(transmission: {
     payload: string;
     checksum: string;
     timestamp: number;
-  }): Record<string, unknown> {
-    // Verify checksum
+  }): Promise<Record<string, unknown>> {
     const computedChecksum = this.hashData(transmission.payload);
     if (computedChecksum !== transmission.checksum) {
       throw new Error('Data integrity check failed');
     }
-    
-    // Check timestamp (prevent replay attacks)
+
     const maxAge = 5 * 60 * 1000; // 5 minutes
     if (Date.now() - transmission.timestamp > maxAge) {
       throw new Error('Transmission expired');
     }
-    
-    // Decrypt and parse
-    const decrypted = this.decrypt(transmission.payload);
+
+    const decrypted = await this.decrypt(transmission.payload);
     const data = JSON.parse(decrypted);
-    
-    // Verify embedded timestamp
+
     if (data.timestamp !== transmission.timestamp) {
       throw new Error('Timestamp mismatch');
     }
-    
+
     delete data.timestamp;
     return data;
   }
@@ -223,7 +224,7 @@ class EncryptionService {
 // Export singleton
 export const encryption = new EncryptionService();
 
-// Convenience exports
+// Convenience exports (now async)
 export const encrypt = encryption.encrypt.bind(encryption);
 export const decrypt = encryption.decrypt.bind(encryption);
 export const hashPassword = encryption.hashPassword.bind(encryption);

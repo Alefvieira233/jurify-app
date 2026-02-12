@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
+import { supabaseUntyped as supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
 
@@ -50,7 +50,7 @@ export const useSystemSettings = () => {
       return data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['system-settings', tenantId] });
+      void queryClient.invalidateQueries({ queryKey: ['system-settings', tenantId] });
       toast({
         title: 'Configuracao atualizada',
         description: 'A configuracao foi salva com sucesso.',

@@ -12,24 +12,6 @@ import { BaseAgent } from '../core/BaseAgent';
 import { DEFAULT_OPENAI_MODEL } from '@/lib/ai/model';
 import { AgentMessage, MessageType, Priority, TaskRequestPayload } from '../types';
 
-interface AnalyticsReport {
-    period: string;
-    metrics: {
-        totalLeads: number;
-        conversions: number;
-        conversionRate: number;
-        avgResponseTime: number;
-        topLegalAreas: string[];
-    };
-    insights: string[];
-    recommendations: string[];
-    forecast: {
-        nextMonthLeads: number;
-        nextMonthConversions: number;
-        confidence: number;
-    };
-}
-
 export class AnalyticsAgent extends BaseAgent {
     constructor() {
         super(

@@ -1,7 +1,7 @@
 import { useState, useCallback } from 'react';
 import { useToast } from '@/hooks/use-toast';
-import { supabase } from '@/integrations/supabase/client';
-import { AgentType, LegacyAgentConfig as AgentConfig } from '@/lib/multiagents/types';
+import { supabaseUntyped as supabase } from '@/integrations/supabase/client';
+import { AgentType } from '@/lib/multiagents/types';
 
 export interface CreateAgentRequest {
   name: string;
@@ -56,7 +56,7 @@ const getAgentDescription = (type: AgentType): string => {
   }
 };
 
-export const useAgentCrud = (tenantId: string | null, onSuccess?: () => void) => {
+export const useAgentCrud = (tenantId: string | null, onSuccess?: () => void | Promise<void>) => {
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
 
@@ -102,7 +102,7 @@ export const useAgentCrud = (tenantId: string | null, onSuccess?: () => void) =>
 
       if (insertError) throw insertError;
 
-      onSuccess?.();
+      void onSuccess?.();
 
       toast({
         title: 'Sucesso',
@@ -161,7 +161,7 @@ export const useAgentCrud = (tenantId: string | null, onSuccess?: () => void) =>
 
       if (updateError) throw updateError;
 
-      onSuccess?.();
+      void onSuccess?.();
 
       toast({
         title: 'Sucesso',
@@ -196,7 +196,7 @@ export const useAgentCrud = (tenantId: string | null, onSuccess?: () => void) =>
 
       if (error) throw error;
 
-      onSuccess?.();
+      void onSuccess?.();
 
       toast({
         title: 'Sucesso',
@@ -241,7 +241,7 @@ export const useAgentCrud = (tenantId: string | null, onSuccess?: () => void) =>
 
       if (error) throw error;
 
-      onSuccess?.();
+      void onSuccess?.();
 
       toast({
         title: 'Sucesso',

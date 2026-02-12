@@ -340,14 +340,18 @@ serve(async (req) => {
       // ============================================
       if (isEvolutionPayload(payload)) {
         // Verify Evolution webhook signature if secret is configured
-        if (EVOLUTION_WEBHOOK_SECRET) {
-          const webhookSecret = req.headers.get("x-webhook-secret");
-          if (webhookSecret !== EVOLUTION_WEBHOOK_SECRET) {
-            console.error("[webhook:evolution] Invalid webhook secret — rejecting request");
-            return new Response("Unauthorized", { status: 401, headers: corsHeaders });
-          }
-        } else {
-          console.warn("[webhook:evolution] EVOLUTION_WEBHOOK_SECRET not set — skipping signature verification");
+        if (!EVOLUTION_WEBHOOK_SECRET) {
+          console.error("[webhook:evolution] SECURITY: EVOLUTION_WEBHOOK_SECRET not configured — rejecting all requests");
+          return new Response(JSON.stringify({ error: "Webhook secret not configured" }), {
+            status: 403,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+
+        const webhookSecret = req.headers.get("x-webhook-secret");
+        if (webhookSecret !== EVOLUTION_WEBHOOK_SECRET) {
+          console.error("[webhook:evolution] SECURITY: Invalid webhook secret — rejecting request");
+          return new Response("Unauthorized", { status: 401, headers: corsHeaders });
         }
         // --- EVOLUTION API ---
         const event = payload.event;

@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Search, X, FileText, Users, Calendar, Bot, MessageSquare, ArrowRight } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { supabase } from '@/integrations/supabase/client';
+import { supabaseUntyped as supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 
@@ -90,7 +90,7 @@ export default function GlobalSearch() {
           id: l.id,
           type: 'lead',
           title: l.nome_completo || 'Sem nome',
-          subtitle: `${l.email || ''} · ${l.status || 'novo'}`,
+          subtitle: `${l.email || ''} Â· ${l.status || 'novo'}`,
           route: '/leads',
         });
       });
@@ -108,7 +108,7 @@ export default function GlobalSearch() {
           id: c.id,
           type: 'contrato',
           title: c.nome_cliente || 'Sem cliente',
-          subtitle: `${c.area_juridica || ''} · ${c.status || ''}`,
+          subtitle: `${c.area_juridica || ''} Â· ${c.status || ''}`,
           route: '/contratos',
         });
       });
@@ -125,8 +125,8 @@ export default function GlobalSearch() {
         searchResults.push({
           id: a.id,
           type: 'agendamento',
-          title: a.titulo || 'Sem título',
-          subtitle: `${a.tipo || ''} · ${a.status || ''}`,
+          title: a.titulo || 'Sem tÃ­tulo',
+          subtitle: `${a.tipo || ''} Â· ${a.status || ''}`,
           route: '/agendamentos',
         });
       });
@@ -137,17 +137,18 @@ export default function GlobalSearch() {
       console.error('Search error:', err);
       toast({
         title: 'Erro na busca',
-        description: 'Não foi possível realizar a busca. Tente novamente.',
+        description: 'NÃ£o foi possÃ­vel realizar a busca. Tente novamente.',
         variant: 'destructive',
       });
     } finally {
       setLoading(false);
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [profile?.tenant_id]);
 
   // Debounced search
   useEffect(() => {
-    const timer = setTimeout(() => search(query), 300);
+    const timer = setTimeout(() => void search(query), 300);
     return () => clearTimeout(timer);
   }, [query, search]);
 
@@ -250,7 +251,7 @@ export default function GlobalSearch() {
           {query.length < 2 && !loading && (
             <>
               <div className="px-3 py-1.5 text-[10px] font-semibold uppercase tracking-wider text-[hsl(var(--muted-foreground))]">
-                Navegação rápida
+                NavegaÃ§Ã£o rÃ¡pida
               </div>
               {QUICK_LINKS.map((link, i) => {
                 const Icon = link.icon;
@@ -276,7 +277,7 @@ export default function GlobalSearch() {
 
         {/* Footer */}
         <div className="flex items-center gap-4 px-4 py-2 border-t border-[hsl(var(--border))] text-[10px] text-[hsl(var(--muted-foreground))]">
-          <span><kbd className="font-mono">↑↓</kbd> navegar</span>
+          <span><kbd className="font-mono">â†‘â†“</kbd> navegar</span>
           <span><kbd className="font-mono">Enter</kbd> abrir</span>
           <span><kbd className="font-mono">Esc</kbd> fechar</span>
         </div>

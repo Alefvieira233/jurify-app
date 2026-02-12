@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Plus, Key, Eye, EyeOff, Power, PowerOff, Trash2, Copy } from 'lucide-react';
+import { useState, useCallback } from 'react';
+import { Plus, Key, Eye, EyeOff, Power, PowerOff, Trash2, Copy, ShieldAlert } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -8,7 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
-import { supabase } from '@/integrations/supabase/client';
+import { supabaseUntyped as supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRBAC } from '@/hooks/useRBAC';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -28,6 +28,7 @@ const ApiKeysManager = () => {
   const [showNewKeyDialog, setShowNewKeyDialog] = useState(false);
   const [newKeyName, setNewKeyName] = useState('');
   const [visibleKeys, setVisibleKeys] = useState<Set<string>>(new Set());
+  const [createdKeyValue, setCreatedKeyValue] = useState<string | null>(null);
   const { user, profile } = useAuth();
   const { isAdmin } = useRBAC();
   const { toast } = useToast();
@@ -50,21 +51,35 @@ const ApiKeysManager = () => {
     },
   });
 
+  // Generate cryptographically secure API key
+  const generateSecureKey = useCallback((): string => {
+    const bytes = new Uint8Array(32);
+    crypto.getRandomValues(bytes);
+    const hex = Array.from(bytes, (b) => b.toString(16).padStart(2, '0')).join('');
+    return `jf_${hex}`;
+  }, []);
+
+  // SHA-256 hash for storage (never store plaintext)
+  const hashKey = useCallback(async (key: string): Promise<string> => {
+    const encoder = new TextEncoder();
+    const data = encoder.encode(key);
+    const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+    return Array.from(new Uint8Array(hashBuffer), (b) => b.toString(16).padStart(2, '0')).join('');
+  }, []);
+
   const createKeyMutation = useMutation({
     mutationFn: async (nome: string) => {
       if (!tenantId) throw new Error('Tenant nao encontrado');
 
-      const keyValue =
-        'jurify_' +
-        Math.random().toString(36).substring(2, 15) +
-        Math.random().toString(36).substring(2, 15);
+      const keyValue = generateSecureKey();
+      const keyHash = await hashKey(keyValue);
 
       const { data, error } = await supabase
         .from('api_keys')
         .insert([
           {
             nome,
-            key_value: keyValue,
+            key_value: keyHash,
             criado_por: user?.id,
             ativo: true,
             tenant_id: tenantId,
@@ -74,10 +89,11 @@ const ApiKeysManager = () => {
         .single();
 
       if (error) throw error;
-      return data;
+      return { ...data, _plainKey: keyValue };
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       void queryClient.invalidateQueries({ queryKey: ['api_keys', tenantId] });
+      setCreatedKeyValue((data as { _plainKey: string })._plainKey);
       setShowNewKeyDialog(false);
       setNewKeyName('');
       toast({
@@ -194,8 +210,8 @@ const ApiKeysManager = () => {
   };
 
   const maskKey = (key: string) => {
-    if (key.length <= 10) return key;
-    return key.substring(0, 10) + '*'.repeat(key.length - 10);
+    if (key.length <= 8) return '••••••••';
+    return key.substring(0, 4) + '••••••••' + key.substring(key.length - 4);
   };
 
   if (!isAdmin) {
@@ -222,6 +238,29 @@ const ApiKeysManager = () => {
 
   return (
     <div className="space-y-6">
+      {/* One-time key reveal dialog */}
+      <Dialog open={!!createdKeyValue} onOpenChange={(open) => { if (!open) setCreatedKeyValue(null); }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <ShieldAlert className="h-5 w-5 text-yellow-500" />
+              Salve sua API Key
+            </DialogTitle>
+            <DialogDescription>
+              Esta chave sera exibida apenas uma vez. Copie e guarde em local seguro.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3">
+            <code className="block bg-[hsl(var(--muted))] border border-[hsl(var(--border))] p-3 rounded text-sm font-mono break-all">
+              {createdKeyValue}
+            </code>
+            <Button className="w-full" onClick={() => { if (createdKeyValue) copyToClipboard(createdKeyValue); }}>
+              <Copy className="h-4 w-4 mr-2" /> Copiar API Key
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
       <div className="flex justify-between items-center">
         <div>
           <h2 className="text-xl font-semibold text-[hsl(var(--foreground))]">Gerenciamento de API Keys</h2>

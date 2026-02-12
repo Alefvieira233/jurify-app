@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useRef, useEffect } from 'react';
+import { useState, useMemo, useRef, useEffect } from 'react';
 import {
   MessageSquare,
   Bot,
@@ -116,16 +116,18 @@ const WhatsAppIA = () => {
       qualificado: { label: 'Agendado', className: 'bg-blue-100 text-blue-700 border-blue-200' },
       finalizado: { label: 'Finalizado', className: 'bg-gray-100 text-gray-600 border-gray-200' },
     };
-    const badge = map[status] || map.finalizado;
+    const badge = map[status] ?? map.finalizado ?? { label: status, className: '' };
     return <Badge variant="outline" className={`text-[10px] px-1.5 py-0 ${badge.className}`}>{badge.label}</Badge>;
   };
 
   const getInitials = (name: string | null, phone: string) => {
     if (name) {
       const parts = name.trim().split(' ');
+      const first = parts[0] ?? '';
+      const last = parts[parts.length - 1] ?? '';
       return parts.length > 1
-        ? (parts[0][0] + parts[parts.length - 1][0]).toUpperCase()
-        : parts[0].substring(0, 2).toUpperCase();
+        ? ((first[0] ?? '') + (last[0] ?? '')).toUpperCase()
+        : first.substring(0, 2).toUpperCase();
     }
     return phone.slice(-2);
   };

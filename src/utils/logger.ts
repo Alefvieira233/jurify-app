@@ -121,7 +121,7 @@ class Logger {
     }
 
     // Avisos também vão para remote
-    this.sendToRemote('warn', message, args);
+    void this.sendToRemote('warn', message, args);
   }
 
   /**
@@ -148,7 +148,7 @@ class Logger {
     }
 
     // Erros SEMPRE vão para remote (exceto se disabled)
-    this.sendToRemote('error', message, errorData);
+    void this.sendToRemote('error', message, errorData);
   }
 
   /**

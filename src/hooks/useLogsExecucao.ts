@@ -1,5 +1,16 @@
+/**
+ * @module useLogsExecucao
+ * @description Hook para consultar e gerenciar logs de execuÃ§Ã£o dos agentes de IA.
+ * Fornece listagem com estatÃ­sticas (total, sucessos, erros, tempo mÃ©dio),
+ * busca por agente especÃ­fico e limpeza de logs antigos (30+ dias).
+ *
+ * @example
+ * ```tsx
+ * const { logs, stats, fetchLogs, limparLogs } = useLogsExecucao();
+ * ```
+ */
 import { useState, useEffect } from 'react';
-import { supabase } from '@/integrations/supabase/client';
+import { supabaseUntyped as supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
 
@@ -144,7 +155,8 @@ export const useLogsExecucao = () => {
   };
 
   useEffect(() => {
-    fetchLogs();
+    void fetchLogs();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tenantId]);
 
   return {

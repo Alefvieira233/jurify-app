@@ -3,9 +3,9 @@
 
 
 // Event emitter simples para gerenciar listeners
-const authListeners: Array<(event: string, session: any) => void> = [];
+const authListeners: Array<(event: string, session: unknown) => void> = [];
 
-const notifyListeners = (event: string, session: any) => {
+const notifyListeners = (event: string, session: unknown) => {
   console.log(`🧪 [MOCK] Notificando ${authListeners.length} listeners: ${event}`);
   authListeners.forEach(listener => listener(event, session));
 };
@@ -58,7 +58,7 @@ export const mockSupabaseClient = {
       };
     },
 
-    signUp: async ({ email, password }: { email: string; password: string }) => {
+    signUp: async ({ email, password: _password }: { email: string; password: string }) => {
       console.log('🧪 [MOCK] Cadastro:', email);
 
       await new Promise(resolve => setTimeout(resolve, 500));
@@ -78,14 +78,14 @@ export const mockSupabaseClient = {
       };
     },
 
-    signOut: async () => {
+    signOut: () => {
       console.log('🧪 [MOCK] Logout');
       localStorage.removeItem('mock_session');
       notifyListeners('SIGNED_OUT', null);
       return { error: null };
     },
 
-    getSession: async () => {
+    getSession: () => {
       console.log('🧪 [MOCK] Verificando sessão');
 
       // Retornar sessão válida se houver no localStorage
@@ -102,7 +102,7 @@ export const mockSupabaseClient = {
       return { data: { session: null }, error: null };
     },
 
-    onAuthStateChange: (callback: (event: string, session: any) => void) => {
+    onAuthStateChange: (callback: (event: string, session: unknown) => void) => {
       console.log('🧪 [MOCK] Auth state listener registrado');
       
       authListeners.push(callback);
@@ -140,13 +140,13 @@ export const mockSupabaseClient = {
 
 
   from: (table: string) => ({
-    select: (columns = '*') => ({
-      order: (column: string, options?: any) => ({
-        then: async (resolve: (value: any) => void) => {
+    select: (_columns = '*') => ({
+      order: (_column: string, _options?: unknown) => ({
+        then: (resolve: (value: unknown) => void) => {
           console.log(`🧪 [MOCK] SELECT from ${table}`);
 
           // Mock de dados baseado na tabela
-          const mockData: Record<string, any[]> = {
+          const mockData: Record<string, unknown[]> = {
             leads: [
               {
                 id: '1',
@@ -337,10 +337,10 @@ export const mockSupabaseClient = {
           });
         }
       }),
-      eq: function(column: string, value: any) {
+      eq: function(column: string, value: unknown) {
         return {
-          single: async () => {
-            console.log(`🧪 [MOCK] SELECT from ${table} WHERE ${column} = ${value}`);
+          single: () => {
+            console.log(`🧪 [MOCK] SELECT from ${table} WHERE ${column} = ${String(value)}`);
 
             if (table === 'profiles' && column === 'id') {
               return {
@@ -362,7 +362,7 @@ export const mockSupabaseClient = {
     })
   }),
 
-  rpc: async (functionName: string, params: any) => {
+  rpc: (functionName: string, params: unknown) => {
     console.log(`🧪 [MOCK] RPC call: ${functionName}`, params);
     return { data: null, error: null };
   }

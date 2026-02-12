@@ -1,5 +1,5 @@
 import { useCallback } from 'react';
-import { supabase } from '@/integrations/supabase/client';
+import { supabaseUntyped as supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { useSupabaseQuery } from './useSupabaseQuery';
@@ -88,8 +88,8 @@ export const useAgendamentos = () => {
   const createAgendamento = useCallback(async (data: AgendamentoInput): Promise<boolean> => {
     if (!user) {
       toast({
-        title: 'Erro de autenticação',
-        description: 'Usuário não autenticado',
+        title: 'Erro de autenticaÃ§Ã£o',
+        description: 'UsuÃ¡rio nÃ£o autenticado',
         variant: 'destructive',
       });
       return false;
@@ -104,7 +104,7 @@ export const useAgendamentos = () => {
 
       if (error) throw error;
 
-      // ✅ CORREÇÃO: Usar setter callback para evitar dependência circular
+      // âœ… CORREÃ‡ÃƒO: Usar setter callback para evitar dependÃªncia circular
       const normalized = normalizeAgendamento(newAgendamento as AgendamentoRow);
       setAgendamentos(prev => [...prev, normalized].sort((a, b) =>
         new Date(a.data_hora).getTime() - new Date(b.data_hora).getTime()
@@ -117,7 +117,7 @@ export const useAgendamentos = () => {
 
       return true;
     } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : 'Não foi possível criar o agendamento.';
+      const message = error instanceof Error ? error.message : 'NÃ£o foi possÃ­vel criar o agendamento.';
       toast({
         title: 'Erro',
         description: message,
@@ -140,7 +140,7 @@ export const useAgendamentos = () => {
 
       if (error) throw error;
 
-      // ✅ CORREÇÃO: Usar setter callback para evitar dependência circular
+      // âœ… CORREÃ‡ÃƒO: Usar setter callback para evitar dependÃªncia circular
       const normalized = normalizeAgendamento(updatedAgendamento as AgendamentoRow);
       setAgendamentos(prev => prev.map(agendamento =>
         agendamento.id === id ? { ...agendamento, ...normalized } : agendamento
@@ -155,7 +155,7 @@ export const useAgendamentos = () => {
 
       return true;
     } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : 'Não foi possível atualizar o agendamento.';
+      const message = error instanceof Error ? error.message : 'NÃ£o foi possÃ­vel atualizar o agendamento.';
       toast({
         title: 'Erro',
         description: message,
@@ -165,7 +165,7 @@ export const useAgendamentos = () => {
     }
   }, [user, toast, setAgendamentos, normalizeAgendamento]);
 
-  // ✅ NOVO: Implementar deleteAgendamento (estava faltando)
+  // âœ… NOVO: Implementar deleteAgendamento (estava faltando)
   const deleteAgendamento = useCallback(async (id: string): Promise<boolean> => {
     if (!user) return false;
 
@@ -177,7 +177,7 @@ export const useAgendamentos = () => {
 
       if (error) throw error;
 
-      // ✅ Usar setter callback
+      // âœ… Usar setter callback
       setAgendamentos(prev => prev.filter(agendamento => agendamento.id !== id));
 
       toast({
@@ -187,7 +187,7 @@ export const useAgendamentos = () => {
 
       return true;
     } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : 'Não foi possível deletar o agendamento.';
+      const message = error instanceof Error ? error.message : 'NÃ£o foi possÃ­vel deletar o agendamento.';
       toast({
         title: 'Erro',
         description: message,
@@ -205,7 +205,7 @@ export const useAgendamentos = () => {
     fetchAgendamentos,
     createAgendamento,
     updateAgendamento,
-    deleteAgendamento, // ✅ NOVO: Exportar deleteAgendamento
+    deleteAgendamento, // âœ… NOVO: Exportar deleteAgendamento
   };
 };
 

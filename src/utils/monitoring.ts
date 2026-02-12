@@ -2,9 +2,11 @@
 // MONITORING & ANALYTICS SERVICE
 // ==========================================
 
+import { captureSentryError, setSentryContext } from '@/lib/sentry';
+
 interface MetricEvent {
   name: string;
-  properties: Record<string, any>;
+  properties: Record<string, unknown>;
   timestamp: number;
   userId?: string;
   tenantId?: string;
@@ -14,13 +16,13 @@ interface PerformanceMetric {
   name: string;
   duration: number;
   timestamp: number;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
 
 class MonitoringService {
   private events: MetricEvent[] = [];
   private performanceMetrics: PerformanceMetric[] = [];
-  private isProduction = process.env.NODE_ENV === 'production';
+  private isProduction = import.meta.env.PROD;
 
   // Business Metrics
   trackLeadConversion(leadId: string, fromStatus: string, toStatus: string, userId?: string, tenantId?: string) {
@@ -49,7 +51,7 @@ class MonitoringService {
     }, userId, tenantId);
   }
 
-  trackUserAction(action: string, module: string, userId?: string, tenantId?: string, metadata?: Record<string, any>) {
+  trackUserAction(action: string, module: string, userId?: string, tenantId?: string, metadata?: Record<string, unknown>) {
     this.trackEvent('User Action', {
       action,
       module,
@@ -75,13 +77,13 @@ class MonitoringService {
   startPerformanceTimer(name: string): () => void {
     const startTime = performance.now();
     
-    return (metadata?: Record<string, any>) => {
+    return (metadata?: Record<string, unknown>) => {
       const duration = performance.now() - startTime;
       this.trackPerformance(name, duration, metadata);
     };
   }
 
-  trackPerformance(name: string, duration: number, metadata?: Record<string, any>) {
+  trackPerformance(name: string, duration: number, metadata?: Record<string, unknown>) {
     this.performanceMetrics.push({
       name,
       duration,
@@ -119,7 +121,7 @@ class MonitoringService {
 
     // External APIs check
     checks.openai = await this.checkExternalAPI('OpenAI', 'https://api.openai.com/v1/models');
-    checks.zapsign = await this.checkExternalAPI('ZapSign', process.env.VITE_ZAPSIGN_BASE_URL);
+    checks.zapsign = await this.checkExternalAPI('ZapSign', import.meta.env.VITE_ZAPSIGN_BASE_URL);
 
     // Determine overall status
     const hasUnhealthy = Object.values(checks).some(check => check.status === 'unhealthy');
@@ -131,7 +133,7 @@ class MonitoringService {
   }
 
   // Private methods
-  private trackEvent(name: string, properties: Record<string, any>, userId?: string, tenantId?: string) {
+  private trackEvent(name: string, properties: Record<string, unknown>, userId?: string, tenantId?: string) {
     const event: MetricEvent = {
       name,
       properties,
@@ -179,7 +181,7 @@ class MonitoringService {
     return 'low';
   }
 
-  private async checkExternalAPI(name: string, url?: string): Promise<{ status: string; latency?: number; error?: string }> {
+  private async checkExternalAPI(_name: string, url?: string): Promise<{ status: string; latency?: number; error?: string }> {
     if (!url) return { status: 'degraded', error: 'URL not configured' };
 
     try {
@@ -200,9 +202,14 @@ class MonitoringService {
     }
   }
 
-  private sendToSentry(error: Error, context: string, metadata: Record<string, any>) {
-    // This would integrate with Sentry SDK
-    console.error('🚨 [Sentry]', error, { context, ...metadata });
+  private sendToSentry(error: Error, context: string, metadata: Record<string, unknown>) {
+    try {
+      setSentryContext('monitoring', { context, ...metadata });
+      captureSentryError(error, { context, ...metadata });
+    } catch {
+      // Sentry not available — fallback to console
+      console.error('🚨 [Sentry]', error, { context, ...metadata });
+    }
   }
 
   private sendToAnalytics(event: MetricEvent) {

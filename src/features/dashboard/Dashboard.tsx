@@ -1,16 +1,15 @@
 
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect, lazy, Suspense } from 'react';
 import { Users, FileText, Calendar, Bot, TrendingUp, Clock, CheckCircle, AlertTriangle, Sparkles, ArrowUpRight, BarChart3, Activity } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
 import { useDashboardMetrics } from '@/hooks/useDashboardMetrics';
-import { seedDatabase } from '@/scripts/seed-database';
 import { useToast } from '@/hooks/use-toast';
-import { ConversionFunnel } from '@/components/analytics/ConversionFunnel';
-import { RevenueCard } from '@/components/analytics/RevenueCard';
-import { ResponseTimeChart } from '@/components/analytics/ResponseTimeChart';
+const ConversionFunnel = lazy(() => import('@/components/analytics/ConversionFunnel').then(m => ({ default: m.ConversionFunnel })));
+const RevenueCard = lazy(() => import('@/components/analytics/RevenueCard').then(m => ({ default: m.RevenueCard })));
+const ResponseTimeChart = lazy(() => import('@/components/analytics/ResponseTimeChart').then(m => ({ default: m.ResponseTimeChart })));
 import { useSearchParams } from 'react-router-dom';
 
 const Dashboard = () => {
@@ -38,6 +37,7 @@ const Dashboard = () => {
         description: 'Isso pode levar alguns segundos.',
       });
 
+      const { seedDatabase } = await import('@/scripts/seed-database');
       await seedDatabase();
 
       toast({
@@ -448,42 +448,44 @@ const Dashboard = () => {
       </div>
 
       {/* 📊 PREMIUM ANALYTICS SECTION */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 fade-in" style={{ animationDelay: '0.65s' }}>
-        {/* Conversion Funnel */}
-        <div className="lg:col-span-2">
-          <ConversionFunnel data={metrics.leadsPorStatus} />
+      <Suspense fallback={<div className="grid grid-cols-1 lg:grid-cols-3 gap-6"><Skeleton className="h-64 lg:col-span-2" /><Skeleton className="h-64" /></div>}>
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 fade-in" style={{ animationDelay: '0.65s' }}>
+          {/* Conversion Funnel */}
+          <div className="lg:col-span-2">
+            <ConversionFunnel data={metrics.leadsPorStatus} />
+          </div>
+
+          {/* Revenue Card */}
+          <div>
+            <RevenueCard
+              currentMRR={metrics.contratosAssinados * 997}
+              previousMRR={(metrics.contratosAssinados - 2) * 997}
+              contractsThisMonth={metrics.contratosAssinados}
+              avgTicket={997}
+              targetMRR={50000}
+            />
+          </div>
         </div>
 
-        {/* Revenue Card */}
-        <div>
-          <RevenueCard
-            currentMRR={metrics.contratosAssinados * 997}
-            previousMRR={(metrics.contratosAssinados - 2) * 997}
-            contractsThisMonth={metrics.contratosAssinados}
-            avgTicket={997}
-            targetMRR={50000}
+        {/* Response Time Chart */}
+        <div className="fade-in" style={{ animationDelay: '0.7s' }}>
+          <ResponseTimeChart
+            data={[
+              { time: '08:00', avgTime: 1.8, p95Time: 3.2 },
+              { time: '09:00', avgTime: 2.1, p95Time: 3.8 },
+              { time: '10:00', avgTime: 1.5, p95Time: 2.9 },
+              { time: '11:00', avgTime: 2.4, p95Time: 4.1 },
+              { time: '12:00', avgTime: 1.9, p95Time: 3.5 },
+              { time: '13:00', avgTime: 2.0, p95Time: 3.3 },
+              { time: '14:00', avgTime: 1.7, p95Time: 2.8 },
+              { time: '15:00', avgTime: 2.2, p95Time: 3.9 },
+              { time: '16:00', avgTime: 1.6, p95Time: 3.0 },
+              { time: '17:00', avgTime: 2.3, p95Time: 4.0 },
+            ]}
+            targetResponseTime={3}
           />
         </div>
-      </div>
-
-      {/* Response Time Chart */}
-      <div className="fade-in" style={{ animationDelay: '0.7s' }}>
-        <ResponseTimeChart
-          data={[
-            { time: '08:00', avgTime: 1.8, p95Time: 3.2 },
-            { time: '09:00', avgTime: 2.1, p95Time: 3.8 },
-            { time: '10:00', avgTime: 1.5, p95Time: 2.9 },
-            { time: '11:00', avgTime: 2.4, p95Time: 4.1 },
-            { time: '12:00', avgTime: 1.9, p95Time: 3.5 },
-            { time: '13:00', avgTime: 2.0, p95Time: 3.3 },
-            { time: '14:00', avgTime: 1.7, p95Time: 2.8 },
-            { time: '15:00', avgTime: 2.2, p95Time: 3.9 },
-            { time: '16:00', avgTime: 1.6, p95Time: 3.0 },
-            { time: '17:00', avgTime: 2.3, p95Time: 4.0 },
-          ]}
-          targetResponseTime={3}
-        />
-      </div>
+      </Suspense>
 
       {/* Performance dos Agentes */}
       <Card className="border-[hsl(var(--card-border))] bg-[hsl(var(--card))] shadow-premium fade-in" style={{ animationDelay: '0.7s' }}>

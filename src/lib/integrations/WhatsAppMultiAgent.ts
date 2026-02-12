@@ -13,7 +13,7 @@
  * @security Enterprise Grade - Zero credentials on client
  */
 
-import { supabase } from '@/integrations/supabase/client';
+import { supabaseUntyped as supabase } from '@/integrations/supabase/client';
 import { createLogger } from '@/lib/logger';
 
 const log = createLogger('WhatsApp');

@@ -1,3 +1,4 @@
+import React from 'react'
 import { createRoot } from 'react-dom/client'
 import App from './App.tsx'
 import './index.css'
@@ -7,12 +8,17 @@ import ErrorBoundary from './components/ErrorBoundary'
 const rootElement = document.getElementById("root");
 
 if (!rootElement) {
-  throw new Error('🚨 FALHA CRÍTICA: Root element não encontrado. Sistema não pode inicializar.');
+  throw new Error('Root element not found. Application cannot initialize.');
 }
 
-// 🚀 TESLA/SPACEX GRADE: Sistema nunca deve crashar completamente
-createRoot(rootElement).render(
+const isDev = import.meta.env.DEV;
+
+const app = (
   <ErrorBoundary>
     <App />
   </ErrorBoundary>
+);
+
+createRoot(rootElement).render(
+  isDev ? <React.StrictMode>{app}</React.StrictMode> : app
 );

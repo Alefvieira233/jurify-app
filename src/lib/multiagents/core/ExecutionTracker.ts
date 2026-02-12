@@ -13,7 +13,6 @@ import type {
   ExecutionResult,
   StageResult,
   ExecutionTrackerConfig,
-  DEFAULT_EXECUTION_CONFIG,
 } from '../types';
 
 type ResolveFunction = (result: ExecutionResult) => void;
@@ -104,7 +103,7 @@ export class ExecutionTracker {
     if (this.config.timeoutMs && this.config.timeoutMs > 0) {
       this.timeoutId = setTimeout(() => {
         if (this.status === 'pending' || this.status === 'processing') {
-          this.markTimeout();
+          void this.markTimeout();
         }
       }, this.config.timeoutMs);
     }
@@ -273,7 +272,7 @@ export class ExecutionTracker {
       legalValidation: legalStage?.result ?? null,
       proposal: proposalStage?.result ?? null,
       formattedMessages: (messageStage?.result as string) ?? null,
-      finalResult: stages.length > 0 ? stages[stages.length - 1].result : null,
+      finalResult: stages.length > 0 ? (stages[stages.length - 1]?.result ?? null) : null,
       totalTokens: this.totalTokens,
       estimatedCost: this.calculateCost(),
       startedAt: this.startedAt,

@@ -80,7 +80,7 @@ Validar a viabilidade jurídica de casos, analisar fundamentos legais e recomend
       );
 
       // Usa o safeParseJSON do BaseAgent para parsing robusto
-      let parsedValidation: Record<string, unknown> = this.safeParseJSON(validation) || { raw_validation: validation };
+      const parsedValidation: Record<string, unknown> = this.safeParseJSON(validation) || { raw_validation: validation };
       
       // Determina viabilidade
       let viable = false;

@@ -11,7 +11,7 @@
  * @architecture Enterprise Grade - Inspired by MCP
  */
 
-import { supabase } from '@/integrations/supabase/client';
+import { supabaseUntyped as supabase } from '@/integrations/supabase/client';
 import { createLogger } from '@/lib/logger';
 
 const log = createLogger('AgentMemory');
@@ -210,7 +210,7 @@ export class AgentMemoryService {
         return [];
       }
 
-      return (data || []).map(m => ({ ...m, similarity: 0.5 })) as MemorySearchResult[];
+      return (Array.isArray(data) ? data : []).map(m => ({ ...m, similarity: 0.5 })) as MemorySearchResult[];
     } catch (error) {
       log.error('recallByText exception', error);
       return [];

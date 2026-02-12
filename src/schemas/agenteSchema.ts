@@ -24,7 +24,7 @@ export const agenteIASchema = z.object({
   nome: z.string()
     .min(2, 'Nome deve ter pelo menos 2 caracteres')
     .max(100, 'Nome deve ter no máximo 100 caracteres')
-    .regex(/^[a-zA-ZÀ-ÿ\s\-\.]+$/, 'Nome deve conter apenas letras, espaços, hífens e pontos')
+    .regex(/^[a-zA-ZÀ-ÿ\s\-.]+$/, 'Nome deve conter apenas letras, espaços, hífens e pontos')
     .transform(str => str.trim()),
     
   area_juridica: z.string()

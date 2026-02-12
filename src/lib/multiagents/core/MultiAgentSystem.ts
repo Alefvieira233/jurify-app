@@ -13,9 +13,7 @@ import type {
   AgentMessage,
   SharedContext,
   SystemStats,
-  MessageType,
   LeadData,
-  Priority,
   IMessageRouter,
   ExecutionResult
 } from '../types';
@@ -68,7 +66,7 @@ export class MultiAgentSystem implements IMessageRouter {
    * Deve ser chamado explicitamente antes de usar o sistema.
    * Idempotente - pode ser chamado múltiplas vezes sem problemas.
    */
-  public async initialize(): Promise<void> {
+  public initialize(): void {
     if (this.isInitialized) {
       return;
     }
@@ -85,7 +83,7 @@ export class MultiAgentSystem implements IMessageRouter {
 
       this.isInitialized = true;
 
-    } catch (error) {
+    } catch (_error) {
       throw new Error('Failed to initialize MultiAgentSystem');
     }
   }
@@ -130,11 +128,12 @@ export class MultiAgentSystem implements IMessageRouter {
     options?: { waitForCompletion?: boolean; timeoutMs?: number }
   ): Promise<ExecutionResult> {
     if (!this.isInitialized) {
-      await this.initialize();
+      this.initialize();
     }
 
     // Cria contexto compartilhado
-    const tenantId = (leadData as any)?.tenantId || (leadData as any)?.tenant_id;
+    const rawTenant = (leadData as Record<string, unknown>)?.tenantId || (leadData as Record<string, unknown>)?.tenant_id;
+    const tenantId = typeof rawTenant === 'string' ? rawTenant : '';
     const leadId = leadData.id || `lead_${Date.now()}`;
 
     // Cria ExecutionTracker para rastrear esta execução
@@ -202,7 +201,7 @@ export class MultiAgentSystem implements IMessageRouter {
       try {
         const result = await tracker.waitForCompletion(options?.timeoutMs);
         return result;
-      } catch (error) {
+      } catch (_error) {
         // Retorna resultado parcial mesmo em caso de erro/timeout
         return tracker.getResult();
       }
@@ -243,11 +242,11 @@ export class MultiAgentSystem implements IMessageRouter {
   /**
    * 🔄 Reseta sistema completamente (útil para testes)
    */
-  public async reset(): Promise<void> {
+  public reset(): void {
     this.agents.clear();
     this.messageHistory = [];
     this.isInitialized = false;
-    await this.initialize();
+    this.initialize();
   }
 
   /**

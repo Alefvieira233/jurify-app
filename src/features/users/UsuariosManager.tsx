@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
+import { supabaseUntyped as supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -42,10 +42,10 @@ const UsuariosManager = () => {
   const [isEditarUsuarioOpen, setIsEditarUsuarioOpen] = useState(false);
   const [isPermissoesOpen, setIsPermissoesOpen] = useState(false);
 
-  // ? RBAC: Verifica��o de permiss�es real
+  // ? RBAC: Verificaï¿½ï¿½o de permissï¿½es real
   const { can, canDeleteUsers, userRole } = useRBAC();
 
-  // S� pode visualizar usu�rios se tiver permiss�o de read
+  // Sï¿½ pode visualizar usuï¿½rios se tiver permissï¿½o de read
   const canViewUsers = can('usuarios', 'read');
 
   const { data: usuarios = [], isLoading } = useQuery({
@@ -76,9 +76,9 @@ const UsuariosManager = () => {
 
   const deleteMutation = useMutation({
     mutationFn: async (userId: string) => {
-      // Verifica��o adicional de seguran�a
+      // Verificaï¿½ï¿½o adicional de seguranï¿½a
       if (!canDeleteUsers) {
-        throw new Error('Sem permiss�o para desativar usu�rios');
+        throw new Error('Sem permissï¿½o para desativar usuï¿½rios');
       }
 
       const { error } = await supabase
@@ -91,28 +91,28 @@ const UsuariosManager = () => {
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ['usuarios'] });
       toast({
-        title: "Usu�rio desativado",
-        description: "O usu�rio foi desativado com sucesso.",
+        title: "Usuï¿½rio desativado",
+        description: "O usuï¿½rio foi desativado com sucesso.",
       });
     },
     onError: (_error) => {
       toast({
         title: "Erro",
-        description: "Erro ao desativar usu�rio.",
+        description: "Erro ao desativar usuï¿½rio.",
         variant: "destructive",
       });
       // Error logged to monitoring
     }
   });
 
-  // Se n�o tem permiss�o para visualizar, mostrar mensagem
+  // Se nï¿½o tem permissï¿½o para visualizar, mostrar mensagem
   if (!canViewUsers) {
     return (
       <div className="p-6">
         <Alert variant="destructive">
           <ShieldAlert className="h-4 w-4" />
           <AlertDescription>
-            Voc� n�o tem permiss�o para acessar esta se��o.
+            Vocï¿½ nï¿½o tem permissï¿½o para acessar esta seï¿½ï¿½o.
             <br />
             <span className="text-sm text-gray-500">Role atual: {userRole}</span>
           </AlertDescription>
@@ -142,7 +142,7 @@ const UsuariosManager = () => {
       administrador: 'Administrador',
       advogado: 'Advogado',
       comercial: 'Comercial',
-      pos_venda: 'P�s-venda',
+      pos_venda: 'Pï¿½s-venda',
       suporte: 'Suporte'
     };
     return labels[role as keyof typeof labels] || role;
@@ -152,20 +152,20 @@ const UsuariosManager = () => {
     <div className="p-6 space-y-6">
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Gerenciamento de Usu�rios</h1>
-          <p className="text-gray-600 mt-1">Gerencie usu�rios e suas permiss�es no sistema</p>
+          <h1 className="text-2xl font-bold text-gray-900">Gerenciamento de Usuï¿½rios</h1>
+          <p className="text-gray-600 mt-1">Gerencie usuï¿½rios e suas permissï¿½es no sistema</p>
         </div>
         {can('usuarios', 'create') && (
           <Dialog open={isNovoUsuarioOpen} onOpenChange={setIsNovoUsuarioOpen}>
             <DialogTrigger asChild>
               <Button className="bg-amber-500 hover:bg-amber-600">
                 <Plus className="h-4 w-4 mr-2" />
-                Novo Usu�rio
+                Novo Usuï¿½rio
               </Button>
             </DialogTrigger>
             <DialogContent className="max-w-2xl">
               <DialogHeader>
-                <DialogTitle>Novo Usu�rio</DialogTitle>
+                <DialogTitle>Novo Usuï¿½rio</DialogTitle>
               </DialogHeader>
               <NovoUsuarioForm onClose={() => setIsNovoUsuarioOpen(false)} />
             </DialogContent>
@@ -190,16 +190,16 @@ const UsuariosManager = () => {
         </CardContent>
       </Card>
 
-      {/* Tabela de Usu�rios */}
+      {/* Tabela de Usuï¿½rios */}
       <Card>
         <CardHeader>
-          <CardTitle>Usu�rios Cadastrados ({filteredUsuarios.length})</CardTitle>
+          <CardTitle>Usuï¿½rios Cadastrados ({filteredUsuarios.length})</CardTitle>
         </CardHeader>
         <CardContent>
           {isLoading ? (
             <div className="text-center py-8">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-amber-500 mx-auto"></div>
-              <p className="mt-2 text-gray-600">Carregando usu�rios...</p>
+              <p className="mt-2 text-gray-600">Carregando usuï¿½rios...</p>
             </div>
           ) : (
             <Table>
@@ -210,8 +210,8 @@ const UsuariosManager = () => {
                   <TableHead>Cargo</TableHead>
                   <TableHead>Roles</TableHead>
                   <TableHead>Status</TableHead>
-                  <TableHead>�ltimo Acesso</TableHead>
-                  <TableHead className="w-[50px]">A��es</TableHead>
+                  <TableHead>ï¿½ltimo Acesso</TableHead>
+                  <TableHead className="w-[50px]">Aï¿½ï¿½es</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -268,7 +268,7 @@ const UsuariosManager = () => {
                             }}
                           >
                             <UserPlus className="h-4 w-4 mr-2" />
-                            Permiss�es
+                            Permissï¿½es
                           </DropdownMenuItem>
                           <DropdownMenuItem
                             onClick={() => deleteMutation.mutate(usuario.id)}
@@ -288,11 +288,11 @@ const UsuariosManager = () => {
         </CardContent>
       </Card>
 
-      {/* Di�logos */}
+      {/* Diï¿½logos */}
       <Dialog open={isEditarUsuarioOpen} onOpenChange={setIsEditarUsuarioOpen}>
         <DialogContent className="max-w-2xl">
           <DialogHeader>
-            <DialogTitle>Editar Usu�rio</DialogTitle>
+            <DialogTitle>Editar Usuï¿½rio</DialogTitle>
           </DialogHeader>
           {selectedUser && (
             <EditarUsuarioForm
@@ -306,7 +306,7 @@ const UsuariosManager = () => {
       <Dialog open={isPermissoesOpen} onOpenChange={setIsPermissoesOpen}>
         <DialogContent className="max-w-4xl">
           <DialogHeader>
-            <DialogTitle>Gerenciar Permiss�es</DialogTitle>
+            <DialogTitle>Gerenciar Permissï¿½es</DialogTitle>
           </DialogHeader>
           {selectedUser && (
             <GerenciarPermissoesForm

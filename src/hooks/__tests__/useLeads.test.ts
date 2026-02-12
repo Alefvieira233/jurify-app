@@ -62,11 +62,10 @@ function createChainableQuery(data: unknown = mockLeadsData, error: unknown = nu
   return new Proxy({}, handler);
 }
 
-vi.mock('@/integrations/supabase/client', () => ({
-  supabase: {
-    from: () => createChainableQuery(),
-  },
-}));
+vi.mock('@/integrations/supabase/client', () => {
+  const client = { from: () => createChainableQuery() };
+  return { supabase: client, supabaseUntyped: client };
+});
 
 // Mock AuthContext
 vi.mock('@/contexts/AuthContext', () => ({

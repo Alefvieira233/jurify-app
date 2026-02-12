@@ -19,7 +19,7 @@ const Layout = () => {
     // Map current path to active section for Sidebar highlighting
     const getActiveSection = (path: string) => {
         if (path === '/' || path === '/dashboard') return 'dashboard';
-        return path.substring(1).split('/')[0];
+        return path.substring(1).split('/')[0] ?? 'dashboard';
     };
 
     const [activeSection, setActiveSection] = useState(getActiveSection(location.pathname));

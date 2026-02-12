@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { supabase } from '@/integrations/supabase/client';
+import { supabaseUntyped as supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import type { RealtimeChannel } from '@supabase/supabase-js';
@@ -42,6 +42,7 @@ interface UseWhatsAppConversationsReturn {
   loading: boolean;
   error: string | null;
   isEmpty: boolean;
+  hasMoreMessages: boolean;
   selectedConversation: WhatsAppConversation | null;
   selectConversation: (id: string) => void;
   sendMessage: (conversationId: string, content: string, sender: 'agent') => Promise<boolean>;
@@ -55,6 +56,7 @@ export const useWhatsAppConversations = (): UseWhatsAppConversationsReturn => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedConversation, setSelectedConversation] = useState<WhatsAppConversation | null>(null);
+  const [hasMoreMessages, setHasMoreMessages] = useState(false);
   const { user, profile } = useAuth();
   const { toast } = useToast();
 
@@ -100,7 +102,9 @@ export const useWhatsAppConversations = (): UseWhatsAppConversationsReturn => {
     }
   }, [user, profile?.tenant_id, toast]);
 
-  // Fetch mensagens de uma conversa específica
+  const MESSAGE_PAGE_SIZE = 50;
+
+  // Fetch mensagens de uma conversa específica (paginado)
   const fetchMessages = useCallback(async (conversationId: string) => {
     try {
       log.debug(`Carregando mensagens da conversa ${conversationId}`);
@@ -109,11 +113,14 @@ export const useWhatsAppConversations = (): UseWhatsAppConversationsReturn => {
         .from('whatsapp_messages')
         .select('*')
         .eq('conversation_id', conversationId)
-        .order('timestamp', { ascending: true });
+        .order('timestamp', { ascending: false })
+        .limit(MESSAGE_PAGE_SIZE);
 
       if (fetchError) throw fetchError;
 
-      setMessages(data || []);
+      // Reverse to show oldest first in UI
+      setMessages((data || []).reverse());
+      setHasMoreMessages(data.length === MESSAGE_PAGE_SIZE);
       log.debug(`${data?.length || 0} mensagens carregadas`);
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : 'Erro ao carregar mensagens';
@@ -131,7 +138,7 @@ export const useWhatsAppConversations = (): UseWhatsAppConversationsReturn => {
     const conversation = conversations.find(c => c.id === id);
     if (conversation) {
       setSelectedConversation(conversation);
-      fetchMessages(id);
+      void fetchMessages(id);
     }
   }, [conversations, fetchMessages]);
 
@@ -139,10 +146,10 @@ export const useWhatsAppConversations = (): UseWhatsAppConversationsReturn => {
   const sendMessage = useCallback(async (
     conversationId: string,
     content: string,
-    sender: 'agent'
+    _sender: 'agent'
   ): Promise<boolean> => {
     try {
-      // 1. Busca informações da conversa para obter o número do lead
+      // 1. Busca informaÃ§Ãµes da conversa para obter o nÃºmero do lead
       const { data: conversation, error: convError } = await supabase
         .from('whatsapp_conversations')
         .select('phone_number, lead_id, tenant_id')
@@ -150,7 +157,7 @@ export const useWhatsAppConversations = (): UseWhatsAppConversationsReturn => {
         .single();
 
       if (convError || !conversation) {
-        throw new Error('Conversa não encontrada');
+        throw new Error('Conversa nÃ£o encontrada');
       }
 
       // 2. Envia mensagem via WhatsApp API (Edge Function)
@@ -179,8 +186,8 @@ export const useWhatsAppConversations = (): UseWhatsAppConversationsReturn => {
 
       log.info('Mensagem enviada via WhatsApp', { messageId: sendResult.messageId });
 
-      // 3. A Edge Function já salva a mensagem no banco, mas vamos garantir que a UI atualize
-      // Atualizar última mensagem da conversa (caso a Edge Function não tenha feito)
+      // 3. A Edge Function jÃ¡ salva a mensagem no banco, mas vamos garantir que a UI atualize
+      // Atualizar Ãºltima mensagem da conversa (caso a Edge Function nÃ£o tenha feito)
       await supabase
         .from('whatsapp_conversations')
         .update({
@@ -231,16 +238,16 @@ export const useWhatsAppConversations = (): UseWhatsAppConversationsReturn => {
       );
     } catch (err: unknown) {
       log.error('Erro ao marcar como lido', err);
-      // ✅ CORREÇÃO: Adicionar toast de erro
+      // âœ… CORREÃ‡ÃƒO: Adicionar toast de erro
       toast({
         title: 'Erro',
-        description: 'Não foi possível marcar mensagens como lidas.',
+        description: 'NÃ£o foi possÃ­vel marcar mensagens como lidas.',
         variant: 'destructive',
       });
     }
   }, [toast]);
 
-  // ✅ CORREÇÃO: Realtime subscriptions com cleanup adequado e filtros
+  // âœ… CORREÃ‡ÃƒO: Realtime subscriptions com cleanup adequado e filtros
   useEffect(() => {
     if (!user) return undefined;
 
@@ -248,7 +255,7 @@ export const useWhatsAppConversations = (): UseWhatsAppConversationsReturn => {
     let messagesChannel: RealtimeChannel | null = null;
 
     const setupRealtime = async () => {
-      // ✅ CORREÇÃO: Limpar channels anteriores para evitar memory leak
+      // âœ… CORREÃ‡ÃƒO: Limpar channels anteriores para evitar memory leak
       if (conversationsChannel) {
         await conversationsChannel.unsubscribe();
         conversationsChannel = null;
@@ -258,7 +265,7 @@ export const useWhatsAppConversations = (): UseWhatsAppConversationsReturn => {
         messagesChannel = null;
       }
 
-      // Subscribe a mudanças em conversas
+      // Subscribe a mudanÃ§as em conversas
       conversationsChannel = supabase
         .channel('whatsapp_conversations_changes')
         .on(
@@ -269,7 +276,7 @@ export const useWhatsAppConversations = (): UseWhatsAppConversationsReturn => {
             table: 'whatsapp_conversations',
           },
           (payload) => {
-            log.debug('Mudança em conversa', { event: payload.eventType });
+            log.debug('MudanÃ§a em conversa', { event: payload.eventType });
 
             if (payload.eventType === 'INSERT') {
               setConversations(prev => [payload.new as WhatsAppConversation, ...prev]);
@@ -288,8 +295,8 @@ export const useWhatsAppConversations = (): UseWhatsAppConversationsReturn => {
         )
         .subscribe();
 
-      // ✅ CORREÇÃO: Subscribe a mudanças em mensagens COM FILTRO
-      // Só recebe mensagens da conversa selecionada
+      // âœ… CORREÃ‡ÃƒO: Subscribe a mudanÃ§as em mensagens COM FILTRO
+      // SÃ³ recebe mensagens da conversa selecionada
       if (selectedConversation) {
         messagesChannel = supabase
           .channel(`whatsapp_messages_${selectedConversation.id}`)
@@ -299,7 +306,7 @@ export const useWhatsAppConversations = (): UseWhatsAppConversationsReturn => {
               event: '*',
               schema: 'public',
               table: 'whatsapp_messages',
-              filter: `conversation_id=eq.${selectedConversation.id}`, // ✅ FILTRO adicionado
+              filter: `conversation_id=eq.${selectedConversation.id}`, // âœ… FILTRO adicionado
             },
             (payload) => {
               log.debug('Nova mensagem recebida');
@@ -314,28 +321,29 @@ export const useWhatsAppConversations = (): UseWhatsAppConversationsReturn => {
       }
     };
 
-    setupRealtime();
+    void setupRealtime();
 
     return () => {
       if (conversationsChannel) {
-        supabase.removeChannel(conversationsChannel);
+        void supabase.removeChannel(conversationsChannel);
       }
       if (messagesChannel) {
-        supabase.removeChannel(messagesChannel);
+        void supabase.removeChannel(messagesChannel);
       }
     };
   }, [user, selectedConversation]);
 
   // Initial load
   useEffect(() => {
-    fetchConversations();
+    void fetchConversations();
   }, [fetchConversations]);
 
-  // ✅ CORREÇÃO: Auto-select first conversation (evitar race condition)
+  // âœ… CORREÃ‡ÃƒO: Auto-select first conversation (evitar race condition)
   const hasAutoSelectedRef = useRef(false);
   useEffect(() => {
     if (conversations.length > 0 && !selectedConversation && !hasAutoSelectedRef.current) {
-      selectConversation(conversations[0].id);
+      const first = conversations[0];
+      if (first) selectConversation(first.id);
       hasAutoSelectedRef.current = true;
     }
   }, [conversations, selectedConversation, selectConversation]);
@@ -348,6 +356,7 @@ export const useWhatsAppConversations = (): UseWhatsAppConversationsReturn => {
     loading,
     error,
     isEmpty,
+    hasMoreMessages,
     selectedConversation,
     selectConversation,
     sendMessage,

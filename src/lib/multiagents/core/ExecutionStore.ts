@@ -7,11 +7,10 @@
  * @version 1.0.0
  */
 
-import { supabase } from '@/integrations/supabase/client';
+import { supabaseUntyped as supabase } from '@/integrations/supabase/client';
 import type { ExecutionStatus, StageResult } from '../types';
 
 const COST_PER_1K_PROMPT_TOKENS = 0.01;
-const COST_PER_1K_COMPLETION_TOKENS = 0.03;
 
 export interface ExecutionRecord {
   id: string;
@@ -74,7 +73,7 @@ export class ExecutionStore {
       }
 
       return data?.id ?? null;
-    } catch (error) {
+    } catch (_error) {
       // Error handled silently
       return null;
     }
@@ -107,7 +106,7 @@ export class ExecutionStore {
       if (error) {
         // Error handled silently
       }
-    } catch (error) {
+    } catch (_error) {
       // Error handled silently
     }
   }
@@ -154,7 +153,7 @@ export class ExecutionStore {
       if (error) {
         // Error handled silently
       }
-    } catch (error) {
+    } catch (_error) {
       // Error handled silently
     }
   }
@@ -196,7 +195,7 @@ export class ExecutionStore {
       if (error) {
         // Error handled silently
       }
-    } catch (error) {
+    } catch (_error) {
       // Error handled silently
     }
   }
@@ -221,7 +220,7 @@ export class ExecutionStore {
       if (error) {
         // Error handled silently
       }
-    } catch (error) {
+    } catch (_error) {
       // Error handled silently
     }
   }
@@ -242,7 +241,7 @@ export class ExecutionStore {
       }
 
       return data as ExecutionRecord;
-    } catch (error) {
+    } catch (_error) {
       // Error handled silently
       return null;
     }

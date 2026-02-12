@@ -27,14 +27,14 @@ const ProtectedRoute = ({ children, requiredRoles }: ProtectedRouteProps) => {
     const userRole = (profile?.role as UserRole) || 'viewer';
     if (!requiredRoles.includes(userRole)) {
       return (
-        <div className="flex items-center justify-center min-h-screen">
+        <div className="flex items-center justify-center min-h-screen" role="alert" aria-live="assertive">
           <div className="text-center p-8 max-w-md">
             <h2 className="text-2xl font-bold text-destructive mb-2">Acesso Negado</h2>
             <p className="text-muted-foreground mb-4">
               Voce nao tem permissao para acessar esta pagina.
             </p>
             <p className="text-sm text-muted-foreground">
-              Nivel necessario: {requiredRoles.join(', ')}
+              Acesso nao autorizado. Contate o administrador.
             </p>
           </div>
         </div>

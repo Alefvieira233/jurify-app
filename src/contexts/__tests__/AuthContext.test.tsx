@@ -15,8 +15,8 @@ import { supabase } from '@/integrations/supabase/client';
 import type { User, Session } from '@supabase/supabase-js';
 
 // Mock do Supabase
-vi.mock('@/integrations/supabase/client', () => ({
-  supabase: {
+vi.mock('@/integrations/supabase/client', () => {
+  const client = {
     auth: {
       getSession: vi.fn(),
       signInWithPassword: vi.fn(),
@@ -37,8 +37,9 @@ vi.mock('@/integrations/supabase/client', () => ({
       delete: vi.fn(),
     })),
     rpc: vi.fn(),
-  },
-}));
+  };
+  return { supabase: client, supabaseUntyped: client };
+});
 
 // Mock do toast
 vi.mock('@/hooks/use-toast', () => ({

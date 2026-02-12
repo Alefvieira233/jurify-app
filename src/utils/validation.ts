@@ -6,10 +6,19 @@
  * @version 2.0.0
  */
 
+ 
 import DOMPurify from 'isomorphic-dompurify';
 
 // Helper function for safe array access
 const safeCharAt = (str: string, index: number): string => str.charAt(index) || '0';
+
+// Helper to safely convert unknown to string (prevents [object Object])
+const toStr = (value: unknown): string => {
+  if (value == null) return '';
+  if (typeof value === 'string') return value;
+  if (typeof value === 'number' || typeof value === 'boolean') return String(value);
+  return JSON.stringify(value);
+};
 
 export interface ValidationResult {
   isValid: boolean;
@@ -191,14 +200,14 @@ class ValidationService {
     if (!data.nome) {
       errors.push('Nome é obrigatório');
     } else {
-      sanitizedData.nome = this.sanitizeText(String(data.nome));
+      sanitizedData.nome = this.sanitizeText(toStr(data.nome));
       if (String(sanitizedData.nome).length < 2) {
         errors.push('Nome deve ter pelo menos 2 caracteres');
       }
     }
 
     // Email
-    const emailValidation = this.validateEmail(String(data.email || ''));
+    const emailValidation = this.validateEmail(toStr(data.email || ''));
     if (!emailValidation.isValid) {
       errors.push(...emailValidation.errors);
     } else {
@@ -207,7 +216,7 @@ class ValidationService {
 
     // Telefone
     if (data.telefone) {
-      const phoneValidation = this.validatePhone(String(data.telefone));
+      const phoneValidation = this.validatePhone(toStr(data.telefone));
       if (!phoneValidation.isValid) {
         errors.push(...phoneValidation.errors);
       } else {
@@ -219,12 +228,12 @@ class ValidationService {
     if (!data.area_juridica) {
       errors.push('Área jurídica é obrigatória');
     } else {
-      sanitizedData.area_juridica = this.sanitizeText(String(data.area_juridica));
+      sanitizedData.area_juridica = this.sanitizeText(toStr(data.area_juridica));
     }
 
     // Descrição
     if (data.descricao) {
-      sanitizedData.descricao = this.sanitizeText(String(data.descricao));
+      sanitizedData.descricao = this.sanitizeText(toStr(data.descricao));
     }
 
     return {
@@ -243,12 +252,12 @@ class ValidationService {
     if (!data.titulo) {
       errors.push('Título do contrato é obrigatório');
     } else {
-      sanitizedData.titulo = this.sanitizeText(String(data.titulo));
+      sanitizedData.titulo = this.sanitizeText(toStr(data.titulo));
     }
 
     // Valor
     if (data.valor !== undefined) {
-      const valor = parseFloat(String(data.valor));
+      const valor = parseFloat(toStr(data.valor));
       if (isNaN(valor) || valor < 0) {
         errors.push('Valor deve ser um número positivo');
       } else {
@@ -260,12 +269,12 @@ class ValidationService {
     if (!data.cliente_nome) {
       errors.push('Nome do cliente é obrigatório');
     } else {
-      sanitizedData.cliente_nome = this.sanitizeText(String(data.cliente_nome));
+      sanitizedData.cliente_nome = this.sanitizeText(toStr(data.cliente_nome));
     }
 
     // Email do cliente
     if (data.cliente_email) {
-      const emailValidation = this.validateEmail(String(data.cliente_email));
+      const emailValidation = this.validateEmail(toStr(data.cliente_email));
       if (!emailValidation.isValid) {
         errors.push(...emailValidation.errors.map(e => `Cliente: ${e}`));
       } else {

@@ -199,7 +199,7 @@ export const TestRunner: React.FC = () => {
                           <div key={key} className="flex justify-between">
                             <span className="text-[hsl(var(--muted-foreground))]">{key}:</span>
                             <span className="font-medium">
-                              {typeof value === 'object' ? JSON.stringify(value) : String(value)}
+                              {typeof value === 'object' ? JSON.stringify(value) : typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean' ? String(value) : ''}
                             </span>
                           </div>
                         ))}

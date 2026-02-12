@@ -5,7 +5,7 @@ import { multiAgentSystem } from '@/lib/multiagents';
 export const useAgentTest = (tenantId: string | null) => {
   const { toast } = useToast();
 
-  const testAgent = useCallback(async (agentId: string, testMessage: string): Promise<string> => {
+  const testAgent = useCallback(async (_agentId: string, testMessage: string): Promise<string> => {
     try {
       const testLeadId = `test_${Date.now()}`;
       

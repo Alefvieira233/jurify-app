@@ -1,6 +1,13 @@
 import { BaseAgent } from '../core/BaseAgent';
 import { AgentMessage, MessageType, Priority, AGENT_CONFIG } from '../types';
 
+/**
+ * 🎯 AGENTE QUALIFICADOR
+ *
+ * Especialista em qualificação de leads usando metodologia BANT.
+ * Avalia Budget, Authority, Need e Timeline para determinar
+ * viabilidade do caso jurídico.
+ */
 export class QualifierAgent extends BaseAgent {
   constructor() {
     super(AGENT_CONFIG.NAMES.QUALIFIER, 'Qualificacao de Leads', AGENT_CONFIG.IDS.QUALIFIER);
@@ -78,7 +85,7 @@ Qualificar leads para determinar se são casos viáveis para o escritório, usan
       );
 
       // Usa o safeParseJSON do BaseAgent para parsing robusto
-      let parsedAnalysis: Record<string, unknown> = this.safeParseJSON(analysis) || { raw_analysis: analysis };
+      const parsedAnalysis: Record<string, unknown> = this.safeParseJSON(analysis) || { raw_analysis: analysis };
       
       console.log(`✅ [Qualifier] Análise concluída:`, Object.keys(parsedAnalysis));
 

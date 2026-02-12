@@ -1,5 +1,6 @@
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react-swc";
+import { sentryVitePlugin } from "@sentry/vite-plugin";
 import path from "path";
 
 export default defineConfig(({ mode }) => {
@@ -7,8 +8,13 @@ export default defineConfig(({ mode }) => {
 
   return {
     plugins: [
-      react()
-    ],
+      react(),
+      isProd && sentryVitePlugin({
+        org: process.env.SENTRY_ORG,
+        project: process.env.SENTRY_PROJECT,
+        authToken: process.env.SENTRY_AUTH_TOKEN,
+      }),
+    ].filter(Boolean),
 
     resolve: {
       alias: {
@@ -23,7 +29,7 @@ export default defineConfig(({ mode }) => {
     build: {
       target: 'es2020',
       outDir: 'dist',
-      sourcemap: false,
+      sourcemap: 'hidden',
       minify: 'esbuild',
       rollupOptions: {
         output: {

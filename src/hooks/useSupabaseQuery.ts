@@ -1,8 +1,21 @@
-
+/**
+ * @module useSupabaseQuery
+ * @description Hook genérico para queries Supabase com cache, stale-time,
+ * abort controller, refetch automático e deduplicação. Base para todos
+ * os hooks de dados do sistema (useAgentesIA, useAgendamentos, etc.).
+ *
+ * @template T - Tipo dos registros retornados
+ * @param queryKey - Identificador único para cache e logs
+ * @param queryFn - Função que executa a query Supabase
+ * @param options - Opções de cache e comportamento
+ *
+ * @example
+ * ```tsx
+ * const { data, loading, error, refetch } = useSupabaseQuery<Lead>('leads', fetchLeads, { staleTime: 15000 });
+ * ```
+ */
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
-import { useToast } from '@/hooks/use-toast';
 
 interface QueryOptions {
   enabled?: boolean;
@@ -12,13 +25,12 @@ interface QueryOptions {
 
 export const useSupabaseQuery = <T>(
   queryKey: string,
-  queryFn: () => Promise<{ data: T[] | null; error: { message?: string; name?: string } | null | unknown }>,
+  queryFn: () => Promise<{ data: T[] | null; error: unknown }>,
   options: QueryOptions = {}
 ) => {
-  const { enabled = true, refetchOnMount = true, staleTime = 30000 } = options;
-  
+  const { enabled = true, refetchOnMount: _refetchOnMount = true, staleTime = 30000 } = options;
+
   const { user } = useAuth();
-  const { toast } = useToast();
   
   const [data, setData] = useState<T[]>([]);
   const [loading, setLoading] = useState(true); // Start with true
@@ -70,7 +82,7 @@ export const useSupabaseQuery = <T>(
 
       if (result.error) {
         console.error(`❌ [${queryKey}] Erro na query:`, result.error);
-        throw result.error;
+        throw result.error instanceof Error ? result.error : new Error(typeof result.error === 'object' && result.error !== null && 'message' in result.error ? String((result.error as Record<string, unknown>).message) : 'Unknown query error');
       }
 
       const resultData = result.data || [];
@@ -96,6 +108,7 @@ export const useSupabaseQuery = <T>(
         setLoading(false);
       }
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user, enabled, queryKey, staleTime, data.length, lastFetch]);
 
   useEffect(() => {
@@ -103,20 +116,20 @@ export const useSupabaseQuery = <T>(
     
     // Always execute when user changes or on mount
     if (user && enabled) {
-      executeQuery();
+      void executeQuery();
     } else {
       setLoading(false);
     }
 
     const handleVisibility = () => {
       if (!document.hidden && user && enabled) {
-        executeQuery(true);
+        void executeQuery(true);
       }
     };
 
     const handleFocus = () => {
       if (user && enabled) {
-        executeQuery(true);
+        void executeQuery(true);
       }
     };
 
@@ -131,11 +144,12 @@ export const useSupabaseQuery = <T>(
       document.removeEventListener('visibilitychange', handleVisibility);
       window.removeEventListener('focus', handleFocus);
     };
-  }, [user, enabled, queryKey]); // Add queryKey to dependencies
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user, enabled, queryKey]);
 
   const refetch = useCallback(() => {
     hasExecutedRef.current = false;
-    executeQuery(true);
+    void executeQuery(true);
   }, [executeQuery]);
 
   const mutate = useCallback((newData: T[] | ((prev: T[]) => T[])) => {

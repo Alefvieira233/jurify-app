@@ -4,7 +4,11 @@ on:
   push:
     branches: [master, main, develop]
     paths:
-      - 'advo-ai-hub-main (1)/advo-ai-hub-main/**'
+      - 'src/**'
+      - 'package.json'
+      - 'tsconfig.json'
+      - 'eslint.config.js'
+      - 'vitest.config.ts'
       - '.github/workflows/**'
   pull_request:
     branches: [master, main, develop]
@@ -16,7 +20,7 @@ concurrency:
 
 env:
   NODE_VERSION: '20'
-  WORKING_DIR: 'advo-ai-hub-main (1)/advo-ai-hub-main'
+  WORKING_DIR: '.'
 
 jobs:
   # ==========================================
@@ -42,10 +46,9 @@ jobs:
         working-directory: ${{ env.WORKING_DIR }}
         run: npm ci --prefer-offline --no-audit
 
-      - name: 🔍 Run ESLint
+      - name: 🔍 Run ESLint (0 errors, 0 warnings)
         working-directory: ${{ env.WORKING_DIR }}
-        run: npm run lint
-        continue-on-error: false
+        run: npx eslint . --max-warnings 0
 
       - name: 🔍 Run TypeScript type check
         working-directory: ${{ env.WORKING_DIR }}
@@ -86,13 +89,13 @@ jobs:
         run: npm run test:coverage || echo "Coverage não disponível"
         continue-on-error: true
 
-      - name: 📤 Upload coverage to Codecov (opcional)
+      - name: 📤 Upload coverage to Codecov
         if: always()
         uses: codecov/codecov-action@v4
         with:
           directory: ${{ env.WORKING_DIR }}/coverage
-          fail_ci_if_error: false
-        continue-on-error: true
+          fail_ci_if_error: true
+        continue-on-error: false
 
   # ==========================================
   # JOB 3: BUILD
@@ -162,13 +165,10 @@ jobs:
           base: ${{ github.event.repository.default_branch }}
           head: HEAD
           extra_args: --only-verified
-        continue-on-error: true
 
       - name: 🛡️ Run npm audit
         working-directory: ${{ env.WORKING_DIR }}
-        run: |
-          npm audit --audit-level=high || echo "⚠️ Vulnerabilidades encontradas"
-        continue-on-error: true
+        run: npm audit --audit-level=high
 
       - name: 📋 Check for exposed secrets in .env files
         run: |
@@ -211,8 +211,7 @@ jobs:
 
       - name: 🎭 Run E2E tests
         working-directory: ${{ env.WORKING_DIR }}
-        run: npm run test:e2e || echo "E2E tests não configurados ainda"
-        continue-on-error: true
+        run: npm run test:e2e
         env:
           CI: true
 
@@ -223,7 +222,6 @@ jobs:
           name: playwright-report
           path: ${{ env.WORKING_DIR }}/playwright-report
           retention-days: 7
-        continue-on-error: true
 
   # ==========================================
   # JOB 6: DEPLOYMENT STATUS
@@ -231,7 +229,7 @@ jobs:
   deployment-ready:
     name: ✅ Deployment Ready
     runs-on: ubuntu-latest
-    needs: [lint-and-typecheck, test-unit, build, security-scan]
+    needs: [lint-and-typecheck, test-unit, build, security-scan, test-e2e]
     if: success()
 
     steps:

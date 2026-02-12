@@ -1,5 +1,5 @@
 /**
- * 💳 JURIFY SUBSCRIPTION MANAGER
+ * ðŸ’³ JURIFY SUBSCRIPTION MANAGER
  * 
  * Enterprise component for managing subscriptions, usage limits, and billing.
  * Integrates with Stripe for payment handling.
@@ -13,7 +13,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { useAuth } from '@/contexts/AuthContext';
-import { supabase } from '@/integrations/supabase/client';
+import { supabaseUntyped as supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import {
     CreditCard,
@@ -42,13 +42,15 @@ interface UsageLimits {
     storage_mb: { used: number; limit: number };
 }
 
+const FREE_LIMITS: UsageLimits = {
+    ai_calls: { used: 0, limit: 50 },
+    leads: { used: 0, limit: 100 },
+    users: { used: 0, limit: 2 },
+    storage_mb: { used: 0, limit: 100 },
+};
+
 const PLAN_LIMITS: Record<string, UsageLimits> = {
-    free: {
-        ai_calls: { used: 0, limit: 50 },
-        leads: { used: 0, limit: 100 },
-        users: { used: 0, limit: 2 },
-        storage_mb: { used: 0, limit: 100 },
-    },
+    free: FREE_LIMITS,
     pro: {
         ai_calls: { used: 0, limit: 500 },
         leads: { used: 0, limit: 1000 },
@@ -117,11 +119,11 @@ export const SubscriptionManager = () => {
                     .eq('tenant_id', tenantId),
             ]);
 
-            const planLimits = PLAN_LIMITS[currentPlan] ?? PLAN_LIMITS.free;
+            const planLimits = PLAN_LIMITS[currentPlan] ?? FREE_LIMITS;
             setUsage({
-                ai_calls: { ...planLimits.ai_calls, used: aiCalls || 0 },
-                leads: { ...planLimits.leads, used: leadsCount || 0 },
-                users: { ...planLimits.users, used: usersCount || 0 },
+                ai_calls: { ...planLimits.ai_calls, used: aiCalls ?? 0 },
+                leads: { ...planLimits.leads, used: leadsCount ?? 0 },
+                users: { ...planLimits.users, used: usersCount ?? 0 },
                 storage_mb: { ...planLimits.storage_mb, used: 50 }, // Placeholder
             });
 
@@ -152,7 +154,7 @@ export const SubscriptionManager = () => {
             console.error('Upgrade error:', error);
             toast({
                 title: 'Erro',
-                description: 'Não foi possível iniciar o upgrade. Tente novamente.',
+                description: 'NÃ£o foi possÃ­vel iniciar o upgrade. Tente novamente.',
                 variant: 'destructive',
             });
         } finally {
@@ -212,11 +214,11 @@ export const SubscriptionManager = () => {
                             </span>
                             {subscription.current_period_end && (
                                 <span>
-                                    Próxima cobrança: {new Date(subscription.current_period_end).toLocaleDateString('pt-BR')}
+                                    PrÃ³xima cobranÃ§a: {new Date(subscription.current_period_end).toLocaleDateString('pt-BR')}
                                 </span>
                             )}
                             {subscription.cancel_at_period_end && (
-                                <Badge variant="destructive">Cancela ao fim do período</Badge>
+                                <Badge variant="destructive">Cancela ao fim do perÃ­odo</Badge>
                             )}
                         </div>
                     )}
@@ -271,7 +273,7 @@ export const SubscriptionManager = () => {
                             <CardHeader className="pb-2">
                                 <CardTitle className="text-sm flex items-center gap-2">
                                     <Users className="h-4 w-4 text-green-500" />
-                                    Usuários
+                                    UsuÃ¡rios
                                 </CardTitle>
                             </CardHeader>
                             <CardContent>
@@ -319,7 +321,7 @@ export const SubscriptionManager = () => {
                             Upgrade seu Plano
                         </CardTitle>
                         <CardDescription>
-                            Desbloqueie mais recursos e escale seu escritório
+                            Desbloqueie mais recursos e escale seu escritÃ³rio
                         </CardDescription>
                     </CardHeader>
                     <CardContent>
@@ -328,14 +330,14 @@ export const SubscriptionManager = () => {
                                 <Card className="border-2 hover:border-blue-500 transition-colors">
                                     <CardHeader>
                                         <CardTitle className="text-lg">Pro</CardTitle>
-                                        <CardDescription>R$ 297/mês</CardDescription>
+                                        <CardDescription>R$ 297/mÃªs</CardDescription>
                                     </CardHeader>
                                     <CardContent>
                                         <ul className="text-sm space-y-1 mb-4">
-                                            <li>✅ 500 chamadas IA/mês</li>
-                                            <li>✅ 1.000 leads</li>
-                                            <li>✅ 10 usuários</li>
-                                            <li>✅ Suporte prioritário</li>
+                                            <li>âœ… 500 chamadas IA/mÃªs</li>
+                                            <li>âœ… 1.000 leads</li>
+                                            <li>âœ… 10 usuÃ¡rios</li>
+                                            <li>âœ… Suporte prioritÃ¡rio</li>
                                         </ul>
                                         <Button
                                             onClick={() => { void handleUpgrade('pro'); }}
@@ -358,11 +360,11 @@ export const SubscriptionManager = () => {
                                 </CardHeader>
                                 <CardContent>
                                     <ul className="text-sm space-y-1 mb-4">
-                                        <li>✅ Chamadas IA ilimitadas</li>
-                                        <li>✅ Leads ilimitados</li>
-                                        <li>✅ Usuários ilimitados</li>
-                                        <li>✅ SLA garantido</li>
-                                        <li>✅ Suporte dedicado</li>
+                                        <li>âœ… Chamadas IA ilimitadas</li>
+                                        <li>âœ… Leads ilimitados</li>
+                                        <li>âœ… UsuÃ¡rios ilimitados</li>
+                                        <li>âœ… SLA garantido</li>
+                                        <li>âœ… Suporte dedicado</li>
                                     </ul>
                                     <Button
                                         onClick={() => { void handleUpgrade('enterprise'); }}
@@ -386,9 +388,9 @@ export const SubscriptionManager = () => {
                         <CardContent className="flex items-center gap-4 pt-6">
                             <AlertTriangle className="h-8 w-8 text-yellow-600" />
                             <div>
-                                <p className="font-medium text-yellow-800">Limite de uso próximo</p>
+                                <p className="font-medium text-yellow-800">Limite de uso prÃ³ximo</p>
                                 <p className="text-sm text-yellow-700">
-                                    Você está se aproximando do limite do seu plano. Considere fazer upgrade para continuar usando sem interrupções.
+                                    VocÃª estÃ¡ se aproximando do limite do seu plano. Considere fazer upgrade para continuar usando sem interrupÃ§Ãµes.
                                 </p>
                             </div>
                         </CardContent>

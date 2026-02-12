@@ -236,11 +236,11 @@ export interface ExecutionResult {
   tenantId: string;
   status: ExecutionStatus;
   stages: StageResult[];
-  qualificationResult: unknown | null;
-  legalValidation: unknown | null;
-  proposal: unknown | null;
+  qualificationResult: unknown;
+  legalValidation: unknown;
+  proposal: unknown;
   formattedMessages: string | null;
-  finalResult: unknown | null;
+  finalResult: unknown;
   totalTokens: number;
   estimatedCost: number;
   startedAt: Date;

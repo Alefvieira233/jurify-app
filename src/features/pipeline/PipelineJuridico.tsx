@@ -1,5 +1,5 @@
 
-import React, { useState, useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import { Search, Filter, Plus, RefreshCw, Layers, User } from 'lucide-react';
 import { DragDropContext, DropResult } from '@hello-pangea/dnd';
 import { useToast } from '@/hooks/use-toast';

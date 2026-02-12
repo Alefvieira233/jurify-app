@@ -2,7 +2,7 @@
  * WhatsApp Setup - Direct QR Code connection via Evolution API
  */
 
-import React, { lazy, Suspense } from 'react';
+import { lazy, Suspense } from 'react';
 import { Loader2 } from 'lucide-react';
 
 const WhatsAppEvolutionSetup = lazy(() => import('./WhatsAppEvolutionSetup'));

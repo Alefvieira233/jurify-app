@@ -1,3 +1,14 @@
+/**
+ * @module useNotifications
+ * @description Hook para gerenciamento de notificações do sistema.
+ * Carrega, cria, marca como lida e conta notificações não lidas
+ * por tenant, com suporte a tipos (info, alerta, sucesso, erro).
+ *
+ * @example
+ * ```tsx
+ * const { notifications, unreadCount, markAsRead, createNotification } = useNotifications();
+ * ```
+ */
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -154,7 +165,8 @@ export const useNotifications = () => {
   };
 
   useEffect(() => {
-    fetchNotifications();
+    void fetchNotifications();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.id, tenantId]);
 
   return {

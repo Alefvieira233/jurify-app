@@ -51,7 +51,7 @@ export const useZapSignIntegration = (): UseZapSignIntegrationReturn => {
   const gerarLinkAssinatura = async (contratoId: string, contractData: ContractData): Promise<boolean> => {
     setIsLoading(true);
     try {
-      const result = await retryWithBackoff(async () => {
+      await retryWithBackoff(async () => {
         const { data, error } = await supabase.functions.invoke('zapsign-integration', {
           body: {
             action: 'create_document',
@@ -73,8 +73,7 @@ export const useZapSignIntegration = (): UseZapSignIntegrationReturn => {
       return true;
     } catch (error) {
       console.error('Erro ao gerar link ZapSign apÃ³s 3 tentativas:', error);
-      const message = error instanceof Error ? error.message : String(error);
-      toast.error("Erro ao gerar link: ");
+      toast.error("Erro ao gerar link");
       return false;
     } finally {
       setIsLoading(false);
@@ -97,8 +96,7 @@ export const useZapSignIntegration = (): UseZapSignIntegrationReturn => {
       }
     } catch (error) {
       console.error('Erro ao verificar status:', error);
-      const message = error instanceof Error ? error.message : String(error);
-      toast.error("Erro ao verificar status: ");
+      toast.error("Erro ao verificar status");
     }
   };
 
@@ -110,7 +108,7 @@ export const useZapSignIntegration = (): UseZapSignIntegrationReturn => {
   ): Promise<boolean> => {
     setIsLoading(true);
     try {
-      const result = await retryWithBackoff(async () => {
+      await retryWithBackoff(async () => {
         const messageText = `Ola ${nomeCliente}, segue o link para assinatura do contrato ${contratoId}: ${linkAssinatura}`;
         const { data, error } = await supabase.functions.invoke('send-whatsapp-message', {
           body: {
@@ -132,8 +130,7 @@ export const useZapSignIntegration = (): UseZapSignIntegrationReturn => {
       return true;
     } catch (error) {
       console.error('Erro ao enviar via WhatsApp apÃ³s 3 tentativas:', error);
-      const message = error instanceof Error ? error.message : String(error);
-      toast.error("Erro ao enviar: ");
+      toast.error("Erro ao enviar");
       return false;
     } finally {
       setIsLoading(false);

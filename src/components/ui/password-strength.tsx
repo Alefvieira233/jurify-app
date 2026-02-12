@@ -1,16 +1,44 @@
 import React, { useState, useEffect } from 'react';
 import { CheckCircle2, XCircle } from 'lucide-react';
 
+export interface PasswordRequirement {
+    met: boolean;
+    text: string;
+    icon: React.ComponentType<React.SVGProps<SVGSVGElement>>;
+}
+
+export interface PasswordValidationResult {
+    score: number;
+    requirements: PasswordRequirement[];
+    isStrong: boolean;
+}
+
+/** Pure validation function — reusable outside React components */
+export function validatePasswordStrength(password: string): PasswordValidationResult {
+    const hasUpperCase = /[A-Z]/.test(password);
+    const hasLowerCase = /[a-z]/.test(password);
+    const hasNumbers = /\d/.test(password);
+    const hasSpecialChar = /[!@#$%^&*(),.?":{}|<>]/.test(password);
+    const hasMinLength = password.length >= 8;
+
+    const requirements: PasswordRequirement[] = [
+        { met: hasMinLength, text: 'Mínimo 8 caracteres', icon: hasMinLength ? CheckCircle2 : XCircle },
+        { met: hasUpperCase, text: 'Letra maiúscula', icon: hasUpperCase ? CheckCircle2 : XCircle },
+        { met: hasLowerCase, text: 'Letra minúscula', icon: hasLowerCase ? CheckCircle2 : XCircle },
+        { met: hasNumbers, text: 'Número', icon: hasNumbers ? CheckCircle2 : XCircle },
+        { met: hasSpecialChar, text: 'Caractere especial', icon: hasSpecialChar ? CheckCircle2 : XCircle },
+    ];
+
+    const score = requirements.filter(req => req.met).length;
+    return { score, requirements, isStrong: score >= 4 };
+}
+
 interface PasswordStrengthProps {
     password: string;
     showRequirements?: boolean;
 }
 
-type Requirement = {
-    met: boolean;
-    text: string;
-    icon: React.ComponentType<React.SVGProps<SVGSVGElement>>;
-};
+type Requirement = PasswordRequirement;
 
 export const PasswordStrength: React.FC<PasswordStrengthProps> = ({
     password,
@@ -22,22 +50,7 @@ export const PasswordStrength: React.FC<PasswordStrengthProps> = ({
     }>({ score: 0, requirements: [] });
 
     useEffect(() => {
-        const hasUpperCase = /[A-Z]/.test(password);
-        const hasLowerCase = /[a-z]/.test(password);
-        const hasNumbers = /\d/.test(password);
-        const hasSpecialChar = /[!@#$%^&*(),.?":{}|<>]/.test(password);
-        const hasMinLength = password.length >= 6;
-
-        const requirements = [
-            { met: hasMinLength, text: 'Mínimo 6 caracteres', icon: hasMinLength ? CheckCircle2 : XCircle },
-            { met: hasUpperCase, text: 'Letra maiúscula', icon: hasUpperCase ? CheckCircle2 : XCircle },
-            { met: hasLowerCase, text: 'Letra minúscula', icon: hasLowerCase ? CheckCircle2 : XCircle },
-            { met: hasNumbers, text: 'Número', icon: hasNumbers ? CheckCircle2 : XCircle },
-            { met: hasSpecialChar, text: 'Caractere especial', icon: hasSpecialChar ? CheckCircle2 : XCircle },
-        ];
-
-        const score = requirements.filter(req => req.met).length;
-        setStrength({ score, requirements });
+        setStrength(validatePasswordStrength(password));
     }, [password]);
 
     if (!password || !showRequirements) return null;

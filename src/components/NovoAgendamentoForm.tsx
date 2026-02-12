@@ -1,6 +1,6 @@
 import React from 'react';
 import { useForm } from 'react-hook-form';
-import { supabase } from '@/integrations/supabase/client';
+import { supabaseUntyped as supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
@@ -90,18 +90,18 @@ export const NovoAgendamentoForm = ({ onClose }: NovoAgendamentoFormProps) => {
 
   const onSubmit = (data: NovoAgendamentoFormData) => {
     if (!tenantId) {
-      toast.error('Tenant não encontrado. Refaça o login.');
+      toast.error('Tenant nÃ£o encontrado. RefaÃ§a o login.');
       return;
     }
 
     if (!selectedDate || !selectedTime) {
-      toast.error('Por favor, selecione data e horário');
+      toast.error('Por favor, selecione data e horÃ¡rio');
       return;
     }
 
     const [hour, minute] = selectedTime.split(':');
     const dateTime = new Date(selectedDate);
-    dateTime.setHours(parseInt(hour, 10), parseInt(minute, 10), 0, 0);
+    dateTime.setHours(parseInt(hour ?? '0', 10), parseInt(minute ?? '0', 10), 0, 0);
 
     const agendamentoData = {
       ...data,
@@ -114,11 +114,11 @@ export const NovoAgendamentoForm = ({ onClose }: NovoAgendamentoFormProps) => {
   const areasJuridicas = [
     'Direito Civil',
     'Direito Trabalhista',
-    'Direito de Família',
-    'Direito Previdenciário',
+    'Direito de FamÃ­lia',
+    'Direito PrevidenciÃ¡rio',
     'Direito Empresarial',
-    'Direito Tributário',
-    'Direito Imobiliário',
+    'Direito TributÃ¡rio',
+    'Direito ImobiliÃ¡rio',
     'Direito do Consumidor'
   ];
 
@@ -156,14 +156,14 @@ export const NovoAgendamentoForm = ({ onClose }: NovoAgendamentoFormProps) => {
             ))}
           </SelectContent>
         </Select>
-        {errors.lead_id && <p className="text-red-500 text-sm">Cliente é obrigatório</p>}
+        {errors.lead_id && <p className="text-red-500 text-sm">Cliente Ã© obrigatÃ³rio</p>}
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="area_juridica">Área Jurídica</Label>
+        <Label htmlFor="area_juridica">Ãrea JurÃ­dica</Label>
         <Select onValueChange={(value) => setValue('area_juridica', value, { shouldValidate: true })}>
           <SelectTrigger>
-            <SelectValue placeholder="Selecione a área jurídica" />
+            <SelectValue placeholder="Selecione a Ã¡rea jurÃ­dica" />
           </SelectTrigger>
           <SelectContent>
             {areasJuridicas.map((area) => (
@@ -173,12 +173,12 @@ export const NovoAgendamentoForm = ({ onClose }: NovoAgendamentoFormProps) => {
             ))}
           </SelectContent>
         </Select>
-        {errors.area_juridica && <p className="text-red-500 text-sm">Área jurídica é obrigatória</p>}
+        {errors.area_juridica && <p className="text-red-500 text-sm">Ãrea jurÃ­dica Ã© obrigatÃ³ria</p>}
       </div>
 
       <div className="grid grid-cols-2 gap-4">
         <div className="space-y-2">
-          <Label>Data da Reunião</Label>
+          <Label>Data da ReuniÃ£o</Label>
           <Popover>
             <PopoverTrigger asChild>
               <Button
@@ -205,10 +205,10 @@ export const NovoAgendamentoForm = ({ onClose }: NovoAgendamentoFormProps) => {
         </div>
 
         <div className="space-y-2">
-          <Label>Horário</Label>
+          <Label>HorÃ¡rio</Label>
           <Select value={selectedTime} onValueChange={setSelectedTime}>
             <SelectTrigger>
-              <SelectValue placeholder="Selecione o horário" />
+              <SelectValue placeholder="Selecione o horÃ¡rio" />
             </SelectTrigger>
             <SelectContent>
               {horarios.map((horario) => (
@@ -222,10 +222,10 @@ export const NovoAgendamentoForm = ({ onClose }: NovoAgendamentoFormProps) => {
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="responsavel">Advogado Responsável</Label>
+        <Label htmlFor="responsavel">Advogado ResponsÃ¡vel</Label>
         <Select onValueChange={(value) => setValue('responsavel', value, { shouldValidate: true })}>
           <SelectTrigger>
-            <SelectValue placeholder="Selecione o responsável" />
+            <SelectValue placeholder="Selecione o responsÃ¡vel" />
           </SelectTrigger>
           <SelectContent>
             {responsaveis.map((responsavel) => (
@@ -235,14 +235,14 @@ export const NovoAgendamentoForm = ({ onClose }: NovoAgendamentoFormProps) => {
             ))}
           </SelectContent>
         </Select>
-        {errors.responsavel && <p className="text-red-500 text-sm">Responsável é obrigatório</p>}
+        {errors.responsavel && <p className="text-red-500 text-sm">ResponsÃ¡vel Ã© obrigatÃ³rio</p>}
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="observacoes">Observações</Label>
+        <Label htmlFor="observacoes">ObservaÃ§Ãµes</Label>
         <Textarea
           {...register('observacoes')}
-          placeholder="Observações sobre a reunião (opcional)"
+          placeholder="ObservaÃ§Ãµes sobre a reuniÃ£o (opcional)"
           rows={3}
         />
       </div>

@@ -1,4 +1,4 @@
-import { supabase } from '@/integrations/supabase/client';
+import { supabaseUntyped as supabase } from '@/integrations/supabase/client';
 import type { Json } from '@/integrations/supabase/types';
 
 type SeedLead = {
@@ -141,14 +141,17 @@ export const seedDatabase = async () => {
     }
   ];
 
-  await supabase.from('leads').insert(leads);
-  await supabase.from('contratos').insert(contratos);
+  const { error: leadsError } = await supabase.from('leads').insert(leads);
+  if (leadsError) console.error('Erro ao inserir leads:', leadsError.message);
+
+  const { error: contratosError } = await supabase.from('contratos').insert(contratos);
+  if (contratosError) console.error('Erro ao inserir contratos:', contratosError.message);
 
   // Registrar agendamento fake para hoje
   const hoje = new Date();
   hoje.setHours(14, 0, 0, 0);
 
-  await supabase.from('agendamentos').insert([
+  const { error: agendError } = await supabase.from('agendamentos').insert([
     {
       titulo: 'Reuniao Inicial - Maria Silva',
       data_hora: hoje.toISOString(),
@@ -157,6 +160,7 @@ export const seedDatabase = async () => {
       tipo: 'reuniao'
     }
   ]);
+  if (agendError) console.error('Erro ao inserir agendamentos:', agendError.message);
 
   console.log('Dados de teste gerados com sucesso para tenant:', tenantId);
 };

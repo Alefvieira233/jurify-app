@@ -42,7 +42,7 @@ export const ResponseTimeChart: React.FC<ResponseTimeChartProps> = ({
         ? data.reduce((acc, d) => acc + d.avgTime, 0) / data.length
         : 0;
 
-    const latestP95 = data.length > 0 ? data[data.length - 1].p95Time : 0;
+    const latestP95 = data.length > 0 ? (data[data.length - 1]?.p95Time ?? 0) : 0;
     const isWithinTarget = avgResponseTime <= targetResponseTime;
 
     return (

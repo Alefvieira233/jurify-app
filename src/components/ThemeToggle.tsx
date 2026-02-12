@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Moon, Sun } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
@@ -7,7 +7,10 @@ export const ThemeToggle = () => {
 
   useEffect(() => {
     // Check system preference or localStorage
-    const savedTheme = localStorage.getItem('theme') as 'light' | 'dark' | null;
+    let savedTheme: 'light' | 'dark' | null = null;
+    try {
+      savedTheme = localStorage.getItem('theme') as 'light' | 'dark' | null;
+    } catch { /* private browsing or storage full */ }
     const systemPrefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
 
     const initialTheme = savedTheme || (systemPrefersDark ? 'dark' : 'light');
@@ -28,7 +31,7 @@ export const ThemeToggle = () => {
     const newTheme = theme === 'light' ? 'dark' : 'light';
     setTheme(newTheme);
     applyTheme(newTheme);
-    localStorage.setItem('theme', newTheme);
+    try { localStorage.setItem('theme', newTheme); } catch { /* ignore */ }
   };
 
   return (

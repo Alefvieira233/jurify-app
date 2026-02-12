@@ -1,5 +1,16 @@
+/**
+ * @module useAgentesIA
+ * @description Hook para gerenciar agentes de IA do sistema Jurify.
+ * Fornece CRUD completo (criar, ler, atualizar, deletar) e execuÃ§Ã£o
+ * de agentes de IA com cache otimizado via {@link useSupabaseQuery}.
+ *
+ * @example
+ * ```tsx
+ * const { agentes, createAgente, updateAgente, deleteAgente, executeAgente } = useAgentesIA();
+ * ```
+ */
 import { useCallback } from 'react';
-import { supabase } from '@/integrations/supabase/client';
+import { supabaseUntyped as supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { useSupabaseQuery } from './useSupabaseQuery';
@@ -152,6 +163,7 @@ export const useAgentesIA = () => {
       });
       return false;
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user, tenantId, toast, setAgentes]);
 
   const updateAgente = useCallback(async (id: string, updateData: Partial<AgenteIA>): Promise<boolean> => {
@@ -191,6 +203,7 @@ export const useAgentesIA = () => {
       });
       return false;
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user, tenantId, toast, setAgentes]);
 
   const deleteAgente = useCallback(async (id: string): Promise<boolean> => {
@@ -276,6 +289,7 @@ export const useAgentesIA = () => {
       });
       return null;
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user, toast]);
 
   return {

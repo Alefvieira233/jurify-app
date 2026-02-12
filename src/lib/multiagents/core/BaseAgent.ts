@@ -1,8 +1,8 @@
-﻿/**
+/**
  * ðŸš€ JURIFY MULTIAGENT SYSTEM - BASE AGENT
  *
  * Classe base abstrata para todos os agentes.
- * Refatorada para usar Supabase Edge Function em vez de chamada direta Ã  OpenAI.
+ * Refatorada para usar Supabase Edge Function em vez de chamada direta a OpenAI.
  *
  * @version 2.0.0
  * @security Enterprise Grade - API keys protegidas
@@ -110,7 +110,7 @@ export abstract class BaseAgent implements IAgent {
         try {
           await this.handleMessage(message);
         } catch (error) {
-          console.error(`âŒ Erro ao processar mensagem em ${this.name}:`, error);
+          console.error(`Erro ao processar mensagem em ${this.name}:`, error);
 
           if (message.requires_response) {
             const { MessageType } = await import('../types');
@@ -134,7 +134,7 @@ export abstract class BaseAgent implements IAgent {
   // ðŸŽ¯ MÃ©todo abstrato para cada agente implementar
   protected abstract handleMessage(message: AgentMessage): Promise<void>;
 
-  // ðŸ§  Usa IA para processar informaÃ§Ã£o via Edge Function (SEGURO)
+  // Usa IA para processar informacao via Edge Function (SEGURO)
   protected async processWithAI(
     prompt: string,
     context?: Record<string, unknown>,
@@ -144,11 +144,11 @@ export abstract class BaseAgent implements IAgent {
       log.debug(`${this.name} calling AI Edge Function`);
 
       let augmentedPrompt = prompt;
-      const tenantId = this.context?.metadata?.tenantId as string | undefined;
+      const tenantId = this.context?.metadata?.tenantId;
       const leadId = this.context?.leadId;
 
       if (tenantId) {
-        // 🧠 MCP: Busca memórias de longo prazo relevantes
+        // MCP: Busca memórias de longo prazo relevantes
         try {
           const memoryContext = await agentMemory.buildMemoryContext(
             prompt,
@@ -163,7 +163,7 @@ export abstract class BaseAgent implements IAgent {
           log.warn(`MCP memory recall failed for ${this.name}`);
         }
 
-        // 📚 RAG: Busca documentos relevantes no banco vetorial
+        // RAG: Busca documentos relevantes no banco vetorial
         try {
           const { data: searchData, error: searchError } = await supabase.functions.invoke<{
             results: Array<{ content: string; similarity: number; metadata?: Record<string, unknown> }>;
@@ -192,7 +192,7 @@ export abstract class BaseAgent implements IAgent {
       if (options?.stream) {
         try {
           return await this.streamChatCompletion(augmentedPrompt, options.onToken);
-        } catch (streamError) {
+        } catch (_streamError) {
           console.warn(`[stream] Falha no streaming para ${this.name}, usando fallback non-stream.`);
         }
       }
@@ -208,10 +208,10 @@ export abstract class BaseAgent implements IAgent {
         temperature: this.temperature,
         maxTokens: this.maxTokens,
         leadId: this.context?.leadId,
-        tenantId: this.context?.metadata?.tenantId as string | undefined
+        tenantId: this.context?.metadata?.tenantId
       };
 
-      // ðŸ” Chama Edge Function (API key fica no servidor)
+      // Chama Edge Function (API key fica no servidor)
       const { data, error } = await supabase.functions.invoke<AgentAIResponse>(
         'ai-agent-processor',
         {
@@ -220,7 +220,7 @@ export abstract class BaseAgent implements IAgent {
       );
 
       if (error) {
-        console.error(`âŒ Erro na Edge Function para ${this.name}:`, error);
+        console.error(`Erro na Edge Function para ${this.name}:`, error);
         throw new Error(`AI processing failed: ${error.message}`);
       }
 
@@ -252,7 +252,7 @@ export abstract class BaseAgent implements IAgent {
           log.warn('Failed to log lead interaction', { error: logError.message });
         }
 
-        // 🧠 MCP: Salva resultado como memória de longo prazo
+        // MCP: Salva resultado como memória de longo prazo
         if (tenantId) {
           const summary = data.result.length > 500 ? data.result.substring(0, 500) + '...' : data.result;
           agentMemory.store({
@@ -274,12 +274,12 @@ export abstract class BaseAgent implements IAgent {
       return data.result;
 
     } catch (error) {
-      console.error(`âŒ Erro no processamento de IA para ${this.name}:`, error);
+      console.error(`Erro no processamento de IA para ${this.name}:`, error);
       throw error;
     }
   }
 
-  // ðŸ§  ConstrÃ³i contexto com base nos chunks recuperados
+  // Constroi contexto com base nos chunks recuperados
   private static buildContext(
     results: Array<{ content: string; similarity: number; metadata?: Record<string, unknown> }>
   ): string {
@@ -383,7 +383,7 @@ export abstract class BaseAgent implements IAgent {
   }
 
   // ðŸ” Alias para compatibilidade - atualiza contexto por leadId
-  protected updateContext(leadId: string, updates: Record<string, any>): void {
+  protected updateContext(leadId: string, updates: Record<string, unknown>): void {
     if (!this.context) {
       this.context = {
         leadId,
@@ -569,7 +569,7 @@ export abstract class BaseAgent implements IAgent {
     const codeBlockMatch = text.match(/```(?:json)?\s*([\s\S]*?)```/);
     if (codeBlockMatch) {
       try {
-        return JSON.parse(codeBlockMatch[1].trim()) as T;
+        return JSON.parse((codeBlockMatch[1] ?? '').trim()) as T;
       } catch {
         // Continua para próxima estratégia
       }
@@ -584,7 +584,7 @@ export abstract class BaseAgent implements IAgent {
    */
   private cleanJSONString(jsonStr: string): string {
     return jsonStr
-      .replace(/[\x00-\x1F\x7F]/g, '') // Remove caracteres de controle
+      .replace(/[\x00-\x1f\x7f]/g, '') // eslint-disable-line no-control-regex -- intentional control char removal
       .replace(/,\s*}/g, '}')          // Remove vírgulas trailing antes de }
       .replace(/,\s*]/g, ']')          // Remove vírgulas trailing antes de ]
       .replace(/'/g, '"')              // Substitui aspas simples por duplas
@@ -599,7 +599,7 @@ export abstract class BaseAgent implements IAgent {
   protected extractValueFromText(text: string, key: string): string | null {
     // Tenta extrair valor de padrões comuns
     const patterns = [
-      new RegExp(`${key}["\s:]+["']?([^"'\n,}]+)["']?`, 'i'),
+      new RegExp(`${key}["\\s:]+["']?([^"'\n,}]+)["']?`, 'i'),
       new RegExp(`"${key}"\\s*:\\s*"([^"]+)"`, 'i'),
       new RegExp(`${key}\\s*=\\s*["']?([^"'\n,}]+)["']?`, 'i'),
     ];
