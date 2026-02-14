@@ -4,12 +4,14 @@ on:
   push:
     branches: [master, main]
     paths:
-      - 'advo-ai-hub-main (1)/advo-ai-hub-main/**'
+      - 'src/**'
+      - 'supabase/**'
+      - 'package.json'
   workflow_dispatch:  # Permite deploy manual
 
 env:
   NODE_VERSION: '20'
-  WORKING_DIR: 'advo-ai-hub-main (1)/advo-ai-hub-main'
+  WORKING_DIR: '.'
 
 jobs:
   # ==========================================
@@ -21,7 +23,7 @@ jobs:
     timeout-minutes: 15
     environment:
       name: production
-      url: https://jurify.app  # Ajustar URL real
+      url: https://jurify.com.br
 
     steps:
       - name: 📥 Checkout code
@@ -32,42 +34,43 @@ jobs:
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'npm'
-          cache-dependency-path: '${{ env.WORKING_DIR }}/package-lock.json'
+          cache-dependency-path: 'package-lock.json'
 
       - name: 📦 Install dependencies
-        working-directory: ${{ env.WORKING_DIR }}
         run: npm ci --prefer-offline --no-audit
 
+      - name: 🧪 Run tests
+        run: npm test -- --run
+        env:
+          CI: true
+
       - name: 🏗️ Build production
-        working-directory: ${{ env.WORKING_DIR }}
         run: npm run build
         env:
           NODE_ENV: production
           VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
           VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
-          VITE_ZAPSIGN_API_KEY: ${{ secrets.VITE_ZAPSIGN_API_KEY }}
+          VITE_SENTRY_DSN: ${{ secrets.VITE_SENTRY_DSN }}
+          VITE_APP_VERSION: ${{ github.sha }}
+          VITE_STRIPE_PUBLISHABLE_KEY: ${{ secrets.VITE_STRIPE_PUBLISHABLE_KEY }}
+          VITE_GOOGLE_CLIENT_ID: ${{ secrets.VITE_GOOGLE_CLIENT_ID }}
 
-      # OPÇÃO 1: Deploy para Vercel (desabilitado)
-      # - name: 🚀 Deploy to Vercel
-      #   uses: amondnet/vercel-action@v25
-      #   with:
-      #     vercel-token: ${{ secrets.VERCEL_TOKEN }}
-      #     vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
-      #     vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID }}
-      #     working-directory: ${{ env.WORKING_DIR }}
-      #     vercel-args: '--prod'
-
-      # OPÇÃO 2: Deploy via FTP/SFTP (servidor próprio)
-      - name: 🚀 Deploy via SFTP
-        uses: wlixcc/SFTP-Deploy-Action@v1.2.4
+      - name: 💾 Upload build artifacts
+        uses: actions/upload-artifact@v4
         with:
-          username: ${{ secrets.SFTP_USERNAME }}
-          server: ${{ secrets.SFTP_SERVER }}
-          ssh_private_key: ${{ secrets.SFTP_PRIVATE_KEY }}
-          local_path: '${{ env.WORKING_DIR }}/dist/*'
-          remote_path: '/var/www/jurify'
-          sftp_only: true
-        if: false  # Desabilitar se não usar SFTP
+          name: production-build
+          path: dist
+          retention-days: 7
+
+      # Deploy para Vercel
+      - name: 🚀 Deploy to Vercel
+        uses: amondnet/vercel-action@v25
+        with:
+          vercel-token: ${{ secrets.VERCEL_TOKEN }}
+          vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
+          vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID }}
+          vercel-args: '--prod'
+        if: ${{ secrets.VERCEL_TOKEN != '' }}
 
   # ==========================================
   # JOB 2: DEPLOY SUPABASE EDGE FUNCTIONS
@@ -94,13 +97,11 @@ jobs:
           sudo mv supabase /usr/local/bin/
 
       - name: 🔗 Link Supabase project
-        working-directory: ${{ env.WORKING_DIR }}
         run: supabase link --project-ref ${{ secrets.SUPABASE_PROJECT_REF }}
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
 
       - name: ⚡ Deploy Edge Functions
-        working-directory: ${{ env.WORKING_DIR }}
         run: |
           echo "🚀 Deploying edge functions..."
           supabase functions deploy --no-verify-jwt || echo "⚠️ Some functions failed"
@@ -108,10 +109,18 @@ jobs:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
 
       - name: 🔐 Set Edge Function secrets
-        working-directory: ${{ env.WORKING_DIR }}
         run: |
           echo "🔐 Setting secrets..."
-          supabase secrets set OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }} --project-ref ${{ secrets.SUPABASE_PROJECT_REF }}
+          supabase secrets set \
+            OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }} \
+            STRIPE_SECRET_KEY=${{ secrets.STRIPE_SECRET_KEY }} \
+            STRIPE_WEBHOOK_SECRET=${{ secrets.STRIPE_WEBHOOK_SECRET }} \
+            EVOLUTION_API_URL=${{ secrets.EVOLUTION_API_URL }} \
+            EVOLUTION_API_KEY=${{ secrets.EVOLUTION_API_KEY }} \
+            ZAPSIGN_API_TOKEN=${{ secrets.ZAPSIGN_API_TOKEN }} \
+            GOOGLE_CLIENT_ID=${{ secrets.GOOGLE_CLIENT_ID }} \
+            GOOGLE_CLIENT_SECRET=${{ secrets.GOOGLE_CLIENT_SECRET }} \
+            --project-ref ${{ secrets.SUPABASE_PROJECT_REF }}
           echo "✅ Secrets configured"
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
@@ -137,13 +146,11 @@ jobs:
           sudo mv supabase /usr/local/bin/
 
       - name: 🔗 Link Supabase project
-        working-directory: ${{ env.WORKING_DIR }}
         run: supabase link --project-ref ${{ secrets.SUPABASE_PROJECT_REF }}
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
 
       - name: 🗄️ Run migrations
-        working-directory: ${{ env.WORKING_DIR }}
         run: |
           echo "🗄️ Running pending migrations..."
           supabase db push || echo "⚠️ No new migrations"

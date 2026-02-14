@@ -13,7 +13,7 @@ export interface PasswordValidationResult {
     isStrong: boolean;
 }
 
-/** Pure validation function — reusable outside React components */
+// eslint-disable-next-line react-refresh/only-export-components
 export function validatePasswordStrength(password: string): PasswordValidationResult {
     const hasUpperCase = /[A-Z]/.test(password);
     const hasLowerCase = /[a-z]/.test(password);

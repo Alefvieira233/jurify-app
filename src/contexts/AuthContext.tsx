@@ -119,7 +119,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     await supabase.auth.signOut();
     window.location.href = '/auth';
   };
-  useInactivityLogout(signOut, 30 * 60 * 1000, !!user);
+  useInactivityLogout(() => void signOut(), 30 * 60 * 1000, !!user);
 
   const hasRole = (role: string) => profile?.role === role;
   const hasPermission = (module: string, permission: string) => {

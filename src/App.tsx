@@ -47,9 +47,9 @@ import { WhatsAppErrorBoundary } from "./features/whatsapp/WhatsAppErrorBoundary
 // Prefetch rotas mais acessadas após o idle do browser
 if (typeof window !== 'undefined' && 'requestIdleCallback' in window) {
   window.requestIdleCallback(() => {
-    import("./features/leads/LeadsPanel");
-    import("./features/pipeline/PipelineJuridico");
-    import("./features/scheduling/AgendamentosManager");
+    void import("./features/leads/LeadsPanel");
+    void import("./features/pipeline/PipelineJuridico");
+    void import("./features/scheduling/AgendamentosManager");
   });
 }
 

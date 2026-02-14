@@ -1,8 +1,8 @@
 /**
- * ðŸ” GOOGLE OAUTH SERVICE
+ * Google OAuth Service
  *
- * ServiÃ§o para autenticaÃ§Ã£o OAuth2 com Google Calendar API.
- * Gerencia tokens, refresh e chamadas Ã  API.
+ * OAuth2 authentication with Google Calendar API.
+ * Manages tokens, refresh, and API calls.
  *
  * @version 1.0.0
  */
