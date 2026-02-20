@@ -23,7 +23,7 @@ import {
 } from '@/components/ui/select';
 import EditarLeadForm from '@/components/forms/EditarLeadForm';
 import { STATUS_LABELS, STATUS_LEAD } from '@/schemas/leadSchema';
-import { type StageColors } from './PipelineJuridico';
+import { type StageColors } from './pipelineConfig';
 
 interface PipelineCardProps {
   lead:         Lead;

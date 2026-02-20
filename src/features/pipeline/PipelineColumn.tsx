@@ -3,7 +3,7 @@ import { memo } from 'react';
 import { Droppable } from '@hello-pangea/dnd';
 import { PipelineCard } from './PipelineCard';
 import { type Lead, type LeadInput } from '@/hooks/useLeads';
-import { type StageColors } from './PipelineJuridico';
+import { type StageColors } from './pipelineConfig';
 import { Inbox } from 'lucide-react';
 
 interface Stage { id: string; title: string; color: string; }
