@@ -65,45 +65,24 @@ const Dashboard = () => {
 
   if (loading) {
     return (
-      <div className="p-6 space-y-6">
-        <div>
-          <Skeleton className="h-8 w-48 mb-2" />
-          <Skeleton className="h-4 w-64" />
+      <div className="flex flex-col h-screen">
+        <div className="px-5 py-3 border-b border-border flex items-center justify-between gap-4">
+          <div className="flex items-center gap-2.5">
+            <Skeleton className="w-8 h-8 rounded-lg" />
+            <div className="space-y-1.5">
+              <Skeleton className="h-4 w-24" />
+              <Skeleton className="h-3 w-40" />
+            </div>
+          </div>
+          <Skeleton className="h-8 w-24 rounded-md" />
         </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          {[1, 2, 3, 4].map(i => (
-            <Card key={i}>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <Skeleton className="h-4 w-24" />
-                <Skeleton className="h-4 w-4" />
-              </CardHeader>
-              <CardContent>
-                <Skeleton className="h-8 w-16 mb-2" />
-                <Skeleton className="h-3 w-32" />
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {[1, 2].map(i => (
-            <Card key={i}>
-              <CardHeader>
-                <Skeleton className="h-6 w-48" />
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  {[1, 2, 3].map(j => (
-                    <div key={j} className="flex justify-between items-center">
-                      <Skeleton className="h-4 w-32" />
-                      <Skeleton className="h-4 w-16" />
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-          ))}
+        <div className="flex-1 px-6 py-6 space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
+            {[1, 2, 3, 4].map(i => <Skeleton key={i} className="h-24 rounded-lg" />)}
+          </div>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+            {[1, 2].map(i => <Skeleton key={i} className="h-64 rounded-lg" />)}
+          </div>
         </div>
       </div>
     );
@@ -111,29 +90,39 @@ const Dashboard = () => {
 
   if (error) {
     return (
-      <div className="p-6">
-        <Card className="border-red-200 bg-red-50">
-          <CardContent className="p-8">
-            <div className="text-center">
-              <AlertTriangle className="h-12 w-12 text-red-500 mx-auto mb-4" />
-              <h3 className="text-lg font-medium text-red-900 mb-2">Erro ao carregar dashboard</h3>
-              <p className="text-red-700 mb-4">{error}</p>
-              <Button
-                onClick={() => void refetch()}
-                className="bg-red-600 hover:bg-red-700"
-              >
-                Tentar novamente
-              </Button>
+      <div className="flex flex-col h-screen">
+        <div className="px-5 py-3 border-b border-border flex items-center gap-2.5">
+          <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
+            <BarChart3 className="h-4 w-4 text-primary" />
+          </div>
+          <h1 className="text-sm font-bold text-foreground">Dashboard</h1>
+        </div>
+        <div className="flex-1 flex items-center justify-center p-8">
+          <div className="text-center max-w-sm">
+            <div className="w-12 h-12 rounded-full bg-destructive/10 flex items-center justify-center mx-auto mb-3">
+              <AlertTriangle className="h-6 w-6 text-destructive" />
             </div>
-          </CardContent>
-        </Card>
+            <h3 className="text-sm font-semibold mb-1">Erro ao carregar dashboard</h3>
+            <p className="text-xs text-muted-foreground mb-4">{error}</p>
+            <Button size="sm" onClick={() => void refetch()} className="h-8 text-xs gap-1.5">
+              <Activity className="h-3.5 w-3.5" /> Tentar novamente
+            </Button>
+          </div>
+        </div>
       </div>
     );
   }
 
   if (isEmpty) {
     return (
-      <div className="p-6 h-full flex flex-col justify-center items-center animate-fade-in">
+      <div className="flex flex-col h-screen">
+        <div className="px-5 py-3 border-b border-border flex items-center gap-2.5">
+          <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
+            <BarChart3 className="h-4 w-4 text-primary" />
+          </div>
+          <h1 className="text-sm font-bold text-foreground">Dashboard</h1>
+        </div>
+      <div className="flex-1 flex flex-col justify-center items-center animate-fade-in">
         <Card className="border-border bg-card shadow-sm max-w-xl w-full">
           {/* Blue top accent line */}
           <div className="h-1 w-full bg-primary rounded-t-lg" />
@@ -178,37 +167,43 @@ const Dashboard = () => {
           </CardContent>
         </Card>
       </div>
+      </div>
     );
   }
 
   return (
-    <div className="space-y-6">
-      {/* ── Page Header ── */}
-      <div className="flex items-center justify-between px-5 py-3 border-b border-border bg-background fade-in">
-        <div className="flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
-            <BarChart3 className="h-4 w-4 text-primary" />
-          </div>
-          <div>
-            <h1 className="text-sm font-bold text-foreground leading-tight">Dashboard</h1>
-            <p className="text-[11px] text-muted-foreground leading-none mt-0.5">
-              Métricas em tempo real do seu escritório
-            </p>
-          </div>
-        </div>
-        <Button
-          onClick={() => void refetch()}
-          variant="outline"
-          size="sm"
-          className="h-8 text-xs gap-1.5"
-          aria-label="Atualizar métricas do dashboard"
-        >
-          <Activity className="h-3.5 w-3.5" strokeWidth={2} />
-          Atualizar
-        </Button>
-      </div>
+    <div className="flex flex-col h-screen bg-background">
 
-      <div className="px-6 space-y-6">
+      {/* ── Header ── */}
+      <header className="flex-shrink-0 px-5 py-3 border-b border-border bg-background fade-in">
+        <div className="flex items-center justify-between gap-4">
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
+              <BarChart3 className="h-4 w-4 text-primary" />
+            </div>
+            <div>
+              <h1 className="text-sm font-bold text-foreground leading-tight">Dashboard</h1>
+              <p className="text-[11px] text-muted-foreground leading-none mt-0.5">
+                Métricas em tempo real do seu escritório
+              </p>
+            </div>
+          </div>
+          <Button
+            onClick={() => void refetch()}
+            variant="outline"
+            size="sm"
+            className="h-8 text-xs gap-1.5"
+            aria-label="Atualizar métricas do dashboard"
+          >
+            <Activity className="h-3.5 w-3.5" strokeWidth={2} />
+            Atualizar
+          </Button>
+        </div>
+      </header>
+
+      {/* ── Scrollable body ── */}
+      <div className="flex-1 overflow-y-auto">
+      <div className="px-6 py-6 space-y-6">
 
       {/* ── KPI Cards ── */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
@@ -499,6 +494,7 @@ const Dashboard = () => {
           </div>
         </CardContent>
       </Card>
+      </div>
       </div>
     </div>
   );
