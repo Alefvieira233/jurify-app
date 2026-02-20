@@ -134,241 +134,190 @@ const Dashboard = () => {
   if (isEmpty) {
     return (
       <div className="p-6 h-full flex flex-col justify-center items-center animate-fade-in">
-        <Card className="border-[hsl(var(--accent)_/_0.3)] bg-gradient-to-br from-[hsl(var(--card))] to-[hsl(var(--muted)_/_0.3)] shadow-2xl max-w-2xl w-full overflow-hidden relative">
-          {/* Gold Glow */}
-          <div className="absolute top-0 inset-x-0 h-1 bg-gradient-to-r from-[hsl(var(--accent)_/_0)] via-[hsl(var(--accent))] to-[hsl(var(--accent)_/_0)] opacity-70" />
+        <Card className="border-border bg-card shadow-sm max-w-xl w-full">
+          {/* Blue top accent line */}
+          <div className="h-1 w-full bg-primary rounded-t-lg" />
 
-          <CardContent className="p-10 flex flex-col items-center text-center relative z-10">
-            <div className="w-20 h-20 rounded-2xl bg-[hsl(var(--accent)_/_0.1)] flex items-center justify-center mb-6 ring-1 ring-[hsl(var(--accent))]/20 shadow-lg">
-              <Sparkles className="h-10 w-10 text-[hsl(var(--accent))]" />
+          <CardContent className="p-10 flex flex-col items-center text-center">
+            <div className="w-16 h-16 rounded-xl bg-primary/10 flex items-center justify-center mb-6">
+              <Sparkles className="h-8 w-8 text-primary" strokeWidth={1.5} />
             </div>
 
-            <h3 className="text-3xl font-bold text-[hsl(var(--foreground))] mb-3" style={{ fontFamily: "'Cormorant Garamond', serif" }}>
+            <h3 className="text-2xl font-semibold text-foreground mb-2">
               Bem-vindo ao Jurify
             </h3>
 
-            <p className="text-[hsl(var(--muted-foreground))] text-lg mb-8 max-w-md leading-relaxed">
-              Seu ambiente está pronto. Gere dados de demonstração para visualizar o potencial da plataforma com o design <span className="font-serif italic text-[hsl(var(--accent))]">Conservative Luxury</span>.
+            <p className="text-muted-foreground text-base mb-8 max-w-sm leading-relaxed">
+              Seu ambiente está pronto. Gere dados de demonstração para explorar todo o potencial da plataforma.
             </p>
 
-            <div className="flex gap-4 w-full sm:w-auto">
-              <Button
-                onClick={() => void handleGenerateTestData()}
-                disabled={isSeeding}
-                className="bg-[hsl(var(--accent))] hover:bg-[hsl(var(--accent-hover))] text-[hsl(var(--accent-foreground))] font-bold px-8 py-6 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 w-full sm:w-auto text-base"
-              >
-                {isSeeding ? (
-                  <>
-                    <Activity className="h-5 w-5 mr-3 animate-spin" />
-                    Configurando Ambiente...
-                  </>
-                ) : (
-                  <>
-                    <Sparkles className="h-5 w-5 mr-3" />
-                    Gerar Dados de Demonstração
-                  </>
-                )}
-              </Button>
-            </div>
+            <Button
+              onClick={() => void handleGenerateTestData()}
+              disabled={isSeeding}
+              size="lg"
+              className="gap-2 w-full sm:w-auto"
+            >
+              {isSeeding ? (
+                <>
+                  <Activity className="h-4 w-4 animate-spin" />
+                  Configurando ambiente...
+                </>
+              ) : (
+                <>
+                  <Sparkles className="h-4 w-4" />
+                  Gerar Dados de Demonstração
+                </>
+              )}
+            </Button>
 
             {!isSeeding && (
-              <p className="mt-6 text-xs text-[hsl(var(--muted-foreground))] font-mono uppercase tracking-widest opacity-60">
-                Setup Automático de Perfil & Dados
+              <p className="mt-4 text-xs text-muted-foreground">
+                Setup automático de perfil e dados
               </p>
             )}
           </CardContent>
-
-          {/* Background Pattern */}
-          <div className="absolute inset-0 opacity-[0.03] pointer-events-none"
-            style={{ backgroundImage: 'radial-gradient(circle at 1px 1px, hsl(var(--foreground)) 1px, transparent 0)', backgroundSize: '24px 24px' }}>
-          </div>
         </Card>
       </div>
     );
   }
 
   return (
-    <div className="space-y-10">
-      {/* Ultra-Premium Header */}
-      <div className="flex justify-between items-start fade-in">
-        <div className="space-y-3">
-          <div className="flex items-center space-x-4">
-            <h1 className="text-6xl font-bold text-[hsl(var(--foreground))] tracking-tight" style={{ fontFamily: "'Cormorant Garamond', serif", letterSpacing: '-0.03em' }}>
-              Dashboard
-            </h1>
-            <div className="px-4 py-2 bg-gradient-to-r from-[hsl(var(--accent)_/_0.15)] to-[hsl(var(--accent)_/_0.08)] rounded-full border border-[hsl(var(--accent)_/_0.3)]">
-              <span className="text-xs font-bold text-[hsl(var(--accent))] uppercase tracking-wider">Live</span>
-            </div>
-          </div>
-          <p className="text-[hsl(var(--muted-foreground))] text-base font-medium">
-            Metricas em tempo real do seu escritorio juridico
+    <div className="p-6 space-y-6">
+      {/* ── Page Header ── */}
+      <div className="flex items-center justify-between fade-in">
+        <div>
+          <h1 className="text-2xl font-semibold text-foreground tracking-tight">
+            Dashboard
+          </h1>
+          <p className="text-sm text-muted-foreground mt-0.5">
+            Métricas em tempo real do seu escritório jurídico
           </p>
         </div>
-
-        {/* Premium Refresh Button */}
-        <div className="relative group">
-          <div className="absolute -inset-1 bg-gradient-to-r from-[hsl(var(--accent))] to-[hsl(var(--accent)_/_0.5)] rounded-2xl blur-lg opacity-0 group-hover:opacity-50 transition-opacity duration-500" />
-          <Button
-            onClick={() => void refetch()}
-            variant="outline"
-            className="relative border-[hsl(var(--border))] hover:bg-[hsl(var(--accent))] hover:text-[hsl(var(--accent-foreground))] hover:border-[hsl(var(--accent))] transition-all duration-300 px-6 py-3 rounded-2xl shadow-lg group-hover:shadow-2xl"
-            aria-label="Atualizar métricas do dashboard"
-          >
-            <Activity className="h-4 w-4 mr-2.5 group-hover:rotate-180 transition-transform duration-700" strokeWidth={2.5} />
-            <span className="font-semibold">Atualizar</span>
-          </Button>
-        </div>
+        <Button
+          onClick={() => void refetch()}
+          variant="outline"
+          size="sm"
+          className="gap-2"
+          aria-label="Atualizar métricas do dashboard"
+        >
+          <Activity className="h-4 w-4" strokeWidth={2} />
+          Atualizar
+        </Button>
       </div>
 
-      {/* Ultra-Premium Metric Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-        {/* Leads Card */}
-        <div className="relative group fade-in" style={{ animationDelay: '0.1s' }}>
-          <div className="absolute -inset-1 bg-gradient-to-br from-blue-500/20 to-blue-600/10 rounded-3xl blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
+      {/* ── KPI Cards ── */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
 
-          <Card className="relative card-hover border-[hsl(var(--card-border))] bg-[hsl(var(--card))] shadow-2xl rounded-3xl overflow-hidden">
-            {/* Shine Effect */}
-            <div className="absolute inset-0 bg-gradient-to-br from-white/5 via-transparent to-transparent pointer-events-none" />
+        {/* Leads */}
+        <Card className="fade-in border-border bg-card shadow-sm hover:shadow-md transition-shadow" style={{ animationDelay: '0.1s' }}>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3 pt-5 px-5">
+            <CardTitle className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+              Total de Leads
+            </CardTitle>
+            <div className="p-2.5 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
+              <Users className="h-5 w-5 text-blue-600 dark:text-blue-400" strokeWidth={2} />
+            </div>
+          </CardHeader>
+          <CardContent className="px-5 pb-5">
+            <div className="text-3xl font-bold text-foreground tabular-nums mb-2">
+              {metrics.totalLeads}
+            </div>
+            <div className="flex items-center gap-2">
+              <Badge variant="success" className="gap-1">
+                <ArrowUpRight className="h-3 w-3" />
+                +{metrics.leadsNovoMes}
+              </Badge>
+              <span className="text-xs text-muted-foreground">este mês</span>
+            </div>
+          </CardContent>
+        </Card>
 
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4 pt-6 px-6">
-              <CardTitle className="text-xs font-bold text-[hsl(var(--muted-foreground))] uppercase tracking-wider">
-                Total de Leads
-              </CardTitle>
-              <div className="relative">
-                <div className="absolute inset-0 bg-gradient-to-br from-blue-500 to-blue-600 rounded-2xl blur-md opacity-40" />
-                <div className="relative p-3.5 bg-gradient-to-br from-blue-500/20 to-blue-600/15 rounded-2xl">
-                  <Users className="h-6 w-6 text-blue-300" strokeWidth={2.5} />
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent className="px-6 pb-6">
-              <div className="text-5xl font-bold text-[hsl(var(--foreground))] mb-4" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
-                {metrics.totalLeads}
-              </div>
-              <div className="flex items-center space-x-2.5">
-                <Badge className="bg-gradient-to-r from-emerald-500/20 to-emerald-600/20 text-emerald-200 border border-emerald-400/30 font-bold px-3 py-1.5 shadow-lg">
-                  <ArrowUpRight className="h-3.5 w-3.5 mr-1" strokeWidth={3} />
-                  +{metrics.leadsNovoMes}
-                </Badge>
-                <span className="text-sm text-[hsl(var(--muted-foreground))] font-medium">este mes</span>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
+        {/* Contratos */}
+        <Card className="fade-in border-border bg-card shadow-sm hover:shadow-md transition-shadow" style={{ animationDelay: '0.15s' }}>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3 pt-5 px-5">
+            <CardTitle className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+              Contratos
+            </CardTitle>
+            <div className="p-2.5 bg-violet-50 dark:bg-violet-900/20 rounded-lg">
+              <FileText className="h-5 w-5 text-violet-600 dark:text-violet-400" strokeWidth={2} />
+            </div>
+          </CardHeader>
+          <CardContent className="px-5 pb-5">
+            <div className="text-3xl font-bold text-foreground tabular-nums mb-2">
+              {metrics.contratos}
+            </div>
+            <div className="flex items-center gap-2">
+              <Badge variant="info" className="gap-1">
+                <CheckCircle className="h-3 w-3" />
+                {metrics.contratosAssinados}
+              </Badge>
+              <span className="text-xs text-muted-foreground">assinados</span>
+            </div>
+          </CardContent>
+        </Card>
 
-        {/* Contratos Card */}
-        <div className="relative group fade-in" style={{ animationDelay: '0.2s' }}>
-          <div className="absolute -inset-1 bg-gradient-to-br from-purple-500/20 to-purple-600/10 rounded-3xl blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
+        {/* Agendamentos */}
+        <Card className="fade-in border-border bg-card shadow-sm hover:shadow-md transition-shadow" style={{ animationDelay: '0.2s' }}>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3 pt-5 px-5">
+            <CardTitle className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+              Agendamentos
+            </CardTitle>
+            <div className="p-2.5 bg-amber-50 dark:bg-amber-900/20 rounded-lg">
+              <Calendar className="h-5 w-5 text-amber-600 dark:text-amber-400" strokeWidth={2} />
+            </div>
+          </CardHeader>
+          <CardContent className="px-5 pb-5">
+            <div className="text-3xl font-bold text-foreground tabular-nums mb-2">
+              {metrics.agendamentos}
+            </div>
+            <div className="flex items-center gap-2">
+              <Badge variant="warning" className="gap-1">
+                <Clock className="h-3 w-3" />
+                {metrics.agendamentosHoje}
+              </Badge>
+              <span className="text-xs text-muted-foreground">hoje</span>
+            </div>
+          </CardContent>
+        </Card>
 
-          <Card className="relative card-hover border-[hsl(var(--card-border))] bg-[hsl(var(--card))] shadow-2xl rounded-3xl overflow-hidden">
-            <div className="absolute inset-0 bg-gradient-to-br from-white/5 via-transparent to-transparent pointer-events-none" />
-
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4 pt-6 px-6">
-              <CardTitle className="text-xs font-bold text-[hsl(var(--muted-foreground))] uppercase tracking-wider">
-                Contratos
-              </CardTitle>
-              <div className="relative">
-                <div className="absolute inset-0 bg-gradient-to-br from-purple-500 to-purple-600 rounded-2xl blur-md opacity-40" />
-                <div className="relative p-3.5 bg-gradient-to-br from-purple-500/20 to-purple-600/15 rounded-2xl">
-                  <FileText className="h-6 w-6 text-purple-300" strokeWidth={2.5} />
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent className="px-6 pb-6">
-              <div className="text-5xl font-bold text-[hsl(var(--foreground))] mb-4" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
-                {metrics.contratos}
-              </div>
-              <div className="flex items-center space-x-2.5">
-                <Badge className="bg-gradient-to-r from-purple-500/20 to-purple-600/20 text-purple-200 border border-purple-400/30 font-bold px-3 py-1.5 shadow-lg">
-                  <CheckCircle className="h-3.5 w-3.5 mr-1" strokeWidth={3} />
-                  {metrics.contratosAssinados}
-                </Badge>
-                <span className="text-sm text-[hsl(var(--muted-foreground))] font-medium">assinados</span>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Agendamentos Card */}
-        <div className="relative group fade-in" style={{ animationDelay: '0.3s' }}>
-          <div className="absolute -inset-1 bg-gradient-to-br from-orange-500/20 to-orange-600/10 rounded-3xl blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
-
-          <Card className="relative card-hover border-[hsl(var(--card-border))] bg-[hsl(var(--card))] shadow-2xl rounded-3xl overflow-hidden">
-            <div className="absolute inset-0 bg-gradient-to-br from-white/5 via-transparent to-transparent pointer-events-none" />
-
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4 pt-6 px-6">
-              <CardTitle className="text-xs font-bold text-[hsl(var(--muted-foreground))] uppercase tracking-wider">
-                Agendamentos
-              </CardTitle>
-              <div className="relative">
-                <div className="absolute inset-0 bg-gradient-to-br from-orange-500 to-orange-600 rounded-2xl blur-md opacity-40" />
-                <div className="relative p-3.5 bg-gradient-to-br from-orange-500/20 to-orange-600/15 rounded-2xl">
-                  <Calendar className="h-6 w-6 text-orange-300" strokeWidth={2.5} />
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent className="px-6 pb-6">
-              <div className="text-5xl font-bold text-[hsl(var(--foreground))] mb-4" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
-                {metrics.agendamentos}
-              </div>
-              <div className="flex items-center space-x-2.5">
-                <Badge className="bg-gradient-to-r from-orange-500/20 to-orange-600/20 text-orange-200 border border-orange-400/30 font-bold px-3 py-1.5 shadow-lg">
-                  <Clock className="h-3.5 w-3.5 mr-1" strokeWidth={3} />
-                  {metrics.agendamentosHoje}
-                </Badge>
-                <span className="text-sm text-[hsl(var(--muted-foreground))] font-medium">hoje</span>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Agentes IA Card - Premium Gold */}
-        <div className="relative group fade-in" style={{ animationDelay: '0.4s' }}>
-          <div className="absolute -inset-1 bg-gradient-to-br from-[hsl(var(--accent)_/_0.3)] to-[hsl(var(--accent)_/_0.15)] rounded-3xl blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
-
-          <Card className="relative card-hover border-[hsl(var(--card-border))] bg-[hsl(var(--card))] shadow-2xl rounded-3xl overflow-hidden">
-            <div className="absolute inset-0 bg-gradient-to-br from-white/5 via-transparent to-transparent pointer-events-none" />
-
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4 pt-6 px-6">
-              <CardTitle className="text-xs font-bold text-[hsl(var(--muted-foreground))] uppercase tracking-wider">
-                Agentes IA
-              </CardTitle>
-              <div className="relative">
-                <div className="absolute inset-0 bg-gradient-to-br from-[hsl(var(--accent))] to-[hsl(43_74%_49%)] rounded-2xl blur-md opacity-50" />
-                <div className="relative p-3.5 bg-gradient-to-br from-[hsl(var(--accent)_/_0.2)] to-[hsl(var(--accent)_/_0.1)] rounded-2xl">
-                  <Bot className="h-6 w-6 text-[hsl(var(--accent))]" strokeWidth={2.5} />
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent className="px-6 pb-6">
-              <div className="text-5xl font-bold text-[hsl(var(--foreground))] mb-4" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
-                {metrics.agentesAtivos}
-              </div>
-              <div className="flex items-center space-x-2.5">
-                <Badge className="bg-gradient-to-r from-[hsl(var(--accent)_/_0.2)] to-[hsl(43_74%_49%_/_0.2)] text-[hsl(var(--accent))] border border-[hsl(var(--accent)_/_0.35)] border-0 font-bold px-3 py-1.5 shadow-lg">
-                  <Sparkles className="h-3.5 w-3.5 mr-1" strokeWidth={3} />
-                  {metrics.execucoesAgentesHoje}
-                </Badge>
-                <span className="text-sm text-[hsl(var(--muted-foreground))] font-medium">execuções hoje</span>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
+        {/* Agentes IA */}
+        <Card className="fade-in border-border bg-card shadow-sm hover:shadow-md transition-shadow" style={{ animationDelay: '0.25s' }}>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3 pt-5 px-5">
+            <CardTitle className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+              Agentes IA
+            </CardTitle>
+            <div className="p-2.5 bg-primary/8 dark:bg-primary/20 rounded-lg">
+              <Bot className="h-5 w-5 text-primary" strokeWidth={2} />
+            </div>
+          </CardHeader>
+          <CardContent className="px-5 pb-5">
+            <div className="text-3xl font-bold text-foreground tabular-nums mb-2">
+              {metrics.agentesAtivos}
+            </div>
+            <div className="flex items-center gap-2">
+              <Badge variant="default" className="gap-1">
+                <Sparkles className="h-3 w-3" />
+                {metrics.execucoesAgentesHoje}
+              </Badge>
+              <span className="text-xs text-muted-foreground">execuções hoje</span>
+            </div>
+          </CardContent>
+        </Card>
       </div>
 
-      {/* Leads por Status */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <Card className="border-[hsl(var(--card-border))] bg-[hsl(var(--card))] shadow-premium fade-in" style={{ animationDelay: '0.5s' }}>
-          <CardHeader>
-            <div className="flex items-center space-x-3">
-              <div className="p-2 bg-gradient-to-br from-[hsl(var(--primary)_/_0.1)] to-[hsl(var(--primary)_/_0.05)] rounded-lg">
-                <TrendingUp className="h-5 w-5 text-[hsl(var(--primary))]" />
+      {/* ── Pipeline + Áreas ── */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+        <Card className="border-border bg-card shadow-sm fade-in" style={{ animationDelay: '0.3s' }}>
+          <CardHeader className="pb-3">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-primary/8 dark:bg-primary/20 rounded-lg">
+                <TrendingUp className="h-4 w-4 text-primary" strokeWidth={2} />
               </div>
               <div>
-                <CardTitle className="text-lg font-bold" style={{ fontFamily: "'Playfair Display', serif" }}>
+                <CardTitle className="text-base font-semibold" style={{}}>
                   Pipeline de Leads
                 </CardTitle>
-                <CardDescription className="text-sm text-[hsl(var(--muted-foreground))]">Distribuição por status no funil</CardDescription>
+                <CardDescription>Distribuição por status no funil</CardDescription>
               </div>
             </div>
           </CardHeader>
@@ -395,15 +344,15 @@ const Dashboard = () => {
               const percentage = metrics.totalLeads > 0 ? (count / metrics.totalLeads) * 100 : 0;
 
               return (
-                <div key={status} className="space-y-2.5">
+                <div key={status} className="space-y-1.5">
                   <div className="flex justify-between items-center">
-                    <span className="text-sm font-semibold text-[hsl(var(--foreground))]">{statusLabels[status]}</span>
-                    <div className="flex items-center space-x-3">
-                      <span className="text-sm font-mono font-bold text-[hsl(var(--muted-foreground))]">{count}</span>
-                      <span className="text-xs text-[hsl(var(--muted-foreground))]">({percentage.toFixed(0)}%)</span>
+                    <span className="text-sm font-medium text-foreground">{statusLabels[status]}</span>
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-semibold tabular-nums text-foreground">{count}</span>
+                      <span className="text-xs text-muted-foreground w-10 text-right">({percentage.toFixed(0)}%)</span>
                     </div>
                   </div>
-                  <div className="relative h-3 bg-[hsl(var(--muted))] rounded-full overflow-hidden">
+                  <div className="relative h-2 bg-muted rounded-full overflow-hidden">
                     <div
                       className={`absolute inset-y-0 left-0 bg-gradient-to-r ${statusColors[status]} rounded-full transition-all duration-500 ease-out`}
                       style={{ width: `${percentage}%` }}
@@ -415,17 +364,17 @@ const Dashboard = () => {
           </CardContent>
         </Card>
 
-        <Card className="border-[hsl(var(--card-border))] bg-[hsl(var(--card))] shadow-premium fade-in" style={{ animationDelay: '0.6s' }}>
-          <CardHeader>
-            <div className="flex items-center space-x-3">
-              <div className="p-2 bg-gradient-to-br from-[hsl(var(--accent)_/_0.15)] to-[hsl(var(--accent)_/_0.05)] rounded-lg">
-                <BarChart3 className="h-5 w-5 text-[hsl(var(--accent))]" />
+        <Card className="border-border bg-card shadow-sm fade-in" style={{ animationDelay: '0.35s' }}>
+          <CardHeader className="pb-3">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
+                <BarChart3 className="h-4 w-4 text-blue-600 dark:text-blue-400" strokeWidth={2} />
               </div>
               <div>
-                <CardTitle className="text-lg font-bold" style={{ fontFamily: "'Playfair Display', serif" }}>
+                <CardTitle className="text-base font-semibold" style={{}}>
                   Áreas Jurídicas
                 </CardTitle>
-                <CardDescription className="text-sm text-[hsl(var(--muted-foreground))]">Leads por especialização</CardDescription>
+                <CardDescription>Leads por especialização</CardDescription>
               </div>
             </div>
           </CardHeader>
@@ -433,12 +382,12 @@ const Dashboard = () => {
             {metrics.leadsPorArea.slice(0, 5).map((area, index) => (
               <div
                 key={index}
-                className="flex justify-between items-center p-3 rounded-xl bg-[hsl(var(--muted)_/_0.3)] hover:bg-[hsl(var(--muted)_/_0.5)] transition-all duration-300 group"
+                className="flex justify-between items-center p-2.5 rounded-lg bg-muted/40 hover:bg-muted/70 transition-colors"
               >
-                <span className="text-sm font-semibold text-[hsl(var(--foreground))] group-hover:text-[hsl(var(--accent))] transition-colors">
+                <span className="text-sm font-medium text-foreground">
                   {area.area}
                 </span>
-                <Badge className="bg-gradient-to-r from-[hsl(var(--accent))] to-[hsl(38_92%_42%)] text-[hsl(var(--primary))] border-0 font-bold px-3 py-1">
+                <Badge variant="info">
                   {area.total}
                 </Badge>
               </div>
@@ -487,25 +436,23 @@ const Dashboard = () => {
         </div>
       </Suspense>
 
-      {/* Performance dos Agentes */}
-      <Card className="border-[hsl(var(--card-border))] bg-[hsl(var(--card))] shadow-premium fade-in" style={{ animationDelay: '0.7s' }}>
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-3">
-              <div className="p-2 bg-gradient-to-br from-[hsl(var(--accent)_/_0.15)] to-[hsl(var(--accent)_/_0.05)] rounded-lg">
-                <Bot className="h-6 w-6 text-[hsl(var(--accent))]" />
-              </div>
-              <div>
-                <CardTitle className="text-xl font-bold" style={{ fontFamily: "'Playfair Display', serif" }}>
-                  Performance dos Agentes IA
-                </CardTitle>
-                <CardDescription className="text-sm mt-1 text-[hsl(var(--muted-foreground))]">Execuções recentes e taxa de sucesso</CardDescription>
-              </div>
+      {/* ── Performance dos Agentes ── */}
+      <Card className="border-border bg-card shadow-sm fade-in" style={{ animationDelay: '0.4s' }}>
+        <CardHeader className="pb-3">
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-primary/8 dark:bg-primary/20 rounded-lg">
+              <Bot className="h-4 w-4 text-primary" strokeWidth={2} />
+            </div>
+            <div>
+              <CardTitle className="text-base font-semibold" style={{}}>
+                Performance dos Agentes IA
+              </CardTitle>
+              <CardDescription>Execuções recentes e taxa de sucesso</CardDescription>
             </div>
           </div>
         </CardHeader>
         <CardContent>
-          <div className="space-y-4">
+          <div className="space-y-2">
             {metrics.execucoesRecentesAgentes.map((agente, index) => {
               const successRate = agente.total_execucoes > 0
                 ? (agente.sucesso / agente.total_execucoes) * 100
@@ -514,29 +461,29 @@ const Dashboard = () => {
               return (
                 <div
                   key={index}
-                  className="flex items-center justify-between p-4 rounded-xl bg-gradient-to-r from-[hsl(var(--muted)_/_0.3)] to-[hsl(var(--muted)_/_0.1)] hover:from-[hsl(var(--muted)_/_0.5)] hover:to-[hsl(var(--muted)_/_0.2)] transition-all duration-300 border border-[hsl(var(--border))] group"
+                  className="flex items-center justify-between p-3 rounded-lg bg-muted/40 hover:bg-muted/70 transition-colors border border-border/50"
                 >
-                  <div className="flex items-center space-x-4 flex-1">
-                    <div className="p-3 bg-gradient-to-br from-[hsl(var(--accent)_/_0.2)] to-[hsl(var(--accent)_/_0.1)] rounded-xl">
-                      <Sparkles className="h-5 w-5 text-[hsl(var(--accent))]" />
+                  <div className="flex items-center gap-3 flex-1 min-w-0">
+                    <div className="p-2 bg-primary/8 dark:bg-primary/20 rounded-md flex-shrink-0">
+                      <Sparkles className="h-4 w-4 text-primary" strokeWidth={2} />
                     </div>
-                    <div className="flex-1">
-                      <p className="font-bold text-[hsl(var(--foreground))] group-hover:text-[hsl(var(--accent))] transition-colors">
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-foreground truncate">
                         {agente.agente_nome}
                       </p>
-                      <p className="text-sm text-[hsl(var(--muted-foreground))] font-medium">
+                      <p className="text-xs text-muted-foreground">
                         {agente.total_execucoes} execuções • {successRate.toFixed(0)}% sucesso
                       </p>
                     </div>
                   </div>
-                  <div className="flex gap-2.5">
-                    <Badge className="bg-emerald-500/15 text-emerald-200 border border-emerald-400/30 font-bold px-3 py-1.5">
-                      <CheckCircle className="h-3.5 w-3.5 mr-1.5" />
+                  <div className="flex gap-2 flex-shrink-0">
+                    <Badge variant="success" className="gap-1">
+                      <CheckCircle className="h-3 w-3" />
                       {agente.sucesso}
                     </Badge>
                     {agente.erro > 0 && (
-                      <Badge variant="destructive" className="font-bold px-3 py-1.5">
-                        <AlertTriangle className="h-3.5 w-3.5 mr-1.5" />
+                      <Badge variant="destructive" className="gap-1">
+                        <AlertTriangle className="h-3 w-3" />
                         {agente.erro}
                       </Badge>
                     )}

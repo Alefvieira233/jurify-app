@@ -21,7 +21,9 @@ import {
   FlaskConical,
   Target,
   Clock,
+  Search,
 } from 'lucide-react';
+import { cn } from '@/lib/utils';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -36,6 +38,7 @@ interface SidebarProps {
 const Sidebar = ({ activeSection, onSectionChange }: SidebarProps) => {
   const { signOut, profile, user, hasPermission } = useAuth();
   const [unreadCount, setUnreadCount] = useState(0);
+
   type MenuItem = {
     id: string;
     label: string;
@@ -43,84 +46,63 @@ const Sidebar = ({ activeSection, onSectionChange }: SidebarProps) => {
     resource: string;
     action: string;
     adminOnly?: boolean;
+    group?: string;
   };
+
   const [visibleMenuItems, setVisibleMenuItems] = useState<MenuItem[]>([]);
 
   // 🔒 RBAC SEGURO: Menu baseado em permissões reais
   const allMenuItems = useMemo<MenuItem[]>(() => ([
-    { id: 'dashboard', label: 'Dashboard', icon: BarChart3, resource: 'dashboard', action: 'read' },
-    { id: 'leads', label: 'Leads', icon: Users, resource: 'leads', action: 'read' },
-    { id: 'pipeline', label: 'Pipeline Jurídico', icon: TrendingUp, resource: 'leads', action: 'read' },
-    { id: 'crm', label: 'CRM Profissional', icon: Target, resource: 'leads', action: 'read' },
-    { id: 'crm/followups', label: 'Follow-ups', icon: Clock, resource: 'leads', action: 'read' },
-    { id: 'timeline', label: 'Timeline de Conversas', icon: MessageCircle, resource: 'leads', action: 'read' },
-    { id: 'whatsapp', label: 'WhatsApp IA', icon: MessageSquare, resource: 'whatsapp', action: 'read' },
-    { id: 'contratos', label: 'Contratos', icon: FileText, resource: 'contratos', action: 'read' },
-    { id: 'agendamentos', label: 'Agendamentos', icon: Calendar, resource: 'agendamentos', action: 'read' },
-    { id: 'agentes', label: 'Agentes IA', icon: Bot, resource: 'agentes_ia', action: 'read' },
-    { id: 'relatorios', label: 'Relatórios', icon: BarChart3, resource: 'relatorios', action: 'read' },
-    { id: 'notificacoes', label: 'Notificações', icon: Bell, resource: 'notificacoes', action: 'read' },
-    { id: 'logs', label: 'Logs de Atividades', icon: Activity, resource: 'logs', action: 'read' },
-    { id: 'admin/mission-control', label: '🚀 Mission Control', icon: Rocket, resource: 'dashboard', action: 'read', adminOnly: false },
-    { id: 'admin/playground', label: '🧪 Agents Playground', icon: FlaskConical, resource: 'dashboard', action: 'read', adminOnly: false },
-    { id: 'usuarios', label: 'Usuários', icon: UserCog, resource: 'usuarios', action: 'read', adminOnly: true },
-    { id: 'integracoes', label: 'Integrações', icon: Zap, resource: 'integracoes', action: 'read', adminOnly: true },
-    { id: 'analytics', label: '📊 Analytics', icon: BarChart3, resource: 'dashboard', action: 'read' },
-    { id: 'billing', label: '💳 Billing', icon: CreditCard, resource: 'dashboard', action: 'read' },
-    { id: 'planos', label: 'Planos & Assinatura', icon: CreditCard, resource: 'dashboard', action: 'read' },
-    { id: 'configuracoes', label: 'Configurações', icon: Settings, resource: 'configuracoes', action: 'read', adminOnly: true },
+    { id: 'dashboard',          label: 'Dashboard',            icon: BarChart3,      resource: 'dashboard',    action: 'read', group: 'main' },
+    { id: 'leads',              label: 'Leads',                icon: Users,          resource: 'leads',        action: 'read', group: 'main' },
+    { id: 'pipeline',           label: 'Pipeline Jurídico',    icon: TrendingUp,     resource: 'leads',        action: 'read', group: 'main' },
+    { id: 'crm',                label: 'CRM',                  icon: Target,         resource: 'leads',        action: 'read', group: 'main' },
+    { id: 'crm/followups',      label: 'Follow-ups',           icon: Clock,          resource: 'leads',        action: 'read', group: 'main' },
+    { id: 'timeline',           label: 'Conversas',            icon: MessageCircle,  resource: 'leads',        action: 'read', group: 'main' },
+    { id: 'whatsapp',           label: 'WhatsApp IA',          icon: MessageSquare,  resource: 'whatsapp',     action: 'read', group: 'main' },
+    { id: 'contratos',          label: 'Contratos',            icon: FileText,       resource: 'contratos',    action: 'read', group: 'main' },
+    { id: 'agendamentos',       label: 'Agendamentos',         icon: Calendar,       resource: 'agendamentos', action: 'read', group: 'main' },
+    { id: 'agentes',            label: 'Agentes IA',           icon: Bot,            resource: 'agentes_ia',   action: 'read', group: 'ai' },
+    { id: 'relatorios',         label: 'Relatórios',           icon: BarChart3,      resource: 'relatorios',   action: 'read', group: 'insights' },
+    { id: 'analytics',          label: 'Analytics',            icon: Activity,       resource: 'dashboard',    action: 'read', group: 'insights' },
+    { id: 'notificacoes',       label: 'Notificações',         icon: Bell,           resource: 'notificacoes', action: 'read', group: 'insights' },
+    { id: 'billing',            label: 'Billing',              icon: CreditCard,     resource: 'dashboard',    action: 'read', group: 'account' },
+    { id: 'planos',             label: 'Planos',               icon: CreditCard,     resource: 'dashboard',    action: 'read', group: 'account' },
+    { id: 'admin/mission-control', label: 'Mission Control',   icon: Rocket,         resource: 'dashboard',    action: 'read', group: 'admin' },
+    { id: 'admin/playground',   label: 'Agents Playground',   icon: FlaskConical,   resource: 'dashboard',    action: 'read', group: 'admin' },
+    { id: 'usuarios',           label: 'Usuários',             icon: UserCog,        resource: 'usuarios',     action: 'read', group: 'admin', adminOnly: true },
+    { id: 'integracoes',        label: 'Integrações',          icon: Zap,            resource: 'integracoes',  action: 'read', group: 'admin', adminOnly: true },
+    { id: 'logs',               label: 'Logs',                 icon: Activity,       resource: 'logs',         action: 'read', group: 'admin', adminOnly: true },
+    { id: 'configuracoes',      label: 'Configurações',        icon: Settings,       resource: 'configuracoes',action: 'read', group: 'admin', adminOnly: true },
   ]), []);
 
   // Filtrar menu baseado em permissões
   useEffect(() => {
     const filterMenuItems = async () => {
-      if (!user) {
-        setVisibleMenuItems([]);
-        return;
-      }
+      if (!user) { setVisibleMenuItems([]); return; }
 
-      // 🔓 FALLBACK: Se não tem profile, mostrar itens básicos
       if (!profile) {
         console.warn('⚠️ Profile não encontrado, mostrando menu padrão');
-        const defaultItems = allMenuItems.filter(item => !item.adminOnly);
-        setVisibleMenuItems(defaultItems);
+        setVisibleMenuItems(allMenuItems.filter(item => !item.adminOnly));
         return;
       }
 
-      const filteredItems = [];
+      const filteredItems: MenuItem[] = [];
 
       for (const item of allMenuItems) {
-        // Admin tem acesso a tudo
-        if (profile.role === 'admin') {
-          filteredItems.push(item);
-          continue;
-        }
+        if (profile.role === 'admin') { filteredItems.push(item); continue; }
+        if (item.adminOnly) continue;
 
-        // Itens só para admin
-        if (item.adminOnly) {
-          continue;
-        }
-
-        // 🔓 FALLBACK: Tentar verificar permissão, se falhar, liberar acesso básico
         try {
           const hasAccess = await hasPermission(item.resource, item.action);
-          if (hasAccess) {
-            filteredItems.push(item);
-          }
+          if (hasAccess) filteredItems.push(item);
         } catch (_error) {
-          console.warn(`⚠️ Erro ao verificar permissão para ${item.resource}, liberando acesso padrão`);
-          // Se erro ao verificar permissão, liberar itens não-admin
-          if (!item.adminOnly) {
-            filteredItems.push(item);
-          }
+          if (!item.adminOnly) filteredItems.push(item);
         }
       }
 
-      // 🔓 FALLBACK: Se não conseguiu nenhum item, mostrar todos não-admin
       if (filteredItems.length === 0) {
-        console.warn('⚠️ Nenhuma permissão encontrada, mostrando menu padrão');
-        const defaultItems = allMenuItems.filter(item => !item.adminOnly);
-        setVisibleMenuItems(defaultItems);
+        setVisibleMenuItems(allMenuItems.filter(item => !item.adminOnly));
       } else {
         setVisibleMenuItems(filteredItems);
       }
@@ -129,250 +111,163 @@ const Sidebar = ({ activeSection, onSectionChange }: SidebarProps) => {
     void filterMenuItems();
   }, [user, profile, hasPermission, allMenuItems]);
 
-  // Buscar contagem de notificações não lidas
+  // Notificações não lidas
   useEffect(() => {
     const fetchUnreadCount = async () => {
       if (!user?.id) return;
-
       try {
-        const { data, error } = await supabase
-          .rpc('contar_nao_lidas', { user_id: user.id });
-
-        if (!error && data !== null) {
-          setUnreadCount(data);
-        }
+        const { data, error } = await supabase.rpc('contar_nao_lidas', { user_id: user.id });
+        if (!error && data !== null) setUnreadCount(data);
       } catch (error) {
         console.error('Erro ao buscar notificações:', error);
       }
     };
 
     void fetchUnreadCount();
-
-    // Atualizar a cada 30 segundos
     const interval = setInterval(() => { void fetchUnreadCount(); }, 30000);
     return () => clearInterval(interval);
   }, [user?.id]);
 
-  const handleLogout = async () => {
-    await signOut();
-  };
+  const handleLogout = async () => { await signOut(); };
 
   return (
-    <nav aria-label="Menu principal" className="w-72 lg:w-80 bg-sidebar text-sidebar-foreground h-screen flex flex-col shadow-2xl relative overflow-hidden border-r border-sidebar-border">
-      {/* Ultra-Premium Background Effects */}
-      <div className="absolute inset-0 bg-gradient-to-br from-[hsl(var(--sidebar-primary)_/_0.08)] via-transparent to-[hsl(var(--accent)_/_0.05)] pointer-events-none" />
+    <nav
+      aria-label="Menu principal"
+      className="w-64 bg-sidebar text-sidebar-foreground h-screen flex flex-col border-r border-sidebar-border"
+    >
+      {/* ── Logo / Brand ── */}
+      <div className="h-16 flex items-center gap-3 px-5 border-b border-sidebar-border flex-shrink-0">
+        <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center flex-shrink-0 shadow-sm">
+          <Scale className="h-4 w-4 text-white" strokeWidth={2.5} />
+        </div>
+        <div className="flex-1 min-w-0">
+          <span className="text-base font-bold text-sidebar-foreground tracking-tight">
+            Jurify
+          </span>
+          <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider leading-none mt-0.5">
+            Legal Suite
+          </p>
+        </div>
+        <ThemeToggle />
+      </div>
 
-      {/* Animated Gradient Orbs */}
-      <div className="absolute -top-20 -right-20 w-80 h-80 bg-[hsl(var(--sidebar-primary)_/_0.12)] rounded-full blur-3xl animate-pulse pointer-events-none" style={{ animationDuration: '4s' }} />
-      <div className="absolute top-1/2 -left-20 w-60 h-60 bg-[hsl(var(--accent)_/_0.08)] rounded-full blur-3xl animate-pulse pointer-events-none" style={{ animationDuration: '6s', animationDelay: '2s' }} />
-
-      {/* Noise Texture */}
-      <div className="absolute inset-0 opacity-[0.015] pointer-events-none" style={{
-        backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 400 400' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' /%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' /%3E%3C/svg%3E")`
-      }} />
-
-      <div className="relative z-10 flex flex-col h-full">
-        {/* Ultra-Premium Logo Section */}
-        <div className="px-8 py-10 border-b border-white/10 backdrop-blur-sm">
-          <div className="flex items-center justify-between slide-in">
-            <div className="flex items-center space-x-4 group">
-              {/* Premium Logo with Glow */}
-              <div className="relative">
-                <div className="absolute inset-0 bg-gradient-to-br from-[hsl(var(--sidebar-primary))] to-[hsl(43_96%_42%)] rounded-2xl blur-lg opacity-50 group-hover:opacity-75 transition-opacity duration-500" />
-                <div className="relative bg-gradient-to-br from-[hsl(var(--sidebar-primary))] via-[hsl(43_96%_56%)] to-[hsl(43_96%_42%)] p-3.5 rounded-2xl shadow-2xl">
-                  <Scale className="h-8 w-8 text-[hsl(var(--sidebar-primary-foreground))]" strokeWidth={2.5} />
-                </div>
-              </div>
-
-              <div>
-                <h1 className="text-3xl font-bold text-sidebar-foreground tracking-tight mb-0.5" style={{ fontFamily: "'Cormorant Garamond', serif", letterSpacing: '-0.02em' }}>
-                  Jurify
-                </h1>
-                <div className="flex items-center space-x-2">
-                  <div className="h-1 w-1 rounded-full bg-sidebar-primary" />
-                  <p className="text-xs text-sidebar-foreground/60 font-medium tracking-wide uppercase" style={{ fontSize: '10px' }}>
-                    Premium Legal Suite
-                  </p>
-                </div>
-              </div>
-            </div>
-            <ThemeToggle />
+      {/* ── Plan badge + Search ── */}
+      <div className="px-3 pt-3 pb-2 space-y-2 border-b border-sidebar-border flex-shrink-0">
+        <div className="flex items-center justify-between px-3 py-2 rounded-md bg-primary/5 border border-primary/10">
+          <span className="text-xs font-semibold text-primary">Enterprise</span>
+          <div className="flex items-center gap-1.5">
+            <span className="status-dot status-dot-green" />
+            <span className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider">
+              Ativo
+            </span>
           </div>
-
-          {/* Premium Badge */}
-          <div className="mt-6 px-4 py-2.5 bg-gradient-to-r from-sidebar-primary/10 to-accent/5 rounded-none border border-sidebar-primary/20 backdrop-blur-sm">
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-semibold text-sidebar-foreground/90">Plano Enterprise</span>
-              <div className="flex items-center space-x-1.5">
-                <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
-                <span className="text-[10px] text-sidebar-foreground/60 font-medium uppercase tracking-wider">Ativo</span>
-              </div>
-            </div>
-          </div>
-
-          {/* Quick Search Trigger */}
-          <button
-            onClick={() => document.dispatchEvent(new KeyboardEvent('keydown', { key: 'k', ctrlKey: true, bubbles: true }))}
-            className="mt-4 w-full flex items-center gap-3 px-4 py-2.5 rounded-lg border border-sidebar-foreground/10 bg-sidebar-foreground/5 hover:bg-sidebar-foreground/10 transition-colors text-sidebar-foreground/50 hover:text-sidebar-foreground/70"
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
-            <span className="text-xs flex-1 text-left">Buscar...</span>
-            <kbd className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-sidebar-foreground/10 text-sidebar-foreground/40">Ctrl+K</kbd>
-          </button>
         </div>
 
-        {/* Ultra-Premium Navigation */}
-        <nav className="flex-1 px-6 py-8 space-y-2 overflow-y-auto scrollbar-thin">
+        <button
+          type="button"
+          onClick={() =>
+            document.dispatchEvent(
+              new KeyboardEvent('keydown', { key: 'k', ctrlKey: true, bubbles: true })
+            )
+          }
+          className="w-full flex items-center gap-2.5 px-3 py-2 rounded-md border border-sidebar-border bg-sidebar hover:bg-sidebar-accent text-muted-foreground hover:text-sidebar-foreground transition-colors text-sm"
+        >
+          <Search className="h-3.5 w-3.5 flex-shrink-0" />
+          <span className="flex-1 text-left text-xs">Buscar...</span>
+          <kbd className="hidden sm:inline text-[10px] font-mono px-1.5 py-0.5 rounded bg-sidebar-accent text-muted-foreground">
+            ⌘K
+          </kbd>
+        </button>
+      </div>
+
+      {/* ── Navigation ── */}
+      <nav className="flex-1 px-3 py-3 overflow-y-auto scrollbar-thin" role="navigation">
+        <ul className="space-y-0.5" role="list">
           {visibleMenuItems.map((item, index) => {
             const Icon = item.icon;
-            const isNotifications = item.id === 'notificacoes';
             const isActive = activeSection === item.id;
+            const isNotifications = item.id === 'notificacoes';
 
             return (
-              <button
-                key={item.id}
-                onClick={() => onSectionChange(item.id)}
-                aria-current={isActive ? 'page' : undefined}
-                aria-label={`Navegar para ${item.label}${isNotifications && unreadCount > 0 ? `, ${unreadCount} não lidas` : ''}`}
-                className={`
-                  w-full group relative flex items-center justify-between px-5 py-4 rounded-none text-left
-                  transition-all duration-500 ease-out
-                  ${isActive
-                    ? 'bg-gradient-to-r from-sidebar-primary via-primary to-accent text-sidebar-primary-foreground shadow-2xl'
-                    : 'text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-sidebar-foreground/5 hover:backdrop-blur-sm'
-                  }
-                `}
-                style={{
-                  animationDelay: `${index * 0.04}s`,
-                  animation: 'slideIn 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards'
-                }}
-              >
-                {/* Active Glow Effect */}
-                {isActive && (
-                  <div className="absolute inset-0 bg-gradient-to-r from-[hsl(var(--sidebar-primary))] to-[hsl(43_96%_56%)] rounded-2xl blur-xl opacity-40 -z-10" />
-                )}
+              <li key={item.id} role="listitem">
+                <button
+                  type="button"
+                  onClick={() => onSectionChange(item.id)}
+                  aria-current={isActive ? 'page' : undefined}
+                  aria-label={`Navegar para ${item.label}${isNotifications && unreadCount > 0 ? `, ${unreadCount} não lidas` : ''}`}
+                  className={cn(
+                    'w-full flex items-center gap-3 px-3 py-2.5 rounded-md text-sm transition-colors duration-150 text-left',
+                    isActive
+                      ? 'bg-primary text-primary-foreground font-medium shadow-sm'
+                      : 'text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-foreground font-normal'
+                  )}
+                  style={{ animationDelay: `${index * 0.03}s` }}
+                >
+                  <Icon
+                    className={cn(
+                      'h-4 w-4 flex-shrink-0 transition-none',
+                      isActive ? 'text-primary-foreground' : 'text-sidebar-foreground/50'
+                    )}
+                  />
 
-                <div className="flex items-center space-x-4 flex-1 min-w-0">
-                  {/* Icon Container */}
-                  <div className={`
-                    p-2.5 rounded-xl transition-all duration-500
-                    ${isActive
-                      ? 'bg-[hsl(var(--sidebar-primary-foreground)_/_0.15)] scale-110'
-                      : 'bg-white/5 group-hover:bg-white/10 group-hover:scale-105'
-                    }
-                  `}>
-                    <Icon className={`h-5 w-5 ${isActive ? 'stroke-[2.8]' : 'stroke-[2.2]'}`} />
-                  </div>
+                  <span className="flex-1 truncate">{item.label}</span>
 
-                  {/* Label */}
-                  <span className={`
-                    text-sm truncate transition-all duration-300
-                    ${isActive ? 'font-bold tracking-wide' : 'font-medium group-hover:font-semibold'}
-                  `}>
-                    {item.label}
-                  </span>
-                </div>
-
-                {/* Right Side Elements */}
-                <div className="flex items-center space-x-3">
                   {isNotifications && unreadCount > 0 && (
                     <Badge
                       variant="destructive"
-                      className="pulse-subtle px-2.5 py-1 text-xs font-bold shadow-lg"
+                      className="h-5 min-w-5 px-1.5 text-[10px] font-bold"
                     >
                       {unreadCount > 99 ? '99+' : unreadCount}
                     </Badge>
                   )}
-
-                  {isActive && (
-                    <div className="flex items-center space-x-0.5">
-                      <div className="w-1 h-1 rounded-full bg-[hsl(var(--sidebar-primary-foreground))] animate-pulse" />
-                      <div className="w-1 h-1 rounded-full bg-[hsl(var(--sidebar-primary-foreground))] animate-pulse" style={{ animationDelay: '0.2s' }} />
-                      <div className="w-1 h-1 rounded-full bg-[hsl(var(--sidebar-primary-foreground))] animate-pulse" style={{ animationDelay: '0.4s' }} />
-                    </div>
-                  )}
-                </div>
-
-                {/* Hover Shine Effect */}
-                <div className="absolute inset-0 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none">
-                  <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000" />
-                </div>
-              </button>
+                </button>
+              </li>
             );
           })}
-        </nav>
+        </ul>
+      </nav>
 
-        {/* Ultra-Premium User Profile Section */}
-        <div className="px-6 pb-8 pt-6 border-t border-white/10 space-y-4">
-          {/* Premium User Card */}
-          <div className="relative group">
-            {/* Glow Effect */}
-            <div className="absolute inset-0 bg-gradient-to-r from-[hsl(var(--sidebar-primary))] to-[hsl(43_96%_56%)] rounded-2xl blur-xl opacity-0 group-hover:opacity-30 transition-opacity duration-500" />
-
-            <div className="relative bg-sidebar-foreground/5 backdrop-blur-md rounded-none p-5 border border-sidebar-foreground/10 hover:border-sidebar-foreground/20 transition-all duration-500 cursor-pointer overflow-hidden">
-              {/* Shine Effect */}
-              <div className="absolute inset-0 bg-gradient-to-r from-transparent via-sidebar-foreground/5 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000" />
-
-              <div className="relative flex items-center space-x-4">
-                {/* Premium Avatar */}
-                <div className="relative">
-                  {/* Avatar Glow */}
-                  <div className="absolute inset-0 bg-gradient-to-br from-sidebar-primary to-primary rounded-none blur-md opacity-60" />
-
-                  {/* Avatar Container */}
-                  <div className="relative w-14 h-14 bg-gradient-to-br from-sidebar-primary via-primary to-accent rounded-none flex items-center justify-center shadow-2xl ring-2 ring-sidebar-foreground/30 group-hover:ring-sidebar-foreground/50 transition-all duration-500">
-                    <span className="text-xl font-bold text-sidebar-primary-foreground">
-                      {profile?.nome_completo?.charAt(0) || user?.email?.charAt(0) || 'U'}
-                    </span>
-                  </div>
-
-                  {/* Premium Online Indicator */}
-                  <div className="absolute -bottom-1 -right-1 flex items-center justify-center">
-                    <div className="w-5 h-5 bg-green-500 rounded-full border-[3px] border-[hsl(var(--sidebar-background))] shadow-lg">
-                      <div className="w-full h-full rounded-full bg-green-400 animate-ping opacity-75" />
-                    </div>
-                  </div>
-                </div>
-
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-bold text-sidebar-foreground truncate group-hover:text-sidebar-primary transition-colors mb-1">
-                    {profile?.nome_completo || user?.email || 'Usuário'}
-                  </p>
-                  <div className="flex items-center space-x-2.5">
-                    <div className="flex items-center space-x-1.5">
-                      <div className="w-1.5 h-1.5 rounded-full bg-sidebar-primary" />
-                      <p className="text-[11px] text-sidebar-foreground/60 font-medium uppercase tracking-wider">
-                        {profile?.role === 'admin' ? 'Administrador' : 'Usuário'}
-                      </p>
-                    </div>
-                    {profile?.role === 'admin' && (
-                      <Badge className="bg-gradient-to-r from-[hsl(var(--sidebar-primary))] to-[hsl(43_96%_56%)] text-[hsl(var(--sidebar-primary-foreground))] px-2 py-0.5 text-[9px] font-black uppercase tracking-wider border-0 shadow-lg">
-                        ADMIN
-                      </Badge>
-                    )}
-                  </div>
-                </div>
-              </div>
-            </div>
+      {/* ── User Profile + Logout ── */}
+      <div className="px-3 py-4 border-t border-sidebar-border space-y-1 flex-shrink-0">
+        {/* User info row */}
+        <div className="flex items-center gap-3 px-3 py-2.5 rounded-md hover:bg-sidebar-accent transition-colors cursor-default">
+          {/* Avatar */}
+          <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center flex-shrink-0 ring-2 ring-primary/20">
+            <span className="text-xs font-bold text-white">
+              {profile?.nome_completo?.charAt(0).toUpperCase() ||
+                user?.email?.charAt(0).toUpperCase() ||
+                'U'}
+            </span>
           </div>
 
-          {/* Premium Logout Button */}
-          <Button
-            onClick={() => { void handleLogout(); }}
-            variant="ghost"
-            size="sm"
-            className="w-full justify-center text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-sidebar-foreground/10 hover:backdrop-blur-sm transition-all duration-500 py-3.5 rounded-none group relative overflow-hidden border border-sidebar-foreground/10 hover:border-sidebar-foreground/20"
-          >
-            {/* Button Glow */}
-            <div className="absolute inset-0 bg-gradient-to-r from-red-500/10 to-orange-500/10 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-
-            <LogOut className="relative h-4 w-4 mr-2.5 group-hover:-translate-x-0.5 transition-transform duration-300" strokeWidth={2.5} />
-            <span className="relative font-semibold tracking-wide">Sair da Conta</span>
-
-            {/* Shine Effect */}
-            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-sidebar-foreground/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700" />
-          </Button>
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-medium text-sidebar-foreground truncate leading-tight">
+              {profile?.nome_completo || user?.email || 'Usuário'}
+            </p>
+            <div className="flex items-center gap-1.5 mt-0.5">
+              <span className="status-dot status-dot-green" style={{ width: '6px', height: '6px' }} />
+              <p className="text-[11px] text-muted-foreground truncate">
+                {profile?.role === 'admin' ? 'Administrador' : 'Usuário'}
+              </p>
+              {profile?.role === 'admin' && (
+                <Badge className="bg-primary/10 text-primary border-primary/20 px-1.5 py-0 text-[9px] font-bold uppercase tracking-wide ml-auto">
+                  Admin
+                </Badge>
+              )}
+            </div>
+          </div>
         </div>
+
+        {/* Logout */}
+        <Button
+          onClick={() => { void handleLogout(); }}
+          variant="ghost"
+          size="sm"
+          className="w-full justify-start text-muted-foreground hover:text-destructive hover:bg-destructive/8 transition-colors h-9 px-3"
+        >
+          <LogOut className="h-4 w-4 mr-2 flex-shrink-0" strokeWidth={2} />
+          <span className="text-sm">Sair da Conta</span>
+        </Button>
       </div>
     </nav>
   );
