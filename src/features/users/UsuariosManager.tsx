@@ -42,10 +42,10 @@ const UsuariosManager = () => {
   const [isEditarUsuarioOpen, setIsEditarUsuarioOpen] = useState(false);
   const [isPermissoesOpen, setIsPermissoesOpen] = useState(false);
 
-  // ? RBAC: Verificaï¿½ï¿½o de permissï¿½es real
+  // ? RBAC: Verificação de permissões real
   const { can, canDeleteUsers, userRole } = useRBAC();
 
-  // Sï¿½ pode visualizar usuï¿½rios se tiver permissï¿½o de read
+  // Só pode visualizar usuários se tiver permissão de read
   const canViewUsers = can('usuarios', 'read');
 
   const { data: usuarios = [], isLoading } = useQuery({
@@ -76,9 +76,9 @@ const UsuariosManager = () => {
 
   const deleteMutation = useMutation({
     mutationFn: async (userId: string) => {
-      // Verificaï¿½ï¿½o adicional de seguranï¿½a
+      // Verificação adicional de segurança
       if (!canDeleteUsers) {
-        throw new Error('Sem permissï¿½o para desativar usuï¿½rios');
+        throw new Error('Sem permissão para desativar usuários');
       }
 
       const { error } = await supabase
@@ -91,28 +91,28 @@ const UsuariosManager = () => {
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ['usuarios'] });
       toast({
-        title: "Usuï¿½rio desativado",
-        description: "O usuï¿½rio foi desativado com sucesso.",
+        title: "Usuário desativado",
+        description: "O usuário foi desativado com sucesso.",
       });
     },
     onError: (_error) => {
       toast({
         title: "Erro",
-        description: "Erro ao desativar usuï¿½rio.",
+        description: "Erro ao desativar usuário.",
         variant: "destructive",
       });
       // Error logged to monitoring
     }
   });
 
-  // Se nï¿½o tem permissï¿½o para visualizar, mostrar mensagem
+  // Se não tem permissão para visualizar, mostrar mensagem
   if (!canViewUsers) {
     return (
       <div className="p-6">
         <Alert variant="destructive">
           <ShieldAlert className="h-4 w-4" />
           <AlertDescription>
-            Vocï¿½ nï¿½o tem permissï¿½o para acessar esta seï¿½ï¿½o.
+            Você não tem permissão para acessar esta seção.
             <br />
             <span className="text-sm text-gray-500">Role atual: {userRole}</span>
           </AlertDescription>
@@ -142,7 +142,7 @@ const UsuariosManager = () => {
       administrador: 'Administrador',
       advogado: 'Advogado',
       comercial: 'Comercial',
-      pos_venda: 'Pï¿½s-venda',
+      pos_venda: 'Pós-venda',
       suporte: 'Suporte'
     };
     return labels[role as keyof typeof labels] || role;
@@ -152,20 +152,20 @@ const UsuariosManager = () => {
     <div className="p-6 space-y-6">
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Gerenciamento de Usuï¿½rios</h1>
-          <p className="text-gray-600 mt-1">Gerencie usuï¿½rios e suas permissï¿½es no sistema</p>
+          <h1 className="text-2xl font-bold text-gray-900">Gerenciamento de Usuários</h1>
+          <p className="text-gray-600 mt-1">Gerencie usuários e suas permissões no sistema</p>
         </div>
         {can('usuarios', 'create') && (
           <Dialog open={isNovoUsuarioOpen} onOpenChange={setIsNovoUsuarioOpen}>
             <DialogTrigger asChild>
               <Button className="bg-amber-500 hover:bg-amber-600">
                 <Plus className="h-4 w-4 mr-2" />
-                Novo Usuï¿½rio
+                Novo Usuário
               </Button>
             </DialogTrigger>
             <DialogContent className="max-w-2xl">
               <DialogHeader>
-                <DialogTitle>Novo Usuï¿½rio</DialogTitle>
+                <DialogTitle>Novo Usuário</DialogTitle>
               </DialogHeader>
               <NovoUsuarioForm onClose={() => setIsNovoUsuarioOpen(false)} />
             </DialogContent>
@@ -190,16 +190,16 @@ const UsuariosManager = () => {
         </CardContent>
       </Card>
 
-      {/* Tabela de Usuï¿½rios */}
+      {/* Tabela de Usuários */}
       <Card>
         <CardHeader>
-          <CardTitle>Usuï¿½rios Cadastrados ({filteredUsuarios.length})</CardTitle>
+          <CardTitle>Usuários Cadastrados ({filteredUsuarios.length})</CardTitle>
         </CardHeader>
         <CardContent>
           {isLoading ? (
             <div className="text-center py-8">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-amber-500 mx-auto"></div>
-              <p className="mt-2 text-gray-600">Carregando usuï¿½rios...</p>
+              <p className="mt-2 text-gray-600">Carregando usuários...</p>
             </div>
           ) : (
             <Table>
@@ -210,8 +210,8 @@ const UsuariosManager = () => {
                   <TableHead>Cargo</TableHead>
                   <TableHead>Roles</TableHead>
                   <TableHead>Status</TableHead>
-                  <TableHead>ï¿½ltimo Acesso</TableHead>
-                  <TableHead className="w-[50px]">Aï¿½ï¿½es</TableHead>
+                  <TableHead>Último Acesso</TableHead>
+                  <TableHead className="w-[50px]">Ações</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>

@@ -27,8 +27,8 @@ const CreateAdminUser = () => {
   const createAdminUser = async () => {
     if (!tenantId) {
       toast({
-        title: 'Tenant nao encontrado',
-        description: 'Refaca o login para continuar.',
+        title: 'Tenant não encontrado',
+        description: 'Refaça o login para continuar.',
         variant: 'destructive'
       });
       return;
@@ -39,7 +39,7 @@ const CreateAdminUser = () => {
     try {
       const user = await createAdminUserInAuth(adminData);
       if (!user?.id) {
-        throw new Error('Usuario nao criado');
+        throw new Error('Usuário não criado');
       }
 
       setAdminCreated(true);

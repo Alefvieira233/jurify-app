@@ -63,7 +63,7 @@ const EnhancedAIChat: React.FC<EnhancedAIChatProps> = ({
 
         try {
             if (!user || !profile?.tenant_id) {
-                throw new Error('Usuario nao autenticado');
+                throw new Error('Usuário não autenticado');
             }
 
             const systemPrompt = `Voce e ${agentName}, especialista em ${agentArea || 'direito'}. Responda de forma objetiva e profissional.`;

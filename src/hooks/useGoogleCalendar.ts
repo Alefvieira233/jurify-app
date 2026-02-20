@@ -136,7 +136,7 @@ export const useGoogleCalendar = () => {
     if (!user?.id) {
       toast({
         title: 'Erro',
-        description: 'Usuario nao autenticado.',
+        description: 'Usuário não autenticado.',
         variant: 'destructive',
       });
       return;

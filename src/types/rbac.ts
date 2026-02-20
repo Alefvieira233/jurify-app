@@ -95,14 +95,14 @@ export const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
 export const ROLE_LABELS: Record<UserRole, string> = {
   admin: 'Administrador',
   manager: 'Gerente',
-  user: 'Usuario',
+  user: 'Usuário',
   viewer: 'Visualizador',
 };
 
 // Descricoes dos roles
 export const ROLE_DESCRIPTIONS: Record<UserRole, string> = {
-  admin: 'Acesso total ao sistema, incluindo gerenciamento de usuarios e configuracoes',
-  manager: 'Pode gerenciar operacoes e leads, mas nao usuarios ou configuracoes',
+  admin: 'Acesso total ao sistema, incluindo gerenciamento de usuários e configurações',
+  manager: 'Pode gerenciar operações e leads, mas não usuários ou configurações',
   user: 'Acesso as funcionalidades basicas de leads e agentes',
   viewer: 'Acesso somente leitura ao sistema',
 };

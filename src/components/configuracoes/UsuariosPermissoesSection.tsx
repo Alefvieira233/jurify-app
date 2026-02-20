@@ -90,7 +90,7 @@ type RolePermission = {
     { value: 'administrador', label: 'Administrador' },
     { value: 'advogado', label: 'Advogado' },
     { value: 'comercial', label: 'Comercial' },
-    { value: 'pos_venda', label: 'Pos-venda' },
+    { value: 'pos_venda', label: 'Pós-venda' },
     { value: 'suporte', label: 'Suporte' },
   ];
 
@@ -98,9 +98,9 @@ type RolePermission = {
     { value: 'leads', label: 'Leads' },
     { value: 'contratos', label: 'Contratos' },
     { value: 'agendamentos', label: 'Agendamentos' },
-    { value: 'relatorios', label: 'Relatorios' },
+    { value: 'relatorios', label: 'Relatórios' },
     { value: 'whatsapp_ia', label: 'WhatsApp IA' },
-    { value: 'usuarios', label: 'Usuarios' },
+    { value: 'usuarios', label: 'Usuários' },
   ];
 
   const getRoleLabel = (role: string) => {
@@ -126,8 +126,8 @@ type RolePermission = {
     return (
       <Card>
         <CardHeader>
-          <CardTitle>Usuarios e permissoes</CardTitle>
-          <CardDescription>Voce nao tem permissao para acessar esta area.</CardDescription>
+          <CardTitle>Usuários e permissões</CardTitle>
+          <CardDescription>Você não tem permissão para acessar esta área.</CardDescription>
         </CardHeader>
       </Card>
     );

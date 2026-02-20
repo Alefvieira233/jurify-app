@@ -37,7 +37,7 @@ export const useSystemSettings = () => {
 
   const updateSettingMutation = useMutation({
     mutationFn: async ({ key, value }: { key: string; value: string }) => {
-      if (!tenantId) throw new Error('Tenant nao encontrado');
+      if (!tenantId) throw new Error('Tenant não encontrado');
 
       const { data, error } = await supabase.rpc('update_system_setting', {
         _key: key,
@@ -53,13 +53,13 @@ export const useSystemSettings = () => {
       void queryClient.invalidateQueries({ queryKey: ['system-settings', tenantId] });
       toast({
         title: 'Configuracao atualizada',
-        description: 'A configuracao foi salva com sucesso.',
+        description: 'A configuração foi salva com sucesso.',
       });
     },
     onError: (error) => {
       toast({
         title: 'Erro',
-        description: 'Erro ao salvar configuracao.',
+        description: 'Erro ao salvar configuração.',
         variant: 'destructive',
       });
       console.error('Failed to update system setting:', error);

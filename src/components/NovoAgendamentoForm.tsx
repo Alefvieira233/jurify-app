@@ -90,12 +90,12 @@ export const NovoAgendamentoForm = ({ onClose }: NovoAgendamentoFormProps) => {
 
   const onSubmit = (data: NovoAgendamentoFormData) => {
     if (!tenantId) {
-      toast.error('Tenant nÃ£o encontrado. RefaÃ§a o login.');
+      toast.error('Tenant não encontrado. Refaça o login.');
       return;
     }
 
     if (!selectedDate || !selectedTime) {
-      toast.error('Por favor, selecione data e horÃ¡rio');
+      toast.error('Por favor, selecione data e horário');
       return;
     }
 
@@ -114,11 +114,11 @@ export const NovoAgendamentoForm = ({ onClose }: NovoAgendamentoFormProps) => {
   const areasJuridicas = [
     'Direito Civil',
     'Direito Trabalhista',
-    'Direito de FamÃ­lia',
-    'Direito PrevidenciÃ¡rio',
+    'Direito de Família',
+    'Direito Previdenciário',
     'Direito Empresarial',
-    'Direito TributÃ¡rio',
-    'Direito ImobiliÃ¡rio',
+    'Direito Tributário',
+    'Direito Imobiliário',
     'Direito do Consumidor'
   ];
 
@@ -156,14 +156,14 @@ export const NovoAgendamentoForm = ({ onClose }: NovoAgendamentoFormProps) => {
             ))}
           </SelectContent>
         </Select>
-        {errors.lead_id && <p className="text-red-500 text-sm">Cliente Ã© obrigatÃ³rio</p>}
+        {errors.lead_id && <p className="text-red-500 text-sm">Cliente é obrigatório</p>}
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="area_juridica">Ãrea JurÃ­dica</Label>
+        <Label htmlFor="area_juridica">Área Jurídica</Label>
         <Select onValueChange={(value) => setValue('area_juridica', value, { shouldValidate: true })}>
           <SelectTrigger>
-            <SelectValue placeholder="Selecione a Ã¡rea jurÃ­dica" />
+            <SelectValue placeholder="Selecione a área jurídica" />
           </SelectTrigger>
           <SelectContent>
             {areasJuridicas.map((area) => (
@@ -173,12 +173,12 @@ export const NovoAgendamentoForm = ({ onClose }: NovoAgendamentoFormProps) => {
             ))}
           </SelectContent>
         </Select>
-        {errors.area_juridica && <p className="text-red-500 text-sm">Ãrea jurÃ­dica Ã© obrigatÃ³ria</p>}
+        {errors.area_juridica && <p className="text-red-500 text-sm">Área jurídica é obrigatória</p>}
       </div>
 
       <div className="grid grid-cols-2 gap-4">
         <div className="space-y-2">
-          <Label>Data da ReuniÃ£o</Label>
+          <Label>Data da Reunião</Label>
           <Popover>
             <PopoverTrigger asChild>
               <Button
@@ -205,10 +205,10 @@ export const NovoAgendamentoForm = ({ onClose }: NovoAgendamentoFormProps) => {
         </div>
 
         <div className="space-y-2">
-          <Label>HorÃ¡rio</Label>
+          <Label>Horário</Label>
           <Select value={selectedTime} onValueChange={setSelectedTime}>
             <SelectTrigger>
-              <SelectValue placeholder="Selecione o horÃ¡rio" />
+              <SelectValue placeholder="Selecione o horário" />
             </SelectTrigger>
             <SelectContent>
               {horarios.map((horario) => (
@@ -222,10 +222,10 @@ export const NovoAgendamentoForm = ({ onClose }: NovoAgendamentoFormProps) => {
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="responsavel">Advogado ResponsÃ¡vel</Label>
+        <Label htmlFor="responsavel">Advogado Responsável</Label>
         <Select onValueChange={(value) => setValue('responsavel', value, { shouldValidate: true })}>
           <SelectTrigger>
-            <SelectValue placeholder="Selecione o responsÃ¡vel" />
+            <SelectValue placeholder="Selecione o responsável" />
           </SelectTrigger>
           <SelectContent>
             {responsaveis.map((responsavel) => (
@@ -235,14 +235,14 @@ export const NovoAgendamentoForm = ({ onClose }: NovoAgendamentoFormProps) => {
             ))}
           </SelectContent>
         </Select>
-        {errors.responsavel && <p className="text-red-500 text-sm">ResponsÃ¡vel Ã© obrigatÃ³rio</p>}
+        {errors.responsavel && <p className="text-red-500 text-sm">Responsável é obrigatório</p>}
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="observacoes">ObservaÃ§Ãµes</Label>
+        <Label htmlFor="observacoes">Observações</Label>
         <Textarea
           {...register('observacoes')}
-          placeholder="ObservaÃ§Ãµes sobre a reuniÃ£o (opcional)"
+          placeholder="Observações sobre a reunião (opcional)"
           rows={3}
         />
       </div>

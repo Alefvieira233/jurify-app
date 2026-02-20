@@ -48,7 +48,7 @@ export const useApiKeys = () => {
 
   const criarApiKey = async (nome: string) => {
     if (!tenantId) {
-      throw new Error('Tenant nao encontrado');
+      throw new Error('Tenant não encontrado');
     }
 
     try {

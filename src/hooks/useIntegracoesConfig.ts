@@ -78,7 +78,7 @@ export const useIntegracoesConfig = () => {
       console.error('Failed to create integration:', error);
       toast({
         title: 'Erro',
-        description: 'Nao foi possivel criar a integracao.',
+        description: 'Não foi possível criar a integração.',
         variant: 'destructive',
       });
       return false;
@@ -108,7 +108,7 @@ export const useIntegracoesConfig = () => {
       console.error('Failed to update integration:', error);
       toast({
         title: 'Erro',
-        description: 'Nao foi possivel atualizar a integracao.',
+        description: 'Não foi possível atualizar a integração.',
         variant: 'destructive',
       });
       return false;
@@ -149,7 +149,7 @@ export const useIntegracoesConfig = () => {
       console.error('Failed to delete integration:', error);
       toast({
         title: 'Erro',
-        description: 'Nao foi possivel remover a integracao.',
+        description: 'Não foi possível remover a integração.',
         variant: 'destructive',
       });
       return false;

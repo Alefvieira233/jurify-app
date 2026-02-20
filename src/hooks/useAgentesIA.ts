@@ -128,8 +128,8 @@ export const useAgentesIA = () => {
   const createAgente = useCallback(async (data: CreateAgenteData): Promise<boolean> => {
     if (!user || !tenantId) {
       toast({
-        title: 'Erro de autenticacao',
-        description: 'Usuario nao autenticado',
+        title: 'Erro de autenticação',
+        description: 'Usuário não autenticado',
         variant: 'destructive',
       });
       return false;
@@ -252,7 +252,7 @@ export const useAgentesIA = () => {
         .single();
 
       if (agenteError || !agente) {
-        throw agenteError || new Error('Agente nao encontrado');
+        throw agenteError || new Error('Agente não encontrado');
       }
 
       const systemPrompt = [

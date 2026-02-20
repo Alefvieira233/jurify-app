@@ -9,7 +9,7 @@
 
 import { supabaseUntyped as supabase } from '@/integrations/supabase/client';
 
-// ConfiguraÃ§Ã£o OAuth do Google
+// Configuração OAuth do Google
 // NOTE: Only CLIENT_ID is in the browser (public). CLIENT_SECRET lives server-side
 // in the `google-oauth-exchange` Edge Function.
 const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID || '';
@@ -32,7 +32,7 @@ export interface GoogleOAuthToken {
 }
 
 export interface CalendarEvent {
-  summary: string; // TÃ­tulo
+  summary: string; // Título
   description?: string;
   start: {
     dateTime: string; // ISO 8601 format
@@ -57,19 +57,19 @@ export interface CalendarEvent {
 
 export class GoogleOAuthService {
   /**
-   * Verifica se as credenciais OAuth estÃ£o configuradas
+   * Verifica se as credenciais OAuth estão configuradas
    */
   static isConfigured(): boolean {
     return !!GOOGLE_CLIENT_ID;
   }
 
   /**
-   * Gera URL de autenticaÃ§Ã£o OAuth do Google
-   * @param state - State criptogrÃ¡fico para validaÃ§Ã£o CSRF (nÃ£o user user.id!)
+   * Gera URL de autenticação OAuth do Google
+   * @param state - State criptográfico para validação CSRF (não user user.id!)
    */
   static getAuthUrl(state: string): string {
     if (!this.isConfigured()) {
-      throw new Error('Google OAuth nÃ£o configurado. Configure VITE_GOOGLE_CLIENT_ID no .env e GOOGLE_CLIENT_SECRET nos Supabase Secrets.');
+      throw new Error('Google OAuth não configurado. Configure VITE_GOOGLE_CLIENT_ID no .env e GOOGLE_CLIENT_SECRET nos Supabase Secrets.');
     }
 
     const params = new URLSearchParams({
@@ -78,15 +78,15 @@ export class GoogleOAuthService {
       response_type: 'code',
       scope: GOOGLE_SCOPES,
       access_type: 'offline', // Para obter refresh_token
-      prompt: 'consent', // ForÃ§a mostrar tela de consentimento
-      state, // State criptogrÃ¡fico para validaÃ§Ã£o CSRF
+      prompt: 'consent', // Força mostrar tela de consentimento
+      state, // State criptográfico para validação CSRF
     });
 
     return `${GOOGLE_AUTH_URL}?${params.toString()}`;
   }
 
   /**
-   * Troca o cÃ³digo de autorizaÃ§Ã£o por tokens de acesso
+   * Troca o código de autorização por tokens de acesso
    */
   static async exchangeCodeForTokens(code: string, userId: string): Promise<GoogleOAuthToken> {
     // Token exchange happens server-side via Edge Function (CLIENT_SECRET never in browser)
@@ -185,7 +185,7 @@ export class GoogleOAuthService {
 
     const token: GoogleOAuthToken = {
       access_token: data.access_token,
-      refresh_token: refreshToken, // MantÃ©m o refresh_token original
+      refresh_token: refreshToken, // Mantém o refresh_token original
       expires_at: Date.now() + (data.expires_in * 1000),
       token_type: data.token_type,
       scope: data.scope,
@@ -197,13 +197,13 @@ export class GoogleOAuthService {
   }
 
   /**
-   * ObtÃ©m um token vÃ¡lido (refresh automÃ¡tico se necessÃ¡rio)
+   * Obtém um token válido (refresh automático se necessário)
    */
   static async getValidToken(userId: string): Promise<string> {
     let token = await this.loadTokens(userId);
 
     if (!token) {
-      throw new Error('UsuÃ¡rio nÃ£o autenticado com Google. Execute initializeGoogleAuth() primeiro.');
+      throw new Error('Usuário não autenticado com Google. Execute initializeGoogleAuth() primeiro.');
     }
 
     // Se expirou e temos refresh_token, atualizar
@@ -241,7 +241,7 @@ export class GoogleOAuthService {
   // ==========================================
 
   /**
-   * Lista calendÃ¡rios do usuÃ¡rio
+   * Lista calendários do usuário
    */
   static async listCalendars(userId: string): Promise<Record<string, unknown>[]> {
     const accessToken = await this.getValidToken(userId);
@@ -253,7 +253,7 @@ export class GoogleOAuthService {
     });
 
     if (!response.ok) {
-      throw new Error('Erro ao listar calendÃ¡rios');
+      throw new Error('Erro ao listar calendários');
     }
 
     const data = await response.json();

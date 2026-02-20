@@ -247,7 +247,7 @@ export const useMultiAgentSystem = () => {
         email: 'teste@jurify.com',
         phone: '+5511999999999',
         message:
-          'Preciso de ajuda com um processo trabalhista. Fui demitido sem justa causa e nao recebi todas as verbas rescisorias.',
+          'Preciso de ajuda com um processo trabalhista. Fui demitido sem justa causa e não recebi todas as verbas rescisórias.',
         legal_area: 'trabalhista',
         urgency: 'medium',
         source: 'chat',

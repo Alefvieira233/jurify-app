@@ -38,7 +38,7 @@ export const useNotificationTemplates = () => {
 
   const updateTemplateMutation = useMutation({
     mutationFn: async (template: Partial<NotificationTemplate> & { id: string }) => {
-      if (!tenantId) throw new Error('Tenant nao encontrado');
+      if (!tenantId) throw new Error('Tenant não encontrado');
 
       const { error } = await supabase
         .from('notification_templates')
@@ -67,7 +67,7 @@ export const useNotificationTemplates = () => {
 
   const createTemplateMutation = useMutation({
     mutationFn: async (template: Omit<NotificationTemplate, 'id'>) => {
-      if (!tenantId) throw new Error('Tenant nao encontrado');
+      if (!tenantId) throw new Error('Tenant não encontrado');
 
       const { error } = await supabase
         .from('notification_templates')

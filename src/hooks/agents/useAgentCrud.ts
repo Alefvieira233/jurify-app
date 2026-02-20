@@ -64,7 +64,7 @@ export const useAgentCrud = (tenantId: string | null, onSuccess?: () => void | P
     if (!tenantId) {
       toast({
         title: 'Erro',
-        description: 'Usuario nao autenticado.',
+        description: 'Usuário não autenticado.',
         variant: 'destructive',
       });
       return false;
@@ -74,7 +74,7 @@ export const useAgentCrud = (tenantId: string | null, onSuccess?: () => void | P
 
     try {
       if (!agentData.name || !agentData.type || !agentData.area_juridica) {
-        throw new Error('Dados obrigatorios nao preenchidos');
+        throw new Error('Dados obrigatórios não preenchidos');
       }
 
       const escalationRules = generateEscalationRules(agentData.type, agentData.escalation_keywords);

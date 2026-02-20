@@ -81,8 +81,8 @@ export const useContratos = () => {
   const createContrato = useCallback(async (data: ContratoInput): Promise<boolean> => {
     if (!user) {
       toast({
-        title: 'Erro de autenticaÃ§Ã£o',
-        description: 'UsuÃ¡rio nÃ£o autenticado',
+        title: 'Erro de autenticação',
+        description: 'Usuário não autenticado',
         variant: 'destructive',
       });
       return false;

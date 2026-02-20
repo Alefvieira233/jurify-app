@@ -82,7 +82,7 @@ export const useActivityLogs = () => {
     try {
       const { error } = await supabase.rpc('registrar_log_atividade', {
         _usuario_id: user.id,
-        _nome_usuario: profile?.nome_completo || user.email || 'Usuario',
+        _nome_usuario: profile?.nome_completo || user.email || 'Usuário',
         _tipo_acao: tipo_acao,
         _modulo: modulo,
         _descricao: descricao,

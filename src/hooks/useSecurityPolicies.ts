@@ -91,7 +91,7 @@ export const useSecurityPolicies = () => {
             status: error && error.code === 'PGRST301' ? 'pass' : 'warning',
             message: error && error.code === 'PGRST301'
               ? 'RLS ativo e funcionando'
-              : 'RLS pode nao estar configurado adequadamente',
+              : 'RLS pode não estar configurado adequadamente',
             severity: 'medium',
             category: 'database'
           });
@@ -179,7 +179,7 @@ export const useSecurityPolicies = () => {
             id: 'whatsapp-connectivity',
             name: 'WhatsApp Evolution API',
             status: isActive ? 'pass' : whatsappConfig ? 'warning' : 'warning',
-            message: isActive ? 'WhatsApp conectado e ativo' : whatsappConfig ? 'WhatsApp configurado mas inativo' : 'WhatsApp nao configurado',
+            message: isActive ? 'WhatsApp conectado e ativo' : whatsappConfig ? 'WhatsApp configurado mas inativo' : 'WhatsApp não configurado',
             severity: 'medium',
             category: 'network'
           });
@@ -189,7 +189,7 @@ export const useSecurityPolicies = () => {
           id: 'whatsapp-error',
           name: 'WhatsApp Evolution API',
           status: 'fail',
-          message: 'Erro ao verificar integracao WhatsApp',
+          message: 'Erro ao verificar integração WhatsApp',
           severity: 'medium',
           category: 'network'
         });

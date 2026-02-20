@@ -18,7 +18,7 @@ type SeedLead = {
 export const seedDatabase = async () => {
   const { data: authData, error: authError } = await supabase.auth.getUser();
   if (authError || !authData?.user) {
-    throw authError || new Error('Usuario nao autenticado');
+    throw authError || new Error('Usuário não autenticado');
   }
 
   // 1. Tentar buscar perfil existente
@@ -30,18 +30,18 @@ export const seedDatabase = async () => {
 
   let tenantId = profileData?.tenant_id;
 
-  // 2. Se nao existir perfil, criar um novo (Self-Healing)
+  // 2. Se não existir perfil, criar um novo (Self-Healing)
   if (!profileData) {
-    console.log('Perfil nao encontrado. Criando novo perfil para o usuario...');
+    console.log('Perfil não encontrado. Criando novo perfil para o usuário...');
 
-    // Gerar um tenant_id novo se nao existir
+    // Gerar um tenant_id novo se não existir
     tenantId = crypto.randomUUID();
 
     const newProfile = {
       id: authData.user.id,
       email: authData.user.email,
       nome_completo: authData.user.user_metadata?.full_name || authData.user.email?.split('@')[0] || 'Usuario Novo',
-      role: 'admin', // Dar permissao de admin para o primeiro usuario
+      role: 'admin', // Dar permissão de admin para o primeiro usuário
       tenant_id: tenantId,
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
@@ -53,7 +53,7 @@ export const seedDatabase = async () => {
 
     if (createProfileError) {
       console.error('Erro ao criar perfil automatico:', createProfileError);
-      throw new Error('Falha ao criar perfil de usuario. Contate o suporte.');
+      throw new Error('Falha ao criar perfil de usuário. Contate o suporte.');
     }
 
     // Atualizar referencias locais
@@ -61,7 +61,7 @@ export const seedDatabase = async () => {
   }
 
   if (!tenantId) {
-    throw new Error('Tenant ID nao pode ser nulo após tentativa de correcao.');
+    throw new Error('Tenant ID não pode ser nulo após tentativa de correção.');
   }
 
   const responsavelNome = profileData?.nome_completo || authData.user.email || 'Sistema';

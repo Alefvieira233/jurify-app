@@ -80,7 +80,7 @@ const SystemHealthCheck = () => {
             id: 'auth',
             name: 'Sistema de Autenticacao',
             status: 'warning',
-            message: 'Usuario nao autenticado',
+            message: 'Usuário não autenticado',
             lastCheck: new Date().toISOString()
           });
           score += 10;
@@ -120,7 +120,7 @@ const SystemHealthCheck = () => {
           id: 'rls',
           name: 'Row Level Security (RLS)',
           status: 'warning',
-          message: 'RLS pode nao estar configurado corretamente',
+          message: 'RLS pode não estar configurado corretamente',
           lastCheck: new Date().toISOString()
         });
         score += 10;
@@ -158,7 +158,7 @@ const SystemHealthCheck = () => {
           id: 'n8n',
           name: 'Integracao N8N',
           status: 'critical',
-          message: 'Falha ao verificar integracao N8N',
+          message: 'Falha ao verificar integração N8N',
           lastCheck: new Date().toISOString()
         });
       }
@@ -187,7 +187,7 @@ const SystemHealthCheck = () => {
           id: 'logs',
           name: 'Sistema de Logs',
           status: 'critical',
-          message: 'Sistema de logs nao acessivel',
+          message: 'Sistema de logs não acessível',
           lastCheck: new Date().toISOString()
         });
       }
