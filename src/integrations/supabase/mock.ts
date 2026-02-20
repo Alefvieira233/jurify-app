@@ -280,7 +280,6 @@ export const mockSupabaseClient = {
             ],
             logs_execucao_agentes: [
               {
-                id: '1',
                 agente_id: '1',
                 input_recebido: 'Tenho uma dúvida sobre divórcio',
                 resposta_ia: 'Posso ajudar com isso. O divórcio é consensual?',
@@ -289,7 +288,6 @@ export const mockSupabaseClient = {
                 created_at: new Date().toISOString()
               },
               {
-                id: '2',
                 agente_id: '1',
                 input_recebido: 'Quero processar meu vizinho',
                 resposta_ia: 'Entendo. Qual o motivo do processo?',

@@ -15,7 +15,6 @@ import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
 
 interface LogExecucao {
-  id: string;
   agente_id: string;
   input_recebido: string;
   resposta_ia: string | null;

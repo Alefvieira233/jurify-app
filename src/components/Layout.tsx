@@ -19,6 +19,11 @@ const Layout = () => {
     // Map current path to active section for Sidebar highlighting
     const getActiveSection = (path: string) => {
         if (path === '/' || path === '/dashboard') return 'dashboard';
+        // Handle nested CRM routes
+        if (path.startsWith('/crm/followups')) return 'crm/followups';
+        if (path.startsWith('/crm')) return 'crm';
+        // Handle admin routes
+        if (path.startsWith('/admin/')) return path.substring(1);
         return path.substring(1).split('/')[0] ?? 'dashboard';
     };
 

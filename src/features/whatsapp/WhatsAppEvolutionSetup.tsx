@@ -99,7 +99,13 @@ export default function WhatsAppEvolutionSetup({ onConnectionSuccess }: WhatsApp
 
       const { data, error } = await Promise.race([invokePromise, timeoutPromise]);
 
-      if (error) throw error;
+      // SDK-level error (network, auth 401, etc.)
+      if (error) {
+        // Tenta extrair mensagem real do body se disponível
+        const realMessage = (data as Record<string, unknown> | null)?.error as string | undefined;
+        throw new Error(realMessage || error.message || 'Erro na Edge Function');
+      }
+
       return data;
     },
     []

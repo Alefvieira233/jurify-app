@@ -42,7 +42,7 @@ export const useAgentesMetrics = () => {
       // Buscar execucoes de hoje
       const { data: execucoesHoje, error: errorHoje } = await supabase
         .from('logs_execucao_agentes')
-        .select('id, status, tempo_execucao, created_at')
+        .select('agente_id, status, tempo_execucao, created_at')
         .eq('tenant_id', profile.tenant_id)
         .gte('created_at', inicioHoje.toISOString())
         .eq('status', 'sucesso');
@@ -52,7 +52,7 @@ export const useAgentesMetrics = () => {
       // Buscar execucoes do mes
       const { data: execucoesMes, error: errorMes } = await supabase
         .from('logs_execucao_agentes')
-        .select('id, status, tempo_execucao, created_at')
+        .select('agente_id, status, tempo_execucao, created_at')
         .eq('tenant_id', profile.tenant_id)
         .gte('created_at', inicioMes.toISOString());
 

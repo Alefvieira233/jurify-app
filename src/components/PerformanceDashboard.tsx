@@ -49,7 +49,7 @@ const PerformanceDashboard = () => {
       if (!tenantId) return 0;
       const { data, error } = await supabase
         .from('logs_execucao_agentes')
-        .select('id')
+        .select('agente_id')
         .eq('tenant_id', tenantId)
         .gte('created_at', inicio7Dias);
 

@@ -1,7 +1,7 @@
 import React, { useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { X, User, Phone, Mail, Briefcase, DollarSign, FileText, MapPin } from 'lucide-react';
+import { X, User, Phone, Mail, Briefcase, DollarSign, FileText, MapPin, Building2, Thermometer } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -29,7 +29,7 @@ import {
   FormMessage,
 } from '@/components/ui/form';
 import { type Lead, type LeadInput } from '@/hooks/useLeads';
-import { leadFormSchema, AREAS_JURIDICAS, ORIGENS_LEAD, type LeadFormData } from '@/schemas/leadSchema';
+import { leadFormSchema, AREAS_JURIDICAS, ORIGENS_LEAD, LEAD_TEMPERATURES, type LeadFormData } from '@/schemas/leadSchema';
 import { useToast } from '@/hooks/use-toast';
 
 interface LeadFormProps {
@@ -50,9 +50,16 @@ const EMPTY_DEFAULTS: LeadFormData = {
   area_juridica: '',
   origem: '',
   valor_causa: undefined,
+  expected_value: undefined,
   responsavel: '',
   observacoes: '',
   status: 'novo_lead',
+  temperature: 'warm',
+  probability: 50,
+  company_name: '',
+  cpf_cnpj: '',
+  pipeline_stage_id: undefined,
+  lost_reason: '',
 };
 
 function leadToFormData(lead: Lead): LeadFormData {
@@ -63,9 +70,16 @@ function leadToFormData(lead: Lead): LeadFormData {
     area_juridica: lead.area_juridica || '',
     origem: lead.origem || '',
     valor_causa: lead.valor_causa || undefined,
+    expected_value: lead.expected_value || undefined,
     responsavel: lead.responsavel || '',
     observacoes: lead.observacoes || '',
     status: lead.status || 'novo_lead',
+    temperature: lead.temperature || 'warm',
+    probability: lead.probability || 50,
+    company_name: lead.company_name || '',
+    cpf_cnpj: lead.cpf_cnpj || '',
+    pipeline_stage_id: lead.pipeline_stage_id || undefined,
+    lost_reason: lead.lost_reason || '',
   };
 }
 
@@ -77,9 +91,16 @@ function formDataToLeadInput(data: LeadFormData): LeadInput {
     area_juridica: data.area_juridica,
     origem: data.origem,
     valor_causa: data.valor_causa || null,
+    expected_value: data.expected_value || null,
     responsavel: data.responsavel,
     observacoes: data.observacoes || null,
     status: data.status || 'novo_lead',
+    temperature: data.temperature || 'warm',
+    probability: data.probability || 50,
+    company_name: data.company_name || null,
+    cpf_cnpj: data.cpf_cnpj || null,
+    pipeline_stage_id: data.pipeline_stage_id || null,
+    lost_reason: data.lost_reason || null,
   };
 }
 
@@ -317,6 +338,119 @@ const LeadForm: React.FC<LeadFormProps> = ({
                       <FormLabel>Responsável *</FormLabel>
                       <FormControl>
                         <Input placeholder="Nome do advogado responsável" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+            </div>
+
+            {/* Informações da Empresa */}
+            <div className="space-y-4 pt-4 border-t">
+              <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+                <Building2 className="h-5 w-5 text-amber-500" />
+                Empresa & Qualificação
+              </h3>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <FormField
+                  control={form.control}
+                  name="company_name"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="flex items-center gap-1">
+                        <Building2 className="h-4 w-4" />
+                        Empresa
+                      </FormLabel>
+                      <FormControl>
+                        <Input placeholder="Nome da empresa (opcional)" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="cpf_cnpj"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>CPF/CNPJ</FormLabel>
+                      <FormControl>
+                        <Input placeholder="000.000.000-00" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <FormField
+                  control={form.control}
+                  name="temperature"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="flex items-center gap-1">
+                        <Thermometer className="h-4 w-4" />
+                        Temperatura
+                      </FormLabel>
+                      <Select onValueChange={field.onChange} value={field.value}>
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Selecione" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {LEAD_TEMPERATURES.map((temp) => (
+                            <SelectItem key={temp.value} value={temp.value}>
+                              {temp.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="expected_value"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="flex items-center gap-1">
+                        <DollarSign className="h-4 w-4" />
+                        Valor Esperado
+                      </FormLabel>
+                      <FormControl>
+                        <Input
+                          placeholder="R$ 0,00"
+                          value={formatCurrency(field.value ?? undefined)}
+                          onChange={(e) => field.onChange(parseCurrency(e.target.value))}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="probability"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Probabilidade (%)</FormLabel>
+                      <FormControl>
+                        <Input
+                          type="number"
+                          min={0}
+                          max={100}
+                          placeholder="50"
+                          value={field.value ?? 50}
+                          onChange={(e) => field.onChange(parseInt(e.target.value) || 0)}
+                        />
                       </FormControl>
                       <FormMessage />
                     </FormItem>

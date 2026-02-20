@@ -203,7 +203,7 @@ const LogsMonitoramento = () => {
           </TableHeader>
           <TableBody>
             {filteredLogs.map((log) => (
-              <TableRow key={log.id}>
+              <TableRow key={`${log.agente_id}-${log.created_at}`}>
                 <TableCell>
                   <div className="text-sm">
                     {new Date(log.created_at).toLocaleDateString('pt-BR')}

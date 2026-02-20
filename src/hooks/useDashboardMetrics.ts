@@ -198,7 +198,7 @@ export const useDashboardMetrics = () => {
 
         .from('logs_execucao_agentes')
 
-        .select('id, created_at, status, agentes_ia:agente_id(nome)');
+        .select('agente_id, created_at, status, agentes_ia:agente_id(nome)');
 
 
 
@@ -232,7 +232,7 @@ export const useDashboardMetrics = () => {
 
       let execucoesNovas: Array<{ id: string; created_at: string; status: string; current_agent: string | null; agents_involved: string[] | null }> = [];
 
-      let execucoesLegacy: Array<{ id: string; created_at: string; status: string; agentes_ia: { nome: string }[] | { nome: string } | null }> = [];
+      let execucoesLegacy: Array<{ agente_id: string; created_at: string; status: string; agentes_ia: { nome: string }[] | { nome: string } | null }> = [];
 
 
 
@@ -251,7 +251,7 @@ export const useDashboardMetrics = () => {
 
 
       type ExecucaoUnified = {
-        id: string;
+        agente_id?: string;
         created_at: string;
         status: string;
         current_agent?: string | null;

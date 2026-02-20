@@ -19,6 +19,8 @@ const log = createLogger('Leads');
 
 type LeadMetadata = Record<string, unknown>;
 
+export type LeadTemperature = 'cold' | 'warm' | 'hot';
+
 export type Lead = {
   id: string;
   nome: string | null;
@@ -38,6 +40,20 @@ export type Lead = {
   metadata: LeadMetadata | null;
   created_at: string;
   updated_at: string | null;
+  // CRM Professional fields
+  lead_score: number;
+  pipeline_stage_id: string | null;
+  temperature: LeadTemperature;
+  expected_value: number | null;
+  probability: number;
+  lost_reason: string | null;
+  won_at: string | null;
+  lost_at: string | null;
+  last_activity_at: string | null;
+  next_followup_at: string | null;
+  followup_count: number;
+  company_name: string | null;
+  cpf_cnpj: string | null;
 };
 
 export type CreateLeadData = {
@@ -54,6 +70,14 @@ export type CreateLeadData = {
   responsavel_id?: string | null;
   descricao?: string | null;
   metadata?: LeadMetadata | null;
+  // CRM Professional fields
+  temperature?: LeadTemperature;
+  expected_value?: number | null;
+  probability?: number;
+  company_name?: string | null;
+  cpf_cnpj?: string | null;
+  pipeline_stage_id?: string | null;
+  lost_reason?: string | null;
 };
 
 export type LeadInput = CreateLeadData;
@@ -83,6 +107,20 @@ export const useLeads = (options?: { enablePagination?: boolean; pageSize?: numb
       nome_completo: (lead.nome_completo ?? lead.nome ?? null) as string | null,
       responsavel: ((lead.metadata as LeadMetadata)?.responsavel_nome ?? null) as string | null,
       observacoes: (lead.descricao ?? null) as string | null,
+      // CRM Professional defaults
+      lead_score: (lead.lead_score as number) ?? 0,
+      pipeline_stage_id: (lead.pipeline_stage_id as string) ?? null,
+      temperature: (lead.temperature as LeadTemperature) ?? 'warm',
+      expected_value: (lead.expected_value as number) ?? null,
+      probability: (lead.probability as number) ?? 50,
+      lost_reason: (lead.lost_reason as string) ?? null,
+      won_at: (lead.won_at as string) ?? null,
+      lost_at: (lead.lost_at as string) ?? null,
+      last_activity_at: (lead.last_activity_at as string) ?? null,
+      next_followup_at: (lead.next_followup_at as string) ?? null,
+      followup_count: (lead.followup_count as number) ?? 0,
+      company_name: (lead.company_name as string) ?? null,
+      cpf_cnpj: (lead.cpf_cnpj as string) ?? null,
     };
   }, []);
 

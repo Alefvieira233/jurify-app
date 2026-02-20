@@ -1202,7 +1202,6 @@ export type Database = {
           api_key_usado: string | null
           created_at: string | null
           erro_detalhes: string | null
-          id: string
           input_recebido: string
           n8n_error: string | null
           n8n_response: Json | null
@@ -1218,7 +1217,6 @@ export type Database = {
           api_key_usado?: string | null
           created_at?: string | null
           erro_detalhes?: string | null
-          id?: string
           input_recebido: string
           n8n_error?: string | null
           n8n_response?: Json | null
@@ -1234,7 +1232,6 @@ export type Database = {
           api_key_usado?: string | null
           created_at?: string | null
           erro_detalhes?: string | null
-          id?: string
           input_recebido?: string
           n8n_error?: string | null
           n8n_response?: Json | null

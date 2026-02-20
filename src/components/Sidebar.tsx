@@ -19,6 +19,8 @@ import {
   CreditCard,
   Rocket,
   FlaskConical,
+  Target,
+  Clock,
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
@@ -49,6 +51,8 @@ const Sidebar = ({ activeSection, onSectionChange }: SidebarProps) => {
     { id: 'dashboard', label: 'Dashboard', icon: BarChart3, resource: 'dashboard', action: 'read' },
     { id: 'leads', label: 'Leads', icon: Users, resource: 'leads', action: 'read' },
     { id: 'pipeline', label: 'Pipeline Jurídico', icon: TrendingUp, resource: 'leads', action: 'read' },
+    { id: 'crm', label: 'CRM Profissional', icon: Target, resource: 'leads', action: 'read' },
+    { id: 'crm/followups', label: 'Follow-ups', icon: Clock, resource: 'leads', action: 'read' },
     { id: 'timeline', label: 'Timeline de Conversas', icon: MessageCircle, resource: 'leads', action: 'read' },
     { id: 'whatsapp', label: 'WhatsApp IA', icon: MessageSquare, resource: 'whatsapp', action: 'read' },
     { id: 'contratos', label: 'Contratos', icon: FileText, resource: 'contratos', action: 'read' },
