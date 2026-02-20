@@ -1,5 +1,5 @@
 /**
- * ðŸ“ˆ JURIFY ANALYTICS DASHBOARD
+ * 📈 JURIFY ANALYTICS DASHBOARD
  * 
  * Enterprise analytics dashboard with real-time metrics, charts, and insights.
  * Provides comprehensive view of business performance.
@@ -189,14 +189,14 @@ export const AnalyticsDashboard = () => {
     const groupByField = (items: Array<Record<string, string | null | undefined>>, field: string) => {
         const groups: Record<string, number> = {};
         items.forEach(item => {
-            const key = item[field] ?? 'NÃ£o informado';
+            const key = item[field] ?? 'Não informado';
             groups[key] = (groups[key] ?? 0) + 1;
         });
         return Object.entries(groups).map(([name, value]) => ({ name, value })).slice(0, 6);
     };
 
     const generateAgentMetrics = (logs: AiLogRecord[]) => {
-        const agents = ['Coordenador', 'Qualificador', 'JurÃ­dico', 'Comercial', 'Comunicador'];
+        const agents = ['Coordenador', 'Qualificador', 'Jurídico', 'Comercial', 'Comunicador'];
         return agents.map(agent => ({
             agent,
             calls: logs.filter(l => l.agent_name?.includes(agent) || l.agent_name?.toLowerCase().includes(agent.toLowerCase())).length || Math.floor(Math.random() * 50) + 10,
@@ -215,7 +215,7 @@ export const AnalyticsDashboard = () => {
                 {change !== undefined && (
                     <div className={`flex items-center text-xs ${change >= 0 ? 'text-green-600' : 'text-red-600'}`}>
                         {change >= 0 ? <ArrowUpRight className="h-3 w-3" /> : <ArrowDownRight className="h-3 w-3" />}
-                        {Math.abs(change).toFixed(1)}% vs perÃ­odo anterior
+                        {Math.abs(change).toFixed(1)}% vs período anterior
                     </div>
                 )}
             </CardContent>
@@ -236,7 +236,7 @@ export const AnalyticsDashboard = () => {
             <div className="flex items-center justify-between">
                 <div>
                     <h2 className="text-3xl font-bold tracking-tight">Analytics</h2>
-                    <p className="text-muted-foreground">VisÃ£o completa do seu escritÃ³rio</p>
+                    <p className="text-muted-foreground">Visão completa do seu escritório</p>
                 </div>
                 <div className="flex items-center gap-2">
                     <div className="flex items-center bg-muted rounded-lg p-1">
@@ -274,7 +274,7 @@ export const AnalyticsDashboard = () => {
                         icon={FileText}
                     />
                     <MetricCard
-                        title="Taxa de ConversÃ£o"
+                        title="Taxa de Conversão"
                         value={`${metrics.conversionRate.toFixed(1)}%`}
                         icon={TrendingUp}
                     />
@@ -290,7 +290,7 @@ export const AnalyticsDashboard = () => {
             {chartData && (
                 <Tabs defaultValue="overview" className="space-y-4">
                     <TabsList>
-                        <TabsTrigger value="overview">VisÃ£o Geral</TabsTrigger>
+                        <TabsTrigger value="overview">Visão Geral</TabsTrigger>
                         <TabsTrigger value="leads">Leads</TabsTrigger>
                         <TabsTrigger value="agents">Agentes IA</TabsTrigger>
                     </TabsList>
@@ -298,7 +298,7 @@ export const AnalyticsDashboard = () => {
                     <TabsContent value="overview" className="space-y-4">
                         <Card>
                             <CardHeader>
-                                <CardTitle>Leads e ConversÃµes ao Longo do Tempo</CardTitle>
+                                <CardTitle>Leads e Conversões ao Longo do Tempo</CardTitle>
                             </CardHeader>
                             <CardContent>
                                 <ResponsiveContainer width="100%" height={300}>
@@ -308,7 +308,7 @@ export const AnalyticsDashboard = () => {
                                         <YAxis fontSize={12} />
                                         <Tooltip />
                                         <Area type="monotone" dataKey="leads" stackId="1" stroke="#8884d8" fill="#8884d8" fillOpacity={0.6} name="Leads" />
-                                        <Area type="monotone" dataKey="conversions" stackId="2" stroke="#82ca9d" fill="#82ca9d" fillOpacity={0.6} name="ConversÃµes" />
+                                        <Area type="monotone" dataKey="conversions" stackId="2" stroke="#82ca9d" fill="#82ca9d" fillOpacity={0.6} name="Conversões" />
                                     </AreaChart>
                                 </ResponsiveContainer>
                             </CardContent>
@@ -319,7 +319,7 @@ export const AnalyticsDashboard = () => {
                         <div className="grid gap-4 md:grid-cols-2">
                             <Card>
                                 <CardHeader>
-                                    <CardTitle>Leads por Ãrea JurÃ­dica</CardTitle>
+                                    <CardTitle>Leads por Área Jurídica</CardTitle>
                                 </CardHeader>
                                 <CardContent>
                                     <ResponsiveContainer width="100%" height={300}>

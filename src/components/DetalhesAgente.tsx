@@ -43,7 +43,7 @@ const DetalhesAgente: FC<DetalhesAgenteProps> = ({ agente, onClose, onEdit }) =>
 
   const tiposAgente = [
     { value: 'chat_interno', label: 'Chat Interno', icon: Bot },
-    { value: 'analise_dados', label: 'Analise de Dados', icon: Eye },
+    { value: 'analise_dados', label: 'Análise de Dados', icon: Eye },
     { value: 'api_externa', label: 'API Externa', icon: Settings }
   ];
 
@@ -182,13 +182,13 @@ const DetalhesAgente: FC<DetalhesAgenteProps> = ({ agente, onClose, onEdit }) =>
               <div>
                 <h4 className="font-semibold text-[hsl(var(--foreground))] mb-2">Prompt Base</h4>
                 <div className="text-[hsl(var(--muted-foreground))] bg-[hsl(var(--surface-1))] p-4 rounded border border-[hsl(var(--border))] text-sm font-mono whitespace-pre-wrap max-h-64 overflow-y-auto">
-                  {agente.prompt_base || 'Nao configurado'}
+                  {agente.prompt_base || 'Não configurado'}
                 </div>
               </div>
 
               {perguntas.length > 0 && (
                 <div>
-                  <h4 className="font-semibold text-[hsl(var(--foreground))] mb-2">Perguntas de Qualificacao</h4>
+                  <h4 className="font-semibold text-[hsl(var(--foreground))] mb-2">Perguntas de Qualificação</h4>
                   <div className="space-y-2">
                     {perguntas.map((pergunta: string, index: number) => (
                       <div key={index} className="flex items-start space-x-2">
@@ -202,7 +202,7 @@ const DetalhesAgente: FC<DetalhesAgenteProps> = ({ agente, onClose, onEdit }) =>
 
               {agente.keywords_acao && agente.keywords_acao.length > 0 && (
                 <div>
-                  <h4 className="font-semibold text-[hsl(var(--foreground))] mb-2">Keywords de Acao</h4>
+                  <h4 className="font-semibold text-[hsl(var(--foreground))] mb-2">Keywords de Ação</h4>
                   <div className="flex flex-wrap gap-2">
                     {agente.keywords_acao.map((keyword: string, index: number) => (
                       <Badge key={index} variant="outline" className="bg-purple-50 text-purple-700 border-purple-400/30">

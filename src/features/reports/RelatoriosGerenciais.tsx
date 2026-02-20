@@ -106,9 +106,9 @@ const RelatoriosGerenciais = () => {
       { section: 'status', name: 'proposta_enviada', value: 25 },
       { section: 'status', name: 'contrato_assinado', value: 20 },
       { section: 'area', name: 'Trabalhista', value: 30 },
-      { section: 'area', name: 'Civel', value: 28 },
-      { section: 'area', name: 'Tributario', value: 22 },
-      { section: 'area', name: 'Familia', value: 18 },
+      { section: 'area', name: 'Cível', value: 28 },
+      { section: 'area', name: 'Tributário', value: 22 },
+      { section: 'area', name: 'Família', value: 18 },
       { section: 'agente', name: 'Triagem', value: 45, value_2: 40, value_3: 5 },
       { section: 'agente', name: 'Follow-up', value: 30, value_2: 27, value_3: 3 }
     ];

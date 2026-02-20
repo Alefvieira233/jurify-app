@@ -441,11 +441,11 @@ export default function WhatsAppEvolutionSetup({ onConnectionSuccess }: WhatsApp
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <QrCode className="h-5 w-5" />
-            Conexao WhatsApp
+            Conexão WhatsApp
           </CardTitle>
           <CardDescription>
             {instance.state === 'connected'
-              ? 'Seu WhatsApp esta conectado e pronto para uso.'
+              ? 'Seu WhatsApp está conectado e pronto para uso.'
               : instance.state === 'qr_ready'
                 ? 'Escaneie o QR Code para conectar.'
                 : 'Clique em conectar para gerar o QR Code.'}

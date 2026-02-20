@@ -75,7 +75,7 @@ const IntegracoesSection = () => {
             Google Calendar
           </CardTitle>
           <CardDescription>
-            Configure a integracao com Google Calendar para sincronizacao de agendamentos
+            Configure a integração com Google Calendar para sincronização de agendamentos
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -95,7 +95,7 @@ const IntegracoesSection = () => {
             ZapSign
           </CardTitle>
           <CardDescription>
-            Configure a integracao com ZapSign para assinatura digital de contratos
+            Configure a integração com ZapSign para assinatura digital de contratos
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -110,7 +110,7 @@ const IntegracoesSection = () => {
             WhatsApp API
           </CardTitle>
           <CardDescription>
-            Configure a integracao com a API do WhatsApp para envio de mensagens automaticas
+            Configure a integração com a API do WhatsApp para envio de mensagens automáticas
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -122,10 +122,10 @@ const IntegracoesSection = () => {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Bot className="h-5 w-5 text-purple-600" />
-            Inteligencia Artificial
+            Inteligência Artificial
           </CardTitle>
           <CardDescription>
-            Configure os modelos de IA para agentes automaticos e assistentes
+            Configure os modelos de IA para agentes automáticos e assistentes
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -135,13 +135,13 @@ const IntegracoesSection = () => {
             <div>
               <Label htmlFor="openai_key">OpenAI API Key</Label>
               <div className="text-sm text-gray-600 mt-1">
-                Configurada nas variaveis de ambiente do sistema
+                Configurada nas variáveis de ambiente do sistema
               </div>
             </div>
             <div>
               <Label htmlFor="anthropic_key">Anthropic API Key</Label>
               <div className="text-sm text-gray-600 mt-1">
-                Configurada nas variaveis de ambiente do sistema
+                Configurada nas variáveis de ambiente do sistema
               </div>
             </div>
           </div>

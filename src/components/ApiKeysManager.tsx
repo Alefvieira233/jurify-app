@@ -69,7 +69,7 @@ const ApiKeysManager = () => {
 
   const createKeyMutation = useMutation({
     mutationFn: async (nome: string) => {
-      if (!tenantId) throw new Error('Tenant nao encontrado');
+      if (!tenantId) throw new Error('Tenant não encontrado');
 
       const keyValue = generateSecureKey();
       const keyHash = await hashKey(keyValue);
@@ -105,7 +105,7 @@ const ApiKeysManager = () => {
       console.error('Failed to create API key:', error);
       toast({
         title: 'Erro',
-        description: 'Nao foi possivel criar a API key.',
+        description: 'Não foi possível criar a API key.',
         variant: 'destructive',
       });
     },
@@ -113,7 +113,7 @@ const ApiKeysManager = () => {
 
   const toggleStatusMutation = useMutation({
     mutationFn: async ({ id, ativo }: { id: string; ativo: boolean }) => {
-      if (!tenantId) throw new Error('Tenant nao encontrado');
+      if (!tenantId) throw new Error('Tenant não encontrado');
 
       const { error } = await supabase
         .from('api_keys')
@@ -134,7 +134,7 @@ const ApiKeysManager = () => {
       console.error('Failed to update status:', error);
       toast({
         title: 'Erro',
-        description: 'Nao foi possivel alterar o status da API key.',
+        description: 'Não foi possível alterar o status da API key.',
         variant: 'destructive',
       });
     },
@@ -142,7 +142,7 @@ const ApiKeysManager = () => {
 
   const deleteKeyMutation = useMutation({
     mutationFn: async (id: string) => {
-      if (!tenantId) throw new Error('Tenant nao encontrado');
+      if (!tenantId) throw new Error('Tenant não encontrado');
 
       const { error } = await supabase
         .from('api_keys')
@@ -163,7 +163,7 @@ const ApiKeysManager = () => {
       console.error('Failed to remove API key:', error);
       toast({
         title: 'Erro',
-        description: 'Nao foi possivel remover a API key.',
+        description: 'Não foi possível remover a API key.',
         variant: 'destructive',
       });
     },
@@ -196,13 +196,13 @@ const ApiKeysManager = () => {
       () => {
         toast({
           title: 'Copiado',
-          description: 'API key copiada para a area de transferencia.',
+          description: 'API key copiada para a área de transferência.',
         });
       },
       () => {
         toast({
           title: 'Erro',
-          description: 'Nao foi possivel copiar a API key.',
+          description: 'Não foi possível copiar a API key.',
           variant: 'destructive',
         });
       }
@@ -219,7 +219,7 @@ const ApiKeysManager = () => {
       <Card>
         <CardHeader>
           <CardTitle>Gerenciamento de API Keys</CardTitle>
-          <CardDescription>Voce nao tem permissao para acessar esta area.</CardDescription>
+          <CardDescription>Você não tem permissão para acessar esta área.</CardDescription>
         </CardHeader>
       </Card>
     );
@@ -264,7 +264,7 @@ const ApiKeysManager = () => {
       <div className="flex justify-between items-center">
         <div>
           <h2 className="text-xl font-semibold text-[hsl(var(--foreground))]">Gerenciamento de API Keys</h2>
-          <p className="text-[hsl(var(--muted-foreground))]">Gerencie as chaves de API para integracao com agentes IA</p>
+          <p className="text-[hsl(var(--muted-foreground))]">Gerencie as chaves de API para integração com agentes IA</p>
         </div>
 
         <Dialog open={showNewKeyDialog} onOpenChange={setShowNewKeyDialog}>
@@ -278,7 +278,7 @@ const ApiKeysManager = () => {
             <DialogHeader>
               <DialogTitle>Criar Nova API Key</DialogTitle>
               <DialogDescription>
-                Crie uma nova chave de API para integracao com agentes IA.
+                Crie uma nova chave de API para integração com agentes IA.
               </DialogDescription>
             </DialogHeader>
             <div className="space-y-4">
@@ -341,7 +341,7 @@ const ApiKeysManager = () => {
         <div className="text-center py-8">
           <Key className="h-12 w-12 mx-auto text-[hsl(var(--muted-foreground))] mb-4" />
           <h3 className="text-lg font-medium text-[hsl(var(--foreground))] mb-2">Nenhuma API key encontrada</h3>
-          <p className="text-[hsl(var(--muted-foreground))] mb-4">Crie sua primeira API key para comecar a usar os agentes IA.</p>
+          <p className="text-[hsl(var(--muted-foreground))] mb-4">Crie sua primeira API key para começar a usar os agentes IA.</p>
           <Button onClick={() => setShowNewKeyDialog(true)} className="bg-[hsl(var(--accent))] hover:bg-[hsl(var(--accent-hover))] text-[hsl(var(--accent-foreground))]">
             <Plus className="h-4 w-4 mr-2" />
             Criar primeira API key
@@ -356,7 +356,7 @@ const ApiKeysManager = () => {
                 <TableHead>API Key</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead>Criado em</TableHead>
-                <TableHead>Acoes</TableHead>
+                <TableHead>Ações</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>

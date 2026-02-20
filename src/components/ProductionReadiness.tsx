@@ -43,8 +43,8 @@ const ProductionReadiness = () => {
     try {
       const systemHealth = await runValidation();
       productionChecks.push({
-        name: 'Saude do Sistema',
-        description: 'Validacao de database, auth, RLS e integracoes',
+        name: 'Saúde do Sistema',
+        description: 'Validação de database, auth, RLS e integrações',
         status: systemHealth.overall === 'healthy' ? 'pass' : 'fail',
         details: `Status: ${systemHealth.overall}`,
         icon: <Shield className="h-4 w-4" />
@@ -53,7 +53,7 @@ const ProductionReadiness = () => {
       if (!tenantId) {
         productionChecks.push({
           name: 'Tenant',
-          description: 'Tenant nao identificado para as verificacoes',
+          description: 'Tenant não identificado para as verificações',
           status: 'fail',
           details: 'Sem tenant ativo',
           icon: <AlertTriangle className="h-4 w-4" />
@@ -81,15 +81,15 @@ const ProductionReadiness = () => {
         const healthCheck = await supabase.functions.invoke('health-check');
         productionChecks.push({
           name: 'Edge Functions',
-          description: 'Disponibilidade e resposta das funcoes serverless',
+          description: 'Disponibilidade e resposta das funções serverless',
           status: healthCheck.data?.status === 'ok' ? 'pass' : 'fail',
-          details: healthCheck.data?.status || 'Erro na verificacao',
+          details: healthCheck.data?.status || 'Erro na verificação',
           icon: <Rocket className="h-4 w-4" />
         });
       } catch {
         productionChecks.push({
           name: 'Edge Functions',
-          description: 'Disponibilidade e resposta das funcoes serverless',
+          description: 'Disponibilidade e resposta das funções serverless',
           status: 'fail',
           details: 'Erro ao conectar com health-check',
           icon: <Rocket className="h-4 w-4" />
@@ -107,15 +107,15 @@ const ProductionReadiness = () => {
 
           productionChecks.push({
             name: 'Teste de Carga',
-            description: 'Capacidade para multiplas requisicoes simultaneas',
+            description: 'Capacidade para múltiplas requisições simultâneas',
             status: stressTime < 3000 ? 'pass' : stressTime < 6000 ? 'warning' : 'fail',
-            details: `10 requisicoes simultaneas em ${stressTime}ms`,
+            details: `10 requisições simultâneas em ${stressTime}ms`,
             icon: <Users className="h-4 w-4" />
           });
         } catch {
           productionChecks.push({
             name: 'Teste de Carga',
-            description: 'Capacidade para multiplas requisicoes simultaneas',
+            description: 'Capacidade para múltiplas requisições simultâneas',
             status: 'fail',
             details: 'Falha no teste de carga',
             icon: <Users className="h-4 w-4" />
@@ -132,7 +132,7 @@ const ProductionReadiness = () => {
           name: 'Seguranca RLS',
           description: 'Row Level Security configurado e funcionando',
           status: !error ? 'pass' : 'fail',
-          details: !error ? 'RLS ativo e funcional' : 'Problemas de seguranca detectados',
+          details: !error ? 'RLS ativo e funcional' : 'Problemas de segurança detectados',
           icon: <Shield className="h-4 w-4" />
         });
       } catch {
@@ -140,7 +140,7 @@ const ProductionReadiness = () => {
           name: 'Seguranca RLS',
           description: 'Row Level Security configurado e funcionando',
           status: 'fail',
-          details: 'Erro na verificacao de seguranca',
+          details: 'Erro na verificação de segurança',
           icon: <Shield className="h-4 w-4" />
         });
       }
@@ -153,10 +153,10 @@ const ProductionReadiness = () => {
 
       const workingIntegrations = integrationChecks.length;
       productionChecks.push({
-        name: 'Integracoes Externas',
-        description: 'APIs e servicos externos conectados',
+        name: 'Integrações Externas',
+        description: 'APIs e serviços externos conectados',
         status: workingIntegrations >= 2 ? 'pass' : 'warning',
-        details: `${workingIntegrations}/3 integracoes configuradas`,
+        details: `${workingIntegrations}/3 integrações configuradas`,
         icon: <TrendingUp className="h-4 w-4" />
       });
 
@@ -172,7 +172,7 @@ const ProductionReadiness = () => {
         name: 'Build e Deploy',
         description: 'Sistema compilado e deployado com sucesso',
         status: 'pass',
-        details: 'Aplicacao rodando em producao',
+        details: 'Aplicação rodando em produção',
         icon: <Award className="h-4 w-4" />
       });
 
@@ -215,7 +215,7 @@ const ProductionReadiness = () => {
       case 'fail':
         return <Badge variant="destructive">Falhou</Badge>;
       case 'warning':
-        return <Badge className="bg-yellow-100 text-yellow-800">Atencao</Badge>;
+        return <Badge className="bg-yellow-100 text-yellow-800">Atenção</Badge>;
     }
   };
 
@@ -225,11 +225,11 @@ const ProductionReadiness = () => {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Rocket className="h-5 w-5" />
-            Verificacao de Prontidao para Producao
+            Verificação de Prontidão para Produção
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <p>Executando verificacoes...</p>
+          <p>Executando verificações...</p>
         </CardContent>
       </Card>
     );
@@ -241,14 +241,14 @@ const ProductionReadiness = () => {
         <div className="flex items-center justify-between">
           <CardTitle className="flex items-center gap-2">
             <Rocket className="h-5 w-5" />
-            Verificacao de Prontidao para Producao
+            Verificação de Prontidão para Produção
           </CardTitle>
           <div className="text-right">
             <div className="text-3xl font-bold">
               {overallScore}%
             </div>
             <div className="text-sm text-gray-500">
-              {isProductionReady ? 'PRONTO PARA PRODUCAO' : 'REQUER ATENCAO'}
+              {isProductionReady ? 'PRONTO PARA PRODUÇÃO' : 'REQUER ATENÇÃO'}
             </div>
           </div>
         </div>

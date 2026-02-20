@@ -335,13 +335,13 @@ const WhatsAppIA = () => {
             <div className="h-20 w-20 rounded-full bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center mx-auto mb-4">
               <MessageSquare className="h-10 w-10 text-emerald-500" />
             </div>
-            <h3 className="text-xl font-semibold text-[hsl(var(--foreground))] mb-2">WhatsApp IA Juridica</h3>
+            <h3 className="text-xl font-semibold text-[hsl(var(--foreground))] mb-2">WhatsApp IA Jurídica</h3>
             <p className="text-sm text-[hsl(var(--muted-foreground))] mb-6">
-              Gerencie suas conversas e monitore interacoes. Selecione uma conversa para comecar.
+              Gerencie suas conversas e monitore interações. Selecione uma conversa para começar.
             </p>
             <div className="flex gap-3 justify-center">
               <Button onClick={() => setShowSetup(true)} variant="outline" size="sm">
-                <Wifi className="h-4 w-4 mr-2" /> Conexoes
+                <Wifi className="h-4 w-4 mr-2" /> Conexões
               </Button>
             </div>
           </div>
@@ -414,13 +414,13 @@ const WhatsAppIA = () => {
                       {isIA && (
                         <div className="flex items-center gap-1 mb-1">
                           <Bot className="h-3 w-3 text-emerald-200" />
-                          <span className="text-[10px] text-emerald-200 font-medium">IA Juridica</span>
+                          <span className="text-[10px] text-emerald-200 font-medium">IA Jurídica</span>
                         </div>
                       )}
                       {!isLead && !isIA && (
                         <div className="flex items-center gap-1 mb-1">
                           <User className="h-3 w-3 text-blue-200" />
-                          <span className="text-[10px] text-blue-200 font-medium">Voce</span>
+                          <span className="text-[10px] text-blue-200 font-medium">Você</span>
                         </div>
                       )}
                       <p className="text-sm whitespace-pre-line leading-relaxed">{message.content}</p>
@@ -477,12 +477,12 @@ const WhatsAppIA = () => {
           <div className="h-24 w-24 rounded-full bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center mx-auto mb-6">
             <MessageSquare className="h-12 w-12 text-emerald-500" />
           </div>
-          <h2 className="text-2xl font-bold text-[hsl(var(--foreground))] mb-2">WhatsApp IA Juridica</h2>
+          <h2 className="text-2xl font-bold text-[hsl(var(--foreground))] mb-2">WhatsApp IA Jurídica</h2>
           <p className="text-[hsl(var(--muted-foreground))] mb-2">
-            Gerencie suas conversas e monitore interacoes
+            Gerencie suas conversas e monitore interações
           </p>
           <p className="text-sm text-[hsl(var(--muted-foreground))] mb-8">
-            Conecte seu WhatsApp para comecar a receber e responder mensagens automaticamente com IA.
+            Conecte seu WhatsApp para começar a receber e responder mensagens automaticamente com IA.
           </p>
           <Button
             onClick={() => setShowSetup(true)}

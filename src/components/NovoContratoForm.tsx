@@ -42,38 +42,38 @@ export const NovoContratoForm = ({ onClose }: NovoContratoFormProps) => {
   const [areaJuridica, setAreaJuridica] = useState('');
   const [valorCausa, setValorCausa] = useState('');
   const [responsavel, setResponsavel] = useState('');
-  const [textoContrato, setTextoContrato] = useState(`CONTRATO DE PRESTAÃ‡ÃƒO DE SERVIÃ‡OS ADVOCATÃCIOS
+  const [textoContrato, setTextoContrato] = useState(`CONTRATO DE PRESTAÇÃO DE SERVIÇOS ADVOCATÍCIOS
 
 CONTRATANTE: {nome_cliente}
-ÃREA JURÃDICA: {area_juridica}
+ÁREA JURÍDICA: {area_juridica}
 VALOR DA CAUSA: R$ {valor_causa}
 
-PRESTADOR DE SERVIÃ‡OS: {responsavel}
+PRESTADOR DE SERVIÇOS: {responsavel}
 
-CLÃUSULA 1Âª - DO OBJETO
-O presente contrato tem por objeto a prestaÃ§Ã£o de serviÃ§os advocatÃ­cios especializados em {area_juridica}, conforme descrito neste instrumento.
+CLÁUSULA 1ª - DO OBJETO
+O presente contrato tem por objeto a prestação de serviços advocatícios especializados em {area_juridica}, conforme descrito neste instrumento.
 
-CLÃUSULA 2Âª - DOS HONORÃRIOS
-Pelos serviÃ§os objeto deste contrato, o CONTRATANTE pagarÃ¡ ao PRESTADOR DE SERVIÃ‡OS o valor correspondente a 30% do valor da causa, ou seja, R$ {valor_honorarios}.
+CLÁUSULA 2ª - DOS HONORÁRIOS
+Pelos serviços objeto deste contrato, o CONTRATANTE pagará ao PRESTADOR DE SERVIÇOS o valor correspondente a 30% do valor da causa, ou seja, R$ {valor_honorarios}.
 
-CLÃUSULA 3Âª - DAS OBRIGAÃ‡Ã•ES
-O PRESTADOR DE SERVIÃ‡OS obriga-se a:
-- Prestar os serviÃ§os com diligÃªncia e competÃªncia tÃ©cnica;
+CLÁUSULA 3ª - DAS OBRIGAÇÕES
+O PRESTADOR DE SERVIÇOS obriga-se a:
+- Prestar os serviços com diligência e competência técnica;
 - Manter o CONTRATANTE informado sobre o andamento do processo;
-- Zelar pelos interesses do CONTRATANTE dentro dos limites legais e Ã©ticos.
+- Zelar pelos interesses do CONTRATANTE dentro dos limites legais e éticos.
 
-CLÃUSULA 4Âª - DO PRAZO
-Este contrato terÃ¡ vigÃªncia atÃ© a conclusÃ£o dos serviÃ§os contratados.
+CLÁUSULA 4ª - DO PRAZO
+Este contrato terá vigência até a conclusão dos serviços contratados.
 
-CLÃUSULA 5Âª - DO FORO
-Fica eleito o foro da comarca local para dirimir quaisquer controvÃ©rsias oriundas deste contrato.
+CLÁUSULA 5ª - DO FORO
+Fica eleito o foro da comarca local para dirimir quaisquer controvérsias oriundas deste contrato.
 
 Por estarem de acordo, as partes assinam o presente contrato em duas vias de igual teor.
 
 Data: ___/___/______
 
 _____________________          _____________________
-   CONTRATANTE                    PRESTADOR DE SERVIÃ‡OS`);
+   CONTRATANTE                    PRESTADOR DE SERVIÇOS`);
   const [clausulasCustomizadas, setClausulasCustomizadas] = useState('');
 
   const queryClient = useQueryClient();
@@ -160,7 +160,7 @@ _____________________          _____________________
     e.preventDefault();
 
     if (!tenantId) {
-      toast.error('Tenant nÃ£o encontrado. RefaÃ§a o login.');
+      toast.error('Tenant não encontrado. Refaça o login.');
       return;
     }
 
@@ -171,15 +171,15 @@ _____________________          _____________________
     }
 
     if (!areaJuridica || areaJuridica.length < 2) {
-      validationErrors.push('Ãrea jurÃ­dica Ã© obrigatÃ³ria');
+      validationErrors.push('Área jurídica é obrigatória');
     }
 
     if (!valorCausa || !validateInput(valorCausa, 'currency')) {
-      validationErrors.push('Valor da causa deve ser um nÃºmero vÃ¡lido');
+      validationErrors.push('Valor da causa deve ser um número válido');
     }
 
     if (!responsavel || responsavel.length < 2) {
-      validationErrors.push('ResponsÃ¡vel Ã© obrigatÃ³rio');
+      validationErrors.push('Responsável é obrigatório');
     }
 
     if (textoContrato.length < 50) {
@@ -198,11 +198,11 @@ _____________________          _____________________
     );
 
     if (hasDangerousContent) {
-      validationErrors.push('ConteÃºdo contÃ©m elementos nÃ£o permitidos por seguranÃ§a');
+      validationErrors.push('Conteúdo contém elementos não permitidos por segurança');
     }
 
     if (validationErrors.length > 0) {
-      toast.error(`Erros de validaÃ§Ã£o:\n${validationErrors.join('\n')}`);
+      toast.error(`Erros de validação:\n${validationErrors.join('\n')}`);
       return;
     }
 
@@ -249,7 +249,7 @@ _____________________          _____________________
         </div>
 
         <div className="space-y-2">
-          <Label>Ãrea JurÃ­dica</Label>
+          <Label>Área Jurídica</Label>
           <Input value={areaJuridica} onChange={(e) => setAreaJuridica(e.target.value)} required />
         </div>
 
@@ -264,7 +264,7 @@ _____________________          _____________________
         </div>
 
         <div className="space-y-2">
-          <Label>ResponsÃ¡vel</Label>
+          <Label>Responsável</Label>
           <Input value={responsavel} onChange={(e) => setResponsavel(e.target.value)} required />
         </div>
       </div>
@@ -280,7 +280,7 @@ _____________________          _____________________
       </div>
 
       <div className="space-y-2">
-        <Label>ClÃ¡usulas Customizadas (Opcional)</Label>
+        <Label>Cláusulas Customizadas (Opcional)</Label>
         <Textarea
           value={clausulasCustomizadas}
           onChange={(e) => setClausulasCustomizadas(e.target.value)}

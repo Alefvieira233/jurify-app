@@ -69,7 +69,7 @@ export const AgentesIACard: React.FC<AgentesIACardProps> = ({
             Atualizado: {new Date(agente.updated_at || '').toLocaleDateString('pt-BR')}
           </span>
           <span className="text-[hsl(var(--accent))] font-medium">
-            0 execucoes
+            0 execuções
           </span>
         </div>
 

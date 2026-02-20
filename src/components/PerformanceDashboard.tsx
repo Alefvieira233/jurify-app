@@ -88,7 +88,7 @@ const PerformanceDashboard = () => {
     <div className="space-y-6">
       <div>
         <h2 className="text-2xl font-bold text-gray-900 mb-2">Dashboard de Performance</h2>
-        <p className="text-gray-600">Metricas e indicadores de uso do sistema</p>
+        <p className="text-gray-600">Métricas e indicadores de uso do sistema</p>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -120,7 +120,7 @@ const PerformanceDashboard = () => {
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Execucoes IA (7 dias)</CardTitle>
+            <CardTitle className="text-sm font-medium">Execuções IA (7 dias)</CardTitle>
             <Activity className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
@@ -133,7 +133,7 @@ const PerformanceDashboard = () => {
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Taxa de Conversao</CardTitle>
+            <CardTitle className="text-sm font-medium">Taxa de Conversão</CardTitle>
             <TrendingUp className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
@@ -147,7 +147,7 @@ const PerformanceDashboard = () => {
 
       <Card>
         <CardHeader>
-          <CardTitle>Funil de Conversao (Ultimos 30 dias)</CardTitle>
+          <CardTitle>Funil de Conversão (Últimos 30 dias)</CardTitle>
         </CardHeader>
         <CardContent>
           <ResponsiveContainer width="100%" height={300}>
@@ -174,7 +174,7 @@ const PerformanceDashboard = () => {
             <div className="flex items-center justify-between p-3 bg-green-50 border border-green-200 rounded-lg">
               <div>
                 <p className="font-medium text-green-900">Sistema Operacional</p>
-                <p className="text-sm text-green-700">Todos os servicos funcionando normalmente</p>
+                <p className="text-sm text-green-700">Todos os serviços funcionando normalmente</p>
               </div>
               <div className="h-3 w-3 bg-green-500 rounded-full"></div>
             </div>

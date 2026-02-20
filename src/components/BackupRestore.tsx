@@ -40,7 +40,7 @@ const BackupRestore = () => {
     if (!user || !tenantId) {
       toast({
         title: 'Acesso negado',
-        description: 'Voce precisa estar logado para exportar configuracoes.',
+        description: 'Você precisa estar logado para exportar configurações.',
         variant: 'destructive'
       });
       return;
@@ -95,13 +95,13 @@ const BackupRestore = () => {
 
       toast({
         title: 'Backup criado',
-        description: 'Configuracoes exportadas com sucesso.'
+        description: 'Configurações exportadas com sucesso.'
       });
     } catch (error) {
       console.error('Erro no backup:', error);
       toast({
         title: 'Erro no backup',
-        description: 'Falha ao exportar configuracoes.',
+        description: 'Falha ao exportar configurações.',
         variant: 'destructive'
       });
     } finally {
@@ -113,7 +113,7 @@ const BackupRestore = () => {
     if (!user || !tenantId) {
       toast({
         title: 'Acesso negado',
-        description: 'Voce precisa estar logado para importar configuracoes.',
+        description: 'Você precisa estar logado para importar configurações.',
         variant: 'destructive'
       });
       return;
@@ -121,7 +121,7 @@ const BackupRestore = () => {
 
     if (!backupData.trim()) {
       toast({
-        title: 'Dados invalidos',
+        title: 'Dados inválidos',
         description: 'Por favor, cole o JSON de backup.',
         variant: 'destructive'
       });
@@ -133,11 +133,11 @@ const BackupRestore = () => {
       const parsedData = JSON.parse(backupData) as { data?: Record<string, BackupRecord[]> };
 
       if (!parsedData.data) {
-        throw new Error('Formato de backup invalido');
+        throw new Error('Formato de backup inválido');
       }
 
       const confirmed = window.confirm(
-        'ATENCAO: Esta acao vai sobrescrever as configuracoes atuais. Tem certeza?'
+        'ATENÇÃO: Esta ação vai sobrescrever as configurações atuais. Tem certeza?'
       );
 
       if (!confirmed) {
@@ -172,16 +172,16 @@ const BackupRestore = () => {
       }
 
       toast({
-        title: 'Importacao concluida',
-        description: 'Configuracoes restauradas com sucesso.'
+        title: 'Importação concluída',
+        description: 'Configurações restauradas com sucesso.'
       });
 
       setBackupData('');
     } catch (error) {
       console.error('Erro na importacao:', error);
       toast({
-        title: 'Erro na importacao',
-        description: 'Falha ao importar configuracoes. Verifique o JSON.',
+        title: 'Erro na importação',
+        description: 'Falha ao importar configurações. Verifique o JSON.',
         variant: 'destructive'
       });
     } finally {
@@ -195,12 +195,12 @@ const BackupRestore = () => {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Download className="h-5 w-5" />
-            Exportar Configuracoes
+            Exportar Configurações
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <p className="text-sm text-[hsl(var(--muted-foreground))]">
-            Exporte todas as configuracoes do sistema para backup.
+            Exporte todas as configurações do sistema para backup.
           </p>
           <Button
             onClick={() => void exportConfigurations()}
@@ -216,7 +216,7 @@ const BackupRestore = () => {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Upload className="h-5 w-5" />
-            Importar Configuracoes
+            Importar Configurações
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">

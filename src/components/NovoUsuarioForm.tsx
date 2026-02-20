@@ -16,7 +16,7 @@ const roles = [
   { value: 'administrador', label: 'Administrador' },
   { value: 'advogado', label: 'Advogado' },
   { value: 'comercial', label: 'Comercial' },
-  { value: 'pos_venda', label: 'PÃ³s-venda' },
+  { value: 'pos_venda', label: 'Pós-venda' },
   { value: 'suporte', label: 'Suporte' }
 ];
 
@@ -60,19 +60,19 @@ const NovoUsuarioForm = ({ onClose }: NovoUsuarioFormProps) => {
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ['usuarios'] });
       toast({
-        title: "UsuÃ¡rio criado",
-        description: "O usuÃ¡rio foi criado com sucesso.",
+        title: "Usuário criado",
+        description: "O usuário foi criado com sucesso.",
       });
       onClose();
     },
     onError: (error: unknown) => {
-      const message = error instanceof Error ? error.message : "Erro ao criar usuÃ¡rio.";
+      const message = error instanceof Error ? error.message : "Erro ao criar usuário.";
       toast({
         title: "Erro",
         description: message,
         variant: "destructive",
       });
-      console.error('Erro ao criar usuÃ¡rio:', error);
+      console.error('Erro ao criar usuário:', error);
     }
   });
 
@@ -82,7 +82,7 @@ const NovoUsuarioForm = ({ onClose }: NovoUsuarioFormProps) => {
     if (formData.selectedRoles.length === 0) {
       toast({
         title: "Erro",
-        description: "Selecione pelo menos um papel para o usuÃ¡rio.",
+        description: "Selecione pelo menos um papel para o usuário.",
         variant: "destructive",
       });
       return;
@@ -132,7 +132,7 @@ const NovoUsuarioForm = ({ onClose }: NovoUsuarioFormProps) => {
             type="password"
             value={formData.password}
             onChange={(e) => setFormData({...formData, password: e.target.value})}
-            placeholder="MÃ­nimo 6 caracteres"
+            placeholder="Mínimo 6 caracteres"
             required
           />
         </div>
@@ -154,7 +154,7 @@ const NovoUsuarioForm = ({ onClose }: NovoUsuarioFormProps) => {
             id="cargo"
             value={formData.cargo}
             onChange={(e) => setFormData({...formData, cargo: e.target.value})}
-            placeholder="Ex: Advogado SÃªnior"
+            placeholder="Ex: Advogado Sênior"
           />
         </div>
         <div className="space-y-2">
@@ -163,13 +163,13 @@ const NovoUsuarioForm = ({ onClose }: NovoUsuarioFormProps) => {
             id="departamento"
             value={formData.departamento}
             onChange={(e) => setFormData({...formData, departamento: e.target.value})}
-            placeholder="Ex: JurÃ­dico"
+            placeholder="Ex: Jurídico"
           />
         </div>
       </div>
 
       <div className="space-y-3">
-        <Label>PapÃ©is no Sistema *</Label>
+        <Label>Papéis no Sistema *</Label>
         <div className="space-y-2">
           {roles.map((role) => (
             <div key={role.value} className="flex items-center space-x-2">
@@ -195,7 +195,7 @@ const NovoUsuarioForm = ({ onClose }: NovoUsuarioFormProps) => {
           className="bg-amber-500 hover:bg-amber-600"
           disabled={createMutation.isPending}
         >
-          {createMutation.isPending ? 'Criando...' : 'Criar UsuÃ¡rio'}
+          {createMutation.isPending ? 'Criando...' : 'Criar Usuário'}
         </Button>
       </div>
     </form>

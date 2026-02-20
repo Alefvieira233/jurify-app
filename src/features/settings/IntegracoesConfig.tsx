@@ -125,8 +125,8 @@ const IntegracoesConfig = () => {
     return (
       <Card>
         <CardHeader>
-          <CardTitle>Configuracoes de Integracoes</CardTitle>
-          <CardDescription>Voce nao tem permissao para acessar esta area.</CardDescription>
+          <CardTitle>Configurações de Integrações</CardTitle>
+          <CardDescription>Você não tem permissão para acessar esta área.</CardDescription>
         </CardHeader>
       </Card>
     );
@@ -144,22 +144,22 @@ const IntegracoesConfig = () => {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Configuracoes de Integracoes</h1>
-          <p className="text-gray-600">Gerencie as integracoes externas do sistema</p>
+          <h1 className="text-2xl font-bold text-gray-900">Configurações de Integrações</h1>
+          <p className="text-gray-600">Gerencie as integrações externas do sistema</p>
         </div>
 
         <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
           <DialogTrigger asChild>
             <Button onClick={() => setIsCreateDialogOpen(true)}>
               <Plus className="h-4 w-4 mr-2" />
-              Nova Integracao
+              Nova Integração
             </Button>
           </DialogTrigger>
           <DialogContent className="sm:max-w-[600px]">
             <form onSubmit={(event) => { void handleSubmit(event); }}>
               <DialogHeader>
-                <DialogTitle>{editingIntegracao ? 'Editar Integracao' : 'Nova Integracao'}</DialogTitle>
-                <DialogDescription>Configure uma nova integracao externa para o sistema.</DialogDescription>
+                <DialogTitle>{editingIntegracao ? 'Editar Integração' : 'Nova Integração'}</DialogTitle>
+                <DialogDescription>Configure uma nova integração externa para o sistema.</DialogDescription>
               </DialogHeader>
 
               <div className="grid gap-4 py-4">
@@ -229,14 +229,14 @@ const IntegracoesConfig = () => {
 
                 <div className="grid grid-cols-4 items-start gap-4">
                   <Label htmlFor="observacoes" className="text-right mt-2">
-                    Observacoes
+                    Observações
                   </Label>
                   <Textarea
                     id="observacoes"
                     value={formData.observacoes ?? ''}
                     onChange={(e) => setFormData({ ...formData, observacoes: e.target.value })}
                     className="col-span-3"
-                    placeholder="Observacoes adicionais..."
+                    placeholder="Observações adicionais..."
                     rows={3}
                   />
                 </div>
@@ -254,7 +254,7 @@ const IntegracoesConfig = () => {
                 >
                   Cancelar
                 </Button>
-                <Button type="submit">{editingIntegracao ? 'Atualizar' : 'Criar'} Integracao</Button>
+                <Button type="submit">{editingIntegracao ? 'Atualizar' : 'Criar'} Integração</Button>
               </DialogFooter>
             </form>
           </DialogContent>
@@ -266,9 +266,9 @@ const IntegracoesConfig = () => {
           <Card>
             <CardContent className="flex flex-col items-center justify-center py-12">
               <Settings className="h-12 w-12 text-gray-400 mb-4" />
-              <h3 className="text-lg font-medium text-gray-900 mb-2">Nenhuma integracao configurada</h3>
+              <h3 className="text-lg font-medium text-gray-900 mb-2">Nenhuma integração configurada</h3>
               <p className="text-gray-500 text-center max-w-md">
-                Configure suas primeiras integracoes externas para comecar a sincronizar dados com servicos terceiros.
+                Configure suas primeiras integrações externas para começar a sincronizar dados com serviços terceiros.
               </p>
             </CardContent>
           </Card>
@@ -298,7 +298,7 @@ const IntegracoesConfig = () => {
                     </Button>
                   </div>
                 </div>
-                <CardDescription>{integracao.observacoes || 'Nenhuma observacao disponivel'}</CardDescription>
+                <CardDescription>{integracao.observacoes || 'Nenhuma observação disponível'}</CardDescription>
               </CardHeader>
 
               <CardContent>
@@ -348,8 +348,8 @@ const IntegracoesConfig = () => {
         <DialogContent className="sm:max-w-[600px]">
           <form onSubmit={(event) => { void handleSubmit(event); }}>
             <DialogHeader>
-              <DialogTitle>Editar Integracao</DialogTitle>
-              <DialogDescription>Atualize as configuracoes da integracao.</DialogDescription>
+              <DialogTitle>Editar Integração</DialogTitle>
+              <DialogDescription>Atualize as configurações da integração.</DialogDescription>
             </DialogHeader>
 
             <div className="grid gap-4 py-4">
@@ -416,7 +416,7 @@ const IntegracoesConfig = () => {
 
               <div className="grid grid-cols-4 items-start gap-4">
                 <Label htmlFor="edit-observacoes" className="text-right mt-2">
-                  Observacoes
+                  Observações
                 </Label>
                 <Textarea
                   id="edit-observacoes"
@@ -432,7 +432,7 @@ const IntegracoesConfig = () => {
               <Button type="button" variant="outline" onClick={() => setEditingIntegracao(null)}>
                 Cancelar
               </Button>
-              <Button type="submit">Atualizar Integracao</Button>
+              <Button type="submit">Atualizar Integração</Button>
             </DialogFooter>
           </form>
         </DialogContent>

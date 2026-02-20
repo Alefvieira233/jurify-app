@@ -21,8 +21,8 @@ const ExportDataButton = ({ table, filename, className }: ExportDataButtonProps)
     const allowed = await hasPermission('usuarios', 'read');
     if (!allowed) {
       toast({
-        title: 'Sem permissao',
-        description: 'Voce nao tem permissao para exportar dados.',
+        title: 'Sem permissão',
+        description: 'Você não tem permissão para exportar dados.',
         variant: 'destructive',
       });
       return;
@@ -30,8 +30,8 @@ const ExportDataButton = ({ table, filename, className }: ExportDataButtonProps)
 
     if (!tenantId) {
       toast({
-        title: 'Tenant nao encontrado',
-        description: 'Refaca o login para continuar.',
+        title: 'Tenant não encontrado',
+        description: 'Refaça o login para continuar.',
         variant: 'destructive',
       });
       return;
@@ -55,7 +55,7 @@ const ExportDataButton = ({ table, filename, className }: ExportDataButtonProps)
       if (!data || data.length === 0) {
         toast({
           title: 'Nenhum dado encontrado',
-          description: 'Nao ha dados para exportar nesta tabela.',
+          description: 'Não há dados para exportar nesta tabela.',
         });
         return;
       }
@@ -99,14 +99,14 @@ const ExportDataButton = ({ table, filename, className }: ExportDataButtonProps)
       document.body.removeChild(link);
 
       toast({
-        title: 'Exportacao concluida',
+        title: 'Exportação concluída',
         description: `${data.length} registros exportados com sucesso.`,
       });
     } catch (error) {
       console.error('Erro na exportacao:', error);
       toast({
-        title: 'Erro na exportacao',
-        description: 'Nao foi possivel exportar os dados.',
+        title: 'Erro na exportação',
+        description: 'Não foi possível exportar os dados.',
         variant: 'destructive',
       });
     } finally {

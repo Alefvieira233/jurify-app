@@ -51,7 +51,7 @@ const LeadsPanel = () => {
   const getStatusLabel = (status: string) => {
     const labels = {
       novo_lead: 'Novo Lead',
-      em_qualificacao: 'Em Qualificacao',
+      em_qualificacao: 'Em Qualificação',
       proposta_enviada: 'Proposta Enviada',
       contrato_assinado: 'Contrato Assinado',
       em_atendimento: 'Em Atendimento',
@@ -119,7 +119,7 @@ const LeadsPanel = () => {
           <CardHeader>
             <div className="flex justify-between items-center">
               <div>
-                <CardTitle className="text-2xl">Gestao de Leads</CardTitle>
+                <CardTitle className="text-2xl">Gestão de Leads</CardTitle>
                 <p className="text-[hsl(var(--muted-foreground))]">Gerencie seus leads e oportunidades</p>
               </div>
               <Skeleton className="h-10 w-32" />
@@ -164,7 +164,7 @@ const LeadsPanel = () => {
           <CardHeader>
             <div className="flex justify-between items-center">
               <div>
-                <CardTitle className="text-2xl">Gestao de Leads</CardTitle>
+                <CardTitle className="text-2xl">Gestão de Leads</CardTitle>
                 <p className="text-[hsl(var(--muted-foreground))]">Gerencie seus leads e oportunidades</p>
               </div>
               <Button
@@ -215,7 +215,7 @@ const LeadsPanel = () => {
           <CardHeader>
             <div className="flex justify-between items-center">
               <div>
-                <CardTitle className="text-2xl">Gestao de Leads</CardTitle>
+                <CardTitle className="text-2xl">Gestão de Leads</CardTitle>
                 <p className="text-[hsl(var(--muted-foreground))]">Gerencie seus leads e oportunidades</p>
               </div>
               <Button
@@ -350,7 +350,7 @@ const LeadsPanel = () => {
             >
               <option value="">Todos os Status</option>
               <option value="novo_lead">Novo Lead</option>
-              <option value="em_qualificacao">Em Qualificacao</option>
+              <option value="em_qualificacao">Em Qualificação</option>
               <option value="proposta_enviada">Proposta Enviada</option>
               <option value="contrato_assinado">Contrato Assinado</option>
               <option value="em_atendimento">Em Atendimento</option>
@@ -501,7 +501,7 @@ const LeadsPanel = () => {
               <Search className="h-12 w-12 text-yellow-500 mx-auto mb-4" />
               <h3 className="text-lg font-medium text-yellow-900 mb-2">Nenhum resultado encontrado</h3>
               <p className="text-yellow-700">
-                Nao foram encontrados leads com o termo "{debouncedSearchTerm}". Tente ajustar sua busca.
+                Não foram encontrados leads com o termo "{debouncedSearchTerm}". Tente ajustar sua busca.
               </p>
             </div>
           </CardContent>

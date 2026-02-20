@@ -1,8 +1,8 @@
 /**
- * ðŸ¤– NOVO AGENTE FORM - REFATORADO
+ * 🤖 NOVO AGENTE FORM - REFATORADO
  * 
- * FormulÃ¡rio para criaÃ§Ã£o e ediÃ§Ã£o de agentes IA.
- * REFATORADO: Componentes quebrados em subcomponentes menores para melhor manutenÃ§Ã£o.
+ * Formulário para criação e edição de agentes IA.
+ * REFATORADO: Componentes quebrados em subcomponentes menores para melhor manutenção.
  * @see src/components/agente-form/
  */
 
@@ -134,7 +134,7 @@ const NovoAgenteForm: React.FC<NovoAgenteFormProps> = ({ agente, defaultType, on
     if (!validation.success && validation.errors.length > 0) {
       const firstError = validation.errors[0] ?? { field: 'unknown', message: 'Erro desconhecido' };
       toast({
-        title: "Erro de ValidaÃ§Ã£o",
+        title: "Erro de Validação",
         description: `${firstError.field}: ${firstError.message}`,
         variant: "destructive",
       });
@@ -172,7 +172,7 @@ const NovoAgenteForm: React.FC<NovoAgenteFormProps> = ({ agente, defaultType, on
 
         toast({
           title: "Agente Atualizado",
-          description: "As configuraÃ§Ãµes do agente foram atualizadas com sucesso",
+          description: "As configurações do agente foram atualizadas com sucesso",
         });
       } else {
         const { error } = await supabase
@@ -192,7 +192,7 @@ const NovoAgenteForm: React.FC<NovoAgenteFormProps> = ({ agente, defaultType, on
       console.error('Erro ao salvar agente:', error);
       toast({
         title: "Erro",
-        description: "NÃ£o foi possÃ­vel salvar o agente. Verifique os dados e tente novamente.",
+        description: "Não foi possível salvar o agente. Verifique os dados e tente novamente.",
         variant: "destructive",
       });
     } finally {
@@ -221,25 +221,25 @@ const NovoAgenteForm: React.FC<NovoAgenteFormProps> = ({ agente, defaultType, on
 
         {/* Form */}
         <form onSubmit={(event) => { void handleSubmit(event); }} className="p-6 space-y-6">
-          {/* InformaÃ§Ãµes BÃ¡sicas */}
+          {/* Informações Básicas */}
           <BasicInfoSection
             formData={formData}
             onInputChange={handleFieldChange}
           />
 
-          {/* ConfiguraÃ§Ã£o de IA */}
+          {/* Configuração de IA */}
           <AIConfigSection
             formData={formData}
             onInputChange={handleFieldChange}
           />
 
-          {/* ParÃ¢metros AvanÃ§ados */}
+          {/* Parâmetros Avançados */}
           <AdvancedParamsSection
             parametros={formData.parametros_avancados}
             onParametroChange={handleParametroChange}
           />
 
-          {/* ConfiguraÃ§Ãµes de InteraÃ§Ã£o */}
+          {/* Configurações de Interação */}
           <InteractionConfigSection
             formData={formData}
             onInputChange={(field, value) => handleFieldChange(field, value)}

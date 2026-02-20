@@ -31,10 +31,10 @@ const ProtectedRoute = ({ children, requiredRoles }: ProtectedRouteProps) => {
           <div className="text-center p-8 max-w-md">
             <h2 className="text-2xl font-bold text-destructive mb-2">Acesso Negado</h2>
             <p className="text-muted-foreground mb-4">
-              Voce nao tem permissao para acessar esta pagina.
+              Você não tem permissão para acessar esta página.
             </p>
             <p className="text-sm text-muted-foreground">
-              Acesso nao autorizado. Contate o administrador.
+              Acesso não autorizado. Contate o administrador.
             </p>
           </div>
         </div>

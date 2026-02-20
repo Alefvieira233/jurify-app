@@ -26,9 +26,9 @@ import {
 
 const areas = [
   'Direito Trabalhista',
-  'Direito de Familia',
+  'Direito de Família',
   'Direito Civil',
-  'Direito Previdenciario',
+  'Direito Previdenciário',
   'Direito Criminal',
   'Direito Empresarial'
 ];
@@ -37,19 +37,19 @@ const tiposAgente = [
   {
     value: 'chat_interno',
     label: 'Chat Interno',
-    description: 'Agente para interacao direta com clientes via chat',
+    description: 'Agente para interação direta com clientes via chat',
     icon: Bot
   },
   {
     value: 'analise_dados',
-    label: 'Analise de Dados',
-    description: 'Agente especializado em analise e processamento de dados',
+    label: 'Análise de Dados',
+    description: 'Agente especializado em análise e processamento de dados',
     icon: BarChart
   },
   {
     value: 'api_externa',
     label: 'API Externa',
-    description: 'Agente para integracao com APIs e servicos externos',
+    description: 'Agente para integração com APIs e serviços externos',
     icon: Zap
   }
 ];

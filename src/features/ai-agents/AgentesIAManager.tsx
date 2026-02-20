@@ -315,7 +315,7 @@ const AgentesIAManager = () => {
                   Nenhum agente encontrado
                 </h3>
                 <p className="text-[hsl(var(--muted-foreground))] mb-6">
-                  Crie seu primeiro agente de IA para comecar a automatizar processos juridicos.
+                  Crie seu primeiro agente de IA para começar a automatizar processos jurídicos.
                 </p>
                 <Button onClick={handleCreateNew} className="bg-[hsl(var(--accent))] hover:bg-[hsl(var(--accent-hover))] text-[hsl(var(--accent-foreground))]">
                   <Plus className="h-4 w-4 mr-2" />

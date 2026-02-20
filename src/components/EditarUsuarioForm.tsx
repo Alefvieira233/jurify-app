@@ -39,7 +39,7 @@ const EditarUsuarioForm = ({ usuario, onClose }: EditarUsuarioFormProps) => {
 
   const updateMutation = useMutation({
     mutationFn: async (data: typeof formData) => {
-      if (!tenantId) throw new Error('Tenant nao encontrado');
+      if (!tenantId) throw new Error('Tenant não encontrado');
       const { error } = await supabase
         .from('profiles')
         .update(data)
@@ -51,18 +51,18 @@ const EditarUsuarioForm = ({ usuario, onClose }: EditarUsuarioFormProps) => {
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ['usuarios'] });
       toast({
-        title: 'Usuario atualizado',
-        description: 'Os dados do usuario foram atualizados com sucesso.'
+        title: 'Usuário atualizado',
+        description: 'Os dados do usuário foram atualizados com sucesso.'
       });
       onClose();
     },
     onError: (error) => {
       toast({
         title: 'Erro',
-        description: 'Erro ao atualizar usuario.',
+        description: 'Erro ao atualizar usuário.',
         variant: 'destructive',
       });
-      console.error('Erro ao atualizar usuario:', error);
+      console.error('Erro ao atualizar usuário:', error);
     }
   });
 
@@ -122,7 +122,7 @@ const EditarUsuarioForm = ({ usuario, onClose }: EditarUsuarioFormProps) => {
           id="departamento"
           value={formData.departamento}
           onChange={(e) => setFormData({ ...formData, departamento: e.target.value })}
-          placeholder="Ex: Juridico"
+          placeholder="Ex: Jurídico"
         />
       </div>
 
@@ -132,7 +132,7 @@ const EditarUsuarioForm = ({ usuario, onClose }: EditarUsuarioFormProps) => {
           checked={formData.ativo}
           onCheckedChange={(checked) => setFormData({ ...formData, ativo: checked })}
         />
-        <Label htmlFor="ativo">Usuario ativo</Label>
+        <Label htmlFor="ativo">Usuário ativo</Label>
       </div>
 
       <div className="flex justify-end space-x-2 pt-4">
@@ -144,7 +144,7 @@ const EditarUsuarioForm = ({ usuario, onClose }: EditarUsuarioFormProps) => {
           className="bg-amber-500 hover:bg-amber-600"
           disabled={updateMutation.isPending}
         >
-          {updateMutation.isPending ? 'Salvando...' : 'Salvar Alteracoes'}
+          {updateMutation.isPending ? 'Salvando...' : 'Salvar Alterações'}
         </Button>
       </div>
     </form>
