@@ -1,166 +1,201 @@
-/**
- * 📊 JURIFY CONVERSION FUNNEL
- * 
- * Premium funnel visualization showing lead conversion stages.
- * Uses Recharts with custom styling for "Conservative Luxury" theme.
- * 
- * @version 1.0.0
- */
 
-import { Fragment } from 'react';
-import { FunnelChart, Funnel, LabelList, Tooltip, ResponsiveContainer, Cell } from 'recharts';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { TrendingDown, ArrowRight } from 'lucide-react';
-
-interface FunnelStage {
-    stage: string;
-    value: number;
-    fill: string;
-    label: string;
-}
+import { useMemo } from 'react';
+import { TrendingDown } from 'lucide-react';
+import { Card, CardContent, CardHeader } from '@/components/ui/card';
 
 interface ConversionFunnelProps {
-    data: {
-        novo_lead?: number;
-        em_qualificacao?: number;
-        proposta_enviada?: number;
-        contrato_assinado?: number;
-        em_atendimento?: number;
-        lead_perdido?: number;
-    };
+  data: {
+    novo_lead?:         number;
+    em_qualificacao?:   number;
+    proposta_enviada?:  number;
+    contrato_assinado?: number;
+    em_atendimento?:    number;
+    lead_perdido?:      number;
+  };
 }
 
 type StageKey = 'novo_lead' | 'em_qualificacao' | 'proposta_enviada' | 'contrato_assinado';
 
-const STAGE_CONFIG: Record<StageKey, { label: string; fill: string }> = {
-    novo_lead: { label: 'Novos Leads', fill: 'hsl(217, 91%, 60%)' },
-    em_qualificacao: { label: 'Em Qualificação', fill: 'hsl(45, 93%, 47%)' },
-    proposta_enviada: { label: 'Proposta Enviada', fill: 'hsl(262, 83%, 58%)' },
-    contrato_assinado: { label: 'Contrato Assinado', fill: 'hsl(142, 76%, 36%)' },
+const STAGE_CONFIG: Record<StageKey, { label: string; hex: string; textColor: string }> = {
+  novo_lead:         { label: 'Captação',     hex: '#2563eb', textColor: '#1d4ed8' },
+  em_qualificacao:   { label: 'Qualificação', hex: '#d97706', textColor: '#b45309' },
+  proposta_enviada:  { label: 'Proposta',     hex: '#4f46e5', textColor: '#4338ca' },
+  contrato_assinado: { label: 'Contrato',     hex: '#059669', textColor: '#047857' },
 };
 
+const STAGE_ORDER: StageKey[] = [
+  'novo_lead', 'em_qualificacao', 'proposta_enviada', 'contrato_assinado',
+];
+
+/* Rate coloring: green ≥50 · amber 30–49 · rose <30 */
+function rateHex(r: number)   { return r >= 50 ? '#059669' : r >= 30 ? '#d97706' : '#e11d48'; }
+function rateBg(r: number)    { return r >= 50 ? 'rgba(5,150,105,0.10)' : r >= 30 ? 'rgba(217,119,6,0.10)' : 'rgba(225,29,72,0.10)'; }
+
 export const ConversionFunnel = ({ data }: ConversionFunnelProps) => {
-    // Transform data for funnel chart (exclude lost leads and em_atendimento for funnel logic)
-    const funnelData: FunnelStage[] = [
-        {
-            stage: 'novo_lead',
-            value: data.novo_lead ?? 0,
-            fill: STAGE_CONFIG.novo_lead.fill,
-            label: STAGE_CONFIG.novo_lead.label,
-        },
-        {
-            stage: 'em_qualificacao',
-            value: data.em_qualificacao ?? 0,
-            fill: STAGE_CONFIG.em_qualificacao.fill,
-            label: STAGE_CONFIG.em_qualificacao.label,
-        },
-        {
-            stage: 'proposta_enviada',
-            value: data.proposta_enviada ?? 0,
-            fill: STAGE_CONFIG.proposta_enviada.fill,
-            label: STAGE_CONFIG.proposta_enviada.label,
-        },
-        {
-            stage: 'contrato_assinado',
-            value: data.contrato_assinado ?? 0,
-            fill: STAGE_CONFIG.contrato_assinado.fill,
-            label: STAGE_CONFIG.contrato_assinado.label,
-        },
-    ];
+  const stages = useMemo(() =>
+    STAGE_ORDER.map(key => ({
+      key,
+      ...STAGE_CONFIG[key],
+      value: data[key] ?? 0,
+    })),
+  [data]);
 
-    // Calculate conversion rates between stages
-    const conversionRates = funnelData.map((stage, index) => {
-        if (index === 0) return 100;
-        const prevValue = funnelData[index - 1]?.value ?? 0;
-        if (prevValue === 0) return 0;
-        return ((stage.value / prevValue) * 100).toFixed(1);
-    });
+  const topValue   = stages[0]?.value ?? 0;
+  const converted  = stages[stages.length - 1]?.value ?? 0;
+  const overallPct = topValue > 0 ? (converted / topValue) * 100 : 0;
+  const lostLeads  = data.lead_perdido ?? 0;
 
-    // Overall conversion rate (from first to last stage)
-    const totalLeads = funnelData[0]?.value ?? 0;
-    const converted = funnelData[funnelData.length - 1]?.value ?? 0;
-    const overallRate = totalLeads > 0 ? ((converted / totalLeads) * 100).toFixed(1) : '0';
+  /* Step conversion rates */
+  const stepRates = stages.map((s, i) => {
+    if (i === 0) return 100;
+    const prev = stages[i - 1]?.value ?? 0;
+    return prev > 0 ? Math.round((s.value / prev) * 100) : 0;
+  });
 
-    return (
-        <Card className="border-border bg-card shadow-premium">
-            <CardHeader className="pb-2">
-                <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                        <div className="p-2 bg-accent/10 rounded-lg">
-                            <TrendingDown className="h-5 w-5 text-accent" />
-                        </div>
-                        <div>
-                            <CardTitle className="text-lg font-serif font-bold">Funil de Conversão</CardTitle>
-                            <CardDescription className="text-sm">Taxa de conversão por etapa</CardDescription>
-                        </div>
+  return (
+    <Card className="border-border bg-card shadow-sm">
+
+      {/* ── Header ── */}
+      <CardHeader className="px-5 py-3 border-b border-border/60">
+        <div className="flex items-center justify-between gap-4">
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
+              <TrendingDown className="h-4 w-4 text-primary" />
+            </div>
+            <div>
+              <p className="text-sm font-bold text-foreground leading-tight">Funil de Conversão</p>
+              <p className="text-[11px] text-muted-foreground leading-none mt-0.5">
+                {topValue} leads captados · {converted} convertidos
+              </p>
+            </div>
+          </div>
+
+          {/* Overall rate */}
+          <div className="flex-shrink-0 text-right">
+            <p
+              className="text-xl font-bold tabular-nums leading-tight"
+              style={{ color: rateHex(overallPct) }}
+            >
+              {overallPct.toFixed(1)}%
+            </p>
+            <p className="text-[10px] text-muted-foreground uppercase tracking-wider leading-none mt-0.5">
+              taxa global
+            </p>
+          </div>
+        </div>
+      </CardHeader>
+
+      {/* ── Funnel bars ── */}
+      <CardContent className="px-5 pb-5 pt-4">
+        <div className="space-y-0">
+          {stages.map((stage, i) => {
+            const widthPct = topValue > 0 ? Math.max((stage.value / topValue) * 100, 3) : 3;
+            const pctOfTop = topValue > 0 ? ((stage.value / topValue) * 100).toFixed(0) : '0';
+            const stepRate = stepRates[i] ?? 0;
+            const dropped  = i > 0 ? ((stages[i - 1]?.value ?? 0) - stage.value) : 0;
+
+            return (
+              <div key={stage.key}>
+
+                {/* ── Drop connector between stages ── */}
+                {i > 0 && (
+                  <div className="flex items-center gap-2 my-1.5 ml-[9px]">
+                    <div className="w-px h-4 bg-border" />
+                    <div
+                      className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold tabular-nums"
+                      style={{ color: rateHex(stepRate), background: rateBg(stepRate) }}
+                    >
+                      {stepRate}% avançaram
                     </div>
-                    <div className="text-right">
-                        <div className="text-3xl font-bold text-primary font-mono">{overallRate}%</div>
-                        <div className="text-xs text-muted-foreground uppercase tracking-wider">Taxa Global</div>
-                    </div>
-                </div>
-            </CardHeader>
-            <CardContent>
-                <ResponsiveContainer width="100%" height={300}>
-                    <FunnelChart>
-                        <Tooltip
-                            contentStyle={{
-                                backgroundColor: 'hsl(var(--card))',
-                                border: '1px solid hsl(var(--border))',
-                                borderRadius: '0.25rem',
-                                fontFamily: 'Inter, sans-serif',
-                            }}
-                            formatter={(value: number, name: string) => [value, name]}
-                        />
-                        <Funnel
-                            dataKey="value"
-                            data={funnelData}
-                            isAnimationActive
-                            animationDuration={800}
-                        >
-                            {funnelData.map((entry, index) => (
-                                <Cell key={`cell-${index}`} fill={entry.fill} />
-                            ))}
-                            <LabelList
-                                position="right"
-                                fill="hsl(var(--foreground))"
-                                stroke="none"
-                                dataKey="label"
-                                fontSize={12}
-                                fontWeight={600}
-                            />
-                            <LabelList
-                                position="center"
-                                fill="white"
-                                stroke="none"
-                                dataKey="value"
-                                fontSize={14}
-                                fontWeight={700}
-                            />
-                        </Funnel>
-                    </FunnelChart>
-                </ResponsiveContainer>
+                    {dropped > 0 && (
+                      <span className="text-[10px] text-muted-foreground/50">
+                        −{dropped} saíram
+                      </span>
+                    )}
+                  </div>
+                )}
 
-                {/* Conversion Rate Indicators */}
-                <div className="mt-4 flex justify-between items-center px-4">
-                    {funnelData.map((stage, index) => (
-                        <Fragment key={stage.stage}>
-                            <div className="text-center">
-                                <div className="text-xs font-medium text-muted-foreground">{stage.label.split(' ')[0]}</div>
-                                <div className="text-sm font-bold text-foreground">{stage.value}</div>
-                            </div>
-                            {index < funnelData.length - 1 && (
-                                <div className="flex flex-col items-center">
-                                    <ArrowRight className="h-4 w-4 text-muted-foreground" />
-                                    <span className="text-[10px] text-muted-foreground">{conversionRates[index + 1]}%</span>
-                                </div>
-                            )}
-                        </Fragment>
-                    ))}
+                {/* ── Bar row ── */}
+                <div className="flex items-center gap-3">
+
+                  {/* Color dot */}
+                  <div
+                    className="w-2 h-2 rounded-full flex-shrink-0"
+                    style={{ background: stage.hex }}
+                  />
+
+                  {/* Stage label */}
+                  <p className="w-[88px] flex-shrink-0 text-xs font-medium text-muted-foreground truncate">
+                    {stage.label}
+                  </p>
+
+                  {/* Bar track */}
+                  <div className="flex-1 h-6 bg-muted/40 rounded-md overflow-hidden relative">
+                    <div
+                      className="absolute inset-y-0 left-0 rounded-md flex items-center transition-all duration-700"
+                      style={{ width: `${widthPct}%`, background: stage.hex + 'cc' }}
+                    >
+                      {stage.value > 0 && widthPct > 12 && (
+                        <span className="text-white text-[10px] font-bold px-2 tabular-nums">
+                          {stage.value}
+                        </span>
+                      )}
+                    </div>
+                    {/* Value outside bar if bar is too narrow */}
+                    {(widthPct <= 12 && stage.value > 0) && (
+                      <span
+                        className="absolute left-2 top-1/2 -translate-y-1/2 text-[10px] font-bold tabular-nums"
+                        style={{ color: stage.textColor }}
+                      >
+                        {stage.value}
+                      </span>
+                    )}
+                  </div>
+
+                  {/* Percentage of top */}
+                  <div className="w-10 text-right flex-shrink-0">
+                    <span
+                      className="text-xs font-bold tabular-nums"
+                      style={{ color: stage.textColor }}
+                    >
+                      {pctOfTop}%
+                    </span>
+                  </div>
                 </div>
-            </CardContent>
-        </Card>
-    );
+              </div>
+            );
+          })}
+        </div>
+
+        {/* ── Summary pills ── */}
+        <div className="mt-4 pt-3 border-t border-border/50 flex flex-wrap items-center gap-1.5">
+          {stages.map(s => (
+            <div
+              key={s.key}
+              className="inline-flex items-center gap-1.5 px-2 py-1 rounded-md"
+              style={{ background: s.hex + '10' }}
+            >
+              <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: s.hex }} />
+              <span className="text-[10px] text-muted-foreground font-medium">{s.label}</span>
+              <span className="text-[10px] font-bold tabular-nums" style={{ color: s.textColor }}>
+                {data[s.key as StageKey] ?? 0}
+              </span>
+            </div>
+          ))}
+
+          {lostLeads > 0 && (
+            <div className="inline-flex items-center gap-1.5 px-2 py-1 rounded-md bg-rose-500/10">
+              <span className="w-1.5 h-1.5 rounded-full bg-rose-500 flex-shrink-0" />
+              <span className="text-[10px] text-rose-600 dark:text-rose-400 font-medium">Perdidos</span>
+              <span className="text-[10px] font-bold text-rose-600 dark:text-rose-400 tabular-nums">
+                {lostLeads}
+              </span>
+            </div>
+          )}
+        </div>
+      </CardContent>
+    </Card>
+  );
 };
 
 export default ConversionFunnel;
