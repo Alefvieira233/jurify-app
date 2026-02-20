@@ -182,28 +182,33 @@ const Dashboard = () => {
   }
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="space-y-6">
       {/* ── Page Header ── */}
-      <div className="flex items-center justify-between fade-in">
-        <div>
-          <h1 className="text-2xl font-semibold text-foreground tracking-tight">
-            Dashboard
-          </h1>
-          <p className="text-sm text-muted-foreground mt-0.5">
-            Métricas em tempo real do seu escritório jurídico
-          </p>
+      <div className="flex items-center justify-between px-5 py-3 border-b border-border bg-background fade-in">
+        <div className="flex items-center gap-2.5">
+          <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
+            <BarChart3 className="h-4 w-4 text-primary" />
+          </div>
+          <div>
+            <h1 className="text-sm font-bold text-foreground leading-tight">Dashboard</h1>
+            <p className="text-[11px] text-muted-foreground leading-none mt-0.5">
+              Métricas em tempo real do seu escritório
+            </p>
+          </div>
         </div>
         <Button
           onClick={() => void refetch()}
           variant="outline"
           size="sm"
-          className="gap-2"
+          className="h-8 text-xs gap-1.5"
           aria-label="Atualizar métricas do dashboard"
         >
-          <Activity className="h-4 w-4" strokeWidth={2} />
+          <Activity className="h-3.5 w-3.5" strokeWidth={2} />
           Atualizar
         </Button>
       </div>
+
+      <div className="px-6 space-y-6">
 
       {/* ── KPI Cards ── */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
@@ -494,6 +499,7 @@ const Dashboard = () => {
           </div>
         </CardContent>
       </Card>
+      </div>
     </div>
   );
 };

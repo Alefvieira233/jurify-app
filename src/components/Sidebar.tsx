@@ -35,116 +35,115 @@ interface SidebarProps {
   onSectionChange: (section: string) => void;
 }
 
+type MenuItem = {
+  id:        string;
+  label:     string;
+  icon:      React.ComponentType<{ className?: string }>;
+  resource:  string;
+  action:    string;
+  adminOnly?: boolean;
+  group:     string;
+};
+
+/* ── Section definitions (order matters) ── */
+const SECTIONS: { key: string; label: string | null }[] = [
+  { key: 'main',     label: null          },
+  { key: 'ops',      label: 'Operacional' },
+  { key: 'ai',       label: 'IA'          },
+  { key: 'insights', label: 'Insights'    },
+  { key: 'admin',    label: 'Admin'       },
+];
+
+const ALL_MENU_ITEMS: MenuItem[] = [
+  /* ── Main ── */
+  { id: 'dashboard',       label: 'Dashboard',         icon: BarChart3,    resource: 'dashboard',    action: 'read', group: 'main'     },
+  { id: 'leads',           label: 'Leads',             icon: Users,        resource: 'leads',        action: 'read', group: 'main'     },
+  { id: 'pipeline',        label: 'Pipeline',          icon: TrendingUp,   resource: 'leads',        action: 'read', group: 'main'     },
+  { id: 'crm',             label: 'CRM',               icon: Target,       resource: 'leads',        action: 'read', group: 'main'     },
+  { id: 'crm/followups',   label: 'Follow-ups',        icon: Clock,        resource: 'leads',        action: 'read', group: 'main'     },
+  { id: 'timeline',        label: 'Conversas',         icon: MessageCircle,resource: 'leads',        action: 'read', group: 'main'     },
+  /* ── Operacional ── */
+  { id: 'whatsapp',        label: 'WhatsApp IA',       icon: MessageSquare,resource: 'whatsapp',     action: 'read', group: 'ops'      },
+  { id: 'contratos',       label: 'Contratos',         icon: FileText,     resource: 'contratos',    action: 'read', group: 'ops'      },
+  { id: 'agendamentos',    label: 'Agendamentos',      icon: Calendar,     resource: 'agendamentos', action: 'read', group: 'ops'      },
+  /* ── IA ── */
+  { id: 'agentes',         label: 'Agentes IA',        icon: Bot,          resource: 'agentes_ia',   action: 'read', group: 'ai'       },
+  /* ── Insights ── */
+  { id: 'relatorios',      label: 'Relatórios',        icon: BarChart3,    resource: 'relatorios',   action: 'read', group: 'insights' },
+  { id: 'analytics',       label: 'Analytics',         icon: Activity,     resource: 'dashboard',    action: 'read', group: 'insights' },
+  { id: 'notificacoes',    label: 'Notificações',      icon: Bell,         resource: 'notificacoes', action: 'read', group: 'insights' },
+  /* ── Admin ── */
+  { id: 'billing',                label: 'Billing',           icon: CreditCard,   resource: 'dashboard',    action: 'read', group: 'admin'    },
+  { id: 'planos',                 label: 'Planos',            icon: CreditCard,   resource: 'dashboard',    action: 'read', group: 'admin'    },
+  { id: 'admin/mission-control',  label: 'Mission Control',   icon: Rocket,       resource: 'dashboard',    action: 'read', group: 'admin'    },
+  { id: 'admin/playground',       label: 'Playground',        icon: FlaskConical, resource: 'dashboard',    action: 'read', group: 'admin'    },
+  { id: 'usuarios',               label: 'Usuários',          icon: UserCog,      resource: 'usuarios',     action: 'read', group: 'admin', adminOnly: true },
+  { id: 'integracoes',            label: 'Integrações',       icon: Zap,          resource: 'integracoes',  action: 'read', group: 'admin', adminOnly: true },
+  { id: 'logs',                   label: 'Logs',              icon: Activity,     resource: 'logs',         action: 'read', group: 'admin', adminOnly: true },
+  { id: 'configuracoes',          label: 'Configurações',     icon: Settings,     resource: 'configuracoes',action: 'read', group: 'admin', adminOnly: true },
+];
+
 const Sidebar = ({ activeSection, onSectionChange }: SidebarProps) => {
   const { signOut, profile, user, hasPermission } = useAuth();
-  const [unreadCount, setUnreadCount] = useState(0);
+  const [unreadCount, setUnreadCount]  = useState(0);
+  const [visibleItems, setVisibleItems] = useState<MenuItem[]>([]);
 
-  type MenuItem = {
-    id: string;
-    label: string;
-    icon: React.ComponentType<{ className?: string }>;
-    resource: string;
-    action: string;
-    adminOnly?: boolean;
-    group?: string;
-  };
-
-  const [visibleMenuItems, setVisibleMenuItems] = useState<MenuItem[]>([]);
-
-  // 🔒 RBAC SEGURO: Menu baseado em permissões reais
-  const allMenuItems = useMemo<MenuItem[]>(() => ([
-    { id: 'dashboard',          label: 'Dashboard',            icon: BarChart3,      resource: 'dashboard',    action: 'read', group: 'main' },
-    { id: 'leads',              label: 'Leads',                icon: Users,          resource: 'leads',        action: 'read', group: 'main' },
-    { id: 'pipeline',           label: 'Pipeline Jurídico',    icon: TrendingUp,     resource: 'leads',        action: 'read', group: 'main' },
-    { id: 'crm',                label: 'CRM',                  icon: Target,         resource: 'leads',        action: 'read', group: 'main' },
-    { id: 'crm/followups',      label: 'Follow-ups',           icon: Clock,          resource: 'leads',        action: 'read', group: 'main' },
-    { id: 'timeline',           label: 'Conversas',            icon: MessageCircle,  resource: 'leads',        action: 'read', group: 'main' },
-    { id: 'whatsapp',           label: 'WhatsApp IA',          icon: MessageSquare,  resource: 'whatsapp',     action: 'read', group: 'main' },
-    { id: 'contratos',          label: 'Contratos',            icon: FileText,       resource: 'contratos',    action: 'read', group: 'main' },
-    { id: 'agendamentos',       label: 'Agendamentos',         icon: Calendar,       resource: 'agendamentos', action: 'read', group: 'main' },
-    { id: 'agentes',            label: 'Agentes IA',           icon: Bot,            resource: 'agentes_ia',   action: 'read', group: 'ai' },
-    { id: 'relatorios',         label: 'Relatórios',           icon: BarChart3,      resource: 'relatorios',   action: 'read', group: 'insights' },
-    { id: 'analytics',          label: 'Analytics',            icon: Activity,       resource: 'dashboard',    action: 'read', group: 'insights' },
-    { id: 'notificacoes',       label: 'Notificações',         icon: Bell,           resource: 'notificacoes', action: 'read', group: 'insights' },
-    { id: 'billing',            label: 'Billing',              icon: CreditCard,     resource: 'dashboard',    action: 'read', group: 'account' },
-    { id: 'planos',             label: 'Planos',               icon: CreditCard,     resource: 'dashboard',    action: 'read', group: 'account' },
-    { id: 'admin/mission-control', label: 'Mission Control',   icon: Rocket,         resource: 'dashboard',    action: 'read', group: 'admin' },
-    { id: 'admin/playground',   label: 'Agents Playground',   icon: FlaskConical,   resource: 'dashboard',    action: 'read', group: 'admin' },
-    { id: 'usuarios',           label: 'Usuários',             icon: UserCog,        resource: 'usuarios',     action: 'read', group: 'admin', adminOnly: true },
-    { id: 'integracoes',        label: 'Integrações',          icon: Zap,            resource: 'integracoes',  action: 'read', group: 'admin', adminOnly: true },
-    { id: 'logs',               label: 'Logs',                 icon: Activity,       resource: 'logs',         action: 'read', group: 'admin', adminOnly: true },
-    { id: 'configuracoes',      label: 'Configurações',        icon: Settings,       resource: 'configuracoes',action: 'read', group: 'admin', adminOnly: true },
-  ]), []);
-
-  // Filtrar menu baseado em permissões
+  /* ── RBAC filter ── */
   useEffect(() => {
-    const filterMenuItems = async () => {
-      if (!user) { setVisibleMenuItems([]); return; }
+    const filter = async () => {
+      if (!user) { setVisibleItems([]); return; }
+      if (!profile) { setVisibleItems(ALL_MENU_ITEMS.filter(i => !i.adminOnly)); return; }
 
-      if (!profile) {
-        console.warn('⚠️ Profile não encontrado, mostrando menu padrão');
-        setVisibleMenuItems(allMenuItems.filter(item => !item.adminOnly));
-        return;
-      }
-
-      const filteredItems: MenuItem[] = [];
-
-      for (const item of allMenuItems) {
-        if (profile.role === 'admin') { filteredItems.push(item); continue; }
+      const out: MenuItem[] = [];
+      for (const item of ALL_MENU_ITEMS) {
+        if (profile.role === 'admin') { out.push(item); continue; }
         if (item.adminOnly) continue;
-
         try {
-          const hasAccess = await hasPermission(item.resource, item.action);
-          if (hasAccess) filteredItems.push(item);
-        } catch (_error) {
-          if (!item.adminOnly) filteredItems.push(item);
+          if (await hasPermission(item.resource, item.action)) out.push(item);
+        } catch {
+          if (!item.adminOnly) out.push(item);
         }
       }
-
-      if (filteredItems.length === 0) {
-        setVisibleMenuItems(allMenuItems.filter(item => !item.adminOnly));
-      } else {
-        setVisibleMenuItems(filteredItems);
-      }
+      setVisibleItems(out.length === 0 ? ALL_MENU_ITEMS.filter(i => !i.adminOnly) : out);
     };
+    void filter();
+  }, [user, profile, hasPermission]);
 
-    void filterMenuItems();
-  }, [user, profile, hasPermission, allMenuItems]);
-
-  // Notificações não lidas
+  /* ── Unread notifications ── */
   useEffect(() => {
-    const fetchUnreadCount = async () => {
+    const fetch = async () => {
       if (!user?.id) return;
       try {
         const { data, error } = await supabase.rpc('contar_nao_lidas', { user_id: user.id });
         if (!error && data !== null) setUnreadCount(data);
-      } catch (error) {
-        console.error('Erro ao buscar notificações:', error);
-      }
+      } catch { /* silent */ }
     };
-
-    void fetchUnreadCount();
-    const interval = setInterval(() => { void fetchUnreadCount(); }, 30000);
-    return () => clearInterval(interval);
+    void fetch();
+    const t = setInterval(() => { void fetch(); }, 30000);
+    return () => clearInterval(t);
   }, [user?.id]);
 
-  const handleLogout = async () => { await signOut(); };
+  /* ── Group visible items by section ── */
+  const grouped = useMemo(() =>
+    SECTIONS.map(sec => ({
+      ...sec,
+      items: visibleItems.filter(i => i.group === sec.key),
+    })).filter(sec => sec.items.length > 0),
+  [visibleItems]);
 
   return (
     <nav
       aria-label="Menu principal"
-      className="w-64 bg-sidebar text-sidebar-foreground h-screen flex flex-col border-r border-sidebar-border"
+      className="w-56 bg-sidebar text-sidebar-foreground h-screen flex flex-col border-r border-sidebar-border"
     >
-      {/* ── Logo / Brand ── */}
-      <div className="h-16 flex items-center gap-3 px-5 border-b border-sidebar-border flex-shrink-0">
-        <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center flex-shrink-0 shadow-sm">
-          <Scale className="h-4 w-4 text-white" strokeWidth={2.5} />
+      {/* ── Logo ── */}
+      <div className="h-14 flex items-center gap-3 px-4 border-b border-sidebar-border flex-shrink-0">
+        <div className="w-7 h-7 bg-primary rounded-md flex items-center justify-center flex-shrink-0 shadow-sm">
+          <Scale className="h-3.5 w-3.5 text-white" strokeWidth={2.5} />
         </div>
         <div className="flex-1 min-w-0">
-          <span className="text-base font-bold text-sidebar-foreground tracking-tight">
-            Jurify
-          </span>
-          <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider leading-none mt-0.5">
+          <span className="text-sm font-bold text-sidebar-foreground tracking-tight">Jurify</span>
+          <p className="text-[9px] text-muted-foreground font-medium uppercase tracking-wider leading-none mt-0.5">
             Legal Suite
           </p>
         </div>
@@ -152,14 +151,12 @@ const Sidebar = ({ activeSection, onSectionChange }: SidebarProps) => {
       </div>
 
       {/* ── Plan badge + Search ── */}
-      <div className="px-3 pt-3 pb-2 space-y-2 border-b border-sidebar-border flex-shrink-0">
-        <div className="flex items-center justify-between px-3 py-2 rounded-md bg-primary/5 border border-primary/10">
-          <span className="text-xs font-semibold text-primary">Enterprise</span>
-          <div className="flex items-center gap-1.5">
-            <span className="status-dot status-dot-green" />
-            <span className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider">
-              Ativo
-            </span>
+      <div className="px-3 pt-2.5 pb-2 space-y-1.5 border-b border-sidebar-border flex-shrink-0">
+        <div className="flex items-center justify-between px-2.5 py-1.5 rounded-md bg-primary/5 border border-primary/10">
+          <span className="text-[11px] font-semibold text-primary">Enterprise</span>
+          <div className="flex items-center gap-1">
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+            <span className="text-[9px] text-muted-foreground font-medium uppercase tracking-wider">Ativo</span>
           </div>
         </div>
 
@@ -170,103 +167,102 @@ const Sidebar = ({ activeSection, onSectionChange }: SidebarProps) => {
               new KeyboardEvent('keydown', { key: 'k', ctrlKey: true, bubbles: true })
             )
           }
-          className="w-full flex items-center gap-2.5 px-3 py-2 rounded-md border border-sidebar-border bg-sidebar hover:bg-sidebar-accent text-muted-foreground hover:text-sidebar-foreground transition-colors text-sm"
+          className="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-md border border-sidebar-border bg-sidebar hover:bg-sidebar-accent text-muted-foreground hover:text-sidebar-foreground transition-colors"
         >
-          <Search className="h-3.5 w-3.5 flex-shrink-0" />
-          <span className="flex-1 text-left text-xs">Buscar...</span>
-          <kbd className="hidden sm:inline text-[10px] font-mono px-1.5 py-0.5 rounded bg-sidebar-accent text-muted-foreground">
+          <Search className="h-3 w-3 flex-shrink-0" />
+          <span className="flex-1 text-left text-[11px]">Buscar...</span>
+          <kbd className="hidden sm:inline text-[9px] font-mono px-1 py-0.5 rounded bg-sidebar-accent text-muted-foreground">
             ⌘K
           </kbd>
         </button>
       </div>
 
       {/* ── Navigation ── */}
-      <nav className="flex-1 px-3 py-3 overflow-y-auto scrollbar-thin" role="navigation">
-        <ul className="space-y-0.5" role="list">
-          {visibleMenuItems.map((item, index) => {
-            const Icon = item.icon;
-            const isActive = activeSection === item.id;
-            const isNotifications = item.id === 'notificacoes';
+      <nav className="flex-1 px-2 py-2 overflow-y-auto scrollbar-thin" role="navigation">
+        {grouped.map((sec, secIdx) => (
+          <div key={sec.key} className={secIdx > 0 ? 'mt-2' : ''}>
+            {/* Section header */}
+            {sec.label && (
+              <div className="px-2.5 pt-2 pb-1 text-[9px] font-semibold uppercase tracking-widest text-muted-foreground/40 select-none">
+                {sec.label}
+              </div>
+            )}
 
-            return (
-              <li key={item.id} role="listitem">
-                <button
-                  type="button"
-                  onClick={() => onSectionChange(item.id)}
-                  aria-current={isActive ? 'page' : undefined}
-                  aria-label={`Navegar para ${item.label}${isNotifications && unreadCount > 0 ? `, ${unreadCount} não lidas` : ''}`}
-                  className={cn(
-                    'w-full flex items-center gap-3 px-3 py-2.5 rounded-md text-sm transition-colors duration-150 text-left',
-                    isActive
-                      ? 'bg-primary text-primary-foreground font-medium shadow-sm'
-                      : 'text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-foreground font-normal'
-                  )}
-                  style={{ animationDelay: `${index * 0.03}s` }}
-                >
-                  <Icon
-                    className={cn(
-                      'h-4 w-4 flex-shrink-0 transition-none',
-                      isActive ? 'text-primary-foreground' : 'text-sidebar-foreground/50'
-                    )}
-                  />
+            <ul className="space-y-0.5" role="list">
+              {sec.items.map(item => {
+                const Icon     = item.icon;
+                const isActive = activeSection === item.id;
+                const isNotif  = item.id === 'notificacoes';
 
-                  <span className="flex-1 truncate">{item.label}</span>
-
-                  {isNotifications && unreadCount > 0 && (
-                    <Badge
-                      variant="destructive"
-                      className="h-5 min-w-5 px-1.5 text-[10px] font-bold"
+                return (
+                  <li key={item.id} role="listitem">
+                    <button
+                      type="button"
+                      onClick={() => onSectionChange(item.id)}
+                      aria-current={isActive ? 'page' : undefined}
+                      aria-label={`${item.label}${isNotif && unreadCount > 0 ? ` (${unreadCount} não lidas)` : ''}`}
+                      className={cn(
+                        'w-full flex items-center gap-2.5 px-2.5 py-1.5 rounded-md text-xs transition-colors duration-150 text-left',
+                        isActive
+                          ? 'bg-primary text-primary-foreground font-medium shadow-sm'
+                          : 'text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-foreground font-normal'
+                      )}
                     >
-                      {unreadCount > 99 ? '99+' : unreadCount}
-                    </Badge>
-                  )}
-                </button>
-              </li>
-            );
-          })}
-        </ul>
+                      <Icon
+                        className={cn(
+                          'h-3.5 w-3.5 flex-shrink-0',
+                          isActive ? 'text-primary-foreground' : 'text-sidebar-foreground/50'
+                        )}
+                      />
+                      <span className="flex-1 truncate">{item.label}</span>
+                      {isNotif && unreadCount > 0 && (
+                        <Badge
+                          variant="destructive"
+                          className="h-4 min-w-4 px-1 text-[9px] font-bold"
+                        >
+                          {unreadCount > 99 ? '99+' : unreadCount}
+                        </Badge>
+                      )}
+                    </button>
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
+        ))}
       </nav>
 
-      {/* ── User Profile + Logout ── */}
-      <div className="px-3 py-4 border-t border-sidebar-border space-y-1 flex-shrink-0">
-        {/* User info row */}
-        <div className="flex items-center gap-3 px-3 py-2.5 rounded-md hover:bg-sidebar-accent transition-colors cursor-default">
-          {/* Avatar */}
-          <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center flex-shrink-0 ring-2 ring-primary/20">
-            <span className="text-xs font-bold text-white">
+      {/* ── User footer ── */}
+      <div className="px-2 py-3 border-t border-sidebar-border space-y-0.5 flex-shrink-0">
+        <div className="flex items-center gap-2.5 px-2.5 py-2 rounded-md hover:bg-sidebar-accent transition-colors cursor-default">
+          <div className="w-7 h-7 rounded-full bg-primary flex items-center justify-center flex-shrink-0 ring-2 ring-primary/20">
+            <span className="text-[10px] font-bold text-white">
               {profile?.nome_completo?.charAt(0).toUpperCase() ||
                 user?.email?.charAt(0).toUpperCase() ||
                 'U'}
             </span>
           </div>
-
           <div className="flex-1 min-w-0">
-            <p className="text-sm font-medium text-sidebar-foreground truncate leading-tight">
+            <p className="text-xs font-medium text-sidebar-foreground truncate leading-tight">
               {profile?.nome_completo || user?.email || 'Usuário'}
             </p>
-            <div className="flex items-center gap-1.5 mt-0.5">
-              <span className="status-dot status-dot-green" style={{ width: '6px', height: '6px' }} />
-              <p className="text-[11px] text-muted-foreground truncate">
-                {profile?.role === 'admin' ? 'Administrador' : 'Usuário'}
+            <div className="flex items-center gap-1 mt-0.5">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 flex-shrink-0" />
+              <p className="text-[10px] text-muted-foreground truncate">
+                {profile?.role === 'admin' ? 'Admin' : 'Usuário'}
               </p>
-              {profile?.role === 'admin' && (
-                <Badge className="bg-primary/10 text-primary border-primary/20 px-1.5 py-0 text-[9px] font-bold uppercase tracking-wide ml-auto">
-                  Admin
-                </Badge>
-              )}
             </div>
           </div>
         </div>
 
-        {/* Logout */}
         <Button
-          onClick={() => { void handleLogout(); }}
+          onClick={() => { void signOut(); }}
           variant="ghost"
           size="sm"
-          className="w-full justify-start text-muted-foreground hover:text-destructive hover:bg-destructive/8 transition-colors h-9 px-3"
+          className="w-full justify-start text-muted-foreground hover:text-destructive hover:bg-destructive/8 transition-colors h-8 px-2.5 text-xs"
         >
-          <LogOut className="h-4 w-4 mr-2 flex-shrink-0" strokeWidth={2} />
-          <span className="text-sm">Sair da Conta</span>
+          <LogOut className="h-3.5 w-3.5 mr-2 flex-shrink-0" strokeWidth={2} />
+          Sair
         </Button>
       </div>
     </nav>
