@@ -178,7 +178,7 @@ export const ConversionFunnel = ({ data }: ConversionFunnelProps) => {
               <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: s.hex }} />
               <span className="text-[10px] text-muted-foreground font-medium">{s.label}</span>
               <span className="text-[10px] font-bold tabular-nums" style={{ color: s.textColor }}>
-                {data[s.key as StageKey] ?? 0}
+                {data[s.key] ?? 0}
               </span>
             </div>
           ))}

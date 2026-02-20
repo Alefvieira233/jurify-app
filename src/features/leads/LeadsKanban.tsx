@@ -41,7 +41,7 @@ const fmtCurrency = (v: number) =>
   new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 }).format(v);
 
 /* ── Mini card ── */
-const KanbanCard = memo(({ lead, index, hex, textColor, onEdit, onTimeline }: {
+const KanbanCard = memo(({ lead, index, hex, textColor, onEdit, onTimeline: _onTimeline }: {
   lead:       Lead;
   index:      number;
   hex:        string;

@@ -4,7 +4,6 @@ import {
   Clock, CheckCircle2, XCircle, AlertTriangle, Pause,
   CalendarClock, Search, Filter,
 } from 'lucide-react';
-import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useFollowUps, type FollowUp, type FollowUpStatus } from '@/hooks/useFollowUps';
 import { useDebounce } from '@/hooks/useDebounce';
