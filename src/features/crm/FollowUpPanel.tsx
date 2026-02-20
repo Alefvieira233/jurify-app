@@ -11,7 +11,7 @@ import { useDebounce } from '@/hooks/useDebounce';
 /* ── Status config ── */
 const STATUS_CFG: Record<FollowUpStatus, {
   label: string;
-  icon:  React.ComponentType<{ className?: string }>;
+  icon:  React.ComponentType<{ className?: string; style?: React.CSSProperties }>;
   hex:   string;
 }> = {
   pending:   { label: 'Pendente',  icon: Clock,         hex: '#d97706' },
