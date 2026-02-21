@@ -36,7 +36,12 @@ export const useSupabaseQuery = <T>(
   const [loading, setLoading] = useState(true); // Start with true
   const [error, setError] = useState<string | null>(null);
   const [lastFetch, setLastFetch] = useState<number>(0);
-  
+
+  // Refs mirror state values so the cache check inside executeQuery
+  // always reads the latest values without needing them in the dep array.
+  const dataRef = useRef<T[]>([]);
+  const lastFetchRef = useRef<number>(0);
+
   const abortControllerRef = useRef<AbortController | null>(null);
   const mountedRef = useRef(true);
   const hasExecutedRef = useRef(false);
@@ -48,10 +53,10 @@ export const useSupabaseQuery = <T>(
       return;
     }
 
-    // Check cache validity (only skip if not forcing and data exists)
-    if (!force && data.length > 0) {
+    // Check cache validity using refs so we don't need data/lastFetch in deps
+    if (!force && dataRef.current.length > 0) {
       const now = Date.now();
-      if ((now - lastFetch) < staleTime) {
+      if ((now - lastFetchRef.current) < staleTime) {
         console.log(`📋 [${queryKey}] Cache válido, usando dados em cache`);
         setLoading(false);
         return;
@@ -86,8 +91,10 @@ export const useSupabaseQuery = <T>(
       }
 
       const resultData = result.data || [];
+      dataRef.current = resultData;
+      lastFetchRef.current = Date.now();
       setData(resultData);
-      setLastFetch(Date.now());
+      setLastFetch(lastFetchRef.current);
       setError(null);
       
       console.log(`📊 [${queryKey}] ${resultData.length} registros carregados`);
@@ -108,8 +115,7 @@ export const useSupabaseQuery = <T>(
         setLoading(false);
       }
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user, enabled, queryKey, staleTime, data.length, lastFetch]);
+  }, [user, enabled, queryKey, staleTime]);
 
   useEffect(() => {
     mountedRef.current = true;
@@ -153,8 +159,14 @@ export const useSupabaseQuery = <T>(
   }, [executeQuery]);
 
   const mutate = useCallback((newData: T[] | ((prev: T[]) => T[])) => {
-    setData((prev) => (typeof newData === 'function' ? newData(prev) : newData));
-    setLastFetch(Date.now());
+    setData((prev) => {
+      const next = typeof newData === 'function' ? newData(prev) : newData;
+      dataRef.current = next;
+      return next;
+    });
+    const now = Date.now();
+    lastFetchRef.current = now;
+    setLastFetch(now);
   }, []);
 
   return {

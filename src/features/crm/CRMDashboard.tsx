@@ -55,7 +55,7 @@ const CRMDashboard = () => {
     const totalPipelineValue = stages.reduce((s, st) => s + (st.total_value || 0), 0);
     const totalLeads         = stages.reduce((s, st) => s + (st.lead_count  || 0), 0);
     const pendingFollowUps   = followUps.filter(f => f.status === 'pending').length;
-    const hotLeads           = leads.filter(l => (l as Record<string, unknown>).temperature === 'hot').length;
+    const hotLeads           = leads.filter(l => l.temperature === 'hot').length;
     return { totalPipelineValue, totalLeads, pendingFollowUps, hotLeads, overdueCount };
   }, [stages, followUps, leads, overdueCount]);
 

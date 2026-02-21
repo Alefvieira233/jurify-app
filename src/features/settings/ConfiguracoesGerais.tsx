@@ -22,7 +22,7 @@ const ConfiguracoesGerais = () => {
           <AlertDescription>
             Você não tem permissão para acessar as configurações.
             <br />
-            <span className="text-sm text-gray-500">Role atual: {userRole}</span>
+            <span className="text-sm text-muted-foreground/70">Role atual: {userRole}</span>
           </AlertDescription>
         </Alert>
       </div>
@@ -32,8 +32,8 @@ const ConfiguracoesGerais = () => {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-gray-900">Configurações Gerais</h1>
-        <p className="text-gray-600">
+        <h1 className="text-xl font-semibold text-foreground">Configurações Gerais</h1>
+        <p className="text-sm text-muted-foreground">
           Gerencie as configurações avançadas do sistema Jurify para otimizar o funcionamento do seu escritório
         </p>
       </div>
