@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
-import { MessageCircle, Clock, User, Bot, Search, ChevronDown, ChevronUp } from 'lucide-react';
+import { MessageCircle, Clock, User, Bot, Search, ChevronDown, ChevronUp, Phone, Mail } from 'lucide-react';
 import { useDebounce } from '@/hooks/useDebounce';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -46,7 +46,7 @@ const TimelineConversas: React.FC<TimelineConversasProps> = ({ leadId, className
   const [expandedCards, setExpandedCards] = useState<Set<string>>(new Set());
   const [isAutoRefresh, setIsAutoRefresh] = useState(true);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
-  
+
   const { profile } = useAuth();
 
   const fetchConversas = useCallback(async () => {
@@ -54,7 +54,7 @@ const TimelineConversas: React.FC<TimelineConversasProps> = ({ leadId, className
 
     try {
       setError(null);
-      
+
       let query = supabase
         .from('timeline_conversas')
         .select(`
@@ -84,7 +84,7 @@ const TimelineConversas: React.FC<TimelineConversasProps> = ({ leadId, className
 
       setConversas(data || []);
     } catch (err) {
-      console.error('âŒ Erro ao buscar conversas:', err);
+      console.error('Erro ao buscar conversas:', err);
       setError('Erro ao carregar timeline de conversas');
     } finally {
       setLoading(false);
@@ -124,23 +124,13 @@ const TimelineConversas: React.FC<TimelineConversasProps> = ({ leadId, className
     return matchesSearch && matchesFilter;
   }), [conversas, debouncedSearchTerm, filterTipo]);
 
-  const getTipoIcon = (tipo: string) => {
-    switch (tipo) {
-      case 'whatsapp': return 'ðŸ’¬';
-      case 'email': return 'ðŸ“§';
-      case 'telefone': return 'ðŸ“ž';
-      case 'agente_ia': return 'ðŸ¤–';
-      default: return 'ðŸ’¬';
-    }
-  };
-
   const getTipoColor = (tipo: string) => {
     switch (tipo) {
-      case 'whatsapp': return 'bg-green-100 text-green-800';
-      case 'email': return 'bg-blue-100 text-blue-800';
-      case 'telefone': return 'bg-purple-100 text-purple-800';
-      case 'agente_ia': return 'bg-orange-100 text-orange-800';
-      default: return 'bg-gray-100 text-gray-800';
+      case 'whatsapp': return 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400';
+      case 'email': return 'bg-blue-500/10 text-blue-600 dark:text-blue-400';
+      case 'telefone': return 'bg-purple-500/10 text-purple-600 dark:text-purple-400';
+      case 'agente_ia': return 'bg-amber-500/10 text-amber-600 dark:text-amber-400';
+      default: return 'bg-muted/50 text-muted-foreground';
     }
   };
 
@@ -159,7 +149,7 @@ const TimelineConversas: React.FC<TimelineConversasProps> = ({ leadId, className
       case 'entregue': return 'text-green-500';
       case 'lido': return 'text-green-700';
       case 'erro': return 'text-red-500';
-      default: return 'text-gray-500';
+      default: return 'text-muted-foreground/50';
     }
   };
 
@@ -174,9 +164,9 @@ const TimelineConversas: React.FC<TimelineConversasProps> = ({ leadId, className
   };
 
   const formatTimestamp = (timestamp: string) => {
-    return formatDistanceToNow(new Date(timestamp), { 
-      addSuffix: true, 
-      locale: ptBR 
+    return formatDistanceToNow(new Date(timestamp), {
+      addSuffix: true,
+      locale: ptBR
     });
   };
 
@@ -212,7 +202,7 @@ const TimelineConversas: React.FC<TimelineConversasProps> = ({ leadId, className
   if (error) {
     return (
       <div className={className}>
-        <Card className="border-red-200 bg-red-50">
+        <Card className="border-destructive/20 bg-destructive/5">
           <CardContent className="p-6 text-center">
             <div className="text-red-600 mb-4">
               <MessageCircle className="h-12 w-12 mx-auto mb-2" />
@@ -258,12 +248,12 @@ const TimelineConversas: React.FC<TimelineConversasProps> = ({ leadId, className
             </div>
           </div>
         </CardHeader>
-        
+
         <CardContent>
           {/* Filtros */}
           <div className="flex gap-4 mb-6">
             <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground/40 h-4 w-4" />
               <Input
                 placeholder="Buscar conversas..."
                 value={searchTerm}
@@ -274,7 +264,7 @@ const TimelineConversas: React.FC<TimelineConversasProps> = ({ leadId, className
             <select
               value={filterTipo}
               onChange={(e) => setFilterTipo(e.target.value)}
-              className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500"
+              className="px-3 py-2 border border-border rounded-lg text-sm focus:ring-2 focus:ring-blue-500"
             >
               <option value="">Todos os tipos</option>
               <option value="whatsapp">WhatsApp</option>
@@ -287,8 +277,8 @@ const TimelineConversas: React.FC<TimelineConversasProps> = ({ leadId, className
           {/* Timeline */}
           <div className="space-y-4">
             {filteredConversas.length === 0 ? (
-              <div className="text-center py-8 text-gray-500">
-                <MessageCircle className="h-12 w-12 mx-auto mb-4 text-gray-300" />
+              <div className="text-center py-8 text-muted-foreground/50">
+                <MessageCircle className="h-12 w-12 mx-auto mb-4 text-muted-foreground/30" />
                 <p>Nenhuma conversa encontrada</p>
                 {searchTerm && (
                   <p className="text-sm">Tente ajustar os filtros de busca</p>
@@ -298,53 +288,53 @@ const TimelineConversas: React.FC<TimelineConversasProps> = ({ leadId, className
               filteredConversas.map((conversa) => {
                 const isExpanded = expandedCards.has(conversa.id);
                 const conteudoTruncado = conversa.conteudo.length > 150;
-                const conteudoExibido = isExpanded || !conteudoTruncado 
-                  ? conversa.conteudo 
+                const conteudoExibido = isExpanded || !conteudoTruncado
+                  ? conversa.conteudo
                   : conversa.conteudo.substring(0, 150) + '...';
 
                 return (
-                  <Card key={conversa.id} className="relative border-l-4 border-l-blue-500 hover:shadow-md transition-shadow">
+                  <Card key={conversa.id} className="relative border-l-4 border-l-primary hover:shadow-md transition-shadow">
                     <CardContent className="p-4">
                       <div className="flex gap-4">
-                        {/* Avatar/Ãcone */}
+                        {/* Avatar/Icone */}
                         <div className={`h-10 w-10 rounded-full ${getRemetenteColor(conversa.remetente)} flex items-center justify-center text-white font-bold text-sm`}>
                           {conversa.remetente === 'lead' ? <User className="h-4 w-4" /> :
                            conversa.remetente === 'agente' ? <Bot className="h-4 w-4" /> :
                            conversa.usuario_nome?.charAt(0).toUpperCase() || 'U'}
                         </div>
 
-                        {/* ConteÃºdo */}
+                        {/* Conteudo */}
                         <div className="flex-1 min-w-0">
                           {/* Header */}
                           <div className="flex items-center justify-between mb-2">
                             <div className="flex items-center gap-2">
-                              <span className="font-semibold text-gray-900">
+                              <span className="font-semibold text-foreground">
                                 {conversa.remetente === 'lead' ? conversa.lead_nome :
                                  conversa.remetente === 'agente' ? conversa.agente_ia_nome :
                                  conversa.usuario_nome}
                               </span>
                               <Badge className={getTipoColor(conversa.tipo)}>
-                                {getTipoIcon(conversa.tipo)} {conversa.tipo.replace('_', ' ')}
+                                {conversa.tipo.replace('_', ' ')}
                               </Badge>
                               <span className={`text-xs ${getStatusColor(conversa.status)}`}>
-                                â— {conversa.status}
+                                {conversa.status}
                               </span>
                             </div>
-                            <span className="text-xs text-gray-500">
+                            <span className="text-xs text-muted-foreground/50">
                               {formatTimestamp(conversa.timestamp)}
                             </span>
                           </div>
 
-                          {/* Lead Info (se nÃ£o for especÃ­fico de um lead) */}
+                          {/* Lead Info (se nao for especifico de um lead) */}
                           {!leadId && (
-                            <div className="text-sm text-gray-600 mb-2">
+                            <div className="text-sm text-muted-foreground mb-2">
                               <span className="font-medium">Lead:</span> {conversa.lead_nome}
                             </div>
                           )}
 
-                          {/* ConteÃºdo da mensagem */}
-                          <div className="bg-gray-50 rounded-lg p-3 mb-2">
-                            <p className="text-gray-800 whitespace-pre-wrap">
+                          {/* Conteudo da mensagem */}
+                          <div className="bg-muted/30 rounded-lg p-3 mb-2">
+                            <p className="text-foreground/80 whitespace-pre-wrap">
                               {conteudoExibido}
                             </p>
                             {conteudoTruncado && (
@@ -352,7 +342,7 @@ const TimelineConversas: React.FC<TimelineConversasProps> = ({ leadId, className
                                 variant="ghost"
                                 size="sm"
                                 onClick={() => toggleCardExpansion(conversa.id)}
-                                className="mt-2 p-0 h-auto text-blue-600 hover:text-blue-700"
+                                className="mt-2 p-0 h-auto text-primary hover:text-primary/80"
                               >
                                 {isExpanded ? (
                                   <>Mostrar menos <ChevronUp className="h-3 w-3 ml-1" /></>
@@ -365,18 +355,18 @@ const TimelineConversas: React.FC<TimelineConversasProps> = ({ leadId, className
 
                           {/* Metadata */}
                           {conversa.metadata && (
-                            <div className="flex flex-wrap gap-4 text-xs text-gray-500">
+                            <div className="flex flex-wrap gap-4 text-xs text-muted-foreground/50">
                               {conversa.metadata.telefone && (
-                                <span>ðŸ“ž {conversa.metadata.telefone}</span>
+                                <span className="flex items-center gap-1"><Phone className="h-3 w-3" />{conversa.metadata.telefone}</span>
                               )}
                               {conversa.metadata.email && (
-                                <span>ðŸ“§ {conversa.metadata.email}</span>
+                                <span className="flex items-center gap-1"><Mail className="h-3 w-3" />{conversa.metadata.email}</span>
                               )}
                               {conversa.metadata.tempo_resposta && (
-                                <span>â±ï¸ {conversa.metadata.tempo_resposta}ms</span>
+                                <span className="flex items-center gap-1"><Clock className="h-3 w-3" />{conversa.metadata.tempo_resposta}ms</span>
                               )}
                               {conversa.metadata.resposta_agente && (
-                                <span className="text-orange-600">ðŸ¤– Resposta automÃ¡tica</span>
+                                <span className="flex items-center gap-1 text-orange-600"><Bot className="h-3 w-3" />Resposta automatica</span>
                               )}
                             </div>
                           )}
@@ -405,5 +395,3 @@ const TimelineConversas: React.FC<TimelineConversasProps> = ({ leadId, className
 };
 
 export default TimelineConversas;
-
-

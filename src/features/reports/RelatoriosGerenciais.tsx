@@ -3,7 +3,8 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, Responsive
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Download, TrendingUp, Users, FileText, Calendar } from 'lucide-react';
+import { Skeleton } from '@/components/ui/skeleton';
+import { Download, TrendingUp, Users, FileText, Calendar, BarChart3 } from 'lucide-react';
 import { useDashboardMetrics } from '@/hooks/useDashboardMetrics';
 
 const RelatoriosGerenciais = () => {
@@ -116,26 +117,28 @@ const RelatoriosGerenciais = () => {
     downloadCsv('relatorios-demo.csv', demoRows);
   };
 
+  const COLORS = ['#2563eb', '#059669', '#d97706', '#e11d48', '#4f46e5', '#0891b2'];
+
   if (loading) {
     return (
-      <div className="p-6 space-y-6">
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-2xl text-[hsl(var(--foreground))]">Relatórios Gerenciais</CardTitle>
-            <p className="text-[hsl(var(--muted-foreground))]">Análises e insights do seu escritório jurídico</p>
-          </CardHeader>
-        </Card>
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {[1, 2, 3, 4].map(i => (
-            <Card key={i} className="h-96">
-              <CardContent className="p-6">
-                <div className="animate-pulse space-y-4">
-                  <div className="h-4 bg-gray-200 rounded w-3/4"></div>
-                  <div className="h-64 bg-gray-200 rounded"></div>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
+      <div className="flex flex-col h-screen">
+        <div className="px-5 py-3 border-b border-border flex items-center justify-between gap-4">
+          <div className="flex items-center gap-2.5">
+            <Skeleton className="w-8 h-8 rounded-lg" />
+            <div className="space-y-1.5">
+              <Skeleton className="h-4 w-40" />
+              <Skeleton className="h-3 w-56" />
+            </div>
+          </div>
+          <Skeleton className="h-8 w-36 rounded-md" />
+        </div>
+        <div className="flex-1 p-5 space-y-5">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+            {[1, 2, 3, 4].map(i => <Skeleton key={i} className="h-24 rounded-xl" />)}
+          </div>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            {[1, 2, 3, 4].map(i => <Skeleton key={i} className="h-72 rounded-xl" />)}
+          </div>
         </div>
       </div>
     );
@@ -143,33 +146,49 @@ const RelatoriosGerenciais = () => {
 
   if (error || !metrics) {
     return (
-      <div className="p-6 space-y-6">
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-2xl text-[hsl(var(--foreground))]">Relatórios Gerenciais</CardTitle>
-            <p className="text-[hsl(var(--muted-foreground))]">Análises e insights do seu escritório jurídico</p>
-          </CardHeader>
-        </Card>
-        <Card className="border-blue-200 bg-blue-500/10 border border-blue-500/25">
-          <CardContent className="p-8">
-            <div className="text-center">
-              <TrendingUp className="h-16 w-16 text-blue-300 mx-auto mb-4" />
-              <h3 className="text-xl font-semibold text-[hsl(var(--foreground))] mb-2">Relatórios em preparação</h3>
-              <p className="text-[hsl(var(--muted-foreground))] mb-6">
-                Os relatórios serão gerados assim que houver dados suficientes no sistema.
-              </p>
-              <Button className="bg-[hsl(var(--accent))] hover:bg-[hsl(var(--accent-hover))] text-[hsl(var(--accent-foreground))]" onClick={handleExportDemo}>
-                <Download className="h-4 w-4 mr-2" />
-                Gerar Relatório Demo
-              </Button>
+      <div className="flex flex-col h-screen bg-background">
+        <header className="flex-shrink-0 px-5 py-3 border-b border-border bg-background">
+          <div className="flex items-center justify-between gap-4">
+            <div className="flex items-center gap-2.5">
+              <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
+                <BarChart3 className="h-4 w-4 text-primary" />
+              </div>
+              <div>
+                <h1 className="text-sm font-bold text-foreground leading-tight">Relatorios Gerenciais</h1>
+                <p className="text-[11px] text-muted-foreground leading-none mt-0.5">
+                  Analises e insights do seu escritorio juridico
+                </p>
+              </div>
             </div>
-          </CardContent>
-        </Card>
+          </div>
+        </header>
+        <div className="flex-1 overflow-y-auto px-5 py-5 space-y-5">
+          <Card className="shadow-sm border-border/60 border-blue-500/25 bg-blue-500/5">
+            <CardContent className="p-8">
+              <div className="text-center">
+                <TrendingUp className="h-12 w-12 text-blue-400 mx-auto mb-3" />
+                <h3 className="text-sm font-bold text-foreground mb-1">Relatorios em preparacao</h3>
+                <p className="text-xs text-muted-foreground mb-4">
+                  Os relatorios serao gerados assim que houver dados suficientes no sistema.
+                </p>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-8 text-xs gap-1.5"
+                  onClick={handleExportDemo}
+                >
+                  <Download className="h-3.5 w-3.5" />
+                  Gerar Relatorio Demo
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
       </div>
     );
   }
 
-  // Preparar dados para os gráficos
+  // Preparar dados para os graficos
   const statusData = Object.entries(metrics.leadsPorStatus).map(([status, count]) => ({
     name: status.replace('_', ' ').toUpperCase(),
     value: count
@@ -187,266 +206,218 @@ const RelatoriosGerenciais = () => {
     erro: agente.erro
   }));
 
-  const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8', '#82CA9D'];
-
   return (
-    <div className="p-6 space-y-6">
-      {/* Header Premium */}
-      <div className="relative fade-in">
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-          <div className="flex items-center gap-4">
-            <h1
-              className="text-5xl md:text-6xl font-bold text-[hsl(var(--primary))] tracking-tight"
-              style={{ fontFamily: "'Cormorant Garamond', serif", letterSpacing: '-0.03em' }}
-            >
-              Relatórios
-            </h1>
+    <div className="flex flex-col h-screen bg-background">
 
-            {/* Live Badge */}
-            <div className="relative group">
-              <div className="absolute inset-0 bg-gradient-to-r from-[hsl(var(--accent)_/_0.3)] via-[hsl(var(--accent)_/_0.2)] to-transparent rounded-full blur-md opacity-75 group-hover:opacity-100 transition-opacity duration-500" />
-              <div className="relative px-4 py-2 bg-gradient-to-r from-[hsl(var(--accent)_/_0.15)] via-[hsl(var(--accent)_/_0.1)] to-transparent rounded-full border border-[hsl(var(--accent)_/_0.3)] backdrop-blur-sm">
-                <span className="text-xs font-bold uppercase tracking-wider" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
-                  Live
-                </span>
-              </div>
+      {/* Header */}
+      <header className="flex-shrink-0 px-5 py-3 border-b border-border bg-background">
+        <div className="flex items-center justify-between gap-4">
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
+              <BarChart3 className="h-4 w-4 text-primary" />
+            </div>
+            <div>
+              <h1 className="text-sm font-bold text-foreground leading-tight">Relatorios Gerenciais</h1>
+              <p className="text-[11px] text-muted-foreground leading-none mt-0.5">
+                {metrics.totalLeads} leads · {metrics.contratos} contratos · {metrics.agentesAtivos} agentes IA
+              </p>
             </div>
           </div>
+          <Button
+            variant="outline"
+            size="sm"
+            className="h-8 text-xs gap-1.5"
+            onClick={handleExportRelatorios}
+          >
+            <Download className="h-3.5 w-3.5" />
+            Exportar CSV
+          </Button>
+        </div>
+      </header>
 
-          <div className="flex gap-3">
-            {/* Export Button Premium */}
-            <Button
-              className="relative group/btn overflow-hidden bg-gradient-to-r from-[hsl(var(--accent))] via-[hsl(43_96%_56%)] to-[hsl(43_96%_48%)] hover:shadow-lg transition-all duration-500 border-0"
-              onClick={handleExportRelatorios}
-            >
-              <div className="absolute inset-0 bg-gradient-to-r from-[hsl(var(--accent))] via-[hsl(43_96%_62%)] to-[hsl(var(--accent))] opacity-0 group-hover/btn:opacity-100 blur-xl transition-opacity duration-500" style={{ filter: 'blur(20px)' }} />
-              <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover/btn:translate-x-full transition-transform duration-1000" />
-              <Download className="relative h-4 w-4 mr-2" strokeWidth={2.5} />
-              <span className="relative" style={{ fontFamily: "'Inter', sans-serif", fontWeight: 700 }}>Exportar Relatórios</span>
-            </Button>
-          </div>
+      {/* Scrollable body */}
+      <div className="flex-1 overflow-y-auto px-5 py-5 space-y-5">
+
+        {/* KPI Cards */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+
+          {/* Total Leads */}
+          <Card className="shadow-sm border-border/60">
+            <CardContent className="px-4 py-3">
+              <div className="flex items-start justify-between gap-2">
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs text-muted-foreground">Total de Leads</p>
+                  <p className="text-2xl font-bold tabular-nums mt-0.5">{metrics.totalLeads}</p>
+                  <p className="text-[10px] text-emerald-600 dark:text-emerald-400 font-medium mt-0.5">+{metrics.leadsNovoMes} este mes</p>
+                </div>
+                <div className="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: 'rgba(37,99,235,0.08)' }}>
+                  <Users className="h-4 w-4" style={{ color: '#2563eb' }} />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Contratos */}
+          <Card className="shadow-sm border-border/60">
+            <CardContent className="px-4 py-3">
+              <div className="flex items-start justify-between gap-2">
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs text-muted-foreground">Contratos</p>
+                  <p className="text-2xl font-bold tabular-nums mt-0.5">{metrics.contratos}</p>
+                  <p className="text-[10px] text-emerald-600 dark:text-emerald-400 font-medium mt-0.5">{metrics.contratosAssinados} assinados</p>
+                </div>
+                <div className="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: 'rgba(5,150,105,0.08)' }}>
+                  <FileText className="h-4 w-4" style={{ color: '#059669' }} />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Agendamentos */}
+          <Card className="shadow-sm border-border/60">
+            <CardContent className="px-4 py-3">
+              <div className="flex items-start justify-between gap-2">
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs text-muted-foreground">Agendamentos</p>
+                  <p className="text-2xl font-bold tabular-nums mt-0.5">{metrics.agendamentos}</p>
+                  <p className="text-[10px] text-purple-600 dark:text-purple-400 font-medium mt-0.5">{metrics.agendamentosHoje} hoje</p>
+                </div>
+                <div className="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: 'rgba(147,51,234,0.08)' }}>
+                  <Calendar className="h-4 w-4" style={{ color: '#9333ea' }} />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Agentes IA */}
+          <Card className="shadow-sm border-border/60">
+            <CardContent className="px-4 py-3">
+              <div className="flex items-start justify-between gap-2">
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs text-muted-foreground">Agentes IA</p>
+                  <p className="text-2xl font-bold tabular-nums mt-0.5">{metrics.agentesAtivos}</p>
+                  <p className="text-[10px] text-amber-600 dark:text-amber-400 font-medium mt-0.5">{metrics.execucoesAgentesHoje} execucoes hoje</p>
+                </div>
+                <div className="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: 'rgba(217,119,6,0.08)' }}>
+                  <TrendingUp className="h-4 w-4" style={{ color: '#d97706' }} />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
         </div>
 
-        {/* Subtitle */}
-        <p className="text-[hsl(var(--muted-foreground))] mt-3 text-base" style={{ fontFamily: "'Inter', sans-serif" }}>
-          Análises e insights do seu escritório jurídico
-        </p>
-      </div>
+        {/* Charts */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
 
-      {/* KPIs Premium */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        {/* Total Leads Card */}
-        <Card className="relative group card-hover rounded-3xl border-[hsl(var(--border))] overflow-hidden fade-in">
-          <div className="absolute -inset-1 bg-gradient-to-br from-blue-500/20 via-blue-400/10 to-transparent rounded-3xl blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
-          <div className="absolute inset-0 bg-gradient-to-br from-white/5 via-transparent to-transparent pointer-events-none" />
-          <CardContent className="relative p-6">
-            <div className="flex items-center justify-between">
+          {/* Pipeline de Leads */}
+          <Card className="shadow-sm border-border/60">
+            <CardHeader className="px-4 py-3 border-b border-border/60">
+              <CardTitle className="text-sm font-semibold text-foreground">Pipeline de Leads</CardTitle>
+            </CardHeader>
+            <CardContent className="p-4">
+              <ResponsiveContainer width="100%" height={280}>
+                <PieChart>
+                  <Pie
+                    data={statusData}
+                    cx="50%"
+                    cy="50%"
+                    labelLine={false}
+                    label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                    outerRadius={80}
+                    fill="#8884d8"
+                    dataKey="value"
+                  >
+                    {statusData.map((_entry, index) => (
+                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                    ))}
+                  </Pie>
+                  <Tooltip />
+                </PieChart>
+              </ResponsiveContainer>
+            </CardContent>
+          </Card>
+
+          {/* Leads por Area Juridica */}
+          <Card className="shadow-sm border-border/60">
+            <CardHeader className="px-4 py-3 border-b border-border/60">
+              <CardTitle className="text-sm font-semibold text-foreground">Leads por Area Juridica</CardTitle>
+            </CardHeader>
+            <CardContent className="p-4">
+              <ResponsiveContainer width="100%" height={280}>
+                <BarChart data={areaData}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                  <XAxis dataKey="name" tick={{ fontSize: 11 }} />
+                  <YAxis tick={{ fontSize: 11 }} />
+                  <Tooltip />
+                  <Bar dataKey="leads" fill="#2563eb" radius={[4, 4, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            </CardContent>
+          </Card>
+
+          {/* Performance dos Agentes IA */}
+          <Card className="shadow-sm border-border/60">
+            <CardHeader className="px-4 py-3 border-b border-border/60">
+              <CardTitle className="text-sm font-semibold text-foreground">Performance dos Agentes IA</CardTitle>
+            </CardHeader>
+            <CardContent className="p-4">
+              <ResponsiveContainer width="100%" height={280}>
+                <BarChart data={agentesData}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                  <XAxis dataKey="name" tick={{ fontSize: 11 }} />
+                  <YAxis tick={{ fontSize: 11 }} />
+                  <Tooltip />
+                  <Legend wrapperStyle={{ fontSize: 11 }} />
+                  <Bar dataKey="sucesso" stackId="a" fill="#059669" name="Sucesso" radius={[0, 0, 0, 0]} />
+                  <Bar dataKey="erro" stackId="a" fill="#e11d48" name="Erro" radius={[4, 4, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            </CardContent>
+          </Card>
+
+          {/* Resumo do Periodo */}
+          <Card className="shadow-sm border-border/60">
+            <CardHeader className="px-4 py-3 border-b border-border/60">
+              <CardTitle className="text-sm font-semibold text-foreground">Resumo do Periodo</CardTitle>
+            </CardHeader>
+            <CardContent className="p-3">
               <div className="space-y-2">
-                <p className="text-sm font-medium text-[hsl(var(--muted-foreground))] uppercase tracking-wider" style={{ fontFamily: "'Inter', sans-serif" }}>
-                  Total de Leads
-                </p>
-                <p className="text-4xl font-bold text-[hsl(var(--foreground))]" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
-                  {metrics.totalLeads}
-                </p>
-                <p className="text-sm text-emerald-200 font-semibold">+{metrics.leadsNovoMes} este mês</p>
-              </div>
-              <div className="relative">
-                <div className="absolute inset-0 bg-gradient-to-br from-blue-500/20 via-blue-400/10 to-transparent rounded-2xl blur-md opacity-40 group-hover:opacity-60 transition-opacity duration-500" />
-                <div className="relative p-3.5 bg-gradient-to-br from-blue-500/20 via-blue-400/10 to-transparent rounded-2xl backdrop-blur-sm">
-                  <Users className="h-6 w-6 text-blue-300 group-hover:scale-110 transition-transform duration-500" strokeWidth={2.5} />
+                <div className="flex justify-between items-center p-2.5 bg-blue-500/8 border border-blue-500/20 rounded-lg">
+                  <span className="text-xs font-medium text-foreground">Taxa de Conversao</span>
+                  <Badge variant="secondary" className="text-xs">
+                    {metrics.totalLeads > 0
+                      ? `${((metrics.contratosAssinados / metrics.totalLeads) * 100).toFixed(1)}%`
+                      : '0%'
+                    }
+                  </Badge>
+                </div>
+
+                <div className="flex justify-between items-center p-2.5 bg-emerald-500/8 border border-emerald-500/20 rounded-lg">
+                  <span className="text-xs font-medium text-foreground">Leads Ativos</span>
+                  <Badge variant="secondary" className="text-xs">
+                    {metrics.leadsPorStatus.em_qualificacao + metrics.leadsPorStatus.proposta_enviada}
+                  </Badge>
+                </div>
+
+                <div className="flex justify-between items-center p-2.5 bg-purple-500/8 border border-purple-500/20 rounded-lg">
+                  <span className="text-xs font-medium text-foreground">Agendamentos Pendentes</span>
+                  <Badge variant="secondary" className="text-xs">{metrics.agendamentos}</Badge>
+                </div>
+
+                <div className="flex justify-between items-center p-2.5 bg-amber-500/8 border border-amber-500/20 rounded-lg">
+                  <span className="text-xs font-medium text-foreground">Execucoes de IA</span>
+                  <Badge variant="secondary" className="text-xs">
+                    {metrics.execucoesRecentesAgentes.reduce((acc, curr) => acc + curr.total_execucoes, 0)}
+                  </Badge>
                 </div>
               </div>
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+        </div>
 
-        {/* Contratos Card */}
-        <Card className="relative group card-hover rounded-3xl border-[hsl(var(--border))] overflow-hidden fade-in" style={{ animationDelay: '0.1s' }}>
-          <div className="absolute -inset-1 bg-gradient-to-br from-green-500/20 via-green-400/10 to-transparent rounded-3xl blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
-          <div className="absolute inset-0 bg-gradient-to-br from-white/5 via-transparent to-transparent pointer-events-none" />
-          <CardContent className="relative p-6">
-            <div className="flex items-center justify-between">
-              <div className="space-y-2">
-                <p className="text-sm font-medium text-[hsl(var(--muted-foreground))] uppercase tracking-wider" style={{ fontFamily: "'Inter', sans-serif" }}>
-                  Contratos
-                </p>
-                <p className="text-4xl font-bold text-[hsl(var(--foreground))]" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
-                  {metrics.contratos}
-                </p>
-                <p className="text-sm text-emerald-200 font-semibold">{metrics.contratosAssinados} assinados</p>
-              </div>
-              <div className="relative">
-                <div className="absolute inset-0 bg-gradient-to-br from-green-500/20 via-green-400/10 to-transparent rounded-2xl blur-md opacity-40 group-hover:opacity-60 transition-opacity duration-500" />
-                <div className="relative p-3.5 bg-gradient-to-br from-green-500/20 via-green-400/10 to-transparent rounded-2xl backdrop-blur-sm">
-                  <FileText className="h-6 w-6 text-emerald-200 group-hover:scale-110 transition-transform duration-500" strokeWidth={2.5} />
-                </div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Agendamentos Card */}
-        <Card className="relative group card-hover rounded-3xl border-[hsl(var(--border))] overflow-hidden fade-in" style={{ animationDelay: '0.2s' }}>
-          <div className="absolute -inset-1 bg-gradient-to-br from-purple-500/20 via-purple-400/10 to-transparent rounded-3xl blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
-          <div className="absolute inset-0 bg-gradient-to-br from-white/5 via-transparent to-transparent pointer-events-none" />
-          <CardContent className="relative p-6">
-            <div className="flex items-center justify-between">
-              <div className="space-y-2">
-                <p className="text-sm font-medium text-[hsl(var(--muted-foreground))] uppercase tracking-wider" style={{ fontFamily: "'Inter', sans-serif" }}>
-                  Agendamentos
-                </p>
-                <p className="text-4xl font-bold text-[hsl(var(--foreground))]" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
-                  {metrics.agendamentos}
-                </p>
-                <p className="text-sm text-purple-200 font-semibold">{metrics.agendamentosHoje} hoje</p>
-              </div>
-              <div className="relative">
-                <div className="absolute inset-0 bg-gradient-to-br from-purple-500/20 via-purple-400/10 to-transparent rounded-2xl blur-md opacity-40 group-hover:opacity-60 transition-opacity duration-500" />
-                <div className="relative p-3.5 bg-gradient-to-br from-purple-500/20 via-purple-400/10 to-transparent rounded-2xl backdrop-blur-sm">
-                  <Calendar className="h-6 w-6 text-purple-200 group-hover:scale-110 transition-transform duration-500" strokeWidth={2.5} />
-                </div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Agentes IA Card */}
-        <Card className="relative group card-hover rounded-3xl border-[hsl(var(--border))] overflow-hidden fade-in" style={{ animationDelay: '0.3s' }}>
-          <div className="absolute -inset-1 bg-gradient-to-br from-[hsl(var(--accent)_/_0.2)] via-[hsl(var(--accent)_/_0.1)] to-transparent rounded-3xl blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
-          <div className="absolute inset-0 bg-gradient-to-br from-white/5 via-transparent to-transparent pointer-events-none" />
-          <CardContent className="relative p-6">
-            <div className="flex items-center justify-between">
-              <div className="space-y-2">
-                <p className="text-sm font-medium text-[hsl(var(--muted-foreground))] uppercase tracking-wider" style={{ fontFamily: "'Inter', sans-serif" }}>
-                  Agentes IA
-                </p>
-                <p className="text-4xl font-bold text-[hsl(var(--foreground))]" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
-                  {metrics.agentesAtivos}
-                </p>
-                <p className="text-sm text-[hsl(var(--accent))] font-semibold">{metrics.execucoesAgentesHoje} execuções hoje</p>
-              </div>
-              <div className="relative">
-                <div className="absolute inset-0 bg-gradient-to-br from-[hsl(var(--accent)_/_0.2)] via-[hsl(var(--accent)_/_0.1)] to-transparent rounded-2xl blur-md opacity-40 group-hover:opacity-60 transition-opacity duration-500" />
-                <div className="relative p-3.5 bg-gradient-to-br from-[hsl(var(--accent)_/_0.2)] via-[hsl(var(--accent)_/_0.1)] to-transparent rounded-2xl backdrop-blur-sm">
-                  <TrendingUp className="h-6 w-6 text-[hsl(var(--accent))] group-hover:scale-110 transition-transform duration-500" strokeWidth={2.5} />
-                </div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Gráficos */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Pipeline de Leads */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-[hsl(var(--foreground))]">Pipeline de Leads</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <ResponsiveContainer width="100%" height={300}>
-              <PieChart>
-                <Pie
-                  data={statusData}
-                  cx="50%"
-                  cy="50%"
-                  labelLine={false}
-                  label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
-                  outerRadius={80}
-                  fill="#8884d8"
-                  dataKey="value"
-                >
-                  {statusData.map((_entry, index) => (
-                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                  ))}
-                </Pie>
-                <Tooltip />
-              </PieChart>
-            </ResponsiveContainer>
-          </CardContent>
-        </Card>
-
-        {/* Leads por Área Jurídica */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-[hsl(var(--foreground))]">Leads por Área Jurídica</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={areaData}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="name" />
-                <YAxis />
-                <Tooltip />
-                <Bar dataKey="leads" fill="#8884d8" />
-              </BarChart>
-            </ResponsiveContainer>
-          </CardContent>
-        </Card>
-
-        {/* Performance dos Agentes IA */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-[hsl(var(--foreground))]">Performance dos Agentes IA</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={agentesData}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="name" />
-                <YAxis />
-                <Tooltip />
-                <Legend />
-                <Bar dataKey="sucesso" stackId="a" fill="#00C49F" name="Sucesso" />
-                <Bar dataKey="erro" stackId="a" fill="#FF8042" name="Erro" />
-              </BarChart>
-            </ResponsiveContainer>
-          </CardContent>
-        </Card>
-
-        {/* Resumo Mensal */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-[hsl(var(--foreground))]">Resumo do Período</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              <div className="flex justify-between items-center p-3 bg-blue-500/10 border border-blue-500/25 rounded-lg">
-                <span className="text-sm font-medium">Taxa de Conversão</span>
-                <Badge variant="secondary">
-                  {metrics.totalLeads > 0 
-                    ? `${((metrics.contratosAssinados / metrics.totalLeads) * 100).toFixed(1)}%`
-                    : '0%'
-                  }
-                </Badge>
-              </div>
-              
-              <div className="flex justify-between items-center p-3 bg-emerald-500/10 border border-emerald-500/25 rounded-lg">
-                <span className="text-sm font-medium">Leads Ativos</span>
-                <Badge variant="secondary">
-                  {metrics.leadsPorStatus.em_qualificacao + metrics.leadsPorStatus.proposta_enviada}
-                </Badge>
-              </div>
-              
-              <div className="flex justify-between items-center p-3 bg-purple-500/10 border border-purple-500/25 rounded-lg">
-                <span className="text-sm font-medium">Agendamentos Pendentes</span>
-                <Badge variant="secondary">{metrics.agendamentos}</Badge>
-              </div>
-              
-              <div className="flex justify-between items-center p-3 bg-amber-500/10 border border-amber-500/25 rounded-lg">
-                <span className="text-sm font-medium">Execuções de IA</span>
-                <Badge variant="secondary">
-                  {metrics.execucoesRecentesAgentes.reduce((acc, curr) => acc + curr.total_execucoes, 0)}
-                </Badge>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
       </div>
     </div>
   );
 };
 
 export default RelatoriosGerenciais;
-
-

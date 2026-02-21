@@ -51,7 +51,6 @@ const ContratosManager = () => {
   };
 
   const handleRetry = () => {
-    console.log('[Contratos] Tentando recarregar contratos...');
     fetchContratos();
   };
 
