@@ -1,140 +1,77 @@
-
 import { useState, useMemo } from 'react';
-import { Activity, Search, AlertCircle, CheckCircle, Clock, RefreshCw } from 'lucide-react';
-import { useDebounce } from '@/hooks/useDebounce';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
+import {
+  Activity, Search, AlertCircle, CheckCircle, Clock,
+  RefreshCw, ChevronDown, ChevronUp, Trash2,
+} from 'lucide-react';
 import { Input } from '@/components/ui/input';
-import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
+import { useLogsExecucao } from '@/hooks/useLogsExecucao';
+import { useDebounce } from '@/hooks/useDebounce';
+import { useAuth } from '@/contexts/AuthContext';
+import { cn } from '@/lib/utils';
+
+type StatusFilter = '' | 'success' | 'error' | 'processing';
+
+const STATUS_CFG = {
+  success:    { label: 'Sucesso',      hex: '#059669', bgClass: 'bg-emerald-500/10', textClass: 'text-emerald-600 dark:text-emerald-400', icon: CheckCircle },
+  error:      { label: 'Erro',         hex: '#e11d48', bgClass: 'bg-rose-500/10',    textClass: 'text-rose-600 dark:text-rose-400',       icon: AlertCircle },
+  processing: { label: 'Processando',  hex: '#d97706', bgClass: 'bg-amber-500/10',   textClass: 'text-amber-600 dark:text-amber-400',     icon: Clock       },
+} as const;
+
+function relativeTime(iso: string): string {
+  const diff = Date.now() - new Date(iso).getTime();
+  const mins = Math.floor(diff / 60000);
+  if (mins < 1)  return 'agora';
+  if (mins < 60) return `${mins}min`;
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24)  return `${hrs}h`;
+  return new Date(iso).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
+}
 
 const LogsPanel = () => {
-  const [loading] = useState(false);
-  const [searchTerm, setSearchTerm] = useState('');
-  const debouncedSearchTerm = useDebounce(searchTerm, 300);
-  const [filterStatus, setFilterStatus] = useState('');
-  
-  // Dados simulados de logs
-  const [logs] = useState([
-    {
-      id: '1',
-      agente_id: 'agent-1',
-      agente_nome: 'Assistente Jurídico',
-      input_recebido: 'Como funciona o processo de rescisão trabalhista?',
-      resposta_ia: 'A rescisão trabalhista é o término do contrato de trabalho...',
-      status: 'success',
-      tempo_execucao: 1250,
-      created_at: new Date().toISOString(),
-      n8n_status: 'success'
-    },
-    {
-      id: '2',
-      agente_id: 'agent-2',
-      agente_nome: 'Qualificador de Leads',
-      input_recebido: 'Preciso de ajuda com um processo de divórcio',
-      resposta_ia: 'Entendo que você precisa de assistência com divórcio...',
-      status: 'success',
-      tempo_execucao: 980,
-      created_at: new Date(Date.now() - 300000).toISOString(),
-      n8n_status: 'success'
-    },
-    {
-      id: '3',
-      agente_id: 'agent-1',
-      agente_nome: 'Assistente Jurídico',
-      input_recebido: 'Teste de conectividade',
-      status: 'error',
-      erro_detalhes: 'Timeout na conexão com N8N',
-      tempo_execucao: 5000,
-      created_at: new Date(Date.now() - 600000).toISOString(),
-      n8n_status: 'error'
-    }
-  ]);
+  const { logs, loading, stats, refetch, limparLogs } = useLogsExecucao();
+  const { profile } = useAuth();
+  const [searchTerm, setSearchTerm]       = useState('');
+  const [filterStatus, setFilterStatus]   = useState<StatusFilter>('');
+  const [expandedKey, setExpandedKey]     = useState<string | null>(null);
+  const debouncedSearch = useDebounce(searchTerm, 300);
 
-  const filteredLogs = useMemo(() => logs.filter(log => {
-    const matchesSearch = log.agente_nome?.toLowerCase().includes(debouncedSearchTerm.toLowerCase()) ||
-                         log.input_recebido?.toLowerCase().includes(debouncedSearchTerm.toLowerCase());
-    const matchesStatus = filterStatus === '' || log.status === filterStatus;
-    return matchesSearch && matchesStatus;
-  }), [logs, debouncedSearchTerm, filterStatus]);
+  const isAdmin = profile?.role === 'admin';
 
-  const getStatusIcon = (status: string) => {
-    switch (status) {
-      case 'success':
-        return <CheckCircle className="h-4 w-4 text-emerald-200" />;
-      case 'error':
-        return <AlertCircle className="h-4 w-4 text-red-300" />;
-      case 'processing':
-        return <Clock className="h-4 w-4 text-amber-300" />;
-      default:
-        return <Activity className="h-4 w-4 text-[hsl(var(--muted-foreground))]" />;
-    }
-  };
+  const filtered = useMemo(() => logs.filter(log => {
+    const name    = log.agentes_ia?.nome ?? '';
+    const matchSearch = !debouncedSearch
+      || name.toLowerCase().includes(debouncedSearch.toLowerCase())
+      || log.input_recebido.toLowerCase().includes(debouncedSearch.toLowerCase());
+    const matchStatus = !filterStatus || log.status === filterStatus;
+    return matchSearch && matchStatus;
+  }), [logs, debouncedSearch, filterStatus]);
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'success':
-        return 'bg-emerald-500/15 text-emerald-200 border border-emerald-400/30';
-      case 'error':
-        return 'bg-red-500/15 text-red-200 border border-red-400/30';
-      case 'processing':
-        return 'bg-amber-500/15 text-amber-200 border border-amber-400/30';
-      default:
-        return 'bg-slate-500/15 text-slate-200 border border-slate-400/30';
-    }
-  };
-
-  const getStatusLabel = (status: string) => {
-    switch (status) {
-      case 'success':
-        return 'Sucesso';
-      case 'error':
-        return 'Erro';
-      case 'processing':
-        return 'Processando';
-      default:
-        return status;
-    }
-  };
-
+  // Loading
   if (loading) {
     return (
-      <div className="p-6 space-y-6">
-        <Card>
-          <CardHeader>
-            <div className="flex justify-between items-center">
-              <div>
-                <CardTitle className="text-2xl">Logs do Sistema</CardTitle>
-                <p className="text-[hsl(var(--muted-foreground))]">Histórico de execuções e atividades</p>
+      <div className="flex flex-col h-screen">
+        <div className="flex-shrink-0 px-5 py-3 border-b border-border bg-background">
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-lg bg-purple-500/10 flex items-center justify-center flex-shrink-0">
+              <Activity className="h-4 w-4 text-purple-500" />
+            </div>
+            <div>
+              <p className="text-sm font-bold text-foreground leading-tight">Logs do Sistema</p>
+              <p className="text-[11px] text-muted-foreground leading-none mt-0.5">Carregando...</p>
+            </div>
+          </div>
+        </div>
+        <div className="flex-1 overflow-y-auto px-5 py-4 space-y-2">
+          {[1,2,3,4,5].map(i => (
+            <div key={i} className="flex items-start gap-3 px-4 py-3 rounded-lg border border-border/50">
+              <Skeleton className="w-5 h-5 rounded-full flex-shrink-0 mt-0.5" />
+              <div className="flex-1 space-y-1.5">
+                <Skeleton className="h-3 w-1/3" />
+                <Skeleton className="h-3 w-full" />
+                <Skeleton className="h-2.5 w-24" />
               </div>
-              <Skeleton className="h-10 w-32" />
             </div>
-          </CardHeader>
-        </Card>
-        
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex gap-4">
-              <Skeleton className="h-10 flex-1" />
-              <Skeleton className="h-10 w-40" />
-            </div>
-          </CardContent>
-        </Card>
-        
-        <div className="space-y-4">
-          {[1, 2, 3].map(i => (
-            <Card key={i}>
-              <CardContent className="p-4">
-                <div className="flex items-start gap-3">
-                  <Skeleton className="h-8 w-8 rounded" />
-                  <div className="flex-1 space-y-2">
-                    <Skeleton className="h-5 w-2/3" />
-                    <Skeleton className="h-4 w-full" />
-                    <Skeleton className="h-3 w-32" />
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
           ))}
         </div>
       </div>
@@ -142,189 +79,198 @@ const LogsPanel = () => {
   }
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="flex flex-col h-screen">
       {/* Header */}
-      <Card>
-        <CardHeader>
-          <div className="flex justify-between items-center">
-            <div className="flex items-center gap-3">
-              <Activity className="h-8 w-8 text-purple-300" />
-              <div>
-                <CardTitle className="text-2xl">Logs do Sistema</CardTitle>
-                <p className="text-[hsl(var(--muted-foreground))]">
-                  Histórico de execuções e atividades • {logs.length} registros
-                </p>
-              </div>
+      <div className="flex-shrink-0 px-5 py-3 border-b border-border bg-background">
+        <div className="flex items-center justify-between gap-4">
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-lg bg-purple-500/10 flex items-center justify-center flex-shrink-0">
+              <Activity className="h-4 w-4 text-purple-500" />
             </div>
-            <Button variant="outline" size="sm">
-              <RefreshCw className="h-4 w-4 mr-2" />
-              Atualizar
-            </Button>
+            <div>
+              <p className="text-sm font-bold text-foreground leading-tight">Logs do Sistema</p>
+              <p className="text-[11px] text-muted-foreground leading-none mt-0.5">
+                {stats.total} execuções · {stats.erros > 0 ? `${stats.erros} erros` : 'sem erros'}
+              </p>
+            </div>
           </div>
-        </CardHeader>
-      </Card>
-
-      {/* Filtros */}
-      <Card>
-        <CardContent className="p-4">
-          <div className="flex gap-4">
-            <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-[hsl(var(--muted-foreground))] h-4 w-4" />
-              <Input
-                placeholder="Buscar por agente ou input..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10 bg-[hsl(var(--card))] border-[hsl(var(--border))] text-[hsl(var(--foreground))]"
-              />
-            </div>
-            <select
-              value={filterStatus}
-              onChange={(e) => setFilterStatus(e.target.value)}
-              className="px-4 py-2 border border-[hsl(var(--border))] bg-[hsl(var(--card))] text-[hsl(var(--foreground))] rounded-lg focus:ring-2 focus:ring-[hsl(var(--accent))] focus:border-transparent"
+          <div className="flex items-center gap-1.5">
+            {isAdmin && (
+              <button
+                type="button"
+                onClick={() => { void limparLogs(); }}
+                className="h-7 w-7 flex items-center justify-center rounded-md text-muted-foreground/40 hover:text-destructive hover:bg-destructive/8 transition-colors"
+                title="Limpar logs antigos (30+ dias)"
+              >
+                <Trash2 className="h-3.5 w-3.5" />
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={() => { void refetch(); }}
+              className="h-7 w-7 flex items-center justify-center rounded-md text-muted-foreground/50 hover:text-muted-foreground hover:bg-muted transition-colors"
+              title="Atualizar"
             >
-              <option value="">Todos os Status</option>
-              <option value="success">Sucesso</option>
-              <option value="error">Erro</option>
-              <option value="processing">Processando</option>
-            </select>
+              <RefreshCw className="h-3.5 w-3.5" />
+            </button>
           </div>
-        </CardContent>
-      </Card>
+        </div>
 
-      {/* Estatísticas */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <CheckCircle className="h-8 w-8 text-emerald-200" />
-              <div>
-                <p className="text-sm font-medium text-[hsl(var(--muted-foreground))]">Execuções Bem-sucedidas</p>
-                <p className="text-2xl font-bold text-[hsl(var(--foreground))]">
-                  {logs.filter(l => l.status === 'success').length}
-                </p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+        {/* Stats pills */}
+        <div className="flex items-center gap-2 mt-2.5">
+          <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-emerald-500/8 border border-emerald-500/15">
+            <CheckCircle className="h-3 w-3 text-emerald-500" />
+            <span className="text-[11px] font-semibold text-emerald-600 dark:text-emerald-400 tabular-nums">{stats.sucessos}</span>
+            <span className="text-[10px] text-muted-foreground/60">sucesso</span>
+          </div>
+          <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-rose-500/8 border border-rose-500/15">
+            <AlertCircle className="h-3 w-3 text-rose-500" />
+            <span className="text-[11px] font-semibold text-rose-600 dark:text-rose-400 tabular-nums">{stats.erros}</span>
+            <span className="text-[10px] text-muted-foreground/60">erros</span>
+          </div>
+          <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-blue-500/8 border border-blue-500/15">
+            <Clock className="h-3 w-3 text-blue-500" />
+            <span className="text-[11px] font-semibold text-blue-600 dark:text-blue-400 tabular-nums">
+              {Math.round(stats.tempoMedio)}ms
+            </span>
+            <span className="text-[10px] text-muted-foreground/60">médio</span>
+          </div>
+        </div>
 
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <AlertCircle className="h-8 w-8 text-red-300" />
-              <div>
-                <p className="text-sm font-medium text-[hsl(var(--muted-foreground))]">Erros</p>
-                <p className="text-2xl font-bold text-[hsl(var(--foreground))]">
-                  {logs.filter(l => l.status === 'error').length}
-                </p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <Clock className="h-8 w-8 text-blue-300" />
-              <div>
-                <p className="text-sm font-medium text-[hsl(var(--muted-foreground))]">Tempo Médio</p>
-                <p className="text-2xl font-bold text-[hsl(var(--foreground))]">
-                  {Math.round(logs.reduce((acc, log) => acc + (log.tempo_execucao || 0), 0) / logs.length)}ms
-                </p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+        {/* Filters */}
+        <div className="flex items-center gap-2 mt-2">
+          <div className="relative flex-1">
+            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3 w-3 text-muted-foreground/40" />
+            <Input
+              value={searchTerm}
+              onChange={e => setSearchTerm(e.target.value)}
+              placeholder="Buscar agente ou input..."
+              className="pl-7 h-7 text-xs bg-muted/40 border-border/50 focus-visible:ring-1"
+            />
+          </div>
+          <select
+            value={filterStatus}
+            onChange={e => setFilterStatus(e.target.value as StatusFilter)}
+            className="h-7 px-2 text-xs rounded-md border border-border/50 bg-muted/40 text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+          >
+            <option value="">Todos</option>
+            <option value="success">Sucesso</option>
+            <option value="error">Erro</option>
+            <option value="processing">Processando</option>
+          </select>
+        </div>
       </div>
 
-      {/* Lista de Logs */}
-      <div className="space-y-4">
-        {filteredLogs.length === 0 ? (
-          <Card className="border-blue-500/30 bg-blue-500/10">
-            <CardContent className="p-8">
-              <div className="text-center">
-                <Activity className="h-16 w-16 text-blue-300 mx-auto mb-4" />
-                <h3 className="text-xl font-semibold text-[hsl(var(--foreground))] mb-2">Nenhum log encontrado</h3>
-                <p className="text-[hsl(var(--muted-foreground))]">
-                  {searchTerm 
-                    ? `Não foram encontrados logs com o termo "${searchTerm}".`
-                    : 'Aguardando execuções de agentes IA para gerar logs.'
-                  }
-                </p>
-              </div>
-            </CardContent>
-          </Card>
+      {/* Body */}
+      <div className="flex-1 overflow-y-auto px-5 py-4">
+        {filtered.length === 0 ? (
+          <div className="flex flex-col items-center justify-center h-48 text-center">
+            <div className="w-12 h-12 rounded-full bg-muted/50 flex items-center justify-center mb-3">
+              <Activity className="h-5 w-5 text-muted-foreground/40" />
+            </div>
+            <p className="text-sm font-medium text-foreground">
+              {searchTerm ? 'Nenhum resultado' : 'Nenhuma execução registrada'}
+            </p>
+            <p className="text-[11px] text-muted-foreground mt-1">
+              {searchTerm ? `Sem resultados para "${searchTerm}"` : 'Aguardando execuções dos agentes IA'}
+            </p>
+          </div>
         ) : (
-          filteredLogs.map((log) => (
-            <Card key={log.id} className="hover:shadow-md transition-shadow">
-              <CardContent className="p-6">
-                <div className="flex items-start gap-4">
-                  <div className="mt-1">
-                    {getStatusIcon(log.status)}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-start justify-between gap-4 mb-3">
-                      <div>
-                        <h4 className="font-medium text-[hsl(var(--foreground))]">{log.agente_nome}</h4>
-                        <p className="text-sm text-[hsl(var(--muted-foreground))]">ID: {log.agente_id}</p>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <Badge className={getStatusColor(log.status)}>
-                          {getStatusLabel(log.status)}
-                        </Badge>
-                        {log.n8n_status && (
-                          <Badge variant="outline" className="text-xs">
-                            N8N: {log.n8n_status}
-                          </Badge>
-                        )}
-                      </div>
+          <div className="space-y-1.5">
+            {filtered.map(log => {
+              const key       = `${log.agente_id}-${log.created_at}`;
+              const isExpanded = expandedKey === key;
+              const cfg        = STATUS_CFG[log.status] ?? STATUS_CFG.success;
+              const Icon       = cfg.icon;
+              const agentName  = log.agentes_ia?.nome ?? 'Agente Desconhecido';
+              const agentType  = log.agentes_ia?.tipo_agente;
+
+              return (
+                <div
+                  key={key}
+                  className="rounded-lg border border-border/50 bg-card overflow-hidden"
+                >
+                  {/* Row */}
+                  <button
+                    type="button"
+                    onClick={() => setExpandedKey(isExpanded ? null : key)}
+                    className="w-full flex items-start gap-3 px-4 py-3 hover:bg-muted/30 transition-colors text-left"
+                  >
+                    {/* Status dot */}
+                    <div className={cn('w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5', cfg.bgClass)}>
+                      <Icon className={cn('h-3 w-3', cfg.textClass)} />
                     </div>
 
-                    <div className="space-y-3">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="flex items-center gap-1.5 min-w-0">
+                          <p className="text-xs font-semibold text-foreground truncate">{agentName}</p>
+                          {agentType && (
+                            <span className="text-[10px] text-muted-foreground/50 flex-shrink-0">{agentType}</span>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-2 flex-shrink-0">
+                          <span className={cn('text-[9px] font-semibold uppercase tracking-wide px-1.5 py-0.5 rounded-full', cfg.bgClass, cfg.textClass)}>
+                            {cfg.label}
+                          </span>
+                          {log.tempo_execucao != null && (
+                            <span className="text-[10px] text-muted-foreground/50 tabular-nums flex items-center gap-0.5">
+                              <Clock className="h-2.5 w-2.5" />
+                              {log.tempo_execucao}ms
+                            </span>
+                          )}
+                          <span className="text-[10px] text-muted-foreground/40 tabular-nums">
+                            {relativeTime(log.created_at)}
+                          </span>
+                          {isExpanded
+                            ? <ChevronUp className="h-3 w-3 text-muted-foreground/40" />
+                            : <ChevronDown className="h-3 w-3 text-muted-foreground/40" />
+                          }
+                        </div>
+                      </div>
+                      <p className="text-[11px] text-muted-foreground/65 mt-0.5 truncate">
+                        {log.input_recebido}
+                      </p>
+                    </div>
+                  </button>
+
+                  {/* Expanded content */}
+                  {isExpanded && (
+                    <div className="px-4 pb-3 border-t border-border/40 space-y-2.5 pt-3">
                       <div>
-                        <p className="text-sm font-medium text-[hsl(var(--foreground))] mb-1">Input do Usuário:</p>
-                        <p className="text-sm text-[hsl(var(--muted-foreground))] bg-[hsl(var(--surface-1))] border border-[hsl(var(--border))] p-2 rounded">
+                        <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide mb-1">Input</p>
+                        <p className="text-xs text-foreground/80 bg-muted/40 rounded px-2.5 py-2 leading-relaxed">
                           {log.input_recebido}
                         </p>
                       </div>
 
                       {log.resposta_ia && (
                         <div>
-                          <p className="text-sm font-medium text-[hsl(var(--foreground))] mb-1">Resposta da IA:</p>
-                          <p className="text-sm text-[hsl(var(--muted-foreground))] bg-emerald-500/10 border border-emerald-500/25 p-2 rounded">
-                            {log.resposta_ia.length > 200 
-                              ? log.resposta_ia.substring(0, 200) + '...'
-                              : log.resposta_ia
-                            }
+                          <p className="text-[10px] font-semibold text-emerald-600 dark:text-emerald-400 uppercase tracking-wide mb-1">Resposta IA</p>
+                          <p className="text-xs text-foreground/80 bg-emerald-500/5 border border-emerald-500/15 rounded px-2.5 py-2 leading-relaxed">
+                            {log.resposta_ia.length > 300 ? log.resposta_ia.slice(0, 300) + '\u2026' : log.resposta_ia}
                           </p>
                         </div>
                       )}
 
                       {log.erro_detalhes && (
                         <div>
-                          <p className="text-sm font-medium text-red-700 mb-1">Detalhes do Erro:</p>
-                          <p className="text-sm text-red-200 bg-red-500/10 border border-red-500/25 p-2 rounded">
+                          <p className="text-[10px] font-semibold text-rose-600 dark:text-rose-400 uppercase tracking-wide mb-1">Detalhes do Erro</p>
+                          <p className="text-xs text-rose-600 dark:text-rose-300 bg-rose-500/8 border border-rose-500/20 rounded px-2.5 py-2 leading-relaxed">
                             {log.erro_detalhes}
                           </p>
                         </div>
                       )}
-                    </div>
 
-                    <div className="flex justify-between items-center mt-4 pt-3 border-t border-[hsl(var(--border))] text-xs text-[hsl(var(--muted-foreground))]">
-                      <span>
+                      <p className="text-[10px] text-muted-foreground/40 tabular-nums">
                         {new Date(log.created_at).toLocaleString('pt-BR')}
-                      </span>
-                      {log.tempo_execucao && (
-                        <span className="flex items-center gap-1">
-                          <Clock className="h-3 w-3" />
-                          {log.tempo_execucao}ms
-                        </span>
-                      )}
+                      </p>
                     </div>
-                  </div>
+                  )}
                 </div>
-              </CardContent>
-            </Card>
-          ))
+              );
+            })}
+          </div>
         )}
       </div>
     </div>
@@ -332,4 +278,3 @@ const LogsPanel = () => {
 };
 
 export default LogsPanel;
-
