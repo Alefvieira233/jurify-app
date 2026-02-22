@@ -124,12 +124,12 @@ const AgentesIAManager = () => {
           {[1, 2, 3].map((i) => (
             <Card key={i} className="animate-pulse">
               <CardContent className="p-6">
-                <div className="h-4 bg-gray-200 rounded w-3/4 mb-2"></div>
-                <div className="h-3 bg-gray-200 rounded w-1/2 mb-4"></div>
-                <div className="h-20 bg-gray-200 rounded mb-4"></div>
+                <div className="h-4 bg-muted rounded w-3/4 mb-2"></div>
+                <div className="h-3 bg-muted rounded w-1/2 mb-4"></div>
+                <div className="h-20 bg-muted rounded mb-4"></div>
                 <div className="flex justify-between">
-                  <div className="h-8 bg-gray-200 rounded w-16"></div>
-                  <div className="h-8 bg-gray-200 rounded w-20"></div>
+                  <div className="h-8 bg-muted rounded w-16"></div>
+                  <div className="h-8 bg-muted rounded w-20"></div>
                 </div>
               </CardContent>
             </Card>
@@ -310,7 +310,7 @@ const AgentesIAManager = () => {
           {isEmpty ? (
             <Card>
               <CardContent className="p-12 text-center">
-                <Bot className="h-16 w-16 text-gray-300 mx-auto mb-4" />
+                <Bot className="h-16 w-16 text-muted-foreground/50 mx-auto mb-4" />
                 <h3 className="text-lg font-semibold text-[hsl(var(--foreground))] mb-2">
                   Nenhum agente encontrado
                 </h3>

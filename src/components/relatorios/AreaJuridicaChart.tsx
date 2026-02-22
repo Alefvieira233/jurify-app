@@ -18,7 +18,7 @@ type PieLabelProps = {
 };
 const AreaJuridicaChart: React.FC<AreaJuridicaChartProps> = ({ data }) => {
   if (!data) {
-    return <div className="h-64 flex items-center justify-center text-gray-500">Carregando dados...</div>;
+    return <div className="h-64 flex items-center justify-center text-muted-foreground">Carregando dados...</div>;
   }
 
   const chartData = Object.entries(data).map(([area, valor], index) => ({

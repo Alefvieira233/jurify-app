@@ -57,6 +57,7 @@ interface ContractRecord {
 interface AiLogRecord {
     id: string;
     agent_name?: string | null;
+    status?: string | null;
     created_at: string;
 }
 
@@ -197,11 +198,16 @@ export const AnalyticsDashboard = () => {
 
     const generateAgentMetrics = (logs: AiLogRecord[]) => {
         const agents = ['Coordenador', 'Qualificador', 'Jurídico', 'Comercial', 'Comunicador'];
-        return agents.map(agent => ({
-            agent,
-            calls: logs.filter(l => l.agent_name?.includes(agent) || l.agent_name?.toLowerCase().includes(agent.toLowerCase())).length || Math.floor(Math.random() * 50) + 10,
-            successRate: 85 + Math.random() * 15,
-        }));
+        return agents.map(agent => {
+            const agentLogs = logs.filter(l =>
+                l.agent_name?.includes(agent) ||
+                l.agent_name?.toLowerCase().includes(agent.toLowerCase())
+            );
+            const calls = agentLogs.length;
+            const successCount = agentLogs.filter(l => l.status === 'success' || l.status === 'completed').length;
+            const successRate = calls > 0 ? (successCount / calls) * 100 : 0;
+            return { agent, calls, successRate };
+        });
     };
 
     const MetricCard = ({ title, value, change, icon: Icon }: { title: string; value: string | number; change?: number; icon: React.ComponentType<{ className?: string }> }) => (

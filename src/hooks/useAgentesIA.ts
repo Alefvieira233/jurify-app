@@ -14,6 +14,9 @@ import { supabaseUntyped as supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { useSupabaseQuery } from './useSupabaseQuery';
+import { createLogger } from '@/lib/logger';
+
+const log = createLogger('AgentesIA');
 
 type AgenteParams = Record<string, unknown>;
 
@@ -101,13 +104,13 @@ export const useAgentesIA = () => {
       const { data, error } = await query;
 
       if (error) {
-        console.error('[useAgentesIA] erro ao buscar agentes:', error);
+        log.error('erro ao buscar agentes', error);
         throw error;
       }
 
       return { data: (data || []).map(normalizeAgente), error: null };
     } catch (error) {
-      console.error('[useAgentesIA] erro na consulta:', error);
+      log.error('erro na consulta', error);
       return { data: null, error };
     }
   }, [tenantId, normalizeAgente]);
@@ -155,7 +158,7 @@ export const useAgentesIA = () => {
       return true;
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : 'Nao foi possivel criar o agente IA.';
-      console.error('[useAgentesIA] erro ao criar agente:', err);
+      log.error('erro ao criar agente', err);
       toast({
         title: 'Erro',
         description: message,
@@ -195,7 +198,7 @@ export const useAgentesIA = () => {
       return true;
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : 'Nao foi possivel atualizar o agente IA.';
-      console.error('[useAgentesIA] erro ao atualizar agente:', err);
+      log.error('erro ao atualizar agente', err);
       toast({
         title: 'Erro',
         description: message,
@@ -228,7 +231,7 @@ export const useAgentesIA = () => {
       return true;
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : 'Nao foi possivel remover o agente IA.';
-      console.error('[useAgentesIA] erro ao remover agente:', err);
+      log.error('erro ao remover agente', err);
       toast({
         title: 'Erro',
         description: message,
@@ -275,12 +278,12 @@ export const useAgentesIA = () => {
 
       if (error) throw error;
 
-      console.log(`[useAgentesIA] execucao concluida em ${executionTime}ms`);
+      log.debug(`execucao concluida em ${executionTime}ms`);
       return data;
     } catch (err: unknown) {
       const executionTime = Date.now() - startTime;
       const message = err instanceof Error ? err.message : 'Nao foi possivel executar o agente IA.';
-      console.error('[useAgentesIA] erro ao executar agente IA:', err, { executionTime });
+      log.error('erro ao executar agente IA', err, { executionTime });
 
       toast({
         title: 'Erro',

@@ -200,7 +200,7 @@ const SecurityDashboard = () => {
       case 'good': return 'bg-blue-100 text-blue-800';
       case 'warning': return 'bg-yellow-100 text-yellow-800';
       case 'critical': return 'bg-red-100 text-red-800';
-      default: return 'bg-gray-100 text-gray-800';
+      default: return 'bg-muted text-foreground';
     }
   };
 
@@ -209,25 +209,30 @@ const SecurityDashboard = () => {
       case 'pass': return <CheckCircle className="h-4 w-4 text-green-500" />;
       case 'warning': return <AlertTriangle className="h-4 w-4 text-yellow-500" />;
       case 'fail': return <AlertTriangle className="h-4 w-4 text-red-500" />;
-      default: return <AlertTriangle className="h-4 w-4 text-gray-500" />;
+      default: return <AlertTriangle className="h-4 w-4 text-muted-foreground" />;
     }
   };
 
   return (
     <div className="space-y-6">
+      {/* Aviso de modo demonstração */}
+      <div className="rounded-md border border-yellow-500 bg-yellow-50 dark:bg-yellow-950 p-3 text-sm text-yellow-800 dark:text-yellow-200">
+        <strong>Modo demonstração:</strong> Este painel ainda não está conectado a verificações reais de segurança. Os dados exibidos são estáticos.
+      </div>
+
       {/* Overall Security Score */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Shield className="h-5 w-5" />
-            Score de Segurança Geral
+            Score de Segurança Geral (Demo)
           </CardTitle>
         </CardHeader>
         <CardContent>
           <div className="flex items-center justify-between mb-4">
             <div>
               <div className="text-3xl font-bold">{overallScore}%</div>
-              <div className="text-sm text-gray-600">
+              <div className="text-sm text-muted-foreground">
                 {overallScore >= 90 ? 'Excelente' : overallScore >= 80 ? 'Bom' : 'Necessita Atenção'}
               </div>
             </div>
@@ -258,7 +263,7 @@ const SecurityDashboard = () => {
                     {getCheckIcon(check.status)}
                     <div className="flex-1">
                       <div className="font-medium text-sm">{check.name}</div>
-                      <div className="text-xs text-gray-600">{check.description}</div>
+                      <div className="text-xs text-muted-foreground">{check.description}</div>
                       <Badge variant="outline" className="text-xs mt-1">
                         {check.impact} impact
                       </Badge>
@@ -285,7 +290,7 @@ const SecurityDashboard = () => {
               <CheckCircle className="h-4 w-4 text-blue-500 mt-0.5" />
               <div>
                 <div className="font-medium text-sm">Sistema Bem Protegido</div>
-                <div className="text-xs text-gray-600">
+                <div className="text-xs text-muted-foreground">
                   Seu sistema implementa as principais práticas de segurança recomendadas.
                 </div>
               </div>
@@ -295,7 +300,7 @@ const SecurityDashboard = () => {
               <AlertTriangle className="h-4 w-4 text-yellow-500 mt-0.5" />
               <div>
                 <div className="font-medium text-sm">Melhoria Sugerida</div>
-                <div className="text-xs text-gray-600">
+                <div className="text-xs text-muted-foreground">
                   Considere implementar políticas mais rigorosas de retenção de dados.
                 </div>
               </div>
@@ -305,7 +310,7 @@ const SecurityDashboard = () => {
               <CheckCircle className="h-4 w-4 text-green-500 mt-0.5" />
               <div>
                 <div className="font-medium text-sm">Monitoramento Ativo</div>
-                <div className="text-xs text-gray-600">
+                <div className="text-xs text-muted-foreground">
                   Continue monitorando regularmente a segurança do sistema.
                 </div>
               </div>

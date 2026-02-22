@@ -137,12 +137,10 @@ export function captureSentryMessage(message: string, level: Sentry.SeverityLeve
  * Performance transaction (legacy API). Returns null if unsupported.
  */
 export function startSentryTransaction(name: string, op: string = 'custom') {
+  // startTransaction foi removido na Sentry v8+. Usar startInactiveSpan.
   const sentryObj = Sentry as unknown as Record<string, unknown>;
-  if (typeof sentryObj.startTransaction === 'function') {
-    return (sentryObj.startTransaction as (opts: { name: string; op: string }) => unknown)({
-      name,
-      op,
-    });
+  if (typeof sentryObj.startInactiveSpan === 'function') {
+    return (sentryObj.startInactiveSpan as (opts: { name: string; op: string }) => unknown)({ name, op });
   }
   return null;
 }

@@ -5,6 +5,11 @@ import { applyRateLimit, getRequestIdentifier } from "../_shared/rate-limiter.ts
 
 console.log("[whatsapp-webhook] Function started (Evolution API + Meta compatible)");
 
+/** Escapa caracteres especiais do LIKE para evitar manipulação de padrões */
+function escapeLike(value: string): string {
+  return value.replace(/[%_\\]/g, "\\$&");
+}
+
 // --- Typed webhook payloads ---
 
 interface EvolutionMessageKey {
@@ -369,7 +374,7 @@ serve(async (req) => {
               .from("configuracoes_integracoes")
               .update({ status: dbStatus })
               .eq("nome_integracao", INTEGRATION_NAME_EVOLUTION)
-              .ilike("observacoes", `%${instanceName}%`);
+              .ilike("observacoes", `%${escapeLike(instanceName)}%`);
           }
 
           return new Response("OK", { status: 200, headers: corsHeaders });
@@ -389,7 +394,7 @@ serve(async (req) => {
                 observacoes: `Instance: ${instanceName} | QR: pending`,
               })
               .eq("nome_integracao", INTEGRATION_NAME_EVOLUTION)
-              .ilike("observacoes", `%${instanceName}%`);
+              .ilike("observacoes", `%${escapeLike(instanceName)}%`);
           }
 
           return new Response("OK", { status: 200, headers: corsHeaders });
@@ -465,7 +470,7 @@ async function processStatusUpdate(supabase: ReturnType<typeof createClient>, st
         .from("whatsapp_messages")
         .update({ read: true })
         .eq("sender", "ia")
-        .ilike("content", `%${recipientId}%`)
+        .ilike("content", `%${escapeLike(recipientId)}%`)
         .is("read", false);
     }
 
@@ -500,7 +505,7 @@ async function processNormalizedMessage(supabase: ReturnType<typeof createClient
         .from("configuracoes_integracoes")
         .select("tenant_id")
         .eq("nome_integracao", INTEGRATION_NAME_EVOLUTION)
-        .ilike("observacoes", `%${instanceName}%`)
+        .ilike("observacoes", `%${escapeLike(instanceName)}%`)
         .not("tenant_id", "is", null)
         .maybeSingle();
 

@@ -87,8 +87,8 @@ const PerformanceDashboard = () => {
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-2xl font-bold text-gray-900 mb-2">Dashboard de Performance</h2>
-        <p className="text-gray-600">Métricas e indicadores de uso do sistema</p>
+        <h2 className="text-2xl font-bold text-foreground mb-2">Dashboard de Performance</h2>
+        <p className="text-muted-foreground">Métricas e indicadores de uso do sistema</p>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">

@@ -305,14 +305,14 @@ function getMessageId(payload: WebhookPayload, provider: 'evolution' | 'meta'): 
 
 describe('WhatsApp Webhook — Payload Detection', () => {
   it('detects Evolution API payload', () => {
-    expect(isEvolutionPayload(MOCK_EVOLUTION_MESSAGE_UPSERT as unknown as WebhookPayload)).toBe(true);
-    expect(isEvolutionPayload(MOCK_EVOLUTION_CONNECTION_UPDATE as unknown as WebhookPayload)).toBe(true);
-    expect(isEvolutionPayload(MOCK_EVOLUTION_QRCODE as unknown as WebhookPayload)).toBe(true);
+    expect(isEvolutionPayload(MOCK_EVOLUTION_MESSAGE_UPSERT as WebhookPayload)).toBe(true);
+    expect(isEvolutionPayload(MOCK_EVOLUTION_CONNECTION_UPDATE as WebhookPayload)).toBe(true);
+    expect(isEvolutionPayload(MOCK_EVOLUTION_QRCODE as WebhookPayload)).toBe(true);
   });
 
   it('detects Meta Official API payload', () => {
-    expect(isEvolutionPayload(MOCK_META_WEBHOOK as unknown as WebhookPayload)).toBe(false);
-    expect(isEvolutionPayload(MOCK_META_STATUS_UPDATE as unknown as WebhookPayload)).toBe(false);
+    expect(isEvolutionPayload(MOCK_META_WEBHOOK as WebhookPayload)).toBe(false);
+    expect(isEvolutionPayload(MOCK_META_STATUS_UPDATE as WebhookPayload)).toBe(false);
   });
 
   it('handles empty/null payloads gracefully', () => {
@@ -323,7 +323,7 @@ describe('WhatsApp Webhook — Payload Detection', () => {
 
 describe('WhatsApp Webhook — Evolution API Normalization', () => {
   it('normalizes a text message correctly', () => {
-    const result = normalizeEvolutionMessage(MOCK_EVOLUTION_MESSAGE_UPSERT as unknown as WebhookPayload);
+    const result = normalizeEvolutionMessage(MOCK_EVOLUTION_MESSAGE_UPSERT as WebhookPayload);
     expect(result).not.toBeNull();
     expect(result!.from).toBe('5511999888777');
     expect(result!.name).toBe('João Silva');
@@ -335,13 +335,13 @@ describe('WhatsApp Webhook — Evolution API Normalization', () => {
   });
 
   it('ignores fromMe messages (bot replies)', () => {
-    const result = normalizeEvolutionMessage(MOCK_EVOLUTION_FROM_ME as unknown as WebhookPayload);
+    const result = normalizeEvolutionMessage(MOCK_EVOLUTION_FROM_ME as WebhookPayload);
     expect(result).toBeNull();
   });
 
   it('ignores non-message events', () => {
-    expect(normalizeEvolutionMessage(MOCK_EVOLUTION_CONNECTION_UPDATE as unknown as WebhookPayload)).toBeNull();
-    expect(normalizeEvolutionMessage(MOCK_EVOLUTION_QRCODE as unknown as WebhookPayload)).toBeNull();
+    expect(normalizeEvolutionMessage(MOCK_EVOLUTION_CONNECTION_UPDATE as WebhookPayload)).toBeNull();
+    expect(normalizeEvolutionMessage(MOCK_EVOLUTION_QRCODE as WebhookPayload)).toBeNull();
   });
 
   it('handles missing data gracefully', () => {
@@ -352,7 +352,7 @@ describe('WhatsApp Webhook — Evolution API Normalization', () => {
 
 describe('WhatsApp Webhook — Meta Official API Normalization', () => {
   it('normalizes a text message correctly', () => {
-    const results = normalizeMetaMessages(MOCK_META_WEBHOOK as unknown as WebhookPayload);
+    const results = normalizeMetaMessages(MOCK_META_WEBHOOK as WebhookPayload);
     expect(results).toHaveLength(1);
     expect(results[0].from).toBe('5511999888777');
     expect(results[0].name).toBe('Maria Santos');
@@ -363,7 +363,7 @@ describe('WhatsApp Webhook — Meta Official API Normalization', () => {
   });
 
   it('normalizes an image message with caption', () => {
-    const results = normalizeMetaMessages(MOCK_META_IMAGE_MESSAGE as unknown as WebhookPayload);
+    const results = normalizeMetaMessages(MOCK_META_IMAGE_MESSAGE as WebhookPayload);
     expect(results).toHaveLength(1);
     expect(results[0].text).toBe('Foto do contrato');
     expect(results[0].messageType).toBe('image');
@@ -371,7 +371,7 @@ describe('WhatsApp Webhook — Meta Official API Normalization', () => {
   });
 
   it('returns empty array for status-only updates', () => {
-    const results = normalizeMetaMessages(MOCK_META_STATUS_UPDATE as unknown as WebhookPayload);
+    const results = normalizeMetaMessages(MOCK_META_STATUS_UPDATE as WebhookPayload);
     expect(results).toHaveLength(0);
   });
 
@@ -403,12 +403,12 @@ describe('WhatsApp Webhook — Deduplication', () => {
   });
 
   it('extracts Evolution message ID', () => {
-    const id = getMessageId(MOCK_EVOLUTION_MESSAGE_UPSERT as unknown as WebhookPayload, 'evolution');
+    const id = getMessageId(MOCK_EVOLUTION_MESSAGE_UPSERT as WebhookPayload, 'evolution');
     expect(id).toBe('evo_msg_001');
   });
 
   it('extracts Meta message ID', () => {
-    const id = getMessageId(MOCK_META_WEBHOOK as unknown as WebhookPayload, 'meta');
+    const id = getMessageId(MOCK_META_WEBHOOK as WebhookPayload, 'meta');
     expect(id).toBe('wamid.meta_001');
   });
 
@@ -430,7 +430,7 @@ describe('WhatsApp Webhook — Edge Cases', () => {
         message: { extendedTextMessage: { text: 'Mensagem com link https://example.com' } },
       },
     };
-    const result = normalizeEvolutionMessage(payload as unknown as WebhookPayload);
+    const result = normalizeEvolutionMessage(payload as WebhookPayload);
     expect(result).not.toBeNull();
     expect(result!.text).toBe('Mensagem com link https://example.com');
   });
@@ -446,7 +446,7 @@ describe('WhatsApp Webhook — Edge Cases', () => {
         message: { imageMessage: { caption: 'Documento importante', url: 'https://cdn.example.com/img.jpg' } },
       },
     };
-    const result = normalizeEvolutionMessage(payload as unknown as WebhookPayload);
+    const result = normalizeEvolutionMessage(payload as WebhookPayload);
     expect(result).not.toBeNull();
     expect(result!.text).toBe('Documento importante');
     expect(result!.mediaUrl).toBe('https://cdn.example.com/img.jpg');
@@ -463,7 +463,7 @@ describe('WhatsApp Webhook — Edge Cases', () => {
         message: { audioMessage: { url: 'https://cdn.example.com/audio.ogg' } },
       },
     };
-    const result = normalizeEvolutionMessage(payload as unknown as WebhookPayload);
+    const result = normalizeEvolutionMessage(payload as WebhookPayload);
     expect(result).not.toBeNull();
     expect(result!.text).toBe('[Audio recebido]');
     expect(result!.mediaUrl).toBe('https://cdn.example.com/audio.ogg');
@@ -480,7 +480,7 @@ describe('WhatsApp Webhook — Edge Cases', () => {
         message: { conversation: 'Mensagem no grupo' },
       },
     };
-    const result = normalizeEvolutionMessage(payload as unknown as WebhookPayload);
+    const result = normalizeEvolutionMessage(payload as WebhookPayload);
     expect(result).not.toBeNull();
     expect(result!.from).toBe('120363123456789');
   });
@@ -504,7 +504,7 @@ describe('WhatsApp Webhook — Edge Cases', () => {
         }],
       }],
     };
-    const results = normalizeMetaMessages(payload as unknown as WebhookPayload);
+    const results = normalizeMetaMessages(payload as WebhookPayload);
     expect(results).toHaveLength(1);
     expect(results[0].text).toBe('[Documento: contrato.pdf]');
     expect(results[0].mediaUrl).toBe('doc_media_001');
@@ -526,7 +526,7 @@ describe('WhatsApp Webhook — Edge Cases', () => {
         }],
       }],
     };
-    const results = normalizeMetaMessages(payload as unknown as WebhookPayload);
+    const results = normalizeMetaMessages(payload as WebhookPayload);
     expect(results).toHaveLength(2);
     expect(results[0].from).toBe('5511111111111');
     expect(results[1].from).toBe('5511222222222');

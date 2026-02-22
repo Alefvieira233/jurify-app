@@ -406,31 +406,21 @@ const Dashboard = () => {
 
           {/* Revenue Card */}
           <div>
+            {/* TODO: calcular MRR real da tabela de assinaturas/contratos */}
             <RevenueCard
-              currentMRR={metrics.contratosAssinados * 997}
-              previousMRR={(metrics.contratosAssinados - 2) * 997}
+              currentMRR={0}
+              previousMRR={0}
               contractsThisMonth={metrics.contratosAssinados}
-              avgTicket={997}
+              avgTicket={0}
               targetMRR={50000}
             />
           </div>
         </div>
 
-        {/* Response Time Chart */}
+        {/* Response Time Chart — TODO: conectar a dados reais de tempo de resposta */}
         <div className="fade-in" style={{ animationDelay: '0.7s' }}>
           <ResponseTimeChart
-            data={[
-              { time: '08:00', avgTime: 1.8, p95Time: 3.2 },
-              { time: '09:00', avgTime: 2.1, p95Time: 3.8 },
-              { time: '10:00', avgTime: 1.5, p95Time: 2.9 },
-              { time: '11:00', avgTime: 2.4, p95Time: 4.1 },
-              { time: '12:00', avgTime: 1.9, p95Time: 3.5 },
-              { time: '13:00', avgTime: 2.0, p95Time: 3.3 },
-              { time: '14:00', avgTime: 1.7, p95Time: 2.8 },
-              { time: '15:00', avgTime: 2.2, p95Time: 3.9 },
-              { time: '16:00', avgTime: 1.6, p95Time: 3.0 },
-              { time: '17:00', avgTime: 2.3, p95Time: 4.0 },
-            ]}
+            data={[]}
             targetResponseTime={3}
           />
         </div>

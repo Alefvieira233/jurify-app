@@ -90,7 +90,7 @@ const GoogleCalendarConfig = () => {
           <div className="flex items-center justify-between">
             <div className="space-y-1">
               <p className="font-medium">Status da Conexão</p>
-              <p className="text-sm text-gray-600">
+              <p className="text-sm text-muted-foreground">
                 {isConnected 
                   ? 'Conectado com sua conta Google'
                   : 'Não conectado ao Google Calendar'
@@ -147,7 +147,7 @@ const GoogleCalendarConfig = () => {
             <div className="flex items-center justify-between">
               <div className="space-y-1">
                 <Label htmlFor="calendar-enabled">Sincronização Automática</Label>
-                <p className="text-sm text-gray-600">
+                <p className="text-sm text-muted-foreground">
                   Sincronizar automaticamente agendamentos com Google Calendar
                 </p>
               </div>
@@ -181,7 +181,7 @@ const GoogleCalendarConfig = () => {
                       </SelectItem>
                     </SelectContent>
                   </Select>
-                  <p className="text-xs text-gray-500">
+                  <p className="text-xs text-muted-foreground">
                     Atualmente apenas Jurify → Google Calendar está disponível
                   </p>
                 </div>
@@ -189,7 +189,7 @@ const GoogleCalendarConfig = () => {
                 <div className="flex items-center justify-between">
                   <div className="space-y-1">
                     <Label htmlFor="notifications">Notificações</Label>
-                    <p className="text-sm text-gray-600">
+                    <p className="text-sm text-muted-foreground">
                       Receber notificações sobre sincronização
                     </p>
                   </div>
@@ -228,7 +228,7 @@ const GoogleCalendarConfig = () => {
                           {log.status === 'success' ? 'Sucesso' : 'Erro'}
                         </span>
                       </div>
-                      <p className="text-xs text-gray-600">
+                      <p className="text-xs text-muted-foreground">
                         {new Date(log.created_at).toLocaleString('pt-BR')}
                       </p>
                       {log.error_message && (
@@ -239,7 +239,7 @@ const GoogleCalendarConfig = () => {
                 ))}
               </div>
             ) : (
-              <p className="text-center text-gray-500 py-4">
+              <p className="text-center text-muted-foreground py-4">
                 Nenhuma sincronização realizada ainda
               </p>
             )}

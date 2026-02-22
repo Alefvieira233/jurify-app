@@ -60,8 +60,12 @@ Deno.serve(async (req) => {
       return rateLimitCheck.response;
     }
 
-    const { messages, model = DEFAULT_OPENAI_MODEL, temperature = 0.7, stream = false } =
+    const { messages, model: requestedModel = DEFAULT_OPENAI_MODEL, temperature = 0.7, stream = false } =
       await req.json();
+
+    // SECURITY: Whitelist de modelos permitidos para evitar custos excessivos
+    const ALLOWED_MODELS = ['gpt-4o-mini', 'gpt-4o', 'gpt-3.5-turbo', 'gpt-4-turbo', DEFAULT_OPENAI_MODEL];
+    const model = ALLOWED_MODELS.includes(requestedModel) ? requestedModel : DEFAULT_OPENAI_MODEL;
 
     const apiKey = Deno.env.get("OPENAI_API_KEY");
     if (!apiKey) {

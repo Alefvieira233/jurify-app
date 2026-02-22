@@ -78,7 +78,7 @@ export class ErrorBoundary extends Component<Props, State> {
               <div className="space-y-3">
                 <Button 
                   onClick={this.handleReset}
-                  className="w-full bg-[hsl(var(--accent))] hover:bg-[hsl(var(--accent-hover))] text-[hsl(var(--accent-foreground))]"
+                  className="w-full bg-[hsl(var(--accent))] hover:bg-[hsl(var(--accent))] text-[hsl(var(--accent-foreground))]"
                 >
                   <RefreshCw className="w-4 h-4 mr-2" />
                   Tentar Novamente

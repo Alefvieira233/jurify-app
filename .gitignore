@@ -59,8 +59,23 @@ Thumbs.db
 
 # Supabase local
 .supabase/
+supabase/functions/.env
+supabase/functions/**/.env
 
 # Windows reserved names
 nul
 NUL
+
+# Local dev / ops scripts (not for VCS)
+vps-*.sh
+test-*.sh
+test-*.cmd
+test-*.ps1
+*-test.ps1
+interactive-test.ps1
+quick-test.ps1
+simple-test.ps1
+docker-compose-*-fixed.yml
+vdep.json
+vdeps.json
 

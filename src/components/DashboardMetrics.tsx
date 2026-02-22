@@ -191,7 +191,7 @@ const DashboardMetrics = () => {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="space-y-2">
               <div className="flex items-center gap-2">
-                <FileText className="h-4 w-4 text-gray-500" />
+                <FileText className="h-4 w-4 text-muted-foreground" />
                 <span className="text-sm font-medium">Rascunho</span>
               </div>
               <div className="text-xl font-bold">{contratosPorStatus.rascunho}</div>

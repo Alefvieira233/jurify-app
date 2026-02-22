@@ -305,7 +305,7 @@ const TesteRealAgenteIA = () => {
                   {agentes.map((agente) => (
                     <SelectItem key={agente.id} value={agente.id}>
                       <div className="flex items-center space-x-2">
-                        <Badge className={agente.status === 'ativo' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}>
+                        <Badge className={agente.status === 'ativo' ? 'bg-green-100 text-green-800' : 'bg-muted text-foreground'}>
                           {agente.status === 'ativo' ? 'ativo' : 'inativo'}
                         </Badge>
                         <span>{agente.nome}</span>
@@ -324,11 +324,11 @@ const TesteRealAgenteIA = () => {
                   return agente ? (
                     <div className="text-sm">
                       <div className="font-semibold text-purple-900 mb-1">📋 {agente.nome}</div>
-                      <div className="text-gray-600">{agente.area_juridica}</div>
-                      <div className="text-xs text-gray-500 mt-1">{agente.descricao_funcao}</div>
+                      <div className="text-muted-foreground">{agente.area_juridica}</div>
+                      <div className="text-xs text-muted-foreground mt-1">{agente.descricao_funcao}</div>
                     </div>
                   ) : (
-                    <div className="text-sm text-gray-500">Agente não encontrado</div>
+                    <div className="text-sm text-muted-foreground">Agente não encontrado</div>
                   );
                 })()}
               </div>
@@ -376,7 +376,7 @@ const TesteRealAgenteIA = () => {
             <div className="bg-black text-green-400 p-4 rounded font-mono text-sm max-h-64 overflow-y-auto">
               {executionLogs.map((log, index) => (
                 <div key={index} className="flex items-start space-x-2 mb-1">
-                  <span className="text-gray-500">[{log.timestamp}]</span>
+                  <span className="text-muted-foreground">[{log.timestamp}]</span>
                   <span className={getLogColor(log.level)}>
                     {getLogIcon(log.level)} {log.message}
                   </span>
@@ -384,7 +384,7 @@ const TesteRealAgenteIA = () => {
               ))}
               {isExecuting && (
                 <div className="flex items-center space-x-2 animate-pulse">
-                  <span className="text-gray-500">[{new Date().toLocaleTimeString('pt-BR')}]</span>
+                  <span className="text-muted-foreground">[{new Date().toLocaleTimeString('pt-BR')}]</span>
                   <span className="text-yellow-400">⏳ Aguardando resposta do N8N...</span>
                 </div>
               )}
@@ -414,25 +414,25 @@ const TesteRealAgenteIA = () => {
                   <div className={`text-2xl font-bold ${result.success ? 'text-green-600' : 'text-red-600'}`}>
                     {result.success ? '✅' : '❌'}
                   </div>
-                  <div className="text-sm text-gray-600">Status</div>
+                  <div className="text-sm text-muted-foreground">Status</div>
                 </div>
                 <div className="text-center">
                   <div className="text-2xl font-bold text-blue-600">
                     {result.executionTime}ms
                   </div>
-                  <div className="text-sm text-gray-600">Tempo</div>
+                  <div className="text-sm text-muted-foreground">Tempo</div>
                 </div>
                 <div className="text-center">
                   <div className="text-2xl font-bold text-purple-600">
                     {result.status || 'N/A'}
                   </div>
-                  <div className="text-sm text-gray-600">HTTP Status</div>
+                  <div className="text-sm text-muted-foreground">HTTP Status</div>
                 </div>
                 <div className="text-center">
                   <div className="text-2xl font-bold text-orange-600">
                     N8N
                   </div>
-                  <div className="text-sm text-gray-600">Fonte</div>
+                  <div className="text-sm text-muted-foreground">Fonte</div>
                 </div>
               </div>
 
@@ -459,7 +459,7 @@ const TesteRealAgenteIA = () => {
               )}
 
               {/* Informações Técnicas */}
-              <div className="text-xs text-gray-500 space-y-1">
+              <div className="text-xs text-muted-foreground space-y-1">
                 {result.log_id && <div>Log ID: {result.log_id}</div>}
                 {result.webhook_url && <div>Webhook: {result.webhook_url}</div>}
                 <div>Timestamp: {new Date().toISOString()}</div>

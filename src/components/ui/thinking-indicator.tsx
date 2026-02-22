@@ -41,7 +41,7 @@ const ThinkingIndicator: React.FC<ThinkingIndicatorProps> = ({
 
     if (variant === 'compact') {
         return (
-            <div className="flex items-center space-x-2 text-sm text-gray-600">
+            <div className="flex items-center space-x-2 text-sm text-muted-foreground">
                 <div className="flex space-x-1">
                     <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
                     <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
@@ -63,9 +63,9 @@ const ThinkingIndicator: React.FC<ThinkingIndicatorProps> = ({
             <div className="flex-1 space-y-2">
                 <div className="flex items-center space-x-2">
                     <Sparkles className="h-4 w-4 text-purple-500 animate-pulse" />
-                    <span className="font-semibold text-gray-900">Agente IA Pensando</span>
+                    <span className="font-semibold text-foreground">Agente IA Pensando</span>
                 </div>
-                <p className="text-gray-700 animate-pulse transition-all duration-500">
+                <p className="text-muted-foreground animate-pulse transition-all duration-500">
                     {currentMessage}
                 </p>
                 <div className="flex space-x-1">

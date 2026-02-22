@@ -41,7 +41,7 @@ const LoadingState: React.FC<LoadingStateProps> = ({
       )}
       {text && (
         <span className={cn(
-          'text-gray-600 font-medium',
+          'text-muted-foreground font-medium',
           textSizeClasses[size]
         )}>
           {text}

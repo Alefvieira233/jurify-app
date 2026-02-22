@@ -113,9 +113,9 @@ type RolePermission = {
       advogado: 'bg-blue-100 text-blue-800',
       comercial: 'bg-green-100 text-green-800',
       pos_venda: 'bg-yellow-100 text-yellow-800',
-      suporte: 'bg-gray-100 text-gray-800',
+      suporte: 'bg-muted text-foreground',
     };
-    return colors[role as keyof typeof colors] || 'bg-gray-100 text-gray-800';
+    return colors[role as keyof typeof colors] || 'bg-muted text-foreground';
   };
 
   const getPermissionsForRole = (role: string) => {
@@ -166,7 +166,7 @@ type RolePermission = {
                       {roleGroup.users.map((user) => (
                         <div key={user.id} className="text-sm">
                           <div className="font-medium">{user.nome}</div>
-                          <div className="text-gray-500">{user.email}</div>
+                          <div className="text-muted-foreground">{user.email}</div>
                         </div>
                       ))}
                     </div>
@@ -241,7 +241,7 @@ type RolePermission = {
                               ))}
                             </div>
                           ) : (
-                            <span className="text-gray-400">-</span>
+                            <span className="text-muted-foreground">-</span>
                           )}
                         </td>
                       );

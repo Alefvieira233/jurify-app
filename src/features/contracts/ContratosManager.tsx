@@ -11,6 +11,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { useContratos } from '@/hooks/useContratos';
 import type { Contrato } from '@/hooks/useContratos';
+import { fmtCurrency, fmtDate } from '@/utils/formatting';
 import UploadContratos from '@/components/UploadContratos';
 import { NovoContratoForm } from '@/components/NovoContratoForm';
 import { DetalhesContrato } from '@/components/DetalhesContrato';
@@ -315,16 +316,16 @@ const ContratosManager = () => {
                           <span className="font-medium">Responsável:</span> {contrato.responsavel}
                         </div>
                         <div>
-                          <span className="font-medium">Valor da Causa:</span> R$ {Number(contrato.valor_causa).toLocaleString('pt-BR')}
+                          <span className="font-medium">Valor da Causa:</span> {fmtCurrency(Number(contrato.valor_causa))}
                         </div>
                         {contrato.data_envio && (
                           <div>
-                            <span className="font-medium">Data de Envio:</span> {new Date(contrato.data_envio).toLocaleDateString('pt-BR')}
+                            <span className="font-medium">Data de Envio:</span> {fmtDate(contrato.data_envio)}
                           </div>
                         )}
                         {contrato.data_assinatura && (
                           <div>
-                            <span className="font-medium">Data de Assinatura:</span> {new Date(contrato.data_assinatura).toLocaleDateString('pt-BR')}
+                            <span className="font-medium">Data de Assinatura:</span> {fmtDate(contrato.data_assinatura)}
                           </div>
                         )}
                       </div>
@@ -336,7 +337,7 @@ const ContratosManager = () => {
                       )}
 
                       <div className="text-xs text-[hsl(var(--muted-foreground))]">
-                        Criado em: {new Date(contrato.created_at).toLocaleDateString('pt-BR')}
+                        Criado em: {fmtDate(contrato.created_at)}
                       </div>
                     </div>
 
@@ -380,10 +381,9 @@ const ContratosManager = () => {
         </TabsContent>
 
         <TabsContent value="upload">
-          <UploadContratos 
-            onUploadComplete={(arquivos) => {
-              console.log('Upload concluido:', arquivos);
-              fetchContratos(); // Recarregar lista de contratos
+          <UploadContratos
+            onUploadComplete={() => {
+              fetchContratos();
             }}
           />
         </TabsContent>

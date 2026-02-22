@@ -139,18 +139,18 @@ const EnhancedAIChat: React.FC<EnhancedAIChatProps> = ({
                         </div>
                     </div>
                     <div>
-                        <h3 className="font-semibold text-gray-900 flex items-center space-x-2">
+                        <h3 className="font-semibold text-foreground flex items-center space-x-2">
                             <span>{agentName}</span>
                             <Sparkles className="h-4 w-4 text-yellow-500" />
                         </h3>
                         {agentArea && (
-                            <p className="text-xs text-gray-500">{agentArea}</p>
+                            <p className="text-xs text-muted-foreground">{agentArea}</p>
                         )}
                     </div>
                 </div>
                 <div className="flex items-center space-x-2">
                     <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-                    <span className="text-xs text-gray-600">Online</span>
+                    <span className="text-xs text-muted-foreground">Online</span>
                 </div>
             </div>
 
@@ -162,10 +162,10 @@ const EnhancedAIChat: React.FC<EnhancedAIChatProps> = ({
                             <Bot className="h-12 w-12 text-blue-600" />
                         </div>
                         <div>
-                            <h4 className="font-semibold text-gray-900 mb-2">
+                            <h4 className="font-semibold text-foreground mb-2">
                                 Olá! Sou o {agentName}
                             </h4>
-                            <p className="text-gray-600 text-sm max-w-md">
+                            <p className="text-muted-foreground text-sm max-w-md">
                                 Estou aqui para ajudar com questões relacionadas a {agentArea || 'direito'}.
                                 Como posso te auxiliar hoje?
                             </p>
@@ -194,14 +194,14 @@ const EnhancedAIChat: React.FC<EnhancedAIChatProps> = ({
                                     <TypingText
                                         text={message.content}
                                         speed={15}
-                                        className={message.role === 'user' ? 'text-white' : 'text-gray-800'}
+                                        className={message.role === 'user' ? 'text-white' : 'text-foreground'}
                                     />
                                 ) : (
-                                    <p className={`text-sm whitespace-pre-wrap ${message.role === 'user' ? 'text-white' : 'text-gray-800'}`}>
+                                    <p className={`text-sm whitespace-pre-wrap ${message.role === 'user' ? 'text-white' : 'text-foreground'}`}>
                                         {message.content}
                                     </p>
                                 )}
-                                <p className={`text-xs mt-2 ${message.role === 'user' ? 'text-amber-100' : 'text-gray-400'}`}>
+                                <p className={`text-xs mt-2 ${message.role === 'user' ? 'text-amber-100' : 'text-muted-foreground'}`}>
                                     {message.timestamp.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
                                 </p>
                             </div>
@@ -259,7 +259,7 @@ const EnhancedAIChat: React.FC<EnhancedAIChatProps> = ({
                         )}
                     </Button>
                 </div>
-                <p className="text-xs text-gray-500 mt-2">
+                <p className="text-xs text-muted-foreground mt-2">
                     Shift + Enter para nova linha
                 </p>
             </div>

@@ -12,6 +12,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { DollarSign, TrendingUp, TrendingDown, Target } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { fmtCurrency } from '@/utils/formatting';
 
 interface RevenueCardProps {
     currentMRR: number;
@@ -33,14 +34,7 @@ export const RevenueCard: React.FC<RevenueCardProps> = ({
     const progressToTarget = targetMRR > 0 ? (currentMRR / targetMRR) * 100 : 0;
     const arr = currentMRR * 12;
 
-    const formatCurrency = (value: number) => {
-        return new Intl.NumberFormat('pt-BR', {
-            style: 'currency',
-            currency: 'BRL',
-            minimumFractionDigits: 0,
-            maximumFractionDigits: 0,
-        }).format(value);
-    };
+    const formatCurrency = fmtCurrency;
 
     return (
         <motion.div

@@ -25,7 +25,7 @@ const roles = [
   { value: 'advogado', label: 'Advogado', color: 'bg-blue-100 text-blue-800' },
   { value: 'comercial', label: 'Comercial', color: 'bg-green-100 text-green-800' },
   { value: 'pos_venda', label: 'Pós-venda', color: 'bg-yellow-100 text-yellow-800' },
-  { value: 'suporte', label: 'Suporte', color: 'bg-gray-100 text-gray-800' }
+  { value: 'suporte', label: 'Suporte', color: 'bg-muted text-foreground' }
 ];
 
 const GerenciarPermissoesForm = ({ usuario, onClose }: GerenciarPermissoesFormProps) => {
@@ -114,7 +114,7 @@ const GerenciarPermissoesForm = ({ usuario, onClose }: GerenciarPermissoesFormPr
     return (
       <div className="text-center py-8">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-amber-500 mx-auto"></div>
-        <p className="mt-2 text-gray-600">Carregando permissões...</p>
+        <p className="mt-2 text-muted-foreground">Carregando permissões...</p>
       </div>
     );
   }
@@ -123,7 +123,7 @@ const GerenciarPermissoesForm = ({ usuario, onClose }: GerenciarPermissoesFormPr
     <div className="space-y-6">
       <div>
         <h3 className="text-lg font-medium">Usuário: {usuario.nome_completo}</h3>
-        <p className="text-sm text-gray-600">{usuario.email}</p>
+        <p className="text-sm text-muted-foreground">{usuario.email}</p>
       </div>
 
       <Card>

@@ -2,7 +2,6 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabaseUntyped as supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
-import type { RealtimeChannel } from '@supabase/supabase-js';
 import { createLogger } from '@/lib/logger';
 
 const log = createLogger('WhatsApp');
@@ -247,91 +246,65 @@ export const useWhatsAppConversations = (): UseWhatsAppConversationsReturn => {
     }
   }, [toast]);
 
-  // âœ… CORREÃ‡ÃƒO: Realtime subscriptions com cleanup adequado e filtros
+  // Channel de conversas — não depende de selectedConversation, não é recriado ao trocar de conversa
   useEffect(() => {
     if (!user) return undefined;
 
-    let conversationsChannel: RealtimeChannel | null = null;
-    let messagesChannel: RealtimeChannel | null = null;
-
-    const setupRealtime = async () => {
-      // âœ… CORREÃ‡ÃƒO: Limpar channels anteriores para evitar memory leak
-      if (conversationsChannel) {
-        await conversationsChannel.unsubscribe();
-        conversationsChannel = null;
-      }
-      if (messagesChannel) {
-        await messagesChannel.unsubscribe();
-        messagesChannel = null;
-      }
-
-      // Subscribe a mudanÃ§as em conversas
-      conversationsChannel = supabase
-        .channel('whatsapp_conversations_changes')
-        .on(
-          'postgres_changes',
-          {
-            event: '*',
-            schema: 'public',
-            table: 'whatsapp_conversations',
-          },
-          (payload) => {
-            log.debug('MudanÃ§a em conversa', { event: payload.eventType });
-
-            if (payload.eventType === 'INSERT') {
-              setConversations(prev => [payload.new as WhatsAppConversation, ...prev]);
-            } else if (payload.eventType === 'UPDATE') {
-              setConversations(prev =>
-                prev.map(conv =>
-                  conv.id === payload.new.id
-                    ? (payload.new as WhatsAppConversation)
-                    : conv
-                )
-              );
-            } else if (payload.eventType === 'DELETE') {
-              setConversations(prev => prev.filter(conv => conv.id !== payload.old.id));
-            }
+    const conversationsChannel = supabase
+      .channel('whatsapp_conversations_changes')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'whatsapp_conversations' },
+        (payload) => {
+          log.debug('Mudança em conversa', { event: payload.eventType });
+          if (payload.eventType === 'INSERT') {
+            setConversations(prev => [payload.new as WhatsAppConversation, ...prev]);
+          } else if (payload.eventType === 'UPDATE') {
+            setConversations(prev =>
+              prev.map(conv =>
+                conv.id === payload.new.id ? (payload.new as WhatsAppConversation) : conv
+              )
+            );
+          } else if (payload.eventType === 'DELETE') {
+            setConversations(prev => prev.filter(conv => conv.id !== payload.old.id));
           }
-        )
-        .subscribe();
-
-      // âœ… CORREÃ‡ÃƒO: Subscribe a mudanÃ§as em mensagens COM FILTRO
-      // SÃ³ recebe mensagens da conversa selecionada
-      if (selectedConversation) {
-        messagesChannel = supabase
-          .channel(`whatsapp_messages_${selectedConversation.id}`)
-          .on(
-            'postgres_changes',
-            {
-              event: '*',
-              schema: 'public',
-              table: 'whatsapp_messages',
-              filter: `conversation_id=eq.${selectedConversation.id}`, // âœ… FILTRO adicionado
-            },
-            (payload) => {
-              log.debug('Nova mensagem recebida');
-
-              if (payload.eventType === 'INSERT') {
-                const newMessage = payload.new as WhatsAppMessage;
-                setMessages(prev => [...prev, newMessage]);
-              }
-            }
-          )
-          .subscribe();
-      }
-    };
-
-    void setupRealtime();
+        }
+      )
+      .subscribe();
 
     return () => {
-      if (conversationsChannel) {
-        void supabase.removeChannel(conversationsChannel);
-      }
-      if (messagesChannel) {
-        void supabase.removeChannel(messagesChannel);
-      }
+      void supabase.removeChannel(conversationsChannel);
     };
-  }, [user, selectedConversation]);
+  }, [user]);
+
+  // Channel de mensagens — recriado apenas quando a conversa selecionada muda
+  useEffect(() => {
+    if (!user || !selectedConversation) return undefined;
+
+    const messagesChannel = supabase
+      .channel(`whatsapp_messages_${selectedConversation.id}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'whatsapp_messages',
+          filter: `conversation_id=eq.${selectedConversation.id}`,
+        },
+        (payload) => {
+          log.debug('Nova mensagem recebida');
+          if (payload.eventType === 'INSERT') {
+            setMessages(prev => [...prev, payload.new as WhatsAppMessage]);
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      void supabase.removeChannel(messagesChannel);
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- selectedConversation?.id is intentional: re-run only when ID changes, not when other props update
+  }, [user, selectedConversation?.id]);
 
   // Initial load
   useEffect(() => {

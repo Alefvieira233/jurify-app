@@ -34,7 +34,7 @@ const FiltrosAvancados: React.FC<FiltrosAvancadosProps> = ({
       <CardContent>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div>
-            <label className="text-sm font-medium text-gray-700 mb-2 block">Período</label>
+            <label className="text-sm font-medium text-muted-foreground mb-2 block">Período</label>
             <Select value={periodo} onValueChange={(value: PeriodoFiltro) => setPeriodo(value)}>
               <SelectTrigger>
                 <SelectValue />
@@ -49,7 +49,7 @@ const FiltrosAvancados: React.FC<FiltrosAvancadosProps> = ({
           </div>
 
           <div>
-            <label className="text-sm font-medium text-gray-700 mb-2 block">Área Jurídica</label>
+            <label className="text-sm font-medium text-muted-foreground mb-2 block">Área Jurídica</label>
             <Select value={areaJuridica} onValueChange={setAreaJuridica}>
               <SelectTrigger>
                 <SelectValue />
@@ -65,7 +65,7 @@ const FiltrosAvancados: React.FC<FiltrosAvancadosProps> = ({
           </div>
 
           <div>
-            <label className="text-sm font-medium text-gray-700 mb-2 block">Origem dos Leads</label>
+            <label className="text-sm font-medium text-muted-foreground mb-2 block">Origem dos Leads</label>
             <Select value={origemLead} onValueChange={setOrigemLead}>
               <SelectTrigger>
                 <SelectValue />

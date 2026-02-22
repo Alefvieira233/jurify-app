@@ -11,18 +11,7 @@ const TYPE_CONFIG = {
   erro:    { icon: AlertCircle,  hex: '#e11d48', bgClass: 'bg-rose-500/10',    textClass: 'text-rose-600 dark:text-rose-400',    label: 'Erro'    },
 } as const;
 
-function relativeTime(isoDate: string | null): string {
-  if (!isoDate) return '';
-  const diff = Date.now() - new Date(isoDate).getTime();
-  const mins = Math.floor(diff / 60000);
-  if (mins < 1)  return 'agora';
-  if (mins < 60) return `${mins}min`;
-  const hrs = Math.floor(mins / 60);
-  if (hrs < 24)  return `${hrs}h`;
-  const days = Math.floor(hrs / 24);
-  if (days === 1) return 'ontem';
-  return new Date(isoDate).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
-}
+import { relativeTime } from '@/utils/formatting';
 
 type Filter = 'todas' | 'nao_lidas' | 'lidas';
 

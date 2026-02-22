@@ -110,7 +110,7 @@ export abstract class BaseAgent implements IAgent {
         try {
           await this.handleMessage(message);
         } catch (error) {
-          console.error(`Erro ao processar mensagem em ${this.name}:`, error);
+          log.error(`Erro ao processar mensagem em ${this.name}`, error);
 
           if (message.requires_response) {
             const { MessageType } = await import('../types');
@@ -193,7 +193,7 @@ export abstract class BaseAgent implements IAgent {
         try {
           return await this.streamChatCompletion(augmentedPrompt, options.onToken);
         } catch (_streamError) {
-          console.warn(`[stream] Falha no streaming para ${this.name}, usando fallback non-stream.`);
+          log.warn(`[stream] Falha no streaming para ${this.name}, usando fallback non-stream`);
         }
       }
 
@@ -220,7 +220,7 @@ export abstract class BaseAgent implements IAgent {
       );
 
       if (error) {
-        console.error(`Erro na Edge Function para ${this.name}:`, error);
+        log.error(`Erro na Edge Function para ${this.name}`, error);
         throw new Error(`AI processing failed: ${error.message}`);
       }
 
@@ -274,7 +274,7 @@ export abstract class BaseAgent implements IAgent {
       return data.result;
 
     } catch (error) {
-      console.error(`Erro no processamento de IA para ${this.name}:`, error);
+      log.error(`Erro no processamento de IA para ${this.name}`, error);
       throw error;
     }
   }
@@ -509,11 +509,11 @@ export abstract class BaseAgent implements IAgent {
         return await this.processWithAI(prompt, context, options);
       } catch (error) {
         lastError = error instanceof Error ? error : new Error(String(error));
-        console.warn(`⚠️ [${this.name}] Tentativa ${attempt}/${maxRetries} falhou:`, lastError.message);
+        log.warn(`Tentativa ${attempt}/${maxRetries} falhou`, { agent: this.name, message: lastError.message });
 
         if (attempt < maxRetries) {
           const delayMs = Math.pow(2, attempt) * 1000; // 2s, 4s, 8s
-          console.log(`⏳ [${this.name}] Aguardando ${delayMs}ms antes de retry...`);
+          log.debug(`Aguardando ${delayMs}ms antes de retry`, { agent: this.name });
           await this.sleep(delayMs);
         }
       }
@@ -575,7 +575,7 @@ export abstract class BaseAgent implements IAgent {
       }
     }
 
-    console.warn(`⚠️ [${this.name}] Falha ao parsear JSON da resposta`);
+    log.warn(`Falha ao parsear JSON da resposta`, { agent: this.name });
     return null;
   }
 

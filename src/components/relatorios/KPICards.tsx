@@ -29,8 +29,8 @@ const KPICards: React.FC<KPICardsProps> = ({ kpis, isLoading }) => {
           <Card key={i}>
             <CardContent className="p-6">
               <div className="animate-pulse">
-                <div className="h-4 bg-gray-200 rounded w-3/4 mb-2"></div>
-                <div className="h-8 bg-gray-200 rounded w-1/2"></div>
+                <div className="h-4 bg-muted rounded w-3/4 mb-2"></div>
+                <div className="h-8 bg-muted rounded w-1/2"></div>
               </div>
             </CardContent>
           </Card>
@@ -77,10 +77,10 @@ const KPICards: React.FC<KPICardsProps> = ({ kpis, isLoading }) => {
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-600">{kpi.titulo}</p>
-                <p className="text-2xl font-bold text-gray-900 mt-1">{kpi.valor}</p>
+                <p className="text-sm font-medium text-muted-foreground">{kpi.titulo}</p>
+                <p className="text-2xl font-bold text-foreground mt-1">{kpi.valor}</p>
               </div>
-              <div className={`p-3 rounded-full bg-gray-100 ${kpi.cor}`}>
+              <div className={`p-3 rounded-full bg-muted ${kpi.cor}`}>
                 <kpi.icon className="h-6 w-6" />
               </div>
             </div>

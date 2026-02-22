@@ -11,6 +11,7 @@ import { Download, Send, Edit, Save, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { StatusAssinatura } from './StatusAssinatura';
 import { GerarAssinaturaZapSign } from './GerarAssinaturaZapSign';
+import { fmtCurrencyFull, fmtDateTimeFull } from '@/utils/formatting';
 
 interface Contrato {
   id: string;
@@ -112,17 +113,6 @@ export const DetalhesContrato = ({ contrato, onClose: _onClose }: DetalhesContra
     return <Badge className={config.className}>{config.label}</Badge>;
   };
 
-  const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat('pt-BR', {
-      style: 'currency',
-      currency: 'BRL'
-    }).format(value);
-  };
-
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleString('pt-BR');
-  };
-
   return (
     <div className="space-y-6">
       {/* Header com ações */}
@@ -168,7 +158,7 @@ export const DetalhesContrato = ({ contrato, onClose: _onClose }: DetalhesContra
       <div className="grid grid-cols-2 gap-4 p-4 bg-[hsl(var(--muted))] rounded-lg">
         <div>
           <Label className="text-sm font-medium text-[hsl(var(--muted-foreground))]">Valor da Causa</Label>
-          <p className="text-lg font-semibold">{formatCurrency(contrato.valor_causa)}</p>
+          <p className="text-lg font-semibold">{fmtCurrencyFull(contrato.valor_causa)}</p>
         </div>
         <div>
           <Label className="text-sm font-medium text-[hsl(var(--muted-foreground))]">Status</Label>
@@ -194,18 +184,18 @@ export const DetalhesContrato = ({ contrato, onClose: _onClose }: DetalhesContra
         </div>
         <div>
           <Label className="text-sm font-medium text-[hsl(var(--muted-foreground))]">Data de Criação</Label>
-          <p>{formatDate(contrato.created_at)}</p>
+          <p>{fmtDateTimeFull(contrato.created_at)}</p>
         </div>
         {contrato.data_envio && (
           <div>
             <Label className="text-sm font-medium text-[hsl(var(--muted-foreground))]">Data de Envio</Label>
-            <p>{formatDate(contrato.data_envio)}</p>
+            <p>{fmtDateTimeFull(contrato.data_envio)}</p>
           </div>
         )}
         {contrato.data_assinatura && (
           <div>
             <Label className="text-sm font-medium text-[hsl(var(--muted-foreground))]">Data de Assinatura</Label>
-            <p>{formatDate(contrato.data_assinatura)}</p>
+            <p>{fmtDateTimeFull(contrato.data_assinatura)}</p>
           </div>
         )}
       </div>

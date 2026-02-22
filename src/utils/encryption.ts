@@ -37,7 +37,11 @@ class EncryptionService {
     return data.plaintext as string;
   }
 
-  // Hash passwords (one-way) — OWASP 2023: 600k iterations with SHA-256
+  /**
+   * @deprecated NÃO chamar no browser em produção — PBKDF2 com 600k iterações
+   * bloqueia a UI thread por vários segundos. Hashing de senha deve ser feito
+   * server-side via Supabase Auth. Esta função existe apenas para testes unitários.
+   */
   hashPassword(password: string): string {
     const salt = CryptoJS.lib.WordArray.random(128 / 8);
     const hash = CryptoJS.PBKDF2(password, salt, {
@@ -49,7 +53,7 @@ class EncryptionService {
     return salt.toString() + ':' + hash.toString();
   }
 
-  // Verify password against hash
+  /** @deprecated Ver nota em hashPassword — não usar em produção no browser. */
   verifyPassword(password: string, storedHash: string): boolean {
     try {
       const [salt, originalHash] = storedHash.split(':');

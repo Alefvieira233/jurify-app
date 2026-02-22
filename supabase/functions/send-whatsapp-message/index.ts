@@ -346,10 +346,19 @@ serve(async (req) => {
 
     const messageRequest = requestData as SendMessageRequest;
 
+    // SECURITY: tenantId deve vir do profile autenticado, nunca do request body
+    const { data: userProfile } = await supabase
+      .from("profiles")
+      .select("tenant_id")
+      .eq("id", user.id)
+      .single();
+
+    const tenantId = userProfile?.tenant_id;
+
     // 🔑 Busca credenciais do WhatsApp
     const credentials = await getWhatsAppCredentials(
       supabase,
-      messageRequest.tenantId
+      tenantId
     );
 
     if (!credentials) {

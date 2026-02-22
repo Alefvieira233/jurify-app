@@ -53,7 +53,7 @@ export const AdvancedParamsSection: React.FC<AdvancedParamsSectionProps> = ({
             value={parametros.temperatura}
             onChange={(e) => onParametroChange('temperatura', parseFloat(e.target.value))}
           />
-          <div className="text-xs text-gray-500 mt-1">
+          <div className="text-xs text-muted-foreground mt-1">
             Controla a criatividade das respostas
           </div>
         </div>
@@ -69,7 +69,7 @@ export const AdvancedParamsSection: React.FC<AdvancedParamsSectionProps> = ({
             value={parametros.top_p}
             onChange={(e) => onParametroChange('top_p', parseFloat(e.target.value))}
           />
-          <div className="text-xs text-gray-500 mt-1">
+          <div className="text-xs text-muted-foreground mt-1">
             Controla a diversidade do vocabulário
           </div>
         </div>
@@ -85,7 +85,7 @@ export const AdvancedParamsSection: React.FC<AdvancedParamsSectionProps> = ({
             value={parametros.frequency_penalty}
             onChange={(e) => onParametroChange('frequency_penalty', parseFloat(e.target.value))}
           />
-          <div className="text-xs text-gray-500 mt-1">
+          <div className="text-xs text-muted-foreground mt-1">
             Reduz repetição de palavras
           </div>
         </div>
@@ -101,7 +101,7 @@ export const AdvancedParamsSection: React.FC<AdvancedParamsSectionProps> = ({
             value={parametros.presence_penalty}
             onChange={(e) => onParametroChange('presence_penalty', parseFloat(e.target.value))}
           />
-          <div className="text-xs text-gray-500 mt-1">
+          <div className="text-xs text-muted-foreground mt-1">
             Incentiva novos tópicos
           </div>
         </div>

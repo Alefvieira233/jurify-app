@@ -33,25 +33,7 @@ interface PipelineCardProps {
   onRefresh:    () => void;
 }
 
-/* ── Avatar helpers ── */
-function getInitials(name: string): string {
-  const parts = name.trim().split(/\s+/);
-  if (parts.length === 1) return (parts[0]?.charAt(0) ?? '?').toUpperCase();
-  return ((parts[0]?.charAt(0) ?? '') + (parts[parts.length - 1]?.charAt(0) ?? '')).toUpperCase();
-}
-
-const PALETTE = ['#2563eb','#7c3aed','#db2777','#ea580c','#16a34a','#0891b2','#9333ea','#0d9488'];
-function avatarColor(name: string): string {
-  let h = 0;
-  for (let i = 0; i < name.length; i++) h = name.charCodeAt(i) + ((h << 5) - h);
-  return PALETTE[Math.abs(h) % PALETTE.length] ?? PALETTE[0]!;
-}
-
-const fmtCurrency = (v: number) =>
-  new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 }).format(v);
-
-const fmtDate = (iso: string) =>
-  new Date(iso).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
+import { getInitials, getAvatarHex, fmtCurrency, fmtDate } from '@/utils/formatting';
 
 /* ── Component ── */
 export const PipelineCard = memo(({ lead, index, stageColor, onUpdateLead, onRefresh }: PipelineCardProps) => {
@@ -73,7 +55,7 @@ export const PipelineCard = memo(({ lead, index, stageColor, onUpdateLead, onRef
   }, [lead.metadata]);
 
   const initials   = useMemo(() => getInitials(lead.nome_completo ?? '?'), [lead.nome_completo]);
-  const bgColor    = useMemo(() => avatarColor(lead.nome_completo ?? ''),  [lead.nome_completo]);
+  const bgColor    = useMemo(() => getAvatarHex(lead.nome_completo ?? ''),  [lead.nome_completo]);
 
   const saveStatus = async () => { await onUpdateLead(lead.id, { status: statusVal }); setShowStatus(false); };
   const saveNotes  = async () => { await onUpdateLead(lead.id, { observacoes: notesVal || null }); setShowNotes(false); };
@@ -260,5 +242,7 @@ export const PipelineCard = memo(({ lead, index, stageColor, onUpdateLead, onRef
     </Draggable>
   );
 });
+
+PipelineCard.displayName = 'PipelineCard';
 
 export default PipelineCard;

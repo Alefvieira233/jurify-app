@@ -10,7 +10,7 @@ export const initSentry = () => {
 
     Sentry.init({
         dsn,
-        tracesSampleRate: 1.0,
+        tracesSampleRate: 0.1, // 10% em produção — reduz custo e overhead
         environment: Deno.env.get("SUPABASE_DB_NAME") === "production" ? "production" : "development",
     });
 

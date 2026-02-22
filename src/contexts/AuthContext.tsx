@@ -53,12 +53,17 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
       if (error || !data) throw new Error('RLS_BLOCK_OR_NOT_FOUND');
 
+      // Supabase generated types lag behind the actual schema; cast for fields
+      // added via migration but not yet regenerated (subscription_tier, subscription_status).
+      const extra = data as Record<string, string | null | undefined>;
       setProfile({
         id: data.id,
         nome_completo: data.nome_completo ?? '',
         email: data.email,
         role: data.role ?? undefined,
         tenant_id: data.tenant_id ?? undefined,
+        subscription_tier: extra.subscription_tier ?? undefined,
+        subscription_status: extra.subscription_status ?? undefined,
       });
     } catch (_err) {
       setProfile(null);

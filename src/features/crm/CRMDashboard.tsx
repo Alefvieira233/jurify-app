@@ -22,11 +22,7 @@ const KPI_COLORS = {
   rose:    { hex: '#e11d48', bg: 'rgba(225,29,72,0.08)'   },
 };
 
-const fmt = (v: number) =>
-  new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 }).format(v);
-
-const fmtDt = (d: string) =>
-  new Intl.DateTimeFormat('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }).format(new Date(d));
+import { fmtCurrency as fmt, fmtDateTime as fmtDt } from '@/utils/formatting';
 
 /* ── Priority badge classes ── */
 const PRIORITY_CLS: Record<string, string> = {

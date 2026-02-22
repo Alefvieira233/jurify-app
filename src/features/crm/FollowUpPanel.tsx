@@ -29,10 +29,7 @@ const PRIORITY_CFG: Record<string, { label: string; hex: string }> = {
   urgent: { label: 'Urgente', hex: '#e11d48' },
 };
 
-const fmtDateTime = (iso: string) =>
-  new Intl.DateTimeFormat('pt-BR', {
-    day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit',
-  }).format(new Date(iso));
+import { fmtDateTime } from '@/utils/formatting';
 
 /* ── Section heading ── */
 function SectionHeading({

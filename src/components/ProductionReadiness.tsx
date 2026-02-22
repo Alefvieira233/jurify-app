@@ -247,7 +247,7 @@ const ProductionReadiness = () => {
             <div className="text-3xl font-bold">
               {overallScore}%
             </div>
-            <div className="text-sm text-gray-500">
+            <div className="text-sm text-muted-foreground">
               {isProductionReady ? 'PRONTO PARA PRODUÇÃO' : 'REQUER ATENÇÃO'}
             </div>
           </div>
@@ -263,9 +263,9 @@ const ProductionReadiness = () => {
               {getStatusIcon(check.status)}
               <div>
                 <div className="font-medium">{check.name}</div>
-                <div className="text-sm text-gray-600">{check.description}</div>
+                <div className="text-sm text-muted-foreground">{check.description}</div>
                 {check.details && (
-                  <div className="text-xs text-gray-500">{check.details}</div>
+                  <div className="text-xs text-muted-foreground">{check.details}</div>
                 )}
               </div>
             </div>

@@ -103,7 +103,7 @@ export const useLeads = (options?: { enablePagination?: boolean; pageSize?: numb
 
   const normalizeLead = useCallback((lead: Record<string, unknown>): Lead => {
     return {
-      ...(lead as unknown as Lead),
+      ...(lead as Lead),
       nome_completo: (lead.nome_completo ?? lead.nome ?? null) as string | null,
       responsavel: ((lead.metadata as LeadMetadata)?.responsavel_nome ?? null) as string | null,
       observacoes: (lead.descricao ?? null) as string | null,

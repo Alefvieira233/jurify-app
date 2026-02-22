@@ -120,7 +120,9 @@ class MonitoringService {
     }
 
     // External APIs check
-    checks.openai = await this.checkExternalAPI('OpenAI', 'https://api.openai.com/v1/models');
+    // NOTE: OpenAI check removido — requisição do browser é bloqueada por CORS.
+    // Verificação de APIs externas deve ser feita server-side.
+    checks.openai = { status: 'unknown' };
     checks.zapsign = await this.checkExternalAPI('ZapSign', import.meta.env.VITE_ZAPSIGN_BASE_URL);
 
     // Determine overall status

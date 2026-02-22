@@ -72,7 +72,7 @@ const DetalhesAgente: FC<DetalhesAgenteProps> = ({ agente, onClose, onEdit }) =>
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-3">
               <div className={`p-2 rounded-full ${agenteAtivo ? 'bg-emerald-500/15 border border-emerald-400/30' : 'bg-[hsl(var(--muted))]'}`}>
-                <Bot className={`h-5 w-5 ${agenteAtivo ? 'text-emerald-200' : 'text-gray-400'}`} />
+                <Bot className={`h-5 w-5 ${agenteAtivo ? 'text-emerald-200' : 'text-muted-foreground'}`} />
               </div>
               <div>
                 <DialogTitle className="text-xl">{agente.nome}</DialogTitle>

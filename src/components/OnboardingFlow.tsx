@@ -169,7 +169,7 @@ const OnboardingFlow = () => {
               className={`p-4 rounded-lg border transition-colors ${
                 step.completed
                   ? 'bg-green-50 border-green-200'
-                  : 'bg-gray-50 border-gray-200'
+                  : 'bg-muted/50 border-border'
               }`}
             >
               <div className="flex items-start gap-3">
@@ -177,7 +177,7 @@ const OnboardingFlow = () => {
                   {step.completed ? (
                     <CheckCircle className="h-5 w-5 text-green-600" />
                   ) : (
-                    <Circle className="h-5 w-5 text-gray-400" />
+                    <Circle className="h-5 w-5 text-muted-foreground" />
                   )}
                 </div>
 
@@ -188,7 +188,7 @@ const OnboardingFlow = () => {
                       {step.completed ? 'Concluido' : 'Pendente'}
                     </Badge>
                   </div>
-                  <p className="text-sm text-gray-600 mb-3">
+                  <p className="text-sm text-muted-foreground mb-3">
                     {step.description}
                   </p>
 
@@ -214,7 +214,7 @@ const OnboardingFlow = () => {
             <div className="flex items-center justify-between">
               <div>
                 <h4 className="font-medium mb-1">Tutorial em Video</h4>
-                <p className="text-sm text-gray-600">
+                <p className="text-sm text-muted-foreground">
                   Assista ao guia completo do sistema
                 </p>
               </div>

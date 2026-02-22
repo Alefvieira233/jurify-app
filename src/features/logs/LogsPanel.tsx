@@ -18,15 +18,7 @@ const STATUS_CFG = {
   processing: { label: 'Processando',  hex: '#d97706', bgClass: 'bg-amber-500/10',   textClass: 'text-amber-600 dark:text-amber-400',     icon: Clock       },
 } as const;
 
-function relativeTime(iso: string): string {
-  const diff = Date.now() - new Date(iso).getTime();
-  const mins = Math.floor(diff / 60000);
-  if (mins < 1)  return 'agora';
-  if (mins < 60) return `${mins}min`;
-  const hrs = Math.floor(mins / 60);
-  if (hrs < 24)  return `${hrs}h`;
-  return new Date(iso).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
-}
+import { relativeTime } from '@/utils/formatting';
 
 const LogsPanel = () => {
   const { logs, loading, stats, refetch, limparLogs } = useLogsExecucao();

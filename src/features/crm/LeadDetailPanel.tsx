@@ -1,6 +1,7 @@
 
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
 import {
   ArrowLeft, Phone, Mail, Tag, Activity, Clock,
   Scale, Building2, CreditCard,
@@ -14,9 +15,7 @@ import { useCRMActivities, type Activity as CRMActivity } from '@/hooks/useCRMAc
 import { useFollowUps } from '@/hooks/useFollowUps';
 import { useCRMTags, type Tag as CRMTag } from '@/hooks/useCRMTags';
 import { useLeadScoring } from '@/hooks/useLeadScoring';
-import { createLogger } from '@/lib/logger';
-
-const log = createLogger('LeadDetail');
+import { getInitials, getAvatarHex, fmtCurrency, fmtDateTime } from '@/utils/formatting';
 
 type LeadDetail = {
   id:                 string;
@@ -66,68 +65,43 @@ const ACTIVITY_CFG: Record<string, { label: string; hex: string }> = {
   proposal_sent:      { label: 'Proposta',  hex: '#db2777' },
 };
 
-/* ── Avatar helpers ── */
-const PALETTE = ['#2563eb','#7c3aed','#db2777','#ea580c','#16a34a','#0891b2','#9333ea','#0d9488'];
-function getInitials(name: string): string {
-  const p = name.trim().split(/\s+/);
-  if (p.length === 1) return (p[0]?.charAt(0) ?? '?').toUpperCase();
-  return ((p[0]?.charAt(0) ?? '') + (p[p.length - 1]?.charAt(0) ?? '')).toUpperCase();
-}
-function avatarColor(name: string): string {
-  let h = 0;
-  for (let i = 0; i < name.length; i++) h = name.charCodeAt(i) + ((h << 5) - h);
-  return PALETTE[Math.abs(h) % PALETTE.length] ?? PALETTE[0]!;
-}
-
-const fmtCurrency = (v: number) =>
-  new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 }).format(v);
-
-const fmtDateTime = (iso: string) =>
-  new Intl.DateTimeFormat('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }).format(new Date(iso));
 
 /* ── Component ── */
 const LeadDetailPanel = () => {
   const { leadId }  = useParams<{ leadId: string }>();
   const navigate    = useNavigate();
-  const [lead, setLead]       = useState<LeadDetail | null>(null);
   const [leadTags, setLeadTags] = useState<CRMTag[]>([]);
-  const [loading, setLoading] = useState(true);
 
   const { activities, fetchActivities }               = useCRMActivities();
   const { followUps, fetchFollowUps, completeFollowUp } = useFollowUps();
   const { getLeadTags }                               = useCRMTags();
   const { scores, getLeadScore }                      = useLeadScoring();
 
-  const fetchLead = useCallback(async () => {
-    if (!leadId) return;
-    try {
-      setLoading(true);
+  const { data: lead, isLoading: loading } = useQuery({
+    queryKey: ['lead', leadId],
+    queryFn: async () => {
       const { data, error } = await supabase
-        .from('leads').select('*').eq('id', leadId).single();
+        .from('leads').select('*').eq('id', leadId!).single();
       if (error) throw error;
-      setLead(data as LeadDetail);
-    } catch (error) {
-      log.error('Failed to fetch lead', error);
-    } finally {
-      setLoading(false);
-    }
-  }, [leadId]);
+      return data as LeadDetail;
+    },
+    enabled: !!leadId,
+  });
 
   useEffect(() => {
     if (leadId) {
-      void fetchLead();
       void fetchActivities(leadId);
       void fetchFollowUps({ leadId });
       void getLeadTags(leadId).then(setLeadTags);
       void getLeadScore(leadId);
     }
-  }, [leadId, fetchLead, fetchActivities, fetchFollowUps, getLeadTags, getLeadScore]);
+  }, [leadId, fetchActivities, fetchFollowUps, getLeadTags, getLeadScore]);
 
   const leadFollowUps = followUps.filter(f => f.lead_id === leadId);
   const score  = scores[leadId ?? ''] || lead?.lead_score || 0;
   const sc     = STATUS_COLORS[lead?.status ?? ''];
-  const initials = useMemo(() => getInitials(lead?.nome_completo ?? '?'), [lead?.nome_completo]);
-  const bg       = useMemo(() => avatarColor(lead?.nome_completo ?? ''),  [lead?.nome_completo]);
+  const initials = useMemo(() => getInitials(lead?.nome_completo ?? null), [lead?.nome_completo]);
+  const bg       = useMemo(() => getAvatarHex(lead?.nome_completo ?? ''), [lead?.nome_completo]);
 
   const scoreColor = score >= 80 ? '#059669' : score >= 50 ? '#d97706' : '#e11d48';
   const tempLabel  = lead?.temperature === 'hot' ? 'Quente' : lead?.temperature === 'warm' ? 'Morno' : 'Frio';

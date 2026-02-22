@@ -69,33 +69,7 @@ export class SystemValidator {
 
       if (error) throw error;
 
-      const testData = {
-        tenant_id: this.tenantId,
-        nome: 'System Validator Test',
-        email: 'test@systemvalidator.local',
-        telefone: '11999999999',
-        area_juridica: 'Teste',
-        origem: 'Sistema',
-        status: 'novo_lead',
-        metadata: { responsavel_nome: 'Sistema' },
-      };
-
-      const { data: insertData, error: insertError } = await supabase
-        .from('leads')
-        .insert([testData])
-        .select('id')
-        .single();
-
-      if (insertError) throw insertError;
-
-      if (insertData?.id) {
-        await supabase
-          .from('leads')
-          .delete()
-          .eq('id', insertData.id)
-          .eq('tenant_id', this.tenantId as string);
-      }
-
+      // Teste de conectividade apenas com SELECT — não inserir dados reais em leads
       return {
         success: true,
         message: 'Database connected and operational',

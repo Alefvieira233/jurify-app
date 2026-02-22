@@ -171,7 +171,7 @@ const NotificacoesSection = () => {
                       placeholder="Use {variavel} para inserir dados dinâmicos"
                       rows={4}
                     />
-                    <div className="text-sm text-gray-500 mt-1">
+                    <div className="text-sm text-muted-foreground mt-1">
                       Variáveis disponíveis: {'{nome_lead}'}, {'{responsavel}'}, {'{valor}'}, {'{data_hora}'}
                     </div>
                   </div>

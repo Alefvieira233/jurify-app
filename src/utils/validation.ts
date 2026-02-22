@@ -180,6 +180,11 @@ class ValidationService {
     });
   }
 
+  /**
+   * @deprecated Parameterized queries via Supabase already prevent SQL injection at the
+   * driver level. This method provides no additional security and should not be called in
+   * new code. It is kept only to avoid breaking existing tests.
+   */
   // SQL injection protection
   sanitizeSQL(input: string): string {
     if (!input) return '';

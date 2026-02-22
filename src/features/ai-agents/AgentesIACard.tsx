@@ -48,7 +48,7 @@ export const AgentesIACard: React.FC<AgentesIACardProps> = ({
           <div className="flex items-center space-x-2">
             <Badge 
               variant={(agente.status === 'ativo') ? 'default' : 'secondary'}
-              className={(agente.status === 'ativo') ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-[hsl(var(--muted-foreground))]'}
+              className={(agente.status === 'ativo') ? 'bg-green-100 text-green-800' : 'bg-muted text-[hsl(var(--muted-foreground))]'}
             >
               {(agente.status === 'ativo') ? 'Ativo' : 'Inativo'}
             </Badge>

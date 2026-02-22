@@ -20,7 +20,7 @@ const LoadingSpinner = ({
   };
 
   const containerClasses = fullScreen 
-    ? 'min-h-screen bg-gray-100 flex items-center justify-center'
+    ? 'min-h-screen bg-muted flex items-center justify-center'
     : 'flex items-center justify-center p-4';
 
   return (
@@ -30,7 +30,7 @@ const LoadingSpinner = ({
           <Scale className={`${sizeClasses[size]} text-white animate-pulse`} />
         </div>
         <div className={`animate-spin rounded-full border-b-2 border-amber-500 mx-auto mb-4 ${sizeClasses[size]}`}></div>
-        <p className="text-gray-600 font-medium">{text}</p>
+        <p className="text-muted-foreground font-medium">{text}</p>
         <span className="sr-only">{text}</span>
       </div>
     </div>

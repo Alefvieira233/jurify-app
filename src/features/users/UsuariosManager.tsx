@@ -114,7 +114,7 @@ const UsuariosManager = () => {
           <AlertDescription>
             Você não tem permissão para acessar esta seção.
             <br />
-            <span className="text-sm text-gray-500">Role atual: {userRole}</span>
+            <span className="text-sm text-muted-foreground">Role atual: {userRole}</span>
           </AlertDescription>
         </Alert>
       </div>
@@ -132,9 +132,9 @@ const UsuariosManager = () => {
       advogado: 'bg-blue-100 text-blue-800',
       comercial: 'bg-green-100 text-green-800',
       pos_venda: 'bg-yellow-100 text-yellow-800',
-      suporte: 'bg-gray-100 text-gray-800'
+      suporte: 'bg-muted text-foreground'
     };
-    return colors[role as keyof typeof colors] || 'bg-gray-100 text-gray-800';
+    return colors[role as keyof typeof colors] || 'bg-muted text-foreground';
   };
 
   const getRoleLabel = (role: string) => {
@@ -152,8 +152,8 @@ const UsuariosManager = () => {
     <div className="p-6 space-y-6">
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Gerenciamento de Usuários</h1>
-          <p className="text-gray-600 mt-1">Gerencie usuários e suas permissões no sistema</p>
+          <h1 className="text-2xl font-bold text-foreground">Gerenciamento de Usuários</h1>
+          <p className="text-muted-foreground mt-1">Gerencie usuários e suas permissões no sistema</p>
         </div>
         {can('usuarios', 'create') && (
           <Dialog open={isNovoUsuarioOpen} onOpenChange={setIsNovoUsuarioOpen}>
@@ -178,7 +178,7 @@ const UsuariosManager = () => {
         <CardContent className="p-4">
           <div className="flex items-center space-x-4">
             <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
                 placeholder="Buscar por nome ou email..."
                 value={searchTerm}
@@ -199,7 +199,7 @@ const UsuariosManager = () => {
           {isLoading ? (
             <div className="text-center py-8">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-amber-500 mx-auto"></div>
-              <p className="mt-2 text-gray-600">Carregando usuários...</p>
+              <p className="mt-2 text-muted-foreground">Carregando usuários...</p>
             </div>
           ) : (
             <Table>

@@ -123,7 +123,7 @@ export const BasicInfoSection: React.FC<BasicInfoSectionProps> = ({
                       <Icon className="h-4 w-4" />
                       <div>
                         <div className="font-medium">{tipo.label}</div>
-                        <div className="text-xs text-gray-500">{tipo.description}</div>
+                        <div className="text-xs text-muted-foreground">{tipo.description}</div>
                       </div>
                     </div>
                   </SelectItem>

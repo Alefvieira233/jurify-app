@@ -53,7 +53,7 @@ export const AIConfigSection: React.FC<AIConfigSectionProps> = ({
             required
             className="font-mono text-sm"
           />
-          <div className="text-xs text-gray-500 mt-1">
+          <div className="text-xs text-muted-foreground mt-1">
             Este prompt será usado como base para todas as interações do agente
           </div>
         </div>

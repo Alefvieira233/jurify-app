@@ -259,7 +259,7 @@ const Sidebar = ({ activeSection, onSectionChange }: SidebarProps) => {
             type="button"
             onClick={() => { void signOut(); }}
             title="Sair"
-            className="h-7 w-7 flex items-center justify-center rounded-md text-muted-foreground/35 hover:text-destructive hover:bg-destructive/8 transition-colors flex-shrink-0"
+            className="h-7 w-7 flex items-center justify-center rounded-md text-muted-foreground/35 hover:text-destructive hover:bg-destructive/10 transition-colors flex-shrink-0"
           >
             <LogOut className="h-3.5 w-3.5" strokeWidth={2} />
           </button>

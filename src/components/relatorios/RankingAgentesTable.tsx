@@ -153,7 +153,7 @@ const RankingAgentesTable: React.FC<RankingAgentesTableProps> = ({ periodo }) =>
   });
 
   if (!rankingAgentes) {
-    return <div className="text-center py-8 text-gray-500">Carregando ranking...</div>;
+    return <div className="text-center py-8 text-muted-foreground">Carregando ranking...</div>;
   }
 
   return (
@@ -217,7 +217,7 @@ const RankingAgentesTable: React.FC<RankingAgentesTableProps> = ({ periodo }) =>
       </Table>
 
       {rankingAgentes.length === 0 && (
-        <div className="text-center py-8 text-gray-500">
+        <div className="text-center py-8 text-muted-foreground">
           Nenhum dado encontrado para o periodo selecionado
         </div>
       )}

@@ -7,6 +7,10 @@ import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useAgendamentos } from '@/hooks/useAgendamentos';
 import type { Agendamento } from '@/hooks/useAgendamentos';
+import { fmtMessageTime } from '@/utils/formatting';
+
+const fmtDay = (iso: string) => new Date(iso).toLocaleDateString('pt-BR', { day: '2-digit' });
+const fmtMonth = (iso: string) => new Date(iso).toLocaleDateString('pt-BR', { month: 'short' });
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { NovoAgendamentoForm } from '@/components/NovoAgendamentoForm';
 import { DetalhesAgendamento } from '@/components/DetalhesAgendamento';
@@ -255,10 +259,10 @@ const AgendamentosManager = () => {
             {/* Left: date badge */}
             <div className="w-10 h-10 rounded-lg bg-primary/8 flex flex-col items-center justify-center flex-shrink-0 border border-primary/15">
               <span className="text-[10px] font-bold text-primary leading-none">
-                {new Date(agendamento.data_hora).toLocaleDateString('pt-BR', { day: '2-digit' })}
+                {fmtDay(agendamento.data_hora)}
               </span>
               <span className="text-[9px] text-muted-foreground uppercase leading-none mt-0.5">
-                {new Date(agendamento.data_hora).toLocaleDateString('pt-BR', { month: 'short' })}
+                {fmtMonth(agendamento.data_hora)}
               </span>
             </div>
 
@@ -266,7 +270,7 @@ const AgendamentosManager = () => {
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2">
                 <p className="text-xs font-semibold text-foreground truncate">
-                  {new Date(agendamento.data_hora).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+                  {fmtMessageTime(agendamento.data_hora)}
                   {agendamento.responsavel ? ` \u00b7 ${agendamento.responsavel}` : ''}
                 </p>
                 <span className={cn('text-[9px] font-semibold px-1.5 py-0.5 rounded-full flex-shrink-0', getStatusColor(agendamento.status ?? ''))}>

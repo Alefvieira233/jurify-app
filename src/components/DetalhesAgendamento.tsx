@@ -1,6 +1,9 @@
 
 import { useState } from 'react';
+import { createLogger } from '@/lib/logger';
 import { Button } from '@/components/ui/button';
+
+const log = createLogger('DetalhesAgendamento');
 import { Badge } from '@/components/ui/badge';
 import { Calendar, Clock, User, Phone, Mail, FileText, MapPin } from 'lucide-react';
 import { useGoogleCalendar } from '@/hooks/useGoogleCalendar';
@@ -92,7 +95,7 @@ Agendamento criado via Jurify
 
       await createCalendarEvent(eventData, agendamento.id);
     } catch (error) {
-      console.error('Error syncing to Google Calendar:', error);
+      log.error('erro ao sincronizar com Google Calendar', error);
     } finally {
       setSyncingToGoogle(false);
     }
@@ -104,26 +107,26 @@ Agendamento criado via Jurify
     <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <h2 className="text-xl font-semibold text-gray-900">
+        <h2 className="text-xl font-semibold text-foreground">
           Reunião - {agendamento.lead?.nome_completo || agendamento.lead?.nome}
         </h2>
         {getStatusBadge(agendamento.status)}
       </div>
 
       {/* Informações do Cliente */}
-      <div className="bg-gray-50 p-4 rounded-lg">
-        <h3 className="font-medium text-gray-900 mb-3 flex items-center">
+      <div className="bg-muted/50 p-4 rounded-lg">
+        <h3 className="font-medium text-foreground mb-3 flex items-center">
           <User className="h-4 w-4 mr-2" />
           Informações do Cliente
         </h3>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <p className="text-sm text-gray-600">Nome Completo</p>
+            <p className="text-sm text-muted-foreground">Nome Completo</p>
             <p className="font-medium">{agendamento.lead?.nome_completo || agendamento.lead?.nome}</p>
           </div>
           {agendamento.lead?.telefone && (
             <div>
-              <p className="text-sm text-gray-600 flex items-center">
+              <p className="text-sm text-muted-foreground flex items-center">
                 <Phone className="h-3 w-3 mr-1" />
                 Telefone
               </p>
@@ -132,7 +135,7 @@ Agendamento criado via Jurify
           )}
           {agendamento.lead?.email && (
             <div>
-              <p className="text-sm text-gray-600 flex items-center">
+              <p className="text-sm text-muted-foreground flex items-center">
                 <Mail className="h-3 w-3 mr-1" />
                 E-mail
               </p>
@@ -144,28 +147,28 @@ Agendamento criado via Jurify
 
       {/* Informações da Reunião */}
       <div className="bg-amber-50 p-4 rounded-lg">
-        <h3 className="font-medium text-gray-900 mb-3 flex items-center">
+        <h3 className="font-medium text-foreground mb-3 flex items-center">
           <Calendar className="h-4 w-4 mr-2" />
           Detalhes da Reunião
         </h3>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <p className="text-sm text-gray-600">Data</p>
+            <p className="text-sm text-muted-foreground">Data</p>
             <p className="font-medium capitalize">{dateTime.date}</p>
           </div>
           <div>
-            <p className="text-sm text-gray-600 flex items-center">
+            <p className="text-sm text-muted-foreground flex items-center">
               <Clock className="h-3 w-3 mr-1" />
               Horário
             </p>
             <p className="font-medium">{dateTime.time}</p>
           </div>
           <div>
-            <p className="text-sm text-gray-600">Área Jurídica</p>
+            <p className="text-sm text-muted-foreground">Área Jurídica</p>
             <p className="font-medium">{agendamento.area_juridica}</p>
           </div>
           <div>
-            <p className="text-sm text-gray-600">Responsável</p>
+            <p className="text-sm text-muted-foreground">Responsável</p>
             <p className="font-medium">{agendamento.responsavel}</p>
           </div>
         </div>
@@ -174,28 +177,28 @@ Agendamento criado via Jurify
       {/* Observações */}
       {agendamento.observacoes && (
         <div className="bg-blue-50 p-4 rounded-lg">
-          <h3 className="font-medium text-gray-900 mb-2 flex items-center">
+          <h3 className="font-medium text-foreground mb-2 flex items-center">
             <FileText className="h-4 w-4 mr-2" />
             Observações
           </h3>
-          <p className="text-gray-700">{agendamento.observacoes}</p>
+          <p className="text-muted-foreground">{agendamento.observacoes}</p>
         </div>
       )}
 
       {/* Google Calendar Integration */}
       <div className="bg-green-50 p-4 rounded-lg">
-        <h3 className="font-medium text-gray-900 mb-2 flex items-center">
+        <h3 className="font-medium text-foreground mb-2 flex items-center">
           <MapPin className="h-4 w-4 mr-2" />
           Integração Google Calendar
         </h3>
         {agendamento.google_event_id ? (
           <div className="flex items-center space-x-2">
             <Badge className="bg-green-100 text-green-800">Sincronizado</Badge>
-            <p className="text-sm text-gray-600">ID: {agendamento.google_event_id}</p>
+            <p className="text-sm text-muted-foreground">ID: {agendamento.google_event_id}</p>
           </div>
         ) : (
           <div className="flex items-center justify-between">
-            <p className="text-sm text-gray-600">Reunião não sincronizada com Google Calendar</p>
+            <p className="text-sm text-muted-foreground">Reunião não sincronizada com Google Calendar</p>
             {settings?.calendar_enabled ? (
               <Button 
                 size="sm" 
@@ -206,7 +209,7 @@ Agendamento criado via Jurify
                 {syncingToGoogle ? 'Sincronizando...' : 'Sincronizar'}
               </Button>
             ) : (
-              <p className="text-xs text-gray-500">
+              <p className="text-xs text-muted-foreground">
                 Habilite a integração nas configurações
               </p>
             )}
@@ -215,7 +218,7 @@ Agendamento criado via Jurify
       </div>
 
       {/* Informações de Sistema */}
-      <div className="text-xs text-gray-500 space-y-1">
+      <div className="text-xs text-muted-foreground space-y-1">
         <p>Criado em: {new Date(agendamento.created_at).toLocaleString('pt-BR')}</p>
         <p>Atualizado em: {new Date(agendamento.updated_at).toLocaleString('pt-BR')}</p>
         <p>ID: {agendamento.id}</p>

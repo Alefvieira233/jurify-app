@@ -329,6 +329,14 @@ serve(async (req) => {
 
     if (!profile?.tenant_id) throw new Error("Tenant not found");
 
+    // SECURITY: Apenas admin e manager podem gerenciar instâncias WhatsApp
+    if (!["admin", "manager"].includes(profile.role ?? "")) {
+      return new Response(
+        JSON.stringify({ error: "Permissão insuficiente. Apenas administradores e gerentes podem gerenciar instâncias WhatsApp." }),
+        { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
     // Verifica configuração da Evolution API
     if (!EVOLUTION_BASE_URL || !EVOLUTION_API_KEY) {
       return new Response(

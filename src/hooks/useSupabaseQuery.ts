@@ -4,6 +4,9 @@
  * abort controller, refetch automático e deduplicação. Base para todos
  * os hooks de dados do sistema (useAgentesIA, useAgendamentos, etc.).
  *
+ * @deprecated Prefira `useQuery` de `@tanstack/react-query` para novos hooks.
+ * Este wrapper não será migrado automaticamente para não quebrar hooks existentes.
+ *
  * @template T - Tipo dos registros retornados
  * @param queryKey - Identificador único para cache e logs
  * @param queryFn - Função que executa a query Supabase
@@ -11,7 +14,11 @@
  *
  * @example
  * ```tsx
- * const { data, loading, error, refetch } = useSupabaseQuery<Lead>('leads', fetchLeads, { staleTime: 15000 });
+ * // Novo padrão preferido:
+ * const { data = [], isLoading, error, refetch } = useQuery({
+ *   queryKey: ['leads'],
+ *   queryFn: fetchLeads,
+ * });
  * ```
  */
 import { useState, useEffect, useCallback, useRef } from 'react';
@@ -115,6 +122,7 @@ export const useSupabaseQuery = <T>(
         setLoading(false);
       }
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- queryFn omitted intentionally: callers pass inline functions; including it would cause infinite refetch loops
   }, [user, enabled, queryKey, staleTime]);
 
   useEffect(() => {

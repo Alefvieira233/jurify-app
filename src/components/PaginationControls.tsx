@@ -86,7 +86,7 @@ export const PaginationControls: React.FC<PaginationControlsProps> = ({
   return (
     <div className={cn('flex flex-col sm:flex-row items-center justify-between gap-4', className)}>
       {/* Info de range */}
-      <div className="text-sm text-gray-600 order-2 sm:order-1">
+      <div className="text-sm text-muted-foreground order-2 sm:order-1">
         {totalCount && startItem && endItem ? (
           <>
             Mostrando <span className="font-medium">{startItem}</span> a{' '}

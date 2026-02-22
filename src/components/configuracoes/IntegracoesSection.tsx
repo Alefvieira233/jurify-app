@@ -134,13 +134,13 @@ const IntegracoesSection = () => {
           <div className="grid grid-cols-2 gap-4">
             <div>
               <Label htmlFor="openai_key">OpenAI API Key</Label>
-              <div className="text-sm text-gray-600 mt-1">
+              <div className="text-sm text-muted-foreground mt-1">
                 Configurada nas variáveis de ambiente do sistema
               </div>
             </div>
             <div>
               <Label htmlFor="anthropic_key">Anthropic API Key</Label>
-              <div className="text-sm text-gray-600 mt-1">
+              <div className="text-sm text-muted-foreground mt-1">
                 Configurada nas variáveis de ambiente do sistema
               </div>
             </div>

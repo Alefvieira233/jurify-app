@@ -56,7 +56,7 @@ const LogsMonitoramento = () => {
       case 'processing':
         return <Clock className="h-4 w-4 text-yellow-500" />;
       default:
-        return <Activity className="h-4 w-4 text-gray-500" />;
+        return <Activity className="h-4 w-4 text-muted-foreground" />;
     }
   };
 
@@ -69,7 +69,7 @@ const LogsMonitoramento = () => {
       case 'processing':
         return 'bg-yellow-100 text-yellow-800';
       default:
-        return 'bg-gray-100 text-gray-600';
+        return 'bg-muted text-muted-foreground';
     }
   };
 
@@ -98,7 +98,7 @@ const LogsMonitoramento = () => {
         <div className="flex items-center justify-center h-64">
           <div className="text-center">
             <Activity className="h-8 w-8 animate-spin mx-auto mb-2" />
-            <p className="text-gray-600">Carregando logs...</p>
+            <p className="text-muted-foreground">Carregando logs...</p>
           </div>
         </div>
       </div>
@@ -110,8 +110,8 @@ const LogsMonitoramento = () => {
       {/* Header */}
       <div className="flex justify-between items-center">
         <div>
-          <h2 className="text-2xl font-bold text-gray-900">Monitoramento de Execuções</h2>
-          <p className="text-gray-600">Acompanhe as execuções dos Agentes IA em tempo real</p>
+          <h2 className="text-2xl font-bold text-foreground">Monitoramento de Execuções</h2>
+          <p className="text-muted-foreground">Acompanhe as execuções dos Agentes IA em tempo real</p>
         </div>
         
         <div className="flex space-x-2">
@@ -128,40 +128,40 @@ const LogsMonitoramento = () => {
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+        <div className="bg-white rounded-lg shadow-sm border border-border p-4">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-gray-600">Total de Execuções</p>
-              <p className="text-2xl font-bold text-gray-900">{stats.total}</p>
+              <p className="text-sm font-medium text-muted-foreground">Total de Execuções</p>
+              <p className="text-2xl font-bold text-foreground">{stats.total}</p>
             </div>
             <Activity className="h-8 w-8 text-blue-500" />
           </div>
         </div>
         
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+        <div className="bg-white rounded-lg shadow-sm border border-border p-4">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-gray-600">Sucessos</p>
+              <p className="text-sm font-medium text-muted-foreground">Sucessos</p>
               <p className="text-2xl font-bold text-green-600">{stats.sucessos}</p>
             </div>
             <CheckCircle className="h-8 w-8 text-green-500" />
           </div>
         </div>
 
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+        <div className="bg-white rounded-lg shadow-sm border border-border p-4">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-gray-600">Erros</p>
+              <p className="text-sm font-medium text-muted-foreground">Erros</p>
               <p className="text-2xl font-bold text-red-600">{stats.erros}</p>
             </div>
             <XCircle className="h-8 w-8 text-red-500" />
           </div>
         </div>
 
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+        <div className="bg-white rounded-lg shadow-sm border border-border p-4">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-gray-600">Tempo Médio</p>
+              <p className="text-sm font-medium text-muted-foreground">Tempo Médio</p>
               <p className="text-2xl font-bold text-purple-600">{formatTempo(stats.tempoMedio)}</p>
             </div>
             <Clock className="h-8 w-8 text-purple-500" />
@@ -170,9 +170,9 @@ const LogsMonitoramento = () => {
       </div>
 
       {/* Filtros */}
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+      <div className="bg-white rounded-lg shadow-sm border border-border p-4">
         <div className="flex items-center space-x-4">
-          <Filter className="h-5 w-5 text-gray-400" />
+          <Filter className="h-5 w-5 text-muted-foreground" />
           <Select value={statusFilter} onValueChange={setStatusFilter}>
             <SelectTrigger className="w-48">
               <SelectValue placeholder="Filtrar por status" />
@@ -188,7 +188,7 @@ const LogsMonitoramento = () => {
       </div>
 
       {/* Logs Table */}
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200">
+      <div className="bg-white rounded-lg shadow-sm border border-border">
         <Table>
           <TableHeader>
             <TableRow>
@@ -208,7 +208,7 @@ const LogsMonitoramento = () => {
                   <div className="text-sm">
                     {new Date(log.created_at).toLocaleDateString('pt-BR')}
                     <br />
-                    <span className="text-gray-500">
+                    <span className="text-muted-foreground">
                       {new Date(log.created_at).toLocaleTimeString('pt-BR')}
                     </span>
                   </div>
@@ -216,7 +216,7 @@ const LogsMonitoramento = () => {
                 <TableCell>
                   <div>
                     <p className="font-medium">{log.agentes_ia?.nome || 'N/A'}</p>
-                    <p className="text-sm text-gray-500">{log.agentes_ia?.tipo_agente}</p>
+                    <p className="text-sm text-muted-foreground">{log.agentes_ia?.tipo_agente}</p>
                   </div>
                 </TableCell>
                 <TableCell>
@@ -236,7 +236,7 @@ const LogsMonitoramento = () => {
                   {formatTempo(log.tempo_execucao)}
                 </TableCell>
                 <TableCell>
-                  <code className="text-xs bg-gray-100 px-1 py-0.5 rounded">
+                  <code className="text-xs bg-muted px-1 py-0.5 rounded">
                     {log.api_key_usado || 'N/A'}
                   </code>
                 </TableCell>
@@ -262,35 +262,35 @@ const LogsMonitoramento = () => {
                         <div className="space-y-4 max-h-96 overflow-y-auto">
                           <div className="grid grid-cols-2 gap-4">
                             <div>
-                              <label className="text-sm font-medium text-gray-600">Agente:</label>
+                              <label className="text-sm font-medium text-muted-foreground">Agente:</label>
                               <p className="text-sm">{selectedLog.agentes_ia?.nome}</p>
                             </div>
                             <div>
-                              <label className="text-sm font-medium text-gray-600">Status:</label>
+                              <label className="text-sm font-medium text-muted-foreground">Status:</label>
                               <Badge className={getStatusColor(selectedLog.status)}>
                                 {selectedLog.status}
                               </Badge>
                             </div>
                             <div>
-                              <label className="text-sm font-medium text-gray-600">Tempo de Execução:</label>
+                              <label className="text-sm font-medium text-muted-foreground">Tempo de Execução:</label>
                               <p className="text-sm">{formatTempo(selectedLog.tempo_execucao)}</p>
                             </div>
                             <div>
-                              <label className="text-sm font-medium text-gray-600">API Key:</label>
+                              <label className="text-sm font-medium text-muted-foreground">API Key:</label>
                               <p className="text-sm">{selectedLog.api_key_usado || 'N/A'}</p>
                             </div>
                           </div>
                           
                           <div>
-                            <label className="text-sm font-medium text-gray-600">Input Recebido:</label>
-                            <div className="bg-gray-50 p-3 rounded border text-sm mt-1">
+                            <label className="text-sm font-medium text-muted-foreground">Input Recebido:</label>
+                            <div className="bg-muted/50 p-3 rounded border text-sm mt-1">
                               {selectedLog.input_recebido}
                             </div>
                           </div>
 
                           {selectedLog.resposta_ia && (
                             <div>
-                              <label className="text-sm font-medium text-gray-600">Resposta da IA:</label>
+                              <label className="text-sm font-medium text-muted-foreground">Resposta da IA:</label>
                               <div className="bg-green-50 p-3 rounded border text-sm mt-1">
                                 {selectedLog.resposta_ia}
                               </div>
@@ -299,7 +299,7 @@ const LogsMonitoramento = () => {
 
                           {selectedLog.erro_detalhes && (
                             <div>
-                              <label className="text-sm font-medium text-gray-600">Erro:</label>
+                              <label className="text-sm font-medium text-muted-foreground">Erro:</label>
                               <div className="bg-red-50 p-3 rounded border text-sm mt-1 text-red-700">
                                 {selectedLog.erro_detalhes}
                               </div>
@@ -317,8 +317,8 @@ const LogsMonitoramento = () => {
         
         {filteredLogs.length === 0 && (
           <div className="text-center py-8">
-            <Activity className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-            <p className="text-gray-500">Nenhuma execução encontrada</p>
+            <Activity className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+            <p className="text-muted-foreground">Nenhuma execução encontrada</p>
           </div>
         )}
       </div>

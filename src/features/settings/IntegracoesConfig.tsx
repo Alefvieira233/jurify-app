@@ -56,11 +56,11 @@ const IntegracoesConfig = () => {
       case 'ativa':
         return 'bg-green-100 text-green-800';
       case 'inativa':
-        return 'bg-gray-100 text-gray-800';
+        return 'bg-muted text-foreground';
       case 'erro':
         return 'bg-red-100 text-red-800';
       default:
-        return 'bg-gray-100 text-gray-800';
+        return 'bg-muted text-foreground';
     }
   };
 
@@ -144,8 +144,8 @@ const IntegracoesConfig = () => {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Configurações de Integrações</h1>
-          <p className="text-gray-600">Gerencie as integrações externas do sistema</p>
+          <h1 className="text-2xl font-bold text-foreground">Configurações de Integrações</h1>
+          <p className="text-muted-foreground">Gerencie as integrações externas do sistema</p>
         </div>
 
         <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
@@ -265,9 +265,9 @@ const IntegracoesConfig = () => {
         {integracoes.length === 0 ? (
           <Card>
             <CardContent className="flex flex-col items-center justify-center py-12">
-              <Settings className="h-12 w-12 text-gray-400 mb-4" />
-              <h3 className="text-lg font-medium text-gray-900 mb-2">Nenhuma integração configurada</h3>
-              <p className="text-gray-500 text-center max-w-md">
+              <Settings className="h-12 w-12 text-muted-foreground mb-4" />
+              <h3 className="text-lg font-medium text-foreground mb-2">Nenhuma integração configurada</h3>
+              <p className="text-muted-foreground text-center max-w-md">
                 Configure suas primeiras integrações externas para começar a sincronizar dados com serviços terceiros.
               </p>
             </CardContent>
@@ -304,14 +304,14 @@ const IntegracoesConfig = () => {
               <CardContent>
                 <div className="grid md:grid-cols-2 gap-4">
                   <div>
-                    <Label className="text-sm font-medium text-gray-500">Endpoint URL</Label>
-                    <p className="text-sm text-gray-900 mt-1 font-mono">{integracao.endpoint_url}</p>
+                    <Label className="text-sm font-medium text-muted-foreground">Endpoint URL</Label>
+                    <p className="text-sm text-foreground mt-1 font-mono">{integracao.endpoint_url}</p>
                   </div>
 
                   <div>
-                    <Label className="text-sm font-medium text-gray-500">API Key</Label>
+                    <Label className="text-sm font-medium text-muted-foreground">API Key</Label>
                     <div className="flex items-center space-x-2 mt-1">
-                      <p className="text-sm text-gray-900 font-mono">
+                      <p className="text-sm text-foreground font-mono">
                         {showApiKeys[integracao.id] ? integracao.api_key : maskApiKey(integracao.api_key)}
                       </p>
                       <Button variant="ghost" size="sm" onClick={() => toggleApiKeyVisibility(integracao.id)}>
@@ -321,15 +321,15 @@ const IntegracoesConfig = () => {
                   </div>
 
                   <div>
-                    <Label className="text-sm font-medium text-gray-500">Criado em</Label>
-                    <p className="text-sm text-gray-900 mt-1">
+                    <Label className="text-sm font-medium text-muted-foreground">Criado em</Label>
+                    <p className="text-sm text-foreground mt-1">
                       {format(new Date(integracao.criado_em), 'dd/MM/yyyy HH:mm', { locale: ptBR })}
                     </p>
                   </div>
 
                   <div>
-                    <Label className="text-sm font-medium text-gray-500">Ultima sincronizacao</Label>
-                    <p className="text-sm text-gray-900 mt-1">
+                    <Label className="text-sm font-medium text-muted-foreground">Ultima sincronizacao</Label>
+                    <p className="text-sm text-foreground mt-1">
                       {integracao.data_ultima_sincronizacao
                         ? format(new Date(integracao.data_ultima_sincronizacao), 'dd/MM/yyyy HH:mm', {
                             locale: ptBR,

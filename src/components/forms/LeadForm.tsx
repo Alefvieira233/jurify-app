@@ -181,7 +181,7 @@ const LeadForm: React.FC<LeadFormProps> = ({
           <form onSubmit={(event) => { void form.handleSubmit(onSubmit)(event); }} className="space-y-6">
             {/* Informacoes Pessoais */}
             <div className="space-y-4">
-              <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+              <h3 className="text-lg font-semibold text-foreground flex items-center gap-2">
                 <User className="h-5 w-5 text-amber-500" />
                 Informações Pessoais
               </h3>
@@ -248,7 +248,7 @@ const LeadForm: React.FC<LeadFormProps> = ({
 
             {/* Informacoes Juridicas */}
             <div className="space-y-4 pt-4 border-t">
-              <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+              <h3 className="text-lg font-semibold text-foreground flex items-center gap-2">
                 <Briefcase className="h-5 w-5 text-amber-500" />
                 Informações do Caso
               </h3>
@@ -348,7 +348,7 @@ const LeadForm: React.FC<LeadFormProps> = ({
 
             {/* Informações da Empresa */}
             <div className="space-y-4 pt-4 border-t">
-              <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+              <h3 className="text-lg font-semibold text-foreground flex items-center gap-2">
                 <Building2 className="h-5 w-5 text-amber-500" />
                 Empresa & Qualificação
               </h3>
