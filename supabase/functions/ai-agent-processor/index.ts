@@ -73,6 +73,18 @@ function validateRequest(data: unknown): data is AgentAIRequest {
     throw new Error("userPrompt is required and must be a string");
   }
 
+  if (req.userPrompt.length > 10000) {
+    throw new Error("userPrompt must not exceed 10000 characters");
+  }
+
+  if (req.systemPrompt.length > 20000) {
+    throw new Error("systemPrompt must not exceed 20000 characters");
+  }
+
+  if (req.context !== undefined && (typeof req.context !== "object" || Array.isArray(req.context))) {
+    throw new Error("context must be a plain object");
+  }
+
   return true;
 }
 

@@ -25,7 +25,6 @@ const AdminSuccessDisplay = ({ adminData }: AdminSuccessDisplayProps) => {
           <h3 className="font-semibold text-green-800">Dados de Acesso:</h3>
           <div className="space-y-1 text-sm">
             <p><strong>E-mail:</strong> {adminData.email}</p>
-            <p><strong>Senha:</strong> {adminData.password}</p>
             <p><strong>Nome:</strong> {adminData.name}</p>
             {adminData.userId && (
               <p><strong>ID Supabase:</strong> {adminData.userId}</p>

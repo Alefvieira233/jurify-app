@@ -44,7 +44,7 @@ jobs:
 
       - name: 📋 Verify .env.example exists
         run: |
-          if [ ! -f "advo-ai-hub-main (1)/advo-ai-hub-main/.env.example" ]; then
+          if [ ! -f ".env.example" ]; then
             echo "⚠️ .env.example não encontrado"
           else
             echo "✅ .env.example existe"

@@ -86,8 +86,7 @@ jobs:
 
       - name: 📊 Generate coverage report
         working-directory: ${{ env.WORKING_DIR }}
-        run: npm run test:coverage || echo "Coverage não disponível"
-        continue-on-error: true
+        run: npm run test:coverage
 
       - name: 📤 Upload coverage to Codecov
         if: always()

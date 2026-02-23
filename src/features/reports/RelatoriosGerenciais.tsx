@@ -1,4 +1,5 @@
 
+import { useMemo } from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -119,6 +120,33 @@ const RelatoriosGerenciais = () => {
 
   const COLORS = ['#2563eb', '#059669', '#d97706', '#e11d48', '#4f46e5', '#0891b2'];
 
+  // Derivações memoizadas — evitam recalcular todos os gráficos a cada re-render
+  const statusData = useMemo(() =>
+    metrics
+      ? Object.entries(metrics.leadsPorStatus).map(([status, count]) => ({
+          name: status.replace('_', ' ').toUpperCase(),
+          value: count,
+        }))
+      : [],
+  [metrics]);
+
+  const areaData = useMemo(() =>
+    metrics
+      ? metrics.leadsPorArea.slice(0, 6).map(item => ({ name: item.area, leads: item.total }))
+      : [],
+  [metrics]);
+
+  const agentesData = useMemo(() =>
+    metrics
+      ? metrics.execucoesRecentesAgentes.map(agente => ({
+          name: agente.agente_nome,
+          execucoes: agente.total_execucoes,
+          sucesso: agente.sucesso,
+          erro: agente.erro,
+        }))
+      : [],
+  [metrics]);
+
   if (loading) {
     return (
       <div className="flex flex-col h-screen">
@@ -200,24 +228,6 @@ const RelatoriosGerenciais = () => {
       </div>
     );
   }
-
-  // Preparar dados para os graficos
-  const statusData = Object.entries(metrics.leadsPorStatus).map(([status, count]) => ({
-    name: status.replace('_', ' ').toUpperCase(),
-    value: count
-  }));
-
-  const areaData = metrics.leadsPorArea.slice(0, 6).map(item => ({
-    name: item.area,
-    leads: item.total
-  }));
-
-  const agentesData = metrics.execucoesRecentesAgentes.map(agente => ({
-    name: agente.agente_nome,
-    execucoes: agente.total_execucoes,
-    sucesso: agente.sucesso,
-    erro: agente.erro
-  }));
 
   return (
     <div className="flex flex-col h-screen bg-background">
