@@ -11,7 +11,6 @@ import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { DollarSign, TrendingUp, TrendingDown, Target } from 'lucide-react';
-import { motion } from 'framer-motion';
 import { fmtCurrency } from '@/utils/formatting';
 
 interface RevenueCardProps {
@@ -37,11 +36,7 @@ export const RevenueCard: React.FC<RevenueCardProps> = ({
     const formatCurrency = fmtCurrency;
 
     return (
-        <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.4, delay: 0.2 }}
-        >
+        <div className="fade-in">
             <Card className="relative overflow-hidden border-border bg-gradient-to-br from-card to-card/95 shadow-premium group">
                 {/* Premium Gold Accent */}
                 <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-accent via-accent/80 to-accent/50" />
@@ -121,11 +116,9 @@ export const RevenueCard: React.FC<RevenueCardProps> = ({
                             </span>
                         </div>
                         <div className="relative h-2 bg-muted rounded-full overflow-hidden">
-                            <motion.div
-                                className="absolute inset-y-0 left-0 bg-gradient-to-r from-accent to-accent/70 rounded-full"
-                                initial={{ width: 0 }}
-                                animate={{ width: `${Math.min(progressToTarget, 100)}%` }}
-                                transition={{ duration: 1, delay: 0.5, ease: "easeOut" }}
+                            <div
+                                className="absolute inset-y-0 left-0 bg-gradient-to-r from-accent to-accent/70 rounded-full transition-all duration-1000 ease-out"
+                                style={{ width: `${Math.min(progressToTarget, 100)}%` }}
                             />
                         </div>
                         <div className="text-right">
@@ -144,7 +137,7 @@ export const RevenueCard: React.FC<RevenueCardProps> = ({
                     </div>
                 </CardContent>
             </Card>
-        </motion.div>
+        </div>
     );
 };
 

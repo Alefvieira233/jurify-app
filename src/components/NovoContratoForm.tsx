@@ -1,4 +1,6 @@
-import React, { useState } from 'react';
+import { useForm, Controller } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
 import { supabaseUntyped as supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -34,16 +36,7 @@ type ContratoInsert = {
   created_at: string;
 };
 
-export const NovoContratoForm = ({ onClose }: NovoContratoFormProps) => {
-  const { profile } = useAuth();
-  const tenantId = profile?.tenant_id || null;
-
-  const [selectedLeadId, setSelectedLeadId] = useState('');
-  const [nomeCliente, setNomeCliente] = useState('');
-  const [areaJuridica, setAreaJuridica] = useState('');
-  const [valorCausa, setValorCausa] = useState('');
-  const [responsavel, setResponsavel] = useState('');
-  const [textoContrato, setTextoContrato] = useState(`CONTRATO DE PRESTAÇÃO DE SERVIÇOS ADVOCATÍCIOS
+const DEFAULT_TEXTO = `CONTRATO DE PRESTAÇÃO DE SERVIÇOS ADVOCATÍCIOS
 
 CONTRATANTE: {nome_cliente}
 ÁREA JURÍDICA: {area_juridica}
@@ -74,10 +67,71 @@ Por estarem de acordo, as partes assinam o presente contrato em duas vias de igu
 Data: ___/___/______
 
 _____________________          _____________________
-   CONTRATANTE                    PRESTADOR DE SERVIÇOS`);
-  const [clausulasCustomizadas, setClausulasCustomizadas] = useState('');
+   CONTRATANTE                    PRESTADOR DE SERVIÇOS`;
 
+const dangerousPatterns = [
+  /<script[^>]*>.*?<\/script>/gi,
+  /javascript:/gi,
+  /on\w+\s*=/gi,
+  /<iframe[^>]*>/gi,
+];
+
+const contratoSchema = z.object({
+  lead_id: z.string().optional(),
+  nome_cliente: z
+    .string()
+    .min(2, 'Nome deve ter entre 2 e 200 caracteres')
+    .max(200, 'Nome deve ter entre 2 e 200 caracteres'),
+  area_juridica: z.string().min(2, 'Área jurídica é obrigatória'),
+  valor_causa: z.coerce
+    .number({ invalid_type_error: 'Valor deve ser um número válido' })
+    .min(0)
+    .max(999999999, 'Valor excede o limite permitido'),
+  responsavel: z.string().min(2, 'Responsável é obrigatório'),
+  texto_contrato: z
+    .string()
+    .min(50, 'Texto do contrato deve ter pelo menos 50 caracteres')
+    .max(10000)
+    .refine(
+      v => !dangerousPatterns.some(p => { p.lastIndex = 0; return p.test(v); }),
+      'Conteúdo contém elementos não permitidos por segurança',
+    ),
+  clausulas_customizadas: z
+    .string()
+    .max(5000)
+    .refine(
+      v => !dangerousPatterns.some(p => { p.lastIndex = 0; return p.test(v); }),
+      'Conteúdo contém elementos não permitidos por segurança',
+    )
+    .optional(),
+});
+
+type ContratoFormValues = z.infer<typeof contratoSchema>;
+
+export const NovoContratoForm = ({ onClose }: NovoContratoFormProps) => {
+  const { profile } = useAuth();
+  const tenantId = profile?.tenant_id || null;
   const queryClient = useQueryClient();
+
+  const {
+    register,
+    control,
+    handleSubmit,
+    getValues,
+    setValue,
+    formState: { errors },
+  } = useForm<ContratoFormValues>({
+    resolver: zodResolver(contratoSchema),
+    defaultValues: {
+      lead_id: '',
+      nome_cliente: '',
+      area_juridica: '',
+      valor_causa: 0,
+      responsavel: '',
+      texto_contrato: DEFAULT_TEXTO,
+      clausulas_customizadas: '',
+    },
+  });
 
   const { data: leads = [] } = useQuery({
     queryKey: ['leads-contratos', tenantId],
@@ -91,15 +145,12 @@ _____________________          _____________________
 
       if (error) throw error;
       return data as Lead[];
-    }
+    },
   });
 
   const createContratoMutation = useMutation({
     mutationFn: async (contratoData: ContratoInsert) => {
-      const { error } = await supabase
-        .from('contratos')
-        .insert([contratoData]);
-
+      const { error } = await supabase.from('contratos').insert([contratoData]);
       if (error) throw error;
     },
     onSuccess: () => {
@@ -109,198 +160,179 @@ _____________________          _____________________
     },
     onError: () => {
       toast.error('Erro ao criar contrato');
-    }
+    },
   });
 
   const handleLeadSelect = (leadId: string) => {
-    setSelectedLeadId(leadId);
+    setValue('lead_id', leadId);
     const lead = leads.find(l => l.id === leadId);
     if (lead) {
-      setNomeCliente(lead.nome);
-      setAreaJuridica(lead.area_juridica);
-      setValorCausa(lead.valor_causa?.toString() || '');
+      setValue('nome_cliente', lead.nome);
+      setValue('area_juridica', lead.area_juridica);
+      setValue('valor_causa', lead.valor_causa ?? 0);
     }
   };
 
   const gerarTextoFinal = () => {
-    const valorCausaNum = Number.parseFloat(valorCausa) || 0;
+    const values = getValues();
+    const valorCausaNum = Number(values.valor_causa) || 0;
     const valorHonorarios = valorCausaNum * 0.3;
-
-    return textoContrato
-      .replace(/{nome_cliente}/g, nomeCliente)
-      .replace(/{area_juridica}/g, areaJuridica)
-      .replace(/{valor_causa}/g, new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(valorCausaNum))
-      .replace(/{valor_honorarios}/g, new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(valorHonorarios))
-      .replace(/{responsavel}/g, responsavel);
+    const fmt = (v: number) =>
+      new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(v);
+    return values.texto_contrato
+      .replace(/{nome_cliente}/g, values.nome_cliente)
+      .replace(/{area_juridica}/g, values.area_juridica)
+      .replace(/{valor_causa}/g, fmt(valorCausaNum))
+      .replace(/{valor_honorarios}/g, fmt(valorHonorarios))
+      .replace(/{responsavel}/g, values.responsavel);
   };
 
-  const validateInput = (value: string, type: 'text' | 'email' | 'number' | 'currency') => {
-    const sanitized = value.trim().replace(/<script[^>]*>.*?<\/script>/gi, '').replace(/<[^>]*>/g, '');
-
-    switch (type) {
-      case 'text':
-        return sanitized.length >= 2 && sanitized.length <= 200;
-      case 'email': {
-        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        return emailRegex.test(sanitized);
-      }
-      case 'number': {
-        const num = Number.parseFloat(sanitized);
-        return Number.isFinite(num) && num >= 0 && num <= 999999999;
-      }
-      case 'currency': {
-        const currency = Number.parseFloat(sanitized);
-        return Number.isFinite(currency) && currency >= 0 && currency <= 999999999;
-      }
-      default:
-        return false;
-    }
-  };
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-
+  const onSubmit = (data: ContratoFormValues) => {
     if (!tenantId) {
       toast.error('Tenant não encontrado. Refaça o login.');
       return;
     }
 
-    const validationErrors: string[] = [];
-
-    if (!nomeCliente || !validateInput(nomeCliente, 'text')) {
-      validationErrors.push('Nome do cliente deve ter entre 2 e 200 caracteres');
-    }
-
-    if (!areaJuridica || areaJuridica.length < 2) {
-      validationErrors.push('Área jurídica é obrigatória');
-    }
-
-    if (!valorCausa || !validateInput(valorCausa, 'currency')) {
-      validationErrors.push('Valor da causa deve ser um número válido');
-    }
-
-    if (!responsavel || responsavel.length < 2) {
-      validationErrors.push('Responsável é obrigatório');
-    }
-
-    if (textoContrato.length < 50) {
-      validationErrors.push('Texto do contrato deve ter pelo menos 50 caracteres');
-    }
-
-    const dangerousPatterns = [
-      /<script[^>]*>.*?<\/script>/gi,
-      /javascript:/gi,
-      /on\w+\s*=/gi,
-      /<iframe[^>]*>/gi
-    ];
-
-    const hasDangerousContent = dangerousPatterns.some(pattern =>
-      pattern.test(textoContrato) || pattern.test(clausulasCustomizadas)
-    );
-
-    if (hasDangerousContent) {
-      validationErrors.push('Conteúdo contém elementos não permitidos por segurança');
-    }
-
-    if (validationErrors.length > 0) {
-      toast.error(`Erros de validação:\n${validationErrors.join('\n')}`);
-      return;
-    }
-
-    const valorCausaParsed = Number.parseFloat(valorCausa);
-
     const contratoData: ContratoInsert = {
       tenant_id: tenantId,
-      lead_id: selectedLeadId || null,
-      nome_cliente: nomeCliente.trim().substring(0, 200),
-      area_juridica: areaJuridica.trim(),
-      valor_causa: Number.isFinite(valorCausaParsed) ? Math.max(0, Math.min(999999999, valorCausaParsed)) : 0,
-      responsavel: responsavel.trim(),
-      texto_contrato: textoContrato.trim().substring(0, 10000),
-      clausulas_customizadas: clausulasCustomizadas?.trim().substring(0, 5000) || null,
+      lead_id: data.lead_id || null,
+      nome_cliente: data.nome_cliente.trim().substring(0, 200),
+      area_juridica: data.area_juridica.trim(),
+      valor_causa: Math.max(0, Math.min(999999999, Number(data.valor_causa))),
+      responsavel: data.responsavel.trim(),
+      texto_contrato: data.texto_contrato.trim().substring(0, 10000),
+      clausulas_customizadas: data.clausulas_customizadas?.trim().substring(0, 5000) || null,
       status: 'rascunho' as const,
-      created_at: new Date().toISOString()
+      created_at: new Date().toISOString(),
     };
 
     createContratoMutation.mutate(contratoData);
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6">
+    <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
       <div className="space-y-2">
         <Label>Lead Existente (Opcional)</Label>
-        <Select value={selectedLeadId} onValueChange={handleLeadSelect} disabled={createContratoMutation.isPending}>
-          <SelectTrigger>
-            <SelectValue placeholder="Selecione um lead existente ou preencha manualmente" />
-          </SelectTrigger>
-          <SelectContent>
-            {leads.map(lead => (
-              <SelectItem key={lead.id} value={lead.id}>
-                {lead.nome} - {lead.area_juridica}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        <Controller
+          control={control}
+          name="lead_id"
+          render={({ field }) => (
+            <Select
+              value={field.value ?? ''}
+              onValueChange={handleLeadSelect}
+              disabled={createContratoMutation.isPending}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Selecione um lead existente ou preencha manualmente" />
+              </SelectTrigger>
+              <SelectContent>
+                {leads.map(lead => (
+                  <SelectItem key={lead.id} value={lead.id}>
+                    {lead.nome} - {lead.area_juridica}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
+        />
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div className="space-y-2">
           <Label>Nome do Cliente</Label>
-          <Input value={nomeCliente} onChange={(e) => setNomeCliente(e.target.value)} required disabled={createContratoMutation.isPending} />
+          <Input
+            {...register('nome_cliente')}
+            disabled={createContratoMutation.isPending}
+          />
+          {errors.nome_cliente && (
+            <p className="text-xs text-destructive">{errors.nome_cliente.message}</p>
+          )}
         </div>
 
         <div className="space-y-2">
           <Label>Área Jurídica</Label>
-          <Input value={areaJuridica} onChange={(e) => setAreaJuridica(e.target.value)} required disabled={createContratoMutation.isPending} />
+          <Input
+            {...register('area_juridica')}
+            disabled={createContratoMutation.isPending}
+          />
+          {errors.area_juridica && (
+            <p className="text-xs text-destructive">{errors.area_juridica.message}</p>
+          )}
         </div>
 
         <div className="space-y-2">
           <Label>Valor da Causa (R$)</Label>
           <Input
             type="number"
-            value={valorCausa}
-            onChange={(e) => setValorCausa(e.target.value)}
-            required
+            {...register('valor_causa')}
             disabled={createContratoMutation.isPending}
           />
+          {errors.valor_causa && (
+            <p className="text-xs text-destructive">{errors.valor_causa.message}</p>
+          )}
         </div>
 
         <div className="space-y-2">
           <Label>Responsável</Label>
-          <Input value={responsavel} onChange={(e) => setResponsavel(e.target.value)} required disabled={createContratoMutation.isPending} />
+          <Input
+            {...register('responsavel')}
+            disabled={createContratoMutation.isPending}
+          />
+          {errors.responsavel && (
+            <p className="text-xs text-destructive">{errors.responsavel.message}</p>
+          )}
         </div>
       </div>
 
       <div className="space-y-2">
         <Label>Texto do Contrato</Label>
         <Textarea
-          value={textoContrato}
-          onChange={(e) => setTextoContrato(e.target.value)}
+          {...register('texto_contrato')}
           rows={12}
-          required
           disabled={createContratoMutation.isPending}
         />
+        {errors.texto_contrato && (
+          <p className="text-xs text-destructive">{errors.texto_contrato.message}</p>
+        )}
       </div>
 
       <div className="space-y-2">
         <Label>Cláusulas Customizadas (Opcional)</Label>
         <Textarea
-          value={clausulasCustomizadas}
-          onChange={(e) => setClausulasCustomizadas(e.target.value)}
+          {...register('clausulas_customizadas')}
           rows={4}
           disabled={createContratoMutation.isPending}
         />
+        {errors.clausulas_customizadas && (
+          <p className="text-xs text-destructive">{errors.clausulas_customizadas.message}</p>
+        )}
       </div>
 
       <div className="flex justify-end gap-2">
-        <Button type="button" variant="outline" onClick={onClose} disabled={createContratoMutation.isPending}>
+        <Button
+          type="button"
+          variant="outline"
+          onClick={onClose}
+          disabled={createContratoMutation.isPending}
+        >
           Cancelar
         </Button>
-        <Button type="submit" className="bg-amber-500 hover:bg-amber-600" disabled={createContratoMutation.isPending}>
-          {createContratoMutation.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+        <Button
+          type="submit"
+          className="bg-amber-500 hover:bg-amber-600"
+          disabled={createContratoMutation.isPending}
+        >
+          {createContratoMutation.isPending && (
+            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+          )}
           {createContratoMutation.isPending ? 'Salvando...' : 'Salvar Contrato'}
         </Button>
-        <Button type="button" variant="outline" onClick={() => setTextoContrato(gerarTextoFinal())} disabled={createContratoMutation.isPending}>
+        <Button
+          type="button"
+          variant="outline"
+          onClick={() => setValue('texto_contrato', gerarTextoFinal())}
+          disabled={createContratoMutation.isPending}
+        >
           Atualizar Texto
         </Button>
       </div>

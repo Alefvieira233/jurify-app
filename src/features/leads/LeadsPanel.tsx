@@ -15,14 +15,14 @@ import LeadsKanban from './LeadsKanban';
 import { type DropResult } from '@hello-pangea/dnd';
 import ConfirmDialog from '@/components/ConfirmDialog';
 
-/* ── Status palette (matches Pipeline) ── */
-const STATUS_COLORS: Record<string, { hex: string; textColor: string; label: string }> = {
-  novo_lead:         { hex: '#2563eb', textColor: '#1d4ed8', label: 'Captação'    },
-  em_qualificacao:   { hex: '#d97706', textColor: '#b45309', label: 'Qualificação' },
-  proposta_enviada:  { hex: '#4f46e5', textColor: '#4338ca', label: 'Proposta'    },
-  contrato_assinado: { hex: '#059669', textColor: '#047857', label: 'Contrato'    },
-  em_atendimento:    { hex: '#0284c7', textColor: '#0369a1', label: 'Execução'    },
-  lead_perdido:      { hex: '#e11d48', textColor: '#be123c', label: 'Arquivado'   },
+/* ── Status palette — uses CSS variables para suportar dark mode ── */
+const STATUS_COLORS: Record<string, { cssVar: string; label: string }> = {
+  novo_lead:         { cssVar: '--status-novo-lead',    label: 'Captação'    },
+  em_qualificacao:   { cssVar: '--status-qualificacao', label: 'Qualificação' },
+  proposta_enviada:  { cssVar: '--status-proposta',     label: 'Proposta'    },
+  contrato_assinado: { cssVar: '--status-contrato',     label: 'Contrato'    },
+  em_atendimento:    { cssVar: '--status-atendimento',  label: 'Execução'    },
+  lead_perdido:      { cssVar: '--status-arquivado',    label: 'Arquivado'   },
 };
 
 /* ── Avatar helpers ── */
@@ -256,7 +256,7 @@ const LeadsPanel = () => {
           {/* Lead rows */}
           <div className="divide-y divide-border">
             {filteredLeads.map(lead => {
-              const sc = STATUS_COLORS[lead.status ?? ''] ?? { hex: '#6b7280', textColor: '#6b7280', label: lead.status ?? '' };
+              const sc = STATUS_COLORS[lead.status ?? ''] ?? { cssVar: '--muted-foreground', label: lead.status ?? '' };
               const initials = getInitials(lead.nome_completo ?? '?');
               const bg       = avatarColor(lead.nome_completo ?? '');
 
@@ -268,7 +268,7 @@ const LeadsPanel = () => {
                   {/* Left accent */}
                   <div
                     className="w-[3px] h-10 rounded-full flex-shrink-0 opacity-60"
-                    style={{ background: sc.hex }}
+                    style={{ background: `hsl(var(${sc.cssVar}))` }}
                   />
 
                   {/* Avatar */}
@@ -287,7 +287,7 @@ const LeadsPanel = () => {
                       </span>
                       <span
                         className="text-[10px] font-medium px-1.5 py-0.5 rounded-full flex-shrink-0"
-                        style={{ background: sc.hex + '1a', color: sc.textColor }}
+                        style={{ background: `hsl(var(${sc.cssVar}) / 0.1)`, color: `hsl(var(${sc.cssVar}))` }}
                       >
                         {sc.label}
                       </span>
@@ -295,13 +295,13 @@ const LeadsPanel = () => {
                     <div className="flex items-center gap-3 text-[10px] text-muted-foreground/60">
                       {lead.telefone && (
                         <span className="flex items-center gap-1">
-                          <Phone className="h-2.5 w-2.5 flex-shrink-0" style={{ color: sc.hex }} />
+                          <Phone className="h-2.5 w-2.5 flex-shrink-0" style={{ color: `hsl(var(${sc.cssVar}))` }} />
                           {lead.telefone}
                         </span>
                       )}
                       {lead.area_juridica && (
                         <span className="flex items-center gap-1">
-                          <Scale className="h-2.5 w-2.5 flex-shrink-0" style={{ color: sc.hex }} />
+                          <Scale className="h-2.5 w-2.5 flex-shrink-0" style={{ color: `hsl(var(${sc.cssVar}))` }} />
                           {lead.area_juridica}
                         </span>
                       )}
@@ -318,7 +318,7 @@ const LeadsPanel = () => {
                   {lead.valor_causa ? (
                     <span
                       className="text-[11px] font-bold tabular-nums flex-shrink-0 hidden sm:block"
-                      style={{ color: sc.textColor }}
+                      style={{ color: `hsl(var(${sc.cssVar}))` }}
                     >
                       {fmtCurrency(Number(lead.valor_causa))}
                     </span>

@@ -92,7 +92,6 @@
     "crypto-js": "^4.2.0",
     "date-fns": "^3.6.0",
     "embla-carousel-react": "^8.3.0",
-    "framer-motion": "^12.29.0",
     "input-otp": "^1.2.4",
     "isomorphic-dompurify": "^2.26.0",
     "lucide-react": "^0.462.0",
