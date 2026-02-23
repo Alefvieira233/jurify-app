@@ -3,6 +3,11 @@ import { Check, CreditCard, Shield, Zap } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -64,14 +69,130 @@ const plans = [
   }
 ];
 
+interface ContactForm {
+  nome: string;
+  email: string;
+  escritorio: string;
+  tamanho: string;
+  mensagem: string;
+}
+
+const ContactModal = ({ open, onOpenChange }: { open: boolean; onOpenChange: (open: boolean) => void }) => {
+  const [form, setForm] = useState<ContactForm>({
+    nome: '',
+    email: '',
+    escritorio: '',
+    tamanho: '',
+    mensagem: '',
+  });
+  const [submitting, setSubmitting] = useState(false);
+
+  const handleSubmit = () => {
+    if (!form.nome.trim() || !form.email.trim()) {
+      toast.error('Preencha os campos obrigatórios', {
+        description: 'Nome e email são obrigatórios.',
+      });
+      return;
+    }
+
+    setSubmitting(true);
+
+    const text = encodeURIComponent(
+      `Olá! Tenho interesse no plano Enterprise do Jurify. Nome: ${form.nome}, Escritório: ${form.escritorio || 'Não informado'}, Tamanho: ${form.tamanho || 'Não informado'}`
+    );
+    window.open(`https://wa.me/5596981419460?text=${text}`, '_blank');
+
+    toast.success('Entraremos em contato em até 24h úteis');
+    setForm({ nome: '', email: '', escritorio: '', tamanho: '', mensagem: '' });
+    setSubmitting(false);
+    onOpenChange(false);
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-[480px]">
+        <DialogHeader>
+          <DialogTitle>Falar com Vendas — Escritório Elite</DialogTitle>
+          <DialogDescription>
+            Preencha seus dados e entraremos em contato para personalizar seu plano.
+          </DialogDescription>
+        </DialogHeader>
+        <div className="space-y-4 pt-2">
+          <div className="space-y-2">
+            <Label htmlFor="contact-nome">Nome completo *</Label>
+            <Input
+              id="contact-nome"
+              placeholder="Seu nome completo"
+              value={form.nome}
+              onChange={(e) => setForm((f) => ({ ...f, nome: e.target.value }))}
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="contact-email">Email *</Label>
+            <Input
+              id="contact-email"
+              type="email"
+              placeholder="seu@email.com"
+              value={form.email}
+              onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))}
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="contact-escritorio">Nome do escritório</Label>
+            <Input
+              id="contact-escritorio"
+              placeholder="Nome do escritório"
+              value={form.escritorio}
+              onChange={(e) => setForm((f) => ({ ...f, escritorio: e.target.value }))}
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="contact-tamanho">Tamanho do escritório</Label>
+            <Select value={form.tamanho} onValueChange={(v) => setForm((f) => ({ ...f, tamanho: v }))}>
+              <SelectTrigger id="contact-tamanho">
+                <SelectValue placeholder="Selecione o tamanho" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="1-5 advogados">1-5 advogados</SelectItem>
+                <SelectItem value="6-20 advogados">6-20 advogados</SelectItem>
+                <SelectItem value="21-50 advogados">21-50 advogados</SelectItem>
+                <SelectItem value="50+ advogados">50+ advogados</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="contact-mensagem">Mensagem (opcional)</Label>
+            <Textarea
+              id="contact-mensagem"
+              placeholder="Conte-nos sobre suas necessidades..."
+              value={form.mensagem}
+              onChange={(e) => setForm((f) => ({ ...f, mensagem: e.target.value }))}
+            />
+          </div>
+          <Button className="w-full" onClick={handleSubmit} disabled={submitting}>
+            {submitting ? 'Enviando...' : 'Enviar e abrir WhatsApp'}
+          </Button>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+};
+
 const Pricing = () => {
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
   const [loading, setLoading] = useState<string | null>(null);
+  const [contactOpen, setContactOpen] = useState(false);
+
+  const currentTier = profile?.subscription_tier ?? 'free';
 
   const handleSubscribe = async (planId: string) => {
     if (planId === 'free') return;
 
-    // Verificar se usuário está autenticado
+    if (planId === 'enterprise') {
+      setContactOpen(true);
+      return;
+    }
+
     if (!user) {
       toast.error('Faça login para assinar um plano.');
       return;
@@ -80,22 +201,19 @@ const Pricing = () => {
     setLoading(planId);
 
     try {
-      // 1. Busca Price IDs do ambiente (configurados no .env)
       const priceIds: Record<string, string> = {
         'pro': import.meta.env.VITE_STRIPE_PRICE_PRO || '',
-        'enterprise': import.meta.env.VITE_STRIPE_PRICE_ENTERPRISE || ''
       };
 
       const priceId = priceIds[planId];
 
       if (!priceId) {
-        toast.error('Configuração de preço não encontrada', {
-          description: 'Entre em contato com o suporte para configurar seu plano.'
+        toast.error('Plano não disponível no momento.', {
+          description: 'Entre em contato com o suporte.'
         });
         return;
       }
 
-      // 2. Chama Edge Function para criar sessão de checkout
       const { data, error } = await supabase.functions.invoke('create-checkout-session', {
         body: {
           planId,
@@ -116,7 +234,6 @@ const Pricing = () => {
       if (data.url) {
         toast.success('Redirecionando para o pagamento seguro...');
 
-        // Pequeno delay para o usuário ver o toast
         setTimeout(() => {
           window.location.href = data.url;
         }, 500);
@@ -132,6 +249,19 @@ const Pricing = () => {
     } finally {
       setLoading(null);
     }
+  };
+
+  const getButtonLabel = (plan: typeof plans[number]) => {
+    if (loading === plan.id) return 'Processando...';
+    if (user && currentTier === plan.id) return 'Plano Ativo';
+    return plan.buttonText;
+  };
+
+  const isButtonDisabled = (plan: typeof plans[number]) => {
+    if (loading === plan.id) return true;
+    if (plan.id === 'free' && (!user || currentTier === 'free')) return true;
+    if (user && currentTier === plan.id) return true;
+    return false;
   };
 
   return (
@@ -152,6 +282,11 @@ const Pricing = () => {
             {plan.badge && (
               <Badge className="absolute -top-3 right-4 px-3 py-1">
                 {plan.badge}
+              </Badge>
+            )}
+            {user && currentTier === plan.id && (
+              <Badge variant="secondary" className="absolute -top-3 left-4 px-3 py-1">
+                Seu plano atual
               </Badge>
             )}
 
@@ -190,9 +325,9 @@ const Pricing = () => {
                 className="w-full"
                 variant={plan.highlight ? 'default' : 'outline'}
                 onClick={() => void handleSubscribe(plan.id)}
-                disabled={loading === plan.id || plan.id === 'free'}
+                disabled={isButtonDisabled(plan)}
               >
-                {loading === plan.id ? 'Processando...' : plan.buttonText}
+                {getButtonLabel(plan)}
               </Button>
             </CardFooter>
           </Card>
@@ -216,9 +351,10 @@ const Pricing = () => {
           <p className="text-muted-foreground">Processamento via Stripe com garantia de segurança e cancelamento a qualquer momento.</p>
         </div>
       </div>
+
+      <ContactModal open={contactOpen} onOpenChange={setContactOpen} />
     </div>
   );
 };
 
 export default Pricing;
-

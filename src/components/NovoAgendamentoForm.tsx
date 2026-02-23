@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { CalendarIcon } from 'lucide-react';
+import { CalendarIcon, Loader2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { toast } from 'sonner';
@@ -144,7 +144,7 @@ export const NovoAgendamentoForm = ({ onClose }: NovoAgendamentoFormProps) => {
 
       <div className="space-y-2">
         <Label htmlFor="lead_id">Cliente</Label>
-        <Select onValueChange={(value) => setValue('lead_id', value, { shouldValidate: true })}>
+        <Select onValueChange={(value) => setValue('lead_id', value, { shouldValidate: true })} disabled={createAgendamentoMutation.isPending}>
           <SelectTrigger>
             <SelectValue placeholder="Selecione um cliente" />
           </SelectTrigger>
@@ -161,7 +161,7 @@ export const NovoAgendamentoForm = ({ onClose }: NovoAgendamentoFormProps) => {
 
       <div className="space-y-2">
         <Label htmlFor="area_juridica">Área Jurídica</Label>
-        <Select onValueChange={(value) => setValue('area_juridica', value, { shouldValidate: true })}>
+        <Select onValueChange={(value) => setValue('area_juridica', value, { shouldValidate: true })} disabled={createAgendamentoMutation.isPending}>
           <SelectTrigger>
             <SelectValue placeholder="Selecione a área jurídica" />
           </SelectTrigger>
@@ -206,7 +206,7 @@ export const NovoAgendamentoForm = ({ onClose }: NovoAgendamentoFormProps) => {
 
         <div className="space-y-2">
           <Label>Horário</Label>
-          <Select value={selectedTime} onValueChange={setSelectedTime}>
+          <Select value={selectedTime} onValueChange={setSelectedTime} disabled={createAgendamentoMutation.isPending}>
             <SelectTrigger>
               <SelectValue placeholder="Selecione o horário" />
             </SelectTrigger>
@@ -223,7 +223,7 @@ export const NovoAgendamentoForm = ({ onClose }: NovoAgendamentoFormProps) => {
 
       <div className="space-y-2">
         <Label htmlFor="responsavel">Advogado Responsável</Label>
-        <Select onValueChange={(value) => setValue('responsavel', value, { shouldValidate: true })}>
+        <Select onValueChange={(value) => setValue('responsavel', value, { shouldValidate: true })} disabled={createAgendamentoMutation.isPending}>
           <SelectTrigger>
             <SelectValue placeholder="Selecione o responsável" />
           </SelectTrigger>
@@ -244,15 +244,17 @@ export const NovoAgendamentoForm = ({ onClose }: NovoAgendamentoFormProps) => {
           {...register('observacoes')}
           placeholder="Observações sobre a reunião (opcional)"
           rows={3}
+          disabled={createAgendamentoMutation.isPending}
         />
       </div>
 
       <div className="flex justify-end gap-2">
-        <Button type="button" variant="outline" onClick={onClose}>
+        <Button type="button" variant="outline" onClick={onClose} disabled={createAgendamentoMutation.isPending}>
           Cancelar
         </Button>
-        <Button type="submit" className="bg-amber-500 hover:bg-amber-600">
-          Agendar
+        <Button type="submit" className="bg-amber-500 hover:bg-amber-600" disabled={createAgendamentoMutation.isPending}>
+          {createAgendamentoMutation.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+          {createAgendamentoMutation.isPending ? 'Salvando...' : 'Agendar'}
         </Button>
       </div>
     </form>

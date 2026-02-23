@@ -17,6 +17,7 @@ import { useAgentesIAFilters } from './hooks/useAgentesIAFilters';
 import type { AgenteIA } from '@/hooks/useAgentesIA';
 
 // Componentes existentes
+import ConfirmDialog from '@/components/ConfirmDialog';
 import { useAgentesIA } from '@/hooks/useAgentesIA';
 import { useAgentesMetrics } from '@/hooks/useAgentesMetrics';
 import NovoAgenteForm from '@/components/NovoAgenteForm';
@@ -35,7 +36,8 @@ const AgentesIAManager = () => {
   const { toast } = useToast();
   const { user, profile } = useAuth();
 
-  const { agentes, loading, error, isEmpty, updateAgente, fetchAgentes } = useAgentesIA();
+  const [confirmDelete, setConfirmDelete] = useState<{ open: boolean; id: string; nome: string }>({ open: false, id: '', nome: '' });
+  const { agentes, loading, error, isEmpty, updateAgente, deleteAgente, fetchAgentes } = useAgentesIA();
   const { metrics, loading: metricsLoading, ultimaExecucaoFormatada } = useAgentesMetrics();
 
   // Hook de filtros otimizado
@@ -90,6 +92,14 @@ const AgentesIAManager = () => {
     setShowDetalhes(true);
 
     trackUserAction('view_agent_details', 'agentes_ia', user?.id, profile?.tenant_id, {
+      agentId: agente.id,
+      agentName: agente.nome
+    });
+  };
+
+  const handleDelete = (agente: AgenteIA) => {
+    setConfirmDelete({ open: true, id: agente.id, nome: agente.nome });
+    trackUserAction('delete_agent', 'agentes_ia', user?.id, profile?.tenant_id, {
       agentId: agente.id,
       agentName: agente.nome
     });
@@ -332,6 +342,7 @@ const AgentesIAManager = () => {
                   onEdit={handleEdit}
                   onViewDetails={handleViewDetails}
                   onToggleStatus={handleToggleStatus}
+                  onDelete={handleDelete}
                 />
               ))}
             </div>
@@ -365,6 +376,18 @@ const AgentesIAManager = () => {
           }}
         />
       )}
+
+      <ConfirmDialog
+        open={confirmDelete.open}
+        onOpenChange={(v) => setConfirmDelete(prev => ({ ...prev, open: v }))}
+        title="Excluir agente?"
+        description={`Esta ação não pode ser desfeita. O agente "${confirmDelete.nome}" será removido permanentemente.`}
+        onConfirm={() => {
+          void deleteAgente(confirmDelete.id);
+          setConfirmDelete({ open: false, id: '', nome: '' });
+        }}
+        destructive
+      />
     </div>
   );
 };

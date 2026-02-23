@@ -17,10 +17,23 @@ import {
 } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useIntegracoesConfig, IntegracaoConfig, CreateIntegracaoData } from '@/hooks/useIntegracoesConfig';
-import { Eye, EyeOff, Plus, Settings, Trash2, RefreshCw } from 'lucide-react';
+import { Eye, EyeOff, Plus, Settings, Trash2, RefreshCw, Copy, Check } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { useRBAC } from '@/hooks/useRBAC';
+import { cn } from '@/lib/utils';
+
+const IntegrationStatusBadge = ({ connected }: { connected: boolean }) => (
+  <span className={cn(
+    "inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-medium",
+    connected
+      ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20"
+      : "bg-slate-500/10 text-slate-500 dark:text-slate-400 border border-slate-500/20"
+  )}>
+    <span className={cn("w-1.5 h-1.5 rounded-full", connected ? "bg-emerald-500" : "bg-slate-400")} />
+    {connected ? "Conectado" : "Não configurado"}
+  </span>
+);
 
 const IntegracoesConfig = () => {
   const {
@@ -34,6 +47,7 @@ const IntegracoesConfig = () => {
   } = useIntegracoesConfig();
   const { canManageIntegrations } = useRBAC();
   const [showApiKeys, setShowApiKeys] = useState<{ [key: string]: boolean }>({});
+  const [copied, setCopied] = useState<string | null>(null);
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [editingIntegracao, setEditingIntegracao] = useState<IntegracaoConfig | null>(null);
   const [formData, setFormData] = useState<CreateIntegracaoData>({
@@ -49,6 +63,16 @@ const IntegracoesConfig = () => {
       ...prev,
       [id]: !prev[id],
     }));
+  };
+
+  const handleCopy = (text: string, key: string) => {
+    void navigator.clipboard.writeText(text);
+    setCopied(key);
+    setTimeout(() => setCopied(null), 2000);
+  };
+
+  const isIntegrationConnected = (integracao: IntegracaoConfig): boolean => {
+    return integracao.status === 'ativa' && !!integracao.api_key && !!integracao.endpoint_url;
   };
 
   const getStatusColor = (status: IntegracaoConfig['status']) => {
@@ -280,6 +304,7 @@ const IntegracoesConfig = () => {
                   <div className="flex items-center space-x-3">
                     <CardTitle className="text-lg">{integracao.nome_integracao}</CardTitle>
                     <Badge className={getStatusColor(integracao.status)}>{getStatusText(integracao.status)}</Badge>
+                    <IntegrationStatusBadge connected={isIntegrationConnected(integracao)} />
                   </div>
 
                   <div className="flex items-center space-x-2">
@@ -316,6 +341,9 @@ const IntegracoesConfig = () => {
                       </p>
                       <Button variant="ghost" size="sm" onClick={() => toggleApiKeyVisibility(integracao.id)}>
                         {showApiKeys[integracao.id] ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                      </Button>
+                      <Button variant="ghost" size="sm" onClick={() => handleCopy(integracao.api_key, integracao.id)}>
+                        {copied === integracao.id ? <Check className="h-3 w-3 text-green-500" /> : <Copy className="h-3 w-3" />}
                       </Button>
                     </div>
                   </div>

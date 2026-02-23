@@ -1,6 +1,6 @@
 
 import { useState, useMemo } from 'react';
-import { Plus, Search, Calendar, AlertCircle, RefreshCw, Eye, Edit } from 'lucide-react';
+import { Plus, Search, Calendar, AlertCircle, RefreshCw, Eye, Edit, Trash2 } from 'lucide-react';
 import { useDebounce } from '@/hooks/useDebounce';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -15,6 +15,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { NovoAgendamentoForm } from '@/components/NovoAgendamentoForm';
 import { DetalhesAgendamento } from '@/components/DetalhesAgendamento';
 import { cn } from '@/lib/utils';
+import ConfirmDialog from '@/components/ConfirmDialog';
 
 const AgendamentosManager = () => {
   const [searchTerm, setSearchTerm] = useState('');
@@ -23,7 +24,8 @@ const AgendamentosManager = () => {
   const [isNovoAgendamentoOpen, setIsNovoAgendamentoOpen] = useState(false);
   const [isDetalhesOpen, setIsDetalhesOpen] = useState(false);
   const [selectedAgendamento, setSelectedAgendamento] = useState<Agendamento | null>(null);
-  const { agendamentos, loading, error, isEmpty, fetchAgendamentos } = useAgendamentos();
+  const { agendamentos, loading, error, isEmpty, fetchAgendamentos, deleteAgendamento } = useAgendamentos();
+  const [confirmDelete, setConfirmDelete] = useState<{ open: boolean; id: string; label: string }>({ open: false, id: '', label: '' });
 
   const filteredAgendamentos = useMemo(() => agendamentos.filter(agendamento => {
     const matchesSearch = agendamento.responsavel?.toLowerCase().includes(debouncedSearchTerm.toLowerCase()) || false;
@@ -291,6 +293,14 @@ const AgendamentosManager = () => {
               <button type="button" onClick={() => handleOpenDetails(agendamento)} className="h-7 w-7 flex items-center justify-center rounded-md text-muted-foreground/50 hover:text-foreground hover:bg-muted transition-colors">
                 <Edit className="h-3.5 w-3.5" />
               </button>
+              <button
+                type="button"
+                onClick={() => setConfirmDelete({ open: true, id: agendamento.id, label: agendamento.responsavel ?? fmtMessageTime(agendamento.data_hora) })}
+                className="h-7 w-7 flex items-center justify-center rounded-md text-muted-foreground/50 hover:text-destructive hover:bg-destructive/10 transition-colors"
+                aria-label="Excluir"
+              >
+                <Trash2 className="h-3.5 w-3.5" />
+              </button>
             </div>
           </div>
         ))}
@@ -324,6 +334,18 @@ const AgendamentosManager = () => {
           )}
         </DialogContent>
       </Dialog>
+
+      <ConfirmDialog
+        open={confirmDelete.open}
+        onOpenChange={(v) => setConfirmDelete(prev => ({ ...prev, open: v }))}
+        title="Excluir agendamento?"
+        description={`Esta ação não pode ser desfeita. O agendamento "${confirmDelete.label}" será removido permanentemente.`}
+        onConfirm={() => {
+          void deleteAgendamento(confirmDelete.id);
+          setConfirmDelete({ open: false, id: '', label: '' });
+        }}
+        destructive
+      />
     </div>
   );
 };

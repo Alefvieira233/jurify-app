@@ -13,6 +13,7 @@ import NovoLeadForm from '@/components/forms/NovoLeadForm';
 import EditarLeadForm from '@/components/forms/EditarLeadForm';
 import LeadsKanban from './LeadsKanban';
 import { type DropResult } from '@hello-pangea/dnd';
+import ConfirmDialog from '@/components/ConfirmDialog';
 
 /* ── Status palette (matches Pipeline) ── */
 const STATUS_COLORS: Record<string, { hex: string; textColor: string; label: string }> = {
@@ -48,6 +49,7 @@ const LeadsPanel = () => {
   const [showFormModal, setShowFormModal] = useState(false);
   const [editingLead, setEditingLead]   = useState<Lead | null>(null);
   const [viewMode, setViewMode]         = useState<'list' | 'kanban'>('list');
+  const [confirmDelete, setConfirmDelete] = useState<{ open: boolean; leadId: string; leadNome: string }>({ open: false, leadId: '', leadNome: '' });
 
   const { leads, loading, error, isEmpty, fetchLeads, deleteLead, updateLead } = useLeads();
   const debouncedSearch = useDebounce(searchTerm, 300);
@@ -344,11 +346,7 @@ const LeadsPanel = () => {
                     </button>
                     <button
                       type="button"
-                      onClick={() => {
-                        if (window.confirm(`Excluir "${lead.nome_completo}"?\nEsta ação não pode ser desfeita.`)) {
-                          void deleteLead(lead.id);
-                        }
-                      }}
+                      onClick={() => setConfirmDelete({ open: true, leadId: lead.id, leadNome: lead.nome_completo ?? '' })}
                       className="h-7 w-7 flex items-center justify-center rounded text-muted-foreground/40 hover:text-destructive hover:bg-destructive/5 transition-colors"
                       aria-label="Excluir"
                     >
@@ -398,6 +396,17 @@ const LeadsPanel = () => {
           onSuccess={() => { setEditingLead(null); void fetchLeads(); }}
         />
       )}
+      <ConfirmDialog
+        open={confirmDelete.open}
+        onOpenChange={(v) => setConfirmDelete(prev => ({ ...prev, open: v }))}
+        title="Excluir lead?"
+        description={`Esta ação não pode ser desfeita. O lead "${confirmDelete.leadNome}" será removido permanentemente.`}
+        onConfirm={() => {
+          void deleteLead(confirmDelete.leadId);
+          setConfirmDelete({ open: false, leadId: '', leadNome: '' });
+        }}
+        destructive
+      />
     </div>
   );
 };

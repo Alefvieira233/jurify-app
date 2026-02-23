@@ -144,6 +144,19 @@ const RelatoriosGerenciais = () => {
     );
   }
 
+  const tooltipStyle = {
+    contentStyle: {
+      background: 'hsl(var(--card))',
+      border: '1px solid hsl(var(--border))',
+      borderRadius: 'calc(var(--radius) - 2px)',
+      fontSize: 11,
+      color: 'hsl(var(--foreground))',
+      boxShadow: 'var(--shadow-md)',
+    },
+    labelStyle: { color: 'hsl(var(--foreground))', fontWeight: 600 },
+    itemStyle: { color: 'hsl(var(--muted-foreground))' },
+  };
+
   if (error || !metrics) {
     return (
       <div className="flex flex-col h-screen bg-background">
@@ -154,22 +167,22 @@ const RelatoriosGerenciais = () => {
                 <BarChart3 className="h-4 w-4 text-primary" />
               </div>
               <div>
-                <h1 className="text-sm font-bold text-foreground leading-tight">Relatorios Gerenciais</h1>
+                <h1 className="text-sm font-bold text-foreground leading-tight">Relatórios Gerenciais</h1>
                 <p className="text-[11px] text-muted-foreground leading-none mt-0.5">
-                  Analises e insights do seu escritorio juridico
+                  Análises e insights do seu escritório jurídico
                 </p>
               </div>
             </div>
           </div>
         </header>
         <div className="flex-1 overflow-y-auto px-5 py-5 space-y-5">
-          <Card className="shadow-sm border-border/60 border-blue-500/25 bg-blue-500/5">
+          <Card className="border-blue-500/25 bg-blue-500/5 shadow-card">
             <CardContent className="p-8">
               <div className="text-center">
                 <TrendingUp className="h-12 w-12 text-blue-400 mx-auto mb-3" />
-                <h3 className="text-sm font-bold text-foreground mb-1">Relatorios em preparacao</h3>
+                <h3 className="text-sm font-bold text-foreground mb-1">Relatórios em preparação</h3>
                 <p className="text-xs text-muted-foreground mb-4">
-                  Os relatorios serao gerados assim que houver dados suficientes no sistema.
+                  Os relatórios serão gerados assim que houver dados suficientes no sistema.
                 </p>
                 <Button
                   variant="outline"
@@ -178,7 +191,7 @@ const RelatoriosGerenciais = () => {
                   onClick={handleExportDemo}
                 >
                   <Download className="h-3.5 w-3.5" />
-                  Gerar Relatorio Demo
+                  Gerar Relatório Demo
                 </Button>
               </div>
             </CardContent>
@@ -217,7 +230,7 @@ const RelatoriosGerenciais = () => {
               <BarChart3 className="h-4 w-4 text-primary" />
             </div>
             <div>
-              <h1 className="text-sm font-bold text-foreground leading-tight">Relatorios Gerenciais</h1>
+              <h1 className="text-sm font-bold text-foreground leading-tight">Relatórios Gerenciais</h1>
               <p className="text-[11px] text-muted-foreground leading-none mt-0.5">
                 {metrics.totalLeads} leads · {metrics.contratos} contratos · {metrics.agentesAtivos} agentes IA
               </p>
@@ -239,16 +252,16 @@ const RelatoriosGerenciais = () => {
       <div className="flex-1 overflow-y-auto px-5 py-5 space-y-5">
 
         {/* KPI Cards */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 fade-in">
 
           {/* Total Leads */}
-          <Card className="shadow-sm border-border/60">
+          <Card className="border-border shadow-card hover:shadow-card-hover transition-shadow">
             <CardContent className="px-4 py-3">
               <div className="flex items-start justify-between gap-2">
                 <div className="flex-1 min-w-0">
                   <p className="text-xs text-muted-foreground">Total de Leads</p>
                   <p className="text-2xl font-bold tabular-nums mt-0.5">{metrics.totalLeads}</p>
-                  <p className="text-[10px] text-emerald-600 dark:text-emerald-400 font-medium mt-0.5">+{metrics.leadsNovoMes} este mes</p>
+                  <p className="text-[10px] text-emerald-600 dark:text-emerald-400 font-medium mt-0.5">+{metrics.leadsNovoMes} este mês</p>
                 </div>
                 <div className="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: 'rgba(37,99,235,0.08)' }}>
                   <Users className="h-4 w-4" style={{ color: '#2563eb' }} />
@@ -258,7 +271,7 @@ const RelatoriosGerenciais = () => {
           </Card>
 
           {/* Contratos */}
-          <Card className="shadow-sm border-border/60">
+          <Card className="border-border shadow-card hover:shadow-card-hover transition-shadow">
             <CardContent className="px-4 py-3">
               <div className="flex items-start justify-between gap-2">
                 <div className="flex-1 min-w-0">
@@ -274,7 +287,7 @@ const RelatoriosGerenciais = () => {
           </Card>
 
           {/* Agendamentos */}
-          <Card className="shadow-sm border-border/60">
+          <Card className="border-border shadow-card hover:shadow-card-hover transition-shadow">
             <CardContent className="px-4 py-3">
               <div className="flex items-start justify-between gap-2">
                 <div className="flex-1 min-w-0">
@@ -290,13 +303,13 @@ const RelatoriosGerenciais = () => {
           </Card>
 
           {/* Agentes IA */}
-          <Card className="shadow-sm border-border/60">
+          <Card className="border-border shadow-card hover:shadow-card-hover transition-shadow">
             <CardContent className="px-4 py-3">
               <div className="flex items-start justify-between gap-2">
                 <div className="flex-1 min-w-0">
                   <p className="text-xs text-muted-foreground">Agentes IA</p>
                   <p className="text-2xl font-bold tabular-nums mt-0.5">{metrics.agentesAtivos}</p>
-                  <p className="text-[10px] text-amber-600 dark:text-amber-400 font-medium mt-0.5">{metrics.execucoesAgentesHoje} execucoes hoje</p>
+                  <p className="text-[10px] text-amber-600 dark:text-amber-400 font-medium mt-0.5">{metrics.execucoesAgentesHoje} execuções hoje</p>
                 </div>
                 <div className="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: 'rgba(217,119,6,0.08)' }}>
                   <TrendingUp className="h-4 w-4" style={{ color: '#d97706' }} />
@@ -307,11 +320,11 @@ const RelatoriosGerenciais = () => {
         </div>
 
         {/* Charts */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 fade-in" style={{ animationDelay: '0.1s' }}>
 
           {/* Pipeline de Leads */}
-          <Card className="shadow-sm border-border/60">
-            <CardHeader className="px-4 py-3 border-b border-border/60">
+          <Card className="border-border shadow-card">
+            <CardHeader className="px-4 py-3 border-b border-border">
               <CardTitle className="text-sm font-semibold text-foreground">Pipeline de Leads</CardTitle>
             </CardHeader>
             <CardContent className="p-4">
@@ -331,24 +344,24 @@ const RelatoriosGerenciais = () => {
                       <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                     ))}
                   </Pie>
-                  <Tooltip />
+                  <Tooltip {...tooltipStyle} />
                 </PieChart>
               </ResponsiveContainer>
             </CardContent>
           </Card>
 
-          {/* Leads por Area Juridica */}
-          <Card className="shadow-sm border-border/60">
-            <CardHeader className="px-4 py-3 border-b border-border/60">
-              <CardTitle className="text-sm font-semibold text-foreground">Leads por Area Juridica</CardTitle>
+          {/* Leads por Área Jurídica */}
+          <Card className="border-border shadow-card">
+            <CardHeader className="px-4 py-3 border-b border-border">
+              <CardTitle className="text-sm font-semibold text-foreground">Leads por Área Jurídica</CardTitle>
             </CardHeader>
             <CardContent className="p-4">
               <ResponsiveContainer width="100%" height={280}>
                 <BarChart data={areaData}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                  <XAxis dataKey="name" tick={{ fontSize: 11 }} />
-                  <YAxis tick={{ fontSize: 11 }} />
-                  <Tooltip />
+                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
+                  <XAxis dataKey="name" tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }} axisLine={false} tickLine={false} />
+                  <YAxis tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }} axisLine={false} tickLine={false} />
+                  <Tooltip {...tooltipStyle} />
                   <Bar dataKey="leads" fill="#2563eb" radius={[4, 4, 0, 0]} />
                 </BarChart>
               </ResponsiveContainer>
@@ -356,34 +369,34 @@ const RelatoriosGerenciais = () => {
           </Card>
 
           {/* Performance dos Agentes IA */}
-          <Card className="shadow-sm border-border/60">
-            <CardHeader className="px-4 py-3 border-b border-border/60">
+          <Card className="border-border shadow-card">
+            <CardHeader className="px-4 py-3 border-b border-border">
               <CardTitle className="text-sm font-semibold text-foreground">Performance dos Agentes IA</CardTitle>
             </CardHeader>
             <CardContent className="p-4">
               <ResponsiveContainer width="100%" height={280}>
                 <BarChart data={agentesData}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                  <XAxis dataKey="name" tick={{ fontSize: 11 }} />
-                  <YAxis tick={{ fontSize: 11 }} />
-                  <Tooltip />
+                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
+                  <XAxis dataKey="name" tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }} axisLine={false} tickLine={false} />
+                  <YAxis tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }} axisLine={false} tickLine={false} />
+                  <Tooltip {...tooltipStyle} />
                   <Legend wrapperStyle={{ fontSize: 11 }} />
-                  <Bar dataKey="sucesso" stackId="a" fill="#059669" name="Sucesso" radius={[0, 0, 0, 0]} />
+                  <Bar dataKey="sucesso" stackId="a" fill="#059669" name="Sucesso" />
                   <Bar dataKey="erro" stackId="a" fill="#e11d48" name="Erro" radius={[4, 4, 0, 0]} />
                 </BarChart>
               </ResponsiveContainer>
             </CardContent>
           </Card>
 
-          {/* Resumo do Periodo */}
-          <Card className="shadow-sm border-border/60">
-            <CardHeader className="px-4 py-3 border-b border-border/60">
-              <CardTitle className="text-sm font-semibold text-foreground">Resumo do Periodo</CardTitle>
+          {/* Resumo do Período */}
+          <Card className="border-border shadow-card">
+            <CardHeader className="px-4 py-3 border-b border-border">
+              <CardTitle className="text-sm font-semibold text-foreground">Resumo do Período</CardTitle>
             </CardHeader>
             <CardContent className="p-3">
               <div className="space-y-2">
                 <div className="flex justify-between items-center p-2.5 bg-blue-500/8 border border-blue-500/20 rounded-lg">
-                  <span className="text-xs font-medium text-foreground">Taxa de Conversao</span>
+                  <span className="text-xs font-medium text-foreground">Taxa de Conversão</span>
                   <Badge variant="secondary" className="text-xs">
                     {metrics.totalLeads > 0
                       ? `${((metrics.contratosAssinados / metrics.totalLeads) * 100).toFixed(1)}%`
@@ -405,7 +418,7 @@ const RelatoriosGerenciais = () => {
                 </div>
 
                 <div className="flex justify-between items-center p-2.5 bg-amber-500/8 border border-amber-500/20 rounded-lg">
-                  <span className="text-xs font-medium text-foreground">Execucoes de IA</span>
+                  <span className="text-xs font-medium text-foreground">Execuções de IA</span>
                   <Badge variant="secondary" className="text-xs">
                     {metrics.execucoesRecentesAgentes.reduce((acc, curr) => acc + curr.total_execucoes, 0)}
                   </Badge>

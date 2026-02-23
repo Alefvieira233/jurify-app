@@ -1,7 +1,7 @@
 import React, { useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { X, User, Phone, Mail, Briefcase, DollarSign, FileText, MapPin, Building2, Thermometer } from 'lucide-react';
+import { X, User, Phone, Mail, Briefcase, DollarSign, FileText, MapPin, Building2, Thermometer, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -500,7 +500,7 @@ const LeadForm: React.FC<LeadFormProps> = ({
               >
                 {form.formState.isSubmitting ? (
                   <>
-                    <div className="h-4 w-4 mr-2 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                     Salvando...
                   </>
                 ) : (

@@ -1,6 +1,6 @@
 
 import { useState, useMemo } from 'react';
-import { Plus, Search, Eye, Edit, FileSignature, Send, AlertCircle, RefreshCw } from 'lucide-react';
+import { Plus, Search, Eye, Edit, FileSignature, Send, AlertCircle, RefreshCw, Trash2 } from 'lucide-react';
 import { useDebounce } from '@/hooks/useDebounce';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -15,6 +15,9 @@ import { fmtCurrency, fmtDate } from '@/utils/formatting';
 import UploadContratos from '@/components/UploadContratos';
 import { NovoContratoForm } from '@/components/NovoContratoForm';
 import { DetalhesContrato } from '@/components/DetalhesContrato';
+import ConfirmDialog from '@/components/ConfirmDialog';
+import { supabaseUntyped as supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/use-toast';
 
 const ContratosManager = () => {
   const [searchTerm, setSearchTerm] = useState('');
@@ -23,7 +26,10 @@ const ContratosManager = () => {
   const [isNovoContratoOpen, setIsNovoContratoOpen] = useState(false);
   const [isDetalhesOpen, setIsDetalhesOpen] = useState(false);
   const [selectedContrato, setSelectedContrato] = useState<Contrato | null>(null);
+  const [confirmDelete, setConfirmDelete] = useState<{ open: boolean; id: string; nome: string }>({ open: false, id: '', nome: '' });
+  const [deleteLoading, setDeleteLoading] = useState(false);
   const { contratos, loading, error, isEmpty, fetchContratos } = useContratos();
+  const { toast } = useToast();
 
   const filteredContratos = useMemo(() => contratos.filter(contrato => {
     const matchesSearch = contrato.nome_cliente?.toLowerCase().includes(debouncedSearchTerm.toLowerCase()) || false;
@@ -64,6 +70,25 @@ const ContratosManager = () => {
     setIsDetalhesOpen(false);
     setSelectedContrato(null);
     fetchContratos();
+  };
+
+  const handleDeleteContrato = async () => {
+    setDeleteLoading(true);
+    try {
+      const { error: deleteError } = await supabase
+        .from('contratos')
+        .delete()
+        .eq('id', confirmDelete.id);
+      if (deleteError) throw deleteError;
+      toast({ title: 'Sucesso', description: 'Contrato excluído com sucesso!' });
+      fetchContratos();
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Não foi possível excluir o contrato.';
+      toast({ title: 'Erro', description: message, variant: 'destructive' });
+    } finally {
+      setDeleteLoading(false);
+      setConfirmDelete({ open: false, id: '', nome: '' });
+    }
   };
 
   // Loading State
@@ -358,6 +383,14 @@ const ContratosManager = () => {
                           <FileSignature className="h-4 w-4" />
                         </Button>
                       )}
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                        onClick={() => setConfirmDelete({ open: true, id: contrato.id, nome: contrato.nome_cliente ?? '' })}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
                     </div>
                   </div>
                 </CardContent>
@@ -411,6 +444,16 @@ const ContratosManager = () => {
           )}
         </DialogContent>
       </Dialog>
+
+      <ConfirmDialog
+        open={confirmDelete.open}
+        onOpenChange={(v) => setConfirmDelete(prev => ({ ...prev, open: v }))}
+        title="Excluir contrato?"
+        description={`Esta ação não pode ser desfeita. O contrato de "${confirmDelete.nome}" será removido permanentemente.`}
+        onConfirm={() => { void handleDeleteContrato(); }}
+        loading={deleteLoading}
+        destructive
+      />
     </div>
   );
 };

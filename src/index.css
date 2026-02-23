@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300..700;1,9..40,300..700&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -8,7 +8,7 @@
   :root {
     /* ═══════════════════════════════════════════════════════
        JURIFY — ENTERPRISE DESIGN SYSTEM
-       Primary: Deep Blue #1e3a8a  |  Font: Inter
+       Primary: Deep Blue #1e3a8a  |  Font: DM Sans
     ═══════════════════════════════════════════════════════ */
 
     /* Backgrounds */
@@ -32,9 +32,10 @@
     --muted: 220 14% 96%;
     --muted-foreground: 220 9% 46%;      /* #6b7280 */
 
-    /* Accent (subtle hover tint) */
-    --accent: 220 14% 96%;
-    --accent-foreground: 222 47% 11%;
+    /* Accent — brand-tinted, visually distinct from muted */
+    --accent: 220 55% 95.5%;             /* subtle blue tint — feels interactive */
+    --accent-foreground: 224 64% 28%;
+    --accent-hover: 220 55% 91%;
 
     /* Semantic */
     --destructive: 0 84% 60%;            /* #ef4444 */
@@ -47,37 +48,43 @@
     --info-foreground: 0 0% 100%;
 
     /* UI tokens */
-    --border: 220 13% 91%;               /* #e5e7eb */
+    --border: 220 14% 89.5%;             /* slightly more visible than before */
     --input: 0 0% 100%;
     --ring: 224 64% 33%;
-    --radius: 8px;
+    --radius: 10px;                      /* modern rounded — up from 8px */
 
     /* Popovers */
     --popover: 0 0% 100%;
     --popover-foreground: 222 47% 11%;
 
-    /* Sidebar */
-    --sidebar-background: 0 0% 100%;
+    /* Sidebar — subtle cool blue-gray, distinct from pure white content */
+    --sidebar-background: 220 28% 96.5%; /* #eff3f9 — not white, not gray */
     --sidebar-foreground: 222 47% 11%;
     --sidebar-primary: 224 64% 33%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 220 14% 96%;
+    --sidebar-accent: 220 45% 94%;
     --sidebar-accent-foreground: 222 47% 11%;
-    --sidebar-border: 220 13% 91%;
+    --sidebar-border: 220 18% 91%;
     --sidebar-ring: 224 64% 33%;
+
+    /* Shadow system */
+    --shadow-card: 0 1px 3px 0 rgb(0 0 0 / 0.06), 0 1px 2px -1px rgb(0 0 0 / 0.04);
+    --shadow-card-hover: 0 4px 14px 0 rgb(0 0 0 / 0.09), 0 2px 4px -2px rgb(0 0 0 / 0.05);
+    --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+    --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.08), 0 2px 4px -2px rgb(0 0 0 / 0.05);
   }
 
   .dark {
     /* ═══════════════════════════════════════════════════════
-       DARK THEME — NAVY PRO
+       DARK THEME — NAVY PRO (refined depth hierarchy)
     ═══════════════════════════════════════════════════════ */
 
-    --background: 222 47% 7%;            /* #0f172a */
+    --background: 223 46% 7%;            /* #0e1526 — slight warmth */
     --foreground: 210 40% 98%;           /* #f8fafc */
 
-    --card: 222 47% 11%;                 /* #1e293b */
+    --card: 222 44% 11.5%;               /* #192036 — warmer, distinct from bg */
     --card-foreground: 210 40% 98%;
-    --card-border: 222 30% 18%;
+    --card-border: 222 30% 21%;          /* more visible than before */
 
     --primary: 217 91% 60%;              /* #3b82f6 — lighter blue for dark */
     --primary-foreground: 0 0% 100%;
@@ -85,11 +92,12 @@
     --secondary: 222 40% 14%;
     --secondary-foreground: 210 40% 98%;
 
-    --muted: 222 40% 14%;
+    --muted: 222 38% 15.5%;              /* slightly lifted for layering */
     --muted-foreground: 215 20% 65%;
 
-    --accent: 222 40% 14%;
+    --accent: 222 45% 16%;
     --accent-foreground: 210 40% 98%;
+    --accent-hover: 222 45% 20%;
 
     --destructive: 0 62% 50%;
     --destructive-foreground: 0 0% 100%;
@@ -100,36 +108,45 @@
     --info: 217 91% 60%;
     --info-foreground: 0 0% 100%;
 
-    --border: 222 30% 18%;
+    --border: 222 30% 21%;               /* more definition in dark mode */
     --input: 222 47% 11%;
     --ring: 217 91% 60%;
 
     --popover: 222 47% 11%;
     --popover-foreground: 210 40% 98%;
 
-    --sidebar-background: 222 47% 8%;
+    /* Sidebar — distinctly darker than background for clear hierarchy */
+    --sidebar-background: 222 50% 4.5%;  /* #09101f — much darker */
     --sidebar-foreground: 210 40% 98%;
     --sidebar-primary: 217 91% 60%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 222 40% 14%;
+    --sidebar-accent: 222 44% 11%;
     --sidebar-accent-foreground: 210 40% 98%;
-    --sidebar-border: 222 30% 18%;
+    --sidebar-border: 222 40% 9%;        /* barely visible separator */
     --sidebar-ring: 217 91% 60%;
+
+    /* Shadow system — stronger in dark mode */
+    --shadow-card: 0 1px 3px 0 rgb(0 0 0 / 0.30), 0 1px 2px -1px rgb(0 0 0 / 0.20);
+    --shadow-card-hover: 0 4px 14px 0 rgb(0 0 0 / 0.40), 0 2px 4px -2px rgb(0 0 0 / 0.25);
+    --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.20);
+    --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.30), 0 2px 4px -2px rgb(0 0 0 / 0.20);
   }
 
   /* ── Base styles ── */
   body {
     @apply bg-background text-foreground;
-    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    font-family: 'DM Sans', system-ui, -apple-system, sans-serif;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+    line-height: 1.6;
     scrollbar-width: thin;
     scrollbar-color: hsl(var(--border)) transparent;
   }
 
   h1, h2, h3, h4, h5, h6 {
-    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    font-family: 'DM Sans', system-ui, -apple-system, sans-serif;
     @apply font-semibold tracking-tight;
+    line-height: 1.25;
   }
 
   * {
@@ -140,12 +157,13 @@
     background-color: hsl(var(--input));
     color: hsl(var(--foreground));
     border-color: hsl(var(--border));
+    font-family: 'DM Sans', system-ui, -apple-system, sans-serif;
   }
 
   input::placeholder,
   textarea::placeholder {
     color: hsl(var(--muted-foreground));
-    opacity: 0.7;
+    opacity: 0.65;
   }
 }
 
@@ -162,6 +180,7 @@
 
   .page-title {
     @apply text-2xl font-semibold text-foreground tracking-tight;
+    line-height: 1.2;
   }
 
   .page-subtitle {
@@ -170,12 +189,18 @@
 
   /* ── Metric / KPI cards ── */
   .metric-card {
-    @apply bg-card border border-border rounded-lg p-5 shadow-sm
-           hover:shadow-md transition-shadow duration-200;
+    @apply bg-card border border-border rounded-[10px] p-5
+           transition-shadow duration-200 cursor-default;
+    box-shadow: var(--shadow-card);
+  }
+
+  .metric-card:hover {
+    box-shadow: var(--shadow-card-hover);
   }
 
   .metric-value {
     @apply text-3xl font-bold text-foreground tabular-nums;
+    letter-spacing: -0.02em;
   }
 
   .metric-label {
@@ -184,7 +209,8 @@
 
   /* ── Section card wrapper ── */
   .section-card {
-    @apply bg-card border border-border rounded-lg shadow-sm overflow-hidden;
+    @apply bg-card border border-border rounded-[10px] overflow-hidden;
+    box-shadow: var(--shadow-card);
   }
 
   .section-card-header {
@@ -224,21 +250,31 @@
     background-color: hsl(var(--muted-foreground) / 0.4);
   }
 
-  /* ── Legacy compat: glass-premium kept as neutral card ── */
+  /* ── Legacy compat ── */
   .glass-premium {
-    @apply bg-card border border-border shadow-sm;
+    @apply bg-card border border-border;
+    box-shadow: var(--shadow-card);
   }
 
-  /* ── Legacy: card-monolith → section-card ── */
   .card-monolith {
-    @apply bg-card border border-border rounded-lg p-6 shadow-sm
-           hover:shadow-md transition-shadow duration-200;
+    @apply bg-card border border-border rounded-[10px] p-6
+           transition-shadow duration-200;
+    box-shadow: var(--shadow-card);
   }
 
-  /* ── Legacy: btn-sharp ── */
+  .card-monolith:hover {
+    box-shadow: var(--shadow-card-hover);
+  }
+
+  /* alias for card-monolith */
+  .card-hover {
+    @apply card-monolith;
+  }
+
+  /* ── btn-sharp ── */
   .btn-sharp {
-    @apply relative overflow-hidden transition-all duration-200 active:scale-95
-           px-4 py-2 font-semibold text-sm rounded-md;
+    @apply relative overflow-hidden transition-all duration-150
+           active:scale-[0.97] px-4 py-2 font-semibold text-sm rounded-md;
   }
 }
 
@@ -286,23 +322,38 @@
     border-color: hsl(var(--border)) !important;
   }
 
-  /* ── Animation: fade up (used everywhere) ── */
+  /* ── Animation: premium fade up with blur ── */
   .fade-in {
-    animation: fadeIn 0.4s ease-out forwards;
+    animation: fadeIn 0.45s cubic-bezier(0.16, 1, 0.3, 1) forwards;
   }
 
   .reveal-up {
-    animation: fadeIn 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    animation: revealUp 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
   }
 
   @keyframes fadeIn {
     from {
       opacity: 0;
-      transform: translateY(8px);
+      transform: translateY(10px);
+      filter: blur(4px);
     }
     to {
       opacity: 1;
       transform: translateY(0);
+      filter: blur(0px);
+    }
+  }
+
+  @keyframes revealUp {
+    from {
+      opacity: 0;
+      transform: translateY(12px);
+      filter: blur(5px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+      filter: blur(0px);
     }
   }
 
@@ -336,8 +387,28 @@
     background-color: hsl(var(--muted-foreground) / 0.4);
   }
 
+  /* ── Shadow utility classes ── */
+  .shadow-card {
+    box-shadow: var(--shadow-card);
+  }
+
+  .shadow-card-hover:hover {
+    box-shadow: var(--shadow-card-hover);
+  }
+
   /* ── premium-gradient-text legacy ── */
   .premium-gradient-text {
     @apply text-foreground;
+  }
+
+  /* ── Tabular numbers for metrics ── */
+  .tabular {
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -0.01em;
+  }
+
+  /* ── Letter-spacing refinements ── */
+  .tracking-display {
+    letter-spacing: -0.025em;
   }
 }

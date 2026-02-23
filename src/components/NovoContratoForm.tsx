@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
+import { Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface Lead {
@@ -228,7 +229,7 @@ _____________________          _____________________
     <form onSubmit={handleSubmit} className="space-y-6">
       <div className="space-y-2">
         <Label>Lead Existente (Opcional)</Label>
-        <Select value={selectedLeadId} onValueChange={handleLeadSelect}>
+        <Select value={selectedLeadId} onValueChange={handleLeadSelect} disabled={createContratoMutation.isPending}>
           <SelectTrigger>
             <SelectValue placeholder="Selecione um lead existente ou preencha manualmente" />
           </SelectTrigger>
@@ -245,12 +246,12 @@ _____________________          _____________________
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div className="space-y-2">
           <Label>Nome do Cliente</Label>
-          <Input value={nomeCliente} onChange={(e) => setNomeCliente(e.target.value)} required />
+          <Input value={nomeCliente} onChange={(e) => setNomeCliente(e.target.value)} required disabled={createContratoMutation.isPending} />
         </div>
 
         <div className="space-y-2">
           <Label>Área Jurídica</Label>
-          <Input value={areaJuridica} onChange={(e) => setAreaJuridica(e.target.value)} required />
+          <Input value={areaJuridica} onChange={(e) => setAreaJuridica(e.target.value)} required disabled={createContratoMutation.isPending} />
         </div>
 
         <div className="space-y-2">
@@ -260,12 +261,13 @@ _____________________          _____________________
             value={valorCausa}
             onChange={(e) => setValorCausa(e.target.value)}
             required
+            disabled={createContratoMutation.isPending}
           />
         </div>
 
         <div className="space-y-2">
           <Label>Responsável</Label>
-          <Input value={responsavel} onChange={(e) => setResponsavel(e.target.value)} required />
+          <Input value={responsavel} onChange={(e) => setResponsavel(e.target.value)} required disabled={createContratoMutation.isPending} />
         </div>
       </div>
 
@@ -276,6 +278,7 @@ _____________________          _____________________
           onChange={(e) => setTextoContrato(e.target.value)}
           rows={12}
           required
+          disabled={createContratoMutation.isPending}
         />
       </div>
 
@@ -285,17 +288,19 @@ _____________________          _____________________
           value={clausulasCustomizadas}
           onChange={(e) => setClausulasCustomizadas(e.target.value)}
           rows={4}
+          disabled={createContratoMutation.isPending}
         />
       </div>
 
       <div className="flex justify-end gap-2">
-        <Button type="button" variant="outline" onClick={onClose}>
+        <Button type="button" variant="outline" onClick={onClose} disabled={createContratoMutation.isPending}>
           Cancelar
         </Button>
-        <Button type="submit" className="bg-amber-500 hover:bg-amber-600">
-          Salvar Contrato
+        <Button type="submit" className="bg-amber-500 hover:bg-amber-600" disabled={createContratoMutation.isPending}>
+          {createContratoMutation.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+          {createContratoMutation.isPending ? 'Salvando...' : 'Salvar Contrato'}
         </Button>
-        <Button type="button" variant="outline" onClick={() => setTextoContrato(gerarTextoFinal())}>
+        <Button type="button" variant="outline" onClick={() => setTextoContrato(gerarTextoFinal())} disabled={createContratoMutation.isPending}>
           Atualizar Texto
         </Button>
       </div>

@@ -1,5 +1,5 @@
 import React from 'react';
-import { Bot, BarChart, Zap, Edit, Eye, Power, PowerOff } from 'lucide-react';
+import { Bot, BarChart, Zap, Edit, Eye, Power, PowerOff, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
@@ -10,6 +10,7 @@ interface AgentesIACardProps {
   onEdit: (agente: AgenteIA) => void;
   onViewDetails: (agente: AgenteIA) => void;
   onToggleStatus: (agente: AgenteIA) => void;
+  onDelete?: (agente: AgenteIA) => void;
 }
 
 const tiposAgente = {
@@ -22,7 +23,8 @@ export const AgentesIACard: React.FC<AgentesIACardProps> = ({
   agente,
   onEdit,
   onViewDetails,
-  onToggleStatus
+  onToggleStatus,
+  onDelete
 }) => {
   const tipoInfo = tiposAgente[agente.tipo_agente as keyof typeof tiposAgente] || tiposAgente.chat_interno;
   const TipoIcon = tipoInfo.icon;
@@ -93,6 +95,17 @@ export const AgentesIACard: React.FC<AgentesIACardProps> = ({
               <Edit className="h-4 w-4 mr-1" />
               Editar
             </Button>
+            {onDelete && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => onDelete(agente)}
+                className="hover:bg-destructive/10 hover:text-destructive"
+              >
+                <Trash2 className="h-4 w-4 mr-1" />
+                Excluir
+              </Button>
+            )}
           </div>
           
           <Button

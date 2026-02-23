@@ -22,12 +22,14 @@ import {
   Target,
   Clock,
   Search,
+  HelpCircle,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/contexts/AuthContext';
 import { Badge } from '@/components/ui/badge';
 import { supabase } from '@/integrations/supabase/client';
 import ThemeToggle from '@/components/ThemeToggle';
+import KeyboardShortcutsHelp from '@/components/KeyboardShortcutsHelp';
 
 interface SidebarProps {
   activeSection: string;
@@ -86,6 +88,7 @@ const Sidebar = ({ activeSection, onSectionChange }: SidebarProps) => {
   const { signOut, profile, user, hasPermission } = useAuth();
   const [unreadCount, setUnreadCount]  = useState(0);
   const [visibleItems, setVisibleItems] = useState<MenuItem[]>([]);
+  const [shortcutsOpen, setShortcutsOpen] = useState(false);
 
   /* ── RBAC filter ── */
   useEffect(() => {
@@ -257,6 +260,15 @@ const Sidebar = ({ activeSection, onSectionChange }: SidebarProps) => {
           </div>
           <button
             type="button"
+            onClick={() => setShortcutsOpen(true)}
+            aria-label="Atalhos de teclado"
+            title="Atalhos de teclado"
+            className="h-7 w-7 flex items-center justify-center rounded-md text-muted-foreground/35 hover:text-foreground hover:bg-muted transition-colors flex-shrink-0"
+          >
+            <HelpCircle className="h-3.5 w-3.5" strokeWidth={2} />
+          </button>
+          <button
+            type="button"
             onClick={() => { void signOut(); }}
             title="Sair"
             className="h-7 w-7 flex items-center justify-center rounded-md text-muted-foreground/35 hover:text-destructive hover:bg-destructive/10 transition-colors flex-shrink-0"
@@ -265,6 +277,7 @@ const Sidebar = ({ activeSection, onSectionChange }: SidebarProps) => {
           </button>
         </div>
       </div>
+      <KeyboardShortcutsHelp open={shortcutsOpen} onOpenChange={setShortcutsOpen} />
     </nav>
   );
 };
