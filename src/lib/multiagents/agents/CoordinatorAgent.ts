@@ -47,12 +47,12 @@ Analisar cada solicitação recebida, extrair intenção, urgência e contexto, 
 
 | Agente | ID | Especialidade Central | Acionar Quando |
 |--------|----|-----------------------|----------------|
-| Qualificador | qualificador | Triagem e qualificação BANT | Lead novo, dados incompletos, intenção indefinida |
-| Jurídico | juridico | Análise de viabilidade legal | Pergunta sobre direitos, mérito, prescrição, estratégia |
-| Comercial | comercial | Proposta e negociação | Pergunta sobre valores, honorários, fechamento |
-| Comunicador | comunicador | Mensagens multicanal | Precisa enviar/redigir comunicação ao cliente |
-| Analista | analista | Métricas e dados | Relatórios, KPIs, análise de pipeline |
-| CustomerSuccess | customer_success | Retenção e pós-venda | Cliente já contratou, dúvidas de andamento |
+| Qualificador | Qualificador | Triagem e qualificação BANT | Lead novo, dados incompletos, intenção indefinida |
+| Jurídico | Juridico | Análise de viabilidade legal | Pergunta sobre direitos, mérito, prescrição, estratégia |
+| Comercial | Comercial | Proposta e negociação | Pergunta sobre valores, honorários, fechamento |
+| Comunicador | Comunicador | Mensagens multicanal | Precisa enviar/redigir comunicação ao cliente |
+| Analista | Analista | Métricas e dados | Relatórios, KPIs, análise de pipeline |
+| CustomerSuccess | CustomerSuccess | Retenção e pós-venda | Cliente já contratou, dúvidas de andamento |
 
 # FLUXO PADRÃO DE UM LEAD (esteira completa)
 
@@ -128,7 +128,7 @@ LEAD NOVO
 
 # FORMATO DE SAÍDA OBRIGATÓRIO (JSON estrito)
 {
-  "next_agent": "qualificador" | "juridico" | "comercial" | "comunicador" | "analista" | "customer_success",
+  "next_agent": "Qualificador" | "Juridico" | "Comercial" | "Comunicador" | "Analista" | "CustomerSuccess",
   "task": "analyze_lead" | "validate_case" | "create_proposal" | "send_message" | "generate_report" | "onboard_client" | "handle_complaint" | "urgent_legal_review",
   "priority": "critica" | "alta" | "media" | "baixa",
   "reason": "explicação objetiva da decisão de roteamento (máx 2 frases)",
@@ -164,17 +164,20 @@ LEAD NOVO
     const plan = await this.processWithAIRetry(
       `Analise este lead e decida qual o próximo passo.
       Lead: ${payload.message}
-      
+
       DIRETRIZES DE ROTEAMENTO:
-      - Se o usuário pede um contrato, revisão legal ou dúvida jurídica -> Roteie para "Juridico".
-      - Se o usuário pede orçamento, preço ou proposta -> Roteie para "Comercial".
-      - Se o pedido é vago ou precisa de mais dados -> Roteie para "Qualificador".
+      - Dúvida jurídica, análise de direito, prescrição, estratégia → "Juridico"
+      - Orçamento, preço, honorários, proposta → "Comercial"
+      - Pedido vago, dados incompletos, primeiro contato → "Qualificador"
+      - Relatório, KPIs, métricas, pipeline → "Analista"
+      - Enviar mensagem, follow-up, comunicação ao cliente → "Comunicador"
+      - Cliente com contrato ativo, andamento, reclamação → "CustomerSuccess"
 
       Responda APENAS com um JSON no formato:
       {
-        "next_agent": "Juridico" | "Comercial" | "Qualificador",
-        "reason": "motivo",
-        "task": "nome_da_tarefa"
+        "next_agent": "Qualificador" | "Juridico" | "Comercial" | "Comunicador" | "Analista" | "CustomerSuccess",
+        "reason": "motivo em até 2 frases",
+        "task": "analyze_lead" | "validate_case" | "create_proposal" | "send_message" | "generate_report" | "onboard_client"
       }`,
       payload.context as Record<string, unknown> | undefined
     );
