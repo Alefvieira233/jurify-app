@@ -87,12 +87,19 @@ async function processAIRequest(
     systemPrompt,
     userPrompt,
     context,
-    model = DEFAULT_OPENAI_MODEL,
+    model: requestedModel = DEFAULT_OPENAI_MODEL,
     temperature = 0.7,
-    maxTokens = 1500,
+    maxTokens: requestedMaxTokens = 1500,
     tools,
     tool_choice,
   } = request;
+
+  // SECURITY: Whitelist de modelos permitidos para evitar custos excessivos
+  const ALLOWED_MODELS = ['gpt-4o-mini', 'gpt-4o', 'gpt-4', 'gpt-4-turbo', 'gpt-3.5-turbo'];
+  const model = ALLOWED_MODELS.includes(requestedModel) ? requestedModel : DEFAULT_OPENAI_MODEL;
+
+  // SECURITY: Limite máximo de tokens para evitar abusos
+  const maxTokens = Math.min(requestedMaxTokens, 4096);
 
   console.log(`ðŸ¤– Processing AI request for agent: ${agentName} [Tools: ${tools ? tools.length : 0}]`);
 
@@ -331,6 +338,20 @@ Deno.serve(async (req) => {
 
     if (!aiRequest.tenantId) {
       throw new Error("tenantId is required");
+    }
+
+    // SECURITY: Validação de isolamento de tenant
+    if (!isServiceRoleRequest && user) {
+      const { data: profile, error: profileError } = await supabase
+        .from("profiles")
+        .select("tenant_id")
+        .eq("id", user.id)
+        .single();
+
+      if (profileError || !profile || profile.tenant_id !== aiRequest.tenantId) {
+        console.error(`[security] Tenant mismatch: user ${user.id} tried to access tenant ${aiRequest.tenantId}`);
+        throw new Error("Unauthorized: Tenant mismatch");
+      }
     }
 
     const rateLimitUser = isServiceRoleRequest
