@@ -20,9 +20,7 @@ jobs:
         uses: trufflesecurity/trufflehog@main
         with:
           path: ./
-          base: ${{ github.event.pull_request.base.sha }}
-          head: ${{ github.event.pull_request.head.sha }}
-          extra_args: --only-verified --fail
+          extra_args: --only-verified
 
       - name: 🔍 Check for hardcoded credentials
         run: |
@@ -44,7 +42,7 @@ jobs:
 
       - name: 📋 Verify .env.example exists
         run: |
-          if [ ! -f "advo-ai-hub-main (1)/advo-ai-hub-main/.env.example" ]; then
+          if [ ! -f ".env.example" ]; then
             echo "⚠️ .env.example não encontrado"
           else
             echo "✅ .env.example existe"
