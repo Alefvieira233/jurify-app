@@ -2,6 +2,9 @@ import { useState, useEffect, useCallback } from 'react';
 import { supabaseUntyped as supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
+import { createLogger } from '@/lib/logger';
+
+const log = createLogger('IntegracoesConfig');
 
 export type IntegracaoConfig = {
   id: string;
@@ -46,7 +49,7 @@ export const useIntegracoesConfig = () => {
       if (error) throw error;
       setIntegracoes(data || []);
     } catch (error) {
-      console.error('Failed to load integrations:', error);
+      log.error('Failed to load integrations', error);
       toast({
         title: 'Erro',
         description: 'Nao foi possivel carregar as integracoes.',
@@ -75,7 +78,7 @@ export const useIntegracoesConfig = () => {
       await fetchIntegracoes();
       return true;
     } catch (error) {
-      console.error('Failed to create integration:', error);
+      log.error('Failed to create integration', error);
       toast({
         title: 'Erro',
         description: 'Não foi possível criar a integração.',
@@ -105,7 +108,7 @@ export const useIntegracoesConfig = () => {
       await fetchIntegracoes();
       return true;
     } catch (error) {
-      console.error('Failed to update integration:', error);
+      log.error('Failed to update integration', error);
       toast({
         title: 'Erro',
         description: 'Não foi possível atualizar a integração.',
@@ -146,7 +149,7 @@ export const useIntegracoesConfig = () => {
       await fetchIntegracoes();
       return true;
     } catch (error) {
-      console.error('Failed to delete integration:', error);
+      log.error('Failed to delete integration', error);
       toast({
         title: 'Erro',
         description: 'Não foi possível remover a integração.',

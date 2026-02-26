@@ -1,0 +1,162 @@
+[
+  {
+    "id": "STJ_SUM_7",
+    "text": "Súmula 7 do STJ: A pretensão de simples reexame de prova não enseja recurso especial. O Superior Tribunal de Justiça não admite recurso especial quando a questão debatida exige o reexame do conjunto fático-probatório dos autos, sendo vedado ao STJ atuar como terceira instância revisora de fatos.",
+    "url": "https://www.stj.jus.br/docs_internet/revista/eletronica/stj-revista-sumulas-2005_1_capSumula7.pdf",
+    "tags": ["recurso_especial", "reexame_prova", "processual"],
+    "tribunal": "STJ",
+    "year": 1990
+  },
+  {
+    "id": "STJ_SUM_54",
+    "text": "Súmula 54 do STJ: Os juros moratórios fluem a partir do evento danoso, em caso de responsabilidade extracontratual. Essa súmula consolida o entendimento de que, nos casos de ato ilícito (responsabilidade aquiliana), os juros de mora são devidos desde a data do fato gerador do dano, e não da citação.",
+    "url": "https://www.stj.jus.br/docs_internet/revista/eletronica/stj-revista-sumulas-2005_2_capSumula54.pdf",
+    "tags": ["juros_moratorios", "responsabilidade_civil", "ato_ilicito"],
+    "tribunal": "STJ",
+    "year": 1992
+  },
+  {
+    "id": "STJ_SUM_297",
+    "text": "Súmula 297 do STJ: O Código de Defesa do Consumidor é aplicável às instituições financeiras. Os bancos e demais instituições financeiras estão sujeitos às disposições do CDC, incluindo responsabilidade objetiva por falhas na prestação de serviços, inversão do ônus da prova e vedação de cláusulas abusivas.",
+    "url": "https://www.stj.jus.br/docs_internet/revista/eletronica/stj-revista-sumulas-2005_9_capSumula297.pdf",
+    "tags": ["consumidor", "bancos", "cdc", "instituicao_financeira"],
+    "tribunal": "STJ",
+    "year": 2004
+  },
+  {
+    "id": "STJ_SUM_362",
+    "text": "Súmula 362 do STJ: A correção monetária do valor da indenização do dano moral incide desde a data do arbitramento. Uma vez fixado o quantum indenizatório pelo magistrado, a correção monetária deve incidir a partir daquela data, para preservar o valor real da condenação.",
+    "url": "https://www.stj.jus.br/docs_internet/revista/eletronica/stj-revista-sumulas-2008_capSumula362.pdf",
+    "tags": ["dano_moral", "correcao_monetaria", "indenizacao"],
+    "tribunal": "STJ",
+    "year": 2008
+  },
+  {
+    "id": "STJ_SUM_385",
+    "text": "Súmula 385 do STJ: Da anotação irregular em cadastro de proteção ao crédito, não cabe indenização por dano moral quando preexistente legítima inscrição, ressalvado o direito ao cancelamento. Se o consumidor já possui negativação legítima anterior, nova inscrição indevida não gera dano moral autônomo, pois a honra objetiva já está comprometida.",
+    "url": "https://www.stj.jus.br/docs_internet/revista/eletronica/stj-revista-sumulas-2009_capSumula385.pdf",
+    "tags": ["negativacao", "dano_moral", "cadastro_credito", "consumidor"],
+    "tribunal": "STJ",
+    "year": 2009
+  },
+  {
+    "id": "STJ_SUM_479",
+    "text": "Súmula 479 do STJ: As instituições financeiras respondem objetivamente pelos danos gerados por fortuito interno relativo a fraudes e delitos praticados por terceiros no âmbito de operações bancárias. Os bancos assumem o risco da atividade econômica e devem indenizar o cliente por fraudes, clonagem de cartão, transações não autorizadas e golpes realizados por terceiros.",
+    "url": "https://www.stj.jus.br/docs_internet/revista/eletronica/stj-revista-sumulas-2012_capSumula479.pdf",
+    "tags": ["banco", "fraude", "responsabilidade_objetiva", "consumidor", "fortuito_interno"],
+    "tribunal": "STJ",
+    "year": 2012
+  },
+  {
+    "id": "STJ_SUM_529",
+    "text": "Súmula 529 do STJ: No seguro de responsabilidade civil facultativo, não cabe o ajuizamento de ação pelo terceiro prejudicado direta e exclusivamente em face da seguradora do apontado causador do dano. O terceiro deve acionar o segurado (causador do dano), podendo a seguradora ser chamada ao processo via denunciação da lide ou chamamento ao processo.",
+    "url": "https://www.stj.jus.br/docs_internet/revista/eletronica/stj-revista-sumulas-2015_capSumula529.pdf",
+    "tags": ["seguro", "responsabilidade_civil", "terceiro", "seguradora"],
+    "tribunal": "STJ",
+    "year": 2015
+  },
+  {
+    "id": "STJ_SUM_543",
+    "text": "Súmula 543 do STJ: Na hipótese de resolução de contrato de promessa de compra e venda de imóvel submetido ao CDC, deve ocorrer a imediata restituição das parcelas pagas pelo promitente comprador — integralmente, em caso de culpa exclusiva do promitente vendedor/construtor, ou parcialmente, caso tenha sido o comprador quem deu causa ao desfazimento.",
+    "url": "https://www.stj.jus.br/docs_internet/revista/eletronica/stj-revista-sumulas-2015_capSumula543.pdf",
+    "tags": ["imobiliario", "distrato", "restituicao", "consumidor", "compra_venda"],
+    "tribunal": "STJ",
+    "year": 2015
+  },
+  {
+    "id": "STJ_SUM_596",
+    "text": "Súmula 596 do STJ: A obrigação alimentar dos avós tem natureza complementar e subsidiária, somente se configurando no caso de impossibilidade total ou parcial de seu cumprimento pelos pais. Os avós só podem ser acionados para pagar alimentos quando demonstrada a incapacidade financeira do genitor alimentante.",
+    "url": "https://www.stj.jus.br/docs_internet/revista/eletronica/stj-revista-sumulas-2017_capSumula596.pdf",
+    "tags": ["alimentos", "familia", "avos", "subsidiaria"],
+    "tribunal": "STJ",
+    "year": 2017
+  },
+  {
+    "id": "STJ_SUM_616",
+    "text": "Súmula 616 do STJ: A indenização securitária é devida quando ausente a comunicação prévia do segurado acerca do atraso no pagamento do prêmio, por constituir requisito essencial para a suspensão ou resolução do contrato de seguro. A seguradora deve notificar formalmente o segurado sobre o inadimplemento antes de negar a cobertura.",
+    "url": "https://www.stj.jus.br/docs_internet/revista/eletronica/stj-revista-sumulas-2018_capSumula616.pdf",
+    "tags": ["seguro", "premio", "notificacao", "cobertura"],
+    "tribunal": "STJ",
+    "year": 2018
+  },
+  {
+    "id": "TST_SUM_291",
+    "text": "Súmula 291 do TST: A supressão total ou parcial, pelo empregador, de serviço suplementar prestado com habitualidade, durante pelo menos 1 (um) ano, assegura ao empregado o direito à indenização correspondente ao valor de 1 (um) mês das horas suprimidas, total ou parcialmente, para cada ano ou fração igual ou superior a seis meses de prestação de serviço acima da jornada normal.",
+    "url": "https://www3.tst.jus.br/jurisprudencia/Sumulas_com_indice/Sumulas_Ind_251_300.html#SUM-291",
+    "tags": ["trabalhista", "horas_extras", "supressao", "indenizacao"],
+    "tribunal": "TST",
+    "year": 2003
+  },
+  {
+    "id": "TST_SUM_338",
+    "text": "Súmula 338 do TST: É ônus do empregador que conta com mais de 10 (dez) empregados o registro da jornada de trabalho na forma do art. 74, § 2º, da CLT. A não apresentação injustificada dos controles de frequência gera presunção relativa de veracidade da jornada de trabalho alegada pelo empregado, a qual pode ser elidida por prova em contrário.",
+    "url": "https://www3.tst.jus.br/jurisprudencia/Sumulas_com_indice/Sumulas_Ind_301_350.html#SUM-338",
+    "tags": ["trabalhista", "jornada", "onus_prova", "controle_ponto"],
+    "tribunal": "TST",
+    "year": 2003
+  },
+  {
+    "id": "TST_SUM_437",
+    "text": "Súmula 437 do TST: I - Após a edição da Lei nº 8.923/94, a não concessão ou a concessão parcial do intervalo intrajornada mínimo, para repouso e alimentação, a empregados urbanos e rurais, implica o pagamento total do período correspondente, e não apenas daquele suprimido, com acréscimo de, no mínimo, 50% sobre o valor da remuneração da hora normal de trabalho.",
+    "url": "https://www3.tst.jus.br/jurisprudencia/Sumulas_com_indice/Sumulas_Ind_401_450.html#SUM-437",
+    "tags": ["trabalhista", "intervalo", "intrajornada", "hora_extra"],
+    "tribunal": "TST",
+    "year": 2012
+  },
+  {
+    "id": "STF_SUM_VINC_25",
+    "text": "Súmula Vinculante 25 do STF: É ilícita a prisão civil de depositário infiel, qualquer que seja a modalidade de depósito. O Supremo Tribunal Federal, à luz do Pacto de São José da Costa Rica e da jurisprudência da Corte Interamericana de Direitos Humanos, consolidou que a única hipótese de prisão civil admitida no Brasil é a do devedor de alimentos.",
+    "url": "https://portal.stf.jus.br/jurisprudencia/sumariosumulas.asp?base=26&sumula=1268",
+    "tags": ["prisao_civil", "depositario_infiel", "direitos_humanos", "familia"],
+    "tribunal": "STF",
+    "year": 2009
+  },
+  {
+    "id": "STF_SUM_VINC_11",
+    "text": "Súmula Vinculante 11 do STF: Só é lícito o uso de algemas em casos de resistência e de fundado receio de fuga ou de perigo à integridade física própria ou alheia, por parte do preso ou de terceiros, justificada a excepcionalidade por escrito, sob pena de responsabilidade disciplinar, civil e penal do agente ou da autoridade e de nulidade da prisão ou do ato processual a que se refere.",
+    "url": "https://portal.stf.jus.br/jurisprudencia/sumariosumulas.asp?base=26&sumula=1220",
+    "tags": ["criminal", "algemas", "prisao", "direitos_fundamentais"],
+    "tribunal": "STF",
+    "year": 2008
+  },
+  {
+    "id": "RESP_1061134",
+    "text": "REsp 1.061.134/RS (Recurso Repetitivo): Define os critérios para configuração do dano moral em casos de inscrição indevida em cadastros de inadimplentes. O STJ firmou que: (1) a inscrição indevida gera dano moral in re ipsa (presumido), dispensando comprovação de prejuízo concreto; (2) o valor da indenização deve observar o caráter reparatório-pedagógico; (3) devem-se considerar a extensão do dano, a condição econômica das partes e o grau de culpa.",
+    "url": "https://processo.stj.jus.br/processo/revista/documento/mediado/?componente=ITA&sequencial=917868",
+    "tags": ["negativacao", "dano_moral", "consumidor", "recurso_repetitivo", "in_re_ipsa"],
+    "tribunal": "STJ",
+    "year": 2009
+  },
+  {
+    "id": "TEMA_1102_STF",
+    "text": "Tema 1.102 do STF (Revisão da Vida Toda): O Supremo Tribunal Federal decidiu que é constitucional o direito dos segurados do INSS de optar pela regra de cálculo que lhes for mais favorável, podendo incluir contribuições anteriores a julho de 1994 (pré-Real) no cálculo do benefício previdenciário. A chamada 'revisão da vida toda' permite considerar todo o período contributivo, e não apenas as contribuições posteriores ao Plano Real.",
+    "url": "https://portal.stf.jus.br/processos/detalhe.asp?incidente=6042249",
+    "tags": ["previdenciario", "revisao", "inss", "aposentadoria", "plano_real"],
+    "tribunal": "STF",
+    "year": 2022
+  },
+  {
+    "id": "LEI_8078_ART42",
+    "text": "Art. 42 do CDC (Lei 8.078/1990): Na cobrança de débitos, o consumidor inadimplente não será exposto a ridículo, nem será submetido a qualquer tipo de constrangimento ou ameaça. Parágrafo único: O consumidor cobrado em quantia indevida tem direito à repetição do indébito, por valor igual ao dobro do que pagou em excesso, acrescido de correção monetária e juros legais, salvo hipótese de engano justificável.",
+    "url": "https://www.planalto.gov.br/ccivil_03/leis/l8078compilado.htm",
+    "tags": ["consumidor", "cdc", "cobranca_indevida", "repeticao_indebito"],
+    "tribunal": "LEGISLACAO",
+    "year": 1990
+  },
+  {
+    "id": "LEI_13105_ART300",
+    "text": "Art. 300 do CPC (Lei 13.105/2015): A tutela de urgência será concedida quando houver elementos que evidenciem a probabilidade do direito e o perigo de dano ou o risco ao resultado útil do processo. § 1º Para a concessão da tutela de urgência, o juiz pode, conforme o caso, exigir caução real ou fidejussória idônea para ressarcir os danos que a outra parte possa vir a sofrer, podendo a caução ser dispensada se a parte economicamente hipossuficiente não puder oferecê-la.",
+    "url": "https://www.planalto.gov.br/ccivil_03/_ato2015-2018/2015/lei/l13105.htm",
+    "tags": ["processual", "tutela_urgencia", "cpc", "liminar"],
+    "tribunal": "LEGISLACAO",
+    "year": 2015
+  },
+  {
+    "id": "LEI_11340_ART22",
+    "text": "Art. 22 da Lei Maria da Penha (Lei 11.340/2006): Constatada a prática de violência doméstica e familiar contra a mulher, o juiz poderá aplicar, de imediato, ao agressor, em conjunto ou separadamente, as seguintes medidas protetivas de urgência: I - suspensão da posse ou restrição do porte de armas; II - afastamento do lar, domicílio ou local de convivência com a ofendida; III - proibição de determinadas condutas (aproximação, contato, frequentação de lugares); IV - restrição ou suspensão de visitas aos dependentes menores; V - prestação de alimentos provisionais ou provisórios.",
+    "url": "https://www.planalto.gov.br/ccivil_03/_ato2004-2006/2006/lei/l11340.htm",
+    "tags": ["criminal", "violencia_domestica", "medida_protetiva", "maria_da_penha", "familia"],
+    "tribunal": "LEGISLACAO",
+    "year": 2006
+  }
+]

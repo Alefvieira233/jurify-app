@@ -4,6 +4,9 @@ import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { Download, FileSpreadsheet } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
+import { createLogger } from '@/lib/logger';
+
+const log = createLogger('ExportData');
 
 interface ExportDataButtonProps {
   table: 'leads' | 'agendamentos' | 'contratos' | 'profiles' | 'user_roles' | 'logs_atividades';
@@ -48,7 +51,7 @@ const ExportDataButton = ({ table, filename, className }: ExportDataButtonProps)
       const { data, error } = await query;
 
       if (error) {
-        console.error('Erro na consulta:', error);
+        log.error('Erro na consulta', error);
         throw error;
       }
 
@@ -69,10 +72,9 @@ const ExportDataButton = ({ table, filename, className }: ExportDataButtonProps)
             const value = row[header];
             if (value == null) return '';
             if (typeof value === 'string') {
-              if (value.includes(',') || value.includes('"') || value.includes('\n')) {
-                return `"${value.replace(/"/g, '""')}"`;
-              }
-              return value;
+              let safe = value.replace(/"/g, '""');
+              if (/^[=+\-@\t\r]/.test(safe)) safe = `'${safe}`;
+              return `"${safe}"`;
             }
             if (typeof value === 'object') {
               return JSON.stringify(value);
@@ -103,7 +105,7 @@ const ExportDataButton = ({ table, filename, className }: ExportDataButtonProps)
         description: `${data.length} registros exportados com sucesso.`,
       });
     } catch (error) {
-      console.error('Erro na exportacao:', error);
+      log.error('Erro na exportacao', error);
       toast({
         title: 'Erro na exportação',
         description: 'Não foi possível exportar os dados.',

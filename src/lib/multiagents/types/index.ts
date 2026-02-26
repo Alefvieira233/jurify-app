@@ -26,7 +26,18 @@ export const AGENT_CONFIG = {
     ANALYST: 'analista',
     COMMUNICATOR: 'comunicador',
     CUSTOMER_SUCCESS: 'customer_success'
-  }
+  },
+  // Per-agent model routing: reasoning-heavy agents use powerful models,
+  // formatting/simple agents use fast/cheap models for cost optimization.
+  MODELS: {
+    COORDINATOR: { model: 'gpt-4o', temperature: 0.3, maxTokens: 1500 },
+    QUALIFIER: { model: 'gpt-4o-mini', temperature: 0.5, maxTokens: 1200 },
+    LEGAL: { model: 'gpt-4o', temperature: 0.2, maxTokens: 2500 },
+    COMMERCIAL: { model: 'gpt-4o-mini', temperature: 0.6, maxTokens: 1500 },
+    ANALYST: { model: 'gpt-4o-mini', temperature: 0.3, maxTokens: 2000 },
+    COMMUNICATOR: { model: 'gpt-4o-mini', temperature: 0.7, maxTokens: 1000 },
+    CUSTOMER_SUCCESS: { model: 'gpt-4o-mini', temperature: 0.6, maxTokens: 1200 },
+  },
 } as const;
 
 // 🎯 TIPOS DE MENSAGENS ENTRE AGENTES

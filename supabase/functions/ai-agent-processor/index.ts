@@ -207,7 +207,8 @@ async function completeExecution(
   supabase: ReturnType<typeof createClient>,
   executionId: string,
   startTime: number,
-  tokensUsed: number
+  tokensUsed: number,
+  tenantId: string
 ): Promise<void> {
   try {
     const duration = Date.now() - startTime;
@@ -220,7 +221,8 @@ async function completeExecution(
         total_duration_ms: duration,
         total_tokens: tokensUsed,
       })
-      .eq("execution_id", executionId);
+      .eq("execution_id", executionId)
+      .eq("tenant_id", tenantId);
 
     console.log(`âœ… Execution completed: ${executionId} (${duration}ms)`);
   } catch (error) {
@@ -232,7 +234,8 @@ async function completeExecution(
 async function failExecution(
   supabase: ReturnType<typeof createClient>,
   executionId: string,
-  errorMessage: string
+  errorMessage: string,
+  tenantId: string
 ): Promise<void> {
   try {
     await supabase
@@ -242,7 +245,8 @@ async function failExecution(
         error_message: errorMessage,
         completed_at: new Date().toISOString(),
       })
-      .eq("execution_id", executionId);
+      .eq("execution_id", executionId)
+      .eq("tenant_id", tenantId);
 
     console.log(`âŒ Execution failed: ${executionId}`);
   } catch (error) {
@@ -275,10 +279,10 @@ async function logAIProcessing(
       completion_tokens: response.usage?.completion_tokens || 0,
       total_tokens: response.usage?.total_tokens || 0,
       result_preview: response.result.substring(0, 200),
-      // Advanced Logging (LangSmith Style)
-      system_prompt: request.systemPrompt,
-      user_prompt: request.userPrompt,
-      full_result: response.result,
+      // Advanced Logging (LangSmith Style) — truncated to reduce PII surface
+      system_prompt: request.systemPrompt.substring(0, 500),
+      user_prompt: request.userPrompt.substring(0, 500),
+      full_result: response.result.substring(0, 2000),
       context: request.context || null,
       created_at: new Date().toISOString(),
     });
@@ -403,7 +407,7 @@ Deno.serve(async (req) => {
 
       // âœ… Atualiza execuÃ§Ã£o com sucesso
       const tokensUsed = aiResponse.usage?.total_tokens || 0;
-      await completeExecution(supabase, executionId, startTime, tokensUsed);
+      await completeExecution(supabase, executionId, startTime, tokensUsed, aiRequest.tenantId);
 
       // ðŸ“Š Salva log (nÃ£o-bloqueante)
       logAIProcessing(
@@ -431,7 +435,7 @@ Deno.serve(async (req) => {
         processingError instanceof Error
           ? processingError.message
           : "Unknown processing error";
-      await failExecution(supabase, executionId, errorMsg);
+      await failExecution(supabase, executionId, errorMsg, aiRequest.tenantId);
 
       throw processingError;
     }

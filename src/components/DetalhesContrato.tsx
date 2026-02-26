@@ -12,6 +12,7 @@ import { toast } from 'sonner';
 import { StatusAssinatura } from './StatusAssinatura';
 import { GerarAssinaturaZapSign } from './GerarAssinaturaZapSign';
 import { fmtCurrencyFull, fmtDateTimeFull } from '@/utils/formatting';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface Contrato {
   id: string;
@@ -46,16 +47,20 @@ export const DetalhesContrato = ({ contrato, onClose: _onClose }: DetalhesContra
   const [isEditing, setIsEditing] = useState(false);
   const [editedStatus, setEditedStatus] = useState(contrato.status);
   const [editedObservacoes, setEditedObservacoes] = useState(contrato.observacoes || '');
+  const { profile } = useAuth();
+  const tenantId = profile?.tenant_id || null;
 
   const queryClient = useQueryClient();
 
   // Mutation para atualizar contrato
   const updateContratoMutation = useMutation({
     mutationFn: async (updates: ContratoUpdate) => {
+      if (!tenantId) throw new Error('Tenant n\u00e3o encontrado');
       const { error } = await supabase
         .from('contratos')
         .update(updates)
-        .eq('id', contrato.id);
+        .eq('id', contrato.id)
+        .eq('tenant_id', tenantId);
       
       if (error) throw error;
     },

@@ -57,8 +57,9 @@ export const useCRMTags = () => {
   }, [tenantId, fetchTags, toast]);
 
   const deleteTag = useCallback(async (id: string): Promise<boolean> => {
+    if (!tenantId) return false;
     try {
-      const { error } = await supabase.from('crm_tags').delete().eq('id', id);
+      const { error } = await supabase.from('crm_tags').delete().eq('id', id).eq('tenant_id', tenantId);
       if (error) throw error;
       void fetchTags();
       return true;
@@ -66,7 +67,7 @@ export const useCRMTags = () => {
       log.error('Failed to delete tag', error);
       return false;
     }
-  }, [fetchTags]);
+  }, [tenantId, fetchTags]);
 
   const addTagToLead = useCallback(async (leadId: string, tagId: string): Promise<boolean> => {
     try {

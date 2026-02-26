@@ -2,6 +2,9 @@
 import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { createLogger } from '@/lib/logger';
+
+const log = createLogger('ZapSign');
 
 // ðŸš€ RETRY LOGIC COM EXPONENTIAL BACKOFF - TESLA/SPACEX GRADE
 const retryWithBackoff = async <T>(
@@ -23,7 +26,7 @@ const retryWithBackoff = async <T>(
       
       // Exponential backoff: 1s, 2s, 4s
       const delay = baseDelay * Math.pow(2, attempt);
-      console.log(`ðŸ”„ Tentativa ${attempt + 1} falhou, tentando novamente em ${delay}ms...`);
+      log.warn(`Tentativa ${attempt + 1} falhou, tentando novamente em ${delay}ms`);
       await new Promise(resolve => setTimeout(resolve, delay));
     }
   }
@@ -72,7 +75,7 @@ export const useZapSignIntegration = (): UseZapSignIntegrationReturn => {
       toast.success('Link de assinatura gerado com sucesso!');
       return true;
     } catch (error) {
-      console.error('Erro ao gerar link ZapSign apÃ³s 3 tentativas:', error);
+      log.error('Erro ao gerar link ZapSign apÃ³s 3 tentativas', error);
       toast.error("Erro ao gerar link");
       return false;
     } finally {
@@ -92,10 +95,10 @@ export const useZapSignIntegration = (): UseZapSignIntegrationReturn => {
       if (error) throw error;
 
       if (data.success) {
-        console.log('Status atualizado:', data.status);
+        log.debug('Status atualizado', { status: data.status });
       }
     } catch (error) {
-      console.error('Erro ao verificar status:', error);
+      log.error('Erro ao verificar status', error);
       toast.error("Erro ao verificar status");
     }
   };
@@ -129,7 +132,7 @@ export const useZapSignIntegration = (): UseZapSignIntegrationReturn => {
       toast.success('Link enviado via WhatsApp com sucesso!');
       return true;
     } catch (error) {
-      console.error('Erro ao enviar via WhatsApp apÃ³s 3 tentativas:', error);
+      log.error('Erro ao enviar via WhatsApp apÃ³s 3 tentativas', error);
       toast.error("Erro ao enviar");
       return false;
     } finally {

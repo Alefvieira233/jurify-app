@@ -26,6 +26,9 @@ import {
     ArrowUpRight,
     RefreshCw,
 } from 'lucide-react';
+import { createLogger } from '@/lib/logger';
+
+const log = createLogger('SubscriptionManager');
 
 interface Subscription {
     id: string;
@@ -128,7 +131,7 @@ export const SubscriptionManager = () => {
             });
 
         } catch (error) {
-            console.error('Error loading subscription:', error);
+            log.error('Error loading subscription', error);
         } finally {
             setLoading(false);
         }
@@ -151,7 +154,7 @@ export const SubscriptionManager = () => {
                 window.location.href = data.url;
             }
         } catch (error) {
-            console.error('Upgrade error:', error);
+            log.error('Upgrade error', error);
             toast({
                 title: 'Erro',
                 description: 'Não foi possível iniciar o upgrade. Tente novamente.',

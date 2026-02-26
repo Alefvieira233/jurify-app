@@ -2,6 +2,9 @@ import { useState, useEffect, useCallback } from 'react';
 import { supabaseUntyped as supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
+import { createLogger } from '@/lib/logger';
+
+const log = createLogger('ActivityLogs');
 
 export interface LogAtividade {
   id: string;
@@ -60,7 +63,7 @@ export const useActivityLogs = () => {
         setTotalCount(0);
       }
     } catch (error) {
-      console.error('Erro ao buscar logs:', error);
+      log.error('Erro ao buscar logs', error);
       toast({
         title: 'Erro',
         description: 'Nao foi possivel carregar os logs de atividade.',
@@ -92,7 +95,7 @@ export const useActivityLogs = () => {
 
       if (error) throw error;
     } catch (error) {
-      console.error('Erro ao registrar log:', error);
+      log.error('Erro ao registrar log', error);
     }
   };
 
@@ -119,7 +122,7 @@ export const useActivityLogs = () => {
       await fetchLogs();
       return true;
     } catch (error) {
-      console.error('Erro ao limpar logs:', error);
+      log.error('Erro ao limpar logs', error);
       toast({
         title: 'Erro',
         description: 'Nao foi possivel limpar os logs antigos.',
@@ -145,16 +148,23 @@ export const useActivityLogs = () => {
 
       if (error) throw error;
 
+      // Sanitize CSV field to prevent formula injection (=, +, -, @, tab, CR)
+      const csvSafe = (val: string): string => {
+        let safe = val.replace(/"/g, '""');
+        if (/^[=+\-@\t\r]/.test(safe)) safe = `'${safe}`;
+        return `"${safe}"`;
+      };
+
       const headers = ['Data/Hora', 'Usuario', 'Tipo Acao', 'Modulo', 'Descricao', 'IP'];
       const csvContent = [
         headers.join(','),
         ...data.map((log: { data_hora: string; nome_usuario: string; tipo_acao: string; modulo: string; descricao: string; ip_usuario: string | null }) => [
-          new Date(log.data_hora).toLocaleString('pt-BR'),
-          log.nome_usuario,
-          log.tipo_acao,
-          log.modulo,
-          `"${log.descricao.replace(/"/g, '""')}"`,
-          log.ip_usuario || ''
+          csvSafe(new Date(log.data_hora).toLocaleString('pt-BR')),
+          csvSafe(log.nome_usuario),
+          csvSafe(log.tipo_acao),
+          csvSafe(log.modulo),
+          csvSafe(log.descricao),
+          csvSafe(log.ip_usuario || '')
         ].join(','))
       ].join('\n');
 
@@ -169,7 +179,7 @@ export const useActivityLogs = () => {
         description: 'Logs exportados com sucesso!',
       });
     } catch (error) {
-      console.error('Erro ao exportar logs:', error);
+      log.error('Erro ao exportar logs', error);
       toast({
         title: 'Erro',
         description: 'Nao foi possivel exportar os logs.',

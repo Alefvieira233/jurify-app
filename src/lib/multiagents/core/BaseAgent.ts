@@ -13,6 +13,7 @@ import { DEFAULT_OPENAI_MODEL } from '@/lib/ai/model';
 import { ExecutionTracker } from './ExecutionTracker';
 import { agentMemory } from './AgentMemory';
 import { createLogger } from '@/lib/logger';
+import { SanitizerEngine } from '@/lib/security/SanitizerEngine';
 import {
   Priority,
   MessageType,
@@ -189,21 +190,37 @@ export abstract class BaseAgent implements IAgent {
         }
       }
 
+      // LGPD: Sanitize PII BEFORE any LLM call (streaming or non-streaming)
+      const sanitizer = new SanitizerEngine();
+      const { safePayload: safePrompt, lookupMap: piiLookup } = sanitizer.sanitize(augmentedPrompt);
+      const { safePayload: safeContext } = sanitizer.sanitize(context || {});
+
       if (options?.stream) {
         try {
-          return await this.streamChatCompletion(augmentedPrompt, options.onToken);
+          const streamResult = await this.streamChatCompletion(safePrompt as string, options.onToken);
+          // LGPD: Rehydrate PII tokens in streamed response
+          return piiLookup.size > 0
+            ? SanitizerEngine.rehydrate(streamResult, piiLookup) as string
+            : streamResult;
         } catch (_streamError) {
           log.warn(`[stream] Falha no streaming para ${this.name}, usando fallback non-stream`);
         }
       }
 
+      if (piiLookup.size > 0) {
+        log.debug(`${this.name} sanitized ${piiLookup.size} PII tokens before LLM call`);
+      }
+
+      // LGPD: Sanitize systemPrompt too (may contain lead context with PII)
+      const { safePayload: safeSystemPrompt } = sanitizer.sanitize(this.getSystemPrompt());
+
       // Prepara payload para Edge Function
       const aiRequest: AgentAIRequest = {
         agentName: this.name,
         agentSpecialization: this.specialization,
-        systemPrompt: this.getSystemPrompt(),
-        userPrompt: augmentedPrompt,
-        context: context || {},
+        systemPrompt: safeSystemPrompt as string,
+        userPrompt: safePrompt as string,
+        context: (safeContext as Record<string, unknown>) || {},
         model: this.model,
         temperature: this.temperature,
         maxTokens: this.maxTokens,
@@ -232,13 +249,18 @@ export abstract class BaseAgent implements IAgent {
       this.lastTokensUsed = tokensUsed;
       log.info(`${this.name} AI response received (${tokensUsed} tokens)`);
 
+      // LGPD: Rehydrate PII tokens in AI response before returning to user
+      const rehydratedResult = piiLookup.size > 0
+        ? SanitizerEngine.rehydrate(data.result, piiLookup) as string
+        : data.result;
+
       if (this.context?.leadId) {
         const { error: logError } = await supabase
           .from('lead_interactions')
           .insert({
             lead_id: this.context.leadId,
             message: prompt,
-            response: data.result,
+            response: rehydratedResult,
             tenant_id: this.context.metadata?.tenantId || null,
             channel: this.context.metadata?.channel || 'chat',
             tipo: 'message',
@@ -253,14 +275,16 @@ export abstract class BaseAgent implements IAgent {
         }
 
         // MCP: Salva resultado como memória de longo prazo
+        // LGPD: Use sanitized data only — never store raw PII in memory
         if (tenantId) {
-          const summary = data.result.length > 500 ? data.result.substring(0, 500) + '...' : data.result;
+          const safeSummary = rehydratedResult.length > 500 ? rehydratedResult.substring(0, 500) + '...' : rehydratedResult;
+          const safePromptStr = typeof safePrompt === 'string' ? safePrompt : String(safePrompt);
           agentMemory.store({
             tenant_id: tenantId,
             lead_id: this.context.leadId,
             agent_name: this.name,
             memory_type: 'conversation',
-            content: `[${this.name}] Prompt: ${prompt.substring(0, 200)}... | Response: ${summary}`,
+            content: `[${this.name}] Prompt: ${safePromptStr.substring(0, 200)}... | Response: ${safeSummary}`,
             importance: 5,
             metadata: {
               tokens_used: tokensUsed,
@@ -271,7 +295,7 @@ export abstract class BaseAgent implements IAgent {
         }
       }
 
-      return data.result;
+      return rehydratedResult;
 
     } catch (error) {
       log.error(`Erro no processamento de IA para ${this.name}`, error);

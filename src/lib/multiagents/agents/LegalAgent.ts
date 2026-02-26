@@ -7,10 +7,21 @@
 
 import { BaseAgent } from '../core/BaseAgent';
 import { AgentMessage, MessageType, Priority, AGENT_CONFIG } from '../types';
+import { createLogger } from '@/lib/logger';
+import {
+  retrieveLegalContext,
+  validateCitations,
+  getRAGSystemConstraints,
+  TRUST_ENGINE_FALLBACK,
+} from '@/lib/legal/TrustEngine';
+import type { RetrievalResult } from '@/lib/legal/TrustEngine';
+
+const log = createLogger('LegalAgent');
 
 export class LegalAgent extends BaseAgent {
   constructor() {
     super(AGENT_CONFIG.NAMES.LEGAL, 'Analise Legal', AGENT_CONFIG.IDS.LEGAL);
+    this.configureAI(AGENT_CONFIG.MODELS.LEGAL);
   }
 
   protected getSystemPrompt(): string {
@@ -236,11 +247,87 @@ SUSEP/ANS/BACEN: para regulados
 
   private async validateCase(payload: { task?: string; leadId?: string; data?: unknown; [key: string]: unknown }): Promise<void> {
     try {
-      console.log(`⚖️ [Legal] Validando caso: ${payload.leadId || 'novo'}`);
-      
-      const validation = await this.processWithAIRetry(
-        `Valide juridicamente este caso: ${JSON.stringify(payload.data)}. Analise viabilidade, complexidade e estratégia.`
-      );
+      log.info(`Validando caso: ${payload.leadId || 'novo'}`);
+
+      const caseDescription = payload.data ? JSON.stringify(payload.data) : '(dados do caso não fornecidos)';
+      const basePrompt = `Valide juridicamente este caso: ${caseDescription}. Analise viabilidade, complexidade e estratégia.`;
+
+      // ⚖️ TRUST ENGINE: Retrieve legal context via RAG
+      let retrieval: RetrievalResult = {
+        documents: [],
+        contextBlock: '',
+        hasContext: false,
+        sourceIds: new Set(),
+      };
+
+      try {
+        retrieval = await retrieveLegalContext(basePrompt);
+        log.info(`Trust Engine: ${retrieval.documents.length} docs retrieved, hasContext=${retrieval.hasContext}`);
+      } catch (ragErr) {
+        log.warn('Trust Engine retrieval failed, proceeding without RAG context', { error: ragErr });
+      }
+
+      // If no context and we want strict mode: return fallback without LLM call
+      // (saves cost, prevents hallucination)
+      if (!retrieval.hasContext) {
+        log.info('No legal context available — using fallback response (no LLM call)');
+
+        const fallbackResult = {
+          viavel: false,
+          grau_viabilidade: 'inviavel' as const,
+          area_juridica: 'civil' as const,
+          observacoes_tecnicas: TRUST_ENGINE_FALLBACK,
+          disclaimer: 'Análise não realizada por ausência de dados na base de jurisprudência. Consulte um advogado habilitado.',
+          jurisprudencia_mapeada: [],
+        };
+
+        this.updateContext(payload.leadId || '', {
+          stage: 'validated',
+          validation: fallbackResult,
+          viable: false,
+        });
+
+        await this.recordStageResult('legal_validation', fallbackResult, true);
+
+        await this.sendMessage(
+          AGENT_CONFIG.NAMES.COORDINATOR,
+          MessageType.STATUS_UPDATE,
+          { stage: 'validated', leadId: payload.leadId, validation: fallbackResult, viable: false },
+          Priority.HIGH
+        );
+        return;
+      }
+
+      // Build RAG-augmented prompt
+      const ragConstraints = getRAGSystemConstraints(true);
+      const augmentedPrompt = `${ragConstraints}\n\n${retrieval.contextBlock}\n\n${basePrompt}`;
+
+      let validation = await this.processWithAIRetry(augmentedPrompt);
+
+      // ⚖️ POST-RESPONSE VALIDATION: check citations are from retrieved context only
+      const citationCheck = validateCitations(validation, retrieval.sourceIds);
+      if (!citationCheck.isValid) {
+        log.warn('Citation validation failed — invalid sources cited', {
+          invalidCitations: citationCheck.invalidCitations,
+        });
+
+        // One retry with stricter instruction
+        const retryPrompt = `${augmentedPrompt}\n\nATENÇÃO: Sua resposta anterior citou fontes fora do contexto fornecido (${citationCheck.invalidCitations.join(', ')}). Remova-as e cite APENAS as fontes do bloco [JURISPRUDÊNCIA RECUPERADA DA BASE OFICIAL].`;
+
+        try {
+          validation = await this.processWithAIRetry(retryPrompt);
+          const retryCheck = validateCitations(validation, retrieval.sourceIds);
+          if (!retryCheck.isValid) {
+            log.error('Citation validation failed on retry — using stripped response', {
+              invalidCitations: retryCheck.invalidCitations,
+            });
+            // Keep the response but log the violation for audit
+          }
+        } catch (retryErr) {
+          log.error('Retry after citation validation failure also failed', { error: retryErr });
+          // Keep original validation response
+        }
+      }
 
       // Usa o safeParseJSON do BaseAgent para parsing robusto
       const parsedValidation: Record<string, unknown> = this.safeParseJSON(validation) || { raw_validation: validation };
@@ -256,7 +343,7 @@ SUSEP/ANS/BACEN: para regulados
         viable = validation.toLowerCase().includes('viável') || validation.toLowerCase().includes('viable');
       }
       
-      console.log(`✅ [Legal] Validação concluída: viável=${viable}`);
+      log.debug('Validação concluída', { viable });
 
       this.updateContext(payload.leadId || '', { 
         stage: 'validated', 

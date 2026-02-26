@@ -1,8 +1,9 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { supabaseUntyped as supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useAgendaAutomation } from '@/hooks/useAgendaAutomation';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -14,6 +15,9 @@ import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
+import { createLogger } from '@/lib/logger';
+
+const log = createLogger('NovoAgendamento');
 
 interface NovoAgendamentoFormData {
   lead_id: string;
@@ -28,21 +32,23 @@ interface NovoAgendamentoFormProps {
 }
 
 export const NovoAgendamentoForm = ({ onClose }: NovoAgendamentoFormProps) => {
-  const { profile } = useAuth();
+  const { user, profile } = useAuth();
   const tenantId = profile?.tenant_id || null;
+  const queryClient = useQueryClient();
+  const { register, handleSubmit, setValue, formState: { errors } } = useForm<NovoAgendamentoFormData>();
+  const { runAutomation } = useAgendaAutomation();
+
+  // Automation configuration
+  const [automationConfig, _setAutomationConfig] = useState({
+    send_email_invite: true,
+    send_whatsapp: false,
+    create_task: true,
+    create_reminders: true,
+    create_drive_folder: false,
+  });
+
   const [selectedDate, setSelectedDate] = React.useState<Date>();
   const [selectedTime, setSelectedTime] = React.useState('');
-  const queryClient = useQueryClient();
-
-  const { register, handleSubmit, setValue, formState: { errors } } = useForm<NovoAgendamentoFormData>({
-    defaultValues: {
-      lead_id: '',
-      area_juridica: '',
-      data_hora: '',
-      responsavel: '',
-      observacoes: ''
-    }
-  });
 
   const { data: leads = [] } = useQuery({
     queryKey: ['leads', tenantId],
@@ -61,7 +67,7 @@ export const NovoAgendamentoForm = ({ onClose }: NovoAgendamentoFormProps) => {
 
   const createAgendamentoMutation = useMutation({
     mutationFn: async (data: NovoAgendamentoFormData) => {
-      const { error } = await supabase
+      const { data: result, error } = await supabase
         .from('agendamentos')
         .insert([
           {
@@ -74,13 +80,33 @@ export const NovoAgendamentoForm = ({ onClose }: NovoAgendamentoFormProps) => {
             observacoes: data.observacoes || null,
             google_event_id: null,
           },
-        ]);
+        ])
+        .select()
+        .single();
 
       if (error) throw error;
+      return result;
     },
-    onSuccess: () => {
+    onSuccess: async (result) => {
       void queryClient.invalidateQueries({ queryKey: ['agendamentos'] });
       toast.success('Agendamento criado com sucesso!');
+      
+      // Run automation if configured
+      if (result && typeof result === 'object' && 'id' in result) {
+        const agendamento = {
+          ...result,
+          tenant_id: tenantId!,
+          user_id: user?.id || '',
+        };
+        
+        try {
+          await runAutomation(agendamento, automationConfig);
+        } catch (error) {
+          log.error('Automation error', error);
+          toast.error('Erro na automação, mas agendamento foi criado');
+        }
+      }
+      
       onClose();
     },
     onError: () => {

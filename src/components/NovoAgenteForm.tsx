@@ -23,6 +23,10 @@ import {
   AdvancedParamsSection,
   InteractionConfigSection
 } from '@/components/agente-form';
+import { createLogger } from '@/lib/logger';
+import { useAuth } from '@/contexts/AuthContext';
+
+const log = createLogger('NovoAgenteForm');
 
 interface NovoAgenteFormProps {
   agente?: AgenteIA | null;
@@ -33,6 +37,8 @@ interface NovoAgenteFormProps {
 const NovoAgenteForm: React.FC<NovoAgenteFormProps> = ({ agente, defaultType, onClose }) => {
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
+  const { profile } = useAuth();
+  const tenantId = profile?.tenant_id || null;
 
   const [formData, setFormData] = useState({
     nome: '',
@@ -163,10 +169,12 @@ const NovoAgenteForm: React.FC<NovoAgenteFormProps> = ({ agente, defaultType, on
       };
 
       if (agente) {
+        if (!tenantId) throw new Error('Tenant não encontrado');
         const { error } = await supabase
           .from('agentes_ia')
           .update(sanitizedData)
-          .eq('id', agente.id);
+          .eq('id', agente.id)
+          .eq('tenant_id', tenantId);
 
         if (error) throw error;
 
@@ -189,7 +197,7 @@ const NovoAgenteForm: React.FC<NovoAgenteFormProps> = ({ agente, defaultType, on
 
       onClose();
     } catch (error) {
-      console.error('Erro ao salvar agente:', error);
+      log.error('Erro ao salvar agente', error);
       toast({
         title: "Erro",
         description: "Não foi possível salvar o agente. Verifique os dados e tente novamente.",

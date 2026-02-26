@@ -7,6 +7,9 @@ import { Download, Upload } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { supabaseUntyped as supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { createLogger } from '@/lib/logger';
+
+const log = createLogger('BackupRestore');
 
 const BackupRestore = () => {
   const [loading, setLoading] = useState(false);
@@ -69,7 +72,7 @@ const BackupRestore = () => {
           .eq('tenant_id', tenantId);
 
         if (error) {
-          console.error(`Erro ao exportar ${table}:`, error);
+          log.error(`Erro ao exportar ${table}`, error);
           continue;
         }
 
@@ -98,7 +101,7 @@ const BackupRestore = () => {
         description: 'Configurações exportadas com sucesso.'
       });
     } catch (error) {
-      console.error('Erro no backup:', error);
+      log.error('Erro no backup', error);
       toast({
         title: 'Erro no backup',
         description: 'Falha ao exportar configurações.',
@@ -166,7 +169,7 @@ const BackupRestore = () => {
             .insert(payload);
 
           if (error) {
-            console.error(`Erro ao importar ${table}:`, error);
+            log.error(`Erro ao importar ${table}`, error);
           }
         }
       }
@@ -178,7 +181,7 @@ const BackupRestore = () => {
 
       setBackupData('');
     } catch (error) {
-      console.error('Erro na importacao:', error);
+      log.error('Erro na importacao', error);
       toast({
         title: 'Erro na importação',
         description: 'Falha ao importar configurações. Verifique o JSON.',

@@ -124,7 +124,7 @@ export const useContratos = () => {
   }, [user, toast, setContratos, normalizeContrato]);
 
   const updateContrato = useCallback(async (id: string, updateData: Partial<ContratoInput>): Promise<boolean> => {
-    if (!user) return false;
+    if (!user || !profile?.tenant_id) return false;
 
     try {
       log.info('Atualizando contrato', { id });
@@ -133,6 +133,7 @@ export const useContratos = () => {
         .from('contratos')
         .update({ ...updateData, updated_at: new Date().toISOString() })
         .eq('id', id)
+        .eq('tenant_id', profile.tenant_id)
         .select()
         .single();
 
@@ -162,7 +163,7 @@ export const useContratos = () => {
       });
       return false;
     }
-  }, [user, toast, setContratos, normalizeContrato]);
+  }, [user, profile?.tenant_id, toast, setContratos, normalizeContrato]);
 
   return {
     contratos,

@@ -145,6 +145,81 @@ export function startSentryTransaction(name: string, op: string = 'custom') {
   return null;
 }
 
+// ---------------------------------------------------------------------------
+// Agent-specific monitoring helpers
+// ---------------------------------------------------------------------------
+
+/**
+ * Capture an agent execution error with full context.
+ * Triggers a Sentry alert with agent name, tenant, and lead info.
+ */
+export function captureAgentError(
+  error: Error,
+  context: {
+    agentName: string;
+    tenantId?: string;
+    leadId?: string;
+    executionId?: string;
+    stage?: string;
+  }
+) {
+  Sentry.withScope((scope) => {
+    scope.setTag('agent.name', context.agentName);
+    scope.setTag('agent.stage', context.stage ?? 'unknown');
+    scope.setContext('agent', {
+      agentName: context.agentName,
+      tenantId: context.tenantId,
+      leadId: context.leadId,
+      executionId: context.executionId,
+      stage: context.stage,
+    });
+    scope.setLevel('error');
+    Sentry.captureException(error);
+  });
+}
+
+/**
+ * Alert when agent response time exceeds threshold (default: 10s).
+ */
+export function reportSlowAgent(
+  agentName: string,
+  durationMs: number,
+  thresholdMs = 10_000
+) {
+  if (durationMs <= thresholdMs) return;
+
+  Sentry.withScope((scope) => {
+    scope.setTag('agent.name', agentName);
+    scope.setTag('alert.type', 'slow_response');
+    scope.setLevel('warning');
+    Sentry.captureMessage(
+      `Agent ${agentName} exceeded response time: ${durationMs}ms (threshold: ${thresholdMs}ms)`,
+      'warning'
+    );
+  });
+}
+
+/**
+ * Alert when agent failure rate for a tenant exceeds threshold (default: 5%).
+ */
+export function reportHighAgentFailureRate(
+  tenantId: string,
+  failureRate: number,
+  thresholdPct = 5
+) {
+  if (failureRate <= thresholdPct) return;
+
+  Sentry.withScope((scope) => {
+    scope.setTag('alert.type', 'high_failure_rate');
+    scope.setTag('tenant.id', tenantId);
+    scope.setLevel('error');
+    Sentry.captureMessage(
+      `Agent failure rate for tenant ${tenantId}: ${failureRate.toFixed(1)}% (threshold: ${thresholdPct}%)`,
+      'error'
+    );
+  });
+}
+
 /**
  * HOC for error boundary.
  */

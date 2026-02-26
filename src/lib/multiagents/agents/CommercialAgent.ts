@@ -7,10 +7,14 @@
 
 import { BaseAgent } from '../core/BaseAgent';
 import { AgentMessage, MessageType, Priority, AGENT_CONFIG } from '../types';
+import { createLogger } from '@/lib/logger';
+
+const log = createLogger('CommercialAgent');
 
 export class CommercialAgent extends BaseAgent {
   constructor() {
     super(AGENT_CONFIG.NAMES.COMMERCIAL, 'Vendas', AGENT_CONFIG.IDS.COMMERCIAL);
+    this.configureAI(AGENT_CONFIG.MODELS.COMMERCIAL);
   }
 
   protected getSystemPrompt(): string {
@@ -158,7 +162,7 @@ Resposta: "Nossa análise jurídica indicou [nível de viabilidade] de êxito ne
 
   private async createProposal(payload: { task?: string; leadId?: string; data?: unknown; [key: string]: unknown }): Promise<void> {
     try {
-      console.log(`💼 [Commercial] Criando proposta para lead: ${payload.leadId || 'novo'}`);
+      log.info(`Criando proposta para lead: ${payload.leadId || 'novo'}`);
       
       const proposal = await this.processWithAIRetry(
         `Crie proposta comercial para: ${JSON.stringify(payload.data)}. Inclua valor, prazo, forma de pagamento.`
@@ -170,7 +174,7 @@ Resposta: "Nossa análise jurídica indicou [nível de viabilidade] de êxito ne
         mensagem_cliente: proposal 
       };
       
-      console.log(`✅ [Commercial] Proposta criada:`, Object.keys(parsedProposal));
+      log.debug('Proposta criada', { keys: Object.keys(parsedProposal) });
 
       this.updateContext(payload.leadId || '', { 
         stage: 'proposal_created', 

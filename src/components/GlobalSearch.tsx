@@ -4,6 +4,9 @@ import { useNavigate } from 'react-router-dom';
 import { supabaseUntyped as supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
+import { createLogger } from '@/lib/logger';
+
+const log = createLogger('GlobalSearch');
 
 interface SearchResult {
   id: string;
@@ -134,7 +137,7 @@ export default function GlobalSearch() {
       setResults(searchResults);
       setSelectedIndex(0);
     } catch (err) {
-      console.error('Search error:', err);
+      log.error('Search error', err);
       toast({
         title: 'Erro na busca',
         description: 'Não foi possível realizar a busca. Tente novamente.',

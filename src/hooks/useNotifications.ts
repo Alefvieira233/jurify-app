@@ -13,6 +13,9 @@ import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
+import { createLogger } from '@/lib/logger';
+
+const log = createLogger('Notifications');
 
 type NotificationType = 'info' | 'alerta' | 'sucesso' | 'erro';
 
@@ -57,7 +60,7 @@ export const useNotifications = () => {
       const unread = (data || []).filter((n) => !n.lido_por?.includes(user.id)).length;
       setUnreadCount(unread);
     } catch (error) {
-      console.error('Failed to load notifications:', error);
+      log.error('Failed to load notifications', error);
       toast({
         title: 'Erro',
         description: 'Nao foi possivel carregar as notificacoes.',
@@ -90,7 +93,7 @@ export const useNotifications = () => {
         setUnreadCount((prev) => Math.max(0, prev - 1));
       }
     } catch (error) {
-      console.error('Failed to mark as read:', error);
+      log.error('Failed to mark as read', error);
     }
   };
 
@@ -115,7 +118,7 @@ export const useNotifications = () => {
         description: `${data} notificacao(oes) marcada(s) como lida(s).`,
       });
     } catch (error) {
-      console.error('Failed to mark all as read:', error);
+      log.error('Failed to mark all as read', error);
       toast({
         title: 'Erro',
         description: 'Nao foi possivel marcar todas como lidas.',
@@ -151,7 +154,7 @@ export const useNotifications = () => {
 
       await fetchNotifications();
     } catch (error) {
-      console.error('Failed to create notification:', error);
+      log.error('Failed to create notification', error);
       toast({
         title: 'Erro',
         description: 'Nao foi possivel criar a notificacao.',

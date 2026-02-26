@@ -169,10 +169,25 @@ export const useFollowUps = () => {
     if (!user) return false;
     try {
       const now = new Date().toISOString();
+
+      // Read existing metadata so we merge instead of overwriting
+      const { data: existing } = await supabase
+        .from('crm_followups')
+        .select('metadata')
+        .eq('id', id)
+        .eq('tenant_id', tenantId)
+        .single();
+
+      const mergedMetadata = {
+        ...((existing?.metadata as Record<string, unknown>) || {}),
+        ...(notes ? { completion_notes: notes } : {}),
+      };
+
       const { data: followUp, error } = await supabase
         .from('crm_followups')
-        .update({ status: 'completed', completed_at: now, updated_at: now, metadata: notes ? { completion_notes: notes } : {} })
+        .update({ status: 'completed', completed_at: now, updated_at: now, metadata: mergedMetadata })
         .eq('id', id)
+        .eq('tenant_id', tenantId)
         .select()
         .single();
       if (error) throw error;
@@ -203,10 +218,12 @@ export const useFollowUps = () => {
 
   const cancelFollowUp = useCallback(async (id: string): Promise<boolean> => {
     try {
+      if (!tenantId) return false;
       const { error } = await supabase
         .from('crm_followups')
         .update({ status: 'cancelled', updated_at: new Date().toISOString() })
-        .eq('id', id);
+        .eq('id', id)
+        .eq('tenant_id', tenantId);
       if (error) throw error;
       toast({ title: 'Sucesso', description: 'Follow-up cancelado.' });
       void fetchFollowUps();
@@ -216,14 +233,16 @@ export const useFollowUps = () => {
       log.error('Failed to cancel follow-up', error);
       return false;
     }
-  }, [fetchFollowUps, getOverdueCount, toast]);
+  }, [fetchFollowUps, getOverdueCount, toast, tenantId]);
 
   const snoozeFollowUp = useCallback(async (id: string, until: string): Promise<boolean> => {
     try {
+      if (!tenantId) return false;
       const { error } = await supabase
         .from('crm_followups')
         .update({ status: 'snoozed', snoozed_until: until, updated_at: new Date().toISOString() })
-        .eq('id', id);
+        .eq('id', id)
+        .eq('tenant_id', tenantId);
       if (error) throw error;
       toast({ title: 'Sucesso', description: 'Follow-up adiado.' });
       void fetchFollowUps();
@@ -232,14 +251,16 @@ export const useFollowUps = () => {
       log.error('Failed to snooze follow-up', error);
       return false;
     }
-  }, [fetchFollowUps, toast]);
+  }, [fetchFollowUps, toast, tenantId]);
 
   const rescheduleFollowUp = useCallback(async (id: string, newDate: string): Promise<boolean> => {
     try {
+      if (!tenantId) return false;
       const { error } = await supabase
         .from('crm_followups')
         .update({ scheduled_at: newDate, status: 'pending', snoozed_until: null, updated_at: new Date().toISOString() })
-        .eq('id', id);
+        .eq('id', id)
+        .eq('tenant_id', tenantId);
       if (error) throw error;
       toast({ title: 'Sucesso', description: 'Follow-up reagendado!' });
       void fetchFollowUps();
@@ -248,7 +269,7 @@ export const useFollowUps = () => {
       log.error('Failed to reschedule follow-up', error);
       return false;
     }
-  }, [fetchFollowUps, toast]);
+  }, [fetchFollowUps, toast, tenantId]);
 
   return {
     followUps, overdueCount, loading,

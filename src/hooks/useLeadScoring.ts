@@ -67,7 +67,7 @@ export const useLeadScoring = () => {
       });
       if (error) throw error;
 
-      await supabase.from('leads').update({ lead_score: score, updated_at: new Date().toISOString() }).eq('id', leadId);
+      await supabase.from('leads').update({ lead_score: score, updated_at: new Date().toISOString() }).eq('id', leadId).eq('tenant_id', tenantId);
       setScores(prev => ({ ...prev, [leadId]: score }));
       return true;
     } catch (error) {

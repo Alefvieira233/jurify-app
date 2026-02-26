@@ -2,6 +2,9 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabaseUntyped as supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
+import { createLogger } from '@/lib/logger';
+
+const log = createLogger('SystemSettings');
 
 interface SystemSetting {
   id: string;
@@ -62,7 +65,7 @@ export const useSystemSettings = () => {
         description: 'Erro ao salvar configuração.',
         variant: 'destructive',
       });
-      console.error('Failed to update system setting:', error);
+      log.error('Failed to update system setting', error);
     },
   });
 

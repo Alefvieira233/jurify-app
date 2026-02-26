@@ -7,6 +7,9 @@ import { CheckCircle, Circle, Play, X, ExternalLink } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { createLogger } from '@/lib/logger';
+
+const log = createLogger('OnboardingFlow');
 
 interface OnboardingStep {
   id: string;
@@ -95,7 +98,7 @@ const OnboardingFlow = () => {
         setShowOnboarding(true);
       }
     } catch (error) {
-      console.error('Erro ao verificar onboarding:', error);
+      log.error('Erro ao verificar onboarding', error);
     }
   }, [tenantId]);
 
@@ -126,7 +129,7 @@ const OnboardingFlow = () => {
         description: 'Seu sistema Jurify esta pronto para uso.'
       });
     } catch (error) {
-      console.error('Erro ao concluir onboarding:', error);
+      log.error('Erro ao concluir onboarding', error);
     }
   };
 

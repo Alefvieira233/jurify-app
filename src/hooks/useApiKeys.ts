@@ -2,6 +2,9 @@ import { useState, useEffect, useCallback } from 'react';
 import { supabaseUntyped as supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
+import { createLogger } from '@/lib/logger';
+
+const log = createLogger('ApiKeys');
 
 interface ApiKey {
   id: string;
@@ -35,7 +38,7 @@ export const useApiKeys = () => {
       if (error) throw error;
       setApiKeys(data || []);
     } catch (error) {
-      console.error('Failed to load API keys:', error);
+      log.error('Failed to load API keys', error);
       toast({
         title: 'Erro',
         description: 'Nao foi possivel carregar as API keys.',
@@ -78,7 +81,7 @@ export const useApiKeys = () => {
 
       return data;
     } catch (error) {
-      console.error('Failed to create API key:', error);
+      log.error('Failed to create API key', error);
       toast({
         title: 'Erro',
         description: 'Nao foi possivel criar a API key.',
@@ -106,7 +109,7 @@ export const useApiKeys = () => {
         description: `API key ${!ativo ? 'ativada' : 'desativada'} com sucesso.`,
       });
     } catch (error) {
-      console.error('Failed to toggle API key:', error);
+      log.error('Failed to toggle API key', error);
       toast({
         title: 'Erro',
         description: 'Nao foi possivel alterar o status da API key.',
@@ -133,7 +136,7 @@ export const useApiKeys = () => {
         description: 'API key excluida com sucesso.',
       });
     } catch (error) {
-      console.error('Failed to delete API key:', error);
+      log.error('Failed to delete API key', error);
       toast({
         title: 'Erro',
         description: 'Nao foi possivel excluir a API key.',

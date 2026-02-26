@@ -41,25 +41,33 @@ export const useCRMPipeline = () => {
 
       if (error) throw error;
 
-      // Get lead counts per stage
-      const stagesWithCounts = await Promise.all(
-        (data || []).map(async (stage: PipelineStage) => {
-          const { count } = await supabase
+      const stageIds = (data || []).map((s: PipelineStage) => s.id);
+
+      // Bulk query: get all leads for these stages in ONE call (not N+1)
+      const { data: allLeads } = stageIds.length > 0
+        ? await supabase
             .from('leads')
-            .select('*', { count: 'exact', head: true })
-            .eq('pipeline_stage_id', stage.id);
+            .select('pipeline_stage_id, expected_value')
+            .in('pipeline_stage_id', stageIds)
+        : { data: [] };
 
-          const { data: valueData } = await supabase
-            .from('leads')
-            .select('expected_value')
-            .eq('pipeline_stage_id', stage.id)
-            .not('expected_value', 'is', null);
+      // Aggregate in memory — O(n) instead of 2*N queries
+      const countMap = new Map<string, number>();
+      const valueMap = new Map<string, number>();
+      for (const lead of (allLeads || []) as Array<{ pipeline_stage_id: string | null; expected_value: number | null }>) {
+        const sid = lead.pipeline_stage_id;
+        if (!sid) continue;
+        countMap.set(sid, (countMap.get(sid) || 0) + 1);
+        if (lead.expected_value) {
+          valueMap.set(sid, (valueMap.get(sid) || 0) + lead.expected_value);
+        }
+      }
 
-          const totalValue = (valueData || []).reduce((sum: number, l: { expected_value: number | null }) => sum + (l.expected_value || 0), 0);
-
-          return { ...stage, lead_count: count || 0, total_value: totalValue };
-        })
-      );
+      const stagesWithCounts = (data || []).map((stage: PipelineStage) => ({
+        ...stage,
+        lead_count: countMap.get(stage.id) || 0,
+        total_value: valueMap.get(stage.id) || 0,
+      }));
 
       setStages(stagesWithCounts);
     } catch (error) {
@@ -101,11 +109,13 @@ export const useCRMPipeline = () => {
   }, [tenantId, stages, fetchStages, toast]);
 
   const updateStage = useCallback(async (id: string, data: Partial<PipelineStage>): Promise<boolean> => {
+    if (!tenantId) return false;
     try {
       const { error } = await supabase
         .from('crm_pipeline_stages')
         .update(data)
-        .eq('id', id);
+        .eq('id', id)
+        .eq('tenant_id', tenantId);
       if (error) throw error;
       toast({ title: 'Sucesso', description: 'Etapa atualizada!' });
       void fetchStages();
@@ -115,14 +125,16 @@ export const useCRMPipeline = () => {
       toast({ title: 'Erro', description: 'Não foi possível atualizar a etapa.', variant: 'destructive' });
       return false;
     }
-  }, [fetchStages, toast]);
+  }, [tenantId, fetchStages, toast]);
 
   const deleteStage = useCallback(async (id: string): Promise<boolean> => {
+    if (!tenantId) return false;
     try {
       const { error } = await supabase
         .from('crm_pipeline_stages')
         .delete()
-        .eq('id', id);
+        .eq('id', id)
+        .eq('tenant_id', tenantId);
       if (error) throw error;
       toast({ title: 'Sucesso', description: 'Etapa removida!' });
       void fetchStages();
@@ -132,12 +144,12 @@ export const useCRMPipeline = () => {
       toast({ title: 'Erro', description: 'Não foi possível remover a etapa.', variant: 'destructive' });
       return false;
     }
-  }, [fetchStages, toast]);
+  }, [tenantId, fetchStages, toast]);
 
   const reorderStages = useCallback(async (stageIds: string[]): Promise<boolean> => {
     try {
       const updates = stageIds.map((id, index) =>
-        supabase.from('crm_pipeline_stages').update({ position: index }).eq('id', id)
+        supabase.from('crm_pipeline_stages').update({ position: index }).eq('id', id).eq('tenant_id', tenantId)
       );
       await Promise.all(updates);
       void fetchStages();
@@ -146,7 +158,7 @@ export const useCRMPipeline = () => {
       log.error('Failed to reorder stages', error);
       return false;
     }
-  }, [fetchStages]);
+  }, [tenantId, fetchStages]);
 
   return { stages, loading, fetchStages, createStage, updateStage, deleteStage, reorderStages };
 };

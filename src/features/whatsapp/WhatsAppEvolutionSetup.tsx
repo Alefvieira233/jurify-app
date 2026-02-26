@@ -24,6 +24,9 @@ import {
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
+import { createLogger } from '@/lib/logger';
+
+const log = createLogger('WhatsAppEvolutionSetup');
 
 interface WhatsAppEvolutionSetupProps {
   onConnectionSuccess?: () => void;
@@ -225,14 +228,14 @@ export default function WhatsAppEvolutionSetup({ onConnectionSuccess }: WhatsApp
 
   // Criar instância / Obter QR Code
   const handleConnect = async () => {
-    console.log('[WhatsApp] Iniciando conexão...');
+    log.info('Iniciando conexao');
     setLoading(true);
     setInstance((prev) => ({ ...prev, state: 'creating', error: null }));
 
     try {
-      console.log('[WhatsApp] Chamando Edge Function evolution-manager...');
+      log.debug('Chamando Edge Function evolution-manager');
       const result = await callEvolutionManager('create');
-      console.log('[WhatsApp] Resposta da Edge Function:', result);
+      log.debug('Resposta da Edge Function', { success: result?.success });
 
       if (!result?.success) {
         throw new Error(result?.error || 'Falha ao criar instância');
@@ -252,7 +255,7 @@ export default function WhatsAppEvolutionSetup({ onConnectionSuccess }: WhatsApp
 
       // QR Code disponível
       const qr = result.qrcode?.base64 || result.qrcode || null;
-      console.log('[WhatsApp] QR Code recebido:', qr ? 'Sim' : 'Não');
+      log.debug('QR Code recebido', { hasQR: !!qr });
 
       setInstance({
         instanceName: result.instanceName || '',
@@ -263,9 +266,9 @@ export default function WhatsAppEvolutionSetup({ onConnectionSuccess }: WhatsApp
 
       // Se não veio QR, tenta buscar
       if (!qr && result.instanceName) {
-        console.log('[WhatsApp] Buscando QR Code separadamente...');
+        log.debug('Buscando QR Code separadamente');
         const qrResult = await callEvolutionManager('qrcode', result.instanceName);
-        console.log('[WhatsApp] Resposta do QR Code:', qrResult);
+        log.debug('Resposta do QR Code', { hasQR: !!qrResult?.qrcode });
         if (qrResult?.qrcode) {
           setInstance((prev) => ({
             ...prev,
@@ -276,7 +279,7 @@ export default function WhatsAppEvolutionSetup({ onConnectionSuccess }: WhatsApp
       }
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : 'Erro ao conectar';
-      console.error('[WhatsApp] Erro na conexão:', err);
+      log.error('Erro na conexao', err);
       setInstance((prev) => ({
         ...prev,
         state: 'error',

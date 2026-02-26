@@ -4,6 +4,27 @@ import Stripe from "https://esm.sh/stripe@14.21.0";
 
 console.log("🚀 Stripe Webhook Function Started");
 
+async function sendEmail(
+  to: string,
+  template: string,
+  data: Record<string, string | undefined>
+): Promise<void> {
+  try {
+    const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
+    const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
+    await fetch(`${supabaseUrl}/functions/v1/send-email`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${serviceKey}`,
+      },
+      body: JSON.stringify({ to, template, data }),
+    });
+  } catch (err) {
+    console.warn(`[stripe-webhook] sendEmail failed silently for ${to}:`, err);
+  }
+}
+
 const stripe = new Stripe(Deno.env.get('STRIPE_SECRET_KEY') ?? '', {
     apiVersion: '2023-10-16',
     httpClient: Stripe.createFetchHttpClient(),
@@ -93,6 +114,24 @@ serve(async (req) => {
                 const invoice = event.data.object;
                 if (invoice.subscription) {
                     console.log(`✅ Payment succeeded for subscription: ${invoice.subscription}`);
+                    const customerId = invoice.customer as string;
+                    const { data: paidProfile } = await supabase
+                        .from('profiles')
+                        .select('email, nome_completo, subscription_tier')
+                        .eq('stripe_customer_id', customerId)
+                        .maybeSingle();
+                    if (paidProfile?.email) {
+                        const PLAN_NAMES: Record<string, string> = { pro: 'Profissional', enterprise: 'Enterprise', free: 'Gratuito' };
+                        const amountCents = invoice.amount_paid ?? 0;
+                        const amountFormatted = (amountCents / 100).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+                        await sendEmail(paidProfile.email, 'billing-confirmation', {
+                            name: paidProfile.nome_completo ?? paidProfile.email,
+                            plan_name: PLAN_NAMES[paidProfile.subscription_tier ?? 'free'] ?? 'Profissional',
+                            amount: amountFormatted,
+                            period: 'Mensal',
+                            invoice_url: invoice.hosted_invoice_url ?? undefined,
+                        });
+                    }
                 }
                 break;
             }
@@ -122,6 +161,24 @@ serve(async (req) => {
                 }
                 break;
             }
+            case 'customer.subscription.deleted': {
+                const cancelledSub = event.data.object;
+                const cancelledCustomerId = cancelledSub.customer as string;
+                const { data: cancelledProfile } = await supabase
+                    .from('profiles')
+                    .select('email, nome_completo, subscription_tier')
+                    .eq('stripe_customer_id', cancelledCustomerId)
+                    .maybeSingle();
+                if (cancelledProfile?.email) {
+                    const PLAN_NAMES: Record<string, string> = { pro: 'Profissional', enterprise: 'Enterprise', free: 'Gratuito' };
+                    await sendEmail(cancelledProfile.email, 'subscription-cancelled', {
+                        name: cancelledProfile.nome_completo ?? cancelledProfile.email,
+                        plan_name: PLAN_NAMES[cancelledProfile.subscription_tier ?? 'free'] ?? 'Profissional',
+                    });
+                }
+                break;
+            }
+
             default:
                 console.log(`Unhandled event type ${event.type}`);
         }

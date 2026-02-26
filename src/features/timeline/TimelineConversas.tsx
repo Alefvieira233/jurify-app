@@ -10,6 +10,9 @@ import { useAuth } from '@/contexts/AuthContext';
 import { supabaseUntyped as supabase } from '@/integrations/supabase/client';
 import { formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { createLogger } from '@/lib/logger';
+
+const log = createLogger('TimelineConversas');
 
 interface Conversa {
   id: string;
@@ -84,7 +87,7 @@ const TimelineConversas: React.FC<TimelineConversasProps> = ({ leadId, className
 
       setConversas(data || []);
     } catch (err) {
-      console.error('Erro ao buscar conversas:', err);
+      log.error('Erro ao buscar conversas', err);
       setError('Erro ao carregar timeline de conversas');
     } finally {
       setLoading(false);

@@ -12,6 +12,9 @@ import { BaseAgent } from '../core/BaseAgent';
 import { DEFAULT_OPENAI_MODEL } from '@/lib/ai/model';
 import { Priority, MessageType } from '../types';
 import type { AgentMessage, TaskRequestPayload } from '../types';
+import { createLogger } from '@/lib/logger';
+
+const log = createLogger('AdvancedReasoningAgent');
 
 interface ReasoningStep {
     step: number;
@@ -171,7 +174,7 @@ DISCLAIMER: Esta análise é baseada em treinamento e conhecimento jurídico ger
     }
 
     protected async handleMessage(message: AgentMessage): Promise<void> {
-        console.log(`🧠 ${this.name} processando mensagem avançada de ${message.from}`);
+        log.info(`Processando mensagem avançada de ${message.from}`);
 
         switch (message.type) {
             case MessageType.TASK_REQUEST: {
@@ -185,7 +188,7 @@ DISCLAIMER: Esta análise é baseada em treinamento e conhecimento jurídico ger
                 break;
             }
             default:
-                console.log(`🧠 ${this.name}: Mensagem não tratada: ${message.type}`);
+                log.warn(`Mensagem não tratada: ${message.type}`);
         }
     }
 
@@ -264,10 +267,10 @@ Forneça:
                 Priority.HIGH
             );
 
-            console.log(`✅ ${this.name}: Raciocínio avançado concluído com ${confidence}% de confiança`);
+            log.info(`Raciocínio avançado concluído com ${confidence}% de confiança`);
 
         } catch (error) {
-            console.error(`❌ ${this.name}: Erro no raciocínio avançado:`, error);
+            log.error('Erro no raciocínio avançado', error);
             await this.sendMessage(
                 requesterId,
                 MessageType.ERROR_REPORT,

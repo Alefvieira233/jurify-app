@@ -286,7 +286,7 @@ export const useLeads = (options?: { enablePagination?: boolean; pageSize?: numb
   }, [mapLeadInputToDb, normalizeLead, toast, user]);
 
   const updateLead = useCallback(async (id: string, updateData: Partial<LeadInput>): Promise<boolean> => {
-    if (!user) return false;
+    if (!user || !profile?.tenant_id) return false;
 
     try {
       log.info('Atualizando lead', { id });
@@ -295,6 +295,7 @@ export const useLeads = (options?: { enablePagination?: boolean; pageSize?: numb
         .from('leads')
         .update({ ...payload, updated_at: new Date().toISOString() })
         .eq('id', id)
+        .eq('tenant_id', profile.tenant_id)
         .select()
         .single();
 
@@ -320,16 +321,17 @@ export const useLeads = (options?: { enablePagination?: boolean; pageSize?: numb
       });
       return false;
     }
-  }, [mapLeadInputToDb, normalizeLead, toast, user]);
+  }, [mapLeadInputToDb, normalizeLead, toast, user, profile?.tenant_id]);
 
   const deleteLead = useCallback(async (id: string): Promise<boolean> => {
-    if (!user) return false;
+    if (!user || !profile?.tenant_id) return false;
 
     try {
       const { error } = await supabase
         .from('leads')
         .delete()
-        .eq('id', id);
+        .eq('id', id)
+        .eq('tenant_id', profile.tenant_id);
 
       if (error) throw error;
       setLeads(prev => prev.filter(lead => lead.id !== id));
@@ -349,7 +351,7 @@ export const useLeads = (options?: { enablePagination?: boolean; pageSize?: numb
       });
       return false;
     }
-  }, [user, toast]);
+  }, [user, profile?.tenant_id, toast]);
 
   return {
     leads,

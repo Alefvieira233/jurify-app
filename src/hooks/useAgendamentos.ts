@@ -128,13 +128,14 @@ export const useAgendamentos = () => {
   }, [user, toast, setAgendamentos, normalizeAgendamento]);
 
   const updateAgendamento = useCallback(async (id: string, updateData: Partial<AgendamentoInput>): Promise<boolean> => {
-    if (!user) return false;
+    if (!user || !profile?.tenant_id) return false;
 
     try {
       const { data: updatedAgendamento, error } = await supabase
         .from('agendamentos')
         .update({ ...updateData, updated_at: new Date().toISOString() })
         .eq('id', id)
+        .eq('tenant_id', profile.tenant_id)
         .select()
         .single();
 
@@ -163,17 +164,18 @@ export const useAgendamentos = () => {
       });
       return false;
     }
-  }, [user, toast, setAgendamentos, normalizeAgendamento]);
+  }, [user, profile?.tenant_id, toast, setAgendamentos, normalizeAgendamento]);
 
   // âœ… NOVO: Implementar deleteAgendamento (estava faltando)
   const deleteAgendamento = useCallback(async (id: string): Promise<boolean> => {
-    if (!user) return false;
+    if (!user || !profile?.tenant_id) return false;
 
     try {
       const { error } = await supabase
         .from('agendamentos')
         .delete()
-        .eq('id', id);
+        .eq('id', id)
+        .eq('tenant_id', profile.tenant_id);
 
       if (error) throw error;
 
@@ -195,7 +197,7 @@ export const useAgendamentos = () => {
       });
       return false;
     }
-  }, [user, toast, setAgendamentos]);
+  }, [user, profile?.tenant_id, toast, setAgendamentos]);
 
   return {
     agendamentos,

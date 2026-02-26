@@ -1,6 +1,9 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabaseUntyped as supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { createLogger } from '@/lib/logger';
+
+const log = createLogger('AgentesMetrics');
 
 interface AgentesMetrics {
   execucoesHoje: number;
@@ -126,7 +129,7 @@ export const useAgentesMetrics = () => {
         agenteMaisAtivo: maisAtivo.nome
       });
     } catch (error) {
-      console.error('[useAgentesMetrics] Erro ao buscar metricas dos agentes:', error);
+      log.error('Erro ao buscar metricas dos agentes', error);
       setError('Erro ao carregar metricas dos agentes');
     } finally {
       setLoading(false);

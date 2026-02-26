@@ -7,10 +7,14 @@
 
 import { BaseAgent } from '../core/BaseAgent';
 import { AgentMessage, MessageType, TaskRequestPayload, AGENT_CONFIG } from '../types';
+import { createLogger } from '@/lib/logger';
+
+const log = createLogger('CustomerSuccessAgent');
 
 export class CustomerSuccessAgent extends BaseAgent {
   constructor() {
     super(AGENT_CONFIG.NAMES.CUSTOMER_SUCCESS, 'Sucesso do Cliente', AGENT_CONFIG.IDS.CUSTOMER_SUCCESS);
+    this.configureAI(AGENT_CONFIG.MODELS.CUSTOMER_SUCCESS);
   }
 
   protected getSystemPrompt(): string {
@@ -142,12 +146,12 @@ Forma: "Agora que resolvemos [caso], muitos clientes em situação parecida prec
       }
 
       default:
-        console.log(`⚠️ Customer Success recebeu mensagem não tratada: ${message.type}`);
+        log.warn(`Mensagem não tratada: ${message.type}`);
     }
   }
 
   private async onboardClient(payload: TaskRequestPayload): Promise<void> {
-    console.log('🎯 Customer Success iniciando onboarding...');
+    log.info('Iniciando onboarding...');
 
     const payloadData = payload as { client_data?: unknown; service?: string };
 

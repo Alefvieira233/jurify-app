@@ -1,5 +1,8 @@
 import { useState, useCallback } from 'react';
 import { supabaseUntyped as supabase } from '@/integrations/supabase/client';
+import { createLogger } from '@/lib/logger';
+
+const log = createLogger('AgentStats');
 
 export interface AgentStats {
   totalInteractions: number;
@@ -62,7 +65,7 @@ export const useAgentStats = (tenantId: string | null) => {
 
         statsMap.set(agentId, stats);
       } catch (error) {
-        console.error(`Failed to load stats for agent ${agentId}:`, error);
+        log.error(`Failed to load stats for agent ${agentId}`, error);
       }
     }
 
@@ -81,7 +84,7 @@ export const useAgentStats = (tenantId: string | null) => {
         setPerformance(agentMetrics);
       }
     } catch (error) {
-      console.error('Failed to load performance:', error);
+      log.error('Failed to load performance', error);
     }
   }, [tenantId]);
 

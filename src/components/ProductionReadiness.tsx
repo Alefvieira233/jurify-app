@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { useSystemValidator } from '@/utils/systemValidator';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { createLogger } from '@/lib/logger';
 import {
   CheckCircle,
   XCircle,
@@ -17,6 +18,8 @@ import {
   Star,
   Award
 } from 'lucide-react';
+
+const log = createLogger('ProductionReadiness');
 
 interface ProductionCheck {
   name: string;
@@ -187,7 +190,7 @@ const ProductionReadiness = () => {
       setOverallScore(score);
       setIsProductionReady(ready);
     } catch (error) {
-      console.error('[ProductionReadiness] erro na verificacao:', error);
+      log.error('erro na verificacao', error);
     } finally {
       setLoading(false);
     }

@@ -11,6 +11,9 @@
 import { BaseAgent } from '../core/BaseAgent';
 import { DEFAULT_OPENAI_MODEL } from '@/lib/ai/model';
 import { AgentMessage, MessageType, Priority, TaskRequestPayload } from '../types';
+import { createLogger } from '@/lib/logger';
+
+const log = createLogger('AnalyticsAgent');
 
 export class AnalyticsAgent extends BaseAgent {
     constructor() {
@@ -110,7 +113,7 @@ Fechamento → Satisfação (NPS > 7): meta > 75%
     }
 
     protected async handleMessage(message: AgentMessage): Promise<void> {
-        console.log(`📊 ${this.name} processando análise de ${message.from}`);
+        log.info(`Processando análise de ${message.from}`);
 
         switch (message.type) {
             case MessageType.TASK_REQUEST: {
@@ -126,7 +129,7 @@ Fechamento → Satisfação (NPS > 7): meta > 75%
                 break;
             }
             default:
-                console.log(`📊 ${this.name}: Tipo de mensagem não tratado: ${message.type}`);
+                log.warn(`Tipo de mensagem não tratado: ${message.type}`);
         }
     }
 
@@ -167,10 +170,10 @@ Formate de forma clara e objetiva.`;
                 Priority.MEDIUM
             );
 
-            console.log(`✅ ${this.name}: Relatório analítico gerado com sucesso`);
+            log.info('Relatório analítico gerado com sucesso');
 
         } catch (error) {
-            console.error(`❌ ${this.name}: Erro na geração de relatório:`, error);
+            log.error('Erro na geração de relatório', error instanceof Error ? error.message : String(error));
             await this.sendMessage(
                 requesterId,
                 MessageType.ERROR_REPORT,

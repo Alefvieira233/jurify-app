@@ -5,15 +5,22 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
-import { useDashboardMetrics } from '@/hooks/useDashboardMetrics';
+import { useDashboardMetricsFast } from '@/hooks/useDashboardMetricsFast';
 import { useToast } from '@/hooks/use-toast';
+import { useMRR } from '@/hooks/useMRR';
+import { useResponseTime } from '@/hooks/useResponseTime';
 const ConversionFunnel = lazy(() => import('@/components/analytics/ConversionFunnel').then(m => ({ default: m.ConversionFunnel })));
 const RevenueCard = lazy(() => import('@/components/analytics/RevenueCard').then(m => ({ default: m.RevenueCard })));
 const ResponseTimeChart = lazy(() => import('@/components/analytics/ResponseTimeChart').then(m => ({ default: m.ResponseTimeChart })));
 import { useSearchParams } from 'react-router-dom';
+import { createLogger } from '@/lib/logger';
+
+const log = createLogger('Dashboard');
 
 const Dashboard = () => {
-  const { metrics, loading, error, refetch, isEmpty } = useDashboardMetrics();
+  const { metrics, loading, error, refetch, isEmpty } = useDashboardMetricsFast();
+  const { data: mrrData } = useMRR();
+  const { data: responseTimeData = [] } = useResponseTime(7);
   const [isSeeding, setIsSeeding] = useState(false);
   const { toast } = useToast();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -47,11 +54,11 @@ const Dashboard = () => {
 
       // Aguardar 1 segundo e recarregar
       setTimeout(() => {
-        refetch();
+        void refetch();
       }, 1000);
 
     } catch (error: unknown) {
-      console.error('Erro ao gerar dados:', error);
+      log.error('Erro ao gerar dados', error);
       const errorMessage = error instanceof Error ? error.message : 'Tente novamente.';
       toast({
         title: 'Erro ao gerar dados',
@@ -406,21 +413,19 @@ const Dashboard = () => {
 
           {/* Revenue Card */}
           <div>
-            {/* TODO: calcular MRR real da tabela de assinaturas/contratos */}
             <RevenueCard
-              currentMRR={0}
-              previousMRR={0}
+              currentMRR={mrrData?.currentMRR ?? 0}
+              previousMRR={mrrData?.previousMRR ?? 0}
               contractsThisMonth={metrics.contratosAssinados}
-              avgTicket={0}
+              avgTicket={mrrData?.avgTicket ?? 0}
               targetMRR={50000}
             />
           </div>
         </div>
 
-        {/* Response Time Chart — TODO: conectar a dados reais de tempo de resposta */}
         <div className="fade-in" style={{ animationDelay: '0.7s' }}>
           <ResponseTimeChart
-            data={[]}
+            data={responseTimeData}
             targetResponseTime={3}
           />
         </div>

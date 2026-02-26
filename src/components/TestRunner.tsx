@@ -19,6 +19,9 @@ import {
   AlertTriangle,
   RefreshCw 
 } from 'lucide-react';
+import { createLogger } from '@/lib/logger';
+
+const log = createLogger('TestRunner');
 
 export const TestRunner: React.FC = () => {
   const [isRunning, setIsRunning] = useState(false);
@@ -46,12 +49,12 @@ export const TestRunner: React.FC = () => {
     setTestResults(null);
 
     try {
-      console.log('🧪 Iniciando testes do sistema multiagentes...');
+      log.info('Iniciando testes do sistema multiagentes');
       const results = await runMultiAgentTests();
       setTestResults(results);
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : 'Erro desconhecido';
-      console.error('❌ Erro ao executar testes:', error);
+      log.error('Erro ao executar testes', error);
       setTestResults({
         overall_status: 'ERROR',
         error: message,

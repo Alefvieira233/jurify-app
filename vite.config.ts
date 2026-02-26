@@ -42,6 +42,7 @@ export default defineConfig(({ mode }) => {
             supabase: ['@supabase/supabase-js'],
             query: ['@tanstack/react-query'],
             sentry: ['@sentry/react'],
+            charts: ['recharts'],
           },
         }
       },

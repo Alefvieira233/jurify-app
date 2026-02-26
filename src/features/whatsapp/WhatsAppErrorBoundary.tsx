@@ -11,6 +11,9 @@ import { Component, ErrorInfo, ReactNode } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { AlertTriangle, RefreshCw, Home } from 'lucide-react';
+import { createLogger } from '@/lib/logger';
+
+const log = createLogger('WhatsAppErrorBoundary');
 
 interface Props {
   children: ReactNode;
@@ -41,8 +44,7 @@ export class WhatsAppErrorBoundary extends Component<Props, State> {
   }
 
   override componentDidCatch(error: Error, errorInfo: ErrorInfo) {
-    console.error('❌ [WhatsApp ErrorBoundary] Erro capturado:', error);
-    console.error('Stack trace:', errorInfo.componentStack);
+    log.error('Erro capturado', { error: error.message, componentStack: errorInfo.componentStack });
 
     this.setState({
       error,

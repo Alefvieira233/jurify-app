@@ -142,6 +142,24 @@ serve(async (req) => {
       }
     }
 
+    // Send welcome email (fire-and-forget — never block user creation)
+    try {
+      await fetch(`${supabaseUrl}/functions/v1/send-email`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${supabaseServiceKey}`,
+        },
+        body: JSON.stringify({
+          to: email,
+          template: "welcome",
+          data: { name: nome_completo },
+        }),
+      });
+    } catch {
+      // Email failure must never block user creation
+    }
+
     return new Response(
       JSON.stringify({ success: true, user_id: userId }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }

@@ -8,6 +8,9 @@ import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabaseUntyped as supabase } from '@/integrations/supabase/client';
 import { sanitizeText } from '@/utils/validation';
+import { createLogger } from '@/lib/logger';
+
+const log = createLogger('UploadContratos');
 
 interface ArquivoMetadados {
   paginas?: number;
@@ -284,7 +287,7 @@ const UploadContratos: React.FC<UploadContratosProps> = ({
       });
 
     } catch (_error) {
-      console.error('âŒ Erro no upload:', _error);
+      log.error('Erro no upload', _error);
       atualizarStatusArquivo(arquivo.id, 'erro', 100, 'Erro no upload do arquivo');
       
       toast({

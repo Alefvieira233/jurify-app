@@ -12,6 +12,9 @@
  */
 
 import { supabase } from '@/integrations/supabase/client';
+import { createLogger } from '@/lib/logger';
+
+const log = createLogger('EnterpriseWhatsApp');
 
 export interface SendMessageRequest {
   to: string;
@@ -57,7 +60,7 @@ export class EnterpriseWhatsAppIntegration {
     conversationId?: string,
     leadId?: string
   ): Promise<SendMessageResponse> {
-    console.log('📤 [EnterpriseWhatsApp] Enviando mensagem via Edge Function...');
+    log.info('Enviando mensagem via Edge Function');
 
     try {
       // Valida entrada
@@ -83,7 +86,7 @@ export class EnterpriseWhatsAppIntegration {
       );
 
       if (error) {
-        console.error('❌ [EnterpriseWhatsApp] Erro ao enviar mensagem:', error);
+        log.error('Erro ao enviar mensagem', error);
         return {
           success: false,
           error: error.message || 'Erro ao enviar mensagem',
@@ -92,7 +95,7 @@ export class EnterpriseWhatsAppIntegration {
       }
 
       if (!data || !data.success) {
-        console.error('❌ [EnterpriseWhatsApp] Falha no envio:', data?.error);
+        log.error('Falha no envio', { error: data?.error });
         return {
           success: false,
           error: data?.error || 'Falha ao enviar mensagem',
@@ -100,10 +103,10 @@ export class EnterpriseWhatsAppIntegration {
         };
       }
 
-      console.log('✅ [EnterpriseWhatsApp] Mensagem enviada:', data.messageId);
+      log.info('Mensagem enviada', { messageId: data.messageId });
       return data;
     } catch (error: unknown) {
-      console.error('❌ [EnterpriseWhatsApp] Erro na integração:', error);
+      log.error('Erro na integracao', error);
       return {
         success: false,
         error: error instanceof Error ? error.message : 'Erro desconhecido',
@@ -184,7 +187,7 @@ export class EnterpriseWhatsAppIntegration {
         activeConversations: activeConversations || 0,
       };
     } catch (error) {
-      console.error('❌ [EnterpriseWhatsApp] Erro ao buscar estatísticas:', error);
+      log.error('Erro ao buscar estatisticas', error);
       return {
         totalMessages: 0,
         messagesThisMonth: 0,

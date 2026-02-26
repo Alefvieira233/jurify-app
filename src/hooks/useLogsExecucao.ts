@@ -13,6 +13,9 @@ import { useState, useEffect } from 'react';
 import { supabaseUntyped as supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
+import { createLogger } from '@/lib/logger';
+
+const logger = createLogger('LogsExecucao');
 
 interface LogExecucao {
   agente_id: string;
@@ -78,7 +81,7 @@ export const useLogsExecucao = () => {
 
       setStats({ total, sucessos, erros, tempoMedio });
     } catch (error) {
-      console.error('Erro ao buscar logs:', error);
+      logger.error('Erro ao buscar logs', error);
       toast({
         title: 'Erro',
         description: 'Nao foi possivel carregar os logs de execucao',
@@ -116,7 +119,7 @@ export const useLogsExecucao = () => {
 
       return transformedData;
     } catch (error) {
-      console.error('Erro ao buscar logs por agente:', error);
+      logger.error('Erro ao buscar logs por agente', error);
       toast({
         title: 'Erro',
         description: 'Nao foi possivel carregar os logs do agente',
@@ -144,7 +147,7 @@ export const useLogsExecucao = () => {
         description: 'Logs antigos removidos com sucesso',
       });
     } catch (error) {
-      console.error('Erro ao limpar logs:', error);
+      logger.error('Erro ao limpar logs', error);
       toast({
         title: 'Erro',
         description: 'Nao foi possivel limpar os logs',

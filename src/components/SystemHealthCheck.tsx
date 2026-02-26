@@ -13,6 +13,9 @@ import {
   RefreshCw,
   Activity
 } from 'lucide-react';
+import { createLogger } from '@/lib/logger';
+
+const log = createLogger('SystemHealthCheck');
 
 interface HealthCheck {
   id: string;
@@ -192,7 +195,7 @@ const SystemHealthCheck = () => {
         });
       }
     } catch (error) {
-      console.error('[SystemHealthCheck] erro durante health check:', error);
+      log.error('erro durante health check', error);
     }
 
     setHealthChecks(checks);

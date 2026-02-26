@@ -7,6 +7,9 @@ import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
+import { createLogger } from '@/lib/logger';
+
+const log = createLogger('EditarUsuarioForm');
 
 interface Usuario {
   id: string;
@@ -62,7 +65,7 @@ const EditarUsuarioForm = ({ usuario, onClose }: EditarUsuarioFormProps) => {
         description: 'Erro ao atualizar usuário.',
         variant: 'destructive',
       });
-      console.error('Erro ao atualizar usuário:', error);
+      log.error('Erro ao atualizar usuario', error);
     }
   });
 

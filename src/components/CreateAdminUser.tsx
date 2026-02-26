@@ -11,6 +11,9 @@ import {
   redirectToDashboard
 } from './admin/adminUserService';
 import { useAuth } from '@/contexts/AuthContext';
+import { createLogger } from '@/lib/logger';
+
+const log = createLogger('CreateAdminUser');
 
 const CreateAdminUser = () => {
   const { toast } = useToast();
@@ -54,7 +57,7 @@ const CreateAdminUser = () => {
 
       redirectToDashboard();
     } catch (error: unknown) {
-      console.error('[CreateAdminUser] erro completo:', error);
+      log.error('erro completo', error);
       const message = error instanceof Error ? error.message : 'Erro desconhecido';
       toast({
         title: 'Erro ao criar administrador',

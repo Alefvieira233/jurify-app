@@ -1,5 +1,8 @@
 import { BaseAgent } from '../core/BaseAgent';
 import { AgentMessage, MessageType, Priority, AGENT_CONFIG } from '../types';
+import { createLogger } from '@/lib/logger';
+
+const log = createLogger('QualifierAgent');
 
 /**
  * 🎯 AGENTE QUALIFICADOR
@@ -11,6 +14,7 @@ import { AgentMessage, MessageType, Priority, AGENT_CONFIG } from '../types';
 export class QualifierAgent extends BaseAgent {
   constructor() {
     super(AGENT_CONFIG.NAMES.QUALIFIER, 'Qualificacao de Leads', AGENT_CONFIG.IDS.QUALIFIER);
+    this.configureAI(AGENT_CONFIG.MODELS.QUALIFIER);
   }
 
   protected getSystemPrompt(): string {
@@ -151,7 +155,7 @@ Previdenciário: "Qual a sua situação de saúde hoje? Está trabalhando?"
 
   private async analyzeLead(payload: { task?: string; leadId?: string; data?: unknown; [key: string]: unknown }): Promise<void> {
     try {
-      console.log(`🔍 [Qualifier] Analisando lead: ${payload.leadId || 'novo'}`);
+      log.info(`Analisando lead: ${payload.leadId || 'novo'}`);
       
       const analysis = await this.processWithAIRetry(
         `Analise este lead: ${JSON.stringify(payload.data)}. Determine área jurídica, urgência e viabilidade.`
@@ -160,7 +164,7 @@ Previdenciário: "Qual a sua situação de saúde hoje? Está trabalhando?"
       // Usa o safeParseJSON do BaseAgent para parsing robusto
       const parsedAnalysis: Record<string, unknown> = this.safeParseJSON(analysis) || { raw_analysis: analysis };
       
-      console.log(`✅ [Qualifier] Análise concluída:`, Object.keys(parsedAnalysis));
+      log.debug('Análise concluída', { keys: Object.keys(parsedAnalysis) });
 
       this.updateContext(payload.leadId || '', { 
         stage: 'qualified', 

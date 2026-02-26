@@ -37,12 +37,15 @@ dist-ssr
 tmpclaude-*
 src/**/tmpclaude-*
 
-# Local CLI settings
-.claude/settings*.json
+# Local CLI settings (never commit tokens or local config)
+.claude/
+!.claude/agents/
 
 # Test coverage
 coverage/
 *.lcov
+playwright-report/
+test-results/
 
 # Build artifacts
 .vite/
@@ -79,3 +82,5 @@ docker-compose-*-fixed.yml
 vdep.json
 vdeps.json
 
+
+.vercel

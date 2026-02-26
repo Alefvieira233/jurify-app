@@ -8,10 +8,14 @@
 import { supabase } from '@/integrations/supabase/client';
 import { BaseAgent } from '../core/BaseAgent';
 import { AgentMessage, MessageType, TaskRequestPayload, AGENT_CONFIG } from '../types';
+import { createLogger } from '@/lib/logger';
+
+const log = createLogger('AnalystAgent');
 
 export class AnalystAgent extends BaseAgent {
   constructor() {
     super(AGENT_CONFIG.NAMES.ANALYST, 'Dados e Insights', AGENT_CONFIG.IDS.ANALYST);
+    this.configureAI(AGENT_CONFIG.MODELS.ANALYST);
   }
 
   protected getSystemPrompt(): string {
@@ -116,12 +120,12 @@ Analisar dados de leads, conversões, receita, performance de agentes e pipeline
       }
 
       default:
-        console.log(`⚠️ Analista recebeu mensagem não tratada: ${message.type}`);
+        log.warn(`Mensagem não tratada: ${message.type}`);
     }
   }
 
   private async analyzePerformance(_payload: TaskRequestPayload): Promise<void> {
-    console.log('📊 Analista analisando performance...');
+    log.info('Analisando performance...');
 
     // Busca dados do Supabase
     const { data: leads } = await supabase

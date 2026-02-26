@@ -7,6 +7,9 @@ import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
+import { createLogger } from '@/lib/logger';
+
+const log = createLogger('NovoUsuarioForm');
 
 interface NovoUsuarioFormProps {
   onClose: () => void;
@@ -72,7 +75,7 @@ const NovoUsuarioForm = ({ onClose }: NovoUsuarioFormProps) => {
         description: message,
         variant: "destructive",
       });
-      console.error('Erro ao criar usuário:', error);
+      log.error('Erro ao criar usuario', error);
     }
   });
 

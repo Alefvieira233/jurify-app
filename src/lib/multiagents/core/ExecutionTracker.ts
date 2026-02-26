@@ -20,6 +20,7 @@ type RejectFunction = (error: Error) => void;
 
 export class ExecutionTracker {
   private static instances: Map<string, ExecutionTracker> = new Map();
+  private static readonly MAX_INSTANCES = 100;
 
   public readonly executionId: string;
   public readonly leadId: string;
@@ -78,6 +79,16 @@ export class ExecutionTracker {
 
     const tracker = new ExecutionTracker(executionId, leadId, tenantId, config);
     ExecutionTracker.instances.set(executionId, tracker);
+
+    // Evict oldest trackers if we exceed the cap (prevents memory leak)
+    if (ExecutionTracker.instances.size > ExecutionTracker.MAX_INSTANCES) {
+      for (const [id, t] of ExecutionTracker.instances) {
+        if (t.isComplete()) {
+          ExecutionTracker.instances.delete(id);
+          if (ExecutionTracker.instances.size <= ExecutionTracker.MAX_INSTANCES) break;
+        }
+      }
+    }
 
     return tracker;
   }

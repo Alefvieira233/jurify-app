@@ -2,6 +2,9 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabaseUntyped as supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
+import { createLogger } from '@/lib/logger';
+
+const log = createLogger('NotificationTemplates');
 
 interface NotificationTemplate {
   id: string;
@@ -61,7 +64,7 @@ export const useNotificationTemplates = () => {
         description: 'Erro ao salvar template.',
         variant: 'destructive',
       });
-      console.error('Failed to update template:', error);
+      log.error('Failed to update template', error);
     }
   });
 
@@ -88,7 +91,7 @@ export const useNotificationTemplates = () => {
         description: 'Erro ao criar template.',
         variant: 'destructive',
       });
-      console.error('Failed to create template:', error);
+      log.error('Failed to create template', error);
     }
   });
 

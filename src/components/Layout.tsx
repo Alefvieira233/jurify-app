@@ -10,12 +10,17 @@ import { Menu, X, Scale } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import GlobalSearch from "@/components/GlobalSearch";
 import ThemeToggle from "@/components/ThemeToggle";
+import AIAssistantChat from "@/components/ai/AIAssistantChat";
+import { useRealtimeSync } from "@/hooks/useRealtimeSync";
 
 const Layout = () => {
     const { user, loading, profile } = useAuth();
     const location = useLocation();
     const navigate = useNavigate();
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
+    // Realtime sync — all core tables auto-invalidate React Query cache
+    useRealtimeSync();
 
     const getActiveSection = (path: string) => {
         if (path === '/' || path === '/dashboard') return 'dashboard';
@@ -66,6 +71,7 @@ const Layout = () => {
         <div className="min-h-screen bg-background flex flex-col">
             <OnboardingFlow />
             <GlobalSearch />
+            <AIAssistantChat />
 
             {/* ── Mobile Header (< lg) ── */}
             <header className="lg:hidden fixed top-0 inset-x-0 z-50 h-14 bg-primary border-b border-primary/80 flex items-center gap-3 px-4 shadow-sm">

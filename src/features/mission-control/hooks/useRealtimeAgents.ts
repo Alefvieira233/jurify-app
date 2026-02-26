@@ -10,6 +10,9 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabaseUntyped as supabase } from '@/integrations/supabase/client';
 import type { RealtimeChannel } from '@supabase/supabase-js';
+import { createLogger } from '@/lib/logger';
+
+const log = createLogger('MissionControl');
 
 export interface AgentStatus {
   name: string;
@@ -144,7 +147,7 @@ export function useRealtimeAgents(tenantId?: string) {
         .limit(10);
 
       if (execError) {
-        console.error('âŒ [Mission Control] Erro ao buscar execuÃ§Ãµes:', execError.message);
+        log.error('Erro ao buscar execucoes', { message: execError.message });
         setError(`Erro ao carregar execuÃ§Ãµes: ${execError.message}`);
         return;
       }
@@ -152,7 +155,7 @@ export function useRealtimeAgents(tenantId?: string) {
       setActiveExecutions(executions || []);
 
     } catch (err: unknown) {
-      console.error('âŒ [Mission Control] Error fetching initial metrics:', err);
+      log.error('Error fetching initial metrics', err);
       const message = err instanceof Error
         ? err.message
         : 'Erro ao conectar com banco de dados';
@@ -185,7 +188,7 @@ export function useRealtimeAgents(tenantId?: string) {
       if (logsError) throw logsError;
       setRecentLogs(logs || []);
     } catch (err: unknown) {
-      console.error('Æ’?O [Mission Control] Fallback polling error:', err);
+      log.error('Fallback polling error', err);
       const message = err instanceof Error
         ? err.message
         : 'Erro ao atualizar dados do Mission Control';
@@ -215,7 +218,7 @@ export function useRealtimeAgents(tenantId?: string) {
           filter: `tenant_id=eq.${tenantId}`
         },
         (payload) => {
-          console.log('ðŸ“¡ Execution update:', payload);
+          log.debug('Execution update', { eventType: payload.eventType });
           setLastRealtimeEventAt(Date.now());
 
           if (payload.eventType === 'INSERT') {
@@ -309,10 +312,10 @@ export function useRealtimeAgents(tenantId?: string) {
       )
       .subscribe((status) => {
         if (String(status) === 'SUBSCRIBED') {
-          console.log('âœ… Subscribed to executions');
+          log.info('Subscribed to executions');
           setIsConnected(true);
         } else if (String(status) === 'CLOSED') {
-          console.log('âŒ Executions subscription closed');
+          log.warn('Executions subscription closed');
           setIsConnected(false);
         }
       });
@@ -331,40 +334,40 @@ export function useRealtimeAgents(tenantId?: string) {
           filter: `tenant_id=eq.${tenantId}`
         },
         (payload) => {
-          console.log('ðŸ“¡ New log:', payload);
+          log.debug('New log received', { eventType: payload.eventType });
           setLastRealtimeEventAt(Date.now());
 
-          const log = payload.new as AgentLog;
+          const logEntry = payload.new as AgentLog;
 
-          // Adicionar ao histÃ³rico de logs
-          setRecentLogs(prev => [log, ...prev].slice(0, 50));
+          // Adicionar ao histórico de logs
+          setRecentLogs(prev => [logEntry, ...prev].slice(0, 50));
 
           // Atualizar status do agente
           setAgentStatuses(prev => {
             const newMap = new Map(prev);
-            const agent = newMap.get(log.agent_name);
+            const agent = newMap.get(logEntry.agent_name);
             if (agent) {
-              newMap.set(log.agent_name, {
+              newMap.set(logEntry.agent_name, {
                 ...agent,
-                status: log.status === 'processing' ? 'processing' :
-                        log.status === 'completed' ? 'success' :
-                        log.status === 'failed' ? 'error' : 'idle',
-                lastActivity: new Date(log.created_at),
+                status: logEntry.status === 'processing' ? 'processing' :
+                        logEntry.status === 'completed' ? 'success' :
+                        logEntry.status === 'failed' ? 'error' : 'idle',
+                lastActivity: new Date(logEntry.created_at),
                 metrics: {
                   ...agent.metrics,
                   totalExecutions: agent.metrics.totalExecutions + 1,
-                  totalTokens: agent.metrics.totalTokens + log.total_tokens
+                  totalTokens: agent.metrics.totalTokens + logEntry.total_tokens
                 }
               });
 
-              // Voltar para idle apÃ³s 1.5 segundos se completou
-              if (log.status === 'completed' || log.status === 'failed') {
+              // Voltar para idle após 1.5 segundos se completou
+              if (logEntry.status === 'completed' || logEntry.status === 'failed') {
                 setTimeout(() => {
                   setAgentStatuses(current => {
                     const resetMap = new Map(current);
-                    const resetAgent = resetMap.get(log.agent_name);
+                    const resetAgent = resetMap.get(logEntry.agent_name);
                     if (resetAgent && resetAgent.status !== 'processing') {
-                      resetMap.set(log.agent_name, {
+                      resetMap.set(logEntry.agent_name, {
                         ...resetAgent,
                         status: 'idle'
                       });
@@ -380,7 +383,7 @@ export function useRealtimeAgents(tenantId?: string) {
       )
       .subscribe((status) => {
         if (String(status) === 'SUBSCRIBED') {
-          console.log('âœ… Subscribed to logs');
+          log.info('Subscribed to logs');
         }
       });
 
@@ -388,7 +391,7 @@ export function useRealtimeAgents(tenantId?: string) {
 
     // Cleanup
     return () => {
-      console.log('ðŸ”Œ Unsubscribing from realtime channels');
+      log.debug('Unsubscribing from realtime channels');
       channels.forEach(channel => {
         void supabase.removeChannel(channel);
       });

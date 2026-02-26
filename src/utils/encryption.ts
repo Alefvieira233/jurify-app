@@ -7,6 +7,9 @@
 
 import CryptoJS from 'crypto-js';
 import { supabase } from '@/integrations/supabase/client';
+import { createLogger } from '@/lib/logger';
+
+const log = createLogger('EncryptionService');
 
 class EncryptionService {
   // Encrypt sensitive data via server-side Edge Function
@@ -16,7 +19,7 @@ class EncryptionService {
     });
 
     if (error || !data?.ciphertext) {
-      console.error('Encryption error:', error);
+      log.error('Encryption error', error);
       throw new Error('Failed to encrypt data');
     }
 
@@ -30,7 +33,7 @@ class EncryptionService {
     });
 
     if (error || data?.plaintext === undefined || data?.plaintext === null) {
-      console.error('Decryption error:', error);
+      log.error('Decryption error', error);
       throw new Error('Failed to decrypt data');
     }
 
@@ -69,7 +72,7 @@ class EncryptionService {
 
       return computedHash.toString() === originalHash;
     } catch (error) {
-      console.error('Password verification error:', error);
+      log.error('Password verification error', error);
       return false;
     }
   }
@@ -126,7 +129,7 @@ class EncryptionService {
           decrypted[field] = await this.decrypt(value);
           delete decrypted[`${field}_encrypted`];
         } catch (error) {
-          console.error(`Failed to decrypt field ${field}:`, error);
+          log.error(`Failed to decrypt field ${field}`, error);
         }
       }
     }

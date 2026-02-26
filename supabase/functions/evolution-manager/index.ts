@@ -109,7 +109,7 @@ function extractQRCode(data: Record<string, unknown>): string | null {
 // Operações de instância
 // ---------------------------------------------------------------------------
 
-async function createInstance(instanceName: string, supabase: unknown, tenantId: string) {
+async function createInstance(instanceName: string, supabase: unknown, profile: { tenant_id: string }) {
   console.log(`[evolution-manager] createInstance: ${instanceName}`);
 
   const result = await evoFetch("/instance/create", "POST", {
@@ -143,6 +143,7 @@ async function createInstance(instanceName: string, supabase: unknown, tenantId:
     status: "inativa",
     endpoint_url: EVOLUTION_BASE_URL,
     observacoes: `Instance: ${instanceName}`,
+    tenant_id: profile.tenant_id,
   });
 
   if (dbError) {
@@ -207,7 +208,7 @@ async function getInstanceStatus(instanceName: string) {
   };
 }
 
-async function disconnectInstance(instanceName: string, supabase: unknown) {
+async function disconnectInstance(instanceName: string, supabase: unknown, profile: { tenant_id: string }) {
   console.log(`[evolution-manager] disconnectInstance: ${instanceName}`);
 
   // Evolution v2: POST /instance/logout/{instanceName}  (não DELETE)
@@ -218,7 +219,8 @@ async function disconnectInstance(instanceName: string, supabase: unknown) {
     .from("configuracoes_integracoes")
     .update({ status: "inativa" })
     .eq("nome_integracao", "whatsapp_evolution")
-    .ilike("observacoes", `%${instanceName}%`);
+    .ilike("observacoes", `%${instanceName}%`)
+    .eq("tenant_id", profile.tenant_id);
 
   return {
     success: result.ok,
@@ -226,7 +228,7 @@ async function disconnectInstance(instanceName: string, supabase: unknown) {
   };
 }
 
-async function deleteInstance(instanceName: string, supabase: unknown) {
+async function deleteInstance(instanceName: string, supabase: unknown, profile: { tenant_id: string }) {
   console.log(`[evolution-manager] deleteInstance: ${instanceName}`);
 
   const result = await evoFetch(`/instance/delete/${instanceName}`, "DELETE");
@@ -236,7 +238,8 @@ async function deleteInstance(instanceName: string, supabase: unknown) {
     .from("configuracoes_integracoes")
     .delete()
     .eq("nome_integracao", "whatsapp_evolution")
-    .ilike("observacoes", `%${instanceName}%`);
+    .ilike("observacoes", `%${instanceName}%`)
+    .eq("tenant_id", profile.tenant_id);
 
   return {
     success: result.ok,
@@ -389,7 +392,7 @@ serve(async (req) => {
             };
           }
         } else {
-          result = await createInstance(resolvedInstanceName, supabase, profile.tenant_id);
+          result = await createInstance(resolvedInstanceName, supabase, profile);
         }
         break;
       }
@@ -406,17 +409,18 @@ serve(async (req) => {
             .from("configuracoes_integracoes")
             .update({ status: dbStatus })
             .eq("nome_integracao", "whatsapp_evolution")
-            .ilike("observacoes", `%${resolvedInstanceName}%`);
+            .ilike("observacoes", `%${resolvedInstanceName}%`)
+            .eq("tenant_id", profile.tenant_id);
         }
         break;
       }
 
       case "disconnect":
-        result = await disconnectInstance(resolvedInstanceName, supabase);
+        result = await disconnectInstance(resolvedInstanceName, supabase, profile);
         break;
 
       case "delete":
-        result = await deleteInstance(resolvedInstanceName, supabase);
+        result = await deleteInstance(resolvedInstanceName, supabase, profile);
         break;
 
       case "list":

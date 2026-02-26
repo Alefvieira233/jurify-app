@@ -261,6 +261,39 @@ export class GoogleOAuthService {
   }
 
   /**
+   * Lista eventos de um calendário dentro de um intervalo de datas
+   */
+  static async listEvents(
+    userId: string,
+    calendarId: string,
+    timeMin: string,
+    timeMax: string
+  ): Promise<Record<string, unknown>[]> {
+    const accessToken = await this.getValidToken(userId);
+
+    const params = new URLSearchParams({
+      timeMin,
+      timeMax,
+      singleEvents: 'true',
+      orderBy: 'startTime',
+      maxResults: '250',
+    });
+
+    const response = await fetch(
+      `${GOOGLE_CALENDAR_API}/calendars/${encodeURIComponent(calendarId)}/events?${params.toString()}`,
+      { headers: { Authorization: `Bearer ${accessToken}` } }
+    );
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(`Erro ao listar eventos: ${error.error?.message || 'Desconhecido'}`);
+    }
+
+    const data = await response.json();
+    return data.items || [];
+  }
+
+  /**
    * Cria evento no Google Calendar
    */
   static async createEvent(userId: string, calendarId: string, event: CalendarEvent): Promise<Record<string, unknown>> {

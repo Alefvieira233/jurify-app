@@ -2,6 +2,9 @@
 import { useCallback } from 'react';
 import { useActivityLogs } from './useActivityLogs';
 import { useAuth } from '@/contexts/AuthContext';
+import { createLogger } from '@/lib/logger';
+
+const logger = createLogger('LogActivity');
 
 export const useLogActivity = () => {
   const { logActivity } = useActivityLogs();
@@ -17,9 +20,9 @@ export const useLogActivity = () => {
 
     try {
       await logActivity(tipo_acao, modulo, descricao, detalhes_adicionais);
-      console.log(`Log registrado: ${tipo_acao} em ${modulo} - ${descricao}`);
+      logger.debug(`Log registrado: ${tipo_acao} em ${modulo}`);
     } catch (error) {
-      console.error('Erro ao registrar log de atividade:', error);
+      logger.error('Erro ao registrar log de atividade', error);
     }
   }, [logActivity, user]);
 

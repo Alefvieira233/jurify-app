@@ -34,6 +34,7 @@ export class CoordinatorAgent extends BaseAgent {
 
   constructor() {
     super(AGENT_CONFIG.NAMES.COORDINATOR, 'Orquestracao', AGENT_CONFIG.IDS.COORDINATOR);
+    this.configureAI(AGENT_CONFIG.MODELS.COORDINATOR);
   }
 
   protected getSystemPrompt(): string {

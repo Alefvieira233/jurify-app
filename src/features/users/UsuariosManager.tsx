@@ -81,10 +81,12 @@ const UsuariosManager = () => {
         throw new Error('Sem permissão para desativar usuários');
       }
 
+      if (!profile?.tenant_id) throw new Error('Tenant não encontrado');
       const { error } = await supabase
         .from('profiles')
         .update({ ativo: false })
-        .eq('id', userId);
+        .eq('id', userId)
+        .eq('tenant_id', profile.tenant_id);
       
       if (error) throw error;
     },

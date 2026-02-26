@@ -36,6 +36,9 @@ import {
     ArrowDownRight,
     RefreshCw,
 } from 'lucide-react';
+import { createLogger } from '@/lib/logger';
+
+const log = createLogger('AnalyticsDashboard');
 
 // Tipos para dados do banco
 interface LeadRecord {
@@ -158,7 +161,7 @@ export const AnalyticsDashboard = () => {
             });
 
         } catch (error) {
-            console.error('Error loading analytics:', error);
+            log.error('Error loading analytics', error);
         } finally {
             setLoading(false);
         }

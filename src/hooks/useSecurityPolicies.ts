@@ -13,7 +13,10 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { createLogger } from '@/lib/logger';
 import { useAuth } from '@/contexts/AuthContext';
+
+const log = createLogger('SecurityPolicies');
 
 interface SecurityCheck {
   id: string;
@@ -85,14 +88,15 @@ export const useSecurityPolicies = () => {
             .eq('tenant_id', tenantId)
             .limit(1);
 
+          const rlsOk = !error || error.code === 'PGRST301';
           scanResults.push({
             id: `rls-${table}`,
             name: `RLS da tabela ${table}`,
-            status: error && error.code === 'PGRST301' ? 'pass' : 'warning',
-            message: error && error.code === 'PGRST301'
+            status: rlsOk ? 'pass' : 'warning',
+            message: rlsOk
               ? 'RLS ativo e funcionando'
-              : 'RLS pode não estar configurado adequadamente',
-            severity: 'medium',
+              : `RLS pode ter problema: ${error?.message || 'erro desconhecido'}`,
+            severity: rlsOk ? 'low' : 'medium',
             category: 'database'
           });
         } catch {
@@ -211,7 +215,7 @@ export const useSecurityPolicies = () => {
         lastScan: new Date().toISOString()
       });
     } catch (error) {
-      console.error('[Security] erro no scan de seguranca:', error);
+      log.error('erro no scan de seguranca', error);
       toast({
         title: 'Erro no scan de seguranca',
         description: 'Nao foi possivel completar a verificacao de seguranca',

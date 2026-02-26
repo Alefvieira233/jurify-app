@@ -290,7 +290,7 @@ export class WorkflowQueueService {
   /**
    * 🔄 Retry manual de um job falho
    */
-  async retryJob(jobId: string): Promise<boolean> {
+  async retryJob(jobId: string, tenantId: string): Promise<boolean> {
     try {
       const { error } = await supabase
         .from('workflow_jobs')
@@ -302,6 +302,7 @@ export class WorkflowQueueService {
           locked_at: null,
         })
         .eq('id', jobId)
+        .eq('tenant_id', tenantId)
         .in('status', ['failed', 'dead_letter']);
 
       if (error) {
@@ -320,12 +321,13 @@ export class WorkflowQueueService {
   /**
    * 🗑️ Cancela um job pendente
    */
-  async cancelJob(jobId: string): Promise<boolean> {
+  async cancelJob(jobId: string, tenantId: string): Promise<boolean> {
     try {
       const { error } = await supabase
         .from('workflow_jobs')
         .delete()
         .eq('id', jobId)
+        .eq('tenant_id', tenantId)
         .eq('status', 'pending');
 
       if (error) {

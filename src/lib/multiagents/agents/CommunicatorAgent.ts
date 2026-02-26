@@ -11,6 +11,9 @@
 import { supabaseUntyped as supabase } from '@/integrations/supabase/client';
 import { BaseAgent } from '../core/BaseAgent';
 import { AgentMessage, AGENT_CONFIG } from '../types';
+import { createLogger } from '@/lib/logger';
+
+const log = createLogger('CommunicatorAgent');
 
 // Lazy import para evitar circular dependency
 let whatsAppClientInstance: EnterpriseWhatsAppIntegration | null = null;
@@ -39,6 +42,7 @@ async function getWhatsAppClient(): Promise<EnterpriseWhatsAppIntegration> {
 export class CommunicatorAgent extends BaseAgent {
   constructor() {
     super(AGENT_CONFIG.NAMES.COMMUNICATOR, 'Comunicacao', AGENT_CONFIG.IDS.COMMUNICATOR);
+    this.configureAI(AGENT_CONFIG.MODELS.COMMUNICATOR);
   }
 
   protected getSystemPrompt(): string {
@@ -271,23 +275,23 @@ Tom: executivo e objetivo. Ir direto ao ponto. Valorize: agilidade e objetividad
         },
       });
       if (insertError) {
-        console.error(`[Communicator] Failed to save interaction:`, insertError.message);
+        log.error('Failed to save interaction', insertError.message);
       }
 
       // Envia via WhatsApp se tiver telefone e canal for whatsapp
       const channel = this.context?.metadata?.channel;
       if (lead?.telefone && (channel === 'whatsapp' || !channel)) {
-        console.log(`📱 [Communicator] Enviando proposta via WhatsApp para ${lead.telefone}...`);
+        log.info(`Enviando proposta via WhatsApp para ${lead.telefone}...`);
         try {
           const whatsAppClient = await getWhatsAppClient();
           const result = await whatsAppClient.sendMessage(lead.telefone, messageToSend, undefined, payload.leadId);
           if (result.success) {
-            console.log(`[Communicator] WhatsApp message sent: ${result.messageId}`);
+            log.info(`WhatsApp message sent: ${result.messageId}`);
           } else {
-            console.warn(`[Communicator] WhatsApp send failed: ${result.error}`);
+            log.warn(`WhatsApp send failed: ${result.error}`);
           }
         } catch (whatsAppError) {
-          console.warn(`[Communicator] WhatsApp error:`, whatsAppError);
+          log.warn('WhatsApp error', { error: whatsAppError });
         }
       }
 
@@ -302,7 +306,7 @@ Tom: executivo e objetivo. Ir direto ao ponto. Valorize: agilidade e objetividad
       // IMPORTANTE: Marca a execução como completa (último agente do fluxo)
       await this.markExecutionCompleted();
 
-      console.log(`✅ [Communicator] Fluxo completo - proposta enviada para lead ${payload.leadId}`);
+      log.info(`Fluxo completo - proposta enviada para lead ${payload.leadId}`);
 
     } catch (error) {
       const errorMsg = error instanceof Error ? error.message : 'Unknown error';
@@ -314,7 +318,7 @@ Tom: executivo e objetivo. Ir direto ao ponto. Valorize: agilidade e objetividad
 
   private async sendOnboarding(payload: AgentTaskPayload): Promise<void> {
     try {
-      console.log('📱 Comunicador enviando onboarding...');
+      log.info('Enviando onboarding...');
 
       const formattedMessage = await this.processWithAIRetry(
         `Formate este plano de onboarding para envio ao cliente:
@@ -331,7 +335,7 @@ Tom: executivo e objetivo. Ir direto ao ponto. Valorize: agilidade e objetividad
       // Marca execução como completa
       await this.markExecutionCompleted();
 
-      console.log('📤 Onboarding formatado e enviado');
+      log.info('Onboarding formatado e enviado');
     } catch (error) {
       const errorMsg = error instanceof Error ? error.message : 'Unknown error';
       await this.recordStageResult('onboarding_sent', null, false, errorMsg);

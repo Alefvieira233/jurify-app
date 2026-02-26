@@ -2,6 +2,9 @@ import React, { useEffect } from 'react';
 import { useGoogleCalendar } from '@/hooks/useGoogleCalendar';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
+import { createLogger } from '@/lib/logger';
+
+const log = createLogger('GoogleCalendarSync');
 
 interface AgendamentoData {
   id: string;
@@ -103,7 +106,7 @@ Agendamento criado via Jurify
           error instanceof Error
             ? error.message
             : 'Não foi possível sincronizar com o Google Calendar.';
-        console.error('Error syncing with Google Calendar:', error);
+        log.error('Error syncing with Google Calendar', error);
         // Mostrar erro de sincronização no UI.
         toast({
           title: 'Erro na sincronização',

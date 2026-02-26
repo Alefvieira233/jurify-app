@@ -3,6 +3,9 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { CheckCircle, Clock, XCircle, AlertTriangle, MessageSquare, ExternalLink, Download } from 'lucide-react';
 import { useZapSignIntegration } from '@/hooks/useZapSignIntegration';
+import { createLogger } from '@/lib/logger';
+
+const log = createLogger('StatusAssinatura');
 
 interface StatusAssinaturaProps {
   contrato: {
@@ -98,7 +101,7 @@ export const StatusAssinatura = ({ contrato, leadTelefone, onStatusUpdate }: Sta
 
   const handleDownloadPDF = () => {
     // Implementar download do PDF assinado
-    console.log('Download PDF - Função será implementada');
+    log.debug('Download PDF - pendente implementacao');
   };
 
   return (

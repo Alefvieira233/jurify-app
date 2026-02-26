@@ -6,6 +6,9 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useNotifications } from '@/hooks/useNotifications';
+import { createLogger } from '@/lib/logger';
+
+const log = createLogger('CreateNotificationForm');
 
 type NotificationType = 'info' | 'sucesso' | 'alerta' | 'erro';
 
@@ -43,7 +46,7 @@ const CreateNotificationForm = ({ onSuccess, onCancel }: CreateNotificationFormP
       
       onSuccess?.();
     } catch (error) {
-      console.error('Erro ao criar notificação:', error);
+      log.error('Erro ao criar notificacao', error);
     } finally {
       setLoading(false);
     }

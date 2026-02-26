@@ -67,6 +67,14 @@
     --sidebar-border: 220 18% 91%;
     --sidebar-ring: 224 64% 33%;
 
+    /* Lead / Status colors — adaptive light/dark */
+    --status-novo-lead:         217 91% 46%;
+    --status-qualificacao:       32 95% 44%;
+    --status-proposta:          239 84% 61%;
+    --status-contrato:          160 84% 39%;
+    --status-atendimento:       201 96% 40%;
+    --status-arquivado:         347 100% 50%;
+
     /* Shadow system */
     --shadow-card: 0 1px 3px 0 rgb(0 0 0 / 0.06), 0 1px 2px -1px rgb(0 0 0 / 0.04);
     --shadow-card-hover: 0 4px 14px 0 rgb(0 0 0 / 0.09), 0 2px 4px -2px rgb(0 0 0 / 0.05);
@@ -124,6 +132,14 @@
     --sidebar-accent-foreground: 210 40% 98%;
     --sidebar-border: 222 40% 9%;        /* barely visible separator */
     --sidebar-ring: 217 91% 60%;
+
+    /* Lead / Status colors — brighter for dark backgrounds */
+    --status-novo-lead:         217 91% 65%;
+    --status-qualificacao:       38 90% 62%;
+    --status-proposta:          239 84% 72%;
+    --status-contrato:          160 84% 55%;
+    --status-atendimento:       201 96% 58%;
+    --status-arquivado:         347 100% 65%;
 
     /* Shadow system — stronger in dark mode */
     --shadow-card: 0 1px 3px 0 rgb(0 0 0 / 0.30), 0 1px 2px -1px rgb(0 0 0 / 0.20);
@@ -410,5 +426,108 @@
   /* ── Letter-spacing refinements ── */
   .tracking-display {
     letter-spacing: -0.025em;
+  }
+
+  /* ══════════════════════════════════════════════════
+     FullCalendar — Jurify theme overrides
+  ══════════════════════════════════════════════════ */
+
+  .calendar-panel .fc {
+    --fc-border-color: hsl(var(--border));
+    --fc-page-bg-color: transparent;
+    --fc-neutral-bg-color: hsl(var(--muted));
+    --fc-today-bg-color: hsl(var(--primary) / 0.06);
+    --fc-event-border-color: transparent;
+    --fc-small-font-size: 0.72em;
+    font-family: 'DM Sans', system-ui, sans-serif;
+  }
+
+  .calendar-panel .fc .fc-col-header-cell {
+    padding: 6px 0;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: hsl(var(--muted-foreground));
+    background: hsl(var(--muted) / 0.5);
+  }
+
+  .calendar-panel .fc .fc-daygrid-day-number {
+    font-size: 12px;
+    font-weight: 500;
+    padding: 4px 6px;
+    color: hsl(var(--foreground));
+  }
+
+  .calendar-panel .fc .fc-daygrid-day.fc-day-today .fc-daygrid-day-number {
+    background: hsl(var(--primary));
+    color: hsl(var(--primary-foreground));
+    border-radius: 9999px;
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .calendar-panel .fc .fc-event {
+    border-radius: 4px;
+    padding: 1px 4px;
+    font-size: 11px;
+    font-weight: 500;
+    cursor: pointer;
+    border: none;
+    box-shadow: 0 1px 2px rgb(0 0 0 / 0.1);
+  }
+
+  .calendar-panel .fc .fc-event:hover {
+    filter: brightness(0.92);
+  }
+
+  .calendar-panel .fc .fc-timegrid-slot {
+    height: 36px;
+    border-bottom: 1px solid hsl(var(--border) / 0.5);
+  }
+
+  .calendar-panel .fc .fc-timegrid-slot-label-cushion {
+    font-size: 10px;
+    color: hsl(var(--muted-foreground));
+  }
+
+  .calendar-panel .fc .fc-timegrid-now-indicator-line {
+    border-color: hsl(var(--destructive));
+  }
+
+  .calendar-panel .fc .fc-timegrid-now-indicator-arrow {
+    border-color: hsl(var(--destructive));
+  }
+
+  .calendar-panel .fc .fc-more-link {
+    font-size: 10px;
+    font-weight: 600;
+    color: hsl(var(--primary));
+  }
+
+  .calendar-panel .fc .fc-list-event-dot {
+    border-radius: 9999px;
+  }
+
+  .calendar-panel .fc .fc-list-day-cushion {
+    background: hsl(var(--muted));
+    font-size: 12px;
+    font-weight: 600;
+  }
+
+  .calendar-panel .fc .fc-highlight {
+    background: hsl(var(--primary) / 0.1);
+  }
+
+  .calendar-panel .fc .fc-daygrid-day:hover {
+    background: hsl(var(--muted) / 0.3);
+  }
+
+  .calendar-panel .fc td,
+  .calendar-panel .fc th {
+    border-color: hsl(var(--border) / 0.6);
   }
 }

@@ -1,5 +1,8 @@
 import { supabase } from '@/integrations/supabase/client';
 import { AdminData } from './types';
+import { createLogger } from '@/lib/logger';
+
+const log = createLogger('AdminUserService');
 
 export const createAdminUserInAuth = async (adminData: AdminData) => {
   const { data, error } = await supabase.functions.invoke('admin-create-user', {
@@ -12,7 +15,7 @@ export const createAdminUserInAuth = async (adminData: AdminData) => {
   });
 
   if (error || !data?.success) {
-    console.error('[adminUserService] erro ao criar usuario:', error || data?.error);
+    log.error('erro ao criar usuario', error || data?.error);
     throw new Error(data?.error || error?.message || 'Erro ao criar usuario');
   }
 
@@ -30,7 +33,7 @@ export const ensureUserProfile = async (userId: string, adminData: AdminData, te
     .single();
 
   if (profileError && profileError.code !== 'PGRST116') {
-    console.error('[adminUserService] erro ao verificar perfil:', profileError);
+    log.error('erro ao verificar perfil', profileError);
     throw profileError;
   }
 
@@ -46,7 +49,7 @@ export const ensureUserProfile = async (userId: string, adminData: AdminData, te
       });
 
     if (insertProfileError) {
-      console.error('[adminUserService] erro ao criar perfil:', insertProfileError);
+      log.error('erro ao criar perfil', insertProfileError);
       throw insertProfileError;
     }
   }
@@ -70,7 +73,7 @@ export const assignAdminRole = async (userId: string, tenantId: string) => {
       });
 
     if (insertRoleError) {
-      console.error('[adminUserService] erro ao inserir role:', insertRoleError);
+      log.error('erro ao inserir role', insertRoleError);
       throw insertRoleError;
     }
   }
@@ -83,7 +86,7 @@ export const performAutoLogin = async (adminData: AdminData) => {
   });
 
   if (loginError) {
-    console.error('[adminUserService] erro no login automatico:', loginError);
+    log.error('erro no login automatico', loginError);
     throw loginError;
   }
 

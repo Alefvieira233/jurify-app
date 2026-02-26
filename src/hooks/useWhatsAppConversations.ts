@@ -118,8 +118,9 @@ export const useWhatsAppConversations = (): UseWhatsAppConversationsReturn => {
       if (fetchError) throw fetchError;
 
       // Reverse to show oldest first in UI
-      setMessages((data || []).reverse());
-      setHasMoreMessages(data.length === MESSAGE_PAGE_SIZE);
+      const msgs = data || [];
+      setMessages(msgs.reverse());
+      setHasMoreMessages(msgs.length === MESSAGE_PAGE_SIZE);
       log.debug(`${data?.length || 0} mensagens carregadas`);
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : 'Erro ao carregar mensagens';
@@ -193,7 +194,8 @@ export const useWhatsAppConversations = (): UseWhatsAppConversationsReturn => {
           last_message: content,
           last_message_at: new Date().toISOString(),
         })
-        .eq('id', conversationId);
+        .eq('id', conversationId)
+        .eq('tenant_id', conversation.tenant_id);
 
       toast({
         title: 'Mensagem enviada',
@@ -215,11 +217,13 @@ export const useWhatsAppConversations = (): UseWhatsAppConversationsReturn => {
 
   // Marcar como lido
   const markAsRead = useCallback(async (conversationId: string) => {
+    if (!profile?.tenant_id) return;
     try {
       await supabase
         .from('whatsapp_conversations')
         .update({ unread_count: 0 })
-        .eq('id', conversationId);
+        .eq('id', conversationId)
+        .eq('tenant_id', profile.tenant_id);
 
       await supabase
         .from('whatsapp_messages')
@@ -244,7 +248,7 @@ export const useWhatsAppConversations = (): UseWhatsAppConversationsReturn => {
         variant: 'destructive',
       });
     }
-  }, [toast]);
+  }, [toast, profile?.tenant_id]);
 
   // Channel de conversas — não depende de selectedConversation, não é recriado ao trocar de conversa
   useEffect(() => {

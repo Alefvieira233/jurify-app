@@ -1,8 +1,9 @@
 import { useState, useEffect, useCallback } from 'react';
-
 import { supabaseUntyped as supabase } from '@/integrations/supabase/client';
-
 import { useAuth } from '@/contexts/AuthContext';
+import { createLogger } from '@/lib/logger';
+
+const log = createLogger('DashboardMetrics');
 
 
 
@@ -134,7 +135,7 @@ export const useDashboardMetrics = () => {
 
     try {
 
-      console.log('[useDashboardMetrics] Carregando metricas do dashboard...');
+      log.debug('Carregando metricas do dashboard...');
 
       setLoading(true);
 
@@ -442,11 +443,11 @@ export const useDashboardMetrics = () => {
 
       setMetrics(finalMetrics);
 
-      console.log('[useDashboardMetrics] Metricas carregadas:', finalMetrics);
+      log.debug('Metricas carregadas', { totalLeads: finalMetrics.totalLeads });
 
     } catch (error: unknown) {
 
-      console.error('[useDashboardMetrics] Erro ao carregar metricas:', error);
+      log.error('Erro ao carregar metricas', error);
 
       const message = error instanceof Error ? error.message : 'Erro ao conectar com banco de dados';
 

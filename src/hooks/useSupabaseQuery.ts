@@ -23,6 +23,7 @@
  */
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
+import { createLogger } from '@/lib/logger';
 
 interface QueryOptions {
   enabled?: boolean;
@@ -64,7 +65,7 @@ export const useSupabaseQuery = <T>(
     if (!force && dataRef.current.length > 0) {
       const now = Date.now();
       if ((now - lastFetchRef.current) < staleTime) {
-        console.log(`📋 [${queryKey}] Cache válido, usando dados em cache`);
+        createLogger(queryKey).debug('Cache válido, usando dados em cache');
         setLoading(false);
         return;
       }
@@ -82,7 +83,7 @@ export const useSupabaseQuery = <T>(
     hasExecutedRef.current = true;
 
     try {
-      console.log(`🔄 [${queryKey}] Executando query...`);
+      const queryLog = createLogger(queryKey);
       const startTime = Date.now();
       
       const result = await queryFn();
@@ -90,10 +91,10 @@ export const useSupabaseQuery = <T>(
       if (!mountedRef.current) return;
 
       const duration = Date.now() - startTime;
-      console.log(`✅ [${queryKey}] Query concluída em ${duration}ms`);
+      queryLog.debug(`Query concluída em ${duration}ms`);
 
       if (result.error) {
-        console.error(`❌ [${queryKey}] Erro na query:`, result.error);
+        queryLog.error('Erro na query', result.error);
         throw result.error instanceof Error ? result.error : new Error(typeof result.error === 'object' && result.error !== null && 'message' in result.error ? String((result.error as Record<string, unknown>).message) : 'Unknown query error');
       }
 
@@ -104,12 +105,12 @@ export const useSupabaseQuery = <T>(
       setLastFetch(lastFetchRef.current);
       setError(null);
       
-      console.log(`📊 [${queryKey}] ${resultData.length} registros carregados`);
+      queryLog.debug(`${resultData.length} registros carregados`);
       
     } catch (error: unknown) {
       if (!mountedRef.current) return;
       
-      console.error(`❌ [${queryKey}] Erro na query:`, error);
+      createLogger(queryKey).error('Erro na query', error);
       
       const isAbort = error instanceof Error && error.name === 'AbortError';
       if (!isAbort) {

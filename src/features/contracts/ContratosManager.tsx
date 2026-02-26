@@ -18,6 +18,10 @@ import { DetalhesContrato } from '@/components/DetalhesContrato';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import { supabaseUntyped as supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/contexts/AuthContext';
+import { createLogger } from '@/lib/logger';
+
+const log = createLogger('ContratosManager');
 
 const ContratosManager = () => {
   const [searchTerm, setSearchTerm] = useState('');
@@ -30,6 +34,8 @@ const ContratosManager = () => {
   const [deleteLoading, setDeleteLoading] = useState(false);
   const { contratos, loading, error, isEmpty, fetchContratos } = useContratos();
   const { toast } = useToast();
+  const { profile } = useAuth();
+  const tenantId = profile?.tenant_id || null;
 
   const filteredContratos = useMemo(() => contratos.filter(contrato => {
     const matchesSearch = contrato.nome_cliente?.toLowerCase().includes(debouncedSearchTerm.toLowerCase()) || false;
@@ -38,13 +44,13 @@ const ContratosManager = () => {
   }), [contratos, debouncedSearchTerm, filterStatus]);
 
   const getStatusColor = (status: string) => {
-    const colors = {
-      rascunho: 'bg-slate-500/15 text-slate-200 border border-slate-400/30',
-      enviado: 'bg-blue-500/15 text-blue-200 border border-blue-400/30',
-      assinado: 'bg-emerald-500/15 text-emerald-200 border border-emerald-400/30',
-      cancelado: 'bg-red-500/15 text-red-200 border border-red-400/30'
+    const colors: Record<string, string> = {
+      rascunho: 'bg-slate-500/10 text-slate-600 dark:text-slate-300 border border-slate-400/30',
+      enviado:  'bg-blue-500/10  text-blue-700  dark:text-blue-300  border border-blue-400/30',
+      assinado: 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border border-emerald-400/30',
+      cancelado: 'bg-red-500/10  text-red-700   dark:text-red-300   border border-red-400/30',
     };
-    return (colors as Record<string, string>)[status] || 'bg-slate-500/15 text-slate-200 border border-slate-400/30';
+    return colors[status] ?? 'bg-muted text-muted-foreground border border-border';
   };
 
   const getStatusLabel = (status: string) => {
@@ -75,15 +81,18 @@ const ContratosManager = () => {
   const handleDeleteContrato = async () => {
     setDeleteLoading(true);
     try {
+      if (!tenantId) throw new Error('Tenant não encontrado');
       const { error: deleteError } = await supabase
         .from('contratos')
         .delete()
-        .eq('id', confirmDelete.id);
+        .eq('id', confirmDelete.id)
+        .eq('tenant_id', tenantId);
       if (deleteError) throw deleteError;
       toast({ title: 'Sucesso', description: 'Contrato excluído com sucesso!' });
       fetchContratos();
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : 'Não foi possível excluir o contrato.';
+      log.error('Erro ao excluir contrato', err);
       toast({ title: 'Erro', description: message, variant: 'destructive' });
     } finally {
       setDeleteLoading(false);

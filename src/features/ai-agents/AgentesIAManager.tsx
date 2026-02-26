@@ -28,6 +28,9 @@ import LogsMonitoramento from '@/components/LogsMonitoramento';
 // Monitoring
 import { trackUserAction } from '@/utils/monitoring';
 import { useAuth } from '@/contexts/AuthContext';
+import { createLogger } from '@/lib/logger';
+
+const log = createLogger('AgentesIAManager');
 
 const AgentesIAManager = () => {
   const [showNovoAgente, setShowNovoAgente] = useState(false);
@@ -53,7 +56,7 @@ const AgentesIAManager = () => {
 
   const toggleStatus = async (agente: AgenteIA) => {
     const statusLabel = agente.status === 'ativo' ? 'inativo' : 'ativo';
-    console.log(`Alterando status do agente ${agente.nome} para ${statusLabel}`);
+    log.info(`Alterando status do agente ${agente.nome} para ${statusLabel}`);
 
     // Track user action
     trackUserAction('toggle_agent_status', 'agentes_ia', user?.id, profile?.tenant_id, {

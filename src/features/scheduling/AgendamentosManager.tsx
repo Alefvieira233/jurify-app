@@ -1,6 +1,6 @@
 
-import { useState, useMemo } from 'react';
-import { Plus, Search, Calendar, AlertCircle, RefreshCw, Eye, Edit, Trash2 } from 'lucide-react';
+import { useState, useMemo, lazy, Suspense } from 'react';
+import { Plus, Search, Calendar, AlertCircle, RefreshCw, Eye, Edit, Trash2, LayoutGrid, CalendarDays } from 'lucide-react';
 import { useDebounce } from '@/hooks/useDebounce';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -17,10 +17,15 @@ import { DetalhesAgendamento } from '@/components/DetalhesAgendamento';
 import { cn } from '@/lib/utils';
 import ConfirmDialog from '@/components/ConfirmDialog';
 
+const CalendarPanel = lazy(() => import('@/components/agenda/CalendarPanel'));
+
+type ViewMode = 'list' | 'calendar';
+
 const AgendamentosManager = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const debouncedSearchTerm = useDebounce(searchTerm, 300);
   const [filterStatus, setFilterStatus] = useState('');
+  const [viewMode, setViewMode] = useState<ViewMode>('list');
   const [isNovoAgendamentoOpen, setIsNovoAgendamentoOpen] = useState(false);
   const [isDetalhesOpen, setIsDetalhesOpen] = useState(false);
   const [selectedAgendamento, setSelectedAgendamento] = useState<Agendamento | null>(null);
@@ -215,6 +220,23 @@ const AgendamentosManager = () => {
             </div>
           </div>
           <div className="flex items-center gap-2">
+            {/* View toggle */}
+            <div className="flex border border-border rounded-md overflow-hidden">
+              <button
+                onClick={() => setViewMode('list')}
+                className={cn('h-8 px-2.5 text-xs flex items-center gap-1 transition-colors', viewMode === 'list' ? 'bg-primary text-primary-foreground' : 'hover:bg-muted')}
+                title="Lista"
+              >
+                <LayoutGrid className="h-3.5 w-3.5" />
+              </button>
+              <button
+                onClick={() => setViewMode('calendar')}
+                className={cn('h-8 px-2.5 text-xs flex items-center gap-1 transition-colors border-l border-border', viewMode === 'calendar' ? 'bg-primary text-primary-foreground' : 'hover:bg-muted')}
+                title="Calendário"
+              >
+                <CalendarDays className="h-3.5 w-3.5" />
+              </button>
+            </div>
             <Button variant="outline" size="sm" onClick={handleRetry}>
               <RefreshCw className="h-3.5 w-3.5 mr-1.5" />
               Atualizar
@@ -227,6 +249,19 @@ const AgendamentosManager = () => {
         </div>
       </div>
 
+      {/* Calendar View */}
+      {viewMode === 'calendar' ? (
+        <div className="flex-1 min-h-0 px-3 py-2">
+          <Suspense fallback={
+            <div className="flex items-center justify-center h-full">
+              <RefreshCw className="h-5 w-5 animate-spin text-muted-foreground" />
+            </div>
+          }>
+            <CalendarPanel onNewAgendamento={() => setIsNovoAgendamentoOpen(true)} />
+          </Suspense>
+        </div>
+      ) : (
+      <>
       {/* Filters */}
       <div className="px-5 py-2 border-b border-border/50 flex-shrink-0">
         <div className="flex items-center gap-3">
@@ -311,6 +346,8 @@ const AgendamentosManager = () => {
           </p>
         )}
       </div>
+      </>
+      )}
 
       <Dialog open={isNovoAgendamentoOpen} onOpenChange={setIsNovoAgendamentoOpen}>
         <DialogContent className="max-w-3xl">

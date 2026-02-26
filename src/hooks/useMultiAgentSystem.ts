@@ -14,9 +14,13 @@
 import { useState, useEffect, useCallback } from 'react';
 import { multiAgentSystem } from '@/lib/multiagents/MultiAgentSystem';
 import type { SystemStats as MultiAgentSystemStats } from '@/lib/multiagents/types';
+import { MessageType, Priority } from '@/lib/multiagents/types';
 import { supabaseUntyped as supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
+import { createLogger } from '@/lib/logger';
+
+const log = createLogger('MultiAgentSystem');
 
 type LeadSource = 'whatsapp' | 'email' | 'chat' | 'form' | 'phone' | 'playground';
 
@@ -75,7 +79,7 @@ export const useMultiAgentSystem = () => {
 
       setRecentActivity(activity || []);
     } catch (error) {
-      console.error('Failed to load stats:', error);
+      log.error('Failed to load stats', error);
       toast({
         title: 'Erro',
         description: 'Falha ao carregar estatisticas do sistema.',
@@ -173,7 +177,7 @@ export const useMultiAgentSystem = () => {
         agents_performance: agentsPerformance,
       });
     } catch (error) {
-      console.error('Failed to load metrics:', error);
+      log.error('Failed to load metrics', error);
     }
   }, [tenantId]);
 
@@ -184,7 +188,7 @@ export const useMultiAgentSystem = () => {
       setIsProcessing(true);
 
       try {
-        console.log('[multiagent] Processing lead:', leadData);
+        log.info('Processing lead', { source: leadData.source });
 
         const { data: savedLead, error } = await supabase
           .from('leads')
@@ -223,7 +227,7 @@ export const useMultiAgentSystem = () => {
 
         return true;
       } catch (error) {
-        console.error('Failed to process lead:', error);
+        log.error('Failed to process lead', error);
         toast({
           title: 'Erro',
           description: 'Falha ao processar lead no sistema multiagentes.',
@@ -265,7 +269,7 @@ export const useMultiAgentSystem = () => {
 
       return success;
     } catch (error) {
-      console.error('Test failed:', error);
+      log.error('Test failed', error);
       return false;
     } finally {
       setIsProcessing(false);
@@ -274,17 +278,16 @@ export const useMultiAgentSystem = () => {
 
   const triggerAnalysis = useCallback(async () => {
     try {
-      const system = multiAgentSystem as unknown as { agents?: Map<string, { receiveMessage: (msg: Record<string, unknown>) => Promise<void> }> };
-      const analystAgent = system.agents?.get('Analista');
+      const analystAgent = multiAgentSystem.getAgent('Analista');
       if (analystAgent) {
         await analystAgent.receiveMessage({
           id: `analysis_${Date.now()}`,
           from: 'Frontend',
           to: 'Analista',
-          type: 'task_request',
+          type: MessageType.TASK_REQUEST,
           payload: { task: 'analyze_performance' },
           timestamp: new Date(),
-          priority: 'medium',
+          priority: Priority.MEDIUM,
           requires_response: false,
         });
 
@@ -294,7 +297,7 @@ export const useMultiAgentSystem = () => {
         });
       }
     } catch (error) {
-      console.error('Failed to start analysis:', error);
+      log.error('Failed to start analysis', error);
     }
   }, [toast]);
 

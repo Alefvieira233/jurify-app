@@ -555,9 +555,9 @@ async function processNormalizedMessage(supabase: ReturnType<typeof createClient
           email: null,
           area_juridica: "Nao informado",
           origem: "whatsapp",
-          responsavel: "Sistema",
           status: "novo_lead",
-          observacoes: text,
+          descricao: text,
+          metadata: { responsavel_nome: "Sistema" },
         })
         .select("id")
         .single();
@@ -583,7 +583,8 @@ async function processNormalizedMessage(supabase: ReturnType<typeof createClient
       await supabase
         .from("whatsapp_conversations")
         .update({ last_message: text, last_message_at: new Date().toISOString() })
-        .eq("id", conversationId);
+        .eq("id", conversationId)
+        .eq("tenant_id", tenantId);
 
       await supabase.rpc("increment_unread_count", { conversation_id: conversationId });
     } else {
@@ -692,13 +693,13 @@ ${conversationHistory ? `HISTORICO DA CONVERSA:\n${conversationHistory}\n` : ""}
           status: "em_atendimento",
           observacoes: `[WhatsApp] Primeiro contato: "${text.substring(0, 200)}"`,
         })
-        .eq("id", leadId)
+        .eq("telefone", from)
         .eq("tenant_id", tenantId);
 
       console.log(`[webhook:${provider}] Lead ${leadId} status updated to em_atendimento`);
     }
 
-    // --- SAVE AI RESPONSE ---
+// --- SAVE AI RESPONSE ---
     await supabase.from("whatsapp_messages").insert({
       conversation_id: conversationId,
       sender: "ia",

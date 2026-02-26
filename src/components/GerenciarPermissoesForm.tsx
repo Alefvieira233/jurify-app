@@ -8,6 +8,9 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
+import { createLogger } from '@/lib/logger';
+
+const log = createLogger('GerenciarPermissoes');
 
 interface Usuario {
   id: string;
@@ -93,7 +96,7 @@ const GerenciarPermissoesForm = ({ usuario, onClose }: GerenciarPermissoesFormPr
         description: "Erro ao atualizar permissões.",
         variant: "destructive",
       });
-      console.error('Erro ao atualizar permissões:', error);
+      log.error('Erro ao atualizar permissoes', error);
     }
   });
 

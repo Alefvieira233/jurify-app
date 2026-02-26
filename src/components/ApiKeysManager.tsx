@@ -12,6 +12,9 @@ import { supabaseUntyped as supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRBAC } from '@/hooks/useRBAC';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { createLogger } from '@/lib/logger';
+
+const log = createLogger('ApiKeysManager');
 
 interface ApiKey {
   id: string;
@@ -102,7 +105,7 @@ const ApiKeysManager = () => {
       });
     },
     onError: (error) => {
-      console.error('Failed to create API key:', error);
+      log.error('Failed to create API key', error);
       toast({
         title: 'Erro',
         description: 'Não foi possível criar a API key.',
@@ -131,7 +134,7 @@ const ApiKeysManager = () => {
       });
     },
     onError: (error) => {
-      console.error('Failed to update status:', error);
+      log.error('Failed to update status', error);
       toast({
         title: 'Erro',
         description: 'Não foi possível alterar o status da API key.',
@@ -160,7 +163,7 @@ const ApiKeysManager = () => {
       });
     },
     onError: (error) => {
-      console.error('Failed to remove API key:', error);
+      log.error('Failed to remove API key', error);
       toast({
         title: 'Erro',
         description: 'Não foi possível remover a API key.',

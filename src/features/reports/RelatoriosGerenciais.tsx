@@ -6,10 +6,10 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Download, TrendingUp, Users, FileText, Calendar, BarChart3 } from 'lucide-react';
-import { useDashboardMetrics } from '@/hooks/useDashboardMetrics';
+import { useDashboardMetricsFast } from '@/hooks/useDashboardMetricsFast';
 
 const RelatoriosGerenciais = () => {
-  const { metrics, loading, error } = useDashboardMetrics();
+  const { metrics, loading, error } = useDashboardMetricsFast();
 
   type CsvRow = {
     section: string;
