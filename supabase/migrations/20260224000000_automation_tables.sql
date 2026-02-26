@@ -121,8 +121,15 @@ CREATE POLICY "Users can manage own recurring events" ON public.recurring_events
   FOR ALL USING (user_id = auth.uid());
 
 -- Políticas RLS para recurring_event_instances
+-- (no tenant_id column — inherit isolation via parent recurring_events)
 CREATE POLICY "Tenant isolation for recurring event instances" ON public.recurring_event_instances
-  FOR ALL USING (tenant_id = current_setting('app.tenant_id')::uuid);
+  FOR ALL USING (
+    EXISTS (
+      SELECT 1 FROM public.recurring_events re
+      WHERE re.id = recurring_event_instances.recurring_event_id
+        AND re.user_id = auth.uid()
+    )
+  );
 
 -- Índices para performance
 CREATE INDEX idx_automation_tasks_tenant_user ON public.automation_tasks(tenant_id, user_id);
@@ -170,27 +177,27 @@ CREATE OR REPLACE FUNCTION generate_recurring_instances()
 RETURNS void AS $$
 DECLARE
   event_record RECORD;
-  current_date DATE;
-  end_date DATE;
+  v_current_date DATE;
+  v_end_date DATE;
   instance_start TIMESTAMP WITH TIME ZONE;
   instance_end TIMESTAMP WITH TIME ZONE;
 BEGIN
   -- Processa eventos recorrentes ativos
-  FOR event_record IN 
-    SELECT * FROM public.recurring_events 
-    WHERE is_active = true 
+  FOR event_record IN
+    SELECT * FROM public.recurring_events
+    WHERE is_active = true
     AND (end_date IS NULL OR end_date >= CURRENT_DATE)
   LOOP
-    current_date := GREATEST(event_record.start_date, CURRENT_DATE);
-    end_date := COALESCE(event_record.end_date, CURRENT_DATE + INTERVAL '1 year');
-    
+    v_current_date := GREATEST(event_record.start_date, CURRENT_DATE);
+    v_end_date := COALESCE(event_record.end_date, CURRENT_DATE + INTERVAL '1 year');
+
     -- Gera instâncias para os próximos 30 dias
-    WHILE current_date <= end_date AND current_date <= CURRENT_DATE + INTERVAL '30 days' LOOP
+    WHILE v_current_date <= v_end_date AND v_current_date <= CURRENT_DATE + INTERVAL '30 days' LOOP
       -- TODO: Implementar RRULE parsing aqui
       -- Por enquanto, cria instância diária como exemplo
-      instance_start := current_date::timestamp AT TIME ZONE event_record.timezone;
+      instance_start := v_current_date::timestamp AT TIME ZONE event_record.timezone;
       instance_end := instance_start + (event_record.duration_minutes || ' minutes')::interval;
-      
+
       -- Insere instância se não existir
       INSERT INTO public.recurring_event_instances(
         recurring_event_id,
@@ -204,8 +211,8 @@ BEGIN
         'scheduled'
       )
       ON CONFLICT (recurring_event_id, start_time) DO NOTHING;
-      
-      current_date := current_date + INTERVAL '1 day';
+
+      v_current_date := v_current_date + INTERVAL '1 day';
     END LOOP;
   END LOOP;
 END;

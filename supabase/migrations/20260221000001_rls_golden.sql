@@ -74,15 +74,12 @@ FOR SELECT USING (
   AND tenant_id = public.get_current_tenant_id()
 );
 
--- NOTIFICACOES — user reads own notifications OR admin reads all in tenant
+-- NOTIFICACOES — all authenticated users in tenant can read notifications
+-- (notificacoes uses lido_por[] array for read tracking, not user_id ownership)
 CREATE POLICY "rls_notificacoes_select" ON public.notificacoes
 FOR SELECT USING (
   auth.uid() IS NOT NULL
   AND tenant_id = public.get_current_tenant_id()
-  AND (
-    user_id = auth.uid()
-    OR public.has_permission(auth.uid(), 'notificacoes', 'read')
-  )
 );
 
 -- =============================================================================

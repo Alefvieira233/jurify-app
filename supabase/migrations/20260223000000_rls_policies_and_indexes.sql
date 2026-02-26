@@ -47,7 +47,7 @@ BEGIN
       USING (
         auth.uid() IS NOT NULL
         AND tenant_id = public.get_current_tenant_id()
-        AND public.has_permission('agendamentos', 'delete')
+        AND public.has_permission(auth.uid(), 'agendamentos', 'delete')
       );
   END IF;
 END $$;
@@ -69,10 +69,7 @@ BEGIN
       USING (
         auth.uid() IS NOT NULL
         AND tenant_id = public.get_current_tenant_id()
-        AND (
-          user_id = auth.uid()
-          OR public.has_permission('notificacoes', 'update')
-        )
+        AND public.has_permission(auth.uid(), 'notificacoes', 'update')
       )
       WITH CHECK (
         auth.uid() IS NOT NULL
@@ -107,16 +104,25 @@ CREATE INDEX IF NOT EXISTS idx_crm_followups_assigned_status
 -- Query: "Custos de API por dia"
 -- SELECT DATE_TRUNC('day', created_at), model, SUM(total_tokens) FROM agent_ai_logs GROUP BY 1, 2
 -- -----------------------------------------------------------------------------
+-- DATE_TRUNC is STABLE (not IMMUTABLE) on timestamptz — index on raw column instead
 CREATE INDEX IF NOT EXISTS idx_agent_ai_logs_day_model
-  ON public.agent_ai_logs (DATE_TRUNC('day', created_at), model, total_tokens);
+  ON public.agent_ai_logs (created_at, model, total_tokens);
 
 -- -----------------------------------------------------------------------------
 -- 7. whatsapp_conversations — lookup by lead
 -- Query: "Histórico WhatsApp deste lead"
 -- SELECT * FROM whatsapp_conversations WHERE lead_id = ? ORDER BY created_at DESC
 -- -----------------------------------------------------------------------------
-CREATE INDEX IF NOT EXISTS idx_whatsapp_conversations_lead_id
-  ON public.whatsapp_conversations (lead_id, created_at DESC);
+DO $$
+BEGIN
+  IF EXISTS (
+    SELECT 1 FROM information_schema.tables
+    WHERE table_schema = 'public' AND table_name = 'whatsapp_conversations'
+  ) THEN
+    CREATE INDEX IF NOT EXISTS idx_whatsapp_conversations_lead_id
+      ON public.whatsapp_conversations (lead_id, created_at DESC);
+  END IF;
+END $$;
 
 -- -----------------------------------------------------------------------------
 -- 8. logs_execucao_agentes — "Execuções falhadas do agente X"
@@ -124,4 +130,4 @@ CREATE INDEX IF NOT EXISTS idx_whatsapp_conversations_lead_id
 -- SELECT * FROM logs_execucao_agentes WHERE agent_id = ? AND status = 'error' ORDER BY created_at DESC
 -- -----------------------------------------------------------------------------
 CREATE INDEX IF NOT EXISTS idx_logs_execucao_agentes_agent_status
-  ON public.logs_execucao_agentes (agent_id, status, created_at DESC);
+  ON public.logs_execucao_agentes (agente_id, status, created_at DESC);

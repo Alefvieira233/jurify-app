@@ -359,16 +359,16 @@ function buildSystemPrompt(userName: string, ctx: ContextData): string {
 
 ## Resumo do escritório (últimos 30 dias)
 - **Leads totais:** ${ctx.metrics.total_leads_30d}
-- **Por status:** ${Object.entries(ctx.metrics.leads_by_status).map(([s, n]) => \`\${s}: \${n}\`).join(", ") || "nenhum"}
+- **Por status:** ${Object.entries(ctx.metrics.leads_by_status).map(([s, n]) => (s + ": " + n)).join(", ") || "nenhum"}
 - **Taxa de conversão:** ${ctx.metrics.conversion_rate}%
 - **Contratos:** ${ctx.metrics.total_contracts}
 - **Receita (assinados):** ${formatBRL(ctx.metrics.total_revenue)}
 
 ## Leads recentes
-${ctx.leads.slice(0, 5).map((l: any) => \`- \${l.nome} | \${l.status} | \${l.area_juridica ?? "—"} | \${l.email ?? "—"}\`).join("\\n") || "Nenhum lead recente."}
+${ctx.leads.slice(0, 5).map((l: any) => "- " + l.nome + " | " + l.status + " | " + (l.area_juridica ?? "—") + " | " + (l.email ?? "—")).join("\n") || "Nenhum lead recente."}
 
 ## Contratos recentes
-${ctx.contracts.slice(0, 3).map((c: any) => \`- \${c.cliente_nome} | \${c.status} | \${formatBRL(c.valor ?? 0)}\`).join("\\n") || "Nenhum contrato recente."}
+${ctx.contracts.slice(0, 3).map((c: any) => "- " + c.cliente_nome + " | " + c.status + " | " + formatBRL(c.valor ?? 0)).join("\n") || "Nenhum contrato recente."}
 
 ## Regras
 1. Responda **sempre em português brasileiro**, profissional e amigável.
@@ -395,7 +395,7 @@ async function callOpenAIWithRetry(
     const res = await fetch("https://api.openai.com/v1/chat/completions", {
       method: "POST",
       headers: {
-        Authorization: \`Bearer \${apiKey}\`,
+        Authorization: `Bearer ${apiKey}`,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
@@ -413,13 +413,13 @@ async function callOpenAIWithRetry(
     // Retry on 429 (rate limit) and 5xx
     if ((res.status === 429 || res.status >= 500) && attempt < maxRetries) {
       const delay = Math.pow(2, attempt) * 1000 + Math.random() * 500;
-      console.warn(\`[assistant] OpenAI \${res.status}, retrying in \${Math.round(delay)}ms (attempt \${attempt + 1})\`);
+      console.warn(`[assistant] OpenAI ${res.status}, retrying in ${Math.round(delay)}ms (attempt ${attempt + 1})`);
       await new Promise((r) => setTimeout(r, delay));
       continue;
     }
 
     const body = await res.text();
-    throw new Error(\`OpenAI \${res.status}: \${body.slice(0, 200)}\`);
+    throw new Error(`OpenAI ${res.status}: ${body.slice(0, 200)}`);
   }
 }
 
@@ -455,8 +455,8 @@ async function executeTool(
         .eq("tenant_id", tenantId);
 
       if (args.status) q = q.eq("status", args.status);
-      if (args.legal_area) q = q.ilike("area_juridica", \`%\${args.legal_area}%\`);
-      if (args.query) q = q.or(\`nome.ilike.%\${args.query}%,email.ilike.%\${args.query}%,telefone.ilike.%\${args.query}%\`);
+      if (args.legal_area) q = q.ilike("area_juridica", `%${args.legal_area}%`);
+      if (args.query) q = q.or(`nome.ilike.%${args.query}%,email.ilike.%${args.query}%,telefone.ilike.%${args.query}%`);
 
       const { data } = await q.order("created_at", { ascending: false }).limit(args.limit ?? 10);
       return data ?? [];
@@ -497,7 +497,7 @@ async function executeTool(
         .select("id, cliente_nome, status, valor, data_assinatura, created_at")
         .eq("tenant_id", tenantId);
 
-      if (args.query) q = q.ilike("cliente_nome", \`%\${args.query}%\`);
+      if (args.query) q = q.ilike("cliente_nome", `%${args.query}%`);
       if (args.status) q = q.eq("status", args.status);
       if (args.min_value) q = q.gte("valor", args.min_value);
       if (args.date_range) {
@@ -526,6 +526,6 @@ async function executeTool(
     }
 
     default:
-      return { error: \`Tool \${toolName} not found\` };
+      return { error: `Tool ${toolName} not found` };
   }
 }

@@ -125,12 +125,12 @@ LANGUAGE plpgsql
 SECURITY DEFINER
 AS $$
 BEGIN
-  REFRESH MATERIALIZED VIEW CONCURRENTLY public.mv_leads_metrics;
-  REFRESH MATERIALIZED VIEW CONCURRENTLY public.mv_leads_por_area;
-  REFRESH MATERIALIZED VIEW CONCURRENTLY public.mv_contratos_metrics;
-  REFRESH MATERIALIZED VIEW CONCURRENTLY public.mv_agendamentos_metrics;
-  REFRESH MATERIALIZED VIEW CONCURRENTLY public.mv_agentes_metrics;
-  REFRESH MATERIALIZED VIEW CONCURRENTLY public.mv_dashboard;
+  REFRESH MATERIALIZED VIEW public.mv_leads_metrics;
+  REFRESH MATERIALIZED VIEW public.mv_leads_por_area;
+  REFRESH MATERIALIZED VIEW public.mv_contratos_metrics;
+  REFRESH MATERIALIZED VIEW public.mv_agendamentos_metrics;
+  REFRESH MATERIALIZED VIEW public.mv_agentes_metrics;
+  REFRESH MATERIALIZED VIEW public.mv_dashboard;
 END;
 $$;
 

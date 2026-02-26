@@ -50,19 +50,19 @@ CREATE TRIGGER prevent_audit_delete
   FOR EACH ROW EXECUTE FUNCTION public.prevent_audit_mutation();
 
 -- 2. Índices para consulta de auditoria
-CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_audit_log_table_record
+CREATE INDEX IF NOT EXISTS idx_audit_log_table_record
   ON public.audit_log(table_name, record_id);
 
-CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_audit_log_tenant
+CREATE INDEX IF NOT EXISTS idx_audit_log_tenant
   ON public.audit_log(tenant_id);
 
-CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_audit_log_user
+CREATE INDEX IF NOT EXISTS idx_audit_log_user
   ON public.audit_log(user_id);
 
-CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_audit_log_created
+CREATE INDEX IF NOT EXISTS idx_audit_log_created
   ON public.audit_log(created_at DESC);
 
-CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_audit_log_operation
+CREATE INDEX IF NOT EXISTS idx_audit_log_operation
   ON public.audit_log(table_name, operation, created_at DESC);
 
 -- 3. Função genérica de auditoria
@@ -165,7 +165,7 @@ SELECT
   al.operation,
   al.changed_fields,
   al.user_id,
-  p.nome AS user_name,
+  p.nome_completo AS user_name,
   al.tenant_id,
   al.created_at
 FROM public.audit_log al

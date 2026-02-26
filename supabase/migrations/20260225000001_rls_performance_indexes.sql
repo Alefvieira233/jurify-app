@@ -53,42 +53,42 @@ END;
 $$;
 
 -- 3. Índices compostos para queries frequentes do dashboard
-CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_leads_tenant_status
+CREATE INDEX IF NOT EXISTS idx_leads_tenant_status
   ON public.leads(tenant_id, status);
 
-CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_leads_tenant_created
+CREATE INDEX IF NOT EXISTS idx_leads_tenant_created
   ON public.leads(tenant_id, created_at DESC);
 
-CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_leads_tenant_area
+CREATE INDEX IF NOT EXISTS idx_leads_tenant_area
   ON public.leads(tenant_id, area_juridica);
 
-CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_contratos_tenant_status
+CREATE INDEX IF NOT EXISTS idx_contratos_tenant_status
   ON public.contratos(tenant_id, status);
 
-CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_contratos_tenant_created
+CREATE INDEX IF NOT EXISTS idx_contratos_tenant_created
   ON public.contratos(tenant_id, created_at DESC);
 
-CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_agendamentos_tenant_data
+CREATE INDEX IF NOT EXISTS idx_agendamentos_tenant_data
   ON public.agendamentos(tenant_id, data_hora);
 
-CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_agendamentos_tenant_status
+CREATE INDEX IF NOT EXISTS idx_agendamentos_tenant_status
   ON public.agendamentos(tenant_id, status);
 
-CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_agent_executions_tenant_created
+CREATE INDEX IF NOT EXISTS idx_agent_executions_tenant_created
   ON public.agent_executions(tenant_id, created_at DESC);
 
 -- 4. Índice para profiles lookup (usado em TODA policy RLS)
-CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_profiles_id_tenant
+CREATE INDEX IF NOT EXISTS idx_profiles_id_tenant
   ON public.profiles(id, tenant_id);
 
 -- 5. Índice parcial para leads ativos (dashboard)
-CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_leads_active
+CREATE INDEX IF NOT EXISTS idx_leads_active
   ON public.leads(tenant_id, created_at DESC)
   WHERE status NOT IN ('perdido', 'arquivado');
 
--- 6. Índice parcial para agendamentos futuros
-CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_agendamentos_future
-  ON public.agendamentos(tenant_id, data_hora)
-  WHERE data_hora >= now() - interval '1 day';
+-- 6. Índice para agendamentos por tenant + data_hora
+-- (partial index with now() not allowed — now() is STABLE not IMMUTABLE)
+CREATE INDEX IF NOT EXISTS idx_agendamentos_future
+  ON public.agendamentos(tenant_id, data_hora);
 
 COMMENT ON FUNCTION public.current_tenant_id IS 'O(1) tenant lookup for RLS — replaces repeated subqueries in policies';

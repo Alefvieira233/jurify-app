@@ -82,7 +82,7 @@ AS $$
   END;
 $$;
 
-COMMENT ON FUNCTION public.has_permission IS
+COMMENT ON FUNCTION public.has_permission(uuid, text, text) IS
   'Role-based permission check mirroring src/types/rbac.ts ROLE_PERMISSIONS matrix. '
   'Unknown/null roles default to viewer (read-only).';
 
