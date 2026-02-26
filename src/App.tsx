@@ -22,7 +22,6 @@ import NotFound from "./pages/NotFound";
 
 // Lazy loading para features (carregamento sob demanda)
 const Dashboard = lazy(() => import("./features/dashboard/Dashboard"));
-const LeadsPanel = lazy(() => import("./features/leads/LeadsPanel"));
 const PipelineJuridico = lazy(() => import("./features/pipeline/PipelineJuridico"));
 const AgendamentosManager = lazy(() => import("./features/scheduling/AgendamentosManager"));
 const ContratosManager = lazy(() => import("./features/contracts/ContratosManager"));
@@ -34,14 +33,10 @@ const LogsPanel = lazy(() => import("./features/logs/LogsPanel"));
 const IntegracoesConfig = lazy(() => import("./features/settings/IntegracoesConfig"));
 const ConfiguracoesGerais = lazy(() => import("./features/settings/ConfiguracoesGerais"));
 const NotificationsPanel = lazy(() => import("./features/notifications/NotificationsPanel"));
-const TimelineConversas = lazy(() => import("./features/timeline/TimelineConversas"));
 const AgentsPlayground = lazy(() => import("./pages/AgentsPlayground"));
 const MissionControl = lazy(() => import("./features/mission-control/MissionControl"));
-const Pricing = lazy(() => import("./pages/Pricing"));
-const AnalyticsDashboard = lazy(() => import("./components/analytics/AnalyticsDashboard"));
 const SubscriptionManager = lazy(() => import("./components/billing/SubscriptionManager"));
 const CRMDashboard = lazy(() => import("./features/crm/CRMDashboard"));
-const FollowUpPanel = lazy(() => import("./features/crm/FollowUpPanel"));
 const LeadDetailPanel = lazy(() => import("./features/crm/LeadDetailPanel"));
 
 // WhatsApp Error Boundary - import direto (necessário para wrapping)
@@ -50,10 +45,10 @@ import { WhatsAppErrorBoundary } from "./features/whatsapp/WhatsAppErrorBoundary
 // Prefetch rotas mais acessadas após o idle do browser
 if (typeof window !== 'undefined' && 'requestIdleCallback' in window) {
   window.requestIdleCallback(() => {
-    void import("./features/leads/LeadsPanel");
     void import("./features/pipeline/PipelineJuridico");
     void import("./features/scheduling/AgendamentosManager");
     void import("./features/crm/CRMDashboard");
+    void import("./features/reports/RelatoriosGerenciais");
   });
 }
 
@@ -87,7 +82,8 @@ const App = () => (
                 <Route path="/" element={<ProtectedRoute><Layout /></ProtectedRoute>}>
                   <Route index element={<Dashboard />} />
                   <Route path="dashboard" element={<Navigate to="/" replace />} />
-                  <Route path="leads" element={<LeadsPanel />} />
+                  {/* /leads absorvido por Pipeline — redirect para evitar rotas fantasma */}
+                  <Route path="leads" element={<Navigate to="/pipeline" replace />} />
                   <Route path="pipeline" element={<PipelineJuridico />} />
                   <Route path="agendamentos" element={<AgendamentosManager />} />
                   <Route path="contratos" element={<ContratosManager />} />
@@ -103,12 +99,16 @@ const App = () => (
                   <Route path="integracoes" element={<ProtectedRoute requiredRoles={['admin']}><IntegracoesConfig /></ProtectedRoute>} />
                   <Route path="configuracoes" element={<ProtectedRoute requiredRoles={['admin']}><ConfiguracoesGerais /></ProtectedRoute>} />
                   <Route path="notificacoes" element={<NotificationsPanel />} />
-                  <Route path="timeline" element={<TimelineConversas />} />
-                  <Route path="planos" element={<Pricing />} />
-                  <Route path="analytics" element={<AnalyticsDashboard />} />
+                  {/* /timeline absorvido por Clientes (CRM) */}
+                  <Route path="timeline" element={<Navigate to="/crm" replace />} />
+                  {/* /planos unificado em Assinatura */}
+                  <Route path="planos" element={<Navigate to="/billing" replace />} />
+                  {/* /analytics absorvido por Relatórios como aba */}
+                  <Route path="analytics" element={<Navigate to="/relatorios" replace />} />
                   <Route path="billing" element={<SubscriptionManager />} />
                   <Route path="crm" element={<CRMDashboard />} />
-                  <Route path="crm/followups" element={<FollowUpPanel />} />
+                  {/* /crm/followups acessível via CRM Dashboard */}
+                  <Route path="crm/followups" element={<Navigate to="/crm" replace />} />
                   <Route path="crm/lead/:leadId" element={<LeadDetailPanel />} />
                   <Route path="admin/playground" element={<ProtectedRoute requiredRoles={['admin']}><AgentsPlayground /></ProtectedRoute>} />
                   <Route path="admin/mission-control" element={<ProtectedRoute requiredRoles={['admin']}><MissionControl /></ProtectedRoute>} />

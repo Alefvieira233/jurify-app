@@ -5,6 +5,7 @@ import {
   MessageSquare,
   FileText,
   Calendar,
+  LayoutDashboard,
   BarChart3,
   Settings,
   Users,
@@ -15,14 +16,12 @@ import {
   Bell,
   Activity,
   Zap,
-  MessageCircle,
   CreditCard,
   Rocket,
-  FlaskConical,
-  Target,
-  Clock,
   Search,
   HelpCircle,
+  ChevronRight,
+  ArrowUpRight,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/contexts/AuthContext';
@@ -37,81 +36,92 @@ interface SidebarProps {
 }
 
 type MenuItem = {
-  id:        string;
-  label:     string;
-  icon:      React.ComponentType<{ className?: string }>;
-  resource:  string;
-  action:    string;
+  id:         string;
+  label:      string;
+  icon:       React.ComponentType<{ className?: string }>;
+  resource:   string;
+  action:     string;
   adminOnly?: boolean;
-  group:     string;
+  managerOk?: boolean;
+  group:      'main' | 'sistema';
+  badge?:     'notification' | 'upgrade';
 };
 
-/* ── Section definitions (order matters) ── */
-const SECTIONS: { key: string; label: string | null }[] = [
-  { key: 'main',     label: null          },
-  { key: 'ops',      label: 'Operacional' },
-  { key: 'ai',       label: 'IA'          },
-  { key: 'insights', label: 'Insights'    },
-  { key: 'admin',    label: 'Admin'       },
-];
-
+/* ─────────────────────────────────────────────────────────────────────────
+   Menu items
+   Main  → visível sempre, operacional (fluxo diário do advogado)
+   Sistema → colapsável, raramente acessado, admin/billing
+───────────────────────────────────────────────────────────────────────── */
 const ALL_MENU_ITEMS: MenuItem[] = [
-  /* ── Main ── */
-  { id: 'dashboard',      label: 'Dashboard',       icon: BarChart3,     resource: 'dashboard',    action: 'read', group: 'main'     },
-  { id: 'leads',          label: 'Leads',           icon: Users,         resource: 'leads',        action: 'read', group: 'main'     },
-  { id: 'pipeline',       label: 'Pipeline',        icon: TrendingUp,    resource: 'leads',        action: 'read', group: 'main'     },
-  { id: 'crm',            label: 'CRM',             icon: Target,        resource: 'leads',        action: 'read', group: 'main'     },
-  { id: 'crm/followups',  label: 'Follow-ups',      icon: Clock,         resource: 'leads',        action: 'read', group: 'main'     },
-  { id: 'timeline',       label: 'Conversas',       icon: MessageCircle, resource: 'leads',        action: 'read', group: 'main'     },
-  /* ── Operacional ── */
-  { id: 'whatsapp',       label: 'WhatsApp IA',     icon: MessageSquare, resource: 'whatsapp',     action: 'read', group: 'ops'      },
-  { id: 'contratos',      label: 'Contratos',       icon: FileText,      resource: 'contratos',    action: 'read', group: 'ops'      },
-  { id: 'agendamentos',   label: 'Agendamentos',    icon: Calendar,      resource: 'agendamentos', action: 'read', group: 'ops'      },
-  /* ── IA ── */
-  { id: 'agentes',        label: 'Agentes IA',      icon: Bot,           resource: 'agentes_ia',   action: 'read', group: 'ai'       },
-  /* ── Insights ── */
-  { id: 'relatorios',     label: 'Relatórios',      icon: BarChart3,     resource: 'relatorios',   action: 'read', group: 'insights' },
-  { id: 'analytics',      label: 'Analytics',       icon: Activity,      resource: 'dashboard',    action: 'read', group: 'insights' },
-  { id: 'notificacoes',   label: 'Notificações',    icon: Bell,          resource: 'notificacoes', action: 'read', group: 'insights' },
-  /* ── Admin ── */
-  { id: 'billing',               label: 'Billing',         icon: CreditCard,    resource: 'dashboard',    action: 'read', group: 'admin'    },
-  { id: 'planos',                label: 'Planos',          icon: CreditCard,    resource: 'dashboard',    action: 'read', group: 'admin'    },
-  { id: 'admin/mission-control', label: 'Mission Control', icon: Rocket,        resource: 'dashboard',    action: 'read', group: 'admin'    },
-  { id: 'admin/playground',      label: 'Playground',      icon: FlaskConical,  resource: 'dashboard',    action: 'read', group: 'admin'    },
-  { id: 'usuarios',              label: 'Usuários',        icon: UserCog,       resource: 'usuarios',     action: 'read', group: 'admin', adminOnly: true },
-  { id: 'integracoes',           label: 'Integrações',     icon: Zap,           resource: 'integracoes',  action: 'read', group: 'admin', adminOnly: true },
-  { id: 'logs',                  label: 'Logs',            icon: Activity,      resource: 'logs',         action: 'read', group: 'admin', adminOnly: true },
-  { id: 'configuracoes',         label: 'Configurações',   icon: Settings,      resource: 'configuracoes',action: 'read', group: 'admin', adminOnly: true },
+  /* ── Main (9 itens) ── */
+  { id: 'dashboard',             label: 'Dashboard',       icon: LayoutDashboard, resource: 'dashboard',     action: 'read', group: 'main' },
+  { id: 'pipeline',              label: 'Pipeline',         icon: TrendingUp,      resource: 'leads',         action: 'read', group: 'main' },
+  { id: 'agendamentos',          label: 'Agenda',           icon: Calendar,        resource: 'agendamentos',  action: 'read', group: 'main' },
+  { id: 'whatsapp',              label: 'WhatsApp',         icon: MessageSquare,   resource: 'whatsapp',      action: 'read', group: 'main' },
+  { id: 'agentes',               label: 'Agentes IA',       icon: Bot,             resource: 'agentes_ia',    action: 'read', group: 'main' },
+  { id: 'contratos',             label: 'Contratos',        icon: FileText,        resource: 'contratos',     action: 'read', group: 'main' },
+  { id: 'crm',                   label: 'Clientes',         icon: Users,           resource: 'leads',         action: 'read', group: 'main' },
+  { id: 'notificacoes',          label: 'Notificações',     icon: Bell,            resource: 'notificacoes',  action: 'read', group: 'main', badge: 'notification' },
+  { id: 'relatorios',            label: 'Relatórios',       icon: BarChart3,       resource: 'relatorios',    action: 'read', group: 'main' },
+
+  /* ── Sistema (colapsável) ── */
+  { id: 'billing',               label: 'Assinatura',      icon: CreditCard,      resource: 'dashboard',     action: 'read', group: 'sistema', badge: 'upgrade' },
+  { id: 'usuarios',              label: 'Usuários',        icon: UserCog,         resource: 'usuarios',      action: 'read', group: 'sistema', managerOk: true },
+  { id: 'integracoes',           label: 'Integrações',     icon: Zap,             resource: 'integracoes',   action: 'read', group: 'sistema', adminOnly: true },
+  { id: 'logs',                  label: 'Logs',            icon: Activity,        resource: 'logs',          action: 'read', group: 'sistema', adminOnly: true },
+  { id: 'admin/mission-control', label: 'Monitoramento',   icon: Rocket,          resource: 'dashboard',     action: 'read', group: 'sistema', adminOnly: true },
+  { id: 'configuracoes',         label: 'Configurações',   icon: Settings,        resource: 'configuracoes', action: 'read', group: 'sistema', adminOnly: true },
 ];
 
+const SISTEMA_IDS = ALL_MENU_ITEMS.filter(i => i.group === 'sistema').map(i => i.id);
+
+/* ─────────────────────────────────────────────────────────────────────────
+   Component
+───────────────────────────────────────────────────────────────────────── */
 const Sidebar = ({ activeSection, onSectionChange }: SidebarProps) => {
   const { signOut, profile, user, hasPermission } = useAuth();
-  const [unreadCount, setUnreadCount]  = useState(0);
+  const [unreadCount, setUnreadCount]   = useState(0);
   const [visibleItems, setVisibleItems] = useState<MenuItem[]>([]);
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
+  const [sistemaOpen, setSistemaOpen]   = useState(
+    () => SISTEMA_IDS.includes(activeSection)
+  );
 
   /* ── RBAC filter ── */
   useEffect(() => {
     const filter = async () => {
       if (!user) { setVisibleItems([]); return; }
-      if (!profile) { setVisibleItems(ALL_MENU_ITEMS.filter(i => !i.adminOnly)); return; }
+      if (!profile) {
+        setVisibleItems(ALL_MENU_ITEMS.filter(i => !i.adminOnly && !i.managerOk));
+        return;
+      }
 
       const out: MenuItem[] = [];
       for (const item of ALL_MENU_ITEMS) {
         if (profile.role === 'admin') { out.push(item); continue; }
         if (item.adminOnly) continue;
+        if (item.managerOk && profile.role !== 'manager') continue;
         try {
           if (await hasPermission(item.resource, item.action)) out.push(item);
         } catch {
-          if (!item.adminOnly) out.push(item);
+          out.push(item);
         }
       }
-      setVisibleItems(out.length === 0 ? ALL_MENU_ITEMS.filter(i => !i.adminOnly) : out);
+      setVisibleItems(
+        out.length === 0
+          ? ALL_MENU_ITEMS.filter(i => !i.adminOnly && !i.managerOk)
+          : out
+      );
     };
     void filter();
   }, [user, profile, hasPermission]);
 
-  /* ── Unread notifications ── */
+  /* ── Auto-open Sistema if active route belongs to it ── */
+  useEffect(() => {
+    if (SISTEMA_IDS.includes(activeSection)) setSistemaOpen(true);
+  }, [activeSection]);
+
+  /* ── Unread notifications (30s poll) ── */
   useEffect(() => {
     const fetch = async () => {
       if (!user?.id) return;
@@ -121,23 +131,78 @@ const Sidebar = ({ activeSection, onSectionChange }: SidebarProps) => {
       } catch { /* silent */ }
     };
     void fetch();
-    const t = setInterval(() => { void fetch(); }, 30000);
+    const t = setInterval(() => { void fetch(); }, 30_000);
     return () => clearInterval(t);
   }, [user?.id]);
 
-  /* ── Group visible items by section ── */
-  const grouped = useMemo(() =>
-    SECTIONS.map(sec => ({
-      ...sec,
-      items: visibleItems.filter(i => i.group === sec.key),
-    })).filter(sec => sec.items.length > 0),
-  [visibleItems]);
+  /* ── Split by group ── */
+  const mainItems    = useMemo(() => visibleItems.filter(i => i.group === 'main'),    [visibleItems]);
+  const sistemaItems = useMemo(() => visibleItems.filter(i => i.group === 'sistema'), [visibleItems]);
+
+  const isFreeTier = !profile?.subscription_tier || profile.subscription_tier === 'free';
 
   const userInitial = profile?.nome_completo?.charAt(0).toUpperCase()
     || user?.email?.charAt(0).toUpperCase()
     || 'U';
   const userName = profile?.nome_completo || user?.email || 'Usuário';
-  const userRole = profile?.role === 'admin' ? 'Admin' : 'Usuário';
+  const userRoleLabel = profile?.role === 'admin'   ? 'Admin'
+    : profile?.role === 'manager' ? 'Gestor'
+    : 'Usuário';
+
+  /* ── Render a single nav item ── */
+  const renderItem = (item: MenuItem) => {
+    const Icon     = item.icon;
+    const isActive = activeSection === item.id;
+
+    return (
+      <li key={item.id} role="listitem" className="relative">
+        {isActive && (
+          <span
+            className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-4 bg-primary rounded-r-full pointer-events-none"
+            aria-hidden
+          />
+        )}
+        <button
+          type="button"
+          onClick={() => onSectionChange(item.id)}
+          aria-current={isActive ? 'page' : undefined}
+          aria-label={`${item.label}${item.badge === 'notification' && unreadCount > 0 ? ` (${unreadCount} não lidas)` : ''}`}
+          className={cn(
+            'group w-full flex items-center gap-2.5 py-1.5 rounded-md text-xs transition-all duration-150 text-left',
+            isActive ? 'pl-3.5 pr-2.5' : 'px-2.5',
+            isActive
+              ? 'bg-sidebar-accent text-sidebar-foreground font-medium'
+              : 'text-sidebar-foreground/55 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground/85 font-normal'
+          )}
+        >
+          <Icon
+            className={cn(
+              'h-3.5 w-3.5 flex-shrink-0 transition-colors duration-150',
+              isActive
+                ? 'text-primary'
+                : 'text-sidebar-foreground/40 group-hover:text-sidebar-foreground/65'
+            )}
+          />
+          <span className="flex-1 truncate">{item.label}</span>
+
+          {item.badge === 'notification' && unreadCount > 0 && (
+            <Badge variant="destructive" className="h-4 min-w-4 px-1 text-[9px] font-bold">
+              {unreadCount > 99 ? '99+' : unreadCount}
+            </Badge>
+          )}
+
+          {item.badge === 'upgrade' && isFreeTier && (
+            <Badge
+              variant="outline"
+              className="h-4 px-1 text-[9px] font-bold border-amber-400/60 text-amber-500 bg-amber-50 dark:bg-amber-900/20"
+            >
+              Free
+            </Badge>
+          )}
+        </button>
+      </li>
+    );
+  };
 
   return (
     <nav
@@ -151,8 +216,17 @@ const Sidebar = ({ activeSection, onSectionChange }: SidebarProps) => {
         </div>
         <div className="flex-1 min-w-0 flex items-center gap-1.5">
           <span className="text-[13px] font-bold text-sidebar-foreground tracking-tight leading-none">Jurify</span>
-          <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded-full bg-primary/10 text-primary leading-none">
-            Enterprise
+          <span className={cn(
+            'text-[9px] font-semibold px-1.5 py-0.5 rounded-full leading-none',
+            profile?.subscription_tier === 'enterprise'
+              ? 'bg-violet-100 dark:bg-violet-900/30 text-violet-600 dark:text-violet-400'
+              : profile?.subscription_tier === 'pro'
+              ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400'
+              : 'bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400'
+          )}>
+            {profile?.subscription_tier === 'enterprise' ? 'Enterprise'
+              : profile?.subscription_tier === 'pro' ? 'Pro'
+              : 'Free'}
           </span>
         </div>
         <ThemeToggle />
@@ -179,76 +253,60 @@ const Sidebar = ({ activeSection, onSectionChange }: SidebarProps) => {
 
       {/* ── Navigation ── */}
       <nav className="flex-1 px-2 pb-2 overflow-y-auto scrollbar-thin" role="navigation">
-        {grouped.map((sec, secIdx) => (
-          <div key={sec.key} className={secIdx > 0 ? 'mt-1' : 'mt-1.5'}>
 
-            {/* Section divider + inline label */}
-            {sec.label && (
-              <div className="flex items-center gap-2 px-1.5 pt-2.5 pb-0.5">
-                <div className="h-px flex-1 bg-border/50" />
-                <span className="text-[9px] font-semibold uppercase tracking-widest text-muted-foreground/40 select-none flex-shrink-0">
-                  {sec.label}
-                </span>
-              </div>
+        {/* Main items — sem divider, fluxo diário */}
+        <ul className="space-y-px mt-1.5" role="list">
+          {mainItems.map(renderItem)}
+        </ul>
+
+        {/* Sistema — colapsável, raramente acessado */}
+        {sistemaItems.length > 0 && (
+          <div className="mt-1">
+            <div className="flex items-center gap-2 px-1.5 pt-2.5 pb-0.5">
+              <div className="h-px flex-1 bg-border/50" />
+              <button
+                type="button"
+                onClick={() => setSistemaOpen(prev => !prev)}
+                aria-expanded={sistemaOpen}
+                className="flex items-center gap-1 text-[9px] font-semibold uppercase tracking-widest text-muted-foreground/40 hover:text-muted-foreground/70 transition-colors select-none"
+              >
+                <span>Sistema</span>
+                <ChevronRight
+                  className={cn(
+                    'h-2.5 w-2.5 transition-transform duration-200',
+                    sistemaOpen && 'rotate-90'
+                  )}
+                />
+              </button>
+            </div>
+
+            {sistemaOpen && (
+              <ul className="space-y-px" role="list">
+                {sistemaItems.map(renderItem)}
+              </ul>
             )}
-
-            <ul className="space-y-px" role="list">
-              {sec.items.map(item => {
-                const Icon    = item.icon;
-                const isActive = activeSection === item.id;
-                const isNotif  = item.id === 'notificacoes';
-
-                return (
-                  <li key={item.id} role="listitem" className="relative">
-
-                    {/* Left accent indicator for active item */}
-                    {isActive && (
-                      <span
-                        className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-4 bg-primary rounded-r-full pointer-events-none"
-                        aria-hidden
-                      />
-                    )}
-
-                    <button
-                      type="button"
-                      onClick={() => onSectionChange(item.id)}
-                      aria-current={isActive ? 'page' : undefined}
-                      aria-label={`${item.label}${isNotif && unreadCount > 0 ? ` (${unreadCount} não lidas)` : ''}`}
-                      className={cn(
-                        'group w-full flex items-center gap-2.5 py-1.5 rounded-md text-xs transition-all duration-150 text-left',
-                        isActive ? 'pl-3.5 pr-2.5' : 'px-2.5',
-                        isActive
-                          ? 'bg-sidebar-accent text-sidebar-foreground font-medium'
-                          : 'text-sidebar-foreground/55 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground/85 font-normal'
-                      )}
-                    >
-                      <Icon
-                        className={cn(
-                          'h-3.5 w-3.5 flex-shrink-0 transition-colors duration-150',
-                          isActive
-                            ? 'text-primary'
-                            : 'text-sidebar-foreground/40 group-hover:text-sidebar-foreground/65'
-                        )}
-                      />
-                      <span className="flex-1 truncate">{item.label}</span>
-                      {isNotif && unreadCount > 0 && (
-                        <Badge
-                          variant="destructive"
-                          className="h-4 min-w-4 px-1 text-[9px] font-bold"
-                        >
-                          {unreadCount > 99 ? '99+' : unreadCount}
-                        </Badge>
-                      )}
-                    </button>
-                  </li>
-                );
-              })}
-            </ul>
           </div>
-        ))}
+        )}
       </nav>
 
-      {/* ── User footer (single compact row) ── */}
+      {/* ── Upgrade CTA para tier free ── */}
+      {isFreeTier && (
+        <div className="px-2.5 pb-1 flex-shrink-0">
+          <button
+            type="button"
+            onClick={() => onSectionChange('billing')}
+            className="w-full flex items-center gap-2 px-3 py-2 rounded-md bg-amber-500/10 hover:bg-amber-500/20 border border-amber-400/25 transition-all duration-150 group"
+          >
+            <ArrowUpRight className="h-3.5 w-3.5 text-amber-500 flex-shrink-0 group-hover:scale-110 transition-transform" />
+            <div className="flex-1 min-w-0 text-left">
+              <p className="text-[11px] font-semibold text-amber-600 dark:text-amber-400 leading-none">Fazer upgrade</p>
+              <p className="text-[9px] text-amber-500/70 leading-none mt-0.5">Desbloquear todos os recursos</p>
+            </div>
+          </button>
+        </div>
+      )}
+
+      {/* ── User footer ── */}
       <div className="px-2.5 py-2.5 border-t border-sidebar-border flex-shrink-0">
         <div className="flex items-center gap-2.5">
           <div className="w-7 h-7 rounded-full bg-primary flex items-center justify-center flex-shrink-0 ring-1 ring-primary/25">
@@ -256,7 +314,7 @@ const Sidebar = ({ activeSection, onSectionChange }: SidebarProps) => {
           </div>
           <div className="flex-1 min-w-0">
             <p className="text-[11px] font-medium text-sidebar-foreground truncate leading-none">{userName}</p>
-            <p className="text-[10px] text-muted-foreground/50 truncate leading-none mt-1">{userRole}</p>
+            <p className="text-[10px] text-muted-foreground/50 truncate leading-none mt-1">{userRoleLabel}</p>
           </div>
           <button
             type="button"
