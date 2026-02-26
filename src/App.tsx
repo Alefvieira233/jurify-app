@@ -80,20 +80,20 @@ const App = () => (
                 <Route path="/auth/google/callback" element={<GoogleAuthCallback />} />
 
                 <Route path="/" element={<ProtectedRoute><Layout /></ProtectedRoute>}>
-                  <Route index element={<Dashboard />} />
+                  <Route index element={<ErrorBoundary><Dashboard /></ErrorBoundary>} />
                   <Route path="dashboard" element={<Navigate to="/" replace />} />
                   {/* /leads absorvido por Pipeline — redirect para evitar rotas fantasma */}
                   <Route path="leads" element={<Navigate to="/pipeline" replace />} />
-                  <Route path="pipeline" element={<PipelineJuridico />} />
+                  <Route path="pipeline" element={<ErrorBoundary><PipelineJuridico /></ErrorBoundary>} />
                   <Route path="agendamentos" element={<AgendamentosManager />} />
-                  <Route path="contratos" element={<ContratosManager />} />
-                  <Route path="relatorios" element={<RelatoriosGerenciais />} />
+                  <Route path="contratos" element={<ErrorBoundary><ContratosManager /></ErrorBoundary>} />
+                  <Route path="relatorios" element={<ErrorBoundary><RelatoriosGerenciais /></ErrorBoundary>} />
                   <Route path="whatsapp" element={
                     <WhatsAppErrorBoundary>
                       <WhatsAppIA />
                     </WhatsAppErrorBoundary>
                   } />
-                  <Route path="agentes" element={<AgentesIAManager />} />
+                  <Route path="agentes" element={<ErrorBoundary><AgentesIAManager /></ErrorBoundary>} />
                   <Route path="usuarios" element={<ProtectedRoute requiredRoles={['admin', 'manager']}><UsuariosManager /></ProtectedRoute>} />
                   <Route path="logs" element={<ProtectedRoute requiredRoles={['admin', 'manager']}><LogsPanel /></ProtectedRoute>} />
                   <Route path="integracoes" element={<ProtectedRoute requiredRoles={['admin']}><IntegracoesConfig /></ProtectedRoute>} />
@@ -106,7 +106,7 @@ const App = () => (
                   {/* /analytics absorvido por Relatórios como aba */}
                   <Route path="analytics" element={<Navigate to="/relatorios" replace />} />
                   <Route path="billing" element={<SubscriptionManager />} />
-                  <Route path="crm" element={<CRMDashboard />} />
+                  <Route path="crm" element={<ErrorBoundary><CRMDashboard /></ErrorBoundary>} />
                   {/* /crm/followups acessível via CRM Dashboard */}
                   <Route path="crm/followups" element={<Navigate to="/crm" replace />} />
                   <Route path="crm/lead/:leadId" element={<LeadDetailPanel />} />

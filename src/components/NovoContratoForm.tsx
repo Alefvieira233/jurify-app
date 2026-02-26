@@ -212,7 +212,7 @@ export const NovoContratoForm = ({ onClose }: NovoContratoFormProps) => {
   return (
     <form onSubmit={(e) => { void handleSubmit(onSubmit)(e); }} className="space-y-6">
       <div className="space-y-2">
-        <Label>Lead Existente (Opcional)</Label>
+        <Label>Cliente Existente (Opcional)</Label>
         <Controller
           control={control}
           name="lead_id"

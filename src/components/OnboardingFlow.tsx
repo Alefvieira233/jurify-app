@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -21,6 +22,7 @@ interface OnboardingStep {
 }
 
 const OnboardingFlow = () => {
+  const navigate = useNavigate();
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [steps, setSteps] = useState<OnboardingStep[]>([]);
   const { user, profile, hasRole } = useAuth();
@@ -66,28 +68,28 @@ const OnboardingFlow = () => {
           title: 'Integracao Google Calendar',
           description: 'Configure a sincronizacao de agendamentos',
           completed: (googleSettings && googleSettings.length > 0) || false,
-          link: '/?tab=configuracoes'
+          link: '/integracoes'
         },
         {
           id: 'api_keys',
           title: 'Configurar API Keys',
           description: 'Configure chaves para integracoes externas',
           completed: (apiKeys && apiKeys.length > 0) || false,
-          link: '/?tab=configuracoes'
+          link: '/integracoes'
         },
         {
           id: 'agentes_ia',
           title: 'Criar Agentes IA',
           description: 'Configure seus assistentes virtuais',
           completed: (agentes && agentes.length > 0) || false,
-          link: '/?tab=agentes'
+          link: '/agentes'
         },
         {
           id: 'usuarios',
           title: 'Gerenciar Usuarios',
           description: 'Convide sua equipe para o sistema',
           completed: (usuarios && usuarios.length > 1) || false,
-          link: '/?tab=usuarios'
+          link: '/usuarios'
         }
       ];
 
@@ -200,8 +202,8 @@ const OnboardingFlow = () => {
                       variant="outline"
                       size="sm"
                       onClick={() => {
-                        window.location.href = step.link!;
                         setShowOnboarding(false);
+                        navigate(step.link!);
                       }}
                     >
                       <ExternalLink className="h-4 w-4 mr-2" />

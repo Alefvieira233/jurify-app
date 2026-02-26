@@ -133,9 +133,9 @@ const LeadDetailPanel = () => {
         </div>
         <div className="flex-1 flex items-center justify-center text-center p-8">
           <div>
-            <p className="text-sm text-muted-foreground mb-3">Lead não encontrado</p>
+            <p className="text-sm text-muted-foreground mb-3">Cliente não encontrado</p>
             <Button variant="ghost" size="sm" onClick={() => navigate('/leads')} className="h-8 text-xs gap-1.5">
-              <ArrowLeft className="h-3.5 w-3.5" /> Voltar para Leads
+              <ArrowLeft className="h-3.5 w-3.5" /> Voltar para Clientes
             </Button>
           </div>
         </div>
@@ -171,7 +171,7 @@ const LeadDetailPanel = () => {
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 flex-wrap mb-1">
               <h1 className="text-base font-bold text-foreground">
-                {lead.nome_completo || lead.nome || 'Lead sem nome'}
+                {lead.nome_completo || lead.nome || 'Cliente sem nome'}
               </h1>
               {sc && (
                 <span

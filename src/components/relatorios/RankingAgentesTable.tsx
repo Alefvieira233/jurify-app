@@ -163,7 +163,7 @@ const RankingAgentesTable: React.FC<RankingAgentesTableProps> = ({ periodo }) =>
           <TableRow>
             <TableHead>Agente</TableHead>
             <TableHead>Tipo</TableHead>
-            <TableHead className="text-center">Leads Atendidos</TableHead>
+            <TableHead className="text-center">Clientes Atendidos</TableHead>
             <TableHead className="text-center">Taxa de Fechamento</TableHead>
             <TableHead className="text-center">Tempo Medio</TableHead>
             <TableHead className="text-right">Valor Gerado</TableHead>

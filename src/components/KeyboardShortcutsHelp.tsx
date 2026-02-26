@@ -13,7 +13,7 @@ interface KeyboardShortcutsHelpProps {
 const shortcuts = [
   { keys: ['Ctrl', 'K'], description: 'Busca global' },
   { keys: ['Ctrl', 'D'], description: 'Dashboard' },
-  { keys: ['Ctrl', 'L'], description: 'Leads' },
+  { keys: ['Ctrl', 'L'], description: 'Clientes' },
   { keys: ['Ctrl', 'A'], description: 'Agendamentos' },
   { keys: ['Ctrl', 'P'], description: 'Pipeline' },
   { keys: ['Esc'], description: 'Fechar menu / busca' },

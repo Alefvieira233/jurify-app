@@ -41,7 +41,7 @@ const KPICards: React.FC<KPICardsProps> = ({ kpis, isLoading }) => {
 
   const kpisCards: KPI[] = [
     {
-      titulo: 'Total de Leads',
+      titulo: 'Total de Clientes',
       valor: kpis?.totalLeads || 0,
       mudanca: 12,
       icon: Users,

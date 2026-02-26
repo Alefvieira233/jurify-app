@@ -256,7 +256,7 @@ export const SubscriptionManager = () => {
                             <CardHeader className="pb-2">
                                 <CardTitle className="text-sm flex items-center gap-2">
                                     <TrendingUp className="h-4 w-4 text-blue-500" />
-                                    Leads Cadastrados
+                                    Clientes Cadastrados
                                 </CardTitle>
                             </CardHeader>
                             <CardContent>
@@ -364,7 +364,7 @@ export const SubscriptionManager = () => {
                                 <CardContent>
                                     <ul className="text-sm space-y-1 mb-4">
                                         <li>✅ Chamadas IA ilimitadas</li>
-                                        <li>✅ Leads ilimitados</li>
+                                        <li>✅ Clientes ilimitados</li>
                                         <li>✅ Usuários ilimitados</li>
                                         <li>✅ SLA garantido</li>
                                         <li>✅ Suporte dedicado</li>

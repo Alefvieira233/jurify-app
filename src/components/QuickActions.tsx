@@ -59,7 +59,7 @@ const QuickActions = ({
 
   const actions = [
     {
-      title: 'Novo Lead',
+      title: 'Novo Cliente',
       icon: UserPlus,
       onClick: onNewLead,
       permission: permissions.leads,

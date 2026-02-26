@@ -271,7 +271,7 @@ export const AnalyticsDashboard = () => {
             {metrics && (
                 <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
                     <MetricCard
-                        title="Total de Leads"
+                        title="Total de Clientes"
                         value={metrics.leadsThisMonth}
                         change={metrics.leadsGrowth}
                         icon={Users}
@@ -300,14 +300,14 @@ export const AnalyticsDashboard = () => {
                 <Tabs defaultValue="overview" className="space-y-4">
                     <TabsList>
                         <TabsTrigger value="overview">Visão Geral</TabsTrigger>
-                        <TabsTrigger value="leads">Leads</TabsTrigger>
+                        <TabsTrigger value="leads">Clientes</TabsTrigger>
                         <TabsTrigger value="agents">Agentes IA</TabsTrigger>
                     </TabsList>
 
                     <TabsContent value="overview" className="space-y-4">
                         <Card>
                             <CardHeader>
-                                <CardTitle>Leads e Conversões ao Longo do Tempo</CardTitle>
+                                <CardTitle>Clientes e Conversões ao Longo do Tempo</CardTitle>
                             </CardHeader>
                             <CardContent>
                                 <ResponsiveContainer width="100%" height={300}>
@@ -328,7 +328,7 @@ export const AnalyticsDashboard = () => {
                         <div className="grid gap-4 md:grid-cols-2">
                             <Card>
                                 <CardHeader>
-                                    <CardTitle>Leads por Área Jurídica</CardTitle>
+                                    <CardTitle>Clientes por Área Jurídica</CardTitle>
                                 </CardHeader>
                                 <CardContent>
                                     <ResponsiveContainer width="100%" height={300}>
@@ -355,7 +355,7 @@ export const AnalyticsDashboard = () => {
 
                             <Card>
                                 <CardHeader>
-                                    <CardTitle>Leads por Origem</CardTitle>
+                                    <CardTitle>Clientes por Origem</CardTitle>
                                 </CardHeader>
                                 <CardContent>
                                     <ResponsiveContainer width="100%" height={300}>

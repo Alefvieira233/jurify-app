@@ -17,7 +17,7 @@ interface SearchResult {
 }
 
 const TYPE_CONFIG = {
-  lead: { icon: Users, label: 'Lead', color: 'text-blue-400' },
+  lead: { icon: Users, label: 'Cliente', color: 'text-blue-400' },
   contrato: { icon: FileText, label: 'Contrato', color: 'text-emerald-400' },
   agendamento: { icon: Calendar, label: 'Agendamento', color: 'text-amber-400' },
   agente: { icon: Bot, label: 'Agente IA', color: 'text-purple-400' },
@@ -25,7 +25,7 @@ const TYPE_CONFIG = {
 
 const QUICK_LINKS = [
   { label: 'Dashboard', route: '/', icon: Search },
-  { label: 'Leads', route: '/leads', icon: Users },
+  { label: 'Clientes', route: '/leads', icon: Users },
   { label: 'Contratos', route: '/contratos', icon: FileText },
   { label: 'WhatsApp', route: '/whatsapp', icon: MessageSquare },
   { label: 'Agentes IA', route: '/agentes', icon: Bot },

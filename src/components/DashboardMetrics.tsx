@@ -56,7 +56,7 @@ const DashboardMetrics = () => {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
         <Card className="card-monolith">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
-            <CardTitle className="text-[10px] font-black uppercase tracking-[0.2em] text-foreground/40">Total de Leads</CardTitle>
+            <CardTitle className="text-[10px] font-black uppercase tracking-[0.2em] text-foreground/40">Total de Clientes</CardTitle>
             <Users className="h-5 w-5 text-primary" />
           </CardHeader>
           <CardContent>
@@ -133,7 +133,7 @@ const DashboardMetrics = () => {
       {/* Pipeline de Leads */}
       <Card>
         <CardHeader>
-          <CardTitle>Pipeline de Leads</CardTitle>
+          <CardTitle>Pipeline de Clientes</CardTitle>
           <CardDescription>
             Distribuição dos leads por status
           </CardDescription>

@@ -11,7 +11,7 @@ const AreaJuridicaSection: React.FC<AreaJuridicaSectionProps> = ({ data }) => {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Leads por Área Jurídica</CardTitle>
+        <CardTitle>Clientes por Área Jurídica</CardTitle>
         <CardDescription>Volume de leads por especialização</CardDescription>
       </CardHeader>
       <CardContent>

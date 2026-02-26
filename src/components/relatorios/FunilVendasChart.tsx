@@ -21,12 +21,12 @@ const FunilVendasChart: React.FC<FunilVendasChartProps> = ({ data }) => {
   }
 
   const chartData = [
-    { etapa: 'Novos Leads', valor: data.novo_lead, cor: '#3B82F6' },
+    { etapa: 'Novos Clientes', valor: data.novo_lead, cor: '#3B82F6' },
     { etapa: 'Em Qualificação', valor: data.em_qualificacao, cor: '#10B981' },
     { etapa: 'Proposta Enviada', valor: data.proposta_enviada, cor: '#F59E0B' },
     { etapa: 'Contrato Assinado', valor: data.contrato_assinado, cor: '#EF4444' },
     { etapa: 'Em Atendimento', valor: data.em_atendimento, cor: '#8B5CF6' },
-    { etapa: 'Leads Perdidos', valor: data.lead_perdido, cor: '#6B7280' }
+    { etapa: 'Clientes Perdidos', valor: data.lead_perdido, cor: '#6B7280' }
   ];
 
   return (

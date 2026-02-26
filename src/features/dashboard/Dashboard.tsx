@@ -9,7 +9,7 @@ import { useDashboardMetricsFast } from '@/hooks/useDashboardMetricsFast';
 import { useToast } from '@/hooks/use-toast';
 import { useAgendaMetrics } from '@/hooks/useAgendaMetrics';
 import { useAuth } from '@/contexts/AuthContext';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams, useNavigate } from 'react-router-dom';
 import { createLogger } from '@/lib/logger';
 
 const log = createLogger('Dashboard');
@@ -20,6 +20,7 @@ const Dashboard = () => {
   const { profile } = useAuth();
   const [isSeeding, setIsSeeding] = useState(false);
   const { toast } = useToast();
+  const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
 
   useEffect(() => {
@@ -132,11 +133,11 @@ const Dashboard = () => {
 
               {/* CTAs primários */}
               <div className="flex flex-col sm:flex-row gap-2.5 w-full sm:w-auto mb-4">
-                <Button size="sm" className="gap-2">
+                <Button size="sm" className="gap-2" onClick={() => navigate('/pipeline')}>
                   <Plus className="h-3.5 w-3.5" />
                   Adicionar primeiro cliente
                 </Button>
-                <Button size="sm" variant="outline" className="gap-2">
+                <Button size="sm" variant="outline" className="gap-2" onClick={() => navigate('/whatsapp')}>
                   <MessageSquare className="h-3.5 w-3.5" />
                   Configurar WhatsApp
                 </Button>

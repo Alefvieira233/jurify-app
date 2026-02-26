@@ -44,7 +44,7 @@ const Layout = () => {
 
     useKeyboardShortcuts([
         { key: 'd', ctrl: true, callback: () => navigate('/'),          description: 'Dashboard' },
-        { key: 'l', ctrl: true, callback: () => navigate('/leads'),     description: 'Leads' },
+        { key: 'l', ctrl: true, callback: () => navigate('/pipeline'),  description: 'Clientes' },
         { key: 'a', ctrl: true, callback: () => navigate('/agentes'),   description: 'Agentes IA' },
         { key: 'p', ctrl: true, callback: () => navigate('/pipeline'),  description: 'Pipeline' },
     ]);

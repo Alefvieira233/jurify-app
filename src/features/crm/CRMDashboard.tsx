@@ -8,11 +8,12 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
+import FollowUpPanel from './FollowUpPanel';
 import { useCRMPipeline, type PipelineStage } from '@/hooks/useCRMPipeline';
 import { useFollowUps } from '@/hooks/useFollowUps';
 import { useCRMTags } from '@/hooks/useCRMTags';
 import { useLeads } from '@/hooks/useLeads';
-import { useNavigate } from 'react-router-dom';
 
 /* ── KPI config ── */
 const KPI_COLORS = {
@@ -38,12 +39,12 @@ const PRIORITY_LABEL: Record<string, string> = {
 /* ─────────────────────────────────────────────── */
 
 const CRMDashboard = () => {
-  const navigate = useNavigate();
   const { stages, loading: stagesLoading } = useCRMPipeline();
   const { followUps, overdueCount, loading: followUpsLoading } = useFollowUps();
   const { tags } = useCRMTags();
   const { leads, loading: leadsLoading } = useLeads();
   const [selectedStage, setSelectedStage] = useState<string | null>(null);
+  const [followUpsOpen, setFollowUpsOpen] = useState(false);
 
   const loading = stagesLoading || followUpsLoading || leadsLoading;
 
@@ -103,7 +104,7 @@ const CRMDashboard = () => {
             <div>
               <h1 className="text-sm font-bold text-foreground leading-tight">CRM Profissional</h1>
               <p className="text-[11px] text-muted-foreground leading-none mt-0.5">
-                {metrics.totalLeads} leads · {fmt(metrics.totalPipelineValue)} no pipeline
+                {metrics.totalLeads} clientes · {fmt(metrics.totalPipelineValue)} no pipeline
               </p>
             </div>
           </div>
@@ -111,7 +112,7 @@ const CRMDashboard = () => {
             variant="outline"
             size="sm"
             className="h-8 text-xs gap-1.5"
-            onClick={() => navigate('/crm/followups')}
+            onClick={() => setFollowUpsOpen(true)}
           >
             <Clock className="h-3.5 w-3.5" />
             Follow-ups
@@ -135,7 +136,7 @@ const CRMDashboard = () => {
           <CardContent className="p-4">
             <div className="flex items-start justify-between gap-2">
               <div className="flex-1 min-w-0">
-                <p className="text-xs text-muted-foreground">Leads no Pipeline</p>
+                <p className="text-xs text-muted-foreground">Clientes no Pipeline</p>
                 <p className="text-2xl font-bold tabular-nums mt-0.5">{metrics.totalLeads}</p>
               </div>
               <div className="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0"
@@ -188,7 +189,7 @@ const CRMDashboard = () => {
           <CardContent className="p-4">
             <div className="flex items-start justify-between gap-2">
               <div className="flex-1 min-w-0">
-                <p className="text-xs text-muted-foreground">Leads Quentes</p>
+                <p className="text-xs text-muted-foreground">Clientes Quentes</p>
                 <p className="text-2xl font-bold tabular-nums mt-0.5">{metrics.hotLeads}</p>
               </div>
               <div className="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0"
@@ -258,7 +259,7 @@ const CRMDashboard = () => {
               variant="ghost"
               size="sm"
               className="h-7 text-xs gap-1 text-muted-foreground hover:text-foreground"
-              onClick={() => navigate('/crm/followups')}
+              onClick={() => setFollowUpsOpen(true)}
             >
               Ver todos <ArrowRight className="h-3 w-3" />
             </Button>
@@ -344,6 +345,16 @@ const CRMDashboard = () => {
       </div>
 
       </div>
+
+      <Sheet open={followUpsOpen} onOpenChange={setFollowUpsOpen}>
+        <SheetContent side="right" className="w-full sm:max-w-xl p-0">
+          <SheetHeader className="px-6 pt-5 pb-0">
+            <SheetTitle>Follow-ups</SheetTitle>
+          </SheetHeader>
+          <FollowUpPanel />
+        </SheetContent>
+      </Sheet>
+
     </div>
   );
 };
