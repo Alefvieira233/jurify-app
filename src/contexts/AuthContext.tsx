@@ -102,19 +102,42 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
     void initialize();
 
+    let profileChannel: ReturnType<typeof supabase.channel> | null = null;
+
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, s) => {
       setLoading(true);
       setUser(s?.user ?? null);
       setSession(s);
       if (s?.user) {
         void fetchProfile(s.user.id).finally(() => setLoading(false));
+
+        // Subscribe to realtime profile updates (e.g. subscription_tier changed by Stripe webhook)
+        if (profileChannel) void supabase.removeChannel(profileChannel);
+        profileChannel = supabase
+          .channel(`profile-tier-${s.user.id}`)
+          .on('postgres_changes', {
+            event: 'UPDATE',
+            schema: 'public',
+            table: 'profiles',
+            filter: `id=eq.${s.user.id}`,
+          }, (payload) => {
+            setProfile(prev => prev ? { ...prev, ...payload.new as typeof prev } : prev);
+          })
+          .subscribe();
       } else {
         setProfile(null);
         setLoading(false);
+        if (profileChannel) {
+          void supabase.removeChannel(profileChannel);
+          profileChannel = null;
+        }
       }
     });
 
-    return () => subscription.unsubscribe();
+    return () => {
+      subscription.unsubscribe();
+      if (profileChannel) void supabase.removeChannel(profileChannel);
+    };
   }, [fetchProfile, sessionTimeoutMs]);
 
   const signIn = (email: string, password: string) => supabase.auth.signInWithPassword({ email, password });

@@ -5,7 +5,7 @@
  * Supports QR Code scanning, status monitoring, and disconnect.
  */
 
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -79,7 +79,9 @@ export default function WhatsAppEvolutionSetup({ onConnectionSuccess }: WhatsApp
   }, []);
   const [loading, setLoading] = useState(false);
   const [polling, setPolling] = useState(false);
+  const [qrSecondsLeft, setQrSecondsLeft] = useState(120);
   const pollIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const countdownRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const { toast } = useToast();
   const { profile } = useAuth();
 
@@ -225,6 +227,44 @@ export default function WhatsAppEvolutionSetup({ onConnectionSuccess }: WhatsApp
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [instance.state, instance.instanceName, callEvolutionManager, toast]);
+
+  // Countdown timer: reset when entering qr_ready, decrement every second
+  useEffect(() => {
+    if (instance.state !== 'qr_ready') {
+      if (countdownRef.current) {
+        clearInterval(countdownRef.current);
+        countdownRef.current = null;
+      }
+      return;
+    }
+
+    setQrSecondsLeft(120);
+    countdownRef.current = setInterval(() => {
+      setQrSecondsLeft(prev => {
+        if (prev <= 1) {
+          if (countdownRef.current) {
+            clearInterval(countdownRef.current);
+            countdownRef.current = null;
+          }
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+
+    return () => {
+      if (countdownRef.current) {
+        clearInterval(countdownRef.current);
+        countdownRef.current = null;
+      }
+    };
+  }, [instance.state]);
+
+  const qrCountdownColor = useMemo(() => {
+    if (qrSecondsLeft <= 10) return 'text-red-500';
+    if (qrSecondsLeft <= 30) return 'text-amber-500';
+    return 'text-green-600';
+  }, [qrSecondsLeft]);
 
   // Criar instância / Obter QR Code
   const handleConnect = async () => {
@@ -377,6 +417,9 @@ export default function WhatsAppEvolutionSetup({ onConnectionSuccess }: WhatsApp
           <p className="text-xs text-[hsl(var(--muted-foreground))]">
             Abra o WhatsApp &gt; Menu &gt; Aparelhos conectados &gt; Conectar aparelho
           </p>
+          <p className={`text-xs font-semibold ${qrCountdownColor}`}>
+            QR expira em {qrSecondsLeft}s
+          </p>
         </div>
         <Button variant="outline" size="sm" onClick={() => void handleRefreshQR()} disabled={loading}>
           <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
@@ -439,6 +482,34 @@ export default function WhatsAppEvolutionSetup({ onConnectionSuccess }: WhatsApp
         </Alert>
       )}
 
+      {/* Step progress — visible during active connection flow */}
+      {(() => {
+        const connectionState = instance.state;
+        if (connectionState === 'idle' || connectionState === 'connected') return null;
+        const steps = [
+          { label: 'Criar instância', done: connectionState === 'qr_ready', active: connectionState === 'creating' },
+          { label: 'Escanear QR', done: false, active: connectionState === 'qr_ready' },
+          { label: 'Conectado', done: false, active: false },
+        ];
+        return (
+        <ol className="flex items-center gap-2 text-sm max-w-2xl mx-auto">
+          {steps.map((step, i) => (
+            <li key={i} className={`flex items-center gap-1 font-medium ${
+              step.done ? 'text-emerald-500' : step.active ? 'text-foreground' : 'text-muted-foreground'
+            }`}>
+              <span className={`flex h-6 w-6 items-center justify-center rounded-full text-xs border ${
+                step.done ? 'bg-emerald-500 border-emerald-500 text-white' :
+                step.active ? 'border-foreground text-foreground' :
+                'border-muted-foreground text-muted-foreground'
+              }`}>{step.done ? '✓' : i + 1}</span>
+              {step.label}
+              {i < 2 && <span className="mx-1 text-muted-foreground">──</span>}
+            </li>
+          ))}
+        </ol>
+        );
+      })()}
+
       {/* Main Card */}
       <Card className="max-w-2xl mx-auto">
         <CardHeader>
@@ -475,7 +546,7 @@ export default function WhatsAppEvolutionSetup({ onConnectionSuccess }: WhatsApp
 
           {/* Action Buttons */}
           <div className="flex flex-col gap-3">
-            {(instance.state === 'idle' || instance.state === 'error' || instance.state === 'disconnected') && (
+            {(instance.state === 'idle' || instance.state === 'disconnected') && (
               <Button
                 onClick={() => void handleConnect()}
                 disabled={loading}
@@ -492,6 +563,21 @@ export default function WhatsAppEvolutionSetup({ onConnectionSuccess }: WhatsApp
                     {instance.state === 'disconnected' ? 'Reconectar WhatsApp' : 'Conectar WhatsApp'}
                   </>
                 )}
+              </Button>
+            )}
+
+            {instance.state === 'error' && (
+              <Button
+                onClick={() => void handleConnect()}
+                disabled={loading}
+                className="w-full gap-2"
+              >
+                {loading ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <RefreshCw className="h-4 w-4" />
+                )}
+                Tentar novamente
               </Button>
             )}
 

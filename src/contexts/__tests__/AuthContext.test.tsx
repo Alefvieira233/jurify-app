@@ -16,6 +16,10 @@ import type { User, Session } from '@supabase/supabase-js';
 
 // Mock do Supabase
 vi.mock('@/integrations/supabase/client', () => {
+  const mockChannel = {
+    on: vi.fn().mockReturnThis(),
+    subscribe: vi.fn().mockReturnThis(),
+  };
   const client = {
     auth: {
       getSession: vi.fn(),
@@ -36,6 +40,8 @@ vi.mock('@/integrations/supabase/client', () => {
       upsert: vi.fn(),
       delete: vi.fn(),
     })),
+    channel: vi.fn(() => mockChannel),
+    removeChannel: vi.fn().mockResolvedValue(undefined),
     rpc: vi.fn(),
   };
   return { supabase: client, supabaseUntyped: client };
@@ -638,6 +644,189 @@ describe('🔒 AuthContext - RBAC & Permissions', () => {
 
     expect(authContext!.hasRole('admin')).toBe(true);
     expect(authContext!.hasRole('user')).toBe(false);
+  });
+});
+
+describe('📡 AuthContext - Realtime Profile Subscription (Sprint 2)', () => {
+  const mockUser: User = {
+    id: 'rt-user-id',
+    email: 'rt@example.com',
+    app_metadata: {},
+    user_metadata: {},
+    aud: 'authenticated',
+    created_at: new Date().toISOString(),
+  };
+
+  const mockSession: Session = {
+    access_token: 'rt-token',
+    refresh_token: 'rt-refresh',
+    expires_in: 3600,
+    token_type: 'bearer',
+    user: mockUser,
+  };
+
+  const mockProfile = {
+    id: 'rt-user-id',
+    nome_completo: 'RT User',
+    email: 'rt@example.com',
+    role: 'user',
+    tenant_id: 'tenant-rt',
+    subscription_tier: 'free',
+  };
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('✅ Deve criar canal realtime com filter correto quando usuário autentica', async () => {
+    vi.mocked(supabase.auth.getSession).mockResolvedValue({
+      data: { session: null },
+      error: null,
+    });
+
+    // Captura o callback do onAuthStateChange para disparar manualmente
+    let authCallback: ((event: string, session: Session | null) => void) | null = null;
+    vi.mocked(supabase.auth.onAuthStateChange).mockImplementation((cb) => {
+      authCallback = cb as typeof authCallback;
+      return { data: { subscription: { unsubscribe: vi.fn() } } };
+    });
+
+    vi.mocked(supabase.from).mockReturnValue({
+      select: vi.fn().mockReturnValue({
+        eq: vi.fn().mockReturnValue({
+          maybeSingle: vi.fn().mockResolvedValue({ data: mockProfile, error: null }),
+        }),
+      }),
+    } as any);
+
+    renderWithAuth(<TestComponent />);
+
+    // Simula evento de login
+    await act(async () => {
+      authCallback?.('SIGNED_IN', mockSession);
+    });
+
+    await waitFor(() => {
+      expect(supabase.channel).toHaveBeenCalledWith(`profile-tier-${mockUser.id}`);
+    });
+
+    // Verifica que .on foi chamado com os parâmetros corretos
+    const channelMock = vi.mocked(supabase.channel).mock.results[0]?.value;
+    expect(channelMock.on).toHaveBeenCalledWith(
+      'postgres_changes',
+      expect.objectContaining({
+        event: 'UPDATE',
+        schema: 'public',
+        table: 'profiles',
+        filter: `id=eq.${mockUser.id}`,
+      }),
+      expect.any(Function),
+    );
+    expect(channelMock.subscribe).toHaveBeenCalled();
+  });
+
+  it('✅ Payload de UPDATE deve atualizar subscription_tier no state sem logout', async () => {
+    // getSession retorna sessão ativa → initialize() carrega o profile
+    vi.mocked(supabase.auth.getSession).mockResolvedValue({
+      data: { session: mockSession },
+      error: null,
+    });
+
+    let authCallback: ((event: string, session: Session | null) => void) | null = null;
+    let realtimeCallback: ((payload: { new: Record<string, unknown> }) => void) | null = null;
+
+    vi.mocked(supabase.auth.onAuthStateChange).mockImplementation((cb) => {
+      authCallback = cb as typeof authCallback;
+      return { data: { subscription: { unsubscribe: vi.fn() } } };
+    });
+
+    // Canal retorna a si mesmo no .on() para que o chaining funcione
+    // e o callback realtime seja capturado corretamente
+    vi.mocked(supabase.channel).mockImplementation(() => {
+      const chan: { on: ReturnType<typeof vi.fn>; subscribe: ReturnType<typeof vi.fn> } = {
+        on: vi.fn().mockImplementation((_event: unknown, _filter: unknown, cb: (p: { new: Record<string, unknown> }) => void) => {
+          realtimeCallback = cb;
+          return chan; // mesmo objeto para chaining .on(...).subscribe()
+        }),
+        subscribe: vi.fn().mockReturnThis(),
+      };
+      return chan as any;
+    });
+
+    vi.mocked(supabase.from).mockReturnValue({
+      select: vi.fn().mockReturnValue({
+        eq: vi.fn().mockReturnValue({
+          maybeSingle: vi.fn().mockResolvedValue({ data: mockProfile, error: null }),
+        }),
+      }),
+    } as any);
+
+    let capturedAuth: ReturnType<typeof useAuth> | null = null;
+    renderWithAuth(<TestComponent onAuth={(auth) => { capturedAuth = auth; }} />);
+
+    // Aguarda initialize() carregar o profile via getSession
+    await waitFor(() => {
+      expect(capturedAuth?.profile?.subscription_tier).toBe('free');
+    }, { timeout: 5000 });
+
+    // Dispara onAuthStateChange para criar o canal realtime
+    await act(async () => {
+      authCallback?.('SIGNED_IN', mockSession);
+    });
+
+    // Garante que o canal foi criado e callback capturado
+    await waitFor(() => {
+      expect(realtimeCallback).not.toBeNull();
+    }, { timeout: 3000 });
+
+    // Simula webhook Stripe atualizando subscription_tier no banco
+    await act(async () => {
+      realtimeCallback?.({ new: { ...mockProfile, subscription_tier: 'pro' } });
+    });
+
+    await waitFor(() => {
+      expect(capturedAuth?.profile?.subscription_tier).toBe('pro');
+    });
+  });
+
+  it('✅ removeChannel deve ser chamado quando usuário faz signOut', async () => {
+    let authCallback: ((event: string, session: Session | null) => void) | null = null;
+
+    vi.mocked(supabase.auth.getSession).mockResolvedValue({
+      data: { session: null },
+      error: null,
+    });
+
+    vi.mocked(supabase.auth.onAuthStateChange).mockImplementation((cb) => {
+      authCallback = cb as typeof authCallback;
+      return { data: { subscription: { unsubscribe: vi.fn() } } };
+    });
+
+    vi.mocked(supabase.from).mockReturnValue({
+      select: vi.fn().mockReturnValue({
+        eq: vi.fn().mockReturnValue({
+          maybeSingle: vi.fn().mockResolvedValue({ data: mockProfile, error: null }),
+        }),
+      }),
+    } as any);
+
+    renderWithAuth(<TestComponent />);
+
+    // Login
+    await act(async () => {
+      authCallback?.('SIGNED_IN', mockSession);
+    });
+
+    await waitFor(() => {
+      expect(supabase.channel).toHaveBeenCalled();
+    });
+
+    // Logout via auth state change
+    await act(async () => {
+      authCallback?.('SIGNED_OUT', null);
+    });
+
+    expect(supabase.removeChannel).toHaveBeenCalled();
   });
 });
 

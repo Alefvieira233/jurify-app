@@ -141,11 +141,26 @@ export const SubscriptionManager = () => {
         void loadSubscriptionData();
     }, [loadSubscriptionData]);
 
+    const PRICE_MAP: Record<string, string | undefined> = {
+        pro:        import.meta.env.VITE_STRIPE_PRICE_PRO,
+        enterprise: import.meta.env.VITE_STRIPE_PRICE_ENTERPRISE,
+    };
+
     const handleUpgrade = async (newPlan: string) => {
+        const priceId = PRICE_MAP[newPlan];
+        if (!priceId) {
+            toast({
+                title: 'Configuração ausente',
+                description: `Configure VITE_STRIPE_PRICE_${newPlan.toUpperCase()} no .env`,
+                variant: 'destructive',
+            });
+            return;
+        }
+
         setUpgrading(true);
         try {
             const { data, error } = await supabase.functions.invoke('create-checkout-session', {
-                body: { planId: newPlan },
+                body: { planId: newPlan, priceId },
             });
 
             if (error) throw error;
