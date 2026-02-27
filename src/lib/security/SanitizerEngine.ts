@@ -50,6 +50,11 @@ const PII_PATTERNS: PIIPattern[] = [
     prefix: 'OAB',
   },
   {
+    name: 'CREDIT_CARD',
+    regex: /\b\d{4}[-\s]?\d{4}[-\s]?\d{4}[-\s]?\d{4}\b/g,
+    prefix: 'CARD',
+  },
+  {
     name: 'PHONE_BR',
     regex: /(?:\+55\s?)?(?:\(\d{2}\)|\d{2})\s?\d{4,5}[-\s]?\d{4}/g,
     prefix: 'TEL',
@@ -59,18 +64,19 @@ const PII_PATTERNS: PIIPattern[] = [
     regex: /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g,
     prefix: 'EMAIL',
   },
+  {
+    name: 'RG_BR',
+    regex: /\b\d{1,2}\.?\d{3}\.?\d{3}-?[\dXx]\b/g,
+    prefix: 'RG',
+  },
 ];
 
-// ─── UUID Generator (no crypto dependency needed) ───────────────────────────
+// ─── Cryptographically Secure Token Generator ───────────────────────────────
 
 function generateTokenId(): string {
-  // Simple UUID v4-like generator that works in all environments
-  const hex = '0123456789abcdef';
-  let id = '';
-  for (let i = 0; i < 8; i++) {
-    id += hex[Math.floor(Math.random() * 16)];
-  }
-  return id;
+  const array = new Uint8Array(4);
+  crypto.getRandomValues(array);
+  return Array.from(array, (byte) => byte.toString(16).padStart(2, '0')).join('');
 }
 
 // ─── Core Types ─────────────────────────────────────────────────────────────
@@ -93,11 +99,15 @@ export class SanitizerEngine {
   /**
    * Sanitize any payload (string, object, array) by replacing PII with tokens.
    * Returns the safe payload + a lookup map for rehydration.
+   *
+   * @param shouldReset - If false, keeps existing tokens from previous calls (cumulative mode)
    */
-  sanitize(payload: unknown): SanitizeResult {
-    this.lookupMap = new Map();
-    this.reverseMap = new Map();
-    this.tokenCounter = 0;
+  sanitize(payload: unknown, shouldReset = true): SanitizeResult {
+    if (shouldReset) {
+      this.lookupMap = new Map();
+      this.reverseMap = new Map();
+      this.tokenCounter = 0;
+    }
 
     const safePayload = this.processValue(payload);
 
@@ -136,8 +146,8 @@ export class SanitizerEngine {
   /**
    * Quick sanitize for a single string (most common case: prompt text).
    */
-  sanitizeString(text: string): SanitizeResult {
-    return this.sanitize(text);
+  sanitizeString(text: string, shouldReset = true): SanitizeResult {
+    return this.sanitize(text, shouldReset);
   }
 
   // ─── Private Methods ────────────────────────────────────────────────────

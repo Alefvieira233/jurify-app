@@ -24,6 +24,46 @@ describe('SanitizerEngine', () => {
     });
   });
 
+  // ─── RG ───────────────────────────────────────────────────────
+  describe('RG detection', () => {
+    it('masks formatted RG', () => {
+      const { safePayload, piiCount } = new SanitizerEngine().sanitize(
+        'O RG do cliente é 12.345.678-9'
+      );
+      expect(safePayload).not.toContain('12.345.678-9');
+      expect((safePayload as string)).toMatch(/\[RG-[a-f0-9]+\]/);
+      expect(piiCount).toBe(1);
+    });
+
+    it('masks RG without dots', () => {
+      const { safePayload } = new SanitizerEngine().sanitize(
+        'RG: 123456789'
+      );
+      expect(safePayload).not.toContain('123456789');
+      expect((safePayload as string)).toMatch(/\[RG-[a-f0-9]+\]/);
+    });
+  });
+
+  // ─── Credit Card ──────────────────────────────────────────────
+  describe('Credit Card detection', () => {
+    it('masks formatted credit card', () => {
+      const { safePayload, piiCount } = new SanitizerEngine().sanitize(
+        'Cartão: 1234-5678-9012-3456'
+      );
+      expect(safePayload).not.toContain('1234-5678-9012-3456');
+      expect((safePayload as string)).toMatch(/\[CARD-[a-f0-9]+\]/);
+      expect(piiCount).toBe(1);
+    });
+
+    it('masks credit card with spaces', () => {
+      const { safePayload } = new SanitizerEngine().sanitize(
+        'Cartão: 1234 5678 9012 3456'
+      );
+      expect(safePayload).not.toContain('1234 5678 9012 3456');
+      expect((safePayload as string)).toMatch(/\[CARD-[a-f0-9]+\]/);
+    });
+  });
+
   // ─── CNPJ ─────────────────────────────────────────────────────
   describe('CNPJ detection', () => {
     it('masks formatted CNPJ', () => {
@@ -167,6 +207,29 @@ describe('SanitizerEngine', () => {
       expect(occurrences).toBe(2);
       // But only 1 entry in lookup
       expect(lookupMap.size).toBe(1);
+    });
+  });
+
+  // ─── Cumulative Sanitization ─────────────────────────────────
+  describe('cumulative sanitization', () => {
+    it('keeps tokens from previous calls when shouldReset is false', () => {
+      const engine = new SanitizerEngine();
+      const r1 = engine.sanitize('CPF: 123.456.789-00');
+      const r2 = engine.sanitize('Email: joao@test.com', false);
+
+      expect(r2.piiCount).toBe(2);
+      expect(r2.lookupMap.size).toBe(2);
+
+      const tokens = [...r2.lookupMap.keys()];
+      expect(tokens.some(t => t.startsWith('[CPF-'))).toBe(true);
+      expect(tokens.some(t => t.startsWith('[EMAIL-'))).toBe(true);
+
+      // Rehydration with r2.lookupMap should work for both
+      const restored1 = SanitizerEngine.rehydrate(r1.safePayload, r2.lookupMap);
+      const restored2 = SanitizerEngine.rehydrate(r2.safePayload, r2.lookupMap);
+
+      expect(restored1).toBe('CPF: 123.456.789-00');
+      expect(restored2).toBe('Email: joao@test.com');
     });
   });
 
