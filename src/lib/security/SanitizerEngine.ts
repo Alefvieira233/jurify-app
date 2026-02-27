@@ -186,7 +186,9 @@ export class SanitizerEngine {
 
         // Create new token
         this.tokenCounter++;
-        const token = `[${pattern.prefix}-${generateTokenId()}]`;
+        // Use underscore to avoid word boundaries (\b) that might trigger
+        // subsequent PII patterns on the token ID itself.
+        const token = `[${pattern.prefix}_${generateTokenId()}]`;
         this.lookupMap.set(token, match);
         this.reverseMap.set(match, token);
         return token;

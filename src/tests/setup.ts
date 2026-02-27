@@ -74,4 +74,8 @@ Object.defineProperty(global, 'crypto', {
   },
 });
 
+// Set dummy environment variables for tests
+process.env.VITE_SUPABASE_URL = 'https://mock.supabase.co';
+process.env.VITE_SUPABASE_ANON_KEY = 'mock-anon-key';
+
 console.log('✅ Vitest test environment configured');
