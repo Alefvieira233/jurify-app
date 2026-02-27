@@ -27,6 +27,7 @@ import {
 import { multiAgentSystem } from '@/lib/multiagents';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
+import { usePageTitle } from '@/hooks/usePageTitle';
 
 interface QualificationResult {
   legal_area?: string;
@@ -92,6 +93,7 @@ const EXAMPLE_MESSAGES = [
 ];
 
 export default function AgentsPlayground() {
+  usePageTitle('Playground');
   const [message, setMessage] = useState('');
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<ExecutionResult | null>(null);

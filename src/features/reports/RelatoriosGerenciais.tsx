@@ -13,6 +13,7 @@ import { useResponseTime } from '@/hooks/useResponseTime';
 import { ConversionFunnel } from '@/components/analytics/ConversionFunnel';
 import { RevenueCard } from '@/components/analytics/RevenueCard';
 import { ResponseTimeChart } from '@/components/analytics/ResponseTimeChart';
+import { usePageTitle } from '@/hooks/usePageTitle';
 
 /* Analytics avançado — lazy para não bloquear o bundle principal */
 const AnalyticsDashboard = lazy(() =>
@@ -22,6 +23,7 @@ const AnalyticsDashboard = lazy(() =>
 /* ─────────────────────────────────────────────────────────────────────────── */
 
 const RelatoriosGerenciais = () => {
+  usePageTitle('Relatórios');
   const { metrics, loading, error } = useDashboardMetricsFast();
   const { data: mrrData } = useMRR();
   const { data: responseTimeData = [] } = useResponseTime(7);

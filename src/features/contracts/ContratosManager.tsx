@@ -20,10 +20,12 @@ import { supabaseUntyped as supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
 import { createLogger } from '@/lib/logger';
+import { usePageTitle } from '@/hooks/usePageTitle';
 
 const log = createLogger('ContratosManager');
 
 const ContratosManager = () => {
+  usePageTitle('Contratos');
   const [searchTerm, setSearchTerm] = useState('');
   const debouncedSearchTerm = useDebounce(searchTerm, 300);
   const [filterStatus, setFilterStatus] = useState('');

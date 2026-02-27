@@ -1,5 +1,5 @@
 
-import { useState, useMemo } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   Clock, CheckCircle2, XCircle, AlertTriangle, Pause,
   CalendarClock, Search, Filter,
@@ -50,7 +50,7 @@ function SectionHeading({
 }
 
 /* ── Follow-up row ── */
-function FollowUpRow({ fu, onComplete, onSnooze, onCancel }: {
+const FollowUpRow = React.memo(function FollowUpRow({ fu, onComplete, onSnooze, onCancel }: {
   fu:         FollowUp;
   onComplete: () => void;
   onSnooze:   () => void;
@@ -121,7 +121,7 @@ function FollowUpRow({ fu, onComplete, onSnooze, onCancel }: {
       )}
     </div>
   );
-}
+});
 
 /* ── Main component ── */
 const FollowUpPanel = () => {

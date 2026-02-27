@@ -14,6 +14,7 @@ import { useCRMPipeline, type PipelineStage } from '@/hooks/useCRMPipeline';
 import { useFollowUps } from '@/hooks/useFollowUps';
 import { useCRMTags } from '@/hooks/useCRMTags';
 import { useLeads } from '@/hooks/useLeads';
+import { usePageTitle } from '@/hooks/usePageTitle';
 
 /* ── KPI config ── */
 const KPI_COLORS = {
@@ -39,6 +40,7 @@ const PRIORITY_LABEL: Record<string, string> = {
 /* ─────────────────────────────────────────────── */
 
 const CRMDashboard = () => {
+  usePageTitle('CRM');
   const { stages, loading: stagesLoading } = useCRMPipeline();
   const { followUps, overdueCount, loading: followUpsLoading } = useFollowUps();
   const { tags } = useCRMTags();

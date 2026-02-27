@@ -10,11 +10,13 @@ import { Button } from '@/components/ui/button';
 import NovoLeadForm from '@/components/forms/NovoLeadForm';
 import PipelineColumn from './PipelineColumn';
 import { PIPELINE_STAGES, STAGE_COLORS } from './pipelineConfig';
+import { usePageTitle } from '@/hooks/usePageTitle';
 
 const fmt = (val: number) =>
   new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 }).format(val);
 
 const PipelineJuridico = () => {
+  usePageTitle('Pipeline');
   const [searchTerm, setSearchTerm]               = useState('');
   const [filterArea, setFilterArea]               = useState('');
   const [filterResponsavel, setFilterResponsavel] = useState('');

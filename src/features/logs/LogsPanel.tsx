@@ -9,6 +9,7 @@ import { useLogsExecucao } from '@/hooks/useLogsExecucao';
 import { useDebounce } from '@/hooks/useDebounce';
 import { useAuth } from '@/contexts/AuthContext';
 import { cn } from '@/lib/utils';
+import { usePageTitle } from '@/hooks/usePageTitle';
 
 type StatusFilter = '' | 'success' | 'error' | 'processing';
 
@@ -21,6 +22,7 @@ const STATUS_CFG = {
 import { relativeTime } from '@/utils/formatting';
 
 const LogsPanel = () => {
+  usePageTitle('Logs');
   const { logs, loading, stats, refetch, limparLogs } = useLogsExecucao();
   const { profile } = useAuth();
   const [searchTerm, setSearchTerm]       = useState('');

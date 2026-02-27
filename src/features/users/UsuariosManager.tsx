@@ -16,6 +16,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import NovoUsuarioForm from '@/components/NovoUsuarioForm';
 import EditarUsuarioForm from '@/components/EditarUsuarioForm';
 import GerenciarPermissoesForm from '@/components/GerenciarPermissoesForm';
+import { usePageTitle } from '@/hooks/usePageTitle';
 
 interface Usuario {
   id: string;
@@ -33,6 +34,7 @@ interface Usuario {
 }
 
 const UsuariosManager = () => {
+  usePageTitle('Usuários');
   const { profile } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();

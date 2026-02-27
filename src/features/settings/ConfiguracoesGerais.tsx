@@ -8,8 +8,10 @@ import IntegracoesSection from '@/components/configuracoes/IntegracoesSection';
 import UsuariosPermissoesSection from '@/components/configuracoes/UsuariosPermissoesSection';
 import NotificacoesSection from '@/components/configuracoes/NotificacoesSection';
 import SistemaSection from '@/components/configuracoes/SistemaSection';
+import { usePageTitle } from '@/hooks/usePageTitle';
 
 const ConfiguracoesGerais = () => {
+  usePageTitle('Configurações');
   // ✅ RBAC: Verificação de permissões
   const { can, userRole } = useRBAC();
 

@@ -11,10 +11,12 @@ import { useAgendaMetrics } from '@/hooks/useAgendaMetrics';
 import { useAuth } from '@/contexts/AuthContext';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { createLogger } from '@/lib/logger';
+import { usePageTitle } from '@/hooks/usePageTitle';
 
 const log = createLogger('Dashboard');
 
 const Dashboard = () => {
+  usePageTitle('Dashboard');
   const { metrics, loading, error, refetch, isEmpty } = useDashboardMetricsFast();
   const { data: agendaMetrics, isLoading: agendaLoading } = useAgendaMetrics();
   const { profile } = useAuth();

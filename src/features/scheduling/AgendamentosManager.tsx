@@ -16,12 +16,14 @@ import { NovoAgendamentoForm } from '@/components/NovoAgendamentoForm';
 import { DetalhesAgendamento } from '@/components/DetalhesAgendamento';
 import { cn } from '@/lib/utils';
 import ConfirmDialog from '@/components/ConfirmDialog';
+import { usePageTitle } from '@/hooks/usePageTitle';
 
 const CalendarPanel = lazy(() => import('@/components/agenda/CalendarPanel'));
 
 type ViewMode = 'list' | 'calendar';
 
 const AgendamentosManager = () => {
+  usePageTitle('Agenda');
   const [searchTerm, setSearchTerm] = useState('');
   const debouncedSearchTerm = useDebounce(searchTerm, 300);
   const [filterStatus, setFilterStatus] = useState('');

@@ -24,6 +24,7 @@ import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { usePageTitle } from '@/hooks/usePageTitle';
 
 type ConversationFilter = 'todos' | 'leads' | 'agendados';
 
@@ -370,6 +371,7 @@ ChatPanel.displayName = 'ChatPanel';
 // ── WhatsAppIA (main) ────────────────────────────────────────────────────────
 
 const WhatsAppIA = () => {
+  usePageTitle('WhatsApp');
   const [newMessage, setNewMessage] = useState('');
   const [showSetup, setShowSetup] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');

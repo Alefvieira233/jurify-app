@@ -3,6 +3,7 @@ import { Bell, Check, CheckCheck, AlertCircle, Info, RefreshCw } from 'lucide-re
 import { Skeleton } from '@/components/ui/skeleton';
 import { useNotifications } from '@/hooks/useNotifications';
 import { cn } from '@/lib/utils';
+import { usePageTitle } from '@/hooks/usePageTitle';
 
 const TYPE_CONFIG = {
   info:    { icon: Info,         hex: '#2563eb', bgClass: 'bg-blue-500/10',    textClass: 'text-blue-600 dark:text-blue-400',    label: 'Info'    },
@@ -16,6 +17,7 @@ import { relativeTime } from '@/utils/formatting';
 type Filter = 'todas' | 'nao_lidas' | 'lidas';
 
 const NotificationsPanel = () => {
+  usePageTitle('Notificações');
   const { notifications, loading, unreadCount, fetchNotifications, markAsRead, markAllAsRead, isRead } = useNotifications();
   const [filter, setFilter] = useState<Filter>('todas');
 

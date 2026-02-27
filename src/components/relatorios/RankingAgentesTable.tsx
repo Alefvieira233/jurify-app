@@ -170,8 +170,8 @@ const RankingAgentesTable: React.FC<RankingAgentesTableProps> = ({ periodo }) =>
           </TableRow>
         </TableHeader>
         <TableBody>
-          {rankingAgentes.map((agente, index) => (
-            <TableRow key={index}>
+          {rankingAgentes.map((agente) => (
+            <TableRow key={`${agente.nome}-${agente.tipo}`}>
               <TableCell>
                 <div className="flex items-center space-x-3">
                   <Avatar>

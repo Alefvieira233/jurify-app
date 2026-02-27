@@ -28,6 +28,7 @@ import { cn } from '@/lib/utils';
 import { useRealtimeAgents } from './hooks/useRealtimeAgents';
 import type { AgentStatus, AgentExecution, AgentLog } from './hooks/useRealtimeAgents';
 import { useAuth } from '@/contexts/AuthContext';
+import { usePageTitle } from '@/hooks/usePageTitle';
 
 // =========================================================================
 // AGENT STATUS CARD
@@ -321,6 +322,7 @@ function RealTimeTerminal({ logs }: RealTimeTerminalProps) {
 // =========================================================================
 
 export function MissionControl() {
+  usePageTitle('Mission Control');
   const [tenantId, setTenantId] = useState<string>('');
   const { profile } = useAuth();
 

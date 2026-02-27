@@ -22,6 +22,7 @@ import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { useRBAC } from '@/hooks/useRBAC';
 import { cn } from '@/lib/utils';
+import { usePageTitle } from '@/hooks/usePageTitle';
 
 const IntegrationStatusBadge = ({ connected }: { connected: boolean }) => (
   <span className={cn(
@@ -36,6 +37,7 @@ const IntegrationStatusBadge = ({ connected }: { connected: boolean }) => (
 );
 
 const IntegracoesConfig = () => {
+  usePageTitle('Integrações');
   const {
     integracoes,
     loading,

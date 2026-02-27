@@ -16,6 +16,7 @@ import { useFollowUps } from '@/hooks/useFollowUps';
 import { useCRMTags, type Tag as CRMTag } from '@/hooks/useCRMTags';
 import { useLeadScoring } from '@/hooks/useLeadScoring';
 import { getInitials, getAvatarHex, fmtCurrency, fmtDateTime } from '@/utils/formatting';
+import { usePageTitle } from '@/hooks/usePageTitle';
 
 type LeadDetail = {
   id:                 string;
@@ -68,6 +69,7 @@ const ACTIVITY_CFG: Record<string, { label: string; hex: string }> = {
 
 /* ── Component ── */
 const LeadDetailPanel = () => {
+  usePageTitle('Detalhes do Lead');
   const { leadId }  = useParams<{ leadId: string }>();
   const navigate    = useNavigate();
   const [leadTags, setLeadTags] = useState<CRMTag[]>([]);

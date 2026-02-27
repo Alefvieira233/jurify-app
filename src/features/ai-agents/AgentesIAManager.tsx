@@ -29,10 +29,12 @@ import LogsMonitoramento from '@/components/LogsMonitoramento';
 import { trackUserAction } from '@/utils/monitoring';
 import { useAuth } from '@/contexts/AuthContext';
 import { createLogger } from '@/lib/logger';
+import { usePageTitle } from '@/hooks/usePageTitle';
 
 const log = createLogger('AgentesIAManager');
 
 const AgentesIAManager = () => {
+  usePageTitle('Agentes IA');
   const [showNovoAgente, setShowNovoAgente] = useState(false);
   const [selectedAgente, setSelectedAgente] = useState<AgenteIA | null>(null);
   const [showDetalhes, setShowDetalhes] = useState(false);
