@@ -27,22 +27,14 @@ export const useKPIs = (periodo: PeriodoFiltro, areaJuridica: string, origemLead
 
   return useQuery({
     queryKey: ['kpis-gerais', tenantId, periodo, areaJuridica, origemLead],
+    enabled: !!tenantId,
     queryFn: async () => {
-      if (!tenantId) {
-        return {
-          totalLeads: 0,
-          contratosAssinados: 0,
-          valorTotalContratos: 0,
-          taxaConversao: 0
-        };
-      }
-
       const baseInicio = getDataInicio(periodo);
 
       let leadsQuery = supabase
         .from('leads')
         .select('id, status, created_at, area_juridica, origem')
-        .eq('tenant_id', tenantId)
+        .eq('tenant_id', tenantId!)
         .gte('created_at', baseInicio);
 
       if (areaJuridica !== 'todas') {
@@ -59,7 +51,7 @@ export const useKPIs = (periodo: PeriodoFiltro, areaJuridica: string, origemLead
       const { data: contratos, error: contratosError } = await supabase
         .from('contratos')
         .select('id, status, status_assinatura, valor_causa, created_at')
-        .eq('tenant_id', tenantId)
+        .eq('tenant_id', tenantId!)
         .gte('created_at', baseInicio);
 
       if (contratosError) throw contratosError;
@@ -87,22 +79,12 @@ export const useFunilData = (periodo: PeriodoFiltro, areaJuridica: string, orige
 
   return useQuery({
     queryKey: ['dados-funil', tenantId, periodo, areaJuridica, origemLead],
+    enabled: !!tenantId,
     queryFn: async () => {
-      if (!tenantId) {
-        return {
-          novo_lead: 0,
-          em_qualificacao: 0,
-          proposta_enviada: 0,
-          contrato_assinado: 0,
-          em_atendimento: 0,
-          lead_perdido: 0
-        };
-      }
-
       let query = supabase
         .from('leads')
         .select('status')
-        .eq('tenant_id', tenantId)
+        .eq('tenant_id', tenantId!)
         .gte('created_at', getDataInicio(periodo));
 
       if (areaJuridica !== 'todas') {
@@ -146,15 +128,12 @@ export const useAreaJuridicaData = (periodo: PeriodoFiltro, origemLead: string) 
 
   return useQuery({
     queryKey: ['dados-area-juridica', tenantId, periodo, origemLead],
+    enabled: !!tenantId,
     queryFn: async () => {
-      if (!tenantId) {
-        return {} as Record<string, number>;
-      }
-
       let query = supabase
         .from('leads')
         .select('area_juridica')
-        .eq('tenant_id', tenantId)
+        .eq('tenant_id', tenantId!)
         .gte('created_at', getDataInicio(periodo));
 
       if (origemLead !== 'todas') {
@@ -186,15 +165,12 @@ export const useOrigemData = (periodo: PeriodoFiltro, areaJuridica: string) => {
 
   return useQuery({
     queryKey: ['dados-origem', tenantId, periodo, areaJuridica],
+    enabled: !!tenantId,
     queryFn: async () => {
-      if (!tenantId) {
-        return {} as Record<string, number>;
-      }
-
       let query = supabase
         .from('leads')
         .select('origem')
-        .eq('tenant_id', tenantId)
+        .eq('tenant_id', tenantId!)
         .gte('created_at', getDataInicio(periodo));
 
       if (areaJuridica !== 'todas') {

@@ -80,7 +80,9 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       });
 
       try {
-        const { data: { session: s } } = await Promise.race([getSessionPromise, timeoutPromise]);
+        const result = await Promise.race([getSessionPromise, timeoutPromise]);
+        const s = result.data.session;
+        const error = result.error;
 
         if (s) {
           setUser(s.user);
@@ -90,6 +92,16 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           setUser(null);
           setSession(null);
           setProfile(null);
+
+          // Selective cleanup — preserve non-Supabase data
+          if (error) {
+            for (let i = localStorage.length - 1; i >= 0; i--) {
+              const key = localStorage.key(i);
+              if (key && (key.startsWith('supabase-') || key.startsWith('sb-'))) {
+                localStorage.removeItem(key);
+              }
+            }
+          }
         }
       } catch (_error) {
         setUser(null);
@@ -141,8 +153,32 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   }, [fetchProfile, sessionTimeoutMs]);
 
   const signIn = (email: string, password: string) => supabase.auth.signInWithPassword({ email, password });
-  const signUp = (email: string, password: string, userData?: Record<string, unknown>) =>
-    supabase.auth.signUp({ email, password, options: { data: userData } });
+  const signUp = (email: string, password: string, userData?: Record<string, unknown>) => {
+    // Client-side password strength check
+    if (password.length < 12) {
+      return Promise.resolve({
+        data: { user: null, session: null },
+        error: { message: 'Senha fraca: Mínimo 12 caracteres' },
+      }) as ReturnType<typeof supabase.auth.signUp>;
+    }
+
+    const score = [
+      /[A-Z]/.test(password),
+      /[a-z]/.test(password),
+      /[0-9]/.test(password),
+      /[^A-Za-z0-9]/.test(password),
+      password.length >= 12,
+    ].filter(Boolean).length;
+
+    if (score < 4) {
+      return Promise.resolve({
+        data: { user: null, session: null },
+        error: { message: 'Senha fraca: não atende aos requisitos mínimos de segurança' },
+      }) as ReturnType<typeof supabase.auth.signUp>;
+    }
+
+    return supabase.auth.signUp({ email, password, options: { data: userData } });
+  };
   const signOut = async () => {
     await supabase.auth.signOut();
     window.location.href = '/auth';

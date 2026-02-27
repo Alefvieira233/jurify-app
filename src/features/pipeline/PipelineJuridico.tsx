@@ -203,21 +203,48 @@ const PipelineJuridico = () => {
       </header>
 
       {/* ── Kanban board ── */}
-      <DragDropContext onDragEnd={handleDragEnd}>
-        <div className="flex flex-1 overflow-x-auto overflow-y-hidden">
-          {PIPELINE_STAGES.map((stage, idx) => (
-            <PipelineColumn
-              key={stage.id}
-              stage={stage}
-              colors={STAGE_COLORS[stage.color]!}
-              leads={groupedLeads[stage.id] ?? []}
-              stageIndex={idx}
-              onUpdateLead={updateLead}
-              onRefresh={handleRetry}
-            />
-          ))}
+      {filteredLeads.length === 0 ? (
+        <div className="flex flex-col items-center justify-center flex-1 py-16 text-center">
+          <User className="h-12 w-12 text-muted-foreground/40 mb-4" />
+          <h3 className="text-lg font-medium text-foreground mb-2">Nenhum lead encontrado</h3>
+          <p className="text-sm text-muted-foreground mb-4">
+            {hasFilter
+              ? 'Tente ajustar os filtros ou limpar a busca'
+              : 'Adicione seu primeiro lead para começar'}
+          </p>
+          {hasFilter ? (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => { setSearchTerm(''); setFilterArea(''); setFilterResponsavel(''); }}
+              className="text-xs"
+            >
+              Limpar filtros
+            </Button>
+          ) : (
+            <Button size="sm" onClick={() => setShowFormModal(true)} className="text-xs gap-1.5">
+              <Plus className="h-3.5 w-3.5" strokeWidth={2.5} />
+              Novo Lead
+            </Button>
+          )}
         </div>
-      </DragDropContext>
+      ) : (
+        <DragDropContext onDragEnd={handleDragEnd}>
+          <div className="flex flex-1 overflow-x-auto overflow-y-hidden">
+            {PIPELINE_STAGES.map((stage, idx) => (
+              <PipelineColumn
+                key={stage.id}
+                stage={stage}
+                colors={STAGE_COLORS[stage.color]!}
+                leads={groupedLeads[stage.id] ?? []}
+                stageIndex={idx}
+                onUpdateLead={updateLead}
+                onRefresh={handleRetry}
+              />
+            ))}
+          </div>
+        </DragDropContext>
+      )}
 
       <NovoLeadForm
         open={showFormModal}

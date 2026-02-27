@@ -14,8 +14,8 @@ const ConversaoChart: React.FC<ConversaoChartProps> = ({ periodo }) => {
 
   const { data: dadosConversao } = useQuery({
     queryKey: ['dados-conversao', tenantId, periodo],
+    enabled: !!tenantId,
     queryFn: async () => {
-      if (!tenantId) return [] as Array<{ semana: string; taxa: number }>;
 
       const semanas: Array<{ semana: string; taxa: number }> = [];
       for (let i = 4; i >= 0; i--) {
@@ -28,7 +28,7 @@ const ConversaoChart: React.FC<ConversaoChartProps> = ({ periodo }) => {
         const { data: leads, error: leadsError } = await supabase
           .from('leads')
           .select('id')
-          .eq('tenant_id', tenantId)
+          .eq('tenant_id', tenantId!)
           .gte('created_at', dataInicio.toISOString())
           .lte('created_at', dataFim.toISOString());
 
@@ -37,7 +37,7 @@ const ConversaoChart: React.FC<ConversaoChartProps> = ({ periodo }) => {
         const { data: contratos, error: contratosError } = await supabase
           .from('contratos')
           .select('id, status')
-          .eq('tenant_id', tenantId)
+          .eq('tenant_id', tenantId!)
           .gte('created_at', dataInicio.toISOString())
           .lte('created_at', dataFim.toISOString());
 

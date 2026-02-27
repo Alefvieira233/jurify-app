@@ -9,19 +9,19 @@ import { TrendingUp, Users, FileText, Activity, AlertTriangle } from 'lucide-rea
 
 const PerformanceDashboard = () => {
   const { profile } = useAuth();
-  const tenantId = profile?.tenant_id || null;
+  const tenantId = profile?.tenant_id ?? null;
   const inicio30Dias = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
   const inicio7Dias = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
   const inicio24h = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
 
   const { data: leadsStats, isLoading: isLoadingLeads } = useQuery({
     queryKey: ['leads-stats', tenantId],
+    enabled: !!tenantId,
     queryFn: async () => {
-      if (!tenantId) return 0;
       const { data, error } = await supabase
         .from('leads')
         .select('id')
-        .eq('tenant_id', tenantId)
+        .eq('tenant_id', tenantId!)
         .gte('created_at', inicio30Dias);
 
       if (error) throw error;
@@ -31,12 +31,12 @@ const PerformanceDashboard = () => {
 
   const { data: contratosStats, isLoading: isLoadingContratos } = useQuery({
     queryKey: ['contratos-stats', tenantId],
+    enabled: !!tenantId,
     queryFn: async () => {
-      if (!tenantId) return 0;
       const { data, error } = await supabase
         .from('contratos')
         .select('id')
-        .eq('tenant_id', tenantId)
+        .eq('tenant_id', tenantId!)
         .gte('created_at', inicio30Dias);
 
       if (error) throw error;
@@ -46,12 +46,12 @@ const PerformanceDashboard = () => {
 
   const { data: agentExecutions, isLoading: isLoadingAgents } = useQuery({
     queryKey: ['agent-executions', tenantId],
+    enabled: !!tenantId,
     queryFn: async () => {
-      if (!tenantId) return 0;
       const { data, error } = await supabase
         .from('logs_execucao_agentes')
         .select('agente_id')
-        .eq('tenant_id', tenantId)
+        .eq('tenant_id', tenantId!)
         .gte('created_at', inicio7Dias);
 
       if (error) throw error;
@@ -61,12 +61,12 @@ const PerformanceDashboard = () => {
 
   const { data: errorLogs, isLoading: isLoadingErrors } = useQuery({
     queryKey: ['error-logs', tenantId],
+    enabled: !!tenantId,
     queryFn: async () => {
-      if (!tenantId) return 0;
       const { data, error } = await supabase
         .from('logs_atividades')
         .select('id')
-        .eq('tenant_id', tenantId)
+        .eq('tenant_id', tenantId!)
         .eq('tipo_acao', 'erro')
         .gte('data_hora', inicio24h)
         .limit(10);

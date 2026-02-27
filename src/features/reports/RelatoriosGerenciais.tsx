@@ -267,17 +267,25 @@ const RelatoriosGerenciais = () => {
                   <CardTitle className="text-sm font-semibold">Pipeline de Leads</CardTitle>
                 </CardHeader>
                 <CardContent className="p-4">
-                  <ResponsiveContainer width="100%" height={280}>
-                    <PieChart>
-                      <Pie data={statusData} cx="50%" cy="50%" labelLine={false}
-                        label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
-                        outerRadius={80} fill="#8884d8" dataKey="value"
-                      >
-                        {statusData.map((_e, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
-                      </Pie>
-                      <Tooltip {...tooltipStyle} />
-                    </PieChart>
-                  </ResponsiveContainer>
+                  {statusData.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center py-16 text-center">
+                      <BarChart3 className="h-12 w-12 text-muted-foreground/40 mb-4" />
+                      <h3 className="text-lg font-medium text-foreground mb-2">Sem dados para o período</h3>
+                      <p className="text-sm text-muted-foreground">Aguarde os primeiros leads serem registrados</p>
+                    </div>
+                  ) : (
+                    <ResponsiveContainer width="100%" height={280}>
+                      <PieChart>
+                        <Pie data={statusData} cx="50%" cy="50%" labelLine={false}
+                          label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                          outerRadius={80} fill="#8884d8" dataKey="value"
+                        >
+                          {statusData.map((_e, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
+                        </Pie>
+                        <Tooltip {...tooltipStyle} />
+                      </PieChart>
+                    </ResponsiveContainer>
+                  )}
                 </CardContent>
               </Card>
 
@@ -286,15 +294,23 @@ const RelatoriosGerenciais = () => {
                   <CardTitle className="text-sm font-semibold">Leads por Área Jurídica</CardTitle>
                 </CardHeader>
                 <CardContent className="p-4">
-                  <ResponsiveContainer width="100%" height={280}>
-                    <BarChart data={areaData}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
-                      <XAxis dataKey="name" tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }} axisLine={false} tickLine={false} />
-                      <YAxis tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }} axisLine={false} tickLine={false} />
-                      <Tooltip {...tooltipStyle} />
-                      <Bar dataKey="leads" fill="#2563eb" radius={[4, 4, 0, 0]} />
-                    </BarChart>
-                  </ResponsiveContainer>
+                  {areaData.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center py-16 text-center">
+                      <BarChart3 className="h-12 w-12 text-muted-foreground/40 mb-4" />
+                      <h3 className="text-lg font-medium text-foreground mb-2">Sem dados para o período</h3>
+                      <p className="text-sm text-muted-foreground">Aguarde os primeiros leads serem registrados</p>
+                    </div>
+                  ) : (
+                    <ResponsiveContainer width="100%" height={280}>
+                      <BarChart data={areaData}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
+                        <XAxis dataKey="name" tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }} axisLine={false} tickLine={false} />
+                        <YAxis tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }} axisLine={false} tickLine={false} />
+                        <Tooltip {...tooltipStyle} />
+                        <Bar dataKey="leads" fill="#2563eb" radius={[4, 4, 0, 0]} />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  )}
                 </CardContent>
               </Card>
 
@@ -303,17 +319,25 @@ const RelatoriosGerenciais = () => {
                   <CardTitle className="text-sm font-semibold">Performance dos Agentes IA</CardTitle>
                 </CardHeader>
                 <CardContent className="p-4">
-                  <ResponsiveContainer width="100%" height={280}>
-                    <BarChart data={agentesData}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
-                      <XAxis dataKey="name" tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }} axisLine={false} tickLine={false} />
-                      <YAxis tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }} axisLine={false} tickLine={false} />
-                      <Tooltip {...tooltipStyle} />
-                      <Legend wrapperStyle={{ fontSize: 11 }} />
-                      <Bar dataKey="sucesso" stackId="a" fill="#059669" name="Sucesso" />
-                      <Bar dataKey="erro" stackId="a" fill="#e11d48" name="Erro" radius={[4, 4, 0, 0]} />
-                    </BarChart>
-                  </ResponsiveContainer>
+                  {agentesData.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center py-16 text-center">
+                      <BarChart3 className="h-12 w-12 text-muted-foreground/40 mb-4" />
+                      <h3 className="text-lg font-medium text-foreground mb-2">Sem dados de agentes</h3>
+                      <p className="text-sm text-muted-foreground">Nenhuma execução de agente registrada ainda</p>
+                    </div>
+                  ) : (
+                    <ResponsiveContainer width="100%" height={280}>
+                      <BarChart data={agentesData}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
+                        <XAxis dataKey="name" tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }} axisLine={false} tickLine={false} />
+                        <YAxis tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }} axisLine={false} tickLine={false} />
+                        <Tooltip {...tooltipStyle} />
+                        <Legend wrapperStyle={{ fontSize: 11 }} />
+                        <Bar dataKey="sucesso" stackId="a" fill="#059669" name="Sucesso" />
+                        <Bar dataKey="erro" stackId="a" fill="#e11d48" name="Erro" radius={[4, 4, 0, 0]} />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  )}
                 </CardContent>
               </Card>
 

@@ -129,8 +129,7 @@ describe('🔐 AuthContext - Password Validation', () => {
       });
     });
 
-    // TODO: Implementar validação de senha client-side no AuthContext.signUp
-    it.skip('❌ Deve REJEITAR senha < 12 caracteres', async () => {
+    it('❌ Deve REJEITAR senha < 12 caracteres', async () => {
       renderWithAuth(
         <TestComponent onAuth={(auth) => { authContext = auth; }} />
       );
@@ -150,8 +149,7 @@ describe('🔐 AuthContext - Password Validation', () => {
       expect(supabase.auth.signUp).not.toHaveBeenCalled();
     });
 
-    // TODO: Implementar validação de senha client-side no AuthContext.signUp
-    it.skip('❌ Deve REJEITAR senha sem requisitos mínimos (score < 4)', async () => {
+    it('❌ Deve REJEITAR senha sem requisitos mínimos (score < 4)', async () => {
       renderWithAuth(
         <TestComponent onAuth={(auth) => { authContext = auth; }} />
       );
@@ -199,13 +197,26 @@ describe('🔐 AuthContext - Password Validation', () => {
 
 describe('🗑️ AuthContext - localStorage Cleanup (Security Fix)', () => {
   let authContext: ReturnType<typeof useAuth> | null = null;
+  let store: Record<string, string>;
 
   beforeEach(() => {
     vi.clearAllMocks();
     authContext = null;
 
-    // Limpar localStorage
-    localStorage.clear();
+    // Use a functional localStorage backed by a real store
+    store = {};
+    Object.defineProperty(window, 'localStorage', {
+      value: {
+        getItem: vi.fn((key: string) => store[key] ?? null),
+        setItem: vi.fn((key: string, value: string) => { store[key] = value; }),
+        removeItem: vi.fn((key: string) => { delete store[key]; }),
+        clear: vi.fn(() => { store = {}; }),
+        key: vi.fn((i: number) => Object.keys(store)[i] ?? null),
+        get length() { return Object.keys(store).length; },
+      },
+      writable: true,
+      configurable: true,
+    });
 
     // Adicionar dados de teste
     localStorage.setItem('sb-test-auth-token', 'supabase-token');
@@ -214,8 +225,7 @@ describe('🗑️ AuthContext - localStorage Cleanup (Security Fix)', () => {
     localStorage.setItem('supabase-session', 'session-data');
   });
 
-  // TODO: Implementar cleanup seletivo de localStorage no AuthContext
-  it.skip('✅ Deve remover APENAS chaves Supabase (não destruir tudo)', async () => {
+  it('✅ Deve remover APENAS chaves Supabase (não destruir tudo)', async () => {
     const mockError = { message: 'Refresh Token Not Found' };
 
     vi.mocked(supabase.auth.getSession).mockResolvedValue({
@@ -245,8 +255,7 @@ describe('🗑️ AuthContext - localStorage Cleanup (Security Fix)', () => {
     expect(localStorage.getItem('supabase-session')).toBeNull();
   });
 
-  // TODO: Implementar cleanup seletivo de localStorage no AuthContext
-  it.skip('✅ Deve preservar dados de outras aplicações', async () => {
+  it('✅ Deve preservar dados de outras aplicações', async () => {
     // Adicionar dados de outras apps
     localStorage.setItem('mybank-token', 'bank-token');
     localStorage.setItem('google-analytics-id', 'GA-12345');

@@ -66,8 +66,8 @@ const RankingAgentesTable: React.FC<RankingAgentesTableProps> = ({ periodo }) =>
 
   const { data: rankingAgentes } = useQuery({
     queryKey: ['ranking-agentes', tenantId, periodo],
+    enabled: !!tenantId,
     queryFn: async () => {
-      if (!tenantId) return [] as AgenteStats[];
 
       const dataInicio = getDataInicio(periodo);
       const iaResponsavel = 'ia juridica';
@@ -75,14 +75,14 @@ const RankingAgentesTable: React.FC<RankingAgentesTableProps> = ({ periodo }) =>
       const { data: agentesIA, error: agentesError } = await supabase
         .from('agentes_ia')
         .select('id, nome, area_juridica, delay_resposta')
-        .eq('tenant_id', tenantId);
+        .eq('tenant_id', tenantId!);
 
       if (agentesError) throw agentesError;
 
       const { data: leads, error: leadsError } = await supabase
         .from('leads')
         .select('area_juridica, metadata, valor_causa, status, created_at')
-        .eq('tenant_id', tenantId)
+        .eq('tenant_id', tenantId!)
         .gte('created_at', dataInicio);
 
       if (leadsError) throw leadsError;
@@ -90,7 +90,7 @@ const RankingAgentesTable: React.FC<RankingAgentesTableProps> = ({ periodo }) =>
       const { data: contratos, error: contratosError } = await supabase
         .from('contratos')
         .select('responsavel, valor_causa, status, status_assinatura, created_at')
-        .eq('tenant_id', tenantId)
+        .eq('tenant_id', tenantId!)
         .gte('created_at', dataInicio);
 
       if (contratosError) throw contratosError;

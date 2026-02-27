@@ -289,12 +289,23 @@ export function useAgendaAutomation() {
           switch (task.type) {
             case 'email':
               if (task.id === 'google-sync') {
+                const { data: lead } = await supabase
+                  .from('leads')
+                  .select('email, nome')
+                  .eq('id', agendamento.lead_id)
+                  .single();
+
+                const participantes: string[] = [];
+                if (lead?.email) {
+                  participantes.push(lead.email as string);
+                }
+
                 const eventId = await createCalendarEvent(
                   {
                     titulo: `${agendamento.responsavel} · ${agendamento.area_juridica}`,
                     descricao: agendamento.observacoes || '',
                     data_hora: agendamento.data_hora,
-                    participantes: [], // TODO: get from lead
+                    participantes,
                   },
                   agendamento.id
                 );
@@ -443,12 +454,89 @@ export function useAgendaAutomation() {
       })
       .eq('id', taskId);
 
-    // TODO: Re-execute the task
-    toast({
-      title: 'Tarefa reenfileirada',
-      description: 'A tarefa será executada novamente',
-    });
-  }, [toast]);
+    // Re-execute the task based on its type
+    const agendamentoId = (task.payload as Record<string, unknown>)?.agendamento_id as string;
+    if (!agendamentoId || !user?.id) {
+      toast({
+        title: 'Erro ao reexecutar',
+        description: 'Dados insuficientes para reexecutar a tarefa',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    const { data: agendamento } = await supabase
+      .from('agendamentos')
+      .select('*')
+      .eq('id', agendamentoId)
+      .single();
+
+    if (!agendamento) {
+      toast({
+        title: 'Erro ao reexecutar',
+        description: 'Agendamento não encontrado',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    try {
+      await supabase
+        .from('automation_tasks')
+        .update({ status: 'running' })
+        .eq('id', taskId);
+
+      switch (task.type as AutomationTask['type']) {
+        case 'email':
+          await createEmailInvite(agendamento as Agendamento, { send_email_invite: true } as WorkflowConfig);
+          break;
+        case 'whatsapp':
+          await createWhatsAppMessage(agendamento as Agendamento, { send_whatsapp: true } as WorkflowConfig);
+          break;
+        case 'task':
+          await createTask(agendamento as Agendamento, user.id);
+          break;
+        case 'reminder':
+          await createReminders(agendamento as Agendamento, user.id);
+          break;
+        case 'drive_folder':
+          await createDriveFolder(agendamento as Agendamento);
+          break;
+        default:
+          throw new Error(`Unknown task type: ${String(task.type)}`);
+      }
+
+      await supabase
+        .from('automation_tasks')
+        .update({ status: 'completed', completed_at: new Date().toISOString() })
+        .eq('id', taskId);
+
+      toast({
+        title: 'Tarefa reexecutada',
+        description: 'A tarefa foi concluída com sucesso',
+      });
+    } catch (error) {
+      await supabase
+        .from('automation_tasks')
+        .update({
+          status: 'failed',
+          error: error instanceof Error ? error.message : 'Unknown error',
+        })
+        .eq('id', taskId);
+
+      captureError(error instanceof Error ? error : new Error(String(error)), {
+        component: 'useAgendaAutomation',
+        action: 'retry_task_failed',
+        metadata: { taskId, agendamentoId },
+      });
+
+      toast({
+        title: 'Falha na reexecução',
+        description: error instanceof Error ? error.message : 'Erro desconhecido',
+        variant: 'destructive',
+      });
+    }
+  }, [user?.id, toast, captureError]);
 
   return {
     runAutomation,
