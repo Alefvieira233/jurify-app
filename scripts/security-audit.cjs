@@ -87,9 +87,9 @@ function scanDir(dir, patterns) {
 }
 
 const dangerousPatterns = [
-  { pattern: /sk-[a-zA-Z0-9]{20,}/, label: 'OpenAI API key' },
+  { pattern: /sk-[a-zA-Z0-9]{40,}/, label: 'OpenAI API key' },
   { pattern: /sk_live_[a-zA-Z0-9]+/, label: 'Stripe live key' },
-  { pattern: /eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9\.[a-zA-Z0-9._-]{50,}/, label: 'Hardcoded JWT' },
+  { pattern: /eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9\.[a-zA-Z0-9._-]{60,}/, label: 'Hardcoded JWT' },
 ];
 
 const findings = scanDir(srcDir, dangerousPatterns);

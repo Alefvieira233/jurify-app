@@ -191,9 +191,12 @@ export abstract class BaseAgent implements IAgent {
       }
 
       // LGPD: Sanitize PII BEFORE any LLM call (streaming or non-streaming)
+      // We use cumulative sanitization (shouldReset=false) to ensure all PII
+      // tokens across prompt, context and system prompt are tracked in a single lookup map.
       const sanitizer = new SanitizerEngine();
-      const { safePayload: safePrompt, lookupMap: piiLookup } = sanitizer.sanitize(augmentedPrompt);
-      const { safePayload: safeContext } = sanitizer.sanitize(context || {});
+      const { safePayload: safePrompt } = sanitizer.sanitize(augmentedPrompt);
+      const { safePayload: safeContext } = sanitizer.sanitize(context || {}, false);
+      const { safePayload: safeSystemPrompt, lookupMap: piiLookup } = sanitizer.sanitize(this.getSystemPrompt(), false);
 
       if (options?.stream) {
         try {
@@ -210,9 +213,6 @@ export abstract class BaseAgent implements IAgent {
       if (piiLookup.size > 0) {
         log.debug(`${this.name} sanitized ${piiLookup.size} PII tokens before LLM call`);
       }
-
-      // LGPD: Sanitize systemPrompt too (may contain lead context with PII)
-      const { safePayload: safeSystemPrompt } = sanitizer.sanitize(this.getSystemPrompt());
 
       // Prepara payload para Edge Function
       const aiRequest: AgentAIRequest = {

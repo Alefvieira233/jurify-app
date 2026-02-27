@@ -10,7 +10,7 @@ describe('SanitizerEngine', () => {
         'O CPF do cliente é 123.456.789-00'
       );
       expect(safePayload).not.toContain('123.456.789-00');
-      expect((safePayload as string)).toMatch(/\[CPF-[a-f0-9]+\]/);
+      expect((safePayload as string)).toMatch(/\[CPF_[a-f0-9]+\]/);
       expect(piiCount).toBe(1);
       expect(lookupMap.size).toBe(1);
     });
@@ -20,7 +20,47 @@ describe('SanitizerEngine', () => {
         'CPF: 12345678900'
       );
       expect(safePayload).not.toContain('12345678900');
-      expect((safePayload as string)).toMatch(/\[CPF-[a-f0-9]+\]/);
+      expect((safePayload as string)).toMatch(/\[CPF_[a-f0-9]+\]/);
+    });
+  });
+
+  // ─── RG ───────────────────────────────────────────────────────
+  describe('RG detection', () => {
+    it('masks formatted RG', () => {
+      const { safePayload, piiCount } = new SanitizerEngine().sanitize(
+        'O RG do cliente é 12.345.678-9'
+      );
+      expect(safePayload).not.toContain('12.345.678-9');
+      expect((safePayload as string)).toMatch(/\[RG_[a-f0-9]+\]/);
+      expect(piiCount).toBe(1);
+    });
+
+    it('masks RG without dots', () => {
+      const { safePayload } = new SanitizerEngine().sanitize(
+        'RG: 123456789'
+      );
+      expect(safePayload).not.toContain('123456789');
+      expect((safePayload as string)).toMatch(/\[RG_[a-f0-9]+\]/);
+    });
+  });
+
+  // ─── Credit Card ──────────────────────────────────────────────
+  describe('Credit Card detection', () => {
+    it('masks formatted credit card', () => {
+      const { safePayload, piiCount } = new SanitizerEngine().sanitize(
+        'Cartão: 1234-5678-9012-3456'
+      );
+      expect(safePayload).not.toContain('1234-5678-9012-3456');
+      expect((safePayload as string)).toMatch(/\[CARD_[a-f0-9]+\]/);
+      expect(piiCount).toBe(1);
+    });
+
+    it('masks credit card with spaces', () => {
+      const { safePayload } = new SanitizerEngine().sanitize(
+        'Cartão: 1234 5678 9012 3456'
+      );
+      expect(safePayload).not.toContain('1234 5678 9012 3456');
+      expect((safePayload as string)).toMatch(/\[CARD_[a-f0-9]+\]/);
     });
   });
 
@@ -31,7 +71,7 @@ describe('SanitizerEngine', () => {
         'CNPJ da empresa: 12.345.678/0001-90'
       );
       expect(safePayload).not.toContain('12.345.678/0001-90');
-      expect((safePayload as string)).toMatch(/\[CNPJ-[a-f0-9]+\]/);
+      expect((safePayload as string)).toMatch(/\[CNPJ_[a-f0-9]+\]/);
       expect(piiCount).toBe(1);
     });
   });
@@ -43,7 +83,7 @@ describe('SanitizerEngine', () => {
         'Advogado inscrito na OAB SP123456'
       );
       expect(safePayload).not.toContain('SP123456');
-      expect((safePayload as string)).toMatch(/\[OAB-[a-f0-9]+\]/);
+      expect((safePayload as string)).toMatch(/\[OAB_[a-f0-9]+\]/);
     });
 
     it('masks OAB with space', () => {
@@ -61,7 +101,7 @@ describe('SanitizerEngine', () => {
         'Processo: 0001234-56.2023.8.26.0100'
       );
       expect(safePayload).not.toContain('0001234-56.2023.8.26.0100');
-      expect((safePayload as string)).toMatch(/\[CNJ-[a-f0-9]+\]/);
+      expect((safePayload as string)).toMatch(/\[CNJ_[a-f0-9]+\]/);
     });
   });
 
@@ -72,7 +112,7 @@ describe('SanitizerEngine', () => {
         'Contato: joao.silva@escritorio.com.br'
       );
       expect(safePayload).not.toContain('joao.silva@escritorio.com.br');
-      expect((safePayload as string)).toMatch(/\[EMAIL-[a-f0-9]+\]/);
+      expect((safePayload as string)).toMatch(/\[EMAIL_[a-f0-9]+\]/);
     });
   });
 
@@ -83,7 +123,7 @@ describe('SanitizerEngine', () => {
         'Telefone: (11) 99999-8888'
       );
       expect(safePayload).not.toContain('99999-8888');
-      expect((safePayload as string)).toMatch(/\[TEL-[a-f0-9]+\]/);
+      expect((safePayload as string)).toMatch(/\[TEL_[a-f0-9]+\]/);
     });
 
     it('masks phone with +55', () => {
@@ -133,10 +173,10 @@ describe('SanitizerEngine', () => {
       const contato = lead.contato as Record<string, unknown>;
       const caso = safe.caso as Record<string, unknown>;
 
-      expect(lead.cpf).toMatch(/\[CPF-/);
-      expect(contato.email).toMatch(/\[EMAIL-/);
-      expect(contato.telefone).toMatch(/\[TEL-/);
-      expect(caso.processo).toMatch(/\[CNJ-/);
+      expect(lead.cpf).toMatch(/\[CPF_/);
+      expect(contato.email).toMatch(/\[EMAIL_/);
+      expect(contato.telefone).toMatch(/\[TEL_/);
+      expect(caso.processo).toMatch(/\[CNJ_/);
       expect(lead.nome).toBe('João'); // Non-PII preserved
       expect(caso.descricao).toBe('Caso trabalhista');
       expect(piiCount).toBeGreaterThanOrEqual(4);
@@ -147,9 +187,9 @@ describe('SanitizerEngine', () => {
       const input = ['CPF: 123.456.789-00', 'Normal text', 'Email: a@b.com'];
       const { safePayload } = new SanitizerEngine().sanitize(input);
       const safe = safePayload as string[];
-      expect(safe[0]).toMatch(/\[CPF-/);
+      expect(safe[0]).toMatch(/\[CPF_/);
       expect(safe[1]).toBe('Normal text');
-      expect(safe[2]).toMatch(/\[EMAIL-/);
+      expect(safe[2]).toMatch(/\[EMAIL_/);
     });
   });
 
@@ -160,13 +200,36 @@ describe('SanitizerEngine', () => {
       const { safePayload, lookupMap } = new SanitizerEngine().sanitize(text);
       // Same CPF should produce same token
       const tokens = [...lookupMap.keys()];
-      const cpfToken = tokens.find(t => t.startsWith('[CPF-'));
+      const cpfToken = tokens.find(t => t.startsWith('[CPF_'));
       expect(cpfToken).toBeDefined();
       // Token appears twice in result
       const occurrences = (safePayload as string).split(cpfToken!).length - 1;
       expect(occurrences).toBe(2);
       // But only 1 entry in lookup
       expect(lookupMap.size).toBe(1);
+    });
+  });
+
+  // ─── Cumulative Sanitization ─────────────────────────────────
+  describe('cumulative sanitization', () => {
+    it('keeps tokens from previous calls when shouldReset is false', () => {
+      const engine = new SanitizerEngine();
+      const r1 = engine.sanitize('CPF: 123.456.789-00');
+      const r2 = engine.sanitize('Email: joao@test.com', false);
+
+      expect(r2.piiCount).toBe(2);
+      expect(r2.lookupMap.size).toBe(2);
+
+      const tokens = [...r2.lookupMap.keys()];
+      expect(tokens.some(t => t.startsWith('[CPF_'))).toBe(true);
+      expect(tokens.some(t => t.startsWith('[EMAIL_'))).toBe(true);
+
+      // Rehydration with r2.lookupMap should work for both
+      const restored1 = SanitizerEngine.rehydrate(r1.safePayload, r2.lookupMap);
+      const restored2 = SanitizerEngine.rehydrate(r2.safePayload, r2.lookupMap);
+
+      expect(restored1).toBe('CPF: 123.456.789-00');
+      expect(restored2).toBe('Email: joao@test.com');
     });
   });
 
