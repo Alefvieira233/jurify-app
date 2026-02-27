@@ -122,12 +122,29 @@ export const SubscriptionManager = () => {
                     .eq('tenant_id', tenantId),
             ]);
 
+            // Query all storage buckets and sum file sizes for this tenant
+            let storageMbUsed = 0;
+            try {
+                const { data: buckets } = await supabase.storage.listBuckets();
+                for (const bucket of buckets ?? []) {
+                    const { data: files } = await supabase.storage
+                        .from(bucket.name)
+                        .list(`${tenantId}/`, { limit: 1000 });
+                    for (const f of files ?? []) {
+                        storageMbUsed += (f.metadata?.size ?? 0) / (1024 * 1024);
+                    }
+                }
+            } catch {
+                // storage query failed, use 0
+                storageMbUsed = 0;
+            }
+
             const planLimits = PLAN_LIMITS[currentPlan] ?? FREE_LIMITS;
             setUsage({
                 ai_calls: { ...planLimits.ai_calls, used: aiCalls ?? 0 },
                 leads: { ...planLimits.leads, used: leadsCount ?? 0 },
                 users: { ...planLimits.users, used: usersCount ?? 0 },
-                storage_mb: { ...planLimits.storage_mb, used: 50 }, // Placeholder
+                storage_mb: { ...planLimits.storage_mb, used: Math.round(storageMbUsed * 10) / 10 },
             });
 
         } catch (error) {

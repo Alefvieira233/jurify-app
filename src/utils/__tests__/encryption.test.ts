@@ -1,4 +1,5 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeAll, afterAll, beforeEach, vi } from 'vitest';
+import CryptoJS from 'crypto-js';
 import {
   encryption,
   encrypt,
@@ -76,29 +77,38 @@ describe('EncryptionService', () => {
   // hashPassword / verifyPassword
   // =========================================================================
   describe('hashPassword & verifyPassword (600k PBKDF2)', () => {
+    let originalPBKDF2: typeof CryptoJS.PBKDF2;
+    beforeAll(() => {
+      originalPBKDF2 = CryptoJS.PBKDF2;
+      vi.spyOn(CryptoJS, 'PBKDF2').mockImplementation(
+        (password, salt) => originalPBKDF2(password, salt, { keySize: 512 / 32, iterations: 1 })
+      );
+    });
+    afterAll(() => vi.restoreAllMocks());
+
     it('hashes and verifies a password', () => {
       const password = 'MyStr0ng!Pass';
       const hash = hashPassword(password);
 
       expect(hash).toContain(':');
       expect(verifyPassword(password, hash)).toBe(true);
-    }, 60_000);
+    }, 5_000);
 
     it('rejects wrong password', () => {
       const hash = hashPassword('correct-password');
       expect(verifyPassword('wrong-password', hash)).toBe(false);
-    }, 60_000);
+    }, 5_000);
 
     it('produces different hashes for the same password (random salt)', () => {
       const password = 'same-password';
       const h1 = hashPassword(password);
       const h2 = hashPassword(password);
       expect(h1).not.toBe(h2);
-    }, 60_000);
+    }, 5_000);
 
     it('returns false for malformed hash', () => {
       expect(verifyPassword('password', 'no-colon-here')).toBe(false);
-    }, 60_000);
+    }, 5_000);
   });
 
   // =========================================================================

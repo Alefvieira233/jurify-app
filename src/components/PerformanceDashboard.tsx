@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Skeleton } from '@/components/ui/skeleton';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { TrendingUp, Users, FileText, Activity, AlertTriangle } from 'lucide-react';
 
@@ -13,7 +14,7 @@ const PerformanceDashboard = () => {
   const inicio7Dias = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
   const inicio24h = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
 
-  const { data: leadsStats } = useQuery({
+  const { data: leadsStats, isLoading: isLoadingLeads } = useQuery({
     queryKey: ['leads-stats', tenantId],
     queryFn: async () => {
       if (!tenantId) return 0;
@@ -28,7 +29,7 @@ const PerformanceDashboard = () => {
     }
   });
 
-  const { data: contratosStats } = useQuery({
+  const { data: contratosStats, isLoading: isLoadingContratos } = useQuery({
     queryKey: ['contratos-stats', tenantId],
     queryFn: async () => {
       if (!tenantId) return 0;
@@ -43,7 +44,7 @@ const PerformanceDashboard = () => {
     }
   });
 
-  const { data: agentExecutions } = useQuery({
+  const { data: agentExecutions, isLoading: isLoadingAgents } = useQuery({
     queryKey: ['agent-executions', tenantId],
     queryFn: async () => {
       if (!tenantId) return 0;
@@ -58,7 +59,7 @@ const PerformanceDashboard = () => {
     }
   });
 
-  const { data: errorLogs } = useQuery({
+  const { data: errorLogs, isLoading: isLoadingErrors } = useQuery({
     queryKey: ['error-logs', tenantId],
     queryFn: async () => {
       if (!tenantId) return 0;
@@ -74,6 +75,8 @@ const PerformanceDashboard = () => {
       return Array.isArray(data) ? data.length : 0;
     }
   });
+
+  const isLoading = isLoadingLeads || isLoadingContratos || isLoadingAgents || isLoadingErrors;
 
   const conversionData = [
     { name: 'Clientes', value: leadsStats || 0 },
@@ -92,57 +95,68 @@ const PerformanceDashboard = () => {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Clientes (30 dias)</CardTitle>
-            <Users className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{leadsStats || 0}</div>
-            <p className="text-xs text-muted-foreground">
-              Novos leads cadastrados
-            </p>
-          </CardContent>
-        </Card>
+        {isLoading ? (
+          <>
+            <Skeleton className="h-28 rounded-xl" />
+            <Skeleton className="h-28 rounded-xl" />
+            <Skeleton className="h-28 rounded-xl" />
+            <Skeleton className="h-28 rounded-xl" />
+          </>
+        ) : (
+          <>
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Clientes (30 dias)</CardTitle>
+                <Users className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{leadsStats || 0}</div>
+                <p className="text-xs text-muted-foreground">
+                  Novos leads cadastrados
+                </p>
+              </CardContent>
+            </Card>
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Contratos (30 dias)</CardTitle>
-            <FileText className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{contratosStats || 0}</div>
-            <p className="text-xs text-muted-foreground">
-              Contratos gerados
-            </p>
-          </CardContent>
-        </Card>
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Contratos (30 dias)</CardTitle>
+                <FileText className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{contratosStats || 0}</div>
+                <p className="text-xs text-muted-foreground">
+                  Contratos gerados
+                </p>
+              </CardContent>
+            </Card>
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Execuções IA (7 dias)</CardTitle>
-            <Activity className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{agentExecutions || 0}</div>
-            <p className="text-xs text-muted-foreground">
-              Agentes executados
-            </p>
-          </CardContent>
-        </Card>
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Execuções IA (7 dias)</CardTitle>
+                <Activity className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{agentExecutions || 0}</div>
+                <p className="text-xs text-muted-foreground">
+                  Agentes executados
+                </p>
+              </CardContent>
+            </Card>
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Taxa de Conversão</CardTitle>
-            <TrendingUp className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{conversionRate}%</div>
-            <p className="text-xs text-muted-foreground">
-              Clientes → Contratos
-            </p>
-          </CardContent>
-        </Card>
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Taxa de Conversão</CardTitle>
+                <TrendingUp className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{conversionRate}%</div>
+                <p className="text-xs text-muted-foreground">
+                  Clientes → Contratos
+                </p>
+              </CardContent>
+            </Card>
+          </>
+        )}
       </div>
 
       <Card>
