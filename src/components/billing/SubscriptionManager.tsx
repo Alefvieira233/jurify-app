@@ -27,6 +27,7 @@ import {
     RefreshCw,
 } from 'lucide-react';
 import { createLogger } from '@/lib/logger';
+import { usePageTitle } from '@/hooks/usePageTitle';
 
 const log = createLogger('SubscriptionManager');
 
@@ -69,6 +70,7 @@ const PLAN_LIMITS: Record<string, UsageLimits> = {
 };
 
 export const SubscriptionManager = () => {
+    usePageTitle('Assinatura');
     const { profile } = useAuth();
     const { toast } = useToast();
     const [subscription, setSubscription] = useState<Subscription | null>(null);
