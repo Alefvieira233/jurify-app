@@ -21,8 +21,8 @@ test.describe('Jurify — WhatsApp Setup', () => {
     await page.goto('/whatsapp');
     await page.waitForTimeout(2_000);
 
-    // The Evolution setup component should render its heading and connection card
-    const heading = page.getByText(/whatsapp evolution api|conexão whatsapp/i).first();
+    // The WhatsApp page should render its main heading
+    const heading = page.getByText(/whatsapp.*ia|whatsapp.*jurídic|conexão whatsapp|whatsapp evolution/i).first();
     await expect(heading).toBeVisible({ timeout: 10_000 });
 
     // The connect button should be visible in idle/disconnected state

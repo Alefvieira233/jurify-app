@@ -21,8 +21,8 @@ test.describe('Document Generation — Contract States', () => {
 
     await page.goto('/contratos');
 
-    // The loading state renders Skeleton placeholders inside a card with the title
-    const skeleton = page.locator('[class*="skeleton"], [class*="Skeleton"]').first();
+    // The loading state renders Skeleton placeholders (shadcn uses animate-pulse class)
+    const skeleton = page.locator('[class*="animate-pulse"]').first();
     await expect(skeleton).toBeVisible({ timeout: 5_000 });
 
     // No error boundary should fire during loading

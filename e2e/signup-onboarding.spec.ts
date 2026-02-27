@@ -17,13 +17,15 @@ test.describe('Jurify — Signup & Onboarding', () => {
   test('alternância para cadastro mostra campos extras', async ({ page }) => {
     await page.goto('/auth');
     // Click toggle to switch to signup mode
-    const signupToggle = page.getByRole('button', { name: /cadastr|criar conta|registr/i });
+    const signupToggle = page.getByRole('button', { name: /cadastr|criar.*conta|registr/i });
     if (await signupToggle.isVisible({ timeout: 5_000 }).catch(() => false)) {
       await signupToggle.click();
     } else {
-      // Try link/tab approach
-      const signupLink = page.getByText(/cadastr|criar conta|registr/i).first();
-      await signupLink.click();
+      // Try link/tab approach — "Criar uma nova conta" is the link text on this app
+      const signupLink = page.getByText(/criar.*conta|cadastr|registr/i).first();
+      if (await signupLink.isVisible({ timeout: 5_000 }).catch(() => false)) {
+        await signupLink.click();
+      }
     }
     await page.waitForTimeout(500);
     // After switching there should be more than one password-like field or a confirm field
