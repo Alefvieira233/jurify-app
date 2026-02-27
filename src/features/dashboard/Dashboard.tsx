@@ -279,12 +279,12 @@ const Dashboard = () => {
       {/* ── Plano + Agenda Intelligence ── */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-5 fade-in" style={{ animationDelay: '0.28s' }}>
 
-        {/* Plano */}
+        {/* Plano + Ações Rápidas */}
         <Card className="border-border bg-card shadow-sm">
           <CardHeader className="pb-2 pt-4 px-5">
             <CardTitle className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Plano Atual</CardTitle>
           </CardHeader>
-          <CardContent className="px-5 pb-4">
+          <CardContent className="px-5 pb-4 space-y-3">
             {profile?.subscription_tier === 'enterprise' ? (
               <Badge className="text-sm px-3 py-1 bg-violet-600 hover:bg-violet-700 text-white">Enterprise</Badge>
             ) : profile?.subscription_tier === 'pro' ? (
@@ -295,6 +295,49 @@ const Dashboard = () => {
                 <p className="text-xs text-muted-foreground">Faça upgrade para desbloquear todos os recursos</p>
               </div>
             )}
+
+            {/* Ações Rápidas */}
+            <div className="pt-1 space-y-1.5">
+              <p className="text-[10px] font-semibold text-muted-foreground/60 uppercase tracking-widest">Ações rápidas</p>
+              <Button
+                size="sm"
+                variant="outline"
+                className="w-full h-7 text-xs gap-1.5 justify-start"
+                onClick={() => navigate('/pipeline')}
+              >
+                <TrendingUp className="h-3 w-3 text-primary flex-shrink-0" />
+                Novo lead
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                className="w-full h-7 text-xs gap-1.5 justify-start"
+                onClick={() => navigate('/agendamentos')}
+              >
+                <Calendar className="h-3 w-3 text-amber-500 flex-shrink-0" />
+                Agendar consulta
+              </Button>
+              {(!profile?.subscription_tier || profile.subscription_tier === 'free') ? (
+                <Button
+                  size="sm"
+                  className="w-full h-7 text-xs gap-1.5 justify-start bg-amber-500 hover:bg-amber-600 text-white"
+                  onClick={() => navigate('/billing')}
+                >
+                  <ArrowUpRight className="h-3 w-3 flex-shrink-0" />
+                  Fazer upgrade
+                </Button>
+              ) : (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="w-full h-7 text-xs gap-1.5 justify-start"
+                  onClick={() => navigate('/relatorios')}
+                >
+                  <BarChart3 className="h-3 w-3 text-blue-500 flex-shrink-0" />
+                  Ver relatórios
+                </Button>
+              )}
+            </div>
           </CardContent>
         </Card>
 
