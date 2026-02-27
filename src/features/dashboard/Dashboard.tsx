@@ -455,8 +455,8 @@ const Dashboard = () => {
             </div>
           </CardHeader>
           <CardContent className="space-y-4">
-            {metrics.leadsPorArea.slice(0, 5).map((area, index) => (
-              <div key={index} className="flex justify-between items-center p-2.5 rounded-lg bg-muted/40 hover:bg-muted/70 transition-colors">
+            {metrics.leadsPorArea.slice(0, 5).map((area) => (
+              <div key={area.area} className="flex justify-between items-center p-2.5 rounded-lg bg-muted/40 hover:bg-muted/70 transition-colors">
                 <span className="text-sm font-medium text-foreground">{area.area}</span>
                 <Badge variant="info">{area.total}</Badge>
               </div>

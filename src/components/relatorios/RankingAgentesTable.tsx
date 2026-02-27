@@ -72,27 +72,29 @@ const RankingAgentesTable: React.FC<RankingAgentesTableProps> = ({ periodo }) =>
       const dataInicio = getDataInicio(periodo);
       const iaResponsavel = 'ia juridica';
 
-      const { data: agentesIA, error: agentesError } = await supabase
-        .from('agentes_ia')
-        .select('id, nome, area_juridica, delay_resposta')
-        .eq('tenant_id', tenantId!);
+      const [
+        { data: agentesIA, error: agentesError },
+        { data: leads, error: leadsError },
+        { data: contratos, error: contratosError },
+      ] = await Promise.all([
+        supabase
+          .from('agentes_ia')
+          .select('id, nome, area_juridica, delay_resposta')
+          .eq('tenant_id', tenantId!),
+        supabase
+          .from('leads')
+          .select('area_juridica, metadata, valor_causa, status, created_at')
+          .eq('tenant_id', tenantId!)
+          .gte('created_at', dataInicio),
+        supabase
+          .from('contratos')
+          .select('responsavel, valor_causa, status, status_assinatura, created_at')
+          .eq('tenant_id', tenantId!)
+          .gte('created_at', dataInicio),
+      ]);
 
       if (agentesError) throw agentesError;
-
-      const { data: leads, error: leadsError } = await supabase
-        .from('leads')
-        .select('area_juridica, metadata, valor_causa, status, created_at')
-        .eq('tenant_id', tenantId!)
-        .gte('created_at', dataInicio);
-
       if (leadsError) throw leadsError;
-
-      const { data: contratos, error: contratosError } = await supabase
-        .from('contratos')
-        .select('responsavel, valor_causa, status, status_assinatura, created_at')
-        .eq('tenant_id', tenantId!)
-        .gte('created_at', dataInicio);
-
       if (contratosError) throw contratosError;
 
       const agentesStats: AgenteStats[] = [];
@@ -141,7 +143,7 @@ const RankingAgentesTable: React.FC<RankingAgentesTableProps> = ({ periodo }) =>
               tipo: 'humano',
               leadsAtendidos: leadsDoResponsavel.length,
               taxaFechamento: leadsDoResponsavel.length > 0 ? (contratosDoResponsavel.length / leadsDoResponsavel.length) * 100 : 0,
-              tempoMedioResposta: Math.floor(Math.random() * 60) + 30,
+              tempoMedioResposta: 0,
               valorGerado: contratosDoResponsavel.reduce((sum, c) => sum + (c.valor_causa || 0), 0)
             });
           }
@@ -203,9 +205,10 @@ const RankingAgentesTable: React.FC<RankingAgentesTableProps> = ({ periodo }) =>
                 </span>
               </TableCell>
               <TableCell className="text-center">
-                {agente.tempoMedioResposta < 60 ?
-                  `${agente.tempoMedioResposta}s` :
-                  `${Math.floor(agente.tempoMedioResposta / 60)}min`
+                {agente.tempoMedioResposta === 0 ? '—' :
+                  agente.tempoMedioResposta < 60 ?
+                    `${agente.tempoMedioResposta}s` :
+                    `${Math.floor(agente.tempoMedioResposta / 60)}min`
                 }
               </TableCell>
               <TableCell className="text-right font-medium">
