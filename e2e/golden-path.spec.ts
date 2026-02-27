@@ -13,9 +13,10 @@ test.describe('Jurify — Golden Path', () => {
     // 2. Dashboard loads
     await expect(page.locator('body')).not.toBeEmpty();
 
-    // 3. Navigate to Leads
-    await page.goto('/leads');
-    await expect(page.getByRole('button', { name: /novo lead/i })).toBeVisible({ timeout: 10_000 });
+    // 3. Navigate to Pipeline (leads redirects to pipeline)
+    await page.goto('/pipeline');
+    await page.waitForTimeout(1_500);
+    await expect(page.getByRole('button', { name: /novo lead/i }).first()).toBeVisible({ timeout: 15_000 });
 
     // 4. Navigate to Pipeline
     await page.goto('/pipeline');

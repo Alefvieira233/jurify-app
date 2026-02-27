@@ -18,7 +18,7 @@ test.describe('Jurify — Autenticação', () => {
     await page.getByLabel(/senha/i).fill('SenhaErrada123!');
     await page.getByRole('button', { name: /acessar plataforma/i }).click();
 
-    await expect(page.getByText(/erro no login/i)).toBeVisible({ timeout: 10_000 });
+    await expect(page.getByText(/erro no login/i).first()).toBeVisible({ timeout: 10_000 });
   });
 
   test('deve alternar para tela de cadastro e exibir validação de senha', async ({ page }) => {
@@ -42,7 +42,7 @@ test.describe('Jurify — Autenticação', () => {
     await page.getByLabel(/senha/i).fill('fraca');
     await page.getByRole('button', { name: /começar agora/i }).click();
 
-    await expect(page.getByText(/senha fraca/i)).toBeVisible({ timeout: 5_000 });
+    await expect(page.getByText(/senha fraca/i).first()).toBeVisible({ timeout: 5_000 });
   });
 
   test('deve redirecionar para dashboard após login bem-sucedido', async ({ page }) => {

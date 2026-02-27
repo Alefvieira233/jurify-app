@@ -13,6 +13,6 @@ export async function login(page: Page): Promise<void> {
   await page.getByLabel(/senha/i).fill(password);
   await page.getByRole('button', { name: /acessar plataforma/i }).click();
 
-  // Wait for redirect to dashboard
-  await expect(page).toHaveURL(/.*\//, { timeout: 15_000 });
+  // Wait for redirect away from /auth (real login completed)
+  await page.waitForURL(url => !url.toString().includes('/auth'), { timeout: 15_000 });
 }
