@@ -74,4 +74,18 @@ Object.defineProperty(global, 'crypto', {
   },
 });
 
+// Configure env vars for tests to avoid Supabase client errors
+process.env.VITE_SUPABASE_URL = 'https://mock.supabase.co';
+process.env.VITE_SUPABASE_ANON_KEY = 'mock-anon-key';
+
+// Also mock import.meta.env for Vite
+vi.stubGlobal('import', {
+  meta: {
+    env: {
+      VITE_SUPABASE_URL: 'https://mock.supabase.co',
+      VITE_SUPABASE_ANON_KEY: 'mock-anon-key',
+    },
+  },
+});
+
 console.log('✅ Vitest test environment configured');
