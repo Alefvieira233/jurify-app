@@ -21,12 +21,14 @@ interface EnhancedAIChatProps {
     agentId: string;
     agentName: string;
     agentArea?: string;
+    promptBase?: string | null;
 }
 
 const EnhancedAIChat: React.FC<EnhancedAIChatProps> = ({
     agentId: _agentId,
     agentName,
-    agentArea
+    agentArea,
+    promptBase,
 }) => {
     const [messages, setMessages] = useState<Message[]>([]);
     const [input, setInput] = useState('');
@@ -66,7 +68,8 @@ const EnhancedAIChat: React.FC<EnhancedAIChatProps> = ({
                 throw new Error('Usuário não autenticado');
             }
 
-            const systemPrompt = `Voce e ${agentName}, especialista em ${agentArea || 'direito'}. Responda de forma objetiva e profissional.`;
+            const systemPrompt = promptBase ||
+                `Voce e ${agentName}, especialista em ${agentArea || 'direito'}. Responda de forma objetiva e profissional em portugues brasileiro.`;
 
             const { data, error: functionError } = await supabase.functions.invoke('ai-agent-processor', {
                 body: {
@@ -82,11 +85,21 @@ const EnhancedAIChat: React.FC<EnhancedAIChatProps> = ({
             const duration = Date.now() - startTime;
 
             if (functionError) {
+                // Try to extract the actual error message from the response body
+                const ctx = (functionError as unknown as { context?: Response }).context;
+                if (ctx) {
+                    try {
+                        const body = await ctx.json() as { error?: string };
+                        throw new Error(body?.error || functionError.message);
+                    } catch {
+                        // body already consumed or not JSON
+                    }
+                }
                 throw new Error(functionError.message);
             }
 
             if (!data || !data.result) {
-                throw new Error(data?.error || 'Erro ao processar resposta');
+                throw new Error(data?.error || 'Sem resposta do agente. Verifique se a OPENAI_API_KEY está configurada no Supabase.');
             }
 
             const assistantMessage: Message = {

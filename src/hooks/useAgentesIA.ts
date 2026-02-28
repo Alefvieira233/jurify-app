@@ -249,7 +249,7 @@ export const useAgentesIA = () => {
     try {
       const { data: agente, error: agenteError } = await supabase
         .from('agentes_ia')
-        .select('nome, area_juridica, objetivo, script_saudacao')
+        .select('nome, area_juridica, objetivo, script_saudacao, prompt_base')
         .eq('id', agenteId)
         .eq('tenant_id', tenantId)
         .single();
@@ -258,10 +258,11 @@ export const useAgentesIA = () => {
         throw agenteError || new Error('Agente não encontrado');
       }
 
-      const systemPrompt = [
+      // Priority: prompt_base > script_saudacao + objetivo > generic fallback
+      const systemPrompt = (agente.prompt_base as string | null) || [
         agente.script_saudacao,
         agente.objetivo ? `Objetivo: ${agente.objetivo}` : null
-      ].filter(Boolean).join('\n');
+      ].filter(Boolean).join('\n') || 'Responda de forma objetiva e profissional em portugues brasileiro.';
 
       const { data, error } = await supabase.functions.invoke('ai-agent-processor', {
         body: {

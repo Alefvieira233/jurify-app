@@ -260,10 +260,17 @@ const DetalhesAgente: FC<DetalhesAgenteProps> = ({ agente, onClose, onEdit }) =>
           </TabsContent>
 
           <TabsContent value="teste" className="space-y-6">
+            {!agenteAtivo && (
+              <div className="flex items-center gap-2 p-3 rounded-md bg-amber-500/10 border border-amber-400/30 text-amber-200 text-sm">
+                <span>⚠️</span>
+                <span>Este agente está <strong>inativo</strong>. Ative-o para começar a usar.</span>
+              </div>
+            )}
             <EnhancedAIChat
               agentId={agente.id}
               agentName={agente.nome}
               agentArea={agente.area_juridica ?? undefined}
+              promptBase={agente.prompt_base}
             />
           </TabsContent>
         </Tabs>
