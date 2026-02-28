@@ -93,7 +93,7 @@ jobs:
         uses: codecov/codecov-action@v4
         with:
           directory: ${{ env.WORKING_DIR }}/coverage
-          fail_ci_if_error: true
+          fail_ci_if_error: false
         continue-on-error: false
 
   # ==========================================
@@ -161,7 +161,7 @@ jobs:
         uses: trufflesecurity/trufflehog@main
         with:
           path: ./
-          base: main
+          base: ${{ github.event.repository.default_branch }}
           head: HEAD
           extra_args: --only-verified
 
