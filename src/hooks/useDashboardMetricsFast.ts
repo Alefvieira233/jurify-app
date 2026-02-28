@@ -140,34 +140,41 @@ async function fetchFromMaterializedView(tenantId: string): Promise<DashboardMet
   };
 }
 
+interface QueryResult {
+  metrics: DashboardMetrics;
+  fromFallback: boolean;
+}
+
 export function useDashboardMetricsFast() {
   const { user, profile } = useAuth();
   const tenantId = profile?.tenant_id;
 
   const {
-    data: metrics = DEFAULT_METRICS,
+    data,
     isLoading: loading,
     error: queryError,
     refetch,
-  } = useQuery({
+  } = useQuery<QueryResult>({
     queryKey: ['dashboard-metrics-fast', tenantId],
-    queryFn: async () => {
-      if (!tenantId) return DEFAULT_METRICS;
+    queryFn: async (): Promise<QueryResult> => {
+      if (!tenantId) return { metrics: DEFAULT_METRICS, fromFallback: true };
 
       try {
-        // Try materialized view first (fast path)
-        return await fetchFromMaterializedView(tenantId);
+        const metrics = await fetchFromMaterializedView(tenantId);
+        return { metrics, fromFallback: false };
       } catch {
-        // Fallback: import and use original hook logic
         log.warn('Materialized view unavailable, using fallback');
-        return DEFAULT_METRICS;
+        return { metrics: DEFAULT_METRICS, fromFallback: true };
       }
     },
     enabled: !!user && !!tenantId,
-    staleTime: 60_000, // 1 min — views refresh every 5 min
-    refetchInterval: 300_000, // 5 min auto-refresh
+    staleTime: 60_000,
+    refetchInterval: 300_000,
     refetchOnWindowFocus: true,
   });
+
+  const metrics = data?.metrics ?? DEFAULT_METRICS;
+  const isViewFallback = data?.fromFallback ?? false;
 
   return {
     metrics,
@@ -176,5 +183,7 @@ export function useDashboardMetricsFast() {
     refetch,
     isEmpty: !loading && !queryError && metrics.totalLeads === 0,
     isStale: false,
+    /** true when metrics are zeroed out due to materialized view being unavailable */
+    isViewFallback,
   };
 }

@@ -4,8 +4,9 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
-import { Eye, EyeOff, Calendar, FileSignature, MessageSquare, Bot } from 'lucide-react';
+import { Eye, EyeOff, FileSignature, MessageSquare, Bot } from 'lucide-react';
 import { useSystemSettings } from '@/hooks/useSystemSettings';
+import { GoogleCalendarCard } from './GoogleCalendarCard';
 
 type IntegrationSetting = { key: string; description: string; is_sensitive?: boolean };
 
@@ -68,25 +69,7 @@ const IntegracoesSection = () => {
 
   return (
     <div className="space-y-6">
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Calendar className="h-5 w-5 text-blue-600" />
-            Google Calendar
-          </CardTitle>
-          <CardDescription>
-            Configure a integração com Google Calendar para sincronização de agendamentos
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          {integracaoSettings.filter((s) => s.key.startsWith('google_')).map(renderSettingField)}
-          <div className="mt-4 p-3 bg-blue-50 rounded-lg">
-            <p className="text-sm text-blue-800">
-              <strong>URL de Callback:</strong> {window.location.origin}/auth/google/callback
-            </p>
-          </div>
-        </CardContent>
-      </Card>
+      <GoogleCalendarCard />
 
       <Card>
         <CardHeader>

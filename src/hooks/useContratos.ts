@@ -1,9 +1,9 @@
 
 import { useCallback } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabaseUntyped as supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
-import { useSupabaseQuery } from './useSupabaseQuery';
 import { createLogger } from '@/lib/logger';
 
 const log = createLogger('Contratos');
@@ -35,141 +35,111 @@ export type Contrato = ContratoRow;
 
 export type ContratoInput = Partial<Contrato>;
 
+const LIST_COLUMNS = 'id,lead_id,tenant_id,nome_cliente,area_juridica,valor_causa,status,status_assinatura,link_assinatura_zapsign,zapsign_document_id,data_geracao_link,data_envio_whatsapp,responsavel,data_envio,data_assinatura,observacoes,created_at,updated_at';
+
+function normalizeContrato(row: ContratoRow): Contrato { return { ...row }; }
+
+export const contratosQueryKey = (tenantId: string | undefined) =>
+  ['contratos', tenantId] as const;
+
 export const useContratos = () => {
   const { user, profile } = useAuth();
   const { toast } = useToast();
+  const queryClient = useQueryClient();
+  const tenantId = profile?.tenant_id;
+  const qKey = contratosQueryKey(tenantId);
 
-  const normalizeContrato = useCallback((contrato: ContratoRow): Contrato => ({ ...contrato }), []);
-
-  const fetchContratosQuery = useCallback(async () => {
-    const listColumns = 'id,lead_id,tenant_id,nome_cliente,area_juridica,valor_causa,status,status_assinatura,link_assinatura_zapsign,zapsign_document_id,data_geracao_link,data_envio_whatsapp,responsavel,data_envio,data_assinatura,observacoes,created_at,updated_at';
-
-    let query = supabase
-      .from('contratos')
-      .select(listColumns)
-      .order('created_at', { ascending: false })
-      .limit(100);
-
-    if (profile?.tenant_id) {
-      query = query.eq('tenant_id', profile.tenant_id);
-    }
-
-    const { data, error } = await query;
-
-    if (error) {
-      log.error('Erro ao buscar contratos', error);
-    } else {
-      log.debug(`${data?.length || 0} contratos encontrados`);
-    }
-
-    const normalized = (data || []).map(normalizeContrato);
-    return { data: normalized, error };
-  }, [profile?.tenant_id, normalizeContrato]);
-
+  // ── Query ──────────────────────────────────────────────────────────────────
   const {
-    data: contratos,
-    loading,
-    error,
-    refetch: fetchContratos,
-    mutate: setContratos,
-    isEmpty
-  } = useSupabaseQuery<Contrato>('contratos', fetchContratosQuery, {
+    data: contratos = [],
+    isLoading: loading,
+    error: queryError,
+    refetch,
+  } = useQuery<Contrato[]>({
+    queryKey: qKey,
+    queryFn: async () => {
+      let query = supabase
+        .from('contratos')
+        .select(LIST_COLUMNS)
+        .order('created_at', { ascending: false })
+        .limit(100);
+
+      if (tenantId) query = query.eq('tenant_id', tenantId);
+
+      const { data, error } = await query;
+      if (error) { log.error('Erro ao buscar contratos', error); throw error; }
+      log.debug(`${data?.length ?? 0} contratos encontrados`);
+      return (data || []).map(normalizeContrato);
+    },
     enabled: !!user,
-    staleTime: 15000
+    staleTime: 2 * 60 * 1000,
+    refetchOnWindowFocus: true,
   });
 
-  const createContrato = useCallback(async (data: ContratoInput): Promise<boolean> => {
-    if (!user) {
-      toast({
-        title: 'Erro de autenticação',
-        description: 'Usuário não autenticado',
-        variant: 'destructive',
-      });
-      return false;
-    }
+  const error = queryError ? (queryError).message : null;
 
-    try {
-      log.info('Criando novo contrato...');
-
-      const { data: newContrato, error } = await supabase
-        .from('contratos')
-        .insert([data])
-        .select()
-        .single();
-
+  // ── Mutations ──────────────────────────────────────────────────────────────
+  const createMutation = useMutation({
+    mutationFn: async (data: ContratoInput) => {
+      const payload = { ...data, tenant_id: data.tenant_id ?? tenantId ?? null };
+      const { data: row, error } = await supabase.from('contratos').insert([payload]).select().single();
       if (error) throw error;
-
+      return normalizeContrato(row as ContratoRow);
+    },
+    onSuccess: (newContrato) => {
+      queryClient.setQueryData<Contrato[]>(qKey, prev => [newContrato, ...(prev ?? [])]);
+      toast({ title: 'Sucesso', description: 'Contrato criado com sucesso!' });
       log.info('Contrato criado', { id: newContrato.id });
+    },
+    onError: (err: unknown) => {
+      log.error('Erro ao criar contrato', err);
+      toast({ title: 'Erro', description: err instanceof Error ? err.message : 'Não foi possível criar o contrato.', variant: 'destructive' });
+    },
+  });
 
-      // âœ… CORREÃ‡ÃƒO: Usar setter callback para evitar dependÃªncia circular
-      const normalized = normalizeContrato(newContrato);
-      setContratos(prev => [normalized, ...prev]);
-
-      toast({
-        title: 'Sucesso',
-        description: 'Contrato criado com sucesso!',
-      });
-
-      return true;
-    } catch (error: unknown) {
-      log.error('Erro ao criar contrato', error);
-      const message = error instanceof Error ? error.message : 'NÃ£o foi possÃ­vel criar o contrato.';
-      toast({
-        title: 'Erro',
-        description: message,
-        variant: 'destructive',
-      });
-      return false;
-    }
-  }, [user, toast, setContratos, normalizeContrato]);
-
-  const updateContrato = useCallback(async (id: string, updateData: Partial<ContratoInput>): Promise<boolean> => {
-    if (!user || !profile?.tenant_id) return false;
-
-    try {
-      log.info('Atualizando contrato', { id });
-
-      const { data: updatedContrato, error } = await supabase
+  const updateMutation = useMutation({
+    mutationFn: async ({ id, updateData }: { id: string; updateData: Partial<ContratoInput> }) => {
+      if (!tenantId) throw new Error('Tenant não identificado');
+      const { data: row, error } = await supabase
         .from('contratos')
         .update({ ...updateData, updated_at: new Date().toISOString() })
         .eq('id', id)
-        .eq('tenant_id', profile.tenant_id)
+        .eq('tenant_id', tenantId)
         .select()
         .single();
-
       if (error) throw error;
+      return normalizeContrato(row as ContratoRow);
+    },
+    onSuccess: (updated) => {
+      queryClient.setQueryData<Contrato[]>(qKey, prev =>
+        (prev ?? []).map(c => c.id === updated.id ? { ...c, ...updated } : c)
+      );
+      toast({ title: 'Sucesso', description: 'Contrato atualizado com sucesso!' });
+    },
+    onError: (err: unknown) => {
+      log.error('Erro ao atualizar contrato', err);
+      toast({ title: 'Erro', description: err instanceof Error ? err.message : 'Não foi possível atualizar o contrato.', variant: 'destructive' });
+    },
+  });
 
-      log.info('Contrato atualizado');
+  // ── Public API ─────────────────────────────────────────────────────────────
+  const createContrato = useCallback(async (data: ContratoInput): Promise<boolean> => {
+    if (!user) { toast({ title: 'Erro de autenticação', description: 'Usuário não autenticado', variant: 'destructive' }); return false; }
+    try { await createMutation.mutateAsync(data); return true; } catch { return false; }
+  }, [user, createMutation, toast]);
 
-      // âœ… CORREÃ‡ÃƒO: Usar setter callback para evitar dependÃªncia circular
-      const normalized = normalizeContrato(updatedContrato);
-      setContratos(prev => prev.map(contrato =>
-        contrato.id === id ? { ...contrato, ...normalized } : contrato
-      ));
+  const updateContrato = useCallback(async (id: string, updateData: Partial<ContratoInput>): Promise<boolean> => {
+    if (!user || !tenantId) return false;
+    try { await updateMutation.mutateAsync({ id, updateData }); return true; } catch { return false; }
+  }, [user, tenantId, updateMutation]);
 
-      toast({
-        title: 'Sucesso',
-        description: 'Contrato atualizado com sucesso!',
-      });
-
-      return true;
-    } catch (error: unknown) {
-      log.error('Erro ao atualizar contrato', error);
-      const message = error instanceof Error ? error.message : 'NÃ£o foi possÃ­vel atualizar o contrato.';
-      toast({
-        title: 'Erro',
-        description: message,
-        variant: 'destructive',
-      });
-      return false;
-    }
-  }, [user, profile?.tenant_id, toast, setContratos, normalizeContrato]);
+  const fetchContratos = useCallback(() => { void refetch(); }, [refetch]);
 
   return {
     contratos,
     loading,
     error,
-    isEmpty,
+    isEmpty: !loading && !error && contratos.length === 0,
     fetchContratos,
     createContrato,
     updateContrato,

@@ -108,10 +108,16 @@ export const useWhatsAppConversations = (): UseWhatsAppConversationsReturn => {
     try {
       log.debug(`Carregando mensagens da conversa ${conversationId}`);
 
-      const { data, error: fetchError } = await supabase
+      let msgsQuery = supabase
         .from('whatsapp_messages')
         .select('*')
-        .eq('conversation_id', conversationId)
+        .eq('conversation_id', conversationId);
+
+      if (profile?.tenant_id) {
+        msgsQuery = msgsQuery.eq('tenant_id', profile.tenant_id);
+      }
+
+      const { data, error: fetchError } = await msgsQuery
         .order('timestamp', { ascending: false })
         .limit(MESSAGE_PAGE_SIZE);
 
@@ -131,7 +137,7 @@ export const useWhatsAppConversations = (): UseWhatsAppConversationsReturn => {
         variant: 'destructive',
       });
     }
-  }, [toast]);
+  }, [toast, profile?.tenant_id]);
 
   // Selecionar conversa
   const selectConversation = useCallback((id: string) => {
@@ -225,11 +231,17 @@ export const useWhatsAppConversations = (): UseWhatsAppConversationsReturn => {
         .eq('id', conversationId)
         .eq('tenant_id', profile.tenant_id);
 
-      await supabase
+      let readQuery = supabase
         .from('whatsapp_messages')
         .update({ read: true })
         .eq('conversation_id', conversationId)
         .eq('read', false);
+
+      if (profile?.tenant_id) {
+        readQuery = readQuery.eq('tenant_id', profile.tenant_id);
+      }
+
+      await readQuery;
 
       // Atualizar estado local
       setConversations(prev =>
@@ -254,11 +266,15 @@ export const useWhatsAppConversations = (): UseWhatsAppConversationsReturn => {
   useEffect(() => {
     if (!user) return undefined;
 
+    const tenantFilter = profile?.tenant_id
+      ? `tenant_id=eq.${profile.tenant_id}`
+      : undefined;
+
     const conversationsChannel = supabase
       .channel('whatsapp_conversations_changes')
       .on(
         'postgres_changes',
-        { event: '*', schema: 'public', table: 'whatsapp_conversations' },
+        { event: '*', schema: 'public', table: 'whatsapp_conversations', ...(tenantFilter ? { filter: tenantFilter } : {}) },
         (payload) => {
           log.debug('Mudança em conversa', { event: payload.eventType });
           if (payload.eventType === 'INSERT') {
@@ -279,7 +295,7 @@ export const useWhatsAppConversations = (): UseWhatsAppConversationsReturn => {
     return () => {
       void supabase.removeChannel(conversationsChannel);
     };
-  }, [user]);
+  }, [user, profile?.tenant_id]);
 
   // Channel de mensagens — recriado apenas quando a conversa selecionada muda
   useEffect(() => {

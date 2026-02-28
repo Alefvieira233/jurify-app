@@ -69,6 +69,15 @@ supabase/functions/**/.env
 nul
 NUL
 
+# Internal AI tooling prompts (not for VCS)
+CLAUDE*.md
+RELATORIO_SENIOR.md
+JURIFY_FINAL_REPORT.md
+AUDIT_REPORT.md
+DEPLOY_CHECKLIST.md
+PRODUCTION_GUIDE.md
+PROMPT_COMPLETO_JURIFY.md
+
 # Local dev / ops scripts (not for VCS)
 vps-*.sh
 test-*.sh

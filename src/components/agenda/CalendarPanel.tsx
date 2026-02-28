@@ -15,11 +15,11 @@ import type { EventClickArg, DatesSetArg, DateSelectArg, EventDropArg } from '@f
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
-  RefreshCw, Link, Unlink, Calendar, ChevronLeft, ChevronRight,
+  RefreshCw, Link, Calendar, ChevronLeft, ChevronRight,
   LayoutGrid, List, Clock, Lightbulb,
 } from 'lucide-react';
 import { useCalendarEvents, type CalendarEventItem } from '@/hooks/useCalendarEvents';
-import { useGoogleCalendar } from '@/hooks/useGoogleCalendar';
+import { useGoogleCalendarConnection } from '@/hooks/useGoogleCalendarConnection';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { cn } from '@/lib/utils';
 import { AgendaIntelligenceDashboard } from './AgendaIntelligenceDashboard';
@@ -151,16 +151,7 @@ const EventDetailModal = ({ event, open, onClose }: EventDetailProps) => {
 // ---------------------------------------------------------------------------
 
 const ConnectGoogleBanner = () => {
-  const { initializeGoogleAuth, isOAuthConfigured, loading } = useGoogleCalendar();
-
-  if (!isOAuthConfigured) {
-    return (
-      <div className="mx-1 mb-2 px-3 py-2 rounded-lg bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 text-xs text-amber-700 dark:text-amber-400 flex items-center gap-2">
-        <Unlink className="h-3.5 w-3.5 flex-shrink-0" />
-        <span>Configure <code className="font-mono text-[10px]">VITE_GOOGLE_CLIENT_ID</code> no .env para habilitar o Google Calendar.</span>
-      </div>
-    );
-  }
+  const { connect, isConnecting } = useGoogleCalendarConnection();
 
   return (
     <div className="mx-1 mb-2 px-3 py-2 rounded-lg bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 text-xs flex items-center justify-between">
@@ -172,10 +163,10 @@ const ConnectGoogleBanner = () => {
         size="sm"
         variant="outline"
         className="h-6 text-xs px-2"
-        onClick={initializeGoogleAuth}
-        disabled={loading}
+        onClick={() => void connect()}
+        disabled={isConnecting}
       >
-        Conectar
+        {isConnecting ? 'Conectando...' : 'Conectar'}
       </Button>
     </div>
   );

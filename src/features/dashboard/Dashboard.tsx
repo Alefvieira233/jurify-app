@@ -17,7 +17,7 @@ const log = createLogger('Dashboard');
 
 const Dashboard = () => {
   usePageTitle('Dashboard');
-  const { metrics, loading, error, refetch, isEmpty } = useDashboardMetricsFast();
+  const { metrics, loading, error, refetch, isEmpty, isViewFallback } = useDashboardMetricsFast();
   const { data: agendaMetrics, isLoading: agendaLoading } = useAgendaMetrics();
   const { profile } = useAuth();
   const [isSeeding, setIsSeeding] = useState(false);
@@ -207,6 +207,14 @@ const Dashboard = () => {
       {/* ── Body ── */}
       <div className="flex-1 overflow-y-auto">
       <div className="px-6 py-6 space-y-6">
+
+      {/* ── Fallback notice ── */}
+      {isViewFallback && !loading && (
+        <div className="flex items-center gap-2 px-3 py-2 rounded-md bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 text-xs text-amber-700 dark:text-amber-400">
+          <AlertTriangle className="h-3.5 w-3.5 flex-shrink-0" />
+          <span>Os dados do dashboard estão sendo carregados. Se os números aparecerem zerados, aguarde alguns instantes e clique em <strong>Atualizar</strong>.</span>
+        </div>
+      )}
 
       {/* ── KPI Cards ── */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">

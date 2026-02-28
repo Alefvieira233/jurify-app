@@ -91,8 +91,8 @@ export class GoogleOAuthService {
   static async exchangeCodeForTokens(code: string, userId: string): Promise<GoogleOAuthToken> {
     // Token exchange happens server-side via Edge Function (CLIENT_SECRET never in browser)
     const { data: fnData, error: fnError } = await supabase.functions.invoke(
-      'google-oauth-exchange',
-      { body: { code, redirect_uri: GOOGLE_REDIRECT_URI } }
+      'google-calendar',
+      { body: { action: 'exchange_code', code, redirect_uri: GOOGLE_REDIRECT_URI } }
     );
 
     if (fnError || !fnData) {
@@ -173,8 +173,8 @@ export class GoogleOAuthService {
   static async refreshAccessToken(userId: string, refreshToken: string): Promise<GoogleOAuthToken> {
     // Refresh happens server-side via Edge Function (CLIENT_SECRET never in browser)
     const { data: fnData, error: fnError } = await supabase.functions.invoke(
-      'google-oauth-exchange',
-      { body: { refresh_token: refreshToken } }
+      'google-calendar',
+      { body: { action: 'refresh_token', refresh_token: refreshToken } }
     );
 
     if (fnError || !fnData) {

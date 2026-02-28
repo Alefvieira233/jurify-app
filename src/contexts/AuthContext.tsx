@@ -35,13 +35,15 @@ export const useAuth = () => {
   return context;
 };
 
+/** How long to wait for Supabase session check before assuming unauthenticated.
+ *  15 s covers slow 3G connections; 5 s was too aggressive and caused false logouts. */
+const SESSION_TIMEOUT_MS = 15_000;
+
 export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
-
-  const sessionTimeoutMs = 5000;
 
   const fetchProfile = useCallback(async (userId: string) => {
     try {
@@ -76,7 +78,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
       const getSessionPromise = supabase.auth.getSession();
       const timeoutPromise = new Promise<never>((_, reject) => {
-        setTimeout(() => reject(new Error('Auth session check timed out')), sessionTimeoutMs);
+        setTimeout(() => reject(new Error('Auth session check timed out')), SESSION_TIMEOUT_MS);
       });
 
       try {
@@ -150,7 +152,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       subscription.unsubscribe();
       if (profileChannel) void supabase.removeChannel(profileChannel);
     };
-  }, [fetchProfile, sessionTimeoutMs]);
+  }, [fetchProfile]);
 
   const signIn = (email: string, password: string) => supabase.auth.signInWithPassword({ email, password });
   const signUp = (email: string, password: string, userData?: Record<string, unknown>) => {

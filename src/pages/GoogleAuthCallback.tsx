@@ -12,60 +12,49 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Loader2, CheckCircle, XCircle } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { useGoogleCalendar } from '@/hooks/useGoogleCalendar';
+import { useGoogleCalendarConnection } from '@/hooks/useGoogleCalendarConnection';
 
 const GoogleAuthCallback: React.FC = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const { handleOAuthCallback } = useGoogleCalendar();
+  const { handleCallback } = useGoogleCalendarConnection();
   const [status, setStatus] = useState<'processing' | 'success' | 'error'>('processing');
   const [errorMessage, setErrorMessage] = useState<string>('');
 
   useEffect(() => {
     const processCallback = async () => {
       try {
-        // Extrair parâmetros da URL
         const code = searchParams.get('code');
-        const state = searchParams.get('state');
         const error = searchParams.get('error');
 
-        // Se houve erro no OAuth
         if (error) {
-          throw new Error(`Erro OAuth: ${error}`);
+          throw new Error(`Google recusou a permissão: ${error}`);
         }
 
-        // Se não tem código, erro
-        if (!code || !state) {
-          throw new Error('Código ou state ausentes no callback');
+        if (!code) {
+          throw new Error('Código de autorização ausente no callback');
         }
 
-        // Processar callback
-        const success = await handleOAuthCallback(code, state);
+        await handleCallback(code);
+        setStatus('success');
 
-        if (success) {
-          setStatus('success');
-          // Redirecionar para configurações após 2 segundos
-          setTimeout(() => {
-            navigate('/configuracoes?tab=integracoes');
-          }, 2000);
-        } else {
-          throw new Error('Falha ao processar callback');
-        }
+        setTimeout(() => {
+          navigate('/?tab=configuracoes');
+        }, 2000);
 
-      } catch (error: unknown) {
-        const message = error instanceof Error ? error.message : 'Erro desconhecido';
+      } catch (err: unknown) {
+        const message = err instanceof Error ? err.message : 'Erro desconhecido';
         setStatus('error');
         setErrorMessage(message);
 
-        // Redirecionar para configurações após 5 segundos
         setTimeout(() => {
-          navigate('/configuracoes?tab=integracoes');
+          navigate('/?tab=configuracoes');
         }, 5000);
       }
     };
 
     void processCallback();
-  }, [searchParams, handleOAuthCallback, navigate]);
+  }, [searchParams, handleCallback, navigate]);
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-900 to-slate-700 p-4">

@@ -6,8 +6,7 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useAgendamentos } from '@/hooks/useAgendamentos';
-import { useGoogleCalendar } from '@/hooks/useGoogleCalendar';
-import { GoogleOAuthService } from '@/lib/google/GoogleOAuthService';
+import { useGoogleCalendarConnection } from '@/hooks/useGoogleCalendarConnection';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -69,7 +68,7 @@ function getColors(type: EventType) {
 export function useCalendarEvents() {
   const { user } = useAuth();
   const { agendamentos } = useAgendamentos();
-  const { settings, isAuthenticated } = useGoogleCalendar();
+  const { status: gcalStatus } = useGoogleCalendarConnection();
   const [googleEvents, setGoogleEvents] = useState<CalendarEventItem[]>([]);
   const [loadingGoogle, setLoadingGoogle] = useState(false);
   const [dateRange, setDateRange] = useState<{ start: string; end: string } | null>(null);
@@ -100,9 +99,9 @@ export function useCalendarEvents() {
     };
   });
 
-  // Fetch Google Calendar events for visible date range
+  // Fetch Google Calendar events via Edge Function
   const fetchGoogleEvents = useCallback(async (start: string, end: string) => {
-    if (!user?.id || !isAuthenticated || !settings?.calendar_id) {
+    if (!user?.id || !gcalStatus.connected) {
       setGoogleEvents([]);
       return;
     }
@@ -111,18 +110,33 @@ export function useCalendarEvents() {
     setLoadingGoogle(true);
 
     try {
-      const items = await GoogleOAuthService.listEvents(
-        user.id,
-        settings.calendar_id,
-        start,
-        end
+      const { data: { session } } = await (await import('@/integrations/supabase/client')).supabase.auth.getSession();
+      if (!session) throw new Error('No session');
+
+      const res = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/google-calendar`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${session.access_token}`,
+          },
+          body: JSON.stringify({
+            method: 'listEvents',
+            data: { calendarId: 'primary', timeMin: start, timeMax: end },
+          }),
+        }
       );
 
-      if (id !== fetchIdRef.current) return; // stale
+      if (id !== fetchIdRef.current) return;
+
+      if (!res.ok) { setGoogleEvents([]); return; }
+
+      const { events: items = [] } = await res.json() as { events: Record<string, unknown>[] };
 
       const mapped: CalendarEventItem[] = items
-        .filter((item: Record<string, unknown>) => item.status !== 'cancelled')
-        .map((item: Record<string, unknown>) => {
+        .filter((item) => item.status !== 'cancelled')
+        .map((item) => {
           const startObj = item.start as Record<string, string> | undefined;
           const endObj = item.end as Record<string, string> | undefined;
           const isAllDay = !!startObj?.date;
@@ -151,12 +165,11 @@ export function useCalendarEvents() {
 
       setGoogleEvents(mapped);
     } catch {
-      // If fetch fails (e.g. token expired), silently clear
       if (id === fetchIdRef.current) setGoogleEvents([]);
     } finally {
       if (id === fetchIdRef.current) setLoadingGoogle(false);
     }
-  }, [user?.id, isAuthenticated, settings?.calendar_id]);
+  }, [user?.id, gcalStatus.connected]);
 
   // When date range changes, refetch Google events
   useEffect(() => {
@@ -197,7 +210,7 @@ export function useCalendarEvents() {
     jurifyEvents,
     googleEvents,
     loadingGoogle,
-    isGoogleConnected: isAuthenticated,
+    isGoogleConnected: gcalStatus.connected,
     handleDateRangeChange,
     refetchGoogle,
   };

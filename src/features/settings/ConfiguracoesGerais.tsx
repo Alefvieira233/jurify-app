@@ -1,7 +1,6 @@
 
-import { Card, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Plug, Users, Bell, Server, TestTube, ShieldAlert, Settings } from 'lucide-react';
+import { Plug, Users, Bell, Server, ShieldAlert, Settings } from 'lucide-react';
 import { useRBAC } from '@/hooks/useRBAC';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import IntegracoesSection from '@/components/configuracoes/IntegracoesSection';
@@ -67,7 +66,7 @@ const ConfiguracoesGerais = () => {
       {/* Body */}
       <div className="flex-1 overflow-y-auto px-5 py-5">
         <Tabs defaultValue="integracoes" className="space-y-5">
-          <TabsList className="grid w-full grid-cols-5 h-9">
+          <TabsList className="grid w-full grid-cols-4 h-9">
             <TabsTrigger value="integracoes" className="flex items-center gap-1.5 text-xs">
               <Plug className="h-3.5 w-3.5" />
               Integrações
@@ -83,10 +82,6 @@ const ConfiguracoesGerais = () => {
             <TabsTrigger value="sistema" className="flex items-center gap-1.5 text-xs">
               <Server className="h-3.5 w-3.5" />
               Sistema
-            </TabsTrigger>
-            <TabsTrigger value="teste-n8n" className="flex items-center gap-1.5 text-xs">
-              <TestTube className="h-3.5 w-3.5" />
-              Teste N8N
             </TabsTrigger>
           </TabsList>
 
@@ -106,15 +101,6 @@ const ConfiguracoesGerais = () => {
             <SistemaSection />
           </TabsContent>
 
-          <TabsContent value="teste-n8n">
-            <Card className="border-border shadow-card">
-              <CardHeader>
-                <CardTitle className="text-sm font-semibold">Teste N8N</CardTitle>
-                <CardDescription>Funcionalidade em construção</CardDescription>
-              </CardHeader>
-            </Card>
-            {/* <TesteN8N /> */}
-          </TabsContent>
         </Tabs>
       </div>
     </div>
