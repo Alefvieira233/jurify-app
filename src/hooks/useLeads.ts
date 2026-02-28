@@ -152,7 +152,7 @@ export const useLeads = (options?: { enablePagination?: boolean; pageSize?: numb
 
   const enablePagination = options?.enablePagination ?? false;
   const pageSize = options?.pageSize ?? ITEMS_PER_PAGE;
-  const tenantId = profile?.tenant_id as string | undefined;
+  const tenantId = profile?.tenant_id;
 
   // Paginação local — só usado quando enablePagination=true
   const [currentPage, setCurrentPage] = useState(1);
@@ -203,7 +203,7 @@ export const useLeads = (options?: { enablePagination?: boolean; pageSize?: numb
   const leads = queryData?.leads ?? [];
   const totalCount = queryData?.totalCount ?? 0;
   const totalPages = enablePagination ? Math.ceil(totalCount / pageSize) : 1;
-  const error = queryError ? (queryError as Error).message : null;
+  const error = queryError ? (queryError).message : null;
 
   // ── Mutations ──────────────────────────────────────────────────────────────
 
