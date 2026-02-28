@@ -1,6 +1,14 @@
+import React from 'react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { renderHook, waitFor } from '@testing-library/react';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useContratos } from '../useContratos';
+
+function createWrapper() {
+  const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  return ({ children }: { children: React.ReactNode }) =>
+    React.createElement(QueryClientProvider, { client: queryClient }, children);
+}
 
 const mockContratosData = [
   {
@@ -97,7 +105,7 @@ describe('useContratos', () => {
   });
 
   it('should fetch contratos on mount', async () => {
-    const { result } = renderHook(() => useContratos());
+    const { result } = renderHook(() => useContratos(), { wrapper: createWrapper() });
 
     await waitFor(() => {
       expect(result.current.loading).toBe(false);
@@ -108,7 +116,7 @@ describe('useContratos', () => {
   });
 
   it('should have correct contrato data structure', async () => {
-    const { result } = renderHook(() => useContratos());
+    const { result } = renderHook(() => useContratos(), { wrapper: createWrapper() });
 
     await waitFor(() => {
       expect(result.current.contratos).toHaveLength(2);
@@ -125,7 +133,7 @@ describe('useContratos', () => {
   });
 
   it('should expose CRUD functions', async () => {
-    const { result } = renderHook(() => useContratos());
+    const { result } = renderHook(() => useContratos(), { wrapper: createWrapper() });
 
     await waitFor(() => {
       expect(result.current.loading).toBe(false);
@@ -137,7 +145,7 @@ describe('useContratos', () => {
   });
 
   it('should report isEmpty correctly when data exists', async () => {
-    const { result } = renderHook(() => useContratos());
+    const { result } = renderHook(() => useContratos(), { wrapper: createWrapper() });
 
     await waitFor(() => {
       expect(result.current.contratos).toHaveLength(2);

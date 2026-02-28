@@ -1,6 +1,14 @@
+import React from 'react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { renderHook, waitFor } from '@testing-library/react';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useAgendamentos } from '../useAgendamentos';
+
+function createWrapper() {
+  const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  return ({ children }: { children: React.ReactNode }) =>
+    React.createElement(QueryClientProvider, { client: queryClient }, children);
+}
 
 const mockAgendamentosData = [
   {
@@ -74,7 +82,7 @@ describe('useAgendamentos', () => {
   });
 
   it('should fetch agendamentos on mount', async () => {
-    const { result } = renderHook(() => useAgendamentos());
+    const { result } = renderHook(() => useAgendamentos(), { wrapper: createWrapper() });
 
     await waitFor(() => {
       expect(result.current.loading).toBe(false);
@@ -85,7 +93,7 @@ describe('useAgendamentos', () => {
   });
 
   it('should have correct agendamento data structure', async () => {
-    const { result } = renderHook(() => useAgendamentos());
+    const { result } = renderHook(() => useAgendamentos(), { wrapper: createWrapper() });
 
     await waitFor(() => {
       expect(result.current.agendamentos).toHaveLength(2);
@@ -102,7 +110,7 @@ describe('useAgendamentos', () => {
   });
 
   it('should normalize agendamento fields', async () => {
-    const { result } = renderHook(() => useAgendamentos());
+    const { result } = renderHook(() => useAgendamentos(), { wrapper: createWrapper() });
 
     await waitFor(() => {
       expect(result.current.agendamentos).toHaveLength(2);
@@ -115,7 +123,7 @@ describe('useAgendamentos', () => {
   });
 
   it('should expose CRUD functions', async () => {
-    const { result } = renderHook(() => useAgendamentos());
+    const { result } = renderHook(() => useAgendamentos(), { wrapper: createWrapper() });
 
     await waitFor(() => {
       expect(result.current.loading).toBe(false);
@@ -128,7 +136,7 @@ describe('useAgendamentos', () => {
   });
 
   it('should report isEmpty correctly when data exists', async () => {
-    const { result } = renderHook(() => useAgendamentos());
+    const { result } = renderHook(() => useAgendamentos(), { wrapper: createWrapper() });
 
     await waitFor(() => {
       expect(result.current.agendamentos).toHaveLength(2);

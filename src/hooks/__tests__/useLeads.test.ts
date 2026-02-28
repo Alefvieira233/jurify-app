@@ -1,6 +1,14 @@
+import React from 'react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { renderHook, waitFor } from '@testing-library/react';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useLeads } from '../useLeads';
+
+function createWrapper() {
+  const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  return ({ children }: { children: React.ReactNode }) =>
+    React.createElement(QueryClientProvider, { client: queryClient }, children);
+}
 
 const mockLeadsData = [
   {
@@ -96,7 +104,7 @@ describe('useLeads', () => {
   });
 
   it('should fetch leads on mount', async () => {
-    const { result } = renderHook(() => useLeads());
+    const { result } = renderHook(() => useLeads(), { wrapper: createWrapper() });
 
     await waitFor(() => {
       expect(result.current.leads).toHaveLength(2);
@@ -107,7 +115,7 @@ describe('useLeads', () => {
   });
 
   it('should have correct lead data structure', async () => {
-    const { result } = renderHook(() => useLeads());
+    const { result } = renderHook(() => useLeads(), { wrapper: createWrapper() });
 
     await waitFor(() => {
       expect(result.current.leads).toHaveLength(2);
@@ -125,7 +133,7 @@ describe('useLeads', () => {
   });
 
   it('should provide createLead function', async () => {
-    const { result } = renderHook(() => useLeads());
+    const { result } = renderHook(() => useLeads(), { wrapper: createWrapper() });
 
     await waitFor(() => {
       expect(result.current.leads).toHaveLength(2);
@@ -135,7 +143,7 @@ describe('useLeads', () => {
   });
 
   it('should provide updateLead function', async () => {
-    const { result } = renderHook(() => useLeads());
+    const { result } = renderHook(() => useLeads(), { wrapper: createWrapper() });
 
     await waitFor(() => {
       expect(result.current.leads).toHaveLength(2);
@@ -145,7 +153,7 @@ describe('useLeads', () => {
   });
 
   it('should provide fetchLeads function', async () => {
-    const { result } = renderHook(() => useLeads());
+    const { result } = renderHook(() => useLeads(), { wrapper: createWrapper() });
 
     await waitFor(() => {
       expect(result.current.leads).toHaveLength(2);
