@@ -7,7 +7,6 @@
  * and structured logging.
  */
 
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { getCorsHeaders } from "../_shared/cors.ts";
 import { getCache, setCache, CACHE_TTL } from "../_shared/cache.ts";
@@ -113,7 +112,7 @@ const TOOLS = [
 // Main handler
 // ---------------------------------------------------------------------------
 
-serve(async (req) => {
+Deno.serve(async (req) => {
   const corsHeaders = getCorsHeaders(req.headers.get("origin") ?? undefined);
   const jsonHeaders = { ...corsHeaders, "Content-Type": "application/json" };
 
@@ -126,11 +125,26 @@ serve(async (req) => {
 
   const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
   const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
+  const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY") ?? "";
   const openaiKey = Deno.env.get("OPENAI_API_KEY") ?? "";
 
   if (!supabaseUrl || !supabaseServiceKey || !openaiKey) {
     return new Response(JSON.stringify({ error: "Service unavailable" }), { status: 503, headers: jsonHeaders });
   }
+
+  // Validate JWT — do not trust userId from the request body
+  const authHeader = req.headers.get("Authorization");
+  if (!authHeader) {
+    return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: jsonHeaders });
+  }
+  const supabaseForAuth = createClient(supabaseUrl, supabaseAnonKey, {
+    global: { headers: { Authorization: authHeader } },
+  });
+  const { data: authData, error: authError } = await supabaseForAuth.auth.getUser();
+  if (authError || !authData?.user) {
+    return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: jsonHeaders });
+  }
+  const authenticatedUserId = authData.user.id;
 
   let body: AssistantRequest;
   try {
@@ -139,10 +153,13 @@ serve(async (req) => {
     return new Response(JSON.stringify({ error: "Invalid JSON" }), { status: 400, headers: jsonHeaders });
   }
 
-  const { message, userId, conversationId } = body;
-  if (!message || !userId) {
-    return new Response(JSON.stringify({ error: "Missing message or userId" }), { status: 400, headers: jsonHeaders });
+  const { message, conversationId } = body;
+  if (!message) {
+    return new Response(JSON.stringify({ error: "Missing message" }), { status: 400, headers: jsonHeaders });
   }
+
+  // Use the authenticated user ID, not the one from the body
+  const userId = authenticatedUserId;
 
   // ── Rate limiting ──
   if (!rateLimit(userId, 20, 60)) {

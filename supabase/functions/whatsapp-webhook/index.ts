@@ -677,12 +677,13 @@ ${conversationHistory ? `HISTORICO DA CONVERSA:\n${conversationHistory}\n` : ""}
       },
     });
 
-    if (aiError) {
-      console.error(`[webhook:${provider}] Error invoking AI agent:`, aiError);
-      return;
-    }
+    const aiText = aiError
+      ? "Ola! Recebi sua mensagem e em breve um de nossos advogados entrara em contato. Obrigado pelo contato com o escritorio Jurify!"
+      : (aiResponse?.result || "Desculpe, nao consegui processar sua mensagem no momento.");
 
-    const aiText = aiResponse?.result || "Desculpe, nao consegui processar sua mensagem no momento.";
+    if (aiError) {
+      console.error(`[webhook:${provider}] Error invoking AI agent (using fallback):`, aiError);
+    }
 
     // --- UPDATE LEAD STATUS IN CRM ---
     // Se é primeiro contato, atualiza status para "em_atendimento"
@@ -720,7 +721,7 @@ ${conversationHistory ? `HISTORICO DA CONVERSA:\n${conversationHistory}\n` : ""}
 }
 
 // ============================================
-// 📤 ENVIO VIA EVOLUTION API
+// 📤 ENVIO VIA EVOLUTION API (com retry exponencial)
 // ============================================
 async function sendViaEvolution(instanceName: string, to: string, text: string) {
   const apiUrl = EVOLUTION_API_URL;
@@ -731,27 +732,44 @@ async function sendViaEvolution(instanceName: string, to: string, text: string) 
     return;
   }
 
-  try {
-    const response = await fetch(`${apiUrl}/message/sendText/${instanceName}`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        apikey: apiKey,
-      },
-      body: JSON.stringify({
-        number: to,
-        text: text,
-      }),
-    });
+  const MAX_RETRIES = 2;
+  for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+    try {
+      const response = await fetch(`${apiUrl}/message/sendText/${instanceName}`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          apikey: apiKey,
+        },
+        body: JSON.stringify({ number: to, text }),
+        signal: AbortSignal.timeout(15_000),
+      });
 
-    const data = await response.json();
-    if (!response.ok) {
-      console.error("[webhook:evolution] Error sending message:", data);
-    } else {
+      const data = await response.json().catch(() => ({}));
+
+      if (!response.ok) {
+        // Retry on server errors (5xx), not client errors (4xx)
+        if (response.status >= 500 && attempt < MAX_RETRIES) {
+          const delay = Math.pow(2, attempt) * 1000;
+          console.warn(`[webhook:evolution] HTTP ${response.status}, retry in ${delay}ms (attempt ${attempt + 1})`);
+          await new Promise((r) => setTimeout(r, delay));
+          continue;
+        }
+        console.error("[webhook:evolution] Error sending message:", data);
+        return;
+      }
+
       console.log(`[webhook:evolution] Message sent to ${to} via ${instanceName}`);
+      return;
+    } catch (error) {
+      if (attempt < MAX_RETRIES) {
+        const delay = Math.pow(2, attempt) * 1000;
+        console.warn(`[webhook:evolution] Network error, retry in ${delay}ms (attempt ${attempt + 1}):`, error);
+        await new Promise((r) => setTimeout(r, delay));
+      } else {
+        console.error("[webhook:evolution] Network error after retries:", error);
+      }
     }
-  } catch (error) {
-    console.error("[webhook:evolution] Network error:", error);
   }
 }
 

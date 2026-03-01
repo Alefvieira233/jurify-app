@@ -488,12 +488,12 @@ const Dashboard = () => {
         </CardHeader>
         <CardContent>
           <div className="space-y-2">
-            {metrics.execucoesRecentesAgentes.map((agente, index) => {
+            {metrics.execucoesRecentesAgentes.map((agente) => {
               const successRate = agente.total_execucoes > 0
                 ? (agente.sucesso / agente.total_execucoes) * 100
                 : 0;
               return (
-                <div key={index} className="flex items-center justify-between p-3 rounded-lg bg-muted/40 hover:bg-muted/70 transition-colors border border-border/50">
+                <div key={agente.agente_nome} className="flex items-center justify-between p-3 rounded-lg bg-muted/40 hover:bg-muted/70 transition-colors border border-border/50">
                   <div className="flex items-center gap-3 flex-1 min-w-0">
                     <div className="p-2 bg-primary/8 dark:bg-primary/20 rounded-md flex-shrink-0">
                       <Sparkles className="h-4 w-4 text-primary" strokeWidth={2} />

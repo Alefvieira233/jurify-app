@@ -1,6 +1,5 @@
 
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.50.0';
 import { getCorsHeaders } from "../_shared/cors.ts";
 import { applyRateLimit } from "../_shared/rate-limiter.ts";
@@ -19,7 +18,7 @@ interface ZapSignDocument {
   created_at: string;
 }
 
-serve(async (req) => {
+Deno.serve(async (req) => {
   const corsHeaders = getCorsHeaders(req.headers.get("origin") || undefined);
 
   if (req.method === 'OPTIONS') {
@@ -45,6 +44,21 @@ serve(async (req) => {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
+
+  // Resolve tenant_id to scope all DB operations
+  const { data: profile, error: profileError } = await supabase
+    .from("profiles")
+    .select("tenant_id")
+    .eq("id", user.id)
+    .single();
+
+  if (profileError || !profile?.tenant_id) {
+    return new Response(JSON.stringify({ error: "Tenant not found" }), {
+      status: 400,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
+  const tenantId = profile.tenant_id;
 
   const rateLimitCheck = await applyRateLimit(
     req,
@@ -122,7 +136,7 @@ serve(async (req) => {
 
         const zapSignDoc: ZapSignDocument = await response.json();
 
-        // Atualizar contrato no Supabase
+        // Atualizar contrato no Supabase (com filtro tenant_id para segurança)
         const { error: updateError } = await supabase
           .from('contratos')
           .update({
@@ -131,7 +145,8 @@ serve(async (req) => {
             data_geracao_link: new Date().toISOString(),
             status_assinatura: 'pendente'
           })
-          .eq('id', contratoId);
+          .eq('id', contratoId)
+          .eq('tenant_id', tenantId);
 
         if (updateError) throw updateError;
 
@@ -157,6 +172,7 @@ serve(async (req) => {
           .from('contratos')
           .select('zapsign_document_id')
           .eq('id', contratoId)
+          .eq('tenant_id', tenantId)
           .single();
 
         if (!contrato?.zapsign_document_id) {
@@ -194,6 +210,7 @@ serve(async (req) => {
           .from('contratos')
           .select('status_assinatura')
           .eq('id', contratoId)
+          .eq('tenant_id', tenantId)
           .single();
 
         if (currentContrato?.status_assinatura !== newStatus) {
@@ -203,7 +220,8 @@ serve(async (req) => {
               status_assinatura: newStatus,
               ...(newStatus === 'assinado' && { data_assinatura: new Date().toISOString() })
             })
-            .eq('id', contratoId);
+            .eq('id', contratoId)
+            .eq('tenant_id', tenantId);
 
           // Log do evento
           await supabase

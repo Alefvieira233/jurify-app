@@ -1,6 +1,6 @@
 /**
  * Google Calendar Edge Function — Sync Completo
- * 
+ *
  * Operações:
  * - listEvents: Listar eventos em período
  * - createEvent: Criar evento
@@ -9,17 +9,13 @@
  * - syncEvents: Sync bidirecional
  */
 
-import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { getCorsHeaders } from '../_shared/cors.ts'
 import { GoogleOAuthService } from './google-oauth.ts'
 
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-}
+Deno.serve(async (req) => {
+  const corsHeaders = getCorsHeaders(req.headers.get('origin') || undefined)
 
-serve(async (req) => {
-  // Handle CORS
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })
   }
@@ -41,7 +37,7 @@ serve(async (req) => {
     const { method, data } = await req.json()
 
     const googleService = new GoogleOAuthService(supabase, user.id)
-    
+
     switch (method) {
       case 'listEvents': {
         const { calendarId = 'primary', timeMin, timeMax } = data
@@ -77,8 +73,7 @@ serve(async (req) => {
 
       case 'syncEvents': {
         const { agendamentoId, googleEventId, action } = data
-        
-        // Log sync
+
         await supabase.from('google_calendar_sync_logs').insert({
           user_id: user.id,
           agendamento_id: agendamentoId,
@@ -98,10 +93,10 @@ serve(async (req) => {
   } catch (error) {
     console.error('Google Calendar error:', error)
     return new Response(
-      JSON.stringify({ error: error.message }),
-      { 
-        status: 400, 
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+      JSON.stringify({ error: 'Internal server error' }),
+      {
+        status: 400,
+        headers: { ...getCorsHeaders(req.headers.get('origin') || undefined), 'Content-Type': 'application/json' }
       }
     )
   }

@@ -34,7 +34,7 @@ function chunkText(text: string): string[] {
   return chunks;
 }
 
-serve(async (req) => {
+Deno.serve(async (req) => {
   const corsHeaders = getCorsHeaders(req.headers.get("origin") || undefined);
 
   if (req.method === "OPTIONS") {

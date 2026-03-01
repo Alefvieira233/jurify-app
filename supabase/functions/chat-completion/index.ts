@@ -135,7 +135,8 @@ Deno.serve(async (req) => {
     });
   } catch (error) {
     console.error("Error in chat-completion function:", error);
-    return new Response(JSON.stringify({ error: error.message }), {
+    console.error("Error in chat-completion:", error);
+    return new Response(JSON.stringify({ error: "Internal server error" }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
       status: 500,
     });

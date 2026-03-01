@@ -1,6 +1,6 @@
 /**
  * Google Drive Folder Creation Edge Function
- * 
+ *
  * Cria pasta estruturada para cada caso/agendamento:
  * /Clientes/[Nome Cliente]/[Tipo Caso] - [Data]/
  *   - Documentos
@@ -9,15 +9,12 @@
  *   - Anexos
  */
 
-import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { getCorsHeaders } from '../_shared/cors.ts'
 
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-}
+Deno.serve(async (req) => {
+  const corsHeaders = getCorsHeaders(req.headers.get('origin') || undefined)
 
-serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })
   }
@@ -38,7 +35,6 @@ serve(async (req) => {
 
     const { name, lead_id, agendamento_id } = await req.json()
 
-    // Get Google token
     const { data: token } = await supabase
       .from('google_calendar_tokens')
       .select('access_token')
@@ -47,10 +43,8 @@ serve(async (req) => {
 
     if (!token) throw new Error('Google not connected')
 
-    // Create main folder
     const mainFolder = await createDriveFolder(token.access_token, name)
-    
-    // Create subfolders
+
     const subfolders = ['Documentos', 'Audiências', 'Contratos', 'Anexos']
     const createdFolders = []
 
@@ -63,7 +57,6 @@ serve(async (req) => {
       createdFolders.push(folder)
     }
 
-    // Save folder references
     await supabase.from('drive_folders').insert({
       lead_id,
       agendamento_id,
@@ -77,7 +70,7 @@ serve(async (req) => {
       created_by: user.id,
     })
 
-    return new Response(JSON.stringify({ 
+    return new Response(JSON.stringify({
       success: true,
       folder: mainFolder,
       subfolders: createdFolders
@@ -88,10 +81,10 @@ serve(async (req) => {
   } catch (error) {
     console.error('Drive folder error:', error)
     return new Response(
-      JSON.stringify({ error: error.message }),
-      { 
-        status: 400, 
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+      JSON.stringify({ error: 'Internal server error' }),
+      {
+        status: 400,
+        headers: { ...getCorsHeaders(req.headers.get('origin') || undefined), 'Content-Type': 'application/json' }
       }
     )
   }
@@ -123,7 +116,6 @@ async function createDriveFolder(accessToken: string, name: string, parentId?: s
 
   const folder = await response.json()
 
-  // Get webViewLink
   const detailResponse = await fetch(
     `https://www.googleapis.com/drive/v3/files/${folder.id}?fields=webViewLink`,
     {

@@ -1,4 +1,3 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import Stripe from "https://esm.sh/stripe@14.21.0";
 
@@ -46,7 +45,7 @@ function mapPriceToPlanId(priceId: string, metadataPlanId?: string | null) {
     return null;
 }
 
-serve(async (req) => {
+Deno.serve(async (req) => {
     try {
         const signature = req.headers.get("Stripe-Signature");
         const body = await req.text();
@@ -106,7 +105,8 @@ serve(async (req) => {
                     supabase,
                     subscription.id,
                     subscription.customer as string,
-                    event.type === 'customer.subscription.created'
+                    event.type === 'customer.subscription.created',
+                    event.type === 'customer.subscription.deleted'
                 );
                 break;
             }
@@ -161,24 +161,6 @@ serve(async (req) => {
                 }
                 break;
             }
-            case 'customer.subscription.deleted': {
-                const cancelledSub = event.data.object;
-                const cancelledCustomerId = cancelledSub.customer as string;
-                const { data: cancelledProfile } = await supabase
-                    .from('profiles')
-                    .select('email, nome_completo, subscription_tier')
-                    .eq('stripe_customer_id', cancelledCustomerId)
-                    .maybeSingle();
-                if (cancelledProfile?.email) {
-                    const PLAN_NAMES: Record<string, string> = { pro: 'Profissional', enterprise: 'Enterprise', free: 'Gratuito' };
-                    await sendEmail(cancelledProfile.email, 'subscription-cancelled', {
-                        name: cancelledProfile.nome_completo ?? cancelledProfile.email,
-                        plan_name: PLAN_NAMES[cancelledProfile.subscription_tier ?? 'free'] ?? 'Profissional',
-                    });
-                }
-                break;
-            }
-
             default:
                 console.log(`Unhandled event type ${event.type}`);
         }
@@ -209,7 +191,8 @@ async function manageSubscriptionStatusChange(
     supabase: ReturnType<typeof createClient>,
     subscriptionId: string,
     customerId: string,
-    createAction = false
+    createAction = false,
+    deleteAction = false
 ) {
     const { data: profileData, error: profileError } = await supabase
         .from('profiles')
@@ -282,5 +265,21 @@ async function manageSubscriptionStatusChange(
                 subscription_tier: planId || 'free'
             })
             .eq('id', uuid);
+
+        // Send cancellation email when subscription is deleted/canceled
+        if (deleteAction || mappedStatus === 'canceled') {
+            const { data: cancelledProfile } = await supabase
+                .from('profiles')
+                .select('email, nome_completo, subscription_tier')
+                .eq('id', uuid)
+                .maybeSingle();
+            if (cancelledProfile?.email) {
+                const PLAN_NAMES: Record<string, string> = { pro: 'Profissional', enterprise: 'Enterprise', free: 'Gratuito' };
+                await sendEmail(cancelledProfile.email, 'subscription-cancelled', {
+                    name: cancelledProfile.nome_completo ?? cancelledProfile.email,
+                    plan_name: PLAN_NAMES[cancelledProfile.subscription_tier ?? 'free'] ?? 'Profissional',
+                });
+            }
+        }
     }
 }

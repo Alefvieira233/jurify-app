@@ -226,9 +226,9 @@ const UsuariosManager = () => {
                     <TableCell>{usuario.cargo || '-'}</TableCell>
                     <TableCell>
                       <div className="flex flex-wrap gap-1">
-                        {usuario.user_roles?.filter(ur => ur.ativo).map((userRole, index) => (
+                        {usuario.user_roles?.filter(ur => ur.ativo).map((userRole) => (
                           <Badge
-                            key={index}
+                            key={userRole.role}
                             variant="secondary"
                             className={getRoleBadgeColor(userRole.role)}
                           >

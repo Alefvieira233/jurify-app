@@ -10,7 +10,6 @@
  * @version 2.0.0
  */
 
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { getCorsHeaders } from "../_shared/cors.ts";
 
@@ -112,22 +111,30 @@ function extractQRCode(data: Record<string, unknown>): string | null {
 async function createInstance(instanceName: string, supabase: unknown, profile: { tenant_id: string }) {
   console.log(`[evolution-manager] createInstance: ${instanceName}`);
 
+  const webhookSecret = Deno.env.get("EVOLUTION_WEBHOOK_SECRET");
+  const webhookConfig: Record<string, unknown> = {
+    url: SUPABASE_WEBHOOK_URL,
+    byEvents: false,
+    base64: true,
+    events: [
+      "QRCODE_UPDATED",
+      "MESSAGES_UPSERT",
+      "MESSAGES_UPDATE",
+      "SEND_MESSAGE",
+      "CONNECTION_UPDATE",
+    ],
+  };
+
+  // Pass the webhook secret as a header so the whatsapp-webhook function can verify authenticity
+  if (webhookSecret) {
+    webhookConfig.headers = { "x-webhook-secret": webhookSecret };
+  }
+
   const result = await evoFetch("/instance/create", "POST", {
     instanceName,
     integration: "WHATSAPP-BAILEYS",
     qrcode: true,
-    webhook: {
-      url: SUPABASE_WEBHOOK_URL,
-      byEvents: false,
-      base64: true,
-      events: [
-        "QRCODE_UPDATED",
-        "MESSAGES_UPSERT",
-        "MESSAGES_UPDATE",
-        "SEND_MESSAGE",
-        "CONNECTION_UPDATE",
-      ],
-    },
+    webhook: webhookConfig,
   });
 
   if (!result.ok) {
@@ -289,7 +296,7 @@ interface EvolutionRequest {
 // Handler principal
 // ---------------------------------------------------------------------------
 
-serve(async (req) => {
+Deno.serve(async (req) => {
   const corsHeaders = getCorsHeaders(req.headers.get("origin") || undefined);
 
   if (req.method === "OPTIONS") {

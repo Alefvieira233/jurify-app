@@ -1,10 +1,16 @@
 const DEFAULT_ALLOWED_ORIGINS = [
   "http://localhost:5173",
+  "http://localhost:8080",
   "http://localhost:3000",
   "https://jurify.vercel.app",
   "https://jurify-app.vercel.app",
   "https://jurify.com.br",
 ];
+
+// Matches any Jurify Vercel deployment: jurify-<hash>.vercel.app, jurify-app-<x>.vercel.app, etc.
+function isJurifyVercelOrigin(origin: string): boolean {
+  return /^https:\/\/jurify[-a-z0-9]*\.vercel\.app$/.test(origin);
+}
 
 function parseAllowedOrigins(): string[] {
   const raw = Deno.env.get("ALLOWED_ORIGINS") || Deno.env.get("FRONTEND_URL") || "";
@@ -29,8 +35,8 @@ export function getCorsHeaders(origin?: string): Record<string, string> {
     };
   }
 
-  // Known origin — reflect it back (required for credentials)
-  if (allowedOrigins.includes(origin)) {
+  // Known origin (explicit list) OR dynamic Jurify Vercel deployment — reflect it back
+  if (allowedOrigins.includes(origin) || isJurifyVercelOrigin(origin)) {
     return {
       "Access-Control-Allow-Origin": origin,
       "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-application-name",

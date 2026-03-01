@@ -86,7 +86,7 @@ const App = () => (
                   {/* /leads absorvido por Pipeline — redirect para evitar rotas fantasma */}
                   <Route path="leads" element={<Navigate to="/pipeline" replace />} />
                   <Route path="pipeline" element={<ErrorBoundary><PipelineJuridico /></ErrorBoundary>} />
-                  <Route path="agendamentos" element={<AgendamentosManager />} />
+                  <Route path="agendamentos" element={<ErrorBoundary><AgendamentosManager /></ErrorBoundary>} />
                   <Route path="contratos" element={<ErrorBoundary><ContratosManager /></ErrorBoundary>} />
                   <Route path="relatorios" element={<ErrorBoundary><RelatoriosGerenciais /></ErrorBoundary>} />
                   <Route path="whatsapp" element={
@@ -95,24 +95,24 @@ const App = () => (
                     </WhatsAppErrorBoundary>
                   } />
                   <Route path="agentes" element={<ErrorBoundary><AgentesIAManager /></ErrorBoundary>} />
-                  <Route path="usuarios" element={<ProtectedRoute requiredRoles={['admin', 'manager']}><UsuariosManager /></ProtectedRoute>} />
-                  <Route path="logs" element={<ProtectedRoute requiredRoles={['admin', 'manager']}><LogsPanel /></ProtectedRoute>} />
-                  <Route path="integracoes" element={<ProtectedRoute requiredRoles={['admin']}><IntegracoesConfig /></ProtectedRoute>} />
-                  <Route path="configuracoes" element={<ProtectedRoute requiredRoles={['admin']}><ConfiguracoesGerais /></ProtectedRoute>} />
-                  <Route path="notificacoes" element={<NotificationsPanel />} />
+                  <Route path="usuarios" element={<ProtectedRoute requiredRoles={['admin', 'manager']}><ErrorBoundary><UsuariosManager /></ErrorBoundary></ProtectedRoute>} />
+                  <Route path="logs" element={<ProtectedRoute requiredRoles={['admin', 'manager']}><ErrorBoundary><LogsPanel /></ErrorBoundary></ProtectedRoute>} />
+                  <Route path="integracoes" element={<ProtectedRoute requiredRoles={['admin']}><ErrorBoundary><IntegracoesConfig /></ErrorBoundary></ProtectedRoute>} />
+                  <Route path="configuracoes" element={<ProtectedRoute requiredRoles={['admin']}><ErrorBoundary><ConfiguracoesGerais /></ErrorBoundary></ProtectedRoute>} />
+                  <Route path="notificacoes" element={<ErrorBoundary><NotificationsPanel /></ErrorBoundary>} />
                   {/* /timeline absorvido por Clientes (CRM) */}
                   <Route path="timeline" element={<Navigate to="/crm" replace />} />
                   {/* /planos unificado em Assinatura */}
                   <Route path="planos" element={<Navigate to="/billing" replace />} />
                   {/* /analytics absorvido por Relatórios como aba */}
                   <Route path="analytics" element={<Navigate to="/relatorios" replace />} />
-                  <Route path="billing" element={<SubscriptionManager />} />
+                  <Route path="billing" element={<ErrorBoundary><SubscriptionManager /></ErrorBoundary>} />
                   <Route path="crm" element={<ErrorBoundary><CRMDashboard /></ErrorBoundary>} />
                   {/* /crm/followups acessível via CRM Dashboard */}
                   <Route path="crm/followups" element={<Navigate to="/crm" replace />} />
-                  <Route path="crm/lead/:leadId" element={<LeadDetailPanel />} />
-                  <Route path="admin/playground" element={<ProtectedRoute requiredRoles={['admin']}><AgentsPlayground /></ProtectedRoute>} />
-                  <Route path="admin/mission-control" element={<ProtectedRoute requiredRoles={['admin']}><MissionControl /></ProtectedRoute>} />
+                  <Route path="crm/lead/:leadId" element={<ErrorBoundary><LeadDetailPanel /></ErrorBoundary>} />
+                  <Route path="admin/playground" element={<ProtectedRoute requiredRoles={['admin']}><ErrorBoundary><AgentsPlayground /></ErrorBoundary></ProtectedRoute>} />
+                  <Route path="admin/mission-control" element={<ProtectedRoute requiredRoles={['admin']}><ErrorBoundary><MissionControl /></ErrorBoundary></ProtectedRoute>} />
                 </Route>
 
                 <Route path="*" element={<NotFound />} />
