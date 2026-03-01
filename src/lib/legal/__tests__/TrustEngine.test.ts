@@ -1,9 +1,21 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import {
   validateCitations,
   getRAGSystemConstraints,
   TRUST_ENGINE_FALLBACK,
 } from '../TrustEngine';
+
+// Mock Supabase client to avoid errors due to missing environment variables
+vi.mock('@/integrations/supabase/client', () => ({
+  supabase: {
+    functions: {
+      invoke: vi.fn(),
+    },
+  },
+  supabaseUntyped: {
+    rpc: vi.fn(),
+  },
+}));
 
 describe('TrustEngine', () => {
   // ─── validateCitations ────────────────────────────────────────

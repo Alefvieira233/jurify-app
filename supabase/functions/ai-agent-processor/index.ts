@@ -158,10 +158,15 @@ async function processAIRequest(
   };
 }
 
-// ðŸ†” Gera execution_id Ãºnico
+// ðŸ†” Gera execution_id Ãºnico (cryptographically secure)
 function generateExecutionId(): string {
   const timestamp = Date.now();
-  const random = Math.random().toString(36).substring(2, 11);
+  const bytes = new Uint8Array(6);
+  crypto.getRandomValues(bytes);
+  const random = Array.from(bytes)
+    .map((b) => b.toString(36).padStart(2, '0'))
+    .join('')
+    .substring(0, 9);
   return `exec_${timestamp}_${random}`;
 }
 
