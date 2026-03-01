@@ -72,7 +72,14 @@ export class ExecutionTracker {
     userId?: string,
     config?: ExecutionTrackerConfig
   ): Promise<ExecutionTracker> {
-    const executionId = `exec_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
+    const bytes = new Uint8Array(6);
+    crypto.getRandomValues(bytes);
+    const random = Array.from(bytes)
+      .map((b) => b.toString(36).padStart(2, '0'))
+      .join('')
+      .substring(0, 9);
+
+    const executionId = `exec_${Date.now()}_${random}`;
 
     // Persiste no banco
     await ExecutionStore.createExecution(executionId, leadId, tenantId, userId);
