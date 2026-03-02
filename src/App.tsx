@@ -19,6 +19,11 @@ initSentry();
 import Auth from "./pages/Auth";
 import GoogleAuthCallback from "./pages/GoogleAuthCallback";
 import NotFound from "./pages/NotFound";
+import CookieBanner from "./components/CookieBanner";
+
+// Páginas públicas (legais)
+const TermosDeUso = lazy(() => import("./pages/TermosDeUso"));
+const PoliticaDePrivacidade = lazy(() => import("./pages/PoliticaDePrivacidade"));
 
 // Lazy loading para features (carregamento sob demanda)
 const Dashboard = lazy(() => import("./features/dashboard/Dashboard"));
@@ -73,12 +78,16 @@ const App = () => (
       <TooltipProvider>
         <Toaster />
         <Sonner />
+        <CookieBanner />
         <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
           <AuthProvider>
             <Suspense fallback={<LoadingSpinner fullScreen text="Carregando..." />}>
               <SentryRoutes>
+                {/* Rotas públicas */}
                 <Route path="/auth" element={<Auth />} />
                 <Route path="/auth/google/callback" element={<GoogleAuthCallback />} />
+                <Route path="/termos" element={<TermosDeUso />} />
+                <Route path="/privacidade" element={<PoliticaDePrivacidade />} />
 
                 <Route path="/" element={<ProtectedRoute><Layout /></ProtectedRoute>}>
                   <Route index element={<ErrorBoundary><Dashboard /></ErrorBoundary>} />

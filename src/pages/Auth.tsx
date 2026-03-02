@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { Navigate } from 'react-router-dom';
+import { Navigate, Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -16,6 +16,7 @@ const Auth = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [nomeCompleto, setNomeCompleto] = useState('');
+  const [lgpdConsent, setLgpdConsent] = useState(false);
   const [loading, setLoading] = useState(false);
 
   const { user, signIn, signUp } = useAuth();
@@ -52,6 +53,16 @@ const Auth = () => {
           toast({
             title: "Senha fraca",
             description: "A senha deve atender pelo menos 4 dos 5 requisitos de segurança.",
+            variant: "destructive",
+          });
+          setLoading(false);
+          return;
+        }
+
+        if (!lgpdConsent) {
+          toast({
+            title: "Consentimento obrigatório",
+            description: "Você precisa aceitar os Termos de Uso e a Política de Privacidade para criar uma conta.",
             variant: "destructive",
           });
           setLoading(false);
@@ -338,6 +349,29 @@ const Auth = () => {
                   <PasswordStrength password={password} showRequirements={true} />
                 )}
               </div>
+
+              {!isLogin && (
+                <div className="flex items-start gap-3 p-3 rounded-xl bg-muted/30 border border-border">
+                  <input
+                    id="lgpdConsent"
+                    type="checkbox"
+                    checked={lgpdConsent}
+                    onChange={(e) => setLgpdConsent(e.target.checked)}
+                    className="mt-0.5 h-4 w-4 rounded border-border accent-[hsl(43_96%_56%)] cursor-pointer"
+                  />
+                  <label htmlFor="lgpdConsent" className="text-xs text-muted-foreground leading-relaxed cursor-pointer">
+                    Li e concordo com os{' '}
+                    <Link to="/termos" target="_blank" className="underline text-foreground hover:text-[hsl(43_96%_56%)] transition-colors">
+                      Termos de Uso
+                    </Link>{' '}
+                    e a{' '}
+                    <Link to="/privacidade" target="_blank" className="underline text-foreground hover:text-[hsl(43_96%_56%)] transition-colors">
+                      Política de Privacidade
+                    </Link>
+                    , incluindo o tratamento dos meus dados conforme a LGPD.
+                  </label>
+                </div>
+              )}
 
               {/* Premium Submit Button */}
               <div className="relative group">
