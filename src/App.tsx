@@ -21,9 +21,10 @@ import GoogleAuthCallback from "./pages/GoogleAuthCallback";
 import NotFound from "./pages/NotFound";
 import CookieBanner from "./components/CookieBanner";
 
-// Páginas públicas (legais)
+// Páginas públicas (legais e marketing)
 const TermosDeUso = lazy(() => import("./pages/TermosDeUso"));
 const PoliticaDePrivacidade = lazy(() => import("./pages/PoliticaDePrivacidade"));
+const Pricing = lazy(() => import("./pages/Pricing"));
 
 // Lazy loading para features (carregamento sob demanda)
 const Dashboard = lazy(() => import("./features/dashboard/Dashboard"));
@@ -88,6 +89,7 @@ const App = () => (
                 <Route path="/auth/google/callback" element={<GoogleAuthCallback />} />
                 <Route path="/termos" element={<TermosDeUso />} />
                 <Route path="/privacidade" element={<PoliticaDePrivacidade />} />
+                <Route path="/precos" element={<Pricing />} />
 
                 <Route path="/" element={<ProtectedRoute><Layout /></ProtectedRoute>}>
                   <Route index element={<ErrorBoundary><Dashboard /></ErrorBoundary>} />

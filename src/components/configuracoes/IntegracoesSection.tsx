@@ -3,8 +3,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import { Eye, EyeOff, FileSignature, MessageSquare, Bot } from 'lucide-react';
+import { Eye, EyeOff, FileSignature, MessageSquare, Bot, CreditCard, Mail, ExternalLink, CheckCircle2, AlertCircle } from 'lucide-react';
 import { useSystemSettings } from '@/hooks/useSystemSettings';
 import { GoogleCalendarCard } from './GoogleCalendarCard';
 
@@ -67,6 +68,10 @@ const IntegracoesSection = () => {
     );
   };
 
+  const stripeConfigured = !!import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY &&
+    import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY !== 'pk_test_...' &&
+    (!!import.meta.env.VITE_STRIPE_PRICE_PRO || !!import.meta.env.VITE_STRIPE_PRICE_ENTERPRISE);
+
   return (
     <div className="space-y-6">
       <GoogleCalendarCard />
@@ -98,6 +103,118 @@ const IntegracoesSection = () => {
         </CardHeader>
         <CardContent className="space-y-4">
           {integracaoSettings.filter((s) => s.key.startsWith('whatsapp_')).map(renderSettingField)}
+        </CardContent>
+      </Card>
+
+      {/* Stripe */}
+      <Card className={stripeConfigured ? 'border-emerald-200 dark:border-emerald-800/50' : undefined}>
+        <CardHeader className="pb-3">
+          <div className="flex items-start justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 rounded-lg bg-violet-50 dark:bg-violet-900/20 flex items-center justify-center flex-shrink-0">
+                <CreditCard className="h-5 w-5 text-violet-600" />
+              </div>
+              <div>
+                <CardTitle className="text-sm font-semibold flex items-center gap-2">
+                  Stripe — Pagamentos
+                  {stripeConfigured ? (
+                    <Badge variant="outline" className="text-[10px] text-emerald-600 border-emerald-400/60 bg-emerald-50 dark:bg-emerald-900/20 font-semibold">
+                      <CheckCircle2 className="h-2.5 w-2.5 mr-1" />
+                      Configurado
+                    </Badge>
+                  ) : (
+                    <Badge variant="outline" className="text-[10px] text-amber-600 border-amber-400/60 bg-amber-50 dark:bg-amber-900/20 font-semibold">
+                      <AlertCircle className="h-2.5 w-2.5 mr-1" />
+                      Pendente
+                    </Badge>
+                  )}
+                </CardTitle>
+                <CardDescription className="text-[11px] mt-0.5">
+                  Cobrança recorrente e gestão de assinaturas
+                </CardDescription>
+              </div>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          {stripeConfigured ? (
+            <div className="space-y-2 text-xs text-muted-foreground">
+              <p className="flex items-center gap-1.5">
+                <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500 flex-shrink-0" />
+                Chave publicável configurada
+              </p>
+              {import.meta.env.VITE_STRIPE_PRICE_PRO ? (
+                <p className="flex items-center gap-1.5">
+                  <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500 flex-shrink-0" />
+                  Price ID Plano Pro configurado
+                </p>
+              ) : (
+                <p className="flex items-center gap-1.5">
+                  <AlertCircle className="h-3.5 w-3.5 text-amber-500 flex-shrink-0" />
+                  Price ID Plano Pro pendente — configure VITE_STRIPE_PRICE_PRO no Vercel
+                </p>
+              )}
+              {import.meta.env.VITE_STRIPE_PRICE_ENTERPRISE ? (
+                <p className="flex items-center gap-1.5">
+                  <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500 flex-shrink-0" />
+                  Price ID Plano Enterprise configurado
+                </p>
+              ) : (
+                <p className="flex items-center gap-1.5">
+                  <AlertCircle className="h-3.5 w-3.5 text-amber-500 flex-shrink-0" />
+                  Price ID Plano Enterprise pendente — configure VITE_STRIPE_PRICE_ENTERPRISE no Vercel
+                </p>
+              )}
+            </div>
+          ) : (
+            <div className="space-y-3">
+              <p className="text-xs text-muted-foreground">
+                Configure as chaves do Stripe no painel Vercel e os secrets do webhook no Supabase para ativar cobranças.
+              </p>
+              <Button variant="outline" size="sm" className="w-full h-8 text-xs gap-2" asChild>
+                <a href="https://dashboard.stripe.com/apikeys" target="_blank" rel="noopener noreferrer">
+                  <ExternalLink className="h-3.5 w-3.5" />
+                  Abrir Stripe Dashboard
+                </a>
+              </Button>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Email / Postmark */}
+      <Card>
+        <CardHeader className="pb-3">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-lg bg-sky-50 dark:bg-sky-900/20 flex items-center justify-center flex-shrink-0">
+              <Mail className="h-5 w-5 text-sky-600" />
+            </div>
+            <div>
+              <CardTitle className="text-sm font-semibold flex items-center gap-2">
+                Email — Postmark
+                <Badge variant="outline" className="text-[10px] text-amber-600 border-amber-400/60 bg-amber-50 dark:bg-amber-900/20 font-semibold">
+                  <AlertCircle className="h-2.5 w-2.5 mr-1" />
+                  Pendente
+                </Badge>
+              </CardTitle>
+              <CardDescription className="text-[11px] mt-0.5">
+                E-mails transacionais: boas-vindas, faturamento, alertas
+              </CardDescription>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <p className="text-xs text-muted-foreground">
+            Configure <code className="text-[11px] bg-muted px-1 py-0.5 rounded">POSTMARK_SERVER_TOKEN</code>,{' '}
+            <code className="text-[11px] bg-muted px-1 py-0.5 rounded">POSTMARK_FROM_EMAIL</code> e{' '}
+            <code className="text-[11px] bg-muted px-1 py-0.5 rounded">POSTMARK_FROM_NAME</code> nos Secrets do Supabase.
+          </p>
+          <Button variant="outline" size="sm" className="w-full h-8 text-xs gap-2" asChild>
+            <a href="https://account.postmarkapp.com" target="_blank" rel="noopener noreferrer">
+              <ExternalLink className="h-3.5 w-3.5" />
+              Abrir Postmark
+            </a>
+          </Button>
         </CardContent>
       </Card>
 
