@@ -61,16 +61,12 @@ const PII_PATTERNS: PIIPattern[] = [
   },
 ];
 
-// ─── UUID Generator (no crypto dependency needed) ───────────────────────────
+// ─── UUID Generator (crypto.getRandomValues for security) ───────────────────
 
 function generateTokenId(): string {
-  // Simple UUID v4-like generator that works in all environments
-  const hex = '0123456789abcdef';
-  let id = '';
-  for (let i = 0; i < 8; i++) {
-    id += hex[Math.floor(Math.random() * 16)];
-  }
-  return id;
+  const array = new Uint8Array(4);
+  crypto.getRandomValues(array);
+  return Array.from(array, b => b.toString(16).padStart(2, '0')).join('');
 }
 
 // ─── Core Types ─────────────────────────────────────────────────────────────
@@ -93,11 +89,16 @@ export class SanitizerEngine {
   /**
    * Sanitize any payload (string, object, array) by replacing PII with tokens.
    * Returns the safe payload + a lookup map for rehydration.
+   *
+   * @param payload - The data to sanitize
+   * @param shouldReset - If true, resets internal lookup maps before sanitizing (default: true)
    */
-  sanitize(payload: unknown): SanitizeResult {
-    this.lookupMap = new Map();
-    this.reverseMap = new Map();
-    this.tokenCounter = 0;
+  sanitize(payload: unknown, shouldReset: boolean = true): SanitizeResult {
+    if (shouldReset) {
+      this.lookupMap = new Map();
+      this.reverseMap = new Map();
+      this.tokenCounter = 0;
+    }
 
     const safePayload = this.processValue(payload);
 
@@ -136,8 +137,8 @@ export class SanitizerEngine {
   /**
    * Quick sanitize for a single string (most common case: prompt text).
    */
-  sanitizeString(text: string): SanitizeResult {
-    return this.sanitize(text);
+  sanitizeString(text: string, shouldReset: boolean = true): SanitizeResult {
+    return this.sanitize(text, shouldReset);
   }
 
   // ─── Private Methods ────────────────────────────────────────────────────
