@@ -83,13 +83,8 @@ export abstract class BaseAgent implements IAgent {
     payload: unknown,
     priority: MessagePriority = Priority.MEDIUM
   ): Promise<void> {
-    const random = Array.from(crypto.getRandomValues(new Uint8Array(5)))
-      .map(b => b.toString(36).padStart(2, '0'))
-      .join('')
-      .substring(0, 9);
-
     const message: AgentMessage = {
-      id: `msg_${Date.now()}_${random}`,
+      id: `msg_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`,
       from: this.name,
       to,
       type,
