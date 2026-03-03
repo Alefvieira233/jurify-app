@@ -198,6 +198,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     needs: build
+    continue-on-error: true  # E2E needs real Supabase users — informational only
     if: github.event_name == 'pull_request' || github.ref == 'refs/heads/master' || github.ref == 'refs/heads/main'
 
     steps:
@@ -224,6 +225,8 @@ jobs:
         run: npm run test:e2e
         env:
           CI: true
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
 
       - name: 📤 Upload Playwright report
         if: always()
