@@ -83,6 +83,8 @@ jobs:
         run: npm test -- --run --reporter=verbose
         env:
           CI: true
+          VITE_SUPABASE_URL: https://placeholder.supabase.co
+          VITE_SUPABASE_ANON_KEY: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.e30.s4e-Xf_oP_8_8_8_8_8_8_8_8_8_8_8_8_8_8_8_8
 
       - name: 📊 Generate coverage report
         working-directory: ${{ env.WORKING_DIR }}
