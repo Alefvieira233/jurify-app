@@ -75,7 +75,6 @@ jobs:
           vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
           vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID }}
           vercel-args: '--prod'
-        if: ${{ secrets.VERCEL_TOKEN != '' }}
 
   # ==========================================
   # JOB 2: DEPLOY SUPABASE EDGE FUNCTIONS
