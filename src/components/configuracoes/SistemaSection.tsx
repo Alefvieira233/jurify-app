@@ -17,34 +17,34 @@ const SistemaSection = () => {
 
       {/* Main tabs */}
       <Tabs defaultValue="status" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-7">
-          <TabsTrigger value="status" className="flex items-center gap-2">
-            <Activity className="h-4 w-4" />
+        <TabsList className="flex w-full overflow-x-auto h-9 justify-start gap-0.5">
+          <TabsTrigger value="status" className="flex items-center gap-1.5 text-xs shrink-0">
+            <Activity className="h-3.5 w-3.5" />
             Status
           </TabsTrigger>
-          <TabsTrigger value="security" className="flex items-center gap-2">
-            <Lock className="h-4 w-4" />
+          <TabsTrigger value="security" className="flex items-center gap-1.5 text-xs shrink-0">
+            <Lock className="h-3.5 w-3.5" />
             Segurança
           </TabsTrigger>
-          <TabsTrigger value="teste-agente" className="flex items-center gap-2">
-            <Brain className="h-4 w-4" />
+          <TabsTrigger value="teste-agente" className="flex items-center gap-1.5 text-xs shrink-0">
+            <Brain className="h-3.5 w-3.5" />
             Teste Agente
           </TabsTrigger>
-          <TabsTrigger value="backup" className="flex items-center gap-2">
-            <Database className="h-4 w-4" />
+          <TabsTrigger value="backup" className="flex items-center gap-1.5 text-xs shrink-0">
+            <Database className="h-3.5 w-3.5" />
             Backup
           </TabsTrigger>
-          <TabsTrigger value="performance" className="flex items-center gap-2">
-            <Server className="h-4 w-4" />
+          <TabsTrigger value="performance" className="flex items-center gap-1.5 text-xs shrink-0">
+            <Server className="h-3.5 w-3.5" />
             Performance
           </TabsTrigger>
-          <TabsTrigger value="logs" className="flex items-center gap-2">
-            <Activity className="h-4 w-4" />
+          <TabsTrigger value="logs" className="flex items-center gap-1.5 text-xs shrink-0">
+            <Activity className="h-3.5 w-3.5" />
             Logs
           </TabsTrigger>
-          <TabsTrigger value="admin" className="flex items-center gap-2">
-            <Shield className="h-4 w-4" />
-            Admin User
+          <TabsTrigger value="admin" className="flex items-center gap-1.5 text-xs shrink-0">
+            <Shield className="h-3.5 w-3.5" />
+            Admin
           </TabsTrigger>
         </TabsList>
 

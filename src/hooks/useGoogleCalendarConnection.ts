@@ -12,7 +12,7 @@ interface GoogleCalendarStatus {
 }
 
 const FUNCTION_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/google-calendar/oauth`;
-const REDIRECT_PATH = '/settings/calendar/callback';
+const REDIRECT_PATH = '/auth/google/callback';
 
 async function callOAuthFunction(method: string, data: Record<string, unknown>, token: string) {
   const res = await fetch(FUNCTION_URL, {
