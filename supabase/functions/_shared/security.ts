@@ -95,7 +95,7 @@ const PII_PATTERNS: Array<{ pattern: RegExp; label: string; replacement: string 
   { pattern: /\b\d{3}\.?\d{3}\.?\d{3}-?\d{2}\b/g, label: "CPF", replacement: "***CPF***" },
   { pattern: /\b\d{2}\.?\d{3}\.?\d{3}\/?\d{4}-?\d{2}\b/g, label: "CNPJ", replacement: "***CNPJ***" },
   { pattern: /\b\d{2}\.?\d{3}\.?\d{3}-?[\dXx]\b/g, label: "RG", replacement: "***RG***" },
-  { pattern: /\b[A-Z]{2}\s?\d{2,6}\b/g, label: "OAB", replacement: "***OAB***" },
+  { pattern: /\bOAB\/(AC|AL|AP|AM|BA|CE|DF|ES|GO|MA|MT|MS|MG|PA|PB|PR|PE|PI|RJ|RN|RS|RO|RR|SC|SP|SE|TO)\s?\d{2,6}\b/gi, label: "OAB", replacement: "***OAB***" },
   { pattern: /\b[\w\.-]+@[\w\.-]+\.\w{2,}\b/g, label: "Email", replacement: "***EMAIL***" },
   { pattern: /\b(?:\(?\d{2}\)?\s?)?9?\d{4}-?\d{4}\b/g, label: "Phone", replacement: "***PHONE***" },
   { pattern: /\b\d{4}\s?\d{4}\s?\d{4}\s?\d{4}\b/g, label: "Card", replacement: "***CARD***" },

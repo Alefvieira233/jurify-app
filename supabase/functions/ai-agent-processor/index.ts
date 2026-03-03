@@ -11,10 +11,10 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2";
 import { OpenAI } from "https://deno.land/x/openai@v4.24.0/mod.ts";
+import { redactPII } from "../_shared/security.ts";
 import { applyRateLimit } from "../_shared/rate-limiter.ts";
 import { getCorsHeaders } from "../_shared/cors.ts";
 import { initSentry, captureError } from "../_shared/sentry.ts";
-import { redactPII } from "../_shared/security.ts";
 import { DEFAULT_OPENAI_MODEL } from "../_shared/ai-model.ts";
 
 // 🚀 INIT SENTRY
