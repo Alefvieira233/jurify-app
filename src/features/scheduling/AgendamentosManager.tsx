@@ -127,7 +127,7 @@ const AgendamentosManager = () => {
               </div>
               <div>
                 <h1 className="text-sm font-bold text-foreground">Agendamentos</h1>
-                <p className="text-[11px] text-muted-foreground">Gerencie reunioes e compromissos</p>
+                <p className="text-[11px] text-muted-foreground">Gerencie reuniões e compromissos</p>
               </div>
             </div>
           </div>
@@ -145,7 +145,7 @@ const AgendamentosManager = () => {
                 Tentar novamente
               </Button>
               <Button size="sm" variant="outline" onClick={() => window.location.reload()}>
-                Recarregar pagina
+                Recarregar página
               </Button>
             </div>
           </div>
@@ -166,7 +166,7 @@ const AgendamentosManager = () => {
               </div>
               <div>
                 <h1 className="text-sm font-bold text-foreground">Agendamentos</h1>
-                <p className="text-[11px] text-muted-foreground">Gerencie reunioes e compromissos</p>
+                <p className="text-[11px] text-muted-foreground">Gerencie reuniões e compromissos</p>
               </div>
             </div>
             <Button size="sm" onClick={() => setIsNovoAgendamentoOpen(true)}>
@@ -181,7 +181,7 @@ const AgendamentosManager = () => {
               <Calendar className="h-6 w-6 text-primary" />
             </div>
             <h3 className="text-sm font-semibold text-foreground mb-1">Nenhum agendamento</h3>
-            <p className="text-[11px] text-muted-foreground mb-4">Comece criando seu primeiro agendamento para organizar suas reunioes.</p>
+            <p className="text-[11px] text-muted-foreground mb-4">Comece criando seu primeiro agendamento para organizar suas reuniões.</p>
             <Button size="sm" onClick={() => setIsNovoAgendamentoOpen(true)}>
               <Plus className="h-3.5 w-3.5 mr-1.5" />
               Criar primeiro agendamento

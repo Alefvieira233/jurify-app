@@ -94,6 +94,20 @@ Deno.serve(async (req) => {
             });
         }
 
+        // Record event BEFORE processing to prevent duplicate emails on retry
+        const { error: insertError } = await supabase
+            .from("webhook_events")
+            .insert({ event_id: event.id, source: "stripe" });
+
+        if (insertError) {
+            // Duplicate key means concurrent request already processing this event
+            console.log(`🔁 Concurrent duplicate event ignored: ${event.id}`);
+            return new Response(JSON.stringify({ received: true, duplicate: true }), {
+                headers: { "Content-Type": "application/json" },
+                status: 200,
+            });
+        }
+
         switch (event.type) {
             case 'customer.subscription.created':
             case 'customer.subscription.updated':
@@ -163,18 +177,14 @@ Deno.serve(async (req) => {
                 console.log(`Unhandled event type ${event.type}`);
         }
 
-        // Record event as processed for idempotency
-        await supabase
-            .from("webhook_events")
-            .insert({ event_id: event.id, source: "stripe" });
-
         return new Response(JSON.stringify({ received: true }), {
             headers: { "Content-Type": "application/json" },
             status: 200,
         });
 
     } catch (error) {
-        console.error("❌ Error processing webhook:", error);
+        const eventId = typeof error === 'object' && error !== null ? 'unknown' : String(error);
+        console.error(`❌ Error processing webhook (event: ${eventId})`);
         return new Response(
             JSON.stringify({ error: "Internal server error" }),
             {

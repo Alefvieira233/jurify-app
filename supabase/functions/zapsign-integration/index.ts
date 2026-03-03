@@ -246,10 +246,13 @@ Deno.serve(async (req) => {
         throw new Error('Ação não reconhecida');
     }
   } catch (error) {
-    console.error('Erro na integração ZapSign:', error);
-    
-    return new Response(JSON.stringify({ 
-      error: error.message 
+    console.error('Erro na integração ZapSign');
+    const safeMessage = error instanceof Error && error.message.includes('not found')
+      ? 'Recurso não encontrado'
+      : 'Erro interno na integração';
+
+    return new Response(JSON.stringify({
+      error: safeMessage
     }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },

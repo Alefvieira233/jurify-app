@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
 import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
 import { supabaseUntyped as supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -19,13 +21,14 @@ import { createLogger } from '@/lib/logger';
 
 const log = createLogger('NovoAgendamento');
 
-interface NovoAgendamentoFormData {
-  lead_id: string;
-  area_juridica: string;
-  data_hora: string;
-  responsavel: string;
-  observacoes?: string;
-}
+const agendamentoSchema = z.object({
+  lead_id: z.string().min(1, 'Cliente é obrigatório'),
+  area_juridica: z.string().min(2, 'Área jurídica é obrigatória'),
+  responsavel: z.string().min(2, 'Responsável é obrigatório'),
+  observacoes: z.string().max(1000, 'Observações devem ter no máximo 1000 caracteres').optional(),
+});
+
+type AgendamentoFormData = z.infer<typeof agendamentoSchema>;
 
 interface NovoAgendamentoFormProps {
   onClose: () => void;
@@ -35,7 +38,15 @@ export const NovoAgendamentoForm = ({ onClose }: NovoAgendamentoFormProps) => {
   const { user, profile } = useAuth();
   const tenantId = profile?.tenant_id || null;
   const queryClient = useQueryClient();
-  const { register, handleSubmit, setValue, formState: { errors } } = useForm<NovoAgendamentoFormData>();
+  const { register, handleSubmit, setValue, formState: { errors } } = useForm<AgendamentoFormData>({
+    resolver: zodResolver(agendamentoSchema),
+    defaultValues: {
+      lead_id: '',
+      area_juridica: '',
+      responsavel: '',
+      observacoes: '',
+    },
+  });
   const { runAutomation } = useAgendaAutomation();
 
   // Automation configuration
@@ -66,7 +77,7 @@ export const NovoAgendamentoForm = ({ onClose }: NovoAgendamentoFormProps) => {
   });
 
   const createAgendamentoMutation = useMutation({
-    mutationFn: async (data: NovoAgendamentoFormData) => {
+    mutationFn: async (data: AgendamentoFormData & { data_hora: string }) => {
       const { data: result, error } = await supabase
         .from('agendamentos')
         .insert([
@@ -114,7 +125,7 @@ export const NovoAgendamentoForm = ({ onClose }: NovoAgendamentoFormProps) => {
     }
   });
 
-  const onSubmit = (data: NovoAgendamentoFormData) => {
+  const onSubmit = (data: AgendamentoFormData) => {
     if (!tenantId) {
       toast.error('Tenant não encontrado. Refaça o login.');
       return;
@@ -164,9 +175,9 @@ export const NovoAgendamentoForm = ({ onClose }: NovoAgendamentoFormProps) => {
 
   return (
     <form onSubmit={(event) => { void handleSubmit(onSubmit)(event); }} className="space-y-4">
-      <input type="hidden" {...register('lead_id', { required: true })} />
-      <input type="hidden" {...register('area_juridica', { required: true })} />
-      <input type="hidden" {...register('responsavel', { required: true })} />
+      <input type="hidden" {...register('lead_id')} />
+      <input type="hidden" {...register('area_juridica')} />
+      <input type="hidden" {...register('responsavel')} />
 
       <div className="space-y-2">
         <Label htmlFor="lead_id">Cliente</Label>

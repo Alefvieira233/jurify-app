@@ -146,8 +146,7 @@ export default function GlobalSearch() {
     } finally {
       setLoading(false);
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [profile?.tenant_id]);
+  }, [profile?.tenant_id, toast]);
 
   // Debounced search
   useEffect(() => {

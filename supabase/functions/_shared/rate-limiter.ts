@@ -155,62 +155,32 @@ async function checkRateLimitSupabase(
   config: RateLimitConfig,
   supabase: ReturnType<typeof createClient>
 ): Promise<RateLimitResult> {
-  const key = `${config.namespace || "default"}:${config.identifier}`;
   const now = new Date();
-  const resetAt = new Date(now.getTime() + config.windowSeconds * 1000);
 
   try {
-    // Tenta buscar registro existente
-    const { data: existing } = await supabase
-      .from("rate_limits")
-      .select("*")
-      .eq("key", key)
-      .single();
+    // Use atomic RPC to avoid SELECT+UPDATE race condition
+    const { data, error } = await supabase.rpc('check_rate_limit', {
+      _namespace: config.namespace || "default",
+      _identifier: config.identifier,
+      _max_requests: config.maxRequests,
+      _window_seconds: config.windowSeconds,
+    });
 
-    // Se não existe ou expirou, cria novo
-    if (!existing || new Date(existing.reset_at) < now) {
-      await supabase.from("rate_limits").upsert({
-        key,
-        count: 1,
-        reset_at: resetAt.toISOString(),
-        namespace: config.namespace || "default",
-        identifier: config.identifier,
-      });
+    if (error) throw error;
 
-      return {
-        allowed: true,
-        remaining: config.maxRequests - 1,
-        resetInSeconds: config.windowSeconds,
-        resetAt,
-        current: 1,
-        limit: config.maxRequests,
-      };
-    }
-
-    // Incrementa contador
-    const newCount = existing.count + 1;
-
-    await supabase
-      .from("rate_limits")
-      .update({ count: newCount })
-      .eq("key", key);
-
-    const allowed = newCount <= config.maxRequests;
-    const remaining = Math.max(0, config.maxRequests - newCount);
-    const resetInSeconds = Math.ceil(
-      (new Date(existing.reset_at).getTime() - now.getTime()) / 1000
-    );
+    const resetAt = new Date(data.reset_at);
+    const resetInSeconds = Math.max(0, Math.ceil((resetAt.getTime() - now.getTime()) / 1000));
 
     return {
-      allowed,
-      remaining,
+      allowed: data.allowed as boolean,
+      remaining: data.remaining as number,
       resetInSeconds,
-      resetAt: new Date(existing.reset_at),
-      current: newCount,
-      limit: config.maxRequests,
+      resetAt,
+      current: data.count as number,
+      limit: data.limit as number,
     };
   } catch (error) {
-    console.error("❌ Error checking rate limit in Supabase:", error);
+    console.error("❌ Error checking rate limit via RPC");
     // Fallback para memória em caso de erro
     return checkRateLimitMemory(config);
   }

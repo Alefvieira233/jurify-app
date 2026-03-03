@@ -6,7 +6,7 @@ export const leadFormSchema = z.object({
     .string()
     .min(3, 'Nome deve ter pelo menos 3 caracteres')
     .max(200, 'Nome muito longo')
-    .regex(/^[a-zA-ZÀ-ÿ\s]+$/, 'Nome deve conter apenas letras'),
+    .regex(/^[a-zA-ZÀ-ÿ\s'-]+$/, 'Nome deve conter apenas letras, espaços e hífens'),
 
   telefone: z
     .string()

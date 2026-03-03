@@ -139,10 +139,10 @@ type RolePermission = {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Users className="h-5 w-5" />
-            Roles de Usuario
+            Roles de Usuário
           </CardTitle>
           <CardDescription>
-            Visualize e gerencie as roles atribuidas aos usuarios do sistema.
+            Visualize e gerencie as roles atribuídas aos usuários do sistema.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -150,9 +150,9 @@ type RolePermission = {
             <TableHeader>
               <TableRow>
                 <TableHead>Role</TableHead>
-                <TableHead>Usuarios</TableHead>
-                <TableHead>Permissoes</TableHead>
-                <TableHead className="w-[100px]">Acoes</TableHead>
+                <TableHead>Usuários</TableHead>
+                <TableHead>Permissões</TableHead>
+                <TableHead className="w-[100px]">Ações</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -203,9 +203,9 @@ type RolePermission = {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Shield className="h-5 w-5" />
-            Matriz de Permissoes
+            Matriz de Permissões
           </CardTitle>
-          <CardDescription>Visualizacao geral das permissoes por role e modulo</CardDescription>
+          <CardDescription>Visualização geral das permissões por role e módulo</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="overflow-x-auto">

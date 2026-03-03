@@ -32,6 +32,7 @@ type ContratoInsert = {
   responsavel: string;
   texto_contrato: string;
   clausulas_customizadas: string | null;
+  data_assinatura: string | null;
   status: 'rascunho';
   created_at: string;
 };
@@ -88,6 +89,7 @@ const contratoSchema = z.object({
     .min(0)
     .max(999999999, 'Valor excede o limite permitido'),
   responsavel: z.string().min(2, 'Responsável é obrigatório'),
+  data_assinatura: z.string().optional().or(z.literal('')),
   texto_contrato: z
     .string()
     .min(50, 'Texto do contrato deve ter pelo menos 50 caracteres')
@@ -127,9 +129,10 @@ export const NovoContratoForm = ({ onClose }: NovoContratoFormProps) => {
       nome_cliente: '',
       area_juridica: '',
       valor_causa: 0,
-      responsavel: '',
+      responsavel: profile?.nome_completo ?? '',
       texto_contrato: DEFAULT_TEXTO,
       clausulas_customizadas: '',
+      data_assinatura: '',
     },
   });
 
@@ -202,6 +205,7 @@ export const NovoContratoForm = ({ onClose }: NovoContratoFormProps) => {
       responsavel: data.responsavel.trim(),
       texto_contrato: data.texto_contrato.trim().substring(0, 10000),
       clausulas_customizadas: data.clausulas_customizadas?.trim().substring(0, 5000) || null,
+      data_assinatura: data.data_assinatura ? new Date(data.data_assinatura).toISOString() : null,
       status: 'rascunho' as const,
       created_at: new Date().toISOString(),
     };
@@ -281,6 +285,15 @@ export const NovoContratoForm = ({ onClose }: NovoContratoFormProps) => {
           {errors.responsavel && (
             <p className="text-xs text-destructive">{errors.responsavel.message}</p>
           )}
+        </div>
+
+        <div className="space-y-2">
+          <Label>Data de Assinatura (Opcional)</Label>
+          <Input
+            type="date"
+            {...register('data_assinatura')}
+            disabled={createContratoMutation.isPending}
+          />
         </div>
       </div>
 

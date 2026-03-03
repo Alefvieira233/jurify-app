@@ -143,6 +143,7 @@ const CopyButton: React.FC<{ text: string }> = ({ text }) => {
       onClick={handleCopy}
       className="opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded hover:bg-background/50"
       title="Copiar resposta"
+      aria-label="Copiar resposta"
     >
       {copied ? <Check className="h-3 w-3 text-green-500" /> : <Copy className="h-3 w-3 text-muted-foreground" />}
     </button>
@@ -179,6 +180,7 @@ const AIAssistantChat: React.FC = () => {
   const [isExpanded, setIsExpanded] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const isLoadingRef = useRef(false);
 
   // Auto-scroll
   useEffect(() => {
@@ -206,7 +208,7 @@ const AIAssistantChat: React.FC = () => {
   }, []);
 
   const sendMessage = useCallback(async (text: string) => {
-    if (!text.trim() || !user || isLoading) return;
+    if (!text.trim() || !user || isLoadingRef.current) return;
 
     const userMsg: Message = {
       id: `u-${Date.now()}`,
@@ -217,6 +219,7 @@ const AIAssistantChat: React.FC = () => {
 
     setMessages(prev => [...prev, userMsg]);
     setInput('');
+    isLoadingRef.current = true;
     setIsLoading(true);
 
     try {
@@ -252,9 +255,10 @@ const AIAssistantChat: React.FC = () => {
         variant: 'destructive',
       });
     } finally {
+      isLoadingRef.current = false;
       setIsLoading(false);
     }
-  }, [user, isLoading, toast]);
+  }, [user, toast]);
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {

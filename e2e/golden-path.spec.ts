@@ -15,32 +15,23 @@ test.describe('Jurify — Golden Path', () => {
 
     // 3. Navigate to Pipeline (leads redirects to pipeline)
     await page.goto('/pipeline');
-    await page.waitForTimeout(1_500);
     await expect(page.getByRole('button', { name: /novo lead/i }).first()).toBeVisible({ timeout: 15_000 });
 
-    // 4. Navigate to Pipeline
-    await page.goto('/pipeline');
-    await expect(page.locator('body')).not.toBeEmpty();
-    await page.waitForTimeout(1_000);
-
-    // 5. Navigate to Contratos
+    // 4. Navigate to Contratos
     await page.goto('/contratos');
-    await expect(page.locator('body')).not.toBeEmpty();
-    await page.waitForTimeout(1_000);
+    await expect(page.getByText(/algo deu errado|error boundary/i)).not.toBeVisible({ timeout: 10_000 });
 
-    // 6. Navigate to Agendamentos
+    // 5. Navigate to Agendamentos
     await page.goto('/agendamentos');
-    await expect(page.locator('body')).not.toBeEmpty();
-    await page.waitForTimeout(1_000);
+    await expect(page.getByText(/algo deu errado|error boundary/i)).not.toBeVisible({ timeout: 10_000 });
 
-    // 7. Navigate to Configurações
+    // 6. Navigate to Configurações
     await page.goto('/configuracoes');
-    await expect(page.locator('body')).not.toBeEmpty();
-    await page.waitForTimeout(1_000);
+    await expect(page.getByText(/algo deu errado|error boundary/i)).not.toBeVisible({ timeout: 10_000 });
 
-    // 8. Navigate back to Dashboard
+    // 7. Navigate back to Dashboard
     await page.goto('/');
-    await expect(page.locator('body')).not.toBeEmpty();
+    await expect(page.getByText(/algo deu errado|error boundary/i)).not.toBeVisible({ timeout: 10_000 });
   });
 
   test('navegação lateral: sidebar links funcionam', async ({ page }) => {
@@ -58,9 +49,8 @@ test.describe('Jurify — Golden Path', () => {
         const href = await link.getAttribute('href');
         if (href && !href.startsWith('http')) {
           await link.click();
-          await page.waitForTimeout(500);
           // Page should not show error boundary
-          await expect(page.getByText(/algo deu errado|error boundary/i)).not.toBeVisible();
+          await expect(page.getByText(/algo deu errado|error boundary/i)).not.toBeVisible({ timeout: 5_000 });
         }
       }
     }
@@ -74,10 +64,7 @@ test.describe('Jurify — Contratos', () => {
   });
 
   test('deve exibir página de contratos', async ({ page }) => {
-    await expect(page.locator('body')).not.toBeEmpty();
-    // Page should load without crashing
-    await page.waitForTimeout(2_000);
-    await expect(page.getByText(/algo deu errado|error boundary/i)).not.toBeVisible();
+    await expect(page.getByText(/algo deu errado|error boundary/i)).not.toBeVisible({ timeout: 10_000 });
   });
 });
 
@@ -88,9 +75,7 @@ test.describe('Jurify — Agendamentos', () => {
   });
 
   test('deve exibir página de agendamentos', async ({ page }) => {
-    await expect(page.locator('body')).not.toBeEmpty();
-    await page.waitForTimeout(2_000);
-    await expect(page.getByText(/algo deu errado|error boundary/i)).not.toBeVisible();
+    await expect(page.getByText(/algo deu errado|error boundary/i)).not.toBeVisible({ timeout: 10_000 });
   });
 });
 
@@ -101,8 +86,6 @@ test.describe('Jurify — Agentes IA', () => {
   });
 
   test('deve exibir página de agentes IA', async ({ page }) => {
-    await expect(page.locator('body')).not.toBeEmpty();
-    await page.waitForTimeout(2_000);
-    await expect(page.getByText(/algo deu errado|error boundary/i)).not.toBeVisible();
+    await expect(page.getByText(/algo deu errado|error boundary/i)).not.toBeVisible({ timeout: 10_000 });
   });
 });

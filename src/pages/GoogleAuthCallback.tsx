@@ -12,6 +12,7 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Loader2, CheckCircle, XCircle } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
 import { useGoogleCalendarConnection } from '@/hooks/useGoogleCalendarConnection';
 
 const GoogleAuthCallback: React.FC = () => {
@@ -80,9 +81,12 @@ const GoogleAuthCallback: React.FC = () => {
                 Conectado com sucesso!
               </h3>
               <p className="text-gray-300">Google Calendar configurado corretamente.</p>
-              <p className="text-sm text-gray-400 mt-4">
+              <p className="text-sm text-gray-400 mt-4 mb-4">
                 Redirecionando para configurações...
               </p>
+              <Button variant="outline" size="sm" onClick={() => navigate('/configuracoes?tab=integracoes')}>
+                Voltar para Configurações
+              </Button>
             </div>
           )}
 
@@ -93,9 +97,12 @@ const GoogleAuthCallback: React.FC = () => {
                 Erro na Autenticação
               </h3>
               <p className="text-red-200 mb-4 text-sm">{errorMessage}</p>
-              <p className="text-sm text-gray-400 mt-4">
+              <p className="text-sm text-gray-400 mb-4">
                 Redirecionando para configurações em 5 segundos...
               </p>
+              <Button variant="outline" size="sm" onClick={() => navigate('/configuracoes?tab=integracoes')}>
+                Voltar para Configurações
+              </Button>
             </div>
           )}
         </CardContent>

@@ -16,6 +16,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import NovoUsuarioForm from '@/components/NovoUsuarioForm';
 import EditarUsuarioForm from '@/components/EditarUsuarioForm';
 import GerenciarPermissoesForm from '@/components/GerenciarPermissoesForm';
+import ConfirmDialog from '@/components/ConfirmDialog';
 import { usePageTitle } from '@/hooks/usePageTitle';
 
 interface Usuario {
@@ -43,6 +44,7 @@ const UsuariosManager = () => {
   const [isNovoUsuarioOpen, setIsNovoUsuarioOpen] = useState(false);
   const [isEditarUsuarioOpen, setIsEditarUsuarioOpen] = useState(false);
   const [isPermissoesOpen, setIsPermissoesOpen] = useState(false);
+  const [confirmDeactivate, setConfirmDeactivate] = useState<{ open: boolean; id: string; nome: string }>({ open: false, id: '', nome: '' });
 
   // ? RBAC: Verificação de permissões real
   const { can, canDeleteUsers, userRole } = useRBAC();
@@ -275,7 +277,7 @@ const UsuariosManager = () => {
                             Permissï¿½es
                           </DropdownMenuItem>
                           <DropdownMenuItem
-                            onClick={() => deleteMutation.mutate(usuario.id)}
+                            onClick={() => setConfirmDeactivate({ open: true, id: usuario.id, nome: usuario.nome_completo })}
                             className="text-red-600"
                           >
                             <Trash className="h-4 w-4 mr-2" />
@@ -320,6 +322,17 @@ const UsuariosManager = () => {
           )}
         </DialogContent>
       </Dialog>
+      <ConfirmDialog
+        open={confirmDeactivate.open}
+        onOpenChange={(v) => setConfirmDeactivate(prev => ({ ...prev, open: v }))}
+        title="Desativar usuário?"
+        description={`"${confirmDeactivate.nome}" não poderá mais fazer login. Todos os dados serão preservados e o usuário poderá ser reativado posteriormente.`}
+        onConfirm={() => {
+          deleteMutation.mutate(confirmDeactivate.id);
+          setConfirmDeactivate({ open: false, id: '', nome: '' });
+        }}
+        destructive
+      />
     </div>
   );
 };

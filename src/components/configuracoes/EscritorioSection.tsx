@@ -12,6 +12,7 @@ import { Building2, Phone, Mail, Link2, Shield, Loader2, CheckCircle } from 'luc
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import type { Json } from '@/integrations/supabase/types';
 
 const escritorioSchema = z.object({
   nome: z.string().min(2, 'Nome deve ter pelo menos 2 caracteres').max(120),
@@ -47,22 +48,27 @@ const EscritorioSection = () => {
     if (!profile?.tenant_id) return;
     const tenantId = profile.tenant_id;
     void (async () => {
-      const { data } = await supabase
-        .from('tenants')
-        .select('nome, email, telefone, logo_url, configuracoes')
-        .eq('id', tenantId)
-        .single();
+      try {
+        const { data, error } = await supabase
+          .from('tenants')
+          .select('nome, email, telefone, logo_url, configuracoes')
+          .eq('id', tenantId)
+          .single();
 
-      if (data) {
-        form.reset({
-          nome: data.nome ?? '',
-          email: data.email ?? '',
-          telefone: data.telefone ?? '',
-          logo_url: data.logo_url ?? '',
-        });
-        if (data.configuracoes && typeof data.configuracoes === 'object') {
-          setLgpdConfig(data.configuracoes as TenantConfig);
+        if (error) throw error;
+        if (data) {
+          form.reset({
+            nome: data.nome ?? '',
+            email: data.email ?? '',
+            telefone: data.telefone ?? '',
+            logo_url: data.logo_url ?? '',
+          });
+          if (data.configuracoes && typeof data.configuracoes === 'object') {
+            setLgpdConfig(data.configuracoes as TenantConfig);
+          }
         }
+      } catch {
+        // falha silenciosa — form mantém defaultValues
       }
     })();
   }, [profile?.tenant_id, form]);
@@ -96,8 +102,7 @@ const EscritorioSection = () => {
     try {
       const { error } = await supabase
         .from('tenants')
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        .update({ configuracoes: lgpdConfig as any })
+          .update({ configuracoes: lgpdConfig as unknown as Json })
         .eq('id', profile.tenant_id);
 
       if (error) throw error;

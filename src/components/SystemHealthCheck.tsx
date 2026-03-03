@@ -48,9 +48,9 @@ const SystemHealthCheck = () => {
         if (!error) {
           checks.push({
             id: 'database',
-            name: 'Conexao com Banco de Dados',
+            name: 'Conexão com Banco de Dados',
             status: 'healthy',
-            message: 'Conexao estabelecida com sucesso',
+            message: 'Conexão estabelecida com sucesso',
             lastCheck: new Date().toISOString()
           });
           score += 20;
@@ -60,9 +60,9 @@ const SystemHealthCheck = () => {
       } catch {
         checks.push({
           id: 'database',
-          name: 'Conexao com Banco de Dados',
+          name: 'Conexão com Banco de Dados',
           status: 'critical',
-          message: 'Falha na conexao com o banco de dados',
+          message: 'Falha na conexão com o banco de dados',
           lastCheck: new Date().toISOString()
         });
       }
@@ -72,16 +72,16 @@ const SystemHealthCheck = () => {
         if (session) {
           checks.push({
             id: 'auth',
-            name: 'Sistema de Autenticacao',
+            name: 'Sistema de Autenticação',
             status: 'healthy',
-            message: 'Sistema de autenticacao funcionando',
+            message: 'Sistema de autenticação funcionando',
             lastCheck: new Date().toISOString()
           });
           score += 20;
         } else {
           checks.push({
             id: 'auth',
-            name: 'Sistema de Autenticacao',
+            name: 'Sistema de Autenticação',
             status: 'warning',
             message: 'Usuário não autenticado',
             lastCheck: new Date().toISOString()
@@ -91,9 +91,9 @@ const SystemHealthCheck = () => {
       } catch {
         checks.push({
           id: 'auth',
-          name: 'Sistema de Autenticacao',
+          name: 'Sistema de Autenticação',
           status: 'critical',
-          message: 'Falha no sistema de autenticacao',
+          message: 'Falha no sistema de autenticação',
           lastCheck: new Date().toISOString()
         });
       }
@@ -140,7 +140,7 @@ const SystemHealthCheck = () => {
         if (workflows && workflows.length > 0) {
           checks.push({
             id: 'n8n',
-            name: 'Integracao N8N',
+            name: 'Integração N8N',
             status: 'healthy',
             message: `${workflows.length} workflow(s) ativo(s) encontrado(s)`,
             lastCheck: new Date().toISOString()
@@ -149,7 +149,7 @@ const SystemHealthCheck = () => {
         } else {
           checks.push({
             id: 'n8n',
-            name: 'Integracao N8N',
+            name: 'Integração N8N',
             status: 'warning',
             message: 'Nenhum workflow N8N ativo encontrado',
             lastCheck: new Date().toISOString()
@@ -159,7 +159,7 @@ const SystemHealthCheck = () => {
       } catch {
         checks.push({
           id: 'n8n',
-          name: 'Integracao N8N',
+          name: 'Integração N8N',
           status: 'critical',
           message: 'Falha ao verificar integração N8N',
           lastCheck: new Date().toISOString()
@@ -230,7 +230,7 @@ const SystemHealthCheck = () => {
     if (score >= 80) return 'Excelente';
     if (score >= 60) return 'Bom';
     if (score >= 40) return 'Regular';
-    return 'Critico';
+    return 'Crítico';
   };
 
   return (
@@ -240,9 +240,9 @@ const SystemHealthCheck = () => {
           <div className="flex items-center space-x-2">
             <Shield className="h-6 w-6 text-[hsl(var(--accent))]" />
             <div>
-              <CardTitle>Verificacao de Saude do Sistema</CardTitle>
+              <CardTitle>Verificação de Saúde do Sistema</CardTitle>
               <CardDescription>
-                Monitoramento em tempo real dos componentes criticos
+                Monitoramento em tempo real dos componentes críticos
               </CardDescription>
             </div>
           </div>
@@ -290,8 +290,8 @@ const SystemHealthCheck = () => {
                     ? 'bg-amber-500/15 text-amber-200 border border-amber-400/30'
                     : 'bg-red-500/15 text-red-200 border border-red-400/30'}
                 >
-                  {check.status === 'healthy' ? 'Saudavel' :
-                   check.status === 'warning' ? 'Atencao' : 'Critico'}
+                  {check.status === 'healthy' ? 'Saudável' :
+                   check.status === 'warning' ? 'Atenção' : 'Crítico'}
                 </Badge>
                 <p className="text-xs text-[hsl(var(--muted-foreground))] mt-1">
                   {new Date(check.lastCheck).toLocaleTimeString('pt-BR')}
@@ -304,7 +304,7 @@ const SystemHealthCheck = () => {
         {healthChecks.length === 0 && !isLoading && (
           <div className="text-center py-8 text-[hsl(var(--muted-foreground))]">
             <Server className="h-12 w-12 mx-auto mb-4 opacity-50" />
-            <p>Nenhuma verificacao realizada ainda</p>
+            <p>Nenhuma verificação realizada ainda</p>
           </div>
         )}
       </CardContent>

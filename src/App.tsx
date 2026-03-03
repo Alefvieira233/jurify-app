@@ -19,7 +19,7 @@ initSentry();
 import Auth from "./pages/Auth";
 import GoogleAuthCallback from "./pages/GoogleAuthCallback";
 import NotFound from "./pages/NotFound";
-import CookieBanner from "./components/CookieBanner";
+const CookieBanner = lazy(() => import("./components/CookieBanner"));
 
 // Páginas públicas (legais e marketing)
 const TermosDeUso = lazy(() => import("./pages/TermosDeUso"));
@@ -79,7 +79,7 @@ const App = () => (
       <TooltipProvider>
         <Toaster />
         <Sonner />
-        <CookieBanner />
+        <Suspense fallback={null}><CookieBanner /></Suspense>
         <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
           <AuthProvider>
             <Suspense fallback={<LoadingSpinner fullScreen text="Carregando..." />}>

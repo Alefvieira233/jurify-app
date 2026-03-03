@@ -191,7 +191,7 @@ const DetalhesAgente: FC<DetalhesAgenteProps> = ({ agente, onClose, onEdit }) =>
                   <h4 className="font-semibold text-[hsl(var(--foreground))] mb-2">Perguntas de Qualificação</h4>
                   <div className="space-y-2">
                     {perguntas.map((pergunta: string, index: number) => (
-                      <div key={pergunta} className="flex items-start space-x-2">
+                      <div key={`pergunta-${index}`} className="flex items-start space-x-2">
                         <span className="text-blue-300 font-semibold">{index + 1}.</span>
                         <span className="text-[hsl(var(--muted-foreground))]">{pergunta}</span>
                       </div>
@@ -204,8 +204,8 @@ const DetalhesAgente: FC<DetalhesAgenteProps> = ({ agente, onClose, onEdit }) =>
                 <div>
                   <h4 className="font-semibold text-[hsl(var(--foreground))] mb-2">Keywords de Ação</h4>
                   <div className="flex flex-wrap gap-2">
-                    {agente.keywords_acao.map((keyword: string) => (
-                      <Badge key={keyword} variant="outline" className="bg-purple-50 text-purple-700 border-purple-400/30">
+                    {agente.keywords_acao.map((keyword: string, idx: number) => (
+                      <Badge key={`kw-${idx}`} variant="outline" className="bg-purple-50 text-purple-700 border-purple-400/30">
                         {keyword}
                       </Badge>
                     ))}

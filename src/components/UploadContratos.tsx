@@ -449,6 +449,7 @@ const UploadContratos: React.FC<UploadContratosProps> = ({
             accept={acceptedTypes.join(',')}
             onChange={handleFileSelect}
             className="hidden"
+            aria-label="Upload de contratos"
           />
         </CardContent>
       </Card>

@@ -64,7 +64,7 @@ export const useFollowUps = () => {
       setLoading(true);
       let query = supabase
         .from('crm_followups')
-        .select('*')
+        .select('*, leads:lead_id(id, nome, telefone, status)')
         .eq('tenant_id', tenantId)
         .order('scheduled_at', { ascending: true });
 
@@ -75,17 +75,9 @@ export const useFollowUps = () => {
       const { data, error } = await query;
       if (error) throw error;
 
-      // Enrich with lead data
-      const leadIds = [...new Set((data || []).map((f: FollowUp) => f.lead_id))];
-      const { data: leads } = await supabase
-        .from('leads')
-        .select('id, nome, telefone, status')
-        .in('id', leadIds);
-
-      const leadMap = new Map((leads || []).map((l: { id: string; nome: string; telefone: string; status: string }) => [l.id, l]));
-
-      const enriched = (data || []).map((f: FollowUp) => {
-        const lead = leadMap.get(f.lead_id) as { nome?: string; telefone?: string; status?: string } | undefined;
+      // Enrich with embedded lead data (single query via join)
+      const enriched = (data || []).map((f: FollowUp & { leads?: { nome?: string; telefone?: string; status?: string } | null }) => {
+        const lead = f.leads;
         return {
           ...f,
           lead_name: lead?.nome || 'Lead desconhecido',
