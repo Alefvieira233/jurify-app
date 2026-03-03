@@ -1,22 +1,23 @@
 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Plug, Users, Bell, Server, ShieldAlert, Settings } from 'lucide-react';
+import { Plug, Users, Bell, Server, ShieldAlert, Settings, UserCircle } from 'lucide-react';
 import { useRBAC } from '@/hooks/useRBAC';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import IntegracoesSection from '@/components/configuracoes/IntegracoesSection';
 import UsuariosPermissoesSection from '@/components/configuracoes/UsuariosPermissoesSection';
 import NotificacoesSection from '@/components/configuracoes/NotificacoesSection';
 import SistemaSection from '@/components/configuracoes/SistemaSection';
+import PerfilSection from '@/components/configuracoes/PerfilSection';
 import { usePageTitle } from '@/hooks/usePageTitle';
 import { useSearchParams } from 'react-router-dom';
 
-const VALID_TABS = ['integracoes', 'usuarios', 'notificacoes', 'sistema'] as const;
+const VALID_TABS = ['perfil', 'integracoes', 'equipe', 'notificacoes', 'sistema'] as const;
 
 const ConfiguracoesGerais = () => {
   usePageTitle('Configurações');
   const [searchParams] = useSearchParams();
   const tabParam = searchParams.get('tab') ?? '';
-  const activeTab = (VALID_TABS as readonly string[]).includes(tabParam) ? tabParam : 'integracoes';
+  const activeTab = (VALID_TABS as readonly string[]).includes(tabParam) ? tabParam : 'perfil';
   // ✅ RBAC: Verificação de permissões
   const { can, userRole } = useRBAC();
 
@@ -32,7 +33,7 @@ const ConfiguracoesGerais = () => {
             <div>
               <h1 className="text-sm font-bold text-foreground leading-tight">Configurações</h1>
               <p className="text-[11px] text-muted-foreground leading-none mt-0.5">
-                Integrações, usuários, notificações e sistema
+                Perfil, integrações, equipe e sistema
               </p>
             </div>
           </div>
@@ -63,7 +64,7 @@ const ConfiguracoesGerais = () => {
           <div>
             <h1 className="text-sm font-bold text-foreground leading-tight">Configurações</h1>
             <p className="text-[11px] text-muted-foreground leading-none mt-0.5">
-              Integrações, usuários, notificações e sistema
+              Perfil, integrações, equipe e sistema
             </p>
           </div>
         </div>
@@ -72,14 +73,18 @@ const ConfiguracoesGerais = () => {
       {/* Body */}
       <div className="flex-1 overflow-y-auto px-5 py-5">
         <Tabs defaultValue={activeTab} className="space-y-5">
-          <TabsList className="grid w-full grid-cols-4 h-9">
+          <TabsList className="grid w-full grid-cols-5 h-9">
+            <TabsTrigger value="perfil" className="flex items-center gap-1.5 text-xs">
+              <UserCircle className="h-3.5 w-3.5" />
+              Perfil
+            </TabsTrigger>
             <TabsTrigger value="integracoes" className="flex items-center gap-1.5 text-xs">
               <Plug className="h-3.5 w-3.5" />
               Integrações
             </TabsTrigger>
-            <TabsTrigger value="usuarios" className="flex items-center gap-1.5 text-xs">
+            <TabsTrigger value="equipe" className="flex items-center gap-1.5 text-xs">
               <Users className="h-3.5 w-3.5" />
-              Usuários
+              Equipe
             </TabsTrigger>
             <TabsTrigger value="notificacoes" className="flex items-center gap-1.5 text-xs">
               <Bell className="h-3.5 w-3.5" />
@@ -91,11 +96,15 @@ const ConfiguracoesGerais = () => {
             </TabsTrigger>
           </TabsList>
 
+          <TabsContent value="perfil">
+            <PerfilSection />
+          </TabsContent>
+
           <TabsContent value="integracoes">
             <IntegracoesSection />
           </TabsContent>
 
-          <TabsContent value="usuarios">
+          <TabsContent value="equipe">
             <UsuariosPermissoesSection />
           </TabsContent>
 

@@ -39,7 +39,7 @@ const GoogleAuthCallback: React.FC = () => {
         setStatus('success');
 
         setTimeout(() => {
-          navigate('/?tab=configuracoes');
+          navigate('/configuracoes?tab=integracoes');
         }, 2000);
 
       } catch (err: unknown) {
@@ -48,7 +48,7 @@ const GoogleAuthCallback: React.FC = () => {
         setErrorMessage(message);
 
         setTimeout(() => {
-          navigate('/?tab=configuracoes');
+          navigate('/configuracoes?tab=integracoes');
         }, 5000);
       }
     };
