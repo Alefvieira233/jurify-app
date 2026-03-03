@@ -54,6 +54,11 @@ jobs:
           VITE_APP_VERSION: ${{ github.sha }}
           VITE_STRIPE_PUBLISHABLE_KEY: ${{ secrets.VITE_STRIPE_PUBLISHABLE_KEY }}
           VITE_GOOGLE_CLIENT_ID: ${{ secrets.VITE_GOOGLE_CLIENT_ID }}
+          VITE_SALES_WHATSAPP: ${{ secrets.VITE_SALES_WHATSAPP }}
+          # Sentry source map upload (opcional — build funciona sem estes)
+          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+          SENTRY_ORG: ${{ secrets.SENTRY_ORG }}
+          SENTRY_PROJECT: ${{ secrets.SENTRY_PROJECT }}
 
       - name: 💾 Upload build artifacts
         uses: actions/upload-artifact@v4
@@ -104,26 +109,46 @@ jobs:
       - name: ⚡ Deploy Edge Functions
         run: |
           echo "🚀 Deploying edge functions..."
-          supabase functions deploy --no-verify-jwt
+          # Functions públicas (sem JWT): health-check, stripe-webhook, whatsapp-webhook, zapsign-webhook
+          supabase functions deploy health-check --no-verify-jwt
+          supabase functions deploy stripe-webhook --no-verify-jwt
+          supabase functions deploy whatsapp-webhook --no-verify-jwt
+          supabase functions deploy zapsign-webhook --no-verify-jwt
+          # Functions que requerem JWT (deploy padrão — com auth)
+          for fn in assistant chat-completion send-email create-checkout-session \
+                    customer-portal evolution-manager generate-embedding \
+                    ingest-document vector-search google-calendar \
+                    create-drive-folder cleanup-agent-memory ai-agent-processor \
+                    zapsign-integration; do
+            supabase functions deploy "$fn" 2>/dev/null || echo "⚠️ $fn: não encontrada, pulando"
+          done
+          echo "✅ Edge functions deployed"
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
 
       - name: 🔐 Set Edge Function secrets
         run: |
           echo "🔐 Setting secrets..."
-          supabase secrets set \
-            OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }} \
-            STRIPE_SECRET_KEY=${{ secrets.STRIPE_SECRET_KEY }} \
-            STRIPE_WEBHOOK_SECRET=${{ secrets.STRIPE_WEBHOOK_SECRET }} \
-            EVOLUTION_API_URL=${{ secrets.EVOLUTION_API_URL }} \
-            EVOLUTION_API_KEY=${{ secrets.EVOLUTION_API_KEY }} \
-            ZAPSIGN_API_TOKEN=${{ secrets.ZAPSIGN_API_TOKEN }} \
-            GOOGLE_CLIENT_ID=${{ secrets.GOOGLE_CLIENT_ID }} \
-            GOOGLE_CLIENT_SECRET=${{ secrets.GOOGLE_CLIENT_SECRET }} \
-            --project-ref ${{ secrets.SUPABASE_PROJECT_REF }}
+          # Apenas secrets que estão configurados (ignora vazios)
+          SECRETS=""
+          [ -n "$OPENAI_API_KEY" ]          && SECRETS="$SECRETS OPENAI_API_KEY=$OPENAI_API_KEY"
+          [ -n "$STRIPE_SECRET_KEY" ]        && SECRETS="$SECRETS STRIPE_SECRET_KEY=$STRIPE_SECRET_KEY"
+          [ -n "$STRIPE_WEBHOOK_SECRET" ]    && SECRETS="$SECRETS STRIPE_WEBHOOK_SECRET=$STRIPE_WEBHOOK_SECRET"
+          [ -n "$EVOLUTION_API_URL" ]        && SECRETS="$SECRETS EVOLUTION_API_URL=$EVOLUTION_API_URL"
+          [ -n "$EVOLUTION_API_KEY" ]        && SECRETS="$SECRETS EVOLUTION_API_KEY=$EVOLUTION_API_KEY"
+          [ -n "$ZAPSIGN_API_TOKEN" ]        && SECRETS="$SECRETS ZAPSIGN_API_TOKEN=$ZAPSIGN_API_TOKEN"
+          [ -n "$GOOGLE_CLIENT_SECRET" ]     && SECRETS="$SECRETS GOOGLE_CLIENT_SECRET=$GOOGLE_CLIENT_SECRET"
+          [ -n "$SECRETS" ] && supabase secrets set $SECRETS --project-ref ${{ secrets.SUPABASE_PROJECT_REF }} || echo "⚠️ No new secrets to set"
           echo "✅ Secrets configured"
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          STRIPE_SECRET_KEY: ${{ secrets.STRIPE_SECRET_KEY }}
+          STRIPE_WEBHOOK_SECRET: ${{ secrets.STRIPE_WEBHOOK_SECRET }}
+          EVOLUTION_API_URL: ${{ secrets.EVOLUTION_API_URL }}
+          EVOLUTION_API_KEY: ${{ secrets.EVOLUTION_API_KEY }}
+          ZAPSIGN_API_TOKEN: ${{ secrets.ZAPSIGN_API_TOKEN }}
+          GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
 
   # ==========================================
   # JOB 3: RUN DATABASE MIGRATIONS
