@@ -83,10 +83,15 @@ jobs:
         run: npm test -- --run --reporter=verbose
         env:
           CI: true
+          VITE_SUPABASE_URL: https://placeholder.supabase.co
+          VITE_SUPABASE_ANON_KEY: dummy-key
 
       - name: 📊 Generate coverage report
         working-directory: ${{ env.WORKING_DIR }}
         run: npm run test:coverage
+        env:
+          VITE_SUPABASE_URL: https://placeholder.supabase.co
+          VITE_SUPABASE_ANON_KEY: dummy-key
 
       - name: 📤 Upload coverage to Codecov
         if: always()
