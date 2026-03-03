@@ -89,7 +89,7 @@ describe('💳 SubscriptionManager — Checkout Fix (Sprint 2)', () => {
     delete (import.meta.env as Record<string, unknown>).VITE_STRIPE_PRICE_ENTERPRISE;
   });
 
-  it('❌ Sem VITE_STRIPE_PRICE_PRO → toast com instrução .env, sem invoke', async () => {
+  it('❌ Sem VITE_STRIPE_PRICE_PRO → toast de indisponibilidade, sem invoke', async () => {
     renderComponent();
     await waitForLoad();
 
@@ -100,14 +100,14 @@ describe('💳 SubscriptionManager — Checkout Fix (Sprint 2)', () => {
       expect(mockToast).toHaveBeenCalledWith(
         expect.objectContaining({
           variant: 'destructive',
-          description: expect.stringContaining('VITE_STRIPE_PRICE_PRO'),
+          title: 'Plano indisponível',
         }),
       );
     });
     expect(mockInvoke).not.toHaveBeenCalled();
   });
 
-  it('❌ Sem VITE_STRIPE_PRICE_ENTERPRISE → toast com instrução .env, sem invoke', async () => {
+  it('❌ Sem VITE_STRIPE_PRICE_ENTERPRISE → toast de indisponibilidade, sem invoke', async () => {
     renderComponent();
     await waitForLoad();
 
@@ -118,7 +118,7 @@ describe('💳 SubscriptionManager — Checkout Fix (Sprint 2)', () => {
       expect(mockToast).toHaveBeenCalledWith(
         expect.objectContaining({
           variant: 'destructive',
-          description: expect.stringContaining('VITE_STRIPE_PRICE_ENTERPRISE'),
+          title: 'Plano indisponível',
         }),
       );
     });

@@ -345,12 +345,36 @@ Deno.serve(async (req) => {
 
     const aiRequest = requestData as AgentAIRequest;
 
-    if (!aiRequest.tenantId) {
-      throw new Error("tenantId is required");
+    // 🔒 Security: resolve tenantId/userId from JWT, not from request body (for user requests)
+    let resolvedTenantId: string;
+    let resolvedUserId: string | null;
+
+    if (!isServiceRoleRequest && user) {
+      // Fetch tenant_id from profile — authoritative source
+      const { data: profileData, error: profileError } = await supabase
+        .from("profiles")
+        .select("tenant_id")
+        .eq("id", user.id)
+        .single();
+
+      if (profileError || !profileData?.tenant_id) {
+        throw new Error("Tenant not found for authenticated user");
+      }
+      resolvedTenantId = profileData.tenant_id as string;
+      resolvedUserId = user.id;
+    } else {
+      // Service-role internal request — trust body
+      if (!aiRequest.tenantId) throw new Error("tenantId is required");
+      resolvedTenantId = aiRequest.tenantId;
+      resolvedUserId = aiRequest.userId || null;
     }
 
+    // Inject resolved IDs back for downstream use
+    aiRequest.tenantId = resolvedTenantId;
+    aiRequest.userId = resolvedUserId || undefined;
+
     const rateLimitUser = isServiceRoleRequest
-      ? { id: aiRequest.userId || `tenant:${aiRequest.tenantId}` }
+      ? { id: aiRequest.userId || `tenant:${resolvedTenantId}` }
       : user;
 
     // Rate Limiting - Protege custos da OpenAI

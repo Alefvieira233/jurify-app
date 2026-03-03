@@ -65,15 +65,15 @@ const OnboardingFlow = () => {
         },
         {
           id: 'google_calendar',
-          title: 'Integracao Google Calendar',
-          description: 'Configure a sincronizacao de agendamentos',
+          title: 'Integração Google Calendar',
+          description: 'Configure a sincronização de agendamentos',
           completed: (googleSettings && googleSettings.length > 0) || false,
           link: '/integracoes'
         },
         {
           id: 'api_keys',
-          title: 'Configurar API Keys',
-          description: 'Configure chaves para integracoes externas',
+          title: 'Configurar Integrações',
+          description: 'Configure chaves para integrações externas',
           completed: (apiKeys && apiKeys.length > 0) || false,
           link: '/integracoes'
         },
@@ -86,7 +86,7 @@ const OnboardingFlow = () => {
         },
         {
           id: 'usuarios',
-          title: 'Gerenciar Usuarios',
+          title: 'Gerenciar Usuários',
           description: 'Convide sua equipe para o sistema',
           completed: (usuarios && usuarios.length > 1) || false,
           link: '/usuarios'

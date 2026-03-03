@@ -169,8 +169,8 @@ export const SubscriptionManager = () => {
         const priceId = PRICE_MAP[newPlan];
         if (!priceId) {
             toast({
-                title: 'Configuração ausente',
-                description: `Configure VITE_STRIPE_PRICE_${newPlan.toUpperCase()} no .env`,
+                title: 'Plano indisponível',
+                description: 'Este plano não está disponível no momento. Entre em contato com o suporte.',
                 variant: 'destructive',
             });
             return;
@@ -367,7 +367,7 @@ export const SubscriptionManager = () => {
                                 <Card className="border-2 hover:border-blue-500 transition-colors">
                                     <CardHeader>
                                         <CardTitle className="text-lg">Pro</CardTitle>
-                                        <CardDescription>R$ 297/mês</CardDescription>
+                                        <CardDescription>R$ 99/mês</CardDescription>
                                     </CardHeader>
                                     <CardContent>
                                         <ul className="text-sm space-y-1 mb-4">

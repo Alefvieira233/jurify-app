@@ -100,7 +100,8 @@ const ContactModal = ({ open, onOpenChange }: { open: boolean; onOpenChange: (op
     const text = encodeURIComponent(
       `Olá! Tenho interesse no plano Enterprise do Jurify. Nome: ${form.nome}, Escritório: ${form.escritorio || 'Não informado'}, Tamanho: ${form.tamanho || 'Não informado'}`
     );
-    window.open(`https://wa.me/5596981419460?text=${text}`, '_blank');
+    const salesPhone = import.meta.env.VITE_SALES_WHATSAPP || '5596981419460';
+    window.open(`https://wa.me/${salesPhone}?text=${text}`, '_blank');
 
     toast.success('Entraremos em contato em até 24h úteis');
     setForm({ nome: '', email: '', escritorio: '', tamanho: '', mensagem: '' });
@@ -194,7 +195,12 @@ const Pricing = () => {
     }
 
     if (!user) {
-      toast.error('Faça login para assinar um plano.');
+      toast.error('Faça login para assinar um plano.', {
+        action: {
+          label: 'Fazer login',
+          onClick: () => { window.location.href = '/auth'; },
+        },
+      });
       return;
     }
 
@@ -219,7 +225,7 @@ const Pricing = () => {
           planId,
           priceId,
           successUrl: `${window.location.origin}/dashboard?checkout=success&plan=${planId}`,
-          cancelUrl: `${window.location.origin}/planos?checkout=cancel`,
+          cancelUrl: `${window.location.origin}/precos`,
         }
       });
 

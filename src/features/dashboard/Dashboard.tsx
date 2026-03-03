@@ -26,11 +26,20 @@ const Dashboard = () => {
   const [searchParams, setSearchParams] = useSearchParams();
 
   useEffect(() => {
-    const sessionId = searchParams.get('session_id');
-    if (sessionId) {
+    const checkoutStatus = searchParams.get('checkout');
+    const planId = searchParams.get('plan');
+    if (checkoutStatus === 'success') {
+      const planName = planId === 'pro' ? 'Profissional' : planId === 'enterprise' ? 'Enterprise' : 'premium';
       toast({
-        title: 'Pagamento realizado com sucesso!',
-        description: 'Seu plano foi ativado. Aproveite todos os recursos premium do Jurify.',
+        title: 'Pagamento confirmado!',
+        description: `Plano ${planName} ativado. Aproveite todos os recursos do Jurify.`,
+      });
+      setSearchParams({}, { replace: true });
+    } else if (checkoutStatus === 'cancel') {
+      toast({
+        title: 'Pagamento cancelado',
+        description: 'O pagamento foi cancelado. Você pode tentar novamente quando quiser.',
+        variant: 'destructive',
       });
       setSearchParams({}, { replace: true });
     }

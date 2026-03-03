@@ -8,9 +8,15 @@ import UsuariosPermissoesSection from '@/components/configuracoes/UsuariosPermis
 import NotificacoesSection from '@/components/configuracoes/NotificacoesSection';
 import SistemaSection from '@/components/configuracoes/SistemaSection';
 import { usePageTitle } from '@/hooks/usePageTitle';
+import { useSearchParams } from 'react-router-dom';
+
+const VALID_TABS = ['integracoes', 'usuarios', 'notificacoes', 'sistema'] as const;
 
 const ConfiguracoesGerais = () => {
   usePageTitle('Configurações');
+  const [searchParams] = useSearchParams();
+  const tabParam = searchParams.get('tab') ?? '';
+  const activeTab = (VALID_TABS as readonly string[]).includes(tabParam) ? tabParam : 'integracoes';
   // ✅ RBAC: Verificação de permissões
   const { can, userRole } = useRBAC();
 
@@ -65,7 +71,7 @@ const ConfiguracoesGerais = () => {
 
       {/* Body */}
       <div className="flex-1 overflow-y-auto px-5 py-5">
-        <Tabs defaultValue="integracoes" className="space-y-5">
+        <Tabs defaultValue={activeTab} className="space-y-5">
           <TabsList className="grid w-full grid-cols-4 h-9">
             <TabsTrigger value="integracoes" className="flex items-center gap-1.5 text-xs">
               <Plug className="h-3.5 w-3.5" />
