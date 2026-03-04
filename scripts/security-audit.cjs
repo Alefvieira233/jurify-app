@@ -92,11 +92,14 @@ const dangerousPatterns = [
   { pattern: /eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9\.[a-zA-Z0-9._-]{50,}/, label: 'Hardcoded JWT' },
 ];
 
-const findings = scanDir(srcDir, dangerousPatterns);
-if (findings.length === 0) {
-  check('No hardcoded secrets in src/', true);
+const findings = scanDir(ROOT, dangerousPatterns);
+// 🛡️ Filter out patterns in the audit script itself to avoid self-triggering in CI
+const filteredFindings = findings.filter(f => !f.file.includes('scripts/security-audit.cjs') && !f.file.includes('.git'));
+
+if (filteredFindings.length === 0) {
+  check('No hardcoded secrets in codebase', true);
 } else {
-  for (const f of findings) {
+  for (const f of filteredFindings) {
     check(`${f.label} in ${f.file}`, false, 'Remove hardcoded secret');
   }
 }
