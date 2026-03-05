@@ -14,6 +14,7 @@ import { OpenAI } from "https://deno.land/x/openai@v4.24.0/mod.ts";
 import { applyRateLimit } from "../_shared/rate-limiter.ts";
 import { getCorsHeaders } from "../_shared/cors.ts";
 import { initSentry, captureError } from "../_shared/sentry.ts";
+import { redactPII } from "../_shared/security.ts";
 import { DEFAULT_OPENAI_MODEL } from "../_shared/ai-model.ts";
 
 // 🚀 INIT SENTRY
@@ -278,11 +279,11 @@ async function logAIProcessing(
       prompt_tokens: response.usage?.prompt_tokens || 0,
       completion_tokens: response.usage?.completion_tokens || 0,
       total_tokens: response.usage?.total_tokens || 0,
-      result_preview: response.result.substring(0, 200),
+      result_preview: redactPII(response.result).substring(0, 200),
       // Advanced Logging (LangSmith Style) — truncated to reduce PII surface
       system_prompt: request.systemPrompt.substring(0, 500),
-      user_prompt: request.userPrompt.substring(0, 500),
-      full_result: response.result.substring(0, 2000),
+      user_prompt: redactPII(request.userPrompt).substring(0, 500),
+      full_result: redactPII(response.result).substring(0, 2000),
       context: request.context || null,
       created_at: new Date().toISOString(),
     });
@@ -442,12 +443,16 @@ Deno.serve(async (req) => {
         user?.id || aiRequest.userId || null
       ).catch(console.error);
 
+      // Redact PII from response
+      const sanitizedResponse = {
+        ...aiResponse,
+        result: redactPII(aiResponse.result),
+        executionId,
+      };
+
       // âœ… Retorna resposta com execution_id
       return new Response(
-        JSON.stringify({
-          ...aiResponse,
-          executionId,
-        }),
+        JSON.stringify(sanitizedResponse),
         {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
           status: 200,
