@@ -95,9 +95,12 @@ const PII_PATTERNS: Array<{ pattern: RegExp; label: string; replacement: string 
   { pattern: /\b\d{3}\.?\d{3}\.?\d{3}-?\d{2}\b/g, label: "CPF", replacement: "***CPF***" },
   { pattern: /\b\d{2}\.?\d{3}\.?\d{3}-?[\dXx]\b/g, label: "RG", replacement: "***RG***" },
   { pattern: /\b\d{4}\s?\d{4}\s?\d{4}\s?\d{4}\b/g, label: "Card", replacement: "***CARD***" },
+  { pattern: /\b[\w\.-]+@[\w\.-]+\.\w{2,}\b/g, label: "Email", replacement: "***EMAIL***" },
+  { pattern: /\b(?:\(?\d{2}\)?\s?)?\d{4,5}-?\d{4}\b/g, label: "Phone", replacement: "***PHONE***" },
+  { pattern: /\b(?:OAB[/-\s]?)?[A-Z]{2}\s?\d{4,6}\b/gi, label: "OAB", replacement: "***OAB***" },
 ];
 
-/** Redact PII from assistant responses before sending to client. */
+/** Redact PII from text to ensure data protection. */
 export function redactPII(text: string): string {
   let result = text;
   for (const { pattern, replacement } of PII_PATTERNS) {
@@ -134,7 +137,7 @@ export async function auditLog(
       user_id: entry.user_id,
       tenant_id: entry.tenant_id,
       action: entry.action,
-      query: entry.query,
+      query: entry.query ? redactPII(entry.query) : null,
       response_time_ms: entry.response_time_ms,
       tools_used: entry.tools_used ?? [],
       success: entry.success,

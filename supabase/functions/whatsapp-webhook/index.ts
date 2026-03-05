@@ -2,6 +2,7 @@ import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { getCorsHeaders } from "../_shared/cors.ts";
 import { applyRateLimit, getRequestIdentifier } from "../_shared/rate-limiter.ts";
+import { redactPII } from "../_shared/security.ts";
 
 console.log("[whatsapp-webhook] Function started (Evolution API + Meta compatible)");
 
@@ -679,7 +680,7 @@ ${conversationHistory ? `HISTORICO DA CONVERSA:\n${conversationHistory}\n` : ""}
 
     const aiText = aiError
       ? "Ola! Recebi sua mensagem e em breve um de nossos advogados entrara em contato. Obrigado pelo contato com o escritorio Jurify!"
-      : (aiResponse?.result || "Desculpe, nao consegui processar sua mensagem no momento.");
+      : redactPII(aiResponse?.result || "Desculpe, nao consegui processar sua mensagem no momento.");
 
     if (aiError) {
       console.error(`[webhook:${provider}] Error invoking AI agent (using fallback):`, aiError);
