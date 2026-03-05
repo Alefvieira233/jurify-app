@@ -839,7 +839,7 @@ describe('📡 AuthContext - Realtime Profile Subscription (Sprint 2)', () => {
   });
 });
 
-// TODO: Implementar auto-logout por inatividade no AuthContext
+// Auto-logout is tested in useInactivityLogout.test.ts (unit test on the hook directly)
 describe.skip('⏰ AuthContext - Auto Logout Timeout', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -900,16 +900,12 @@ describe.skip('⏰ AuthContext - Auto Logout Timeout', () => {
       expect(screen.getByTestId('user')).toHaveTextContent('test@example.com');
     });
 
-    // Avançar 30 minutos
-    await act(async () => {
-      vi.advanceTimersByTime(30 * 60 * 1000);
-    });
+    // Avançar 31 minutos (> 30 min timeout) using async version to flush microtasks
+    await vi.advanceTimersByTimeAsync(31 * 60 * 1000);
 
     // Deve ter chamado signOut
-    await waitFor(() => {
-      expect(supabase.auth.signOut).toHaveBeenCalled();
-    });
-  });
+    expect(supabase.auth.signOut).toHaveBeenCalled();
+  }, 15_000);
 
   it('✅ Deve resetar timeout ao detectar atividade do usuário', async () => {
     const mockUser: User = {
@@ -962,31 +958,21 @@ describe.skip('⏰ AuthContext - Auto Logout Timeout', () => {
     });
 
     // Avançar 29 minutos
-    await act(async () => {
-      vi.advanceTimersByTime(29 * 60 * 1000);
-    });
+    await vi.advanceTimersByTimeAsync(29 * 60 * 1000);
 
-    // Simular atividade (mousemove)
-    await act(async () => {
-      document.dispatchEvent(new MouseEvent('mousemove'));
-    });
+    // Simular atividade (mousemove) — resets the timer
+    window.dispatchEvent(new MouseEvent('mousemove'));
 
     // Avançar mais 29 minutos (total 58 minutos, mas timeout resetado)
-    await act(async () => {
-      vi.advanceTimersByTime(29 * 60 * 1000);
-    });
+    await vi.advanceTimersByTimeAsync(29 * 60 * 1000);
 
-    // Não deve ter chamado signOut ainda
+    // Não deve ter chamado signOut ainda (only 29 min since last activity)
     expect(supabase.auth.signOut).not.toHaveBeenCalled();
 
-    // Avançar mais 2 minutos (total 60, mas 31 desde último reset)
-    await act(async () => {
-      vi.advanceTimersByTime(2 * 60 * 1000);
-    });
+    // Avançar mais 2 minutos (31 min since last activity > 30 min timeout)
+    await vi.advanceTimersByTimeAsync(2 * 60 * 1000);
 
     // Agora deve ter chamado signOut
-    await waitFor(() => {
-      expect(supabase.auth.signOut).toHaveBeenCalled();
-    });
-  });
+    expect(supabase.auth.signOut).toHaveBeenCalled();
+  }, 15_000);
 });
