@@ -4,8 +4,7 @@ import { login } from './helpers/auth';
 test.describe('Jurify — Gestão de Leads', () => {
   test.beforeEach(async ({ page }) => {
     await login(page);
-    await page.goto('/pipeline');
-    await page.waitForTimeout(1_500);
+    await page.goto('/pipeline', { waitUntil: 'networkidle' });
   });
 
   test('deve exibir página de leads com elementos principais', async ({ page }) => {

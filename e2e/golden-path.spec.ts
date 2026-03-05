@@ -14,23 +14,23 @@ test.describe('Jurify — Golden Path', () => {
     await expect(page.locator('body')).not.toBeEmpty();
 
     // 3. Navigate to Pipeline (leads redirects to pipeline)
-    await page.goto('/pipeline');
+    await page.goto('/pipeline', { waitUntil: 'networkidle' });
     await expect(page.getByRole('button', { name: /novo lead/i }).first()).toBeVisible({ timeout: 15_000 });
 
     // 4. Navigate to Contratos
-    await page.goto('/contratos');
+    await page.goto('/contratos', { waitUntil: 'networkidle' });
     await expect(page.getByText(/algo deu errado|error boundary/i)).not.toBeVisible({ timeout: 10_000 });
 
     // 5. Navigate to Agendamentos
-    await page.goto('/agendamentos');
+    await page.goto('/agendamentos', { waitUntil: 'networkidle' });
     await expect(page.getByText(/algo deu errado|error boundary/i)).not.toBeVisible({ timeout: 10_000 });
 
     // 6. Navigate to Configurações
-    await page.goto('/configuracoes');
+    await page.goto('/configuracoes', { waitUntil: 'networkidle' });
     await expect(page.getByText(/algo deu errado|error boundary/i)).not.toBeVisible({ timeout: 10_000 });
 
     // 7. Navigate back to Dashboard
-    await page.goto('/');
+    await page.goto('/', { waitUntil: 'networkidle' });
     await expect(page.getByText(/algo deu errado|error boundary/i)).not.toBeVisible({ timeout: 10_000 });
   });
 
@@ -60,7 +60,7 @@ test.describe('Jurify — Golden Path', () => {
 test.describe('Jurify — Contratos', () => {
   test.beforeEach(async ({ page }) => {
     await login(page);
-    await page.goto('/contratos');
+    await page.goto('/contratos', { waitUntil: 'networkidle' });
   });
 
   test('deve exibir página de contratos', async ({ page }) => {
@@ -71,7 +71,7 @@ test.describe('Jurify — Contratos', () => {
 test.describe('Jurify — Agendamentos', () => {
   test.beforeEach(async ({ page }) => {
     await login(page);
-    await page.goto('/agendamentos');
+    await page.goto('/agendamentos', { waitUntil: 'networkidle' });
   });
 
   test('deve exibir página de agendamentos', async ({ page }) => {
@@ -82,7 +82,7 @@ test.describe('Jurify — Agendamentos', () => {
 test.describe('Jurify — Agentes IA', () => {
   test.beforeEach(async ({ page }) => {
     await login(page);
-    await page.goto('/agentes-ia');
+    await page.goto('/agentes-ia', { waitUntil: 'networkidle' });
   });
 
   test('deve exibir página de agentes IA', async ({ page }) => {

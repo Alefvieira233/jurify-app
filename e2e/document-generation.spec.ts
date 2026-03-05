@@ -41,8 +41,7 @@ test.describe('Document Generation — Contract States', () => {
       });
     });
 
-    await page.goto('/contratos');
-    await page.waitForTimeout(2_000);
+    await page.goto('/contratos', { waitUntil: 'networkidle' });
 
     // Empty state text from ContratosManager
     await expect(
@@ -92,8 +91,7 @@ test.describe('Document Generation — Contract States', () => {
       }
     });
 
-    await page.goto('/contratos');
-    await page.waitForTimeout(2_000);
+    await page.goto('/contratos', { waitUntil: 'networkidle' });
 
     // The contract client name should be visible
     await expect(

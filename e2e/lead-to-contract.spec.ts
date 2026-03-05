@@ -8,16 +8,14 @@ import { login } from './helpers/auth';
 test.describe('Jurify — Lead to Contract', () => {
   test('/pipeline carrega', async ({ page }) => {
     await login(page);
-    await page.goto('/pipeline');
+    await page.goto('/pipeline', { waitUntil: 'networkidle' });
     await expect(page.locator('body')).not.toBeEmpty();
-    await page.waitForTimeout(2_000);
     await expect(page.getByText(/algo deu errado|error boundary/i)).not.toBeVisible();
   });
 
   test('botão "Novo Cliente/Lead" existe e modal abre', async ({ page }) => {
     await login(page);
-    await page.goto('/pipeline');
-    await page.waitForTimeout(2_000);
+    await page.goto('/pipeline', { waitUntil: 'networkidle' });
 
     // Button may say "Novo Lead", "Novo Cliente", "Adicionar Cliente", etc.
     const newLeadBtn = page.getByRole('button', {
@@ -38,9 +36,8 @@ test.describe('Jurify — Lead to Contract', () => {
 
   test('/agendamentos carrega e modal de novo agendamento abre', async ({ page }) => {
     await login(page);
-    await page.goto('/agendamentos');
+    await page.goto('/agendamentos', { waitUntil: 'networkidle' });
     await expect(page.locator('body')).not.toBeEmpty();
-    await page.waitForTimeout(2_000);
     await expect(page.getByText(/algo deu errado|error boundary/i)).not.toBeVisible();
 
     // Look for a button to create a new appointment
@@ -61,9 +58,8 @@ test.describe('Jurify — Lead to Contract', () => {
 
   test('/contratos carrega e modal de novo contrato tem campos obrigatórios', async ({ page }) => {
     await login(page);
-    await page.goto('/contratos');
+    await page.goto('/contratos', { waitUntil: 'networkidle' });
     await expect(page.locator('body')).not.toBeEmpty();
-    await page.waitForTimeout(2_000);
     await expect(page.getByText(/algo deu errado|error boundary/i)).not.toBeVisible();
 
     // Look for a button to create a new contract
@@ -92,8 +88,7 @@ test.describe('Jurify — Lead to Contract', () => {
 
     const routes = ['/pipeline', '/agendamentos', '/contratos'];
     for (const route of routes) {
-      await page.goto(route);
-      await page.waitForTimeout(1_500);
+      await page.goto(route, { waitUntil: 'networkidle' });
       await expect(page.getByText(/algo deu errado|error boundary/i)).not.toBeVisible();
     }
   });

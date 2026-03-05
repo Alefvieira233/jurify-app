@@ -2,7 +2,7 @@ import { test, expect } from '@playwright/test';
 
 test.describe('Jurify — Autenticação', () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto('/auth');
+    await page.goto('/auth', { waitUntil: 'networkidle' });
   });
 
   test('deve exibir página de login com todos os elementos', async ({ page }) => {
@@ -64,7 +64,7 @@ test.describe('Jurify — Segurança', () => {
   });
 
   test('deve sanitizar inputs contra XSS', async ({ page }) => {
-    await page.goto('/auth');
+    await page.goto('/auth', { waitUntil: 'networkidle' });
 
     page.on('dialog', () => {
       throw new Error('XSS vulnerability detected!');

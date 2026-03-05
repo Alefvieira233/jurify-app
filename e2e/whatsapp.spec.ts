@@ -10,16 +10,14 @@ test.describe('Jurify — WhatsApp Setup', () => {
   });
 
   test('authenticated user can navigate to /whatsapp', async ({ page }) => {
-    await page.goto('/whatsapp');
+    await page.goto('/whatsapp', { waitUntil: 'networkidle' });
     await expect(page.locator('body')).not.toBeEmpty();
-    await page.waitForTimeout(2_000);
     await expect(page).toHaveURL(/whatsapp/, { timeout: 10_000 });
     await expect(page.getByText(/algo deu errado|error boundary/i)).not.toBeVisible();
   });
 
   test('WhatsApp page shows setup UI with connection card', async ({ page }) => {
-    await page.goto('/whatsapp');
-    await page.waitForTimeout(2_000);
+    await page.goto('/whatsapp', { waitUntil: 'networkidle' });
 
     // The WhatsApp page should render its main heading
     const heading = page.getByText(/whatsapp.*ia|whatsapp.*jurídic|conexão whatsapp|whatsapp evolution/i).first();
@@ -47,13 +45,12 @@ test.describe('Jurify — WhatsApp Setup', () => {
       });
     });
 
-    await page.goto('/whatsapp');
-    await page.waitForTimeout(2_000);
+    await page.goto('/whatsapp', { waitUntil: 'networkidle' });
 
     const connectBtn = page.getByRole('button', { name: /conectar whatsapp|reconectar whatsapp/i }).first();
     if (await connectBtn.isVisible({ timeout: 5_000 }).catch(() => false)) {
       await connectBtn.click();
-      await page.waitForTimeout(2_000);
+      await page.waitForLoadState('networkidle');
 
       // Should show error state, not crash
       await expect(page.getByText(/algo deu errado|error boundary/i)).not.toBeVisible();
@@ -72,8 +69,7 @@ test.describe('Jurify — WhatsApp Setup', () => {
       return route.abort('connectionrefused');
     });
 
-    await page.goto('/whatsapp');
-    await page.waitForTimeout(2_000);
+    await page.goto('/whatsapp', { waitUntil: 'networkidle' });
 
     // Page should load without crashing even with API unreachable
     await expect(page.getByText(/algo deu errado|error boundary/i)).not.toBeVisible();
@@ -83,7 +79,7 @@ test.describe('Jurify — WhatsApp Setup', () => {
     const connectBtn = page.getByRole('button', { name: /conectar whatsapp|reconectar whatsapp/i }).first();
     if (await connectBtn.isVisible({ timeout: 5_000 }).catch(() => false)) {
       await connectBtn.click();
-      await page.waitForTimeout(3_000);
+      await page.waitForLoadState('networkidle');
 
       // Should still not crash
       await expect(page.getByText(/algo deu errado|error boundary/i)).not.toBeVisible();

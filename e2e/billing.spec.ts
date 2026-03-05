@@ -7,16 +7,14 @@ import { login } from './helpers/auth';
 test.describe('Jurify — Billing', () => {
   test('login → /billing carrega sem crash', async ({ page }) => {
     await login(page);
-    await page.goto('/billing');
+    await page.goto('/billing', { waitUntil: 'networkidle' });
     await expect(page.locator('body')).not.toBeEmpty();
-    await page.waitForTimeout(2_000);
     await expect(page.getByText(/algo deu errado|error boundary/i)).not.toBeVisible();
   });
 
   test('plano atual visível (badge Free/Pro/Enterprise)', async ({ page }) => {
     await login(page);
-    await page.goto('/billing');
-    await page.waitForTimeout(2_000);
+    await page.goto('/billing', { waitUntil: 'networkidle' });
     // Badge with plan name should be visible
     const planBadge = page.getByText(/free|pro|enterprise/i).first();
     await expect(planBadge).toBeVisible({ timeout: 10_000 });
@@ -24,8 +22,7 @@ test.describe('Jurify — Billing', () => {
 
   test('usuário Free vê botões de upgrade', async ({ page }) => {
     await login(page);
-    await page.goto('/billing');
-    await page.waitForTimeout(2_000);
+    await page.goto('/billing', { waitUntil: 'networkidle' });
     // At least one upgrade button should be visible for Free users
     const upgradeBtn = page.getByRole('button', { name: /upgrade|assinar|falar com vendas/i }).first();
     if (await upgradeBtn.isVisible({ timeout: 5_000 }).catch(() => false)) {
@@ -36,8 +33,7 @@ test.describe('Jurify — Billing', () => {
 
   test('clicar em upgrade sem env configurado → toast de erro, não crash nem redirect', async ({ page }) => {
     await login(page);
-    await page.goto('/billing');
-    await page.waitForTimeout(2_000);
+    await page.goto('/billing', { waitUntil: 'networkidle' });
 
     const upgradeBtn = page.getByRole('button', { name: /upgrade para pro|assinar pro/i }).first();
     if (await upgradeBtn.isVisible({ timeout: 5_000 }).catch(() => false)) {
@@ -52,8 +48,7 @@ test.describe('Jurify — Billing', () => {
 
   test('dashboard com ?session_id=test → toast "Pagamento realizado"', async ({ page }) => {
     await login(page);
-    await page.goto('/?session_id=test');
-    await page.waitForTimeout(2_000);
+    await page.goto('/?session_id=test', { waitUntil: 'networkidle' });
     // Toast or success message should appear
     const successMsg = page.getByText(/pagamento realizado|pagamento confirmado|assinatura ativa/i);
     if (await successMsg.isVisible({ timeout: 5_000 }).catch(() => false)) {

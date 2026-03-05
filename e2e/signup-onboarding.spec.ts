@@ -6,7 +6,7 @@ import { test, expect } from '@playwright/test';
  */
 test.describe('Jurify — Signup & Onboarding', () => {
   test('página /auth carrega o formulário de login', async ({ page }) => {
-    await page.goto('/auth');
+    await page.goto('/auth', { waitUntil: 'networkidle' });
     await expect(page.locator('body')).not.toBeEmpty();
     await expect(page.getByText(/algo deu errado|error boundary/i)).not.toBeVisible();
     // Email and password fields should be present
@@ -15,7 +15,7 @@ test.describe('Jurify — Signup & Onboarding', () => {
   });
 
   test('alternância para cadastro mostra campos extras', async ({ page }) => {
-    await page.goto('/auth');
+    await page.goto('/auth', { waitUntil: 'networkidle' });
     // Click toggle to switch to signup mode
     const signupToggle = page.getByRole('button', { name: /cadastr|criar.*conta|registr/i });
     if (await signupToggle.isVisible({ timeout: 5_000 }).catch(() => false)) {
@@ -36,7 +36,7 @@ test.describe('Jurify — Signup & Onboarding', () => {
   });
 
   test('senha fraca exibe mensagem de erro de validação', async ({ page }) => {
-    await page.goto('/auth');
+    await page.goto('/auth', { waitUntil: 'networkidle' });
     // Switch to signup if available
     const signupToggle = page.getByRole('button', { name: /cadastr|criar conta|registr/i });
     if (await signupToggle.isVisible({ timeout: 3_000 }).catch(() => false)) {
@@ -68,7 +68,7 @@ test.describe('Jurify — Signup & Onboarding', () => {
   });
 
   test('senhas divergentes exibem erro de validação', async ({ page }) => {
-    await page.goto('/auth');
+    await page.goto('/auth', { waitUntil: 'networkidle' });
     // Switch to signup
     const signupToggle = page.getByRole('button', { name: /cadastr|criar conta|registr/i });
     if (await signupToggle.isVisible({ timeout: 3_000 }).catch(() => false)) {
@@ -98,8 +98,7 @@ test.describe('Jurify — Signup & Onboarding', () => {
   });
 
   test('página /auth não ativa ErrorBoundary em nenhum estado', async ({ page }) => {
-    await page.goto('/auth');
-    await page.waitForTimeout(2_000);
+    await page.goto('/auth', { waitUntil: 'networkidle' });
     await expect(page.getByText(/algo deu errado|error boundary/i)).not.toBeVisible();
 
     // Interact with the form
