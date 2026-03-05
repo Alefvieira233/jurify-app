@@ -1,6 +1,9 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { getCorsHeaders } from "../_shared/cors.ts";
 import { applyRateLimit } from "../_shared/rate-limiter.ts";
+import { createEdgeLogger } from "../_shared/logger.ts";
+
+const log = createEdgeLogger("health-check");
 
 Deno.serve(async (req) => {
   const corsHeaders = getCorsHeaders(req.headers.get("origin") || undefined);
@@ -82,7 +85,7 @@ Deno.serve(async (req) => {
       healthStatus.services.supabase = "connected";
       healthStatus.services.database = "connected";
     } catch (error) {
-      console.error("[health-check] Supabase error:", error);
+      log.error("Supabase check failed", error);
       healthStatus.services.supabase = "error";
       healthStatus.services.database = "error";
       healthStatus.status = "degraded";
@@ -108,7 +111,7 @@ Deno.serve(async (req) => {
         healthStatus.services.openai = "not_configured";
       }
     } catch (error) {
-      console.error("[health-check] OpenAI error:", error);
+      log.error("OpenAI check failed", error);
       healthStatus.services.openai = "error";
       healthStatus.status = "degraded";
     }
@@ -129,7 +132,7 @@ Deno.serve(async (req) => {
         if (!response.ok) healthStatus.status = "degraded";
       }
     } catch (error) {
-      console.error("[health-check] Evolution API error:", error);
+      log.error("Evolution API check failed", error);
       healthStatus.services.whatsapp_evolution = "error";
       healthStatus.status = "degraded";
     }
@@ -149,7 +152,7 @@ Deno.serve(async (req) => {
         if (!response.ok) healthStatus.status = "degraded";
       }
     } catch (error) {
-      console.error("[health-check] Stripe error:", error);
+      log.error("Stripe check failed", error);
       healthStatus.services.stripe = "error";
       healthStatus.status = "degraded";
     }
@@ -169,7 +172,7 @@ Deno.serve(async (req) => {
         if (!response.ok && response.status !== 401) healthStatus.status = "degraded";
       }
     } catch (error) {
-      console.error("[health-check] ZapSign error:", error);
+      log.error("ZapSign check failed", error);
       healthStatus.services.zapsign = "error";
       healthStatus.status = "degraded";
     }
@@ -189,7 +192,7 @@ Deno.serve(async (req) => {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (error) {
-    console.error("[health-check] Critical error:", error);
+    log.error("Critical error", error);
 
     const errorResponse = {
       status: "error",

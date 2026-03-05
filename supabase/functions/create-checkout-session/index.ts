@@ -1,8 +1,10 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import Stripe from "https://esm.sh/stripe@14.21.0";
 import { getCorsHeaders } from "../_shared/cors.ts";
+import { createEdgeLogger } from "../_shared/logger.ts";
 
-console.log("🚀 Create Checkout Session Function Started");
+const log = createEdgeLogger("create-checkout-session");
+log.info("Function started");
 
 Deno.serve(async (req) => {
     const corsHeaders = getCorsHeaders(req.headers.get("origin") || undefined);
@@ -102,7 +104,7 @@ Deno.serve(async (req) => {
         );
 
     } catch (error) {
-        console.error("❌ Error creating checkout session:", error);
+        log.error("Error creating checkout session", error);
         return new Response(
             JSON.stringify({ error: "Internal server error" }),
             {

@@ -83,8 +83,10 @@ export class MultiAgentSystem implements IMessageRouter {
 
       this.isInitialized = true;
 
-    } catch (_error) {
-      throw new Error('Failed to initialize MultiAgentSystem');
+    } catch (error) {
+      this.isInitialized = false;
+      const msg = error instanceof Error ? error.message : String(error);
+      throw new Error(`Failed to initialize MultiAgentSystem: ${msg}`);
     }
   }
 
@@ -105,11 +107,16 @@ export class MultiAgentSystem implements IMessageRouter {
     const targetAgent = this.agents.get(message.to);
 
     if (!targetAgent) {
-      throw new Error(`Agent not found: ${message.to}`);
+      throw new Error(`Agent not found: ${message.to}. Available: ${Array.from(this.agents.keys()).join(', ')}`);
     }
 
-    // Roteia mensagem
-    await targetAgent.receiveMessage(message);
+    // Roteia mensagem com tratamento de erro
+    try {
+      await targetAgent.receiveMessage(message);
+    } catch (error) {
+      const msg = error instanceof Error ? error.message : String(error);
+      throw new Error(`Agent '${message.to}' failed to process message: ${msg}`);
+    }
   }
 
   /**
@@ -201,9 +208,12 @@ export class MultiAgentSystem implements IMessageRouter {
       try {
         const result = await tracker.waitForCompletion(options?.timeoutMs);
         return result;
-      } catch (_error) {
+      } catch (error) {
         // Retorna resultado parcial mesmo em caso de erro/timeout
-        return tracker.getResult();
+        const msg = error instanceof Error ? error.message : String(error);
+        const partialResult = tracker.getResult();
+        partialResult.error = partialResult.error || msg;
+        return partialResult;
       }
     }
 

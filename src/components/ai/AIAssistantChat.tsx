@@ -308,14 +308,14 @@ const AIAssistantChat: React.FC = () => {
             </CardTitle>
             <div className="flex items-center gap-0.5">
               {messages.length > 0 && (
-                <Button variant="ghost" size="icon" onClick={clearChat} className="h-7 w-7 text-white/70 hover:text-white hover:bg-white/20" title="Limpar conversa">
+                <Button variant="ghost" size="icon" onClick={clearChat} className="h-7 w-7 text-white/70 hover:text-white hover:bg-white/20" title="Limpar conversa" aria-label="Limpar conversa">
                   <Trash2 className="h-3.5 w-3.5" />
                 </Button>
               )}
-              <Button variant="ghost" size="icon" onClick={() => setIsExpanded(!isExpanded)} className="h-7 w-7 text-white/70 hover:text-white hover:bg-white/20">
+              <Button variant="ghost" size="icon" onClick={() => setIsExpanded(!isExpanded)} className="h-7 w-7 text-white/70 hover:text-white hover:bg-white/20" aria-label={isExpanded ? 'Minimizar chat' : 'Expandir chat'}>
                 {isExpanded ? <Minimize2 className="h-3.5 w-3.5" /> : <Maximize2 className="h-3.5 w-3.5" />}
               </Button>
-              <Button variant="ghost" size="icon" onClick={() => setIsOpen(false)} className="h-7 w-7 text-white/70 hover:text-white hover:bg-white/20">
+              <Button variant="ghost" size="icon" onClick={() => setIsOpen(false)} className="h-7 w-7 text-white/70 hover:text-white hover:bg-white/20" aria-label="Fechar chat">
                 <Minimize2 className="h-3.5 w-3.5" />
               </Button>
             </div>
@@ -444,6 +444,7 @@ const AIAssistantChat: React.FC = () => {
                 disabled={!input.trim() || isLoading}
                 size="icon"
                 className="h-9 w-9"
+                aria-label="Enviar mensagem"
               >
                 <Send className="h-4 w-4" />
               </Button>

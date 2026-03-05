@@ -105,10 +105,10 @@ const ConversationList = ({
       <div className="flex items-center justify-between mb-3">
         <h2 className="text-lg font-bold text-[hsl(var(--foreground))]">Conversas</h2>
         <div className="flex items-center gap-2">
-          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={onSetup}>
+          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={onSetup} aria-label="Configurações WhatsApp">
             <Settings className="h-4 w-4" />
           </Button>
-          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={onRefresh}>
+          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={onRefresh} aria-label="Atualizar conversas">
             <RefreshCw className="h-4 w-4" />
           </Button>
         </div>
@@ -263,7 +263,7 @@ const ChatPanel = ({
     <div className={`flex-1 flex flex-col bg-[hsl(var(--background))] ${!showMobileChat ? 'hidden lg:flex' : 'flex'}`}>
       {/* Chat Header */}
       <div className="flex items-center gap-3 px-4 py-3 border-b border-[hsl(var(--border))] bg-[hsl(var(--card))]">
-        <Button variant="ghost" size="icon" className="h-8 w-8 lg:hidden" onClick={onBack}>
+        <Button variant="ghost" size="icon" className="h-8 w-8 lg:hidden" onClick={onBack} aria-label="Voltar para conversas">
           <ArrowLeft className="h-4 w-4" />
         </Button>
 
@@ -357,6 +357,7 @@ const ChatPanel = ({
             disabled={!newMessage.trim()}
             size="icon"
             className="h-10 w-10 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-40"
+            aria-label="Enviar mensagem"
           >
             <Send className="h-4 w-4" />
           </Button>
