@@ -1,9 +1,9 @@
 # 🛡️ SECURITY DOCUMENTATION
-## Advo AI Hub - Production Security Guide
+## Jurify SaaS - Production Security Guide
 
 ### 🔐 Security Architecture Overview
 
-This document outlines the comprehensive security measures implemented in the Advo AI Hub SaaS platform to ensure enterprise-grade protection of sensitive legal data.
+This document outlines the comprehensive security measures implemented in the Jurify SaaS platform to ensure enterprise-grade protection of sensitive legal data.
 
 ## 🏗️ Security Layers
 
@@ -198,9 +198,9 @@ SENTRY_DSN=your-sentry-dsn
 ## 📞 Security Contacts
 
 ### Internal Team
-- **Security Lead**: security@advo-ai-hub.com
-- **DevOps Team**: devops@advo-ai-hub.com
-- **Legal Team**: legal@advo-ai-hub.com
+- **Security Lead**: security@jurify.com.br
+- **DevOps Team**: devops@jurify.com.br
+- **Legal Team**: legal@jurify.com.br
 
 ### External Partners
 - **Security Auditor**: [External Firm]
@@ -209,8 +209,8 @@ SENTRY_DSN=your-sentry-dsn
 
 ---
 
-**Last Updated**: January 2025  
-**Next Review**: April 2025  
-**Document Version**: 1.0
+**Last Updated**: March 2026  
+**Next Review**: June 2026  
+**Document Version**: 2.0
 
 > ⚠️ **CONFIDENTIAL**: This document contains sensitive security information and should only be shared with authorized personnel.

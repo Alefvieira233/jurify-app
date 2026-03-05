@@ -79,55 +79,23 @@ class ProductionMonitoring {
 
   // 🚀 VERIFICAR CACHE DISTRIBUÍDO
   async checkCache() {
-    try {
-      // Verificar se o cache está respondendo
-      // const testKey = 'health_check_cache';
-      // const testValue = { timestamp: Date.now(), test: true };
-
-      // Simular operações de cache
-      console.log('🔄 [MONITOR] Testando cache distribuído...');
-      
-      // Em produção, isso seria uma chamada real para Redis/KV
-      const cacheWorking = true; // Placeholder
-      
-      if (cacheWorking) {
-        this.metrics.cacheHitRate = 85; // Placeholder
-        console.log(`✅ [MONITOR] Cache OK (Hit rate: ${this.metrics.cacheHitRate}%)`);
-        return true;
-      }
-      
-      throw new Error('Cache não está respondendo');
-      
-    } catch (error) {
-      console.error('❌ [MONITOR] Cache falhou:', error.message);
-      throw error;
-    }
+    // Cache check requires Redis/KV — skip when not configured
+    console.log('⏭️  [MONITOR] Cache check skipped (no Redis/KV configured)');
+    this.metrics.cacheHitRate = -1; // unknown
+    return true;
   }
 
   // 🚀 VERIFICAR RATE LIMITING
   async checkRateLimit() {
-    try {
-      console.log('🔄 [MONITOR] Testando rate limiting...');
-      
-      // Simular verificação do rate limiting
-      const rateLimitWorking = true; // Placeholder
-      this.metrics.rateLimitHits = 45; // Placeholder
-      
-      if (this.metrics.rateLimitHits > this.thresholds.maxRateLimitHits) {
-        this.sendAlert('WARNING', `Rate limit hits alto: ${this.metrics.rateLimitHits}/min`);
-      }
-      
-      if (rateLimitWorking) {
-        console.log(`✅ [MONITOR] Rate Limiting OK (${this.metrics.rateLimitHits} hits/min)`);
-        return true;
-      }
-      
-      throw new Error('Rate limiting não está funcionando');
-      
-    } catch (error) {
-      console.error('❌ [MONITOR] Rate Limiting falhou:', error.message);
-      throw error;
+    // Rate limiting is enforced in Edge Functions at runtime.
+    // No external service to probe — verify by checking the shared module exists.
+    const rlPath = require('path').join(__dirname, '..', 'supabase', 'functions', '_shared', 'rate-limiter.ts');
+    if (require('fs').existsSync(rlPath)) {
+      console.log('✅ [MONITOR] Rate limiter module present');
+      return true;
     }
+    console.log('⚠️  [MONITOR] Rate limiter module not found');
+    throw new Error('rate-limiter.ts missing');
   }
 
   // 🚀 VERIFICAR EDGE FUNCTIONS

@@ -20,10 +20,10 @@ WHERE table_name = 'logs_execucao_agentes';
 **Diagnóstico:**
 ```bash
 # Ver logs da function
-supabase functions logs evolution-manager --project-ref yfxgncbopvnsltjqetxw
+supabase functions logs evolution-manager --project-ref $SUPABASE_PROJECT_REF
 
 # Testar diretamente via curl
-curl -X POST https://yfxgncbopvnsltjqetxw.supabase.co/functions/v1/evolution-manager \
+curl -X POST https://$SUPABASE_PROJECT_REF.supabase.co/functions/v1/evolution-manager \
   -H "Authorization: Bearer <SERVICE_ROLE_KEY>" \
   -H "Content-Type: application/json" \
   -d '{"action":"health"}'
@@ -40,7 +40,7 @@ curl -H "apikey: <EVOLUTION_API_KEY>" <EVOLUTION_API_URL>/instance/fetchInstance
 ```
 3. Verificar logs da `evolution-manager`:
 ```bash
-supabase functions logs evolution-manager --project-ref yfxgncbopvnsltjqetxw
+supabase functions logs evolution-manager --project-ref $SUPABASE_PROJECT_REF
 ```
 4. Se Evolution API inacessível, verificar container Docker na VPS:
 ```bash
@@ -55,7 +55,7 @@ docker logs evolution-api --tail 50
 1. Verificar se `OPENAI_API_KEY` está configurado nos Secrets
 2. Verificar logs da `ai-agent-processor`:
 ```bash
-supabase functions logs ai-agent-processor --project-ref yfxgncbopvnsltjqetxw
+supabase functions logs ai-agent-processor --project-ref $SUPABASE_PROJECT_REF
 ```
 3. Verificar tabela de execuções no banco:
 ```sql
@@ -74,7 +74,7 @@ LIMIT 20;
 2. Verificar se `STRIPE_WEBHOOK_SECRET` está correto nos Secrets
 3. Ver logs do webhook:
 ```bash
-supabase functions logs stripe-webhook --project-ref yfxgncbopvnsltjqetxw
+supabase functions logs stripe-webhook --project-ref $SUPABASE_PROJECT_REF
 ```
 4. Verificar tabela `subscriptions`:
 ```sql
@@ -92,14 +92,14 @@ LIMIT 10;
 1. Verificar se `POSTMARK_SERVER_TOKEN` está configurado
 2. Testar a function diretamente:
 ```bash
-curl -X POST https://yfxgncbopvnsltjqetxw.supabase.co/functions/v1/send-email \
+curl -X POST https://$SUPABASE_PROJECT_REF.supabase.co/functions/v1/send-email \
   -H "Authorization: Bearer <SERVICE_ROLE_KEY>" \
   -H "Content-Type: application/json" \
   -d '{"to":"test@email.com","template":"welcome","data":{"name":"Teste"}}'
 ```
 3. Verificar logs:
 ```bash
-supabase functions logs send-email --project-ref yfxgncbopvnsltjqetxw
+supabase functions logs send-email --project-ref $SUPABASE_PROJECT_REF
 ```
 4. Verificar Activity Log no Postmark Dashboard
 
@@ -125,7 +125,7 @@ SELECT count(*) FROM agent_memory WHERE expires_at < NOW();
 ```
 **Executar limpeza manual:**
 ```bash
-curl -X POST https://yfxgncbopvnsltjqetxw.supabase.co/functions/v1/cleanup-agent-memory \
+curl -X POST https://$SUPABASE_PROJECT_REF.supabase.co/functions/v1/cleanup-agent-memory \
   -H "Authorization: Bearer <SERVICE_ROLE_KEY>" \
   -H "Content-Type: application/json" \
   -d '{}'

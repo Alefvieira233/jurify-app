@@ -32,18 +32,18 @@
 ### Verificação manual completa
 ```bash
 # 1. Health check da plataforma
-curl https://yfxgncbopvnsltjqetxw.supabase.co/functions/v1/health-check \
+curl https://$SUPABASE_PROJECT_REF.supabase.co/functions/v1/health-check \
   -H "Authorization: Bearer <ANON_KEY>"
 
 # 2. Verificar Evolution API
-curl https://yfxgncbopvnsltjqetxw.supabase.co/functions/v1/evolution-manager \
+curl https://$SUPABASE_PROJECT_REF.supabase.co/functions/v1/evolution-manager \
   -X POST \
   -H "Authorization: Bearer <USER_JWT>" \
   -H "Content-Type: application/json" \
   -d '{"action":"health"}'
 
 # 3. Verificar cleanup de memória (execução manual)
-curl -X POST https://yfxgncbopvnsltjqetxw.supabase.co/functions/v1/cleanup-agent-memory \
+curl -X POST https://$SUPABASE_PROJECT_REF.supabase.co/functions/v1/cleanup-agent-memory \
   -H "Authorization: Bearer <SERVICE_ROLE_KEY>" \
   -H "Content-Type: application/json" \
   -d '{}'

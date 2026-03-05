@@ -42,6 +42,8 @@
     "deploy:staging": "npm run build:staging && node scripts/deploy-staging.cjs",
     "deploy:production": "node scripts/production-deploy.cjs",
     "pre-deploy": "npm run lint && npm run type-check && npm run test && npm run test:security",
+    "readiness-gate": "node scripts/readiness-gate.cjs",
+    "readiness-gate:json": "node scripts/readiness-gate.cjs --json",
     "health-check": "node scripts/health-check.cjs",
     "monitor": "node scripts/monitoring.cjs",
     "logs": "node scripts/fetch-logs.cjs",

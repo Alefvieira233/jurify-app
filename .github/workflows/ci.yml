@@ -141,12 +141,19 @@ jobs:
           SENTRY_ORG: ${{ secrets.SENTRY_ORG }}
           SENTRY_PROJECT: ${{ secrets.SENTRY_PROJECT }}
 
-      - name: 📊 Analyze bundle size
+      - name: 📊 Enforce bundle size limits
         working-directory: ${{ env.WORKING_DIR }}
         run: |
           echo "📦 Bundle size analysis:"
-          du -sh dist/ || echo "Dist folder não encontrada"
-          find dist -type f -name "*.js" -exec du -h {} \; | sort -rh | head -10 || echo "JS files não encontrados"
+          TOTAL_JS_KB=$(find dist -type f -name "*.js" ! -name "*.map" -exec du -k {} + | awk '{s+=$1} END {print s}')
+          echo "Total JS size: ${TOTAL_JS_KB}KB"
+          if [ "$TOTAL_JS_KB" -gt 3072 ]; then
+            echo "❌ FAIL: Total JS bundle exceeds 3MB limit (${TOTAL_JS_KB}KB)"
+            exit 1
+          fi
+          echo "✅ Bundle size within limits"
+          du -sh dist/ || true
+          find dist -type f -name "*.js" ! -name "*.map" -exec du -h {} \; | sort -rh | head -10
 
       - name: 💾 Upload build artifacts
         uses: actions/upload-artifact@v4
@@ -170,11 +177,10 @@ jobs:
           fetch-depth: 0  # Full history for better secret detection
 
       - name: 🔍 Detect secrets in code
-        uses: trufflesecurity/trufflehog@main
+        uses: trufflesecurity/trufflehog@v3.88.0
         with:
           path: ./
-          extra_args: --only-verified
-        continue-on-error: true
+          extra_args: --only-verified --fail
 
       - name: 🛡️ Run npm audit
         working-directory: ${{ env.WORKING_DIR }}

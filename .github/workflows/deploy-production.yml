@@ -203,15 +203,30 @@ jobs:
       - name: 🔍 Health check - Frontend
         run: |
           echo "🔍 Checking frontend health..."
-          curl -f -s -o /dev/null -w "%{http_code}" https://jurify.app || echo "⚠️ Frontend não respondeu"
-        continue-on-error: true
+          for i in 1 2 3; do
+            STATUS=$(curl -s -o /dev/null -w "%{http_code}" --max-time 10 https://jurify.app || echo "000")
+            if [ "$STATUS" -ge 200 ] && [ "$STATUS" -lt 400 ]; then
+              echo "✅ Frontend OK (HTTP $STATUS)"
+              exit 0
+            fi
+            echo "⚠️ Attempt $i: HTTP $STATUS — retrying in 10s..."
+            sleep 10
+          done
+          echo "❌ Frontend health check failed after 3 attempts"
+          exit 1
 
       - name: 🔍 Health check - Edge Functions
         run: |
           echo "🔍 Checking edge functions..."
-          curl -f "${{ secrets.VITE_SUPABASE_URL }}/functions/v1/health-check" \
-            -H "Authorization: Bearer ${{ secrets.VITE_SUPABASE_ANON_KEY }}" || echo "⚠️ Health check failed"
-        continue-on-error: true
+          STATUS=$(curl -s -o /dev/null -w "%{http_code}" --max-time 15 \
+            "${{ secrets.VITE_SUPABASE_URL }}/functions/v1/health-check" \
+            -H "Authorization: Bearer ${{ secrets.VITE_SUPABASE_ANON_KEY }}" || echo "000")
+          if [ "$STATUS" -ge 200 ] && [ "$STATUS" -lt 400 ]; then
+            echo "✅ Edge Functions OK (HTTP $STATUS)"
+          else
+            echo "❌ Edge Functions health check failed (HTTP $STATUS)"
+            exit 1
+          fi
 
       - name: 📊 Report deployment
         run: |

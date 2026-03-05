@@ -37,12 +37,12 @@ npx vercel --prod
 supabase login
 
 # Deploy de todas as functions
-supabase functions deploy --project-ref yfxgncbopvnsltjqetxw
+supabase functions deploy --project-ref $SUPABASE_PROJECT_REF
 
 # Deploy de function específica
-supabase functions deploy evolution-manager --project-ref yfxgncbopvnsltjqetxw
-supabase functions deploy send-email --project-ref yfxgncbopvnsltjqetxw
-supabase functions deploy cleanup-agent-memory --project-ref yfxgncbopvnsltjqetxw
+supabase functions deploy evolution-manager --project-ref $SUPABASE_PROJECT_REF
+supabase functions deploy send-email --project-ref $SUPABASE_PROJECT_REF
+supabase functions deploy cleanup-agent-memory --project-ref $SUPABASE_PROJECT_REF
 ```
 
 **Secrets obrigatórios (Supabase Dashboard → Settings → Secrets):**
@@ -65,10 +65,10 @@ supabase functions deploy cleanup-agent-memory --project-ref yfxgncbopvnsltjqetx
 
 ```bash
 # Aplicar migrações pendentes
-supabase db push --project-ref yfxgncbopvnsltjqetxw
+supabase db push --project-ref $SUPABASE_PROJECT_REF
 
 # Verificar status
-supabase db diff --project-ref yfxgncbopvnsltjqetxw
+supabase db diff --project-ref $SUPABASE_PROJECT_REF
 ```
 
 ---
@@ -121,5 +121,5 @@ npx vercel rollback
 
 # Para Edge Functions: redeploy da versão anterior via git
 git checkout <commit-anterior>
-supabase functions deploy <nome-function> --project-ref yfxgncbopvnsltjqetxw
+supabase functions deploy <nome-function> --project-ref $SUPABASE_PROJECT_REF
 ```

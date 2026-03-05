@@ -1,7 +1,7 @@
 #!/bin/bash
 
-# Jurify MVP Automation Script
-# Validates all critical MVP components in a single run
+# Jurify SaaS Validation Script
+# Validates all critical components in a single run
 # Usage: ./scripts/mvp-automation.sh
 
 set -euo pipefail
@@ -38,12 +38,12 @@ fi
 
 # Start time
 START_TIME=$(date +%s)
-log_info "Starting Jurify MVP validation at $(date)"
+log_info "Starting Jurify SaaS validation at $(date)"
 
 # Step 1: Clean install and dependencies
 log_info "Step 1: Cleaning and installing dependencies..."
-rm -rf node_modules package-lock.json dist
-npm ci --silent
+rm -rf node_modules dist
+npm ci --prefer-offline --no-audit
 
 # Step 2: Type checking
 log_info "Step 2: Running TypeScript type checking..."
@@ -94,7 +94,7 @@ else
 fi
 
 # Step 8: Check critical files exist
-log_info "Step 8: Validating critical MVP files..."
+log_info "Step 8: Validating critical files..."
 CRITICAL_FILES=(
     "src/pages/Index.tsx"
     "src/pages/Dashboard.tsx"
@@ -201,7 +201,7 @@ SECONDS=$((DURATION % 60))
 
 # Final summary
 echo ""
-log_success "🎉 MVP VALIDATION COMPLETE"
+log_success "🎉 JURIFY SAAS VALIDATION COMPLETE"
 echo ""
 echo "📊 SUMMARY:"
 echo "   • TypeScript compilation: ✓"
@@ -212,7 +212,7 @@ echo "   • Edge Functions: ✓ (${#EDGE_FUNCTIONS[@]} functions)"
 echo "   • Database schema: ✓ ($SCHEMA_OK files)"
 echo "   • Duration: ${MINUTES}m ${SECONDS}s"
 echo ""
-log_info "Jurify MVP is ready for deployment! 🚀"
+log_info "Jurify SaaS is ready for deployment! 🚀"
 
 # Exit with success
 exit 0
