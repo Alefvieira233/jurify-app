@@ -15,12 +15,52 @@ env:
 
 jobs:
   # ==========================================
+  # JOB 0: PRE-DEPLOY GATE
+  # ==========================================
+  pre-deploy-gate:
+    name: 🛡️ Pre-Deploy Readiness Gate
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 🟢 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: 'package-lock.json'
+
+      - name: 📦 Install dependencies
+        run: npm ci --prefer-offline --no-audit
+
+      - name: 🔍 Type check
+        run: npm run type-check
+
+      - name: 🧪 Run unit tests
+        run: npm test -- --run
+        env:
+          CI: true
+
+      - name: 📊 Coverage check
+        run: npm run test:coverage
+        env:
+          CI: true
+
+      - name: 🛡️ Validate secrets config
+        run: node scripts/validate-secrets.cjs --ci
+        continue-on-error: true
+
+  # ==========================================
   # JOB 1: DEPLOY FRONTEND
   # ==========================================
   deploy-frontend:
     name: 🌐 Deploy Frontend to Production
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    needs: pre-deploy-gate
     environment:
       name: production
       url: https://jurify.com.br
@@ -38,11 +78,6 @@ jobs:
 
       - name: 📦 Install dependencies
         run: npm ci --prefer-offline --no-audit
-
-      - name: 🧪 Run tests
-        run: npm test -- --run
-        env:
-          CI: true
 
       - name: 🏗️ Build production
         run: npm run build

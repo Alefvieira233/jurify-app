@@ -44,6 +44,7 @@ const MissionControl = lazy(() => import("./features/mission-control/MissionCont
 const SubscriptionManager = lazy(() => import("./components/billing/SubscriptionManager"));
 const CRMDashboard = lazy(() => import("./features/crm/CRMDashboard"));
 const LeadDetailPanel = lazy(() => import("./features/crm/LeadDetailPanel"));
+const AdminStatus = lazy(() => import("./pages/AdminStatus"));
 
 // WhatsApp Error Boundary - import direto (necessário para wrapping)
 import { WhatsAppErrorBoundary } from "./features/whatsapp/WhatsAppErrorBoundary";
@@ -124,6 +125,7 @@ const App = () => (
                   <Route path="crm/lead/:leadId" element={<ErrorBoundary><LeadDetailPanel /></ErrorBoundary>} />
                   <Route path="admin/playground" element={<ProtectedRoute requiredRoles={['admin']}><ErrorBoundary><AgentsPlayground /></ErrorBoundary></ProtectedRoute>} />
                   <Route path="admin/mission-control" element={<ProtectedRoute requiredRoles={['admin']}><ErrorBoundary><MissionControl /></ErrorBoundary></ProtectedRoute>} />
+                  <Route path="admin/status" element={<ProtectedRoute requiredRoles={['admin']}><ErrorBoundary><AdminStatus /></ErrorBoundary></ProtectedRoute>} />
                 </Route>
 
                 <Route path="*" element={<NotFound />} />

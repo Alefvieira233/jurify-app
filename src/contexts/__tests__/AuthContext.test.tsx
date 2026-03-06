@@ -57,6 +57,7 @@ vi.mock('@/hooks/use-toast', () => ({
 // Mock do Sentry
 vi.mock('@/lib/sentry', () => ({
   setSentryUser: vi.fn(),
+  addSentryBreadcrumb: vi.fn(),
 }));
 
 // Componente de teste para acessar o contexto

@@ -197,14 +197,13 @@ jobs:
           fi
 
   # ==========================================
-  # JOB 5: E2E TESTS (Opcional)
+  # JOB 5: E2E TESTS
   # ==========================================
   test-e2e:
     name: 🎭 E2E Tests
     runs-on: ubuntu-latest
     timeout-minutes: 20
     needs: build
-    continue-on-error: true  # E2E needs real Supabase users — informational only
     if: github.event_name == 'pull_request' || github.ref == 'refs/heads/master' || github.ref == 'refs/heads/main'
 
     steps:
@@ -228,11 +227,13 @@ jobs:
 
       - name: 🎭 Run E2E tests
         working-directory: ${{ env.WORKING_DIR }}
-        run: npm run test:e2e
+        run: npm run test:e2e -- --project=chromium
         env:
           CI: true
           VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
           VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+          E2E_TEST_EMAIL: ${{ secrets.E2E_TEST_EMAIL }}
+          E2E_TEST_PASSWORD: ${{ secrets.E2E_TEST_PASSWORD }}
 
       - name: 📤 Upload Playwright report
         if: always()
@@ -257,7 +258,8 @@ jobs:
           echo "✅ CI Pipeline passou com sucesso!"
           echo "✅ Lint: OK"
           echo "✅ Type Check: OK"
-          echo "✅ Tests: OK"
+          echo "✅ Unit Tests: OK"
+          echo "✅ E2E Tests: OK"
           echo "✅ Build: OK"
           echo "✅ Security: OK"
           echo ""

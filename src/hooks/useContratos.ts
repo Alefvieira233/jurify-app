@@ -5,6 +5,7 @@ import { supabaseUntyped as supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { createLogger } from '@/lib/logger';
+import { addSentryBreadcrumb } from '@/lib/sentry';
 
 const log = createLogger('Contratos');
 
@@ -87,11 +88,13 @@ export const useContratos = () => {
       return normalizeContrato(row as ContratoRow);
     },
     onSuccess: (newContrato) => {
+      addSentryBreadcrumb(`Contrato criado: ${newContrato.id}`, 'contratos', 'info');
       queryClient.setQueryData<Contrato[]>(qKey, prev => [newContrato, ...(prev ?? [])]);
       toast({ title: 'Sucesso', description: 'Contrato criado com sucesso!' });
       log.info('Contrato criado', { id: newContrato.id });
     },
     onError: (err: unknown) => {
+      addSentryBreadcrumb('Erro ao criar contrato', 'contratos', 'error');
       log.error('Erro ao criar contrato', err);
       toast({ title: 'Erro', description: err instanceof Error ? err.message : 'Não foi possível criar o contrato.', variant: 'destructive' });
     },
@@ -111,12 +114,14 @@ export const useContratos = () => {
       return normalizeContrato(row as ContratoRow);
     },
     onSuccess: (updated) => {
+      addSentryBreadcrumb(`Contrato atualizado: ${updated.id}`, 'contratos', 'info');
       queryClient.setQueryData<Contrato[]>(qKey, prev =>
         (prev ?? []).map(c => c.id === updated.id ? { ...c, ...updated } : c)
       );
       toast({ title: 'Sucesso', description: 'Contrato atualizado com sucesso!' });
     },
     onError: (err: unknown) => {
+      addSentryBreadcrumb('Erro ao atualizar contrato', 'contratos', 'error');
       log.error('Erro ao atualizar contrato', err);
       toast({ title: 'Erro', description: err instanceof Error ? err.message : 'Não foi possível atualizar o contrato.', variant: 'destructive' });
     },

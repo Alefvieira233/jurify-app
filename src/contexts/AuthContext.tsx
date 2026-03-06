@@ -4,6 +4,7 @@ import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { Action, Resource, ROLE_PERMISSIONS, UserRole } from '@/types/rbac';
 import { useInactivityLogout } from '@/hooks/useInactivityLogout';
+import { addSentryBreadcrumb, setSentryUser } from '@/lib/sentry';
 
 interface Profile {
   id: string;
@@ -154,7 +155,10 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     };
   }, [fetchProfile]);
 
-  const signIn = (email: string, password: string) => supabase.auth.signInWithPassword({ email, password });
+  const signIn = (email: string, password: string) => {
+    addSentryBreadcrumb('User login attempt', 'auth', 'info');
+    return supabase.auth.signInWithPassword({ email, password });
+  };
   const signUp = (email: string, password: string, userData?: Record<string, unknown>) => {
     // Client-side password strength check
     if (password.length < 12) {
@@ -182,6 +186,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     return supabase.auth.signUp({ email, password, options: { data: userData } });
   };
   const signOut = async () => {
+    addSentryBreadcrumb('User logout', 'auth', 'info');
+    setSentryUser(null);
     await supabase.auth.signOut();
     window.location.href = '/auth';
   };

@@ -18,6 +18,7 @@ import { supabaseUntyped as supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { createLogger } from '@/lib/logger';
+import { addSentryBreadcrumb } from '@/lib/sentry';
 
 const log = createLogger('Leads');
 
@@ -222,6 +223,7 @@ export const useLeads = (options?: { enablePagination?: boolean; pageSize?: numb
       return normalizeLead(newLead);
     },
     onSuccess: (newLead) => {
+      addSentryBreadcrumb(`Lead criado: ${newLead.id}`, 'leads', 'info');
       queryClient.setQueryData(qKey, (prev: typeof queryData) => ({
         leads: [newLead, ...(prev?.leads ?? [])],
         totalCount: (prev?.totalCount ?? 0) + 1,
@@ -229,6 +231,7 @@ export const useLeads = (options?: { enablePagination?: boolean; pageSize?: numb
       toast({ title: 'Sucesso', description: 'Lead criado com sucesso!' });
     },
     onError: (err: unknown) => {
+      addSentryBreadcrumb('Erro ao criar lead', 'leads', 'error');
       log.error('Erro ao criar lead', err);
       toast({
         title: 'Erro',
@@ -281,6 +284,7 @@ export const useLeads = (options?: { enablePagination?: boolean; pageSize?: numb
       return id;
     },
     onSuccess: (deletedId) => {
+      addSentryBreadcrumb(`Lead deletado: ${deletedId}`, 'leads', 'info');
       queryClient.setQueryData(qKey, (prev: typeof queryData) => ({
         leads: (prev?.leads ?? []).filter(l => l.id !== deletedId),
         totalCount: Math.max(0, (prev?.totalCount ?? 1) - 1),
@@ -288,6 +292,7 @@ export const useLeads = (options?: { enablePagination?: boolean; pageSize?: numb
       toast({ title: 'Sucesso', description: 'Lead removido com sucesso!' });
     },
     onError: (err: unknown) => {
+      addSentryBreadcrumb('Erro ao deletar lead', 'leads', 'error');
       log.error('Erro ao deletar lead', err);
       toast({
         title: 'Erro',
