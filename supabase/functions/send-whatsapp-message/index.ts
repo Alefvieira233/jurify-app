@@ -224,6 +224,7 @@ async function getWhatsAppCredentials(
   const { data: evolutionConfig } = await supabase
     .from("configuracoes_integracoes")
     .select("observacoes, status")
+    .eq("tenant_id", tenantId)
     .eq("nome_integracao", "whatsapp_evolution")
     .eq("status", "ativa")
     .maybeSingle();
@@ -244,6 +245,7 @@ async function getWhatsAppCredentials(
   const { data: metaConfig } = await supabase
     .from("configuracoes_integracoes")
     .select("api_key, endpoint_url")
+    .eq("tenant_id", tenantId)
     .eq("nome_integracao", "whatsapp_oficial")
     .eq("status", "ativa")
     .maybeSingle();

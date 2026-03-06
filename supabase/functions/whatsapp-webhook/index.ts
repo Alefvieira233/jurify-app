@@ -824,17 +824,22 @@ async function sendViaEvolution(instanceName: string, to: string, text: string) 
 // ============================================
 // 📤 ENVIO VIA META OFFICIAL API (backward compatible)
 // ============================================
-async function sendViaMeta(to: string, text: string, _tenantId: string, supabase: ReturnType<typeof createClient>) {
+async function sendViaMeta(to: string, text: string, tenantId: string, supabase: ReturnType<typeof createClient>) {
   let accessToken = Deno.env.get("WHATSAPP_ACCESS_TOKEN") || "";
   let phoneNumberId = Deno.env.get("WHATSAPP_PHONE_NUMBER_ID") || "";
 
-  // Tenta buscar credenciais da integração Meta
-  const { data: config } = await supabase
+  // Tenta buscar credenciais da integração Meta scoped by tenant
+  let configQuery = supabase
     .from("configuracoes_integracoes")
     .select("api_key, endpoint_url")
     .eq("nome_integracao", INTEGRATION_NAME_META)
-    .eq("status", "ativa")
-    .maybeSingle();
+    .eq("status", "ativa");
+
+  if (tenantId) {
+    configQuery = configQuery.eq("tenant_id", tenantId);
+  }
+
+  const { data: config } = await configQuery.maybeSingle();
 
   if (config?.api_key) accessToken = config.api_key;
   if (config?.endpoint_url) phoneNumberId = config.endpoint_url;
