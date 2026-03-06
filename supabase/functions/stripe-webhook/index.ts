@@ -152,24 +152,30 @@ Deno.serve(async (req) => {
                 const customerId = invoice.customer as string;
                 console.log(`⚠️ Payment failed for customer: ${customerId}`);
 
-                const { data: profileData } = await supabase
+                const { data: failedProfile } = await supabase
                     .from('profiles')
-                    .select('id, email')
+                    .select('id, email, tenant_id')
                     .eq('stripe_customer_id', customerId)
                     .single();
 
-                if (profileData) {
+                if (failedProfile?.tenant_id) {
                     await supabase
                         .from('subscriptions')
                         .update({ status: 'past_due', updated_at: new Date().toISOString() })
-                        .eq('stripe_customer_id', customerId);
+                        .eq('tenant_id', failedProfile.tenant_id);
 
                     await supabase
                         .from('profiles')
                         .update({ subscription_status: 'past_due' })
-                        .eq('id', profileData.id);
+                        .eq('id', failedProfile.id);
 
-                    console.log(`📧 User ${profileData.email} marked as past_due`);
+                    console.log(`📧 User ${failedProfile.email} marked as past_due`);
+
+                    if (failedProfile.email) {
+                        await sendEmail(failedProfile.email, 'payment-failed', {
+                            name: failedProfile.email,
+                        });
+                    }
                 }
                 break;
             }
@@ -204,7 +210,7 @@ async function manageSubscriptionStatusChange(
 ) {
     const { data: profileData, error: profileError } = await supabase
         .from('profiles')
-        .select('id')
+        .select('id, tenant_id')
         .eq('stripe_customer_id', customerId)
         .single();
 
@@ -213,7 +219,12 @@ async function manageSubscriptionStatusChange(
         return;
     }
 
-    const { id: uuid } = profileData;
+    const { id: uuid, tenant_id: tenantId } = profileData;
+
+    if (!tenantId) {
+        console.error('Profile has no tenant_id for user:', uuid);
+        return;
+    }
 
     let subscription;
     try {
@@ -248,11 +259,13 @@ async function manageSubscriptionStatusChange(
     const { error } = await supabase
         .from('subscriptions')
         .upsert({
-            user_id: uuid,
+            tenant_id: tenantId,
             stripe_subscription_id: subscription.id,
             stripe_customer_id: customerId,
             status: mappedStatus,
             plan_id: planId,
+            plan_tier: planId || 'free',
+            amount: subscription.items.data[0]?.price?.unit_amount ?? 0,
             current_period_start: new Date(subscription.current_period_start * 1000).toISOString(),
             current_period_end: new Date(subscription.current_period_end * 1000).toISOString(),
             cancel_at_period_end: subscription.cancel_at_period_end,

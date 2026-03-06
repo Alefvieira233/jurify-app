@@ -49,7 +49,7 @@ Deno.serve(async (req) => {
         // 5. Get or Create Customer
         const { data: profile } = await supabase
             .from('profiles')
-            .select('stripe_customer_id, email')
+            .select('stripe_customer_id, email, tenant_id')
             .eq('id', user.id)
             .single();
 
@@ -90,6 +90,7 @@ Deno.serve(async (req) => {
             subscription_data: mode === 'subscription' ? {
                 metadata: {
                     supabase_user_id: user.id,
+                    tenant_id: profile?.tenant_id || null,
                     plan_id: planId || null,
                 },
             } : undefined,

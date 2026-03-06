@@ -91,8 +91,8 @@ export const SubscriptionManager = () => {
             const { data: subData } = await supabase
                 .from('subscriptions')
                 .select('*')
-                .eq('user_id', profile.id)
-                .single();
+                .eq('tenant_id', profile.tenant_id)
+                .maybeSingle();
 
             if (subData) {
                 setSubscription(subData);

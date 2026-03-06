@@ -613,6 +613,7 @@ async function processNormalizedMessage(supabase: ReturnType<typeof createClient
     // --- SAVE MESSAGE ---
     await supabase.from("whatsapp_messages").insert({
       conversation_id: conversationId,
+      tenant_id: tenantId,
       sender: "lead",
       content: text,
       message_type: messageType === "conversation" ? "text" : messageType,
@@ -636,14 +637,38 @@ async function processNormalizedMessage(supabase: ReturnType<typeof createClient
     // Busca configuracao do escritorio para personalizar o prompt da IA
     let officeName = "nosso escritorio";
     let assistantName = "Ana";
-    const { data: tenantConfig } = await supabase
-      .from("escritorios")
-      .select("nome, whatsapp_assistant_name")
-      .eq("tenant_id", tenantId)
-      .maybeSingle();
+    try {
+      // Try escritorios table first (custom table some tenants may have)
+      const { data: tenantConfig } = await supabase
+        .from("escritorios")
+        .select("nome, whatsapp_assistant_name")
+        .eq("tenant_id", tenantId)
+        .maybeSingle();
 
-    if (tenantConfig?.nome) officeName = tenantConfig.nome;
-    if (tenantConfig?.whatsapp_assistant_name) assistantName = tenantConfig.whatsapp_assistant_name;
+      if (tenantConfig?.nome) officeName = tenantConfig.nome;
+      if (tenantConfig?.whatsapp_assistant_name) assistantName = tenantConfig.whatsapp_assistant_name;
+    } catch {
+      // Table may not exist — try configuracoes_integracoes as fallback
+      try {
+        const { data: intConfig } = await supabase
+          .from("configuracoes_integracoes")
+          .select("observacoes")
+          .eq("tenant_id", tenantId)
+          .eq("nome_integracao", "whatsapp_config")
+          .maybeSingle();
+
+        if (intConfig?.observacoes) {
+          // Parse "office:NomeEscritorio;assistant:NomeAssistente" format
+          const obs = intConfig.observacoes as string;
+          const officeMatch = obs.match(/office:\s*(.+?)(?:;|$)/);
+          const assistantMatch = obs.match(/assistant:\s*(.+?)(?:;|$)/);
+          if (officeMatch?.[1]) officeName = officeMatch[1].trim();
+          if (assistantMatch?.[1]) assistantName = assistantMatch[1].trim();
+        }
+      } catch {
+        console.log(`[webhook:${provider}] No office config found, using defaults`);
+      }
+    }
 
     // Busca historico recente da conversa para contexto
     let conversationHistory = "";
@@ -722,9 +747,10 @@ ${conversationHistory ? `HISTORICO DA CONVERSA:\n${conversationHistory}\n` : ""}
       console.log(`[webhook:${provider}] Lead ${leadId} status updated to em_atendimento`);
     }
 
-// --- SAVE AI RESPONSE ---
+    // --- SAVE AI RESPONSE ---
     await supabase.from("whatsapp_messages").insert({
       conversation_id: conversationId,
+      tenant_id: tenantId,
       sender: "ia",
       content: aiText,
       message_type: "text",
