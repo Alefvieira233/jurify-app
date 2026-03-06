@@ -35,6 +35,11 @@ const ContratosManager = lazyWithRetry(() => import("./features/contracts/Contra
 const RelatoriosGerenciais = lazyWithRetry(() => import("./features/reports/RelatoriosGerenciais"));
 const WhatsAppIA = lazyWithRetry(() => import("./features/whatsapp/WhatsAppIA"));
 const AgentesIAManager = lazyWithRetry(() => import("./features/ai-agents/AgentesIAManager"));
+// Módulos jurídicos
+const ProcessosManager = lazyWithRetry(() => import("./features/processos/ProcessosManager"));
+const PrazosManager    = lazyWithRetry(() => import("./features/prazos/PrazosManager"));
+const HonorariosManager = lazyWithRetry(() => import("./features/honorarios/HonorariosManager"));
+const DocumentosManager = lazyWithRetry(() => import("./features/documentos/DocumentosManager"));
 const UsuariosManager = lazyWithRetry(() => import("./features/users/UsuariosManager"));
 const LogsPanel = lazyWithRetry(() => import("./features/logs/LogsPanel"));
 const IntegracoesConfig = lazyWithRetry(() => import("./features/settings/IntegracoesConfig"));
@@ -57,6 +62,8 @@ if (typeof window !== 'undefined' && 'requestIdleCallback' in window) {
     void import("./features/scheduling/AgendamentosManager");
     void import("./features/crm/CRMDashboard");
     void import("./features/reports/RelatoriosGerenciais");
+    void import("./features/processos/ProcessosManager");
+    void import("./features/prazos/PrazosManager");
   });
 }
 
@@ -124,6 +131,15 @@ const App = () => (
                   {/* /crm/followups acessível via CRM Dashboard */}
                   <Route path="crm/followups" element={<Navigate to="/crm" replace />} />
                   <Route path="crm/lead/:leadId" element={<ErrorBoundary><LeadDetailPanel /></ErrorBoundary>} />
+                  {/* Módulos Jurídicos */}
+                  <Route path="processos" element={<ErrorBoundary><ProcessosManager /></ErrorBoundary>} />
+                  <Route path="prazos" element={<ErrorBoundary><PrazosManager /></ErrorBoundary>} />
+                  <Route path="honorarios" element={
+                    <ProtectedRoute requiredRoles={['admin', 'manager']}>
+                      <ErrorBoundary><HonorariosManager /></ErrorBoundary>
+                    </ProtectedRoute>
+                  } />
+                  <Route path="documentos" element={<ErrorBoundary><DocumentosManager /></ErrorBoundary>} />
                   <Route path="admin/playground" element={<ProtectedRoute requiredRoles={['admin']}><ErrorBoundary><AgentsPlayground /></ErrorBoundary></ProtectedRoute>} />
                   <Route path="admin/mission-control" element={<ProtectedRoute requiredRoles={['admin']}><ErrorBoundary><MissionControl /></ErrorBoundary></ProtectedRoute>} />
                   <Route path="admin/status" element={<ProtectedRoute requiredRoles={['admin']}><ErrorBoundary><AdminStatus /></ErrorBoundary></ProtectedRoute>} />

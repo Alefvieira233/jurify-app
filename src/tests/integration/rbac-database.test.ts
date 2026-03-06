@@ -27,6 +27,10 @@ function hasPermissionSQL(role: string | null, resource: string, action: string)
       integracoes: ['read', 'update', 'manage'],
       whatsapp: ['read', 'create', 'update'],
       pipeline: ['read', 'update'],
+      processos: ['create', 'read', 'update', 'delete'],
+      prazos: ['create', 'read', 'update', 'delete'],
+      honorarios: ['create', 'read', 'update', 'delete', 'manage'],
+      documentos: ['create', 'read', 'update', 'delete'],
     },
     manager: {
       leads: ['create', 'read', 'update', 'delete'],
@@ -41,6 +45,10 @@ function hasPermissionSQL(role: string | null, resource: string, action: string)
       integracoes: ['read'],
       whatsapp: ['read', 'create'],
       pipeline: ['read', 'update'],
+      processos: ['create', 'read', 'update'],
+      prazos: ['create', 'read', 'update'],
+      honorarios: ['read', 'create'],
+      documentos: ['create', 'read', 'update'],
     },
     user: {
       leads: ['create', 'read', 'update'],
@@ -53,6 +61,9 @@ function hasPermissionSQL(role: string | null, resource: string, action: string)
       relatorios: ['read'],
       whatsapp: ['read'],
       pipeline: ['read'],
+      processos: ['read'],
+      prazos: ['read', 'create'],
+      documentos: ['read', 'create'],
     },
     viewer: {
       leads: ['read'],
@@ -63,6 +74,9 @@ function hasPermissionSQL(role: string | null, resource: string, action: string)
       relatorios: ['read'],
       whatsapp: ['read'],
       pipeline: ['read'],
+      processos: ['read'],
+      prazos: ['read'],
+      documentos: ['read'],
     },
   };
 

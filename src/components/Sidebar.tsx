@@ -22,6 +22,10 @@ import {
   HelpCircle,
   ChevronRight,
   ArrowUpRight,
+  Clock,
+  DollarSign,
+  FolderOpen,
+  Gavel,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/contexts/AuthContext';
@@ -60,10 +64,14 @@ const ALL_MENU_ITEMS: MenuItem[] = [
   { id: 'whatsapp',              label: 'WhatsApp',         icon: MessageSquare,   resource: 'whatsapp',      action: 'read', group: 'main' },
   { id: 'agentes',               label: 'Agentes IA',       icon: Bot,             resource: 'agentes_ia',    action: 'read', group: 'main' },
   { id: 'contratos',             label: 'Contratos',        icon: FileText,        resource: 'contratos',     action: 'read', group: 'main' },
+  { id: 'processos',             label: 'Processos',        icon: Gavel,           resource: 'processos',     action: 'read', group: 'main' },
+  { id: 'prazos',                label: 'Prazos',           icon: Clock,           resource: 'prazos',        action: 'read', group: 'main', badge: 'notification' },
   { id: 'crm',                   label: 'Clientes',         icon: Users,           resource: 'leads',         action: 'read', group: 'main' },
   { id: 'notificacoes',          label: 'Notificações',     icon: Bell,            resource: 'notificacoes',  action: 'read', group: 'main', badge: 'notification' },
   /* ── Sistema (colapsável) ── */
   { id: 'relatorios',            label: 'Relatórios',       icon: BarChart3,       resource: 'relatorios',    action: 'read', group: 'sistema' },
+  { id: 'honorarios',            label: 'Honorários',       icon: DollarSign,      resource: 'honorarios',    action: 'read', group: 'sistema', managerOk: true },
+  { id: 'documentos',            label: 'Documentos',       icon: FolderOpen,      resource: 'documentos',    action: 'read', group: 'sistema' },
   { id: 'billing',               label: 'Assinatura',      icon: CreditCard,      resource: 'dashboard',     action: 'read', group: 'sistema', badge: 'upgrade' },
   { id: 'usuarios',              label: 'Usuários',        icon: UserCog,         resource: 'usuarios',      action: 'read', group: 'sistema', managerOk: true },
   { id: 'integracoes',           label: 'Integrações',     icon: Zap,             resource: 'integracoes',   action: 'read', group: 'sistema', adminOnly: true },

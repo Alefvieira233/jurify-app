@@ -17,7 +17,12 @@ export type Resource =
   | 'integracoes'
   | 'whatsapp'
   | 'agendamentos'
-  | 'pipeline';
+  | 'pipeline'
+  // Módulos jurídicos
+  | 'processos'
+  | 'prazos'
+  | 'honorarios'
+  | 'documentos';
 
 // Acoes possiveis
 export type Action = 'create' | 'read' | 'update' | 'delete' | 'execute' | 'manage';
@@ -43,6 +48,10 @@ export const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
     { resource: 'whatsapp', actions: ['read', 'create', 'update'] },
     { resource: 'agendamentos', actions: ['create', 'read', 'update', 'delete'] },
     { resource: 'pipeline', actions: ['read', 'update'] },
+    { resource: 'processos',  actions: ['create', 'read', 'update', 'delete'] },
+    { resource: 'prazos',     actions: ['create', 'read', 'update', 'delete'] },
+    { resource: 'honorarios', actions: ['create', 'read', 'update', 'delete', 'manage'] },
+    { resource: 'documentos', actions: ['create', 'read', 'update', 'delete'] },
   ],
 
   // Manager: gerencia operacoes, sem usuarios/configuracoes
@@ -58,6 +67,10 @@ export const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
     { resource: 'whatsapp', actions: ['read', 'create'] },
     { resource: 'agendamentos', actions: ['create', 'read', 'update', 'delete'] },
     { resource: 'pipeline', actions: ['read', 'update'] },
+    { resource: 'processos',  actions: ['create', 'read', 'update'] },
+    { resource: 'prazos',     actions: ['create', 'read', 'update'] },
+    { resource: 'honorarios', actions: ['read', 'create'] },
+    { resource: 'documentos', actions: ['create', 'read', 'update'] },
   ],
 
   // User: operacoes basicas
@@ -73,6 +86,10 @@ export const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
     { resource: 'whatsapp', actions: ['read'] },
     { resource: 'agendamentos', actions: ['create', 'read', 'update'] },
     { resource: 'pipeline', actions: ['read'] },
+    { resource: 'processos',  actions: ['read'] },
+    { resource: 'prazos',     actions: ['read', 'create'] },
+    { resource: 'honorarios', actions: [] },
+    { resource: 'documentos', actions: ['read', 'create'] },
   ],
 
   // Viewer: somente leitura
@@ -88,6 +105,10 @@ export const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
     { resource: 'whatsapp', actions: ['read'] },
     { resource: 'agendamentos', actions: ['read'] },
     { resource: 'pipeline', actions: ['read'] },
+    { resource: 'processos',  actions: ['read'] },
+    { resource: 'prazos',     actions: ['read'] },
+    { resource: 'honorarios', actions: [] },
+    { resource: 'documentos', actions: ['read'] },
   ],
 };
 
