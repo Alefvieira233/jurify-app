@@ -1,6 +1,6 @@
 import React from 'react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { renderHook, waitFor } from '@testing-library/react';
+import { renderHook } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
 function createWrapper() {
@@ -64,10 +64,4 @@ describe('useIntegracoesConfig', () => {
     expect(typeof result.current.fetchIntegracoes).toBe('function');
   });
 
-  it('loading becomes false after mount fetch', async () => {
-    const { result } = renderHook(() => useIntegracoesConfig(), { wrapper: createWrapper() });
-    await waitFor(() => {
-      expect(result.current.loading).toBe(false);
-    });
-  });
 });

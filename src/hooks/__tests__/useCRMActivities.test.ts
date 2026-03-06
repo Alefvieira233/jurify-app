@@ -1,6 +1,6 @@
 import React from 'react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { renderHook, waitFor } from '@testing-library/react';
+import { renderHook, waitFor, act } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
 function createWrapper() {
@@ -69,12 +69,49 @@ describe('useCRMActivities', () => {
 
   it('fetchActivities populates data', async () => {
     const { result } = renderHook(() => useCRMActivities(), { wrapper: createWrapper() });
-    await waitFor(async () => {
+    await act(async () => {
       await result.current.fetchActivities('l1');
     });
     expect(result.current.activities).toHaveLength(2);
     const first = result.current.activities[0];
     expect(first).toHaveProperty('id');
     expect(first).toHaveProperty('lead_id');
+  });
+
+  it('fetchActivities with offset option', async () => {
+    const { result } = renderHook(() => useCRMActivities(), { wrapper: createWrapper() });
+    await act(async () => {
+      await result.current.fetchActivities('l1', { limit: 10, offset: 5 });
+    });
+    expect(result.current.loading).toBe(false);
+  });
+
+  it('logActivity returns true on success', async () => {
+    const { result } = renderHook(() => useCRMActivities(), { wrapper: createWrapper() });
+    let success: boolean;
+    await act(async () => {
+      success = await result.current.logActivity({
+        lead_id: 'l1',
+        activity_type: 'call',
+        title: 'Test call',
+        description: 'Spoke with client',
+        metadata: { duration: 300 },
+        scheduled_at: '2025-03-01T10:00:00Z',
+      });
+    });
+    expect(success!).toBe(true);
+  });
+
+  it('logActivity returns true with minimal data', async () => {
+    const { result } = renderHook(() => useCRMActivities(), { wrapper: createWrapper() });
+    let success: boolean;
+    await act(async () => {
+      success = await result.current.logActivity({
+        lead_id: 'l1',
+        activity_type: 'note',
+        title: 'Quick note',
+      });
+    });
+    expect(success!).toBe(true);
   });
 });

@@ -74,6 +74,36 @@ describe('SharedContext', () => {
       // All 100 should still be accessible (well under 10000 limit)
       expect(ctx.get('lead-0')).toEqual({ idx: 0 });
     });
+
+    it('evicts oldest when at capacity and adding new key', () => {
+      // Fill to MAX_ENTRIES (10000)
+      for (let i = 0; i < 10000; i++) {
+        ctx.set(`lead-${i}`, { idx: i });
+        vi.advanceTimersByTime(1);
+      }
+      // Adding a new key should evict lead-0 (oldest)
+      ctx.set('lead-new', { idx: 'new' });
+      expect(ctx.get('lead-0')).toEqual({});
+      expect(ctx.get('lead-new')).toEqual({ idx: 'new' });
+    });
+  });
+
+  describe('cleanup timer', () => {
+    it('evictExpired removes expired entries when timer fires', () => {
+      ctx.set('lead-old', { name: 'Old' });
+      // Advance past TTL (24h)
+      vi.advanceTimersByTime(25 * 60 * 60 * 1000);
+      // Now advance to trigger cleanup interval (1h)
+      vi.advanceTimersByTime(60 * 60 * 1000);
+      expect(ctx.get('lead-old')).toEqual({});
+    });
+
+    it('evictExpired keeps non-expired entries', () => {
+      ctx.set('lead-fresh', { name: 'Fresh' });
+      // Advance less than TTL but past cleanup interval
+      vi.advanceTimersByTime(2 * 60 * 60 * 1000);
+      expect(ctx.get('lead-fresh')).toEqual({ name: 'Fresh' });
+    });
   });
 
   describe('destroy', () => {

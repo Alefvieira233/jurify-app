@@ -75,4 +75,82 @@ describe('useLogActivity', () => {
     await result.current.log('criacao', 'leads', 'Custom log');
     expect(mockLogActivity).toHaveBeenCalled();
   });
+
+  it('logLogout calls logActivity', async () => {
+    const { result } = renderHook(() => useLogActivity(), { wrapper: createWrapper() });
+    result.current.logLogout();
+    await vi.waitFor(() => expect(mockLogActivity).toHaveBeenCalled());
+  });
+
+  it('logLeadUpdated calls logActivity', async () => {
+    const { result } = renderHook(() => useLogActivity(), { wrapper: createWrapper() });
+    result.current.logLeadUpdated('Lead ABC');
+    await vi.waitFor(() => expect(mockLogActivity).toHaveBeenCalled());
+  });
+
+  it('logLeadDeleted calls logActivity', async () => {
+    const { result } = renderHook(() => useLogActivity(), { wrapper: createWrapper() });
+    result.current.logLeadDeleted('Lead XYZ');
+    await vi.waitFor(() => expect(mockLogActivity).toHaveBeenCalled());
+  });
+
+  it('logContractCreated calls logActivity', async () => {
+    const { result } = renderHook(() => useLogActivity(), { wrapper: createWrapper() });
+    result.current.logContractCreated('c1', 'Client A');
+    await vi.waitFor(() => expect(mockLogActivity).toHaveBeenCalled());
+  });
+
+  it('logContractUpdated calls logActivity', async () => {
+    const { result } = renderHook(() => useLogActivity(), { wrapper: createWrapper() });
+    result.current.logContractUpdated('c1', 'Client A');
+    await vi.waitFor(() => expect(mockLogActivity).toHaveBeenCalled());
+  });
+
+  it('logAppointmentCreated calls logActivity', async () => {
+    const { result } = renderHook(() => useLogActivity(), { wrapper: createWrapper() });
+    result.current.logAppointmentCreated({ data_hora: '2025-03-01T10:00:00Z' });
+    await vi.waitFor(() => expect(mockLogActivity).toHaveBeenCalled());
+  });
+
+  it('logAgenteCreated calls logActivity', async () => {
+    const { result } = renderHook(() => useLogActivity(), { wrapper: createWrapper() });
+    result.current.logAgenteCreated('Agent Alpha');
+    await vi.waitFor(() => expect(mockLogActivity).toHaveBeenCalled());
+  });
+
+  it('logAgenteUpdated calls logActivity', async () => {
+    const { result } = renderHook(() => useLogActivity(), { wrapper: createWrapper() });
+    result.current.logAgenteUpdated('Agent Alpha');
+    await vi.waitFor(() => expect(mockLogActivity).toHaveBeenCalled());
+  });
+
+  it('logAgenteStatusChanged calls logActivity', async () => {
+    const { result } = renderHook(() => useLogActivity(), { wrapper: createWrapper() });
+    result.current.logAgenteStatusChanged('Agent Alpha', 'active');
+    await vi.waitFor(() => expect(mockLogActivity).toHaveBeenCalled());
+  });
+
+  it('logApiKeyCreated calls logActivity', async () => {
+    const { result } = renderHook(() => useLogActivity(), { wrapper: createWrapper() });
+    result.current.logApiKeyCreated('My Key');
+    await vi.waitFor(() => expect(mockLogActivity).toHaveBeenCalled());
+  });
+
+  it('logApiKeyToggled calls logActivity', async () => {
+    const { result } = renderHook(() => useLogActivity(), { wrapper: createWrapper() });
+    result.current.logApiKeyToggled('My Key', true);
+    await vi.waitFor(() => expect(mockLogActivity).toHaveBeenCalled());
+  });
+
+  it('logAgenteExecution calls logActivity', async () => {
+    const { result } = renderHook(() => useLogActivity(), { wrapper: createWrapper() });
+    result.current.logAgenteExecution('Agent Alpha', 'success', 1500);
+    await vi.waitFor(() => expect(mockLogActivity).toHaveBeenCalled());
+  });
+
+  it('logN8NTest calls logActivity', async () => {
+    const { result } = renderHook(() => useLogActivity(), { wrapper: createWrapper() });
+    result.current.logN8NTest(true, 'http://n8n.local');
+    await vi.waitFor(() => expect(mockLogActivity).toHaveBeenCalled());
+  });
 });

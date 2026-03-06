@@ -1,6 +1,6 @@
 import React from 'react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { renderHook, waitFor } from '@testing-library/react';
+import { renderHook, waitFor, act } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useContratos } from '../useContratos';
 
@@ -187,5 +187,33 @@ describe('useContratos', () => {
     });
 
     expect(result.current.error).toBeNull();
+  });
+
+  it('should call createContrato and return true on success', async () => {
+    const { result } = renderHook(() => useContratos(), { wrapper: createWrapper() });
+
+    await waitFor(() => {
+      expect(result.current.loading).toBe(false);
+    });
+
+    let success: boolean | undefined;
+    await act(async () => {
+      success = await result.current.createContrato({ nome_cliente: 'Novo Cliente', area_juridica: 'Trabalhista', valor_causa: 10000 });
+    });
+    expect(success).toBe(true);
+  });
+
+  it('should call updateContrato and return true on success', async () => {
+    const { result } = renderHook(() => useContratos(), { wrapper: createWrapper() });
+
+    await waitFor(() => {
+      expect(result.current.loading).toBe(false);
+    });
+
+    let success: boolean | undefined;
+    await act(async () => {
+      success = await result.current.updateContrato('c1', { status: 'assinado' });
+    });
+    expect(success).toBe(true);
   });
 });

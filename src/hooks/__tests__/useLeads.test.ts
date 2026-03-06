@@ -1,6 +1,6 @@
 import React from 'react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { renderHook, waitFor } from '@testing-library/react';
+import { renderHook, waitFor, act } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useLeads } from '../useLeads';
 
@@ -210,5 +210,70 @@ describe('useLeads', () => {
     });
 
     expect(result.current.totalPages).toBe(1);
+  });
+
+  it('should call createLead and return true on success', async () => {
+    const { result } = renderHook(() => useLeads(), { wrapper: createWrapper() });
+
+    await waitFor(() => {
+      expect(result.current.loading).toBe(false);
+    });
+
+    let success: boolean | undefined;
+    await act(async () => {
+      success = await result.current.createLead({ nome_completo: 'Novo Lead', telefone: '11999999999' });
+    });
+    expect(success).toBe(true);
+  });
+
+  it('should call updateLead and return true on success', async () => {
+    const { result } = renderHook(() => useLeads(), { wrapper: createWrapper() });
+
+    await waitFor(() => {
+      expect(result.current.loading).toBe(false);
+    });
+
+    let success: boolean | undefined;
+    await act(async () => {
+      success = await result.current.updateLead('1', { nome_completo: 'Updated Lead' });
+    });
+    expect(success).toBe(true);
+  });
+
+  it('should call deleteLead and return true on success', async () => {
+    const { result } = renderHook(() => useLeads(), { wrapper: createWrapper() });
+
+    await waitFor(() => {
+      expect(result.current.loading).toBe(false);
+    });
+
+    let success: boolean | undefined;
+    await act(async () => {
+      success = await result.current.deleteLead('1');
+    });
+    expect(success).toBe(true);
+  });
+
+  it('should expose isEmpty correctly when leads exist', async () => {
+    const { result } = renderHook(() => useLeads(), { wrapper: createWrapper() });
+
+    await waitFor(() => {
+      expect(result.current.leads).toHaveLength(2);
+    });
+
+    expect(result.current.isEmpty).toBe(false);
+    expect(result.current.error).toBeNull();
+  });
+
+  it('should handle pagination with goToPage', async () => {
+    const { result } = renderHook(() => useLeads({ enablePagination: true }), { wrapper: createWrapper() });
+
+    await waitFor(() => {
+      expect(result.current.loading).toBe(false);
+    });
+
+    expect(result.current.currentPage).toBe(1);
+    act(() => { result.current.goToPage(1); });
+    expect(result.current.currentPage).toBe(1);
   });
 });

@@ -148,4 +148,42 @@ describe('useNotifications', () => {
       user_id: 'user-1',
     });
   });
+
+  it('markAllAsRead calls rpc and resets unreadCount', async () => {
+    const { result } = renderHook(() => useNotifications());
+
+    await waitFor(() => {
+      expect(result.current.loading).toBe(false);
+    });
+
+    await act(async () => {
+      await result.current.markAllAsRead();
+    });
+
+    expect(mockRpc).toHaveBeenCalledWith('marcar_todas_lidas', {
+      user_id: 'user-1',
+    });
+    expect(result.current.unreadCount).toBe(0);
+  });
+
+  it('createNotification calls insert and shows toast', async () => {
+    const { result } = renderHook(() => useNotifications());
+
+    await waitFor(() => {
+      expect(result.current.loading).toBe(false);
+    });
+
+    await act(async () => {
+      await result.current.createNotification('Test Title', 'Test Message', 'info');
+    });
+
+    expect(mockToast).toHaveBeenCalledWith(
+      expect.objectContaining({ title: 'Notificacao criada' })
+    );
+  });
+
+  it('exposes fetchNotifications function', async () => {
+    const { result } = renderHook(() => useNotifications());
+    expect(typeof result.current.fetchNotifications).toBe('function');
+  });
 });

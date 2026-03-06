@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { renderHook } from '@testing-library/react';
 
 vi.mock('@/lib/logger', () => ({
   createLogger: () => ({
@@ -6,7 +7,7 @@ vi.mock('@/lib/logger', () => ({
   }),
 }));
 
-import monitoring, { withErrorTracking } from '../monitoring';
+import monitoring, { useMonitoring, withErrorTracking } from '../monitoring';
 
 describe('monitoring service', () => {
   beforeEach(() => {
@@ -59,6 +60,69 @@ describe('monitoring service', () => {
     const errors = monitoring.getRecentErrors();
     expect(errors).toHaveLength(0);
   });
+
+  it('getRecentErrors respects limit param', () => {
+    monitoring.clearErrors();
+    for (let i = 0; i < 5; i++) {
+      monitoring.captureError(new Error(`error-${i}`), { component: 'test' });
+    }
+    expect(monitoring.getRecentErrors(2)).toHaveLength(2);
+    expect(monitoring.getRecentErrors()).toHaveLength(5);
+  });
+
+  it('truncates errors list at 100', () => {
+    monitoring.clearErrors();
+    for (let i = 0; i < 110; i++) {
+      monitoring.captureError(new Error(`error-${i}`));
+    }
+    const all = monitoring.getRecentErrors(200);
+    expect(all.length).toBeLessThanOrEqual(100);
+  });
+
+  it('trackMetric with tags does not throw', () => {
+    expect(() => monitoring.trackMetric('test_metric', 99, { env: 'test' })).not.toThrow();
+  });
+
+  it('trackAction delegates to trackMetric', () => {
+    expect(() => monitoring.trackAction('click_button', { buttonId: 'save' })).not.toThrow();
+  });
+
+  it('captureError stores context metadata', () => {
+    monitoring.clearErrors();
+    monitoring.captureError(new Error('ctx'), { userId: 'u1', tenantId: 't1', component: 'Test', action: 'save', metadata: { key: 'val' } });
+    const recent = monitoring.getRecentErrors(1);
+    expect(recent[0].context).toBeDefined();
+  });
+});
+
+describe('useMonitoring hook', () => {
+  beforeEach(() => { monitoring.clearErrors(); });
+
+  it('exposes all monitoring functions', () => {
+    const { result } = renderHook(() => useMonitoring());
+    expect(typeof result.current.captureError).toBe('function');
+    expect(typeof result.current.trackMetric).toBe('function');
+    expect(typeof result.current.trackAction).toBe('function');
+    expect(typeof result.current.getRecentErrors).toBe('function');
+    expect(typeof result.current.clearErrors).toBe('function');
+  });
+
+  it('captureError delegates to monitoring singleton', () => {
+    const { result } = renderHook(() => useMonitoring());
+    result.current.captureError(new Error('hook error'), { component: 'HookTest' });
+    const errors = result.current.getRecentErrors();
+    expect(errors.length).toBeGreaterThan(0);
+  });
+
+  it('trackMetric delegates to monitoring singleton', () => {
+    const { result } = renderHook(() => useMonitoring());
+    expect(() => result.current.trackMetric('hook_metric', 1)).not.toThrow();
+  });
+
+  it('trackAction delegates to monitoring singleton', () => {
+    const { result } = renderHook(() => useMonitoring());
+    expect(() => result.current.trackAction('hook_action')).not.toThrow();
+  });
 });
 
 describe('withErrorTracking', () => {
@@ -84,5 +148,12 @@ describe('withErrorTracking', () => {
     
     await expect(wrapped()).resolves.toBe('async success');
     expect(fn).toHaveBeenCalled();
+  });
+
+  it('captures errors from async function and re-throws', async () => {
+    const fn = vi.fn().mockRejectedValue(new Error('async error'));
+    const wrapped = withErrorTracking(fn, { component: 'asyncTest' });
+    
+    await expect(wrapped()).rejects.toThrow('async error');
   });
 });

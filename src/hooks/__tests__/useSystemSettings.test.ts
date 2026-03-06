@@ -1,6 +1,6 @@
 import React from 'react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { renderHook, waitFor } from '@testing-library/react';
+import { renderHook, waitFor, act } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
 function createWrapper() {
@@ -144,5 +144,37 @@ describe('useSystemSettings', () => {
     });
 
     expect(result.current.isUpdating).toBe(false);
+  });
+
+  it('updateSetting calls rpc and shows toast on success', async () => {
+    const { result } = renderHook(() => useSystemSettings(), { wrapper: createWrapper() });
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+    });
+
+    await act(async () => {
+      result.current.updateSetting({ key: 'theme', value: 'light' });
+    });
+
+    await waitFor(() => {
+      expect(result.current.isUpdating).toBe(false);
+    });
+
+    expect(mockToast).toHaveBeenCalledWith(
+      expect.objectContaining({ title: 'Configuracao atualizada' })
+    );
+  });
+
+  it('getSettingsByCategory returns integrations category', async () => {
+    const { result } = renderHook(() => useSystemSettings(), { wrapper: createWrapper() });
+
+    await waitFor(() => {
+      expect(result.current.settings).toHaveLength(3);
+    });
+
+    const integrations = result.current.getSettingsByCategory('integrations');
+    expect(integrations).toHaveLength(1);
+    expect(integrations[0].is_sensitive).toBe(true);
   });
 });
