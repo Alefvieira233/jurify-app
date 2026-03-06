@@ -17,7 +17,7 @@ const log = createLogger('Dashboard');
 
 const Dashboard = () => {
   usePageTitle('Dashboard');
-  const { metrics, loading, error, refetch, isEmpty, isViewFallback } = useDashboardMetricsFast();
+  const { metrics, loading, error, refetch, isEmpty, isViewFallback, isLive } = useDashboardMetricsFast();
   const { data: agendaMetrics, isLoading: agendaLoading } = useAgendaMetrics();
   const { profile } = useAuth();
   const [isSeeding, setIsSeeding] = useState(false);
@@ -200,16 +200,24 @@ const Dashboard = () => {
               </p>
             </div>
           </div>
-          <Button
-            onClick={() => void refetch()}
-            variant="outline"
-            size="sm"
-            className="h-8 text-xs gap-1.5"
-            aria-label="Atualizar métricas do dashboard"
-          >
-            <Activity className="h-3.5 w-3.5" strokeWidth={2} />
-            Atualizar
-          </Button>
+          <div className="flex items-center gap-2">
+            {isLive && (
+              <Badge variant="outline" className="h-6 text-[10px] gap-1 border-emerald-300 text-emerald-600 dark:border-emerald-700 dark:text-emerald-400 animate-pulse">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                Live
+              </Badge>
+            )}
+            <Button
+              onClick={() => void refetch()}
+              variant="outline"
+              size="sm"
+              className="h-8 text-xs gap-1.5"
+              aria-label="Atualizar métricas do dashboard"
+            >
+              <Activity className="h-3.5 w-3.5" strokeWidth={2} />
+              Atualizar
+            </Button>
+          </div>
         </div>
       </header>
 

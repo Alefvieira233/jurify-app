@@ -42,9 +42,16 @@ function createExecChainableQuery() {
 }
 
 vi.mock('@/integrations/supabase/client', () => {
+  const mockChannel = {
+    on: () => mockChannel,
+    subscribe: (cb?: (status: string) => void) => { cb?.('SUBSCRIBED'); return mockChannel; },
+    unsubscribe: vi.fn(),
+  };
   const client = {
     from: () => createExecChainableQuery(),
     rpc: (...args: unknown[]) => mockRpc(...args),
+    channel: () => mockChannel,
+    removeChannel: vi.fn().mockResolvedValue(undefined),
   };
   return { supabase: client, supabaseUntyped: client };
 });

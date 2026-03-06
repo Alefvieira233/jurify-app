@@ -7,7 +7,8 @@
  * Performance: ~500ms → <50ms
  */
 
-import { useQuery } from '@tanstack/react-query';
+import { useState, useEffect, useRef, useCallback } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabaseUntyped as supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { createLogger } from '@/lib/logger';
@@ -148,6 +149,10 @@ interface QueryResult {
 export function useDashboardMetricsFast() {
   const { user, profile } = useAuth();
   const tenantId = profile?.tenant_id;
+  const queryClient = useQueryClient();
+  const [isLive, setIsLive] = useState(false);
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const qKey = ['dashboard-metrics-fast', tenantId];
 
   const {
     data,
@@ -155,7 +160,7 @@ export function useDashboardMetricsFast() {
     error: queryError,
     refetch,
   } = useQuery<QueryResult>({
-    queryKey: ['dashboard-metrics-fast', tenantId],
+    queryKey: qKey,
     queryFn: async (): Promise<QueryResult> => {
       if (!tenantId) return { metrics: DEFAULT_METRICS, fromFallback: true };
 
@@ -173,6 +178,44 @@ export function useDashboardMetricsFast() {
     refetchOnWindowFocus: true,
   });
 
+  // Debounced refetch to avoid hammering the DB on rapid changes
+  const debouncedRefetch = useCallback(() => {
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => {
+      void queryClient.invalidateQueries({ queryKey: qKey });
+    }, 5_000);
+  }, [queryClient, qKey]);
+
+  // Supabase Realtime: subscribe to changes in key tables
+  useEffect(() => {
+    if (!tenantId) return;
+
+    const channel = supabase
+      .channel(`dashboard-rt-${tenantId}`)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'leads', filter: `tenant_id=eq.${tenantId}` }, () => {
+        log.debug('Realtime: leads changed');
+        debouncedRefetch();
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'contratos', filter: `tenant_id=eq.${tenantId}` }, () => {
+        log.debug('Realtime: contratos changed');
+        debouncedRefetch();
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'agendamentos', filter: `tenant_id=eq.${tenantId}` }, () => {
+        log.debug('Realtime: agendamentos changed');
+        debouncedRefetch();
+      })
+      .subscribe((status) => {
+        setIsLive(status === 'SUBSCRIBED');
+        log.debug(`Realtime status: ${status}`);
+      });
+
+    return () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+      void supabase.removeChannel(channel);
+      setIsLive(false);
+    };
+  }, [tenantId, debouncedRefetch]);
+
   const metrics = data?.metrics ?? DEFAULT_METRICS;
   const isViewFallback = data?.fromFallback ?? false;
 
@@ -185,5 +228,7 @@ export function useDashboardMetricsFast() {
     isStale: false,
     /** true when metrics are zeroed out due to materialized view being unavailable */
     isViewFallback,
+    /** true when Supabase Realtime channel is subscribed (live updates active) */
+    isLive,
   };
 }

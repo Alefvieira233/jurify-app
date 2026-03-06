@@ -2,11 +2,13 @@ import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Cookie, X, Check } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { useConsentLog } from '@/hooks/useConsentLog';
 
 const COOKIE_KEY = 'jurify_cookie_consent';
 
 const CookieBanner = () => {
   const [visible, setVisible] = useState(false);
+  const { logConsent } = useConsentLog();
 
   useEffect(() => {
     const consent = localStorage.getItem(COOKIE_KEY);
@@ -21,11 +23,17 @@ const CookieBanner = () => {
   const accept = () => {
     localStorage.setItem(COOKIE_KEY, JSON.stringify({ accepted: true, date: new Date().toISOString() }));
     setVisible(false);
+    void logConsent('cookies_analytics', true);
+    void logConsent('cookies_marketing', true);
+    void logConsent('cookies_essential', true);
   };
 
   const decline = () => {
     localStorage.setItem(COOKIE_KEY, JSON.stringify({ accepted: false, date: new Date().toISOString() }));
     setVisible(false);
+    void logConsent('cookies_analytics', false);
+    void logConsent('cookies_marketing', false);
+    void logConsent('cookies_essential', true);
   };
 
   if (!visible) return null;

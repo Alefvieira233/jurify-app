@@ -13,6 +13,7 @@ import { useResponseTime } from '@/hooks/useResponseTime';
 import { ConversionFunnel } from '@/components/analytics/ConversionFunnel';
 import { RevenueCard } from '@/components/analytics/RevenueCard';
 import { ResponseTimeChart } from '@/components/analytics/ResponseTimeChart';
+import { ChurnCard } from '@/components/analytics/ChurnCard';
 import { usePageTitle } from '@/hooks/usePageTitle';
 
 /* Analytics avançado — lazy para não bloquear o bundle principal */
@@ -381,13 +382,19 @@ const RelatoriosGerenciais = () => {
               <div className="lg:col-span-2">
                 <ConversionFunnel data={metrics.leadsPorStatus} />
               </div>
-              <div>
+              <div className="space-y-5">
                 <RevenueCard
                   currentMRR={mrrData?.currentMRR ?? 0}
                   previousMRR={mrrData?.previousMRR ?? 0}
                   contractsThisMonth={metrics.contratosAssinados}
                   avgTicket={mrrData?.avgTicket ?? 0}
                   targetMRR={50000}
+                />
+                <ChurnCard
+                  churnRate={mrrData?.churnRate ?? 0}
+                  ltv={mrrData?.ltv ?? 0}
+                  canceledThisMonth={mrrData?.canceledThisMonth ?? 0}
+                  netNewMRR={mrrData?.netNewMRR ?? 0}
                 />
               </div>
             </div>
