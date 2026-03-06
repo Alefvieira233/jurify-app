@@ -119,11 +119,15 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
     let profileChannel: ReturnType<typeof supabase.channel> | null = null;
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, s) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, s) => {
       setLoading(true);
       setUser(s?.user ?? null);
       setSession(s);
       if (s?.user) {
+        setSentryUser(s.user);
+        if (event === 'SIGNED_IN') {
+          addSentryBreadcrumb('User signed in', 'auth', 'info');
+        }
         void fetchProfile(s.user.id).finally(() => setLoading(false));
 
         // Subscribe to realtime profile updates (e.g. subscription_tier changed by Stripe webhook)

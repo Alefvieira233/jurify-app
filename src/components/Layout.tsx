@@ -12,6 +12,8 @@ import GlobalSearch from "@/components/GlobalSearch";
 import ThemeToggle from "@/components/ThemeToggle";
 import AIAssistantChat from "@/components/ai/AIAssistantChat";
 import { useRealtimeSync } from "@/hooks/useRealtimeSync";
+import { useNetworkStatus } from "@/hooks/useNetworkStatus";
+import { WifiOff, Wifi } from "lucide-react";
 
 const Layout = () => {
     const { user, loading, profile } = useAuth();
@@ -21,6 +23,7 @@ const Layout = () => {
 
     // Realtime sync — all core tables auto-invalidate React Query cache
     useRealtimeSync();
+    const { isOnline, wasOffline } = useNetworkStatus();
 
     const getActiveSection = (path: string) => {
         if (path === '/' || path === '/dashboard') return 'dashboard';
@@ -69,6 +72,19 @@ const Layout = () => {
 
     return (
         <div className="min-h-screen bg-background flex flex-col">
+            {/* Network status banner */}
+            {!isOnline && (
+                <div className="fixed top-0 inset-x-0 z-[100] bg-destructive text-destructive-foreground text-center text-sm py-2 px-4 flex items-center justify-center gap-2 shadow-lg">
+                    <WifiOff className="h-4 w-4" />
+                    Sem conexão com a internet. Suas alterações não serão salvas.
+                </div>
+            )}
+            {isOnline && wasOffline && (
+                <div className="fixed top-0 inset-x-0 z-[100] bg-green-600 text-white text-center text-sm py-2 px-4 flex items-center justify-center gap-2 shadow-lg animate-in fade-in duration-300">
+                    <Wifi className="h-4 w-4" />
+                    Conexão restabelecida!
+                </div>
+            )}
             <OnboardingFlow />
             <GlobalSearch />
             <AIAssistantChat />

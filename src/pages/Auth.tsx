@@ -416,6 +416,7 @@ const Auth = () => {
                   type="submit"
                   className="relative w-full h-14 bg-gradient-to-r from-[hsl(43_96%_56%)] via-[hsl(43_96%_48%)] to-[hsl(43_74%_49%)] hover:from-[hsl(43_96%_60%)] hover:via-[hsl(43_96%_52%)] hover:to-[hsl(43_74%_53%)] text-[hsl(222_47%_11%)] font-bold text-base shadow-2xl hover:shadow-[hsl(43_96%_56%_/_0.5)] transition-all duration-500 rounded-2xl group/btn overflow-hidden"
                   disabled={loading}
+                  data-testid="btn-auth-submit"
                 >
                   {/* Button Shine Effect */}
                   <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover/btn:translate-x-full transition-transform duration-1000" />

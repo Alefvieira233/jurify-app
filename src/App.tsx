@@ -1,4 +1,5 @@
-import { Suspense, lazy } from "react";
+import { Suspense } from "react";
+import { lazyWithRetry } from "@/lib/lazyWithRetry";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -19,32 +20,32 @@ initSentry();
 import Auth from "./pages/Auth";
 import GoogleAuthCallback from "./pages/GoogleAuthCallback";
 import NotFound from "./pages/NotFound";
-const CookieBanner = lazy(() => import("./components/CookieBanner"));
+const CookieBanner = lazyWithRetry(() => import("./components/CookieBanner"));
 
 // Páginas públicas (legais e marketing)
-const TermosDeUso = lazy(() => import("./pages/TermosDeUso"));
-const PoliticaDePrivacidade = lazy(() => import("./pages/PoliticaDePrivacidade"));
-const Pricing = lazy(() => import("./pages/Pricing"));
+const TermosDeUso = lazyWithRetry(() => import("./pages/TermosDeUso"));
+const PoliticaDePrivacidade = lazyWithRetry(() => import("./pages/PoliticaDePrivacidade"));
+const Pricing = lazyWithRetry(() => import("./pages/Pricing"));
 
-// Lazy loading para features (carregamento sob demanda)
-const Dashboard = lazy(() => import("./features/dashboard/Dashboard"));
-const PipelineJuridico = lazy(() => import("./features/pipeline/PipelineJuridico"));
-const AgendamentosManager = lazy(() => import("./features/scheduling/AgendamentosManager"));
-const ContratosManager = lazy(() => import("./features/contracts/ContratosManager"));
-const RelatoriosGerenciais = lazy(() => import("./features/reports/RelatoriosGerenciais"));
-const WhatsAppIA = lazy(() => import("./features/whatsapp/WhatsAppIA"));
-const AgentesIAManager = lazy(() => import("./features/ai-agents/AgentesIAManager"));
-const UsuariosManager = lazy(() => import("./features/users/UsuariosManager"));
-const LogsPanel = lazy(() => import("./features/logs/LogsPanel"));
-const IntegracoesConfig = lazy(() => import("./features/settings/IntegracoesConfig"));
-const ConfiguracoesGerais = lazy(() => import("./features/settings/ConfiguracoesGerais"));
-const NotificationsPanel = lazy(() => import("./features/notifications/NotificationsPanel"));
-const AgentsPlayground = lazy(() => import("./pages/AgentsPlayground"));
-const MissionControl = lazy(() => import("./features/mission-control/MissionControl"));
-const SubscriptionManager = lazy(() => import("./components/billing/SubscriptionManager"));
-const CRMDashboard = lazy(() => import("./features/crm/CRMDashboard"));
-const LeadDetailPanel = lazy(() => import("./features/crm/LeadDetailPanel"));
-const AdminStatus = lazy(() => import("./pages/AdminStatus"));
+// Lazy loading para features (carregamento sob demanda) — with auto-retry on chunk failure
+const Dashboard = lazyWithRetry(() => import("./features/dashboard/Dashboard"));
+const PipelineJuridico = lazyWithRetry(() => import("./features/pipeline/PipelineJuridico"));
+const AgendamentosManager = lazyWithRetry(() => import("./features/scheduling/AgendamentosManager"));
+const ContratosManager = lazyWithRetry(() => import("./features/contracts/ContratosManager"));
+const RelatoriosGerenciais = lazyWithRetry(() => import("./features/reports/RelatoriosGerenciais"));
+const WhatsAppIA = lazyWithRetry(() => import("./features/whatsapp/WhatsAppIA"));
+const AgentesIAManager = lazyWithRetry(() => import("./features/ai-agents/AgentesIAManager"));
+const UsuariosManager = lazyWithRetry(() => import("./features/users/UsuariosManager"));
+const LogsPanel = lazyWithRetry(() => import("./features/logs/LogsPanel"));
+const IntegracoesConfig = lazyWithRetry(() => import("./features/settings/IntegracoesConfig"));
+const ConfiguracoesGerais = lazyWithRetry(() => import("./features/settings/ConfiguracoesGerais"));
+const NotificationsPanel = lazyWithRetry(() => import("./features/notifications/NotificationsPanel"));
+const AgentsPlayground = lazyWithRetry(() => import("./pages/AgentsPlayground"));
+const MissionControl = lazyWithRetry(() => import("./features/mission-control/MissionControl"));
+const SubscriptionManager = lazyWithRetry(() => import("./components/billing/SubscriptionManager"));
+const CRMDashboard = lazyWithRetry(() => import("./features/crm/CRMDashboard"));
+const LeadDetailPanel = lazyWithRetry(() => import("./features/crm/LeadDetailPanel"));
+const AdminStatus = lazyWithRetry(() => import("./pages/AdminStatus"));
 
 // WhatsApp Error Boundary - import direto (necessário para wrapping)
 import { WhatsAppErrorBoundary } from "./features/whatsapp/WhatsAppErrorBoundary";

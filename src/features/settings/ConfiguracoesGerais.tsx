@@ -2,7 +2,7 @@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   Plug, Users, Bell, Server, ShieldAlert, Settings,
-  UserCircle, Building2, CreditCard,
+  UserCircle, Building2, CreditCard, Shield,
 } from 'lucide-react';
 import { useRBAC } from '@/hooks/useRBAC';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -13,11 +13,12 @@ import SistemaSection from '@/components/configuracoes/SistemaSection';
 import PerfilSection from '@/components/configuracoes/PerfilSection';
 import EscritorioSection from '@/components/configuracoes/EscritorioSection';
 import AssinaturaSection from '@/components/configuracoes/AssinaturaSection';
+import LGPDPrivacySection from '@/components/configuracoes/LGPDPrivacySection';
 import { usePageTitle } from '@/hooks/usePageTitle';
 import { useSearchParams } from 'react-router-dom';
 
 const VALID_TABS = [
-  'perfil', 'escritorio', 'integracoes', 'equipe', 'assinatura', 'notificacoes', 'sistema',
+  'perfil', 'escritorio', 'integracoes', 'equipe', 'assinatura', 'notificacoes', 'sistema', 'privacidade',
 ] as const;
 
 type Tab = typeof VALID_TABS[number];
@@ -113,6 +114,10 @@ const ConfiguracoesGerais = () => {
               <Server className="h-3.5 w-3.5" />
               Sistema
             </TabsTrigger>
+            <TabsTrigger value="privacidade" className="flex items-center gap-1.5 text-xs shrink-0">
+              <Shield className="h-3.5 w-3.5" />
+              Privacidade
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="perfil">
@@ -141,6 +146,10 @@ const ConfiguracoesGerais = () => {
 
           <TabsContent value="sistema">
             <SistemaSection />
+          </TabsContent>
+
+          <TabsContent value="privacidade">
+            <LGPDPrivacySection />
           </TabsContent>
 
         </Tabs>

@@ -140,7 +140,7 @@ const PipelineJuridico = () => {
               <RefreshCw className="h-3.5 w-3.5" />
               <span className="hidden sm:inline">Sincronizar</span>
             </Button>
-            <Button size="sm" onClick={() => setShowFormModal(true)} className="h-8 text-xs gap-1.5">
+            <Button size="sm" onClick={() => setShowFormModal(true)} className="h-8 text-xs gap-1.5" data-testid="btn-novo-lead">
               <Plus className="h-3.5 w-3.5" strokeWidth={2.5} />
               Novo Lead
             </Button>
@@ -158,6 +158,7 @@ const PipelineJuridico = () => {
               placeholder="Buscar lead..."
               value={searchTerm}
               onChange={e => setSearchTerm(e.target.value)}
+              data-testid="input-buscar-lead"
               className="h-8 w-44 bg-muted/50 border border-border rounded-md pl-8 pr-3 text-xs placeholder:text-muted-foreground/50 focus:outline-none focus:ring-1 focus:ring-ring transition-shadow"
             />
           </div>
