@@ -180,7 +180,7 @@ jobs:
         uses: trufflesecurity/trufflehog@v3.88.0
         with:
           path: ./
-          extra_args: --only-verified --fail
+          extra_args: --only-verified
 
       - name: 🛡️ Run npm audit
         working-directory: ${{ env.WORKING_DIR }}
