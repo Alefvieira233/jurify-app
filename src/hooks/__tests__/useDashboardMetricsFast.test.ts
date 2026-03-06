@@ -1,6 +1,6 @@
 import React from 'react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { renderHook, waitFor } from '@testing-library/react';
+import { renderHook } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
 function createWrapper() {
@@ -22,7 +22,10 @@ function createChainableQuery() {
 }
 
 vi.mock('@/integrations/supabase/client', () => {
-  const client = { from: () => createChainableQuery() };
+  const client = {
+    from: () => createChainableQuery(),
+    rpc: vi.fn().mockResolvedValue({ data: null, error: null }),
+  };
   return { supabase: client, supabaseUntyped: client };
 });
 
@@ -41,38 +44,28 @@ vi.mock('@/lib/logger', () => ({
   createLogger: () => ({ debug: vi.fn(), info: vi.fn(), warn: vi.fn(), error: vi.fn() }),
 }));
 
-import { useDashboardMetrics } from '../useDashboardMetrics';
+import { useDashboardMetricsFast } from '../useDashboardMetricsFast';
 
-describe('useDashboardMetrics', () => {
+describe('useDashboardMetricsFast', () => {
   beforeEach(() => { vi.clearAllMocks(); });
 
   it('initializes with default metrics', () => {
-    const { result } = renderHook(() => useDashboardMetrics(), { wrapper: createWrapper() });
+    const { result } = renderHook(() => useDashboardMetricsFast(), { wrapper: createWrapper() });
     expect(result.current.metrics).toBeDefined();
-    expect(result.current.metrics.totalLeads).toBe(0);
-    expect(result.current.metrics.contratos).toBe(0);
-    expect(result.current.metrics.agendamentos).toBe(0);
+  });
+
+  it('exposes loading state', () => {
+    const { result } = renderHook(() => useDashboardMetricsFast(), { wrapper: createWrapper() });
+    expect(typeof result.current.loading).toBe('boolean');
   });
 
   it('exposes refetch function', () => {
-    const { result } = renderHook(() => useDashboardMetrics(), { wrapper: createWrapper() });
+    const { result } = renderHook(() => useDashboardMetricsFast(), { wrapper: createWrapper() });
     expect(typeof result.current.refetch).toBe('function');
   });
 
-  it('has metrics shape with expected keys', () => {
-    const { result } = renderHook(() => useDashboardMetrics(), { wrapper: createWrapper() });
-    const m = result.current.metrics;
-    expect(m).toHaveProperty('totalLeads');
-    expect(m).toHaveProperty('contratos');
-    expect(m).toHaveProperty('agendamentos');
-    expect(m).toHaveProperty('leadsPorStatus');
-    expect(m).toHaveProperty('leadsPorArea');
-    expect(m).toHaveProperty('execucoesRecentesAgentes');
-  });
-
-  it('exposes isEmpty and isStale', () => {
-    const { result } = renderHook(() => useDashboardMetrics(), { wrapper: createWrapper() });
-    expect(typeof result.current.isEmpty).toBe('boolean');
-    expect(typeof result.current.isStale).toBe('boolean');
+  it('exposes error state', () => {
+    const { result } = renderHook(() => useDashboardMetricsFast(), { wrapper: createWrapper() });
+    expect(result.current.error).toBeNull();
   });
 });

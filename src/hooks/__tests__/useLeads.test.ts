@@ -161,4 +161,54 @@ describe('useLeads', () => {
 
     expect(typeof result.current.fetchLeads).toBe('function');
   });
+
+  it('should provide deleteLead function', async () => {
+    const { result } = renderHook(() => useLeads(), { wrapper: createWrapper() });
+
+    await waitFor(() => {
+      expect(result.current.leads).toHaveLength(2);
+    });
+
+    expect(typeof result.current.deleteLead).toBe('function');
+  });
+
+  it('should normalize lead data with defaults', async () => {
+    const { result } = renderHook(() => useLeads(), { wrapper: createWrapper() });
+
+    await waitFor(() => {
+      expect(result.current.leads).toHaveLength(2);
+    });
+
+    const lead = result.current.leads[0];
+    expect(lead.lead_score).toBeDefined();
+    expect(lead.temperature).toBeDefined();
+    expect(lead.probability).toBeDefined();
+    expect(lead.followup_count).toBeDefined();
+    expect(lead.responsavel).toBe('Maria');
+  });
+
+  it('should expose pagination helpers', async () => {
+    const { result } = renderHook(() => useLeads({ enablePagination: true }), { wrapper: createWrapper() });
+
+    await waitFor(() => {
+      expect(result.current.loading).toBe(false);
+    });
+
+    expect(typeof result.current.goToPage).toBe('function');
+    expect(typeof result.current.nextPage).toBe('function');
+    expect(typeof result.current.prevPage).toBe('function');
+    expect(result.current.currentPage).toBe(1);
+    expect(typeof result.current.hasNextPage).toBe('boolean');
+    expect(typeof result.current.hasPrevPage).toBe('boolean');
+  });
+
+  it('should default pagination to disabled', async () => {
+    const { result } = renderHook(() => useLeads(), { wrapper: createWrapper() });
+
+    await waitFor(() => {
+      expect(result.current.loading).toBe(false);
+    });
+
+    expect(result.current.totalPages).toBe(1);
+  });
 });

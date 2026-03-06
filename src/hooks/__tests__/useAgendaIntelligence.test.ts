@@ -1,6 +1,6 @@
 import React from 'react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { renderHook, waitFor } from '@testing-library/react';
+import { renderHook } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
 function createWrapper() {
@@ -9,13 +9,8 @@ function createWrapper() {
     React.createElement(QueryClientProvider, { client: qc }, children);
 }
 
-const mockTags = [
-  { id: 't1', nome: 'Urgente', cor: '#red', tenant_id: 'tenant-1' },
-  { id: 't2', nome: 'VIP', cor: '#gold', tenant_id: 'tenant-1' },
-];
-
 function createChainableQuery() {
-  const result = { data: mockTags, error: null };
+  const result = { data: [], error: null };
   const handler: ProxyHandler<object> = {
     get(_target, prop) {
       if (prop === 'then') return (f?: (v: unknown) => unknown, r?: (e: unknown) => unknown) => Promise.resolve(result).then(f, r);
@@ -27,7 +22,10 @@ function createChainableQuery() {
 }
 
 vi.mock('@/integrations/supabase/client', () => {
-  const client = { from: () => createChainableQuery() };
+  const client = {
+    from: () => createChainableQuery(),
+    functions: { invoke: vi.fn().mockResolvedValue({ data: null, error: null }) },
+  };
   return { supabase: client, supabaseUntyped: client };
 });
 
@@ -46,27 +44,30 @@ vi.mock('@/lib/logger', () => ({
   createLogger: () => ({ debug: vi.fn(), info: vi.fn(), warn: vi.fn(), error: vi.fn() }),
 }));
 
-import { useCRMTags } from '../useCRMTags';
+vi.mock('@/lib/monitoring', () => ({
+  useMonitoring: () => ({ captureError: vi.fn(), trackAction: vi.fn() }),
+}));
 
-describe('useCRMTags', () => {
+import { useAgendaIntelligence } from '../useAgendaIntelligence';
+
+describe('useAgendaIntelligence', () => {
   beforeEach(() => { vi.clearAllMocks(); });
 
-  it('initializes with empty tags', () => {
-    const { result } = renderHook(() => useCRMTags(), { wrapper: createWrapper() });
-    expect(result.current.tags).toEqual([]);
+  it('exposes suggestBestTime function', () => {
+    const { result } = renderHook(() => useAgendaIntelligence(), { wrapper: createWrapper() });
+    expect(typeof result.current.suggestBestTime).toBe('function');
   });
 
-  it('exposes CRUD functions', () => {
-    const { result } = renderHook(() => useCRMTags(), { wrapper: createWrapper() });
-    expect(typeof result.current.createTag).toBe('function');
-    expect(typeof result.current.deleteTag).toBe('function');
-    expect(typeof result.current.addTagToLead).toBe('function');
-    expect(typeof result.current.removeTagFromLead).toBe('function');
-    expect(typeof result.current.fetchTags).toBe('function');
+  it('exposes checkConflict function', () => {
+    const { result } = renderHook(() => useAgendaIntelligence(), { wrapper: createWrapper() });
+    expect(typeof result.current.checkConflict).toBe('function');
   });
 
-  it('exposes loading state', () => {
-    const { result } = renderHook(() => useCRMTags(), { wrapper: createWrapper() });
-    expect(typeof result.current.loading).toBe('boolean');
+  it('exposes data arrays', () => {
+    const { result } = renderHook(() => useAgendaIntelligence(), { wrapper: createWrapper() });
+    expect(Array.isArray(result.current.weeklyPatterns)).toBe(true);
+    expect(Array.isArray(result.current.optimalSlots)).toBe(true);
+    expect(Array.isArray(result.current.insights)).toBe(true);
+    expect(Array.isArray(result.current.dailySummaries)).toBe(true);
   });
 });

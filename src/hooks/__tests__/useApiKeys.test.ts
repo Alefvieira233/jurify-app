@@ -1,6 +1,6 @@
 import React from 'react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { renderHook, waitFor } from '@testing-library/react';
+import { renderHook, waitFor, act } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
 function createWrapper() {
@@ -10,7 +10,7 @@ function createWrapper() {
 }
 
 function createChainableQuery() {
-  const result = { data: [], error: null, count: 0 };
+  const result = { data: [], error: null };
   const handler: ProxyHandler<object> = {
     get(_target, prop) {
       if (prop === 'then') return (f?: (v: unknown) => unknown, r?: (e: unknown) => unknown) => Promise.resolve(result).then(f, r);
@@ -41,38 +41,33 @@ vi.mock('@/lib/logger', () => ({
   createLogger: () => ({ debug: vi.fn(), info: vi.fn(), warn: vi.fn(), error: vi.fn() }),
 }));
 
-import { useDashboardMetrics } from '../useDashboardMetrics';
+import { useApiKeys } from '../useApiKeys';
 
-describe('useDashboardMetrics', () => {
+describe('useApiKeys', () => {
   beforeEach(() => { vi.clearAllMocks(); });
 
-  it('initializes with default metrics', () => {
-    const { result } = renderHook(() => useDashboardMetrics(), { wrapper: createWrapper() });
-    expect(result.current.metrics).toBeDefined();
-    expect(result.current.metrics.totalLeads).toBe(0);
-    expect(result.current.metrics.contratos).toBe(0);
-    expect(result.current.metrics.agendamentos).toBe(0);
+  it('initializes with empty apiKeys', () => {
+    const { result } = renderHook(() => useApiKeys(), { wrapper: createWrapper() });
+    expect(result.current.apiKeys).toEqual([]);
   });
 
-  it('exposes refetch function', () => {
-    const { result } = renderHook(() => useDashboardMetrics(), { wrapper: createWrapper() });
+  it('exposes loading state', () => {
+    const { result } = renderHook(() => useApiKeys(), { wrapper: createWrapper() });
+    expect(typeof result.current.loading).toBe('boolean');
+  });
+
+  it('exposes CRUD functions', () => {
+    const { result } = renderHook(() => useApiKeys(), { wrapper: createWrapper() });
+    expect(typeof result.current.criarApiKey).toBe('function');
+    expect(typeof result.current.toggleApiKey).toBe('function');
+    expect(typeof result.current.deletarApiKey).toBe('function');
     expect(typeof result.current.refetch).toBe('function');
   });
 
-  it('has metrics shape with expected keys', () => {
-    const { result } = renderHook(() => useDashboardMetrics(), { wrapper: createWrapper() });
-    const m = result.current.metrics;
-    expect(m).toHaveProperty('totalLeads');
-    expect(m).toHaveProperty('contratos');
-    expect(m).toHaveProperty('agendamentos');
-    expect(m).toHaveProperty('leadsPorStatus');
-    expect(m).toHaveProperty('leadsPorArea');
-    expect(m).toHaveProperty('execucoesRecentesAgentes');
-  });
-
-  it('exposes isEmpty and isStale', () => {
-    const { result } = renderHook(() => useDashboardMetrics(), { wrapper: createWrapper() });
-    expect(typeof result.current.isEmpty).toBe('boolean');
-    expect(typeof result.current.isStale).toBe('boolean');
+  it('loading becomes false after fetch', async () => {
+    const { result } = renderHook(() => useApiKeys(), { wrapper: createWrapper() });
+    await waitFor(() => {
+      expect(result.current.loading).toBe(false);
+    });
   });
 });

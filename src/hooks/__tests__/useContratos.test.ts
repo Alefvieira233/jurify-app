@@ -153,4 +153,39 @@ describe('useContratos', () => {
 
     expect(result.current.isEmpty).toBe(false);
   });
+
+  it('should normalize contrato data', async () => {
+    const { result } = renderHook(() => useContratos(), { wrapper: createWrapper() });
+
+    await waitFor(() => {
+      expect(result.current.contratos).toHaveLength(2);
+    });
+
+    const contrato = result.current.contratos[0];
+    expect(contrato.tenant_id).toBe('tenant-1');
+    expect(contrato.nome_cliente).toBe('João Silva');
+    expect(contrato.valor_causa).toBe(50000);
+  });
+
+  it('should expose fetchContratos function', async () => {
+    const { result } = renderHook(() => useContratos(), { wrapper: createWrapper() });
+
+    await waitFor(() => {
+      expect(result.current.loading).toBe(false);
+    });
+
+    expect(typeof result.current.fetchContratos).toBe('function');
+    // should not throw
+    result.current.fetchContratos();
+  });
+
+  it('should have error as null when data loads successfully', async () => {
+    const { result } = renderHook(() => useContratos(), { wrapper: createWrapper() });
+
+    await waitFor(() => {
+      expect(result.current.loading).toBe(false);
+    });
+
+    expect(result.current.error).toBeNull();
+  });
 });

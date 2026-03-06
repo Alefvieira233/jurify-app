@@ -9,13 +9,8 @@ function createWrapper() {
     React.createElement(QueryClientProvider, { client: qc }, children);
 }
 
-const mockActivities = [
-  { id: 'a1', lead_id: 'l1', tipo: 'ligacao', descricao: 'Ligação inicial', created_at: '2025-01-01' },
-  { id: 'a2', lead_id: 'l1', tipo: 'email', descricao: 'Email de follow-up', created_at: '2025-01-02' },
-];
-
 function createChainableQuery() {
-  const result = { data: mockActivities, error: null };
+  const result = { data: [], error: null };
   const handler: ProxyHandler<object> = {
     get(_target, prop) {
       if (prop === 'then') return (f?: (v: unknown) => unknown, r?: (e: unknown) => unknown) => Promise.resolve(result).then(f, r);
@@ -46,35 +41,33 @@ vi.mock('@/lib/logger', () => ({
   createLogger: () => ({ debug: vi.fn(), info: vi.fn(), warn: vi.fn(), error: vi.fn() }),
 }));
 
-import { useCRMActivities } from '../useCRMActivities';
+import { useIntegracoesConfig } from '../useIntegracoesConfig';
 
-describe('useCRMActivities', () => {
+describe('useIntegracoesConfig', () => {
   beforeEach(() => { vi.clearAllMocks(); });
 
-  it('fetches activities on mount', async () => {
-    const { result } = renderHook(() => useCRMActivities(), { wrapper: createWrapper() });
-    // loading starts as false since fetchActivities is called manually
-    expect(result.current.activities).toEqual([]);
+  it('initializes with empty integracoes', () => {
+    const { result } = renderHook(() => useIntegracoesConfig(), { wrapper: createWrapper() });
+    expect(result.current.integracoes).toEqual([]);
   });
 
-  it('exposes logActivity function', async () => {
-    const { result } = renderHook(() => useCRMActivities(), { wrapper: createWrapper() });
-    expect(typeof result.current.logActivity).toBe('function');
+  it('exposes loading state', () => {
+    const { result } = renderHook(() => useIntegracoesConfig(), { wrapper: createWrapper() });
+    expect(typeof result.current.loading).toBe('boolean');
   });
 
-  it('exposes fetchActivities function', async () => {
-    const { result } = renderHook(() => useCRMActivities(), { wrapper: createWrapper() });
-    expect(typeof result.current.fetchActivities).toBe('function');
+  it('exposes CRUD functions', () => {
+    const { result } = renderHook(() => useIntegracoesConfig(), { wrapper: createWrapper() });
+    expect(typeof result.current.createIntegracao).toBe('function');
+    expect(typeof result.current.updateIntegracao).toBe('function');
+    expect(typeof result.current.toggleStatus).toBe('function');
+    expect(typeof result.current.fetchIntegracoes).toBe('function');
   });
 
-  it('fetchActivities populates data', async () => {
-    const { result } = renderHook(() => useCRMActivities(), { wrapper: createWrapper() });
-    await waitFor(async () => {
-      await result.current.fetchActivities('l1');
+  it('loading becomes false after mount fetch', async () => {
+    const { result } = renderHook(() => useIntegracoesConfig(), { wrapper: createWrapper() });
+    await waitFor(() => {
+      expect(result.current.loading).toBe(false);
     });
-    expect(result.current.activities).toHaveLength(2);
-    const first = result.current.activities[0];
-    expect(first).toHaveProperty('id');
-    expect(first).toHaveProperty('lead_id');
   });
 });

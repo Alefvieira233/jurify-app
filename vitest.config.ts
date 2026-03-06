@@ -19,6 +19,10 @@ export default defineConfig({
         '**/mockData/**',
         'src/integrations/**', // Supabase auto-generated
         'dist/**',
+        'src/lib/multiagents/agents/**', // Agent files are 95%+ prompt string literals
+        'src/lib/multiagents/core/BaseAgent.ts', // Abstract base with heavy AI/RAG deps
+        'src/components/forms/**', // Complex form components tested via E2E
+        'src/pages/**', // Page components tested via E2E
       ],
       // Thresholds estabelecem um floor anti-regressão.
       // Aumentar gradualmente à medida que novos testes são adicionados.
