@@ -725,7 +725,7 @@ ${conversationHistory ? `HISTORICO DA CONVERSA:\n${conversationHistory}\n` : ""}
     });
 
     const aiText = aiError
-      ? "Ola! Recebi sua mensagem e em breve um de nossos advogados entrara em contato. Obrigado pelo contato com o escritorio Jurify!"
+      ? `Ola! Recebi sua mensagem e em breve um de nossos advogados entrara em contato. Obrigado pelo contato com ${officeName}!`
       : (aiResponse?.result || "Desculpe, nao consegui processar sua mensagem no momento.");
 
     if (aiError) {

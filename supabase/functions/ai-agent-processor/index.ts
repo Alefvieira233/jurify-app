@@ -129,15 +129,26 @@ async function processAIRequest(
     content: userPrompt,
   });
 
-  // Chama OpenAI
-  const completion = await openai.chat.completions.create({
-    model,
-    messages,
-    temperature,
-    max_tokens: maxTokens,
-    tools,
-    tool_choice,
-  });
+  // Chama OpenAI with timeout protection (30s)
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 30_000);
+
+  let completion;
+  try {
+    completion = await openai.chat.completions.create(
+      {
+        model,
+        messages,
+        temperature,
+        max_tokens: maxTokens,
+        tools,
+        tool_choice,
+      },
+      { signal: controller.signal }
+    );
+  } finally {
+    clearTimeout(timeoutId);
+  }
 
   const result = completion.choices[0]?.message?.content || "";
   const toolCalls = completion.choices[0]?.message?.tool_calls;
