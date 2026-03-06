@@ -405,6 +405,52 @@ Deno.serve(async (req) => {
       "Rate limit OK: " + rateLimitCheck.result.remaining + "/" + rateLimitCheck.result.limit + " remaining"
     );
 
+    // ── Monthly AI quota check (plan limits enforcement) ──
+    const PLAN_AI_LIMITS: Record<string, number> = {
+      free: 50,
+      pro: 500,
+      enterprise: -1, // unlimited
+    };
+
+    const { data: tenantSub } = await supabase
+      .from("subscriptions")
+      .select("plan_id")
+      .eq("tenant_id", resolvedTenantId)
+      .eq("status", "active")
+      .maybeSingle();
+
+    const tenantPlan = (tenantSub?.plan_id as string) || "free";
+    const monthlyLimit = PLAN_AI_LIMITS[tenantPlan] ?? PLAN_AI_LIMITS.free!;
+
+    if (monthlyLimit !== -1) {
+      const thirtyDaysAgo = new Date();
+      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+      const { count: aiCallsThisMonth } = await supabase
+        .from("agent_ai_logs")
+        .select("*", { count: "exact", head: true })
+        .eq("tenant_id", resolvedTenantId)
+        .gte("created_at", thirtyDaysAgo.toISOString());
+
+      if ((aiCallsThisMonth ?? 0) >= monthlyLimit) {
+        console.warn(
+          `AI quota exceeded for tenant ${resolvedTenantId}: ${aiCallsThisMonth}/${monthlyLimit} (plan: ${tenantPlan})`
+        );
+        return new Response(
+          JSON.stringify({
+            error: `Limite mensal de ${monthlyLimit} chamadas de IA atingido. Faça upgrade do seu plano para continuar.`,
+            code: "PLAN_LIMIT_EXCEEDED",
+            usage: aiCallsThisMonth,
+            limit: monthlyLimit,
+          }),
+          {
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+            status: 429,
+          }
+        );
+      }
+    }
+
     // Verifica API Key da OpenAI
     const openaiApiKey = Deno.env.get("OPENAI_API_KEY");
     if (!openaiApiKey) {

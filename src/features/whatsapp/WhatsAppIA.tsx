@@ -225,6 +225,7 @@ interface ChatPanelProps {
   onSendMessage: () => void;
   messagesEndRef: RefObject<HTMLDivElement>;
   onSetup: () => void;
+  onToggleIA: () => void;
 }
 
 const ChatPanel = ({
@@ -237,6 +238,7 @@ const ChatPanel = ({
   onSendMessage,
   messagesEndRef,
   onSetup,
+  onToggleIA,
 }: ChatPanelProps) => {
   if (!selectedConversation) {
     return (
@@ -285,10 +287,22 @@ const ChatPanel = ({
         </div>
 
         <div className="flex items-center gap-1">
-          <Badge variant="outline" className={`text-[10px] ${selectedConversation.ia_active ? 'border-emerald-300 text-emerald-600' : 'border-border text-muted-foreground'}`}>
-            <Bot className="h-3 w-3 mr-1" />
-            IA {selectedConversation.ia_active ? 'Ativa' : 'Inativa'}
-          </Badge>
+          <button
+            onClick={onToggleIA}
+            className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-[10px] font-semibold transition-colors cursor-pointer hover:opacity-80 ${
+              selectedConversation.ia_active
+                ? 'border-emerald-300 text-emerald-600 bg-emerald-50 dark:bg-emerald-950/20'
+                : 'border-orange-300 text-orange-600 bg-orange-50 dark:bg-orange-950/20'
+            }`}
+            title={selectedConversation.ia_active ? 'Clique para desativar IA e assumir conversa' : 'Clique para reativar IA automática'}
+            data-testid="btn-toggle-ia"
+          >
+            {selectedConversation.ia_active ? (
+              <><Bot className="h-3 w-3 mr-1" />IA Ativa</>
+            ) : (
+              <><User className="h-3 w-3 mr-1" />Atendimento Manual</>
+            )}
+          </button>
         </div>
       </div>
 
@@ -390,6 +404,7 @@ const WhatsAppIA = () => {
     selectConversation,
     sendMessage,
     markAsRead,
+    toggleIA,
     fetchConversations,
   } = useWhatsAppConversations();
 
@@ -548,6 +563,7 @@ const WhatsAppIA = () => {
         onSendMessage={handleSendMessage}
         messagesEndRef={messagesEndRef}
         onSetup={() => setShowSetup(true)}
+        onToggleIA={() => selectedConversation && void toggleIA(selectedConversation.id)}
       />
     </main>
   );

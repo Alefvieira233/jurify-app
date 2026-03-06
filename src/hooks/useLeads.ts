@@ -19,6 +19,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { createLogger } from '@/lib/logger';
 import { addSentryBreadcrumb } from '@/lib/sentry';
+import { usePlanLimits } from '@/hooks/usePlanLimits';
 
 const log = createLogger('Leads');
 
@@ -318,18 +319,29 @@ export const useLeads = (options?: { enablePagination?: boolean; pageSize?: numb
 
   // ── Public API (identical to previous implementation) ─────────────────────
 
+  const { canUse: canUsePlan, usage: planUsage, limits: planLimits, refresh: refreshPlanUsage } = usePlanLimits();
+
   const createLead = useCallback(async (data: LeadInput): Promise<boolean> => {
     if (!user) {
       toast({ title: 'Erro de autenticação', description: 'Usuário não autenticado', variant: 'destructive' });
       return false;
     }
+    if (!canUsePlan('leads')) {
+      toast({
+        title: 'Limite de leads atingido',
+        description: `Seu plano permite ${planLimits.leads} leads. Faça upgrade para continuar.`,
+        variant: 'destructive',
+      });
+      return false;
+    }
     try {
       await createMutation.mutateAsync(data);
+      void refreshPlanUsage();
       return true;
     } catch {
       return false;
     }
-  }, [user, createMutation, toast]);
+  }, [user, createMutation, toast, canUsePlan, planLimits.leads, refreshPlanUsage]);
 
   const updateLead = useCallback(async (id: string, updateData: Partial<LeadInput>): Promise<boolean> => {
     if (!user || !tenantId) return false;
@@ -362,6 +374,9 @@ export const useLeads = (options?: { enablePagination?: boolean; pageSize?: numb
     createLead,
     updateLead,
     deleteLead,
+    planUsage,
+    planLimits,
+    canUsePlan,
     currentPage,
     totalPages,
     pageSize,

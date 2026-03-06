@@ -573,7 +573,7 @@ async function processNormalizedMessage(supabase: ReturnType<typeof createClient
     let conversationId = null;
     const { data: conversation } = await supabase
       .from("whatsapp_conversations")
-      .select("id")
+      .select("id, ia_active")
       .eq("lead_id", leadId)
       .eq("tenant_id", tenantId)
       .maybeSingle();
@@ -620,8 +620,30 @@ async function processNormalizedMessage(supabase: ReturnType<typeof createClient
       timestamp: new Date().toISOString(),
     });
 
+    // --- CHECK ia_active BEFORE INVOKING AI ---
+    // For existing conversations, respect the ia_active flag.
+    // New conversations (just created) default to ia_active = true.
+    const iaEnabled = conversation ? (conversation.ia_active !== false) : true;
+
+    if (!iaEnabled) {
+      console.log(`[webhook:${provider}] IA disabled for conversation ${conversationId} — skipping AI response`);
+      return;
+    }
+
     // --- INVOKE AI AGENT (Coordenador = Recepcionista) ---
     console.log(`[webhook:${provider}] Invoking AI Agent (Coordenador)`);
+
+    // Busca configuracao do escritorio para personalizar o prompt da IA
+    let officeName = "nosso escritorio";
+    let assistantName = "Ana";
+    const { data: tenantConfig } = await supabase
+      .from("escritorios")
+      .select("nome, whatsapp_assistant_name")
+      .eq("tenant_id", tenantId)
+      .maybeSingle();
+
+    if (tenantConfig?.nome) officeName = tenantConfig.nome;
+    if (tenantConfig?.whatsapp_assistant_name) assistantName = tenantConfig.whatsapp_assistant_name;
 
     // Busca historico recente da conversa para contexto
     let conversationHistory = "";
@@ -639,7 +661,7 @@ async function processNormalizedMessage(supabase: ReturnType<typeof createClient
         .join("\n");
     }
 
-    const coordenadorPrompt = `Voce e a recepcionista virtual do escritorio de advocacia Jurify. Seu nome e Ana.
+    const coordenadorPrompt = `Voce e a recepcionista virtual do escritorio de advocacia ${officeName}. Seu nome e ${assistantName}.
 
 REGRAS OBRIGATORIAS:
 1. Seja educada, profissional e acolhedora. Use linguagem simples e direta.
@@ -647,7 +669,7 @@ REGRAS OBRIGATORIAS:
 3. Seu objetivo principal e QUALIFICAR o lead: entender o problema juridico, urgencia e dados basicos.
 4. Faca perguntas uma de cada vez, nao bombardeie o cliente.
 5. Colete: nome completo, tipo de problema juridico (trabalhista, familia, consumidor, etc), urgencia.
-6. Quando tiver informacoes suficientes, informe que um advogado especialista entrara em contato.
+6. Quando tiver informacoes suficientes, informe que um advogado especialista de ${officeName} entrara em contato.
 7. NUNCA de orientacao juridica especifica. Diga que o advogado ira analisar o caso.
 8. Responda SEMPRE em portugues brasileiro.
 9. Mantenha respostas curtas (maximo 3 paragrafos) — e WhatsApp, ninguem le textao.

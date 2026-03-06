@@ -46,6 +46,7 @@ interface UseWhatsAppConversationsReturn {
   selectConversation: (id: string) => void;
   sendMessage: (conversationId: string, content: string, sender: 'agent') => Promise<boolean>;
   markAsRead: (conversationId: string) => Promise<void>;
+  toggleIA: (conversationId: string) => Promise<void>;
   fetchConversations: () => Promise<void>;
 }
 
@@ -155,7 +156,7 @@ export const useWhatsAppConversations = (): UseWhatsAppConversationsReturn => {
     _sender: 'agent'
   ): Promise<boolean> => {
     try {
-      // 1. Busca informaÃ§Ãµes da conversa para obter o nÃºmero do lead
+      // 1. Busca informações da conversa para obter o número do lead
       const { data: conversation, error: convError } = await supabase
         .from('whatsapp_conversations')
         .select('phone_number, lead_id, tenant_id')
@@ -163,7 +164,7 @@ export const useWhatsAppConversations = (): UseWhatsAppConversationsReturn => {
         .single();
 
       if (convError || !conversation) {
-        throw new Error('Conversa nÃ£o encontrada');
+        throw new Error('Conversa não encontrada');
       }
 
       // 2. Envia mensagem via WhatsApp API (Edge Function)
@@ -192,8 +193,8 @@ export const useWhatsAppConversations = (): UseWhatsAppConversationsReturn => {
 
       log.info('Mensagem enviada via WhatsApp', { messageId: sendResult.messageId });
 
-      // 3. A Edge Function jÃ¡ salva a mensagem no banco, mas vamos garantir que a UI atualize
-      // Atualizar Ãºltima mensagem da conversa (caso a Edge Function nÃ£o tenha feito)
+      // 3. A Edge Function já salva a mensagem no banco, mas vamos garantir que a UI atualize
+      // Atualizar última mensagem da conversa (caso a Edge Function não tenha feito)
       await supabase
         .from('whatsapp_conversations')
         .update({
@@ -253,14 +254,55 @@ export const useWhatsAppConversations = (): UseWhatsAppConversationsReturn => {
       );
     } catch (err: unknown) {
       log.error('Erro ao marcar como lido', err);
-      // âœ… CORREÃ‡ÃƒO: Adicionar toast de erro
       toast({
         title: 'Erro',
-        description: 'NÃ£o foi possÃ­vel marcar mensagens como lidas.',
+        description: 'Não foi possível marcar mensagens como lidas.',
         variant: 'destructive',
       });
     }
   }, [toast, profile?.tenant_id]);
+
+  // Toggle IA on/off for a conversation
+  const toggleIA = useCallback(async (conversationId: string) => {
+    if (!profile?.tenant_id) return;
+    try {
+      const conv = conversations.find(c => c.id === conversationId);
+      if (!conv) return;
+
+      const newValue = !conv.ia_active;
+
+      await supabase
+        .from('whatsapp_conversations')
+        .update({ ia_active: newValue })
+        .eq('id', conversationId)
+        .eq('tenant_id', profile.tenant_id);
+
+      // Update local state
+      setConversations(prev =>
+        prev.map(c =>
+          c.id === conversationId ? { ...c, ia_active: newValue } : c
+        )
+      );
+
+      if (selectedConversation?.id === conversationId) {
+        setSelectedConversation(prev => prev ? { ...prev, ia_active: newValue } : prev);
+      }
+
+      toast({
+        title: newValue ? 'IA Ativada' : 'IA Desativada',
+        description: newValue
+          ? 'A IA voltará a responder automaticamente nesta conversa.'
+          : 'A IA foi desativada. Você está atendendo esta conversa manualmente.',
+      });
+    } catch (err: unknown) {
+      log.error('Erro ao alternar IA', err);
+      toast({
+        title: 'Erro',
+        description: 'Não foi possível alternar o estado da IA.',
+        variant: 'destructive',
+      });
+    }
+  }, [conversations, selectedConversation?.id, toast, profile?.tenant_id]);
 
   // Channel de conversas — não depende de selectedConversation, não é recriado ao trocar de conversa
   useEffect(() => {
@@ -331,7 +373,7 @@ export const useWhatsAppConversations = (): UseWhatsAppConversationsReturn => {
     void fetchConversations();
   }, [fetchConversations]);
 
-  // âœ… CORREÃ‡ÃƒO: Auto-select first conversation (evitar race condition)
+  // Auto-select first conversation (evitar race condition)
   const hasAutoSelectedRef = useRef(false);
   useEffect(() => {
     if (conversations.length > 0 && !selectedConversation && !hasAutoSelectedRef.current) {
@@ -354,6 +396,7 @@ export const useWhatsAppConversations = (): UseWhatsAppConversationsReturn => {
     selectConversation,
     sendMessage,
     markAsRead,
+    toggleIA,
     fetchConversations,
   };
 };

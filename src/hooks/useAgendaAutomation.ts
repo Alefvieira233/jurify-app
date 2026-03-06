@@ -107,10 +107,10 @@ Escritório Jurídico
   `.trim();
 
   // Chamar Edge Function de WhatsApp
-  const { error } = await supabase.functions.invoke('send-whatsapp', {
+  const { error } = await supabase.functions.invoke('send-whatsapp-message', {
     body: {
       to: lead.whatsapp,
-      message,
+      text: message,
     },
   });
 

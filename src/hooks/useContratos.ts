@@ -6,6 +6,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { createLogger } from '@/lib/logger';
 import { addSentryBreadcrumb } from '@/lib/sentry';
+import { usePlanLimits } from '@/hooks/usePlanLimits';
 
 const log = createLogger('Contratos');
 
@@ -128,10 +129,16 @@ export const useContratos = () => {
   });
 
   // ── Public API ─────────────────────────────────────────────────────────────
+  const { canUse: canUsePlan, limits: planLimits } = usePlanLimits();
+
   const createContrato = useCallback(async (data: ContratoInput): Promise<boolean> => {
     if (!user) { toast({ title: 'Erro de autenticação', description: 'Usuário não autenticado', variant: 'destructive' }); return false; }
+    if (!canUsePlan('leads')) {
+      toast({ title: 'Limite atingido', description: `Seu plano permite ${planLimits.leads} clientes. Faça upgrade para criar mais contratos.`, variant: 'destructive' });
+      return false;
+    }
     try { await createMutation.mutateAsync(data); return true; } catch { return false; }
-  }, [user, createMutation, toast]);
+  }, [user, createMutation, toast, canUsePlan, planLimits.leads]);
 
   const updateContrato = useCallback(async (id: string, updateData: Partial<ContratoInput>): Promise<boolean> => {
     if (!user || !tenantId) return false;

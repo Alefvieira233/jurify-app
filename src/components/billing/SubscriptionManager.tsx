@@ -77,6 +77,7 @@ export const SubscriptionManager = () => {
     const [usage, setUsage] = useState<UsageLimits | null>(null);
     const [loading, setLoading] = useState(true);
     const [upgrading, setUpgrading] = useState(false);
+    const [openingPortal, setOpeningPortal] = useState(false);
 
     const currentPlan = subscription?.plan_id || profile?.subscription_tier || 'free';
 
@@ -199,6 +200,30 @@ export const SubscriptionManager = () => {
         }
     };
 
+    const handleOpenPortal = async () => {
+        setOpeningPortal(true);
+        try {
+            const { data, error } = await supabase.functions.invoke('create-portal-session', {
+                body: { returnUrl: window.location.href },
+            });
+
+            if (error) throw error;
+
+            if (data?.url) {
+                window.location.href = data.url;
+            }
+        } catch (error) {
+            log.error('Portal error', error);
+            toast({
+                title: 'Erro',
+                description: 'Não foi possível abrir o portal de assinatura. Verifique se você possui uma assinatura ativa.',
+                variant: 'destructive',
+            });
+        } finally {
+            setOpeningPortal(false);
+        }
+    };
+
     const getUsagePercentage = (used: number, limit: number): number => {
         if (limit === -1) return 0; // Unlimited
         return Math.min((used / limit) * 100, 100);
@@ -244,19 +269,31 @@ export const SubscriptionManager = () => {
                 </CardHeader>
                 <CardContent>
                     {subscription && (
-                        <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                            <span className="flex items-center gap-1">
-                                <CheckCircle className="h-4 w-4 text-green-500" />
-                                Status: {subscription.status}
-                            </span>
-                            {subscription.current_period_end && (
-                                <span>
-                                    Próxima cobrança: {new Date(subscription.current_period_end).toLocaleDateString('pt-BR')}
+                        <div className="space-y-3">
+                            <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                                <span className="flex items-center gap-1">
+                                    <CheckCircle className="h-4 w-4 text-green-500" />
+                                    Status: {subscription.status}
                                 </span>
-                            )}
-                            {subscription.cancel_at_period_end && (
-                                <Badge variant="destructive">Cancela ao fim do período</Badge>
-                            )}
+                                {subscription.current_period_end && (
+                                    <span>
+                                        Próxima cobrança: {new Date(subscription.current_period_end).toLocaleDateString('pt-BR')}
+                                    </span>
+                                )}
+                                {subscription.cancel_at_period_end && (
+                                    <Badge variant="destructive">Cancela ao fim do período</Badge>
+                                )}
+                            </div>
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => { void handleOpenPortal(); }}
+                                disabled={openingPortal}
+                                data-testid="btn-manage-subscription"
+                            >
+                                <CreditCard className="h-4 w-4 mr-2" />
+                                {openingPortal ? 'Abrindo...' : 'Gerenciar Assinatura'}
+                            </Button>
                         </div>
                     )}
                 </CardContent>
