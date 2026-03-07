@@ -2,6 +2,7 @@ import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { getCorsHeaders } from "../_shared/cors.ts";
 import { applyRateLimit, getRequestIdentifier } from "../_shared/rate-limiter.ts";
+import { buildLegalContext } from "../_shared/legal-context.ts";
 
 console.log("[whatsapp-webhook] Function started (Evolution API + Meta compatible)");
 
@@ -705,21 +706,79 @@ FLUXO DE QUALIFICACAO:
 
 ${conversationHistory ? `HISTORICO DA CONVERSA:\n${conversationHistory}\n` : ""}`;
 
+    // --- DETECT COMMAND ---
+    const COMMANDS: Record<string, string> = {
+      "/prazos": "liste os prazos processuais do cliente",
+      "/processos": "liste os processos ativos do cliente",
+      "/documentos": "informe quantos documentos o cliente tem no sistema",
+      "/honorarios": "informe o status dos honorários do cliente",
+      "/status": "dê um resumo completo dos casos do cliente",
+    };
+    const commandKey = Object.keys(COMMANDS).find((cmd) =>
+      text.trim().toLowerCase().startsWith(cmd)
+    );
+    const commandIntent = commandKey ? COMMANDS[commandKey] : null;
+
+    // --- BUILD LEGAL CONTEXT ---
+    const legalCtx = await buildLegalContext(supabase, leadId, tenantId, text);
+
+    // --- UPGRADE SYSTEM PROMPT IF HAS LEGAL CONTEXT ---
+    let finalSystemPrompt = coordenadorPrompt;
+    if (legalCtx.has_context) {
+      const sections = [
+        legalCtx.processos.length > 0
+          ? `PROCESSOS ATIVOS (${legalCtx.processos.length}):\n` +
+            legalCtx.processos.map((p) =>
+              `- ${p.numero_processo ?? "Sem nº"} | ${p.tipo_acao} | ${p.fase_processual} | ${p.tribunal ?? "Sem tribunal"}`
+            ).join("\n")
+          : null,
+        legalCtx.prazos_urgentes.length > 0
+          ? `PRAZOS URGENTES (próximos 30 dias):\n` +
+            legalCtx.prazos_urgentes.map((p) =>
+              `- ${p.tipo}: ${p.descricao} — VENCE EM ${p.dias_restantes} DIA(S) (${new Date(p.data_prazo).toLocaleDateString("pt-BR")})`
+            ).join("\n")
+          : null,
+        legalCtx.honorarios.length > 0
+          ? `HONORÁRIOS:\n` +
+            legalCtx.honorarios.map((h) =>
+              `- ${h.tipo}: R$ ${h.valor_total_acordado ?? 0} acordado / R$ ${h.valor_recebido ?? 0} recebido — ${h.status}`
+            ).join("\n")
+          : null,
+        legalCtx.documentos_count > 0
+          ? `DOCUMENTOS: ${legalCtx.documentos_count} arquivo(s) no sistema`
+          : null,
+        legalCtx.memories.length > 0
+          ? `HISTÓRICO RELEVANTE:\n` + legalCtx.memories.map((m) => `- ${m.content}`).join("\n")
+          : null,
+      ].filter(Boolean).join("\n\n");
+
+      finalSystemPrompt = coordenadorPrompt +
+        `\n\n== CONTEXTO JURÍDICO DO CLIENTE ==\n${sections}\n\n` +
+        `IMPORTANTE: Este é um cliente existente. Use os dados acima para responder com precisão. ` +
+        `Não diga que não tem acesso — você TEM. Responda de forma contextualizada e objetiva.`;
+    }
+
     const { data: aiResponse, error: aiError } = await supabase.functions.invoke("ai-agent-processor", {
       body: {
-        agentName: "Coordenador",
-        agentSpecialization: "Recepcao e Qualificacao de Leads Juridicos",
-        systemPrompt: coordenadorPrompt,
-        userPrompt: text,
+        agentName: legalCtx.has_context ? "Assistente Juridico" : "Coordenador",
+        agentSpecialization: legalCtx.has_context
+          ? "Assistência jurídica contextual para clientes ativos"
+          : "Recepcao e Qualificacao de Leads Juridicos",
+        systemPrompt: finalSystemPrompt,
+        userPrompt: commandIntent ?? text,
         leadId: leadId,
         tenantId: tenantId,
-        temperature: 0.6,
-        maxTokens: 500,
+        temperature: 0.5,
+        maxTokens: legalCtx.has_context ? 800 : 500,
         context: {
           channel: "whatsapp",
           phone: from,
           contactName: name,
           isFirstContact: !conversation,
+          has_legal_context: legalCtx.has_context,
+          active_processos: legalCtx.processos.length,
+          urgent_prazos: legalCtx.prazos_urgentes.length,
+          command: commandKey ?? null,
         },
       },
     });
@@ -730,6 +789,48 @@ ${conversationHistory ? `HISTORICO DA CONVERSA:\n${conversationHistory}\n` : ""}
 
     if (aiError) {
       console.error(`[webhook:${provider}] Error invoking AI agent (using fallback):`, aiError);
+    }
+
+    // --- HUMAN HANDOFF: detect uncertainty ---
+    const HANDOFF_PATTERNS = [
+      "não tenho como informar",
+      "não sei informar",
+      "precisa entrar em contato",
+      "recomendo falar com um advogado",
+      "não consigo acessar",
+    ];
+    const shouldHandoff = HANDOFF_PATTERNS.some((p) => aiText.toLowerCase().includes(p));
+    if (shouldHandoff && conversationId) {
+      void supabase
+        .from("whatsapp_conversations")
+        .update({ ia_active: false })
+        .eq("id", conversationId)
+        .eq("tenant_id", tenantId);
+      void supabase.from("notificacoes").insert({
+        tenant_id: tenantId,
+        tipo: "handoff_ia",
+        titulo: "Conversa requer atenção humana",
+        mensagem: `A IA não conseguiu responder ao cliente ${name} (${from}). Conversa pausada.`,
+        metadata: { conversation_id: conversationId, lead_id: leadId },
+      });
+    }
+
+    // --- SAVE TO AGENT MEMORY (non-blocking, only when has legal context) ---
+    if (legalCtx.has_context && text.length > 30 && aiResponse?.result) {
+      void (async () => {
+        try {
+          await supabase.from("agent_memory").insert({
+            tenant_id: tenantId,
+            lead_id: leadId,
+            agent_name: "Assistente Juridico",
+            memory_type: "conversation",
+            content: `Cliente: "${text.substring(0, 200)}". Assistente: "${(aiResponse.result as string).substring(0, 300)}"`,
+            importance: legalCtx.prazos_urgentes.length > 0 ? 7 : 5,
+            expires_at: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString(),
+            metadata: { command: commandKey ?? null, processos_count: legalCtx.processos.length },
+          });
+        } catch { /* non-critical */ }
+      })();
     }
 
     // --- UPDATE LEAD STATUS IN CRM ---

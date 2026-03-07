@@ -12,6 +12,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { createLogger } from '@/lib/logger';
 import { usePageTitle } from '@/hooks/usePageTitle';
+import PrazosUrgentesWidget from '@/features/dashboard/components/PrazosUrgentesWidget';
 
 const log = createLogger('Dashboard');
 
@@ -489,6 +490,9 @@ const Dashboard = () => {
           </CardContent>
         </Card>
       </div>
+
+      {/* ── Prazos Urgentes ── */}
+      <PrazosUrgentesWidget />
 
       {/* ── Performance dos Agentes ── */}
       <Card className="border-border bg-card shadow-sm fade-in" style={{ animationDelay: '0.4s' }}>
