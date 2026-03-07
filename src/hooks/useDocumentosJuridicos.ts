@@ -44,22 +44,28 @@ function normalizeDocumento(row: Record<string, unknown>): DocumentoJuridico {
   return { ...(row as DocumentoJuridico) };
 }
 
+const PAGE_SIZE = 25;
+
+export type DocumentoWithSignedUrl = DocumentoJuridico & { signedUrl: string | null };
+
 // ─── Hook ────────────────────────────────────────────────────────────────────
 
-export const useDocumentosJuridicos = (options?: { processoId?: string; leadId?: string }) => {
+export const useDocumentosJuridicos = (options?: { processoId?: string; leadId?: string; page?: number }) => {
   const { user, profile } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const tenantId = profile?.tenant_id;
   const qKey = documentosQueryKey(tenantId);
+  const page = options?.page ?? 1;
 
   const { data: queryData, isLoading: loading, error: queryError, refetch } = useQuery({
-    queryKey: [...qKey, options?.processoId, options?.leadId],
+    queryKey: [...qKey, options?.processoId, options?.leadId, page],
     queryFn: async () => {
       let query = supabase
         .from('documentos_juridicos')
         .select('*', { count: 'exact' })
-        .order('created_at', { ascending: false });
+        .order('created_at', { ascending: false })
+        .range((page - 1) * PAGE_SIZE, page * PAGE_SIZE - 1);
 
       if (tenantId) query = query.eq('tenant_id', tenantId);
       if (options?.processoId) query = query.eq('processo_id', options.processoId);
@@ -68,8 +74,18 @@ export const useDocumentosJuridicos = (options?: { processoId?: string; leadId?:
       const { data, error, count } = await query;
       if (error) { log.error('Erro ao buscar documentos', error); throw error; }
 
+      const items = await Promise.all(
+        (data || []).map(async (row) => {
+          const doc = normalizeDocumento(row as Record<string, unknown>);
+          const { data: signedData } = await supabase.storage
+            .from('documents')
+            .createSignedUrl(doc.storage_path, 3600);
+          return { ...doc, signedUrl: signedData?.signedUrl ?? null } as DocumentoWithSignedUrl;
+        })
+      );
+
       return {
-        items: (data || []).map(normalizeDocumento),
+        items,
         totalCount: count ?? 0,
       };
     },
@@ -79,6 +95,10 @@ export const useDocumentosJuridicos = (options?: { processoId?: string; leadId?:
   });
 
   const documentos = queryData?.items ?? [];
+  const totalCount = queryData?.totalCount ?? 0;
+  const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
+  const hasNextPage = page < totalPages;
+  const hasPrevPage = page > 1;
   const error = queryError ? queryError.message : null;
 
   const createMutation = useMutation({
@@ -156,19 +176,30 @@ export const useDocumentosJuridicos = (options?: { processoId?: string; leadId?:
       const processoId = metadata.processo_id ?? 'avulso';
       const storagePath = `${tenantId}/processos/${processoId}/${Date.now()}-${sanitizedName}`;
 
+      // SHA-256 hash
+      const buffer = await file.arrayBuffer();
+      const hashBuffer = await crypto.subtle.digest('SHA-256', buffer);
+      const hashHex = Array.from(new Uint8Array(hashBuffer))
+        .map(b => b.toString(16).padStart(2, '0'))
+        .join('');
+
       const { error: uploadError } = await supabase.storage
         .from('documents')
         .upload(storagePath, file, { cacheControl: '3600', upsert: false });
       if (uploadError) throw uploadError;
 
-      const { data: urlData } = supabase.storage.from('documents').getPublicUrl(storagePath);
+      const { data: signedData } = await supabase.storage
+        .from('documents')
+        .createSignedUrl(storagePath, 3600);
 
       await createMutation.mutateAsync({
         ...metadata,
         nome_arquivo: sanitizedName,
         nome_original: file.name,
         storage_path: storagePath,
-        url_publica: urlData.publicUrl,
+        url_publica: signedData?.signedUrl ?? null,
+        content_hash: hashHex,
+        hash_algorithm: 'SHA-256',
         tipo_mime: file.type,
         tamanho_bytes: file.size,
         uploaded_by: user.id,
@@ -194,6 +225,11 @@ export const useDocumentosJuridicos = (options?: { processoId?: string; leadId?:
 
   return {
     documentos,
+    totalCount,
+    totalPages,
+    hasNextPage,
+    hasPrevPage,
+    page,
     loading,
     error,
     isEmpty: !loading && !error && documentos.length === 0,

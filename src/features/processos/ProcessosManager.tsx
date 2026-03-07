@@ -1,6 +1,7 @@
-import { useState, useMemo } from 'react';
-import { Plus, Search, Scale, AlertCircle, RefreshCw, Eye, Edit, Trash2 } from 'lucide-react';
+import { useState } from 'react';
+import { Plus, Search, Scale, AlertCircle, RefreshCw, Eye, Edit, Trash2, XCircle, Gavel, TrendingUp, Clock } from 'lucide-react';
 import { useDebounce } from '@/hooks/useDebounce';
+import { useQuery } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -9,6 +10,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { useProcessos } from '@/hooks/useProcessos';
 import type { Processo } from '@/hooks/useProcessos';
+import { usePrazosProcessuais } from '@/hooks/usePrazosProcessuais';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
 import { createLogger } from '@/lib/logger';
@@ -20,6 +22,7 @@ import EmptyState from '@/components/EmptyState';
 import PaginationControls from '@/components/PaginationControls';
 import NovoProcessoForm from './components/NovoProcessoForm';
 import ProcessoDetalhes from './components/ProcessoDetalhes';
+import { EncerrarProcessoDialog } from './components/EncerrarProcessoDialog';
 import type { ProcessoFormData } from '@/schemas/processoSchema';
 
 const log = createLogger('ProcessosManager');
@@ -63,6 +66,9 @@ const ProcessosManager = () => {
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [isDetalhesOpen, setIsDetalhesOpen] = useState(false);
   const [selectedProcesso, setSelectedProcesso] = useState<Processo | null>(null);
+  const [encerrarProcesso, setEncerrarProcesso] = useState<{ open: boolean; id: string; numero: string }>({
+    open: false, id: '', numero: '',
+  });
   const [confirmDelete, setConfirmDelete] = useState<{ open: boolean; id: string; label: string }>({
     open: false, id: '', label: '',
   });
@@ -72,22 +78,59 @@ const ProcessosManager = () => {
   const {
     processos, loading, error, isEmpty, fetchProcessos, createProcesso, updateProcesso,
     currentPage, totalPages, totalCount, hasPrevPage, hasNextPage, prevPage, nextPage,
-  } = useProcessos({ enablePagination: true });
+  } = useProcessos({
+    enablePagination: true,
+    filterStatus: filterStatus || undefined,
+    filterTipo: filterTipo || undefined,
+    search: debouncedSearch || undefined,
+  });
   const { toast } = useToast();
   const { profile } = useAuth();
   const { can } = useRBAC();
   const tenantId = profile?.tenant_id ?? null;
 
-  const filteredProcessos = useMemo(() => processos.filter(p => {
-    const matchSearch = !debouncedSearch ||
-      p.numero_processo?.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
-      p.tribunal?.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
-      p.comarca?.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
-      p.observacoes?.toLowerCase().includes(debouncedSearch.toLowerCase());
-    const matchStatus = filterStatus === '' || p.status === filterStatus;
-    const matchTipo = filterTipo === '' || p.tipo_acao === filterTipo;
-    return matchSearch && matchStatus && matchTipo;
-  }), [processos, debouncedSearch, filterStatus, filterTipo]);
+  // Stats queries
+  const { prazosUrgentes } = usePrazosProcessuais();
+
+  const { data: statsAtivos } = useQuery({
+    queryKey: ['processos-stats-ativos', tenantId],
+    queryFn: async () => {
+      const { count, error: err } = await supabase
+        .from('processos')
+        .select('*', { count: 'exact', head: true })
+        .eq('tenant_id', tenantId)
+        .eq('status', 'ativo');
+      if (err) throw err;
+      return count ?? 0;
+    },
+    enabled: !!tenantId,
+    staleTime: 2 * 60 * 1000,
+  });
+
+  const { data: statsExito } = useQuery({
+    queryKey: ['processos-stats-exito', tenantId],
+    queryFn: async () => {
+      const statuses = ['encerrado_vitoria', 'encerrado_derrota', 'encerrado_acordo'];
+      const counts = await Promise.all(
+        statuses.map(async (s) => {
+          const { count, error: err } = await supabase
+            .from('processos')
+            .select('*', { count: 'exact', head: true })
+            .eq('tenant_id', tenantId)
+            .eq('status', s);
+          if (err) throw err;
+          return count ?? 0;
+        }),
+      );
+      const vitorias = counts[0] ?? 0;
+      const derrotas = counts[1] ?? 0;
+      const acordos = counts[2] ?? 0;
+      const total = vitorias + derrotas + acordos;
+      return total > 0 ? Math.round((vitorias / total) * 100) : 0;
+    },
+    enabled: !!tenantId,
+    staleTime: 2 * 60 * 1000,
+  });
 
   const handleSubmitForm = async (data: ProcessoFormData): Promise<boolean> => {
     setFormLoading(true);
@@ -213,7 +256,7 @@ const ProcessosManager = () => {
             <div>
               <CardTitle className="text-2xl">Processos Jurídicos</CardTitle>
               <p className="text-muted-foreground">
-                {filteredProcessos.length} processo{filteredProcessos.length !== 1 ? 's' : ''}
+                {totalCount} processo{totalCount !== 1 ? 's' : ''}
                 {filterStatus || filterTipo || debouncedSearch ? ' (filtrados)' : ''}
               </p>
             </div>
@@ -226,6 +269,54 @@ const ProcessosManager = () => {
           </div>
         </CardHeader>
       </Card>
+
+      {/* Stats */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <Card>
+          <CardContent className="p-4 flex items-center gap-3">
+            <div className="p-2 rounded-lg bg-primary/10">
+              <Gavel className="w-5 h-5 text-primary" />
+            </div>
+            <div>
+              <p className="text-2xl font-bold">{totalCount}</p>
+              <p className="text-xs text-muted-foreground">Total</p>
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-4 flex items-center gap-3">
+            <div className="p-2 rounded-lg bg-emerald-500/10">
+              <Scale className="w-5 h-5 text-emerald-600" />
+            </div>
+            <div>
+              <p className="text-2xl font-bold">{statsAtivos ?? 0}</p>
+              <p className="text-xs text-muted-foreground">Ativos</p>
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-4 flex items-center gap-3">
+            <div className="p-2 rounded-lg bg-blue-500/10">
+              <TrendingUp className="w-5 h-5 text-blue-600" />
+            </div>
+            <div>
+              <p className="text-2xl font-bold">{statsExito ?? 0}%</p>
+              <p className="text-xs text-muted-foreground">Taxa de Êxito</p>
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-4 flex items-center gap-3">
+            <div className="p-2 rounded-lg bg-red-500/10">
+              <Clock className="w-5 h-5 text-red-600" />
+            </div>
+            <div>
+              <p className="text-2xl font-bold">{prazosUrgentes.length}</p>
+              <p className="text-xs text-muted-foreground">Prazos Urgentes</p>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
 
       {/* Filters */}
       <Card>
@@ -266,7 +357,7 @@ const ProcessosManager = () => {
 
       {/* List */}
       <div className="grid gap-4">
-        {filteredProcessos.map(processo => (
+        {processos.map(processo => (
           <Card key={processo.id} className="hover:border-primary/50 transition-colors">
             <CardContent className="p-6">
               <div className="flex justify-between items-start gap-4">
@@ -320,6 +411,21 @@ const ProcessosManager = () => {
                       <Edit className="w-4 h-4" />
                     </Button>
                   )}
+                  {can('processos', 'update') && (processo.status === 'ativo' || processo.status === 'suspenso') && (
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      title="Encerrar"
+                      className="text-amber-600 hover:text-amber-700"
+                      onClick={() => setEncerrarProcesso({
+                        open: true,
+                        id: processo.id,
+                        numero: processo.numero_processo || 'processo',
+                      })}
+                    >
+                      <XCircle className="w-4 h-4" />
+                    </Button>
+                  )}
                   {can('processos', 'delete') && (
                     <Button
                       size="sm"
@@ -342,7 +448,7 @@ const ProcessosManager = () => {
         ))}
       </div>
 
-      {filteredProcessos.length === 0 && (
+      {processos.length === 0 && (
         <Card>
           <CardContent className="p-8 text-center">
             <p className="text-muted-foreground">Nenhum processo encontrado para os filtros aplicados.</p>
@@ -392,6 +498,15 @@ const ProcessosManager = () => {
           {selectedProcesso && <ProcessoDetalhes processo={selectedProcesso} />}
         </DialogContent>
       </Dialog>
+
+      {/* Encerrar Dialog */}
+      <EncerrarProcessoDialog
+        processoId={encerrarProcesso.id}
+        processoNumero={encerrarProcesso.numero}
+        open={encerrarProcesso.open}
+        onClose={() => setEncerrarProcesso({ open: false, id: '', numero: '' })}
+        onSuccess={fetchProcessos}
+      />
 
       {/* Confirm Delete */}
       <ConfirmDialog

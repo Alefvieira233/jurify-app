@@ -45,20 +45,26 @@ function normalizeHonorario(row: Record<string, unknown>): Honorario {
 
 // ─── Hook ────────────────────────────────────────────────────────────────────
 
-export const useHonorarios = (options?: { processoId?: string }) => {
+const PAGE_SIZE = 25;
+
+export type HonorarioWithOverdue = Honorario & { overdue: boolean };
+
+export const useHonorarios = (options?: { processoId?: string; page?: number }) => {
   const { user, profile } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const tenantId = profile?.tenant_id;
   const qKey = honorariosQueryKey(tenantId);
+  const page = options?.page ?? 1;
 
   const { data: queryData, isLoading: loading, error: queryError, refetch } = useQuery({
-    queryKey: [...qKey, options?.processoId],
+    queryKey: [...qKey, options?.processoId, page],
     queryFn: async () => {
       let query = supabase
         .from('honorarios')
         .select('*', { count: 'exact' })
-        .order('created_at', { ascending: false });
+        .order('created_at', { ascending: false })
+        .range((page - 1) * PAGE_SIZE, page * PAGE_SIZE - 1);
 
       if (tenantId) query = query.eq('tenant_id', tenantId);
       if (options?.processoId) query = query.eq('processo_id', options.processoId);
@@ -66,8 +72,17 @@ export const useHonorarios = (options?: { processoId?: string }) => {
       const { data, error, count } = await query;
       if (error) { log.error('Erro ao buscar honorários', error); throw error; }
 
+      const today = new Date().toISOString().slice(0, 10);
+      const items: HonorarioWithOverdue[] = (data || []).map(row => {
+        const h = normalizeHonorario(row as Record<string, unknown>);
+        return {
+          ...h,
+          overdue: h.data_vencimento != null && h.data_vencimento < today && h.status === 'vigente',
+        };
+      });
+
       return {
-        items: (data || []).map(normalizeHonorario),
+        items,
         totalCount: count ?? 0,
       };
     },
@@ -77,6 +92,10 @@ export const useHonorarios = (options?: { processoId?: string }) => {
   });
 
   const honorarios = queryData?.items ?? [];
+  const totalCount = queryData?.totalCount ?? 0;
+  const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
+  const hasNextPage = page < totalPages;
+  const hasPrevPage = page > 1;
   const totalRecebido = honorarios.reduce((acc, h) => acc + (h.valor_recebido ?? 0), 0);
   const totalAcordado = honorarios.reduce((acc, h) => acc + (h.valor_total_acordado ?? 0), 0);
   const error = queryError ? queryError.message : null;
@@ -191,6 +210,11 @@ export const useHonorarios = (options?: { processoId?: string }) => {
     honorarios,
     totalRecebido,
     totalAcordado,
+    totalCount,
+    totalPages,
+    hasNextPage,
+    hasPrevPage,
+    page,
     loading,
     error,
     isEmpty: !loading && !error && honorarios.length === 0,

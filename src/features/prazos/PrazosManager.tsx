@@ -1,5 +1,5 @@
-import { useState, useMemo } from 'react';
-import { Plus, Search, Clock, AlertCircle, RefreshCw, Edit, Trash2, CheckCircle } from 'lucide-react';
+import { useState } from 'react';
+import { Plus, Search, Clock, AlertCircle, RefreshCw, Edit, Trash2, CheckCircle, List, CalendarDays } from 'lucide-react';
 import { useDebounce } from '@/hooks/useDebounce';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -19,6 +19,7 @@ import EmptyState from '@/components/EmptyState';
 import PaginationControls from '@/components/PaginationControls';
 import PrazoAlertaBadge from './components/PrazoAlertaBadge';
 import NovoPrazoForm from './components/NovoPrazoForm';
+import { PrazosCalendario } from './components/PrazosCalendario';
 import type { PrazoFormData } from '@/schemas/prazoSchema';
 
 const log = createLogger('PrazosManager');
@@ -36,6 +37,7 @@ const TIPO_LABELS: Record<string, string> = {
 
 const PrazosManager = () => {
   usePageTitle('Prazos Processuais');
+  const [view, setView] = useState<'lista' | 'calendario'>('lista');
   const [searchTerm, setSearchTerm] = useState('');
   const debouncedSearch = useDebounce(searchTerm, 300);
   const [filterStatus, setFilterStatus] = useState('pendente');
@@ -51,20 +53,19 @@ const PrazosManager = () => {
   const {
     prazos, prazosUrgentes, loading, error, isEmpty, fetchPrazos, createPrazo, updatePrazo, deletePrazo,
     currentPage, totalPages, totalCount, hasPrevPage, hasNextPage, prevPage, nextPage,
-  } = usePrazosProcessuais({ enablePagination: true });
+  } = usePrazosProcessuais({
+    enablePagination: true,
+    filterStatus: filterStatus || undefined,
+    filterTipo: filterTipo || undefined,
+    search: debouncedSearch || undefined,
+  });
   const { toast } = useToast();
   const { profile } = useAuth();
   const { can } = useRBAC();
   const tenantId = profile?.tenant_id ?? null;
 
-  const filteredPrazos = useMemo(() => prazos.filter(p => {
-    const matchSearch = !debouncedSearch ||
-      p.descricao.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
-      TIPO_LABELS[p.tipo]?.toLowerCase().includes(debouncedSearch.toLowerCase());
-    const matchStatus = filterStatus === '' || p.status === filterStatus;
-    const matchTipo = filterTipo === '' || p.tipo === filterTipo;
-    return matchSearch && matchStatus && matchTipo;
-  }), [prazos, debouncedSearch, filterStatus, filterTipo]);
+  // Filtering is now server-side via usePrazosProcessuais options
+  const filteredPrazos = prazos;
 
   const handleSubmitForm = async (data: PrazoFormData): Promise<boolean> => {
     setFormLoading(true);
@@ -178,16 +179,40 @@ const PrazosManager = () => {
                 )}
               </p>
             </div>
-            {can('prazos', 'create') && (
-              <Button onClick={() => { setSelectedPrazo(null); setIsFormOpen(true); }}>
-                <Plus className="w-4 h-4 mr-2" />
-                Novo Prazo
-              </Button>
-            )}
+            <div className="flex items-center gap-2">
+              <div className="flex border rounded-md">
+                <Button
+                  size="sm"
+                  variant={view === 'lista' ? 'default' : 'ghost'}
+                  onClick={() => setView('lista')}
+                  title="Visualizar como lista"
+                >
+                  <List className="w-4 h-4" />
+                </Button>
+                <Button
+                  size="sm"
+                  variant={view === 'calendario' ? 'default' : 'ghost'}
+                  onClick={() => setView('calendario')}
+                  title="Visualizar como calendário"
+                >
+                  <CalendarDays className="w-4 h-4" />
+                </Button>
+              </div>
+              {can('prazos', 'create') && (
+                <Button onClick={() => { setSelectedPrazo(null); setIsFormOpen(true); }}>
+                  <Plus className="w-4 h-4 mr-2" />
+                  Novo Prazo
+                </Button>
+              )}
+            </div>
           </div>
         </CardHeader>
       </Card>
 
+      {view === 'calendario' && tenantId ? (
+        <PrazosCalendario tenantId={tenantId} />
+      ) : (
+      <>
       {/* Urgentes warning */}
       {prazosUrgentes.length > 0 && filterStatus === 'pendente' && (
         <Card className="border-amber-400/50 bg-amber-50/50 dark:bg-amber-900/10">
@@ -317,6 +342,8 @@ const PrazosManager = () => {
         onNext={nextPage}
         label="prazos"
       />
+      </>
+      )}
 
       <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
         <DialogContent className="max-w-lg">

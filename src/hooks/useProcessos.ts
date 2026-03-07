@@ -47,8 +47,14 @@ const ITEMS_PER_PAGE = 25;
 
 // ─── Query key factory ───────────────────────────────────────────────────────
 
-export const processosQueryKey = (tenantId: string | undefined, page?: number) =>
-  ['processos', tenantId, page ?? 1] as const;
+export const processosQueryKey = (
+  tenantId: string | undefined,
+  page?: number,
+  filterStatus?: string,
+  filterTipo?: string,
+  search?: string,
+) =>
+  ['processos', tenantId, page ?? 1, filterStatus ?? '', filterTipo ?? '', search ?? ''] as const;
 
 // ─── Pure helpers ────────────────────────────────────────────────────────────
 
@@ -58,16 +64,25 @@ function normalizeProcesso(row: Record<string, unknown>): Processo {
 
 // ─── Hook ────────────────────────────────────────────────────────────────────
 
-export const useProcessos = (options?: { enablePagination?: boolean; pageSize?: number }) => {
+export const useProcessos = (options?: {
+  enablePagination?: boolean;
+  pageSize?: number;
+  filterStatus?: string;
+  filterTipo?: string;
+  search?: string;
+}) => {
   const { user, profile } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
   const enablePagination = options?.enablePagination ?? false;
   const pageSize = options?.pageSize ?? ITEMS_PER_PAGE;
+  const filterStatus = options?.filterStatus;
+  const filterTipo = options?.filterTipo;
+  const search = options?.search;
   const tenantId = profile?.tenant_id;
   const [currentPage, setCurrentPage] = useState(1);
-  const qKey = processosQueryKey(tenantId, enablePagination ? currentPage : undefined);
+  const qKey = processosQueryKey(tenantId, enablePagination ? currentPage : undefined, filterStatus, filterTipo, search);
 
   // ── Query ──────────────────────────────────────────────────────────────────
 
@@ -86,6 +101,18 @@ export const useProcessos = (options?: { enablePagination?: boolean; pageSize?: 
         query = query.eq('tenant_id', effectiveTenantId);
       } else {
         log.warn('Sem tenant_id. RLS deve atuar.');
+      }
+
+      if (filterStatus) {
+        query = query.eq('status', filterStatus);
+      }
+      if (filterTipo) {
+        query = query.eq('tipo_acao', filterTipo);
+      }
+      if (search) {
+        query = query.or(
+          `numero_processo.ilike.%${search}%,tribunal.ilike.%${search}%,comarca.ilike.%${search}%`,
+        );
       }
 
       if (enablePagination) {

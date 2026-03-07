@@ -44,7 +44,14 @@ function normalizePrazo(row: Record<string, unknown>): PrazoProcessual {
 
 // ─── Hook ────────────────────────────────────────────────────────────────────
 
-export const usePrazosProcessuais = (options?: { processoId?: string; enablePagination?: boolean; pageSize?: number }) => {
+export const usePrazosProcessuais = (options?: {
+  processoId?: string;
+  enablePagination?: boolean;
+  pageSize?: number;
+  filterStatus?: string;
+  filterTipo?: string;
+  search?: string;
+}) => {
   const { user, profile } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -56,7 +63,7 @@ export const usePrazosProcessuais = (options?: { processoId?: string; enablePagi
   const qKey = prazosQueryKey(tenantId, enablePagination ? currentPage : undefined);
 
   const { data: queryData, isLoading: loading, error: queryError, refetch } = useQuery({
-    queryKey: [...qKey, options?.processoId],
+    queryKey: [...qKey, options?.processoId, options?.filterStatus, options?.filterTipo, options?.search],
     queryFn: async () => {
       let query = supabase
         .from('prazos_processuais')
@@ -65,6 +72,9 @@ export const usePrazosProcessuais = (options?: { processoId?: string; enablePagi
 
       if (tenantId) query = query.eq('tenant_id', tenantId);
       if (options?.processoId) query = query.eq('processo_id', options.processoId);
+      if (options?.filterStatus) query = query.eq('status', options.filterStatus);
+      if (options?.filterTipo) query = query.eq('tipo', options.filterTipo);
+      if (options?.search) query = query.ilike('descricao', `%${options.search}%`);
 
       if (enablePagination) {
         const from = (currentPage - 1) * pageSize;

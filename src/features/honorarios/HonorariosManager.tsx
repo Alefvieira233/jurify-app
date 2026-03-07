@@ -8,13 +8,15 @@ import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { useHonorarios } from '@/hooks/useHonorarios';
-import type { Honorario } from '@/hooks/useHonorarios';
+import type { HonorarioWithOverdue } from '@/hooks/useHonorarios';
+import PaginationControls from '@/components/PaginationControls';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
 import { createLogger } from '@/lib/logger';
 import { usePageTitle } from '@/hooks/usePageTitle';
 import { useRBAC } from '@/hooks/useRBAC';
 import { supabaseUntyped as supabase } from '@/integrations/supabase/client';
+import { useQueryClient } from '@tanstack/react-query';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import EmptyState from '@/components/EmptyState';
 import NovoHonorarioForm from './components/NovoHonorarioForm';
@@ -55,16 +57,31 @@ const HonorariosManager = () => {
   const debouncedSearch = useDebounce(searchTerm, 300);
   const [filterStatus, setFilterStatus] = useState('');
   const [isFormOpen, setIsFormOpen] = useState(false);
-  const [selectedHonorario, setSelectedHonorario] = useState<Honorario | null>(null);
+  const [selectedHonorario, setSelectedHonorario] = useState<HonorarioWithOverdue | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<{ open: boolean; id: string }>({ open: false, id: '' });
   const [deleteLoading, setDeleteLoading] = useState(false);
   const [formLoading, setFormLoading] = useState(false);
+  const [page, setPage] = useState(1);
 
-  const { honorarios, totalRecebido, totalAcordado, loading, error, isEmpty, fetchHonorarios, createHonorario, updateHonorario } = useHonorarios();
+  const { honorarios, totalRecebido, totalAcordado, totalCount, totalPages, hasNextPage, hasPrevPage, loading, error, isEmpty, fetchHonorarios, createHonorario, updateHonorario } = useHonorarios({ page });
   const { toast } = useToast();
   const { profile } = useAuth();
   const { can } = useRBAC();
+  const queryClient = useQueryClient();
   const tenantId = profile?.tenant_id ?? null;
+
+  const handleMarcarInadimplente = async (id: string) => {
+    const { error: updateError } = await supabase
+      .from('honorarios')
+      .update({ status: 'inadimplente' })
+      .eq('id', id);
+    if (updateError) {
+      toast({ title: 'Erro', description: 'Não foi possível atualizar.', variant: 'destructive' });
+    } else {
+      toast({ title: 'Status atualizado', description: 'Honorário marcado como inadimplente.' });
+      void queryClient.invalidateQueries({ queryKey: ['honorarios'] });
+    }
+  };
 
   const filteredHonorarios = useMemo(() => honorarios.filter(h => {
     const matchSearch = !debouncedSearch ||
@@ -253,6 +270,7 @@ const HonorariosManager = () => {
                   <div className="flex items-center gap-2 flex-wrap">
                     <Badge variant="outline">{TIPO_LABELS[h.tipo] ?? h.tipo}</Badge>
                     <Badge className={STATUS_COLORS[h.status] ?? ''}>{STATUS_LABELS[h.status] ?? h.status}</Badge>
+                    {h.overdue && <Badge variant="destructive" className="text-xs">Vencido</Badge>}
                   </div>
                   <div className="flex gap-4 mt-2 text-sm">
                     <span><span className="text-muted-foreground">Acordado:</span> <span className="font-medium">{fmt(h.valor_total_acordado)}</span></span>
@@ -266,6 +284,15 @@ const HonorariosManager = () => {
                   )}
                 </div>
                 <div className="flex items-center gap-1 flex-shrink-0">
+                  {h.overdue && can('honorarios', 'update') && (
+                    <Button
+                      size="sm"
+                      variant="destructive"
+                      onClick={() => { void handleMarcarInadimplente(h.id); }}
+                    >
+                      Marcar Inadimplente
+                    </Button>
+                  )}
                   {can('honorarios', 'update') && (
                     <Button size="sm" variant="ghost" title="Editar"
                       onClick={() => { setSelectedHonorario(h); setIsFormOpen(true); }}>
@@ -285,6 +312,17 @@ const HonorariosManager = () => {
           </Card>
         ))}
       </div>
+
+      <PaginationControls
+        currentPage={page}
+        totalPages={totalPages}
+        totalCount={totalCount}
+        hasPrevPage={hasPrevPage}
+        hasNextPage={hasNextPage}
+        onPrev={() => setPage(p => Math.max(1, p - 1))}
+        onNext={() => setPage(p => p + 1)}
+        label="honorários"
+      />
 
       {filteredHonorarios.length === 0 && (
         <Card>

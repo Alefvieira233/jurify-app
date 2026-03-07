@@ -8,7 +8,8 @@ import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { useDocumentosJuridicos } from '@/hooks/useDocumentosJuridicos';
-import type { DocumentoJuridico } from '@/hooks/useDocumentosJuridicos';
+import type { DocumentoWithSignedUrl } from '@/hooks/useDocumentosJuridicos';
+import PaginationControls from '@/components/PaginationControls';
 import { createLogger } from '@/lib/logger';
 import { usePageTitle } from '@/hooks/usePageTitle';
 import { useRBAC } from '@/hooks/useRBAC';
@@ -46,13 +47,14 @@ const DocumentosManager = () => {
   const [filterTipo, setFilterTipo] = useState('');
   const [isUploadOpen, setIsUploadOpen] = useState(false);
   const [uploadLoading, setUploadLoading] = useState(false);
-  const [previewDoc, setPreviewDoc] = useState<DocumentoJuridico | null>(null);
+  const [previewDoc, setPreviewDoc] = useState<DocumentoWithSignedUrl | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<{ open: boolean; id: string; storagePath: string; nome: string }>({
     open: false, id: '', storagePath: '', nome: '',
   });
   const [deleteLoading, setDeleteLoading] = useState(false);
+  const [page, setPage] = useState(1);
 
-  const { documentos, loading, error, isEmpty, fetchDocumentos, uploadDocumento, deleteDocumento } = useDocumentosJuridicos();
+  const { documentos, totalCount, totalPages, hasNextPage, hasPrevPage, loading, error, isEmpty, fetchDocumentos, uploadDocumento, deleteDocumento } = useDocumentosJuridicos({ page });
   const { can } = useRBAC();
 
   const filteredDocumentos = useMemo(() => documentos.filter(d => {
@@ -211,7 +213,7 @@ const DocumentosManager = () => {
                   </div>
                 </div>
                 <div className="flex items-center gap-1 flex-shrink-0">
-                  {doc.url_publica && (
+                  {doc.signedUrl && (
                     <Button
                       size="sm"
                       variant="ghost"
@@ -221,14 +223,14 @@ const DocumentosManager = () => {
                       <Eye className="w-4 h-4" />
                     </Button>
                   )}
-                  {doc.url_publica && (
+                  {doc.signedUrl && (
                     <Button
                       size="sm"
                       variant="ghost"
                       title="Download"
                       asChild
                     >
-                      <a href={doc.url_publica} download={doc.nome_original} target="_blank" rel="noreferrer">
+                      <a href={doc.signedUrl} download={doc.nome_original} target="_blank" rel="noreferrer">
                         <Download className="w-4 h-4" />
                       </a>
                     </Button>
@@ -250,6 +252,17 @@ const DocumentosManager = () => {
           </Card>
         ))}
       </div>
+
+      <PaginationControls
+        currentPage={page}
+        totalPages={totalPages}
+        totalCount={totalCount}
+        hasPrevPage={hasPrevPage}
+        hasNextPage={hasNextPage}
+        onPrev={() => setPage(p => Math.max(1, p - 1))}
+        onNext={() => setPage(p => p + 1)}
+        label="documentos"
+      />
 
       {filteredDocumentos.length === 0 && (
         <Card>
@@ -273,7 +286,7 @@ const DocumentosManager = () => {
           <DialogHeader>
             <DialogTitle>{previewDoc?.nome_original}</DialogTitle>
           </DialogHeader>
-          {previewDoc?.url_publica && (
+          {previewDoc?.signedUrl && (
             <div className="space-y-4">
               <div className="flex gap-2 text-sm text-muted-foreground">
                 <Badge variant="outline">{TIPO_LABELS[previewDoc.tipo_documento]}</Badge>
@@ -281,13 +294,13 @@ const DocumentosManager = () => {
                 <span>{previewDoc.tipo_mime}</span>
               </div>
               {previewDoc.tipo_mime?.startsWith('image/') ? (
-                <img src={previewDoc.url_publica} alt={previewDoc.nome_original} className="max-w-full rounded" />
+                <img src={previewDoc.signedUrl} alt={previewDoc.nome_original} className="max-w-full rounded" />
               ) : (
                 <div className="p-4 bg-muted/50 rounded text-center">
                   <FileText className="w-12 h-12 mx-auto text-muted-foreground mb-2" />
                   <p className="text-sm text-muted-foreground mb-3">Preview não disponível para este tipo de arquivo.</p>
                   <Button asChild>
-                    <a href={previewDoc.url_publica} download={previewDoc.nome_original} target="_blank" rel="noreferrer">
+                    <a href={previewDoc.signedUrl} download={previewDoc.nome_original} target="_blank" rel="noreferrer">
                       <Download className="w-4 h-4 mr-2" />
                       Baixar Arquivo
                     </a>
