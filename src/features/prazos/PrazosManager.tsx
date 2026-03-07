@@ -16,6 +16,7 @@ import { usePageTitle } from '@/hooks/usePageTitle';
 import { useRBAC } from '@/hooks/useRBAC';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import EmptyState from '@/components/EmptyState';
+import PaginationControls from '@/components/PaginationControls';
 import PrazoAlertaBadge from './components/PrazoAlertaBadge';
 import NovoPrazoForm from './components/NovoPrazoForm';
 import type { PrazoFormData } from '@/schemas/prazoSchema';
@@ -47,7 +48,10 @@ const PrazosManager = () => {
   const [deleteLoading, setDeleteLoading] = useState(false);
   const [formLoading, setFormLoading] = useState(false);
 
-  const { prazos, prazosUrgentes, loading, error, isEmpty, fetchPrazos, createPrazo, updatePrazo, deletePrazo } = usePrazosProcessuais();
+  const {
+    prazos, prazosUrgentes, loading, error, isEmpty, fetchPrazos, createPrazo, updatePrazo, deletePrazo,
+    currentPage, totalPages, totalCount, hasPrevPage, hasNextPage, prevPage, nextPage,
+  } = usePrazosProcessuais({ enablePagination: true });
   const { toast } = useToast();
   const { profile } = useAuth();
   const { can } = useRBAC();
@@ -302,6 +306,17 @@ const PrazosManager = () => {
           </CardContent>
         </Card>
       )}
+
+      <PaginationControls
+        currentPage={currentPage}
+        totalPages={totalPages}
+        totalCount={totalCount}
+        hasPrevPage={hasPrevPage}
+        hasNextPage={hasNextPage}
+        onPrev={prevPage}
+        onNext={nextPage}
+        label="prazos"
+      />
 
       <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
         <DialogContent className="max-w-lg">

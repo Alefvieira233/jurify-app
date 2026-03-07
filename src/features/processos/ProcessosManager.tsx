@@ -17,7 +17,9 @@ import { useRBAC } from '@/hooks/useRBAC';
 import { supabaseUntyped as supabase } from '@/integrations/supabase/client';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import EmptyState from '@/components/EmptyState';
+import PaginationControls from '@/components/PaginationControls';
 import NovoProcessoForm from './components/NovoProcessoForm';
+import ProcessoDetalhes from './components/ProcessoDetalhes';
 import type { ProcessoFormData } from '@/schemas/processoSchema';
 
 const log = createLogger('ProcessosManager');
@@ -67,7 +69,10 @@ const ProcessosManager = () => {
   const [deleteLoading, setDeleteLoading] = useState(false);
   const [formLoading, setFormLoading] = useState(false);
 
-  const { processos, loading, error, isEmpty, fetchProcessos, createProcesso, updateProcesso } = useProcessos();
+  const {
+    processos, loading, error, isEmpty, fetchProcessos, createProcesso, updateProcesso,
+    currentPage, totalPages, totalCount, hasPrevPage, hasNextPage, prevPage, nextPage,
+  } = useProcessos({ enablePagination: true });
   const { toast } = useToast();
   const { profile } = useAuth();
   const { can } = useRBAC();
@@ -348,6 +353,17 @@ const ProcessosManager = () => {
         </Card>
       )}
 
+      <PaginationControls
+        currentPage={currentPage}
+        totalPages={totalPages}
+        totalCount={totalCount}
+        hasPrevPage={hasPrevPage}
+        hasNextPage={hasNextPage}
+        onPrev={prevPage}
+        onNext={nextPage}
+        label="processos"
+      />
+
       {/* Form Dialog */}
       <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
@@ -363,48 +379,17 @@ const ProcessosManager = () => {
         </DialogContent>
       </Dialog>
 
-      {/* Detalhes Dialog */}
+      {/* Detalhes Dialog — tabbed view */}
       <Dialog open={isDetalhesOpen} onOpenChange={setIsDetalhesOpen}>
-        <DialogContent className="max-w-2xl">
+        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Detalhes do Processo</DialogTitle>
+            <DialogTitle>
+              {selectedProcesso?.numero_processo
+                ? `Processo ${selectedProcesso.numero_processo}`
+                : 'Detalhes do Processo'}
+            </DialogTitle>
           </DialogHeader>
-          {selectedProcesso && (
-            <div className="space-y-4">
-              <div className="grid grid-cols-2 gap-x-8 gap-y-3 text-sm">
-                <div><span className="font-medium text-muted-foreground">Número:</span> <span className="ml-1">{selectedProcesso.numero_processo || '—'}</span></div>
-                <div><span className="font-medium text-muted-foreground">Tipo:</span> <span className="ml-1">{TIPO_LABELS[selectedProcesso.tipo_acao] ?? selectedProcesso.tipo_acao}</span></div>
-                <div><span className="font-medium text-muted-foreground">Tribunal:</span> <span className="ml-1">{selectedProcesso.tribunal || '—'}</span></div>
-                <div><span className="font-medium text-muted-foreground">Vara:</span> <span className="ml-1">{selectedProcesso.vara || '—'}</span></div>
-                <div><span className="font-medium text-muted-foreground">Comarca:</span> <span className="ml-1">{selectedProcesso.comarca || '—'}</span></div>
-                <div><span className="font-medium text-muted-foreground">Fase:</span> <span className="ml-1 capitalize">{selectedProcesso.fase_processual.replace(/_/g, ' ')}</span></div>
-                <div><span className="font-medium text-muted-foreground">Posição:</span> <span className="ml-1 capitalize">{selectedProcesso.posicao}</span></div>
-                <div><span className="font-medium text-muted-foreground">Status:</span> <span className="ml-1">{STATUS_LABELS[selectedProcesso.status] ?? selectedProcesso.status}</span></div>
-                {selectedProcesso.valor_causa && (
-                  <div><span className="font-medium text-muted-foreground">Valor da Causa:</span> <span className="ml-1">{selectedProcesso.valor_causa.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</span></div>
-                )}
-                {selectedProcesso.data_distribuicao && (
-                  <div><span className="font-medium text-muted-foreground">Distribuição:</span> <span className="ml-1">{new Date(selectedProcesso.data_distribuicao).toLocaleDateString('pt-BR')}</span></div>
-                )}
-              </div>
-              {selectedProcesso.observacoes && (
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground mb-1">Observações</p>
-                  <p className="text-sm bg-muted/50 rounded p-3">{selectedProcesso.observacoes}</p>
-                </div>
-              )}
-              {selectedProcesso.partes_contrarias && selectedProcesso.partes_contrarias.length > 0 && (
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground mb-1">Partes Contrárias</p>
-                  <div className="flex flex-wrap gap-1">
-                    {selectedProcesso.partes_contrarias.map((parte, i) => (
-                      <Badge key={i} variant="outline">{parte}</Badge>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
-          )}
+          {selectedProcesso && <ProcessoDetalhes processo={selectedProcesso} />}
         </DialogContent>
       </Dialog>
 

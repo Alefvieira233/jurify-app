@@ -218,7 +218,10 @@ export const usePrazosProcessuais = (options?: { processoId?: string; enablePagi
     deletePrazo,
     currentPage,
     totalPages,
+    totalCount,
     goToPage,
+    nextPage: () => { if (currentPage < totalPages) setCurrentPage(p => p + 1); },
+    prevPage: () => { if (currentPage > 1) setCurrentPage(p => p - 1); },
     hasNextPage: currentPage < totalPages,
     hasPrevPage: currentPage > 1,
   };

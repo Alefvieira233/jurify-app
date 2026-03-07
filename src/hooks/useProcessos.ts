@@ -257,6 +257,7 @@ export const useProcessos = (options?: { enablePagination?: boolean; pageSize?: 
     deleteProcesso,
     currentPage,
     totalPages,
+    totalCount,
     pageSize,
     goToPage,
     nextPage,

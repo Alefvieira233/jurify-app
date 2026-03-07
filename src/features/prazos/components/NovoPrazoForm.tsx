@@ -50,7 +50,7 @@ const NovoPrazoForm = ({ onSubmit, onCancel, loading, initialData, processoId }:
   } = useForm<PrazoFormData>({
     resolver: zodResolver(prazoFormSchema),
     defaultValues: initialData ? {
-      processo_id: initialData.processo_id,
+      processo_id: initialData.processo_id ?? undefined,
       lead_id: initialData.lead_id,
       tipo: initialData.tipo as PrazoFormData['tipo'],
       descricao: initialData.descricao,
@@ -125,7 +125,7 @@ const NovoPrazoForm = ({ onSubmit, onCancel, loading, initialData, processoId }:
         {watch('status') === 'cumprido' && (
           <div className="space-y-1.5">
             <Label htmlFor="data_cumprimento">Data do Cumprimento</Label>
-            <Input id="data_cumprimento" type="datetime-local" {...register('data_prazo')} />
+            <Input id="data_cumprimento" type="datetime-local" {...register('data_cumprimento')} />
           </div>
         )}
       </div>

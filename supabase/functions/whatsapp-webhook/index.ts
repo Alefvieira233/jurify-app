@@ -4,7 +4,7 @@ import { getCorsHeaders } from "../_shared/cors.ts";
 import { applyRateLimit, getRequestIdentifier } from "../_shared/rate-limiter.ts";
 import { buildLegalContext } from "../_shared/legal-context.ts";
 
-console.log("[whatsapp-webhook] Function started (Evolution API + Meta compatible)");
+// whatsapp-webhook: Evolution API + Meta compatible
 
 /** Escapa caracteres especiais do LIKE para evitar manipulação de padrões */
 function escapeLike(value: string): string {
@@ -495,7 +495,7 @@ async function processNormalizedMessage(supabase: ReturnType<typeof createClient
   try {
     const { from, name, text, messageType, mediaUrl, instanceName, provider } = msg;
 
-    console.log(`[webhook:${provider}] Message from ${from}: ${text.substring(0, 80)}`);
+    // PII omitted from logs — phone and message content not logged
 
     // --- RESOLVE TENANT ---
     let tenantId: string | null = null;
@@ -512,9 +512,9 @@ async function processNormalizedMessage(supabase: ReturnType<typeof createClient
 
       if (config?.tenant_id) {
         tenantId = config.tenant_id;
-        console.log(`[webhook] Tenant resolved via integration config: ${tenantId}`);
+        // tenant resolved from integration config
       } else {
-        console.log(`[webhook] No config found for instance: ${instanceName}`);
+        console.warn(`[webhook] No config found for instance: ${instanceName}`);
       }
     }
 
@@ -908,7 +908,7 @@ async function sendViaEvolution(instanceName: string, to: string, text: string) 
         return;
       }
 
-      console.log(`[webhook:evolution] Message sent to ${to} via ${instanceName}`);
+      // Message sent successfully (phone not logged)
       return;
     } catch (error) {
       if (attempt < MAX_RETRIES) {

@@ -30,6 +30,21 @@ Deno.serve(async (req) => {
     return new Response(JSON.stringify({ error: error.message }), { status: 500 });
   }
 
+  // Batch query: fetch WhatsApp instance config for all tenants at once (avoid N+1)
+  const tenantIds = [...new Set((prazos ?? []).map((p) => p.tenant_id as string))];
+  const instanceByTenant = new Map<string, string>();
+  if (tenantIds.length > 0) {
+    const { data: cfgs } = await supabase
+      .from("configuracoes_integracoes")
+      .select("tenant_id, observacoes")
+      .in("tenant_id", tenantIds)
+      .eq("nome_integracao", "evolution_whatsapp");
+    for (const cfg of cfgs ?? []) {
+      const match = (cfg.observacoes as string | null)?.match(/instance:\s*([^\s;]+)/);
+      if (match?.[1]) instanceByTenant.set(cfg.tenant_id as string, match[1]);
+    }
+  }
+
   let sent = 0;
   for (const prazo of prazos ?? []) {
     const diasRestantes = Math.ceil(
@@ -41,6 +56,9 @@ Deno.serve(async (req) => {
     const responsavel = prazo.responsavel as { telefone: string | null; nome_completo: string | null } | null;
     if (!responsavel?.telefone) continue;
 
+    const instanceName = instanceByTenant.get(prazo.tenant_id as string);
+    if (!instanceName) continue;
+
     const phone = responsavel.telefone.replace(/\D/g, "");
     const numeroProcesso =
       (prazo.processos as { numero_processo: string | null } | null)?.numero_processo ?? "sem nº";
@@ -51,17 +69,6 @@ Deno.serve(async (req) => {
       `📝 ${prazo.descricao}\n` +
       `📅 Vencimento: ${new Date(prazo.data_prazo as string).toLocaleDateString("pt-BR")}`;
 
-    const { data: cfg } = await supabase
-      .from("configuracoes_integracoes")
-      .select("observacoes")
-      .eq("tenant_id", prazo.tenant_id)
-      .eq("nome_integracao", "evolution_whatsapp")
-      .maybeSingle();
-
-    const instanceMatch = (cfg?.observacoes as string | null)?.match(/instance:\s*([^\s;]+)/);
-    const instanceName = instanceMatch?.[1];
-    if (!instanceName) continue;
-
     try {
       await fetch(`${EVOLUTION_API_URL}/message/sendText/${instanceName}`, {
         method: "POST",
@@ -70,7 +77,7 @@ Deno.serve(async (req) => {
       });
       sent++;
     } catch (e) {
-      console.error(`[prazos-alerts] Failed to send to ${phone}:`, e);
+      console.error("[prazos-alerts] Failed to send WhatsApp alert:", e);
     }
   }
 

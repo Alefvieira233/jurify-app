@@ -20,7 +20,16 @@ export const TIPOS_HONORARIO_PROCESSO = ['fixo', 'hora', 'contingencia', 'misto'
 
 export const processoFormSchema = z.object({
   lead_id:                  z.string().uuid().optional().nullable(),
-  numero_processo:          z.string().max(50).optional().nullable(),
+  numero_processo:          z
+    .string()
+    .max(50)
+    .regex(
+      /^\d{7}-\d{2}\.\d{4}\.\d\.\d{2}\.\d{4}$/,
+      'Use o formato CNJ: NNNNNNN-DD.AAAA.J.TT.OOOO',
+    )
+    .optional()
+    .nullable()
+    .or(z.literal('').transform(() => null)),
   tribunal:                 z.string().max(200).optional().nullable(),
   vara:                     z.string().max(200).optional().nullable(),
   comarca:                  z.string().max(200).optional().nullable(),

@@ -46,7 +46,7 @@ export async function buildLegalContext(
     };
   }
 
-  const [processosRes, prazosRes, honorariosRes, docsRes] = await Promise.all([
+  const [processosRes, prazosRes, honorariosRes, docsRes] = await Promise.allSettled([
     supabase
       .from("processos")
       .select("id, numero_processo, tipo_acao, fase_processual, status, tribunal")
@@ -78,15 +78,16 @@ export async function buildLegalContext(
       .eq("tenant_id", tenantId),
   ]);
 
-  const processos = processosRes.data ?? [];
-  const prazos = (prazosRes.data ?? []).map((p) => ({
+  const processos = processosRes.status === "fulfilled" ? (processosRes.value.data ?? []) : [];
+  const prazosRaw = prazosRes.status === "fulfilled" ? (prazosRes.value.data ?? []) : [];
+  const prazos = prazosRaw.map((p) => ({
     ...p,
     dias_restantes: Math.ceil(
       (new Date(p.data_prazo).getTime() - Date.now()) / (1000 * 60 * 60 * 24),
     ),
   }));
-  const honorarios = honorariosRes.data ?? [];
-  const documentos_count = docsRes.count ?? 0;
+  const honorarios = honorariosRes.status === "fulfilled" ? (honorariosRes.value.data ?? []) : [];
+  const documentos_count = docsRes.status === "fulfilled" ? (docsRes.value.count ?? 0) : 0;
 
   // Semantic memory recall (non-blocking — skip on error)
   let memories: Array<{ content: string; importance: number }> = [];
