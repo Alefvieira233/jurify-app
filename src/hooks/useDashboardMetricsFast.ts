@@ -182,9 +182,9 @@ export function useDashboardMetricsFast() {
   const debouncedRefetch = useCallback(() => {
     if (debounceRef.current) clearTimeout(debounceRef.current);
     debounceRef.current = setTimeout(() => {
-      void queryClient.invalidateQueries({ queryKey: qKey });
+      void queryClient.invalidateQueries({ queryKey: ['dashboard-metrics-fast', tenantId] });
     }, 5_000);
-  }, [queryClient, qKey]);
+  }, [queryClient, tenantId]);
 
   // Supabase Realtime: subscribe to changes in key tables
   useEffect(() => {
@@ -205,7 +205,7 @@ export function useDashboardMetricsFast() {
         debouncedRefetch();
       })
       .subscribe((status) => {
-        setIsLive(status === 'SUBSCRIBED');
+        setIsLive(String(status) === 'SUBSCRIBED');
         log.debug(`Realtime status: ${status}`);
       });
 
