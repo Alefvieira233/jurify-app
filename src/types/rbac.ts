@@ -2,8 +2,10 @@
  * RBAC (Role-Based Access Control) types.
  */
 
-// Roles disponiveis no sistema
-export type UserRole = 'admin' | 'manager' | 'user' | 'viewer';
+// Roles disponiveis no sistema (espelha o enum app_role do banco)
+export type AppRole = 'admin' | 'manager' | 'user' | 'viewer';
+
+export type UserRole = AppRole;
 
 // Recursos do sistema
 export type Resource =

@@ -48,23 +48,30 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   const fetchProfile = useCallback(async (userId: string) => {
     try {
-      const { data, error } = await supabase
+      const { data: profileData, error: profileError } = await supabase
         .from('profiles')
         .select('*')
         .eq('id', userId)
         .maybeSingle();
 
-      if (error || !data) throw new Error('RLS_BLOCK_OR_NOT_FOUND');
+      if (profileError || !profileData) throw new Error('RLS_BLOCK_OR_NOT_FOUND');
+
+      // Buscar role da tabela separada (evita privilege escalation via profiles)
+      const { data: roleData } = await supabase
+        .from('user_roles')
+        .select('role')
+        .eq('user_id', userId)
+        .maybeSingle();
 
       // Supabase generated types lag behind the actual schema; cast for fields
       // added via migration but not yet regenerated (subscription_tier, subscription_status).
-      const extra = data as Record<string, string | null | undefined>;
+      const extra = profileData as Record<string, string | null | undefined>;
       setProfile({
-        id: data.id,
-        nome_completo: data.nome_completo ?? '',
-        email: data.email,
-        role: data.role ?? undefined,
-        tenant_id: data.tenant_id ?? undefined,
+        id: profileData.id,
+        nome_completo: profileData.nome_completo ?? '',
+        email: profileData.email,
+        role: roleData?.role ?? 'viewer', // Role vem da tabela separada
+        tenant_id: profileData.tenant_id ?? undefined,
         subscription_tier: extra.subscription_tier ?? undefined,
         subscription_status: extra.subscription_status ?? undefined,
       });
