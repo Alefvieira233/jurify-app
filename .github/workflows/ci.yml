@@ -180,7 +180,8 @@ jobs:
         uses: trufflesecurity/trufflehog@v3.88.0
         with:
           path: ./
-          extra_args: --only-verified --fail
+          # Note: --fail is already included by the action itself, adding it here causes a duplication error
+          extra_args: --only-verified
 
       - name: 🛡️ Run npm audit
         working-directory: ${{ env.WORKING_DIR }}
