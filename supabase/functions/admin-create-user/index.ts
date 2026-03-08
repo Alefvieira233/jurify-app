@@ -1,5 +1,6 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { getCorsHeaders } from "../_shared/cors.ts";
+import { applyRateLimit } from "../_shared/rate-limiter.ts";
 
 Deno.serve(async (req) => {
   const corsHeaders = getCorsHeaders(req.headers.get("origin") || undefined);
@@ -27,6 +28,21 @@ Deno.serve(async (req) => {
     const supabase = createClient(supabaseUrl, supabaseServiceKey, {
       auth: { autoRefreshToken: false, persistSession: false },
     });
+
+    // Rate limiting: 10 requests per minute for admin endpoints
+    const rateLimitCheck = await applyRateLimit(
+      req,
+      {
+        maxRequests: 10,
+        windowSeconds: 60,
+        namespace: "admin-create-user",
+      },
+      { supabase, corsHeaders }
+    );
+
+    if (!rateLimitCheck.allowed) {
+      return rateLimitCheck.response;
+    }
 
     const token = authHeader.replace("Bearer ", "");
     const { data: userData, error: userError } = await supabase.auth.getUser(token);
