@@ -1,1 +1,20 @@
-project_id = "yfxgncbopvnsltjqetxw"
+# project_id is passed via CLI: supabase link --project-ref $SUPABASE_PROJECT_ID
+# Do NOT hardcode the project_id here to avoid leaking it in version control.
+# project_id = "yfxgncbopvnsltjqetxw"
+
+# Webhook endpoints: JWT verification disabled (signatures validated internally)
+[functions.stripe-webhook]
+verify_jwt = false
+
+[functions.whatsapp-webhook]
+verify_jwt = false
+
+[functions.zapsign-integration]
+verify_jwt = false
+
+# Health check: public endpoint, no JWT required
+[functions.health-check]
+verify_jwt = false
+
+[functions.health]
+verify_jwt = false
