@@ -64,7 +64,7 @@ Deno.serve(async (req) => {
             );
         } catch (err) {
             console.error(`⚠️ Webhook signature verification failed.`, err.message);
-            return new Response(err.message, { status: 400 });
+            return new Response("Invalid webhook signature", { status: 400 });
         }
 
         const supabase = createClient(
