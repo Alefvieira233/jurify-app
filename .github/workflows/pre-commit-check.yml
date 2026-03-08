@@ -22,7 +22,8 @@ jobs:
           path: ./
           base: ${{ github.event.pull_request.base.sha }}
           head: ${{ github.event.pull_request.head.sha }}
-          extra_args: --only-verified --fail
+          # Note: --fail is already included by the action itself, adding it here causes a duplication error
+          extra_args: --only-verified
 
       - name: 🔍 Check for hardcoded credentials
         run: |

@@ -365,7 +365,7 @@ const FollowUpSequenceEditor: React.FC = () => {
               </div>
               <Switch
                 checked={seq.is_active}
-                onCheckedChange={() => void toggleActive(seq.id, seq.is_active)}
+                onCheckedChange={() => { void toggleActive(seq.id, seq.is_active); }}
                 className="scale-75"
               />
             </CardHeader>
@@ -410,7 +410,7 @@ const FollowUpSequenceEditor: React.FC = () => {
                     variant="ghost"
                     size="sm"
                     className="h-6 text-[10px] px-2 text-destructive hover:text-destructive"
-                    onClick={() => void deleteSequence(seq.id)}
+                    onClick={() => { void deleteSequence(seq.id); }}
                   >
                     <Trash2 className="h-3 w-3" />
                   </Button>
