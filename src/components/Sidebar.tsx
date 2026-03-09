@@ -218,7 +218,7 @@ const Sidebar = ({ activeSection, onSectionChange }: SidebarProps) => {
   return (
     <nav
       aria-label="Menu principal"
-      className="w-56 bg-sidebar text-sidebar-foreground h-screen flex flex-col border-r border-sidebar-border"
+      className="w-48 xs:w-56 bg-sidebar text-sidebar-foreground h-screen flex flex-col border-r border-sidebar-border"
     >
       {/* ── Logo ── */}
       <div className="h-12 flex items-center gap-2.5 px-3.5 border-b border-sidebar-border flex-shrink-0">
