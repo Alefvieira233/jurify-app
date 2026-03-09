@@ -7,6 +7,7 @@ export default defineConfig(({ mode }) => {
   const isProd = mode === 'production';
 
   return {
+    base: process.env.CAPACITOR_BUILD === 'true' ? './' : '/',
     plugins: [
       react(),
       isProd && sentryVitePlugin({

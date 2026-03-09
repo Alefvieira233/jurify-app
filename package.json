@@ -52,7 +52,13 @@
     "build-storybook": "storybook build",
     "analyze:bundle": "npx webpack-bundle-analyzer dist/stats.json",
     "analyze:deps": "npx depcheck",
-    "update:deps": "npx npm-check-updates -u"
+    "update:deps": "npx npm-check-updates -u",
+    "mobile:build": "cross-env CAPACITOR_BUILD=true vite build",
+    "mobile:sync": "npm run mobile:build && npx cap sync",
+    "mobile:ios": "npm run mobile:sync && npx cap open ios",
+    "mobile:android": "npm run mobile:sync && npx cap open android",
+    "mobile:run:ios": "npm run mobile:build && npx cap run ios",
+    "mobile:run:android": "npm run mobile:build && npx cap run android"
   },
   "dependencies": {
     "@capacitor/android": "^8.2.0",
@@ -139,6 +145,7 @@
     "@vitest/coverage-v8": "^4.0.17",
     "@vitest/ui": "^4.0.17",
     "autoprefixer": "^10.4.20",
+    "cross-env": "^10.1.0",
     "eslint": "^9.32.0",
     "eslint-plugin-react-hooks": "^5.1.0-rc.0",
     "eslint-plugin-react-refresh": "^0.4.9",
