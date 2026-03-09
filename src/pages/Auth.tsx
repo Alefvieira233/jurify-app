@@ -1,16 +1,17 @@
 
 import React, { useState } from 'react';
-import { Navigate, Link } from 'react-router-dom';
+import { Navigate, Link, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Scale, ArrowRight, Shield, Sparkles, Zap } from 'lucide-react';
+import { Scale, ArrowRight, Shield, Sparkles, Zap, Fingerprint } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import PasswordStrength from '@/components/ui/password-strength';
 import { validatePasswordStrength } from '@/components/ui/password-strength';
 import ForgotPasswordDialog from '@/components/ForgotPasswordDialog';
+import { useBiometrics } from '@/hooks/useBiometrics';
 
 const Auth = () => {
   const [isLogin, setIsLogin] = useState(true);
@@ -23,6 +24,13 @@ const Auth = () => {
 
   const { user, signIn, signUp } = useAuth();
   const { toast } = useToast();
+  const navigate = useNavigate();
+  const { isAvailable: isBiometricsAvailable, authenticate: biometricAuth } = useBiometrics();
+
+  const handleBiometricLogin = async () => {
+    const success = await biometricAuth();
+    if (success) navigate('/');
+  };
 
   // Redirect if already logged in
   if (user) {
@@ -441,6 +449,18 @@ const Auth = () => {
                 </Button>
               </div>
             </form>
+
+            {isBiometricsAvailable && (
+              <Button
+                type="button"
+                variant="outline"
+                className="w-full gap-2 mt-2"
+                onClick={() => { void handleBiometricLogin(); }}
+              >
+                <Fingerprint className="h-4 w-4" />
+                Entrar com biometria
+              </Button>
+            )}
 
             {/* Premium Divider */}
             <div className="relative py-6">
