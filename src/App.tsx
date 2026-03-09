@@ -1,10 +1,12 @@
-import { Suspense } from "react";
+import { Suspense, useEffect } from "react";
 import { lazyWithRetry } from "@/lib/lazyWithRetry";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate, useNavigate } from "react-router-dom";
+import { App as CapacitorApp } from '@capacitor/app';
+import { Capacitor } from '@capacitor/core';
 import { AuthProvider } from "@/contexts/AuthContext";
 import ProtectedRoute from "./components/ProtectedRoute";
 import Layout from "./components/Layout";
@@ -85,6 +87,32 @@ const queryClient = new QueryClient({
 // Wrap BrowserRouter com Sentry para tracking de navegação
 const SentryRoutes = Sentry.withSentryReactRouterV6Routing(Routes);
 
+function DeepLinkHandler() {
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    if (!Capacitor.isNativePlatform()) return;
+
+    const listenerPromise = CapacitorApp.addListener('appUrlOpen', (event) => {
+      try {
+        const url = new URL(event.url);
+        const path = url.hostname
+          ? `/${url.hostname}${url.pathname !== '/' ? url.pathname : ''}`
+          : url.pathname;
+        if (path && path !== '/') {
+          navigate(path);
+        }
+      } catch {
+        // invalid URL, ignore
+      }
+    });
+
+    return () => { void listenerPromise.then(l => l.remove()); };
+  }, [navigate]);
+
+  return null;
+}
+
 const App = () => (
   <ErrorBoundary>
     <QueryClientProvider client={queryClient}>
@@ -93,6 +121,7 @@ const App = () => (
         <Sonner />
         <Suspense fallback={null}><CookieBanner /></Suspense>
         <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+          <DeepLinkHandler />
           <AuthProvider>
             <Suspense fallback={<LoadingSpinner fullScreen text="Carregando..." />}>
               <SentryRoutes>
