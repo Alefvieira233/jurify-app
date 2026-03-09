@@ -94,7 +94,7 @@ export const usePrazosProcessuais = (options?: {
     refetchOnWindowFocus: true,
   });
 
-  const prazos = queryData?.items ?? [];
+  const prazos = useMemo(() => queryData?.items ?? [], [queryData?.items]);
   const totalCount = queryData?.totalCount ?? 0;
   const totalPages = enablePagination ? Math.ceil(totalCount / pageSize) : 1;
   const error = queryError ? queryError.message : null;

@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Jurify</string>
+    <string name="title_activity_main">Jurify</string>
+    <string name="package_name">com.jurify.app</string>
+    <string name="custom_url_scheme">com.jurify.app</string>
+</resources>

@@ -93,3 +93,8 @@ vdeps.json
 
 
 .vercel
+
+# Capacitor native build artifacts
+/ios/App/Pods/
+/android/.gradle/
+/android/app/build/

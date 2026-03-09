@@ -9,6 +9,9 @@ export default tseslint.config(
     ignores: [
       "dist",
       "node_modules",
+      "android",
+      "ios",
+      "icons",
       ".claude/**",
       "supabase/functions/**",
       "tests/**",
