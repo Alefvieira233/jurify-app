@@ -46,23 +46,19 @@ const Dashboard = () => {
     }
   }, [searchParams, setSearchParams, toast]);
 
-  /* Seed data — apenas em desenvolvimento */
+  /* Seed data — dados de demonstração */
   const handleGenerateTestData = async () => {
-    if (!import.meta.env.DEV) return;
     try {
       setIsSeeding(true);
-      toast({ title: 'Gerando dados de teste...', description: 'Isso pode levar alguns segundos.' });
+      toast({ title: 'Carregando demonstração...', description: 'Criando dados de exemplo para o seu escritório.' });
       const { seedDatabase } = await import('@/scripts/seed-database');
       await seedDatabase();
-      toast({ title: 'Dados gerados com sucesso!', description: 'O dashboard será atualizado automaticamente.' });
-      setTimeout(() => { void refetch(); }, 1000);
+      toast({ title: 'Pronto!', description: 'Dados de demonstração carregados. Explore o sistema à vontade.' });
+      setTimeout(() => { void refetch(); }, 800);
     } catch (err: unknown) {
       log.error('Erro ao gerar dados', err);
-      toast({
-        title: 'Erro ao gerar dados',
-        description: err instanceof Error ? err.message : 'Tente novamente.',
-        variant: 'destructive',
-      });
+      const msg = err instanceof Error ? err.message : 'Tente novamente.';
+      toast({ title: 'Erro ao carregar demonstração', description: msg, variant: 'destructive' });
     } finally {
       setIsSeeding(false);
     }
@@ -131,53 +127,62 @@ const Dashboard = () => {
           <h1 className="text-sm font-bold text-foreground">Dashboard</h1>
         </div>
 
-        <div className="flex-1 flex flex-col justify-center items-center px-6 animate-fade-in">
-          <Card className="border-border bg-card shadow-sm max-w-lg w-full">
-            <div className="h-1 w-full bg-primary rounded-t-lg" />
-            <CardContent className="p-8 flex flex-col items-center text-center">
-              <div className="w-14 h-14 rounded-xl bg-primary/10 flex items-center justify-center mb-5">
-                <Sparkles className="h-7 w-7 text-primary" strokeWidth={1.5} />
-              </div>
-              <h3 className="text-xl font-semibold text-foreground mb-2">Bem-vindo ao Jurify</h3>
-              <p className="text-sm text-muted-foreground mb-6 max-w-sm leading-relaxed">
-                Seu ambiente está pronto. Comece adicionando seus primeiros clientes ou configurando o WhatsApp para receber consultas automaticamente.
-              </p>
+        <div className="flex-1 flex flex-col justify-center items-center px-6 py-10 animate-fade-in">
+          <div className="max-w-lg w-full space-y-4">
 
-              {/* CTAs primários */}
-              <div className="flex flex-col sm:flex-row gap-2.5 w-full sm:w-auto mb-4">
-                <Button size="sm" className="gap-2" onClick={() => navigate('/pipeline')}>
-                  <Plus className="h-3.5 w-3.5" />
-                  Adicionar primeiro cliente
-                </Button>
-                <Button size="sm" variant="outline" className="gap-2" onClick={() => navigate('/whatsapp')}>
-                  <MessageSquare className="h-3.5 w-3.5" />
-                  Configurar WhatsApp
-                </Button>
-              </div>
-
-              {/* Seed de dados — apenas em desenvolvimento */}
-              {import.meta.env.DEV && (
-                <div className="pt-4 border-t border-border/50 w-full">
-                  <p className="text-[11px] text-muted-foreground mb-2">
-                    Ambiente de desenvolvimento
-                  </p>
-                  <Button
-                    onClick={() => void handleGenerateTestData()}
-                    disabled={isSeeding}
-                    variant="ghost"
-                    size="sm"
-                    className="h-7 text-xs gap-1.5 text-muted-foreground hover:text-foreground"
-                  >
-                    {isSeeding ? (
-                      <><Activity className="h-3 w-3 animate-spin" /> Gerando dados...</>
-                    ) : (
-                      <><Sparkles className="h-3 w-3" /> Gerar dados de demonstração</>
-                    )}
+            {/* Card principal — começar do zero */}
+            <Card className="border-border bg-card shadow-sm">
+              <div className="h-1 w-full bg-primary rounded-t-lg" />
+              <CardContent className="p-8 flex flex-col items-center text-center">
+                <div className="w-14 h-14 rounded-xl bg-primary/10 flex items-center justify-center mb-5">
+                  <Sparkles className="h-7 w-7 text-primary" strokeWidth={1.5} />
+                </div>
+                <h3 className="text-xl font-semibold text-foreground mb-2">Bem-vindo ao Jurify</h3>
+                <p className="text-sm text-muted-foreground mb-6 max-w-sm leading-relaxed">
+                  Seu escritório digital está pronto. Comece adicionando seus clientes ou configure o WhatsApp para receber consultas automaticamente.
+                </p>
+                <div className="flex flex-col sm:flex-row gap-2.5 w-full sm:w-auto">
+                  <Button size="sm" className="gap-2" onClick={() => navigate('/pipeline')}>
+                    <Plus className="h-3.5 w-3.5" />
+                    Adicionar primeiro cliente
+                  </Button>
+                  <Button size="sm" variant="outline" className="gap-2" onClick={() => navigate('/whatsapp')}>
+                    <MessageSquare className="h-3.5 w-3.5" />
+                    Configurar WhatsApp
                   </Button>
                 </div>
-              )}
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
+
+            {/* Card secundário — explorar com demo */}
+            <Card className="border-dashed border-border bg-muted/30">
+              <CardContent className="p-5 flex items-center gap-4">
+                <div className="w-9 h-9 rounded-lg bg-background border border-border flex items-center justify-center flex-shrink-0">
+                  <Activity className="h-4 w-4 text-muted-foreground" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-foreground">Explorar com dados de demonstração</p>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    Cria clientes, processos, prazos e contratos de exemplo para você conhecer o sistema.
+                  </p>
+                </div>
+                <Button
+                  onClick={() => void handleGenerateTestData()}
+                  disabled={isSeeding}
+                  variant="outline"
+                  size="sm"
+                  className="flex-shrink-0 gap-1.5 h-8 text-xs"
+                >
+                  {isSeeding ? (
+                    <><Activity className="h-3 w-3 animate-spin" /> Carregando...</>
+                  ) : (
+                    <><Sparkles className="h-3 w-3" /> Carregar demo</>
+                  )}
+                </Button>
+              </CardContent>
+            </Card>
+
+          </div>
         </div>
       </div>
     );

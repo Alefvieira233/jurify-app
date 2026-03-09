@@ -81,7 +81,7 @@ export function useFollowUpSequences() {
     staleTime: 2 * 60 * 1000,
   });
 
-  const error = queryError ? (queryError as Error).message : null;
+  const error = queryError instanceof Error ? queryError.message : null;
 
   // ── Create ─────────────────────────────────────────────────────────────────
   const createMutation = useMutation({

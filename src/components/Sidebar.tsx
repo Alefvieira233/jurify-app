@@ -26,6 +26,8 @@ import {
   DollarSign,
   FolderOpen,
   Gavel,
+  PieChart,
+  ShieldCheck,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/contexts/AuthContext';
@@ -69,6 +71,8 @@ const ALL_MENU_ITEMS: MenuItem[] = [
   { id: 'crm',                   label: 'Clientes',         icon: Users,           resource: 'leads',         action: 'read', group: 'main' },
   { id: 'notificacoes',          label: 'Notificações',     icon: Bell,            resource: 'notificacoes',  action: 'read', group: 'main', badge: 'notification' },
   /* ── Sistema (colapsável) ── */
+  { id: 'painel-prazos',         label: 'Painel de Prazos', icon: PieChart,        resource: 'prazos',        action: 'read', group: 'sistema' },
+  { id: 'auditoria',             label: 'Auditoria',        icon: ShieldCheck,     resource: 'logs',          action: 'read', group: 'sistema', managerOk: true },
   { id: 'relatorios',            label: 'Relatórios',       icon: BarChart3,       resource: 'relatorios',    action: 'read', group: 'sistema' },
   { id: 'honorarios',            label: 'Honorários',       icon: DollarSign,      resource: 'honorarios',    action: 'read', group: 'sistema', managerOk: true },
   { id: 'documentos',            label: 'Documentos',       icon: FolderOpen,      resource: 'documentos',    action: 'read', group: 'sistema' },

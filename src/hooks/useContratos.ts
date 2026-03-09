@@ -114,12 +114,21 @@ export const useContratos = () => {
       if (error) throw error;
       return normalizeContrato(row as ContratoRow);
     },
-    onSuccess: (updated) => {
+    onSuccess: (updated, { updateData }) => {
       addSentryBreadcrumb(`Contrato atualizado: ${updated.id}`, 'contratos', 'info');
       queryClient.setQueryData<Contrato[]>(qKey, prev =>
         (prev ?? []).map(c => c.id === updated.id ? { ...c, ...updated } : c)
       );
       toast({ title: 'Sucesso', description: 'Contrato atualizado com sucesso!' });
+      if (updateData.status === 'assinado' && tenantId && user?.id) {
+        void supabase.from('notificacoes').insert({
+          tenant_id: tenantId,
+          tipo: 'sucesso',
+          titulo: 'Contrato assinado',
+          mensagem: `O contrato de ${updated.nome_cliente} foi assinado.`,
+          created_by: user.id,
+        });
+      }
     },
     onError: (err: unknown) => {
       addSentryBreadcrumb('Erro ao atualizar contrato', 'contratos', 'error');

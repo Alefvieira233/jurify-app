@@ -103,6 +103,16 @@ export const useAgendamentos = () => {
     onSuccess: (newItem) => {
       queryClient.setQueryData<Agendamento[]>(qKey, prev => sortByDataHora([...(prev ?? []), newItem]));
       toast({ title: 'Sucesso', description: 'Agendamento criado com sucesso!' });
+      if (tenantId && user?.id) {
+        const dataFormatada = new Date(newItem.data_hora).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' });
+        void supabase.from('notificacoes').insert({
+          tenant_id: tenantId,
+          tipo: 'info',
+          titulo: 'Novo agendamento criado',
+          mensagem: `${newItem.area_juridica ?? 'Consulta'} — ${dataFormatada}`,
+          created_by: user.id,
+        });
+      }
     },
     onError: (err: unknown) => {
       toast({ title: 'Erro', description: err instanceof Error ? err.message : 'Não foi possível criar o agendamento.', variant: 'destructive' });

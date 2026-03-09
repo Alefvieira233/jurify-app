@@ -361,13 +361,11 @@ Deno.serve(async (req) => {
         }
         // --- EVOLUTION API ---
         const event = payload.event;
-        console.log(`[webhook:evolution] Event: ${event}, Instance: ${payload.instance}`);
 
         // Eventos de conexão (QR Code, status)
         if (event === "connection.update") {
           const state = payload.data?.state;
           const instanceName = payload.instance;
-          console.log(`[webhook:evolution] Connection: ${instanceName} → ${state}`);
 
           if (instanceName && state) {
             const dbStatus = state === "open" ? "ativa" : "inativa";
@@ -385,7 +383,6 @@ Deno.serve(async (req) => {
         if (event === "qrcode.updated") {
           const instanceName = payload.instance;
           const qrCode = payload.data?.qrcode?.base64 || payload.data?.qrcode;
-          console.log(`[webhook:evolution] QR Code updated for: ${instanceName}`);
 
           if (instanceName && qrCode) {
             await supabase
@@ -405,7 +402,6 @@ Deno.serve(async (req) => {
         if (event === "messages.upsert") {
           const msgId = getMessageId(payload, "evolution");
           if (msgId && await isDuplicate(msgId, supabase)) {
-            console.log(`[webhook:evolution] Duplicate message ignored: ${msgId}`);
             return new Response("OK", { status: 200, headers: corsHeaders });
           }
           const normalized = normalizeEvolutionMessage(payload);
@@ -420,11 +416,9 @@ Deno.serve(async (req) => {
 
       } else {
         // --- META OFFICIAL API (backward compatible) ---
-        console.log("[webhook:meta] Processing Meta webhook");
 
         const metaMsgId = getMessageId(payload, "meta");
         if (metaMsgId && await isDuplicate(metaMsgId, supabase)) {
-          console.log(`[webhook:meta] Duplicate message ignored: ${metaMsgId}`);
           return new Response("OK", { status: 200, headers: corsHeaders });
         }
 
@@ -628,12 +622,10 @@ async function processNormalizedMessage(supabase: ReturnType<typeof createClient
     const iaEnabled = conversation ? (conversation.ia_active !== false) : true;
 
     if (!iaEnabled) {
-      console.log(`[webhook:${provider}] IA disabled for conversation ${conversationId} — skipping AI response`);
       return;
     }
 
     // --- INVOKE AI AGENT (Coordenador = Recepcionista) ---
-    console.log(`[webhook:${provider}] Invoking AI Agent (Coordenador)`);
 
     // Busca configuracao do escritorio para personalizar o prompt da IA
     let officeName = "nosso escritorio";
@@ -667,7 +659,6 @@ async function processNormalizedMessage(supabase: ReturnType<typeof createClient
           if (assistantMatch?.[1]) assistantName = assistantMatch[1].trim();
         }
       } catch {
-        console.log(`[webhook:${provider}] No office config found, using defaults`);
       }
     }
 
@@ -808,10 +799,9 @@ ${conversationHistory ? `HISTORICO DA CONVERSA:\n${conversationHistory}\n` : ""}
         .eq("tenant_id", tenantId);
       void supabase.from("notificacoes").insert({
         tenant_id: tenantId,
-        tipo: "handoff_ia",
+        tipo: "alerta",
         titulo: "Conversa requer atenção humana",
         mensagem: `A IA não conseguiu responder ao cliente ${name} (${from}). Conversa pausada.`,
-        metadata: { conversation_id: conversationId, lead_id: leadId },
       });
     }
 
@@ -845,7 +835,6 @@ ${conversationHistory ? `HISTORICO DA CONVERSA:\n${conversationHistory}\n` : ""}
         .eq("telefone", from)
         .eq("tenant_id", tenantId);
 
-      console.log(`[webhook:${provider}] Lead ${leadId} status updated to em_atendimento`);
     }
 
     // --- SAVE AI RESPONSE ---
@@ -969,7 +958,6 @@ async function sendViaMeta(to: string, text: string, tenantId: string, supabase:
     if (!response.ok) {
       console.error("[webhook:meta] Error sending:", data);
     } else {
-      console.log("[webhook:meta] Message sent:", data.messages?.[0]?.id);
     }
   } catch (error) {
     console.error("[webhook:meta] Network error:", error);

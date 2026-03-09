@@ -230,6 +230,15 @@ export const useLeads = (options?: { enablePagination?: boolean; pageSize?: numb
         totalCount: (prev?.totalCount ?? 0) + 1,
       }));
       toast({ title: 'Sucesso', description: 'Lead criado com sucesso!' });
+      if (tenantId && user?.id) {
+        void supabase.from('notificacoes').insert({
+          tenant_id: tenantId,
+          tipo: 'info',
+          titulo: 'Novo lead cadastrado',
+          mensagem: `${newLead.nome} foi adicionado ao pipeline.`,
+          created_by: user.id,
+        });
+      }
     },
     onError: (err: unknown) => {
       addSentryBreadcrumb('Erro ao criar lead', 'leads', 'error');

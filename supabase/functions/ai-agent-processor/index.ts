@@ -106,7 +106,6 @@ async function processAIRequest(
     tool_choice,
   } = request;
 
-  console.log(`ðŸ¤– Processing AI request for agent: ${agentName} [Tools: ${tools ? tools.length : 0}]`);
 
   // Monta mensagens para a OpenAI
   const messages: Array<{ role: string; content: string }> = [
@@ -203,7 +202,6 @@ async function createExecution(
       console.error("Error creating execution:", error);
       return null;
     } else {
-      console.log(`Execution created: ${executionId}`);
     }
 
     return data?.id ?? null;
@@ -235,7 +233,6 @@ async function completeExecution(
       .eq("execution_id", executionId)
       .eq("tenant_id", tenantId);
 
-    console.log(`âœ… Execution completed: ${executionId} (${duration}ms)`);
   } catch (error) {
     console.error("âŒ Error completing execution:", error);
   }
@@ -259,7 +256,6 @@ async function failExecution(
       .eq("execution_id", executionId)
       .eq("tenant_id", tenantId);
 
-    console.log(`âŒ Execution failed: ${executionId}`);
   } catch (error) {
     console.error("âŒ Error failing execution:", error);
   }
@@ -298,7 +294,6 @@ async function logAIProcessing(
       created_at: new Date().toISOString(),
     });
 
-    console.log(`AI processing logged for execution row: ${executionRowId}`);
   } catch (error) {
     console.error("Error logging AI processing:", error);
     // Nao interrompe o fluxo se falhar o log
@@ -345,9 +340,7 @@ Deno.serve(async (req) => {
       }
 
       user = authenticatedUser;
-      console.log("Authenticated user: " + user.id);
     } else {
-      console.log("Internal service role request");
     }
 
     // Parse e valida request
@@ -412,7 +405,6 @@ Deno.serve(async (req) => {
       return rateLimitCheck.response;
     }
 
-    console.log(
       "Rate limit OK: " + rateLimitCheck.result.remaining + "/" + rateLimitCheck.result.limit + " remaining"
     );
 

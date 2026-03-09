@@ -72,7 +72,6 @@ Deno.serve(async (req) => {
             Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
         );
 
-        console.log(`🔔 Event received: ${event.type}`);
 
         if (!event.type || !event.data?.object) {
             return new Response("Invalid event structure", { status: 400 });
@@ -87,7 +86,6 @@ Deno.serve(async (req) => {
             .maybeSingle();
 
         if (existingEvent) {
-            console.log(`🔁 Duplicate Stripe event ignored: ${event.id}`);
             return new Response(JSON.stringify({ received: true, duplicate: true }), {
                 headers: { "Content-Type": "application/json" },
                 status: 200,
@@ -101,7 +99,6 @@ Deno.serve(async (req) => {
 
         if (insertError) {
             // Duplicate key means concurrent request already processing this event
-            console.log(`🔁 Concurrent duplicate event ignored: ${event.id}`);
             return new Response(JSON.stringify({ received: true, duplicate: true }), {
                 headers: { "Content-Type": "application/json" },
                 status: 200,
@@ -125,7 +122,6 @@ Deno.serve(async (req) => {
             case 'invoice.payment_succeeded': {
                 const invoice = event.data.object;
                 if (invoice.subscription) {
-                    console.log(`✅ Payment succeeded for subscription: ${invoice.subscription}`);
                     const customerId = invoice.customer as string;
                     const { data: paidProfile } = await supabase
                         .from('profiles')
@@ -150,7 +146,6 @@ Deno.serve(async (req) => {
             case 'invoice.payment_failed': {
                 const invoice = event.data.object;
                 const customerId = invoice.customer as string;
-                console.log(`⚠️ Payment failed for customer: ${customerId}`);
 
                 const { data: failedProfile } = await supabase
                     .from('profiles')
@@ -169,7 +164,6 @@ Deno.serve(async (req) => {
                         .update({ subscription_status: 'past_due' })
                         .eq('id', failedProfile.id);
 
-                    console.log(`📧 User ${failedProfile.email} marked as past_due`);
 
                     if (failedProfile.email) {
                         await sendEmail(failedProfile.email, 'payment-failed', {
@@ -180,7 +174,6 @@ Deno.serve(async (req) => {
                 break;
             }
             default:
-                console.log(`Unhandled event type ${event.type}`);
         }
 
         return new Response(JSON.stringify({ received: true }), {
@@ -277,7 +270,6 @@ async function manageSubscriptionStatusChange(
     if (error) {
         console.error('Error upserting subscription:', error.message);
     } else {
-        console.log(`Subscription ${subscription.id} updated for user ${uuid}`);
 
         await supabase
             .from('profiles')

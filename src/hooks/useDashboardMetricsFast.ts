@@ -7,7 +7,7 @@
  * Performance: ~500ms → <50ms
  */
 
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabaseUntyped as supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -152,7 +152,7 @@ export function useDashboardMetricsFast() {
   const queryClient = useQueryClient();
   const [isLive, setIsLive] = useState(false);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const qKey = ['dashboard-metrics-fast', tenantId];
+  const qKey = useMemo(() => ['dashboard-metrics-fast', tenantId] as const, [tenantId]);
 
   const {
     data,
@@ -205,7 +205,7 @@ export function useDashboardMetricsFast() {
         debouncedRefetch();
       })
       .subscribe((status) => {
-        setIsLive(status === 'SUBSCRIBED');
+        setIsLive(String(status) === 'SUBSCRIBED');
         log.debug(`Realtime status: ${status}`);
       });
 

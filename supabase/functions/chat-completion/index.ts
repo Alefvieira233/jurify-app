@@ -76,7 +76,6 @@ Deno.serve(async (req) => {
       apiKey,
     });
 
-    console.log(`Processing chat completion with model ${model}`);
 
     if (stream) {
       const encoder = new TextEncoder();

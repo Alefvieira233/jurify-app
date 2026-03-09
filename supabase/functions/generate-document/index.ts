@@ -3,7 +3,6 @@ import { PDFDocument, StandardFonts, rgb } from "https://esm.sh/pdf-lib@1.17.1";
 import { getCorsHeaders } from "../_shared/cors.ts";
 import { applyRateLimit } from "../_shared/rate-limiter.ts";
 
-console.log("🚀 Generate Document Function Started");
 
 Deno.serve(async (req) => {
     const corsHeaders = getCorsHeaders(req.headers.get("origin") || undefined);

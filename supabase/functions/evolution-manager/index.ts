@@ -13,7 +13,6 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { getCorsHeaders } from "../_shared/cors.ts";
 
-console.log("[evolution-manager] Function started v2.0.0");
 
 // Suporta tanto EVOLUTION_API_BASE_URL quanto EVOLUTION_API_URL (legado)
 const EVOLUTION_BASE_URL = (
@@ -55,7 +54,6 @@ async function evoFetch(
     "bypass-tunnel-reminder": "true",
   };
 
-  console.log(`[evolution-manager] ${method} ${path}`);
 
   try {
     const response = await fetch(url, {
@@ -109,7 +107,6 @@ function extractQRCode(data: Record<string, unknown>): string | null {
 // ---------------------------------------------------------------------------
 
 async function createInstance(instanceName: string, supabase: unknown, profile: { tenant_id: string }) {
-  console.log(`[evolution-manager] createInstance: ${instanceName}`);
 
   const webhookSecret = Deno.env.get("EVOLUTION_WEBHOOK_SECRET");
   const webhookConfig: Record<string, unknown> = {
@@ -158,7 +155,6 @@ async function createInstance(instanceName: string, supabase: unknown, profile: 
   }
 
   const qrcode = extractQRCode(result.data);
-  console.log(`[evolution-manager] createInstance ok, qrcode=${qrcode ? "present" : "absent"}`);
 
   return {
     success: true,
@@ -171,7 +167,6 @@ async function createInstance(instanceName: string, supabase: unknown, profile: 
 }
 
 async function getQRCode(instanceName: string) {
-  console.log(`[evolution-manager] getQRCode: ${instanceName}`);
 
   // Evolution v2: GET /instance/connect/{instanceName}
   const result = await evoFetch(`/instance/connect/${instanceName}`);
@@ -182,7 +177,6 @@ async function getQRCode(instanceName: string) {
   }
 
   const qrcode = extractQRCode(result.data);
-  console.log(`[evolution-manager] getQRCode ok, qrcode=${qrcode ? "present" : "absent"}`);
 
   return {
     success: true,
@@ -192,7 +186,6 @@ async function getQRCode(instanceName: string) {
 }
 
 async function getInstanceStatus(instanceName: string) {
-  console.log(`[evolution-manager] getInstanceStatus: ${instanceName}`);
 
   const result = await evoFetch(`/instance/connectionState/${instanceName}`);
 
@@ -206,7 +199,6 @@ async function getInstanceStatus(instanceName: string) {
     (result.data?.state as string) ||
     "unknown";
 
-  console.log(`[evolution-manager] getInstanceStatus: state=${state}`);
 
   return {
     success: true,
@@ -216,7 +208,6 @@ async function getInstanceStatus(instanceName: string) {
 }
 
 async function disconnectInstance(instanceName: string, supabase: unknown, profile: { tenant_id: string }) {
-  console.log(`[evolution-manager] disconnectInstance: ${instanceName}`);
 
   // Evolution v2: POST /instance/logout/{instanceName}  (não DELETE)
   const result = await evoFetch(`/instance/logout/${instanceName}`, "POST");
@@ -236,7 +227,6 @@ async function disconnectInstance(instanceName: string, supabase: unknown, profi
 }
 
 async function deleteInstance(instanceName: string, supabase: unknown, profile: { tenant_id: string }) {
-  console.log(`[evolution-manager] deleteInstance: ${instanceName}`);
 
   const result = await evoFetch(`/instance/delete/${instanceName}`, "DELETE");
 
@@ -268,7 +258,6 @@ async function listInstances() {
 }
 
 async function healthCheck() {
-  console.log("[evolution-manager] healthCheck");
 
   // Evolution v2 expõe GET / que retorna info básica
   const result = await evoFetch("/");

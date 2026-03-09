@@ -2,7 +2,6 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import Stripe from "https://esm.sh/stripe@14.21.0";
 import { getCorsHeaders } from "../_shared/cors.ts";
 
-console.log("🔧 Create Portal Session Function Started");
 
 Deno.serve(async (req) => {
     const corsHeaders = getCorsHeaders(req.headers.get("origin") || undefined);

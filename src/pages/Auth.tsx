@@ -10,6 +10,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import PasswordStrength from '@/components/ui/password-strength';
 import { validatePasswordStrength } from '@/components/ui/password-strength';
+import ForgotPasswordDialog from '@/components/ForgotPasswordDialog';
 
 const Auth = () => {
   const [isLogin, setIsLogin] = useState(true);
@@ -367,9 +368,12 @@ const Auth = () => {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="password" className="text-sm font-semibold text-[hsl(var(--foreground))]">
-                  Senha
-                </Label>
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="password" className="text-sm font-semibold text-[hsl(var(--foreground))]">
+                    Senha
+                  </Label>
+                  {isLogin && <ForgotPasswordDialog />}
+                </div>
                 <Input
                   id="password"
                   type="password"

@@ -270,7 +270,6 @@ Deno.serve(async (req) => {
     );
   }
 
-  console.log(`[send-email] Sent "${template}" to ${to} — MessageID: ${result.MessageID}`);
 
   return new Response(
     JSON.stringify({ success: true, messageId: result.MessageID }),

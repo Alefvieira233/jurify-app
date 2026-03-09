@@ -13,7 +13,6 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { getCorsHeaders } from "../_shared/cors.ts";
 import { applyRateLimit } from "../_shared/rate-limiter.ts";
 
-console.log("🚀 Send WhatsApp Message Function Started (Evolution + Meta)");
 
 const EVOLUTION_API_URL = Deno.env.get("EVOLUTION_API_URL");
 const EVOLUTION_API_KEY = Deno.env.get("EVOLUTION_API_KEY");
@@ -97,7 +96,6 @@ async function sendViaEvolution(
     }
 
     const messageId = data.key?.id || data.messageId || "sent";
-    console.log(`✅ Evolution message sent to ${to} via ${instanceName}: ${messageId}`);
 
     return { success: true, messageId };
   } catch (error) {
@@ -145,7 +143,6 @@ async function sendViaMeta(
     }
 
     const messageId = data.messages?.[0]?.id;
-    console.log(`✅ Meta message sent successfully: ${messageId}`);
 
     return { success: true, messageId };
   } catch (error) {
@@ -180,7 +177,6 @@ async function saveMessageToDatabase(
         console.error("❌ Error saving message to database:", error);
         // Não interrompemos o fluxo se falhar o salvamento
       } else {
-        console.log("✅ Message saved to database");
 
         // Atualiza última mensagem da conversa
         await supabase
@@ -308,7 +304,6 @@ Deno.serve(async (req) => {
       throw new Error("Unauthorized: Invalid token");
     }
 
-    console.log(`✅ Authenticated user: ${user.id}`);
 
     // Cliente com SERVICE ROLE para operações no banco (bypass RLS)
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
@@ -337,7 +332,6 @@ Deno.serve(async (req) => {
       return rateLimitCheck.response;
     }
 
-    console.log(
       `✅ Rate limit OK: ${rateLimitCheck.result.remaining}/${rateLimitCheck.result.limit} remaining`
     );
 
@@ -372,14 +366,12 @@ Deno.serve(async (req) => {
     let result: { success: boolean; messageId?: string; error?: string };
 
     if (credentials.provider === "evolution" && credentials.instanceName) {
-      console.log(`📤 Sending via Evolution API (instance: ${credentials.instanceName})`);
       result = await sendViaEvolution(
         messageRequest.to,
         messageRequest.text,
         credentials.instanceName
       );
     } else if (credentials.provider === "meta" && credentials.phoneNumberId && credentials.accessToken) {
-      console.log(`📤 Sending via Meta Official API`);
       result = await sendViaMeta(
         messageRequest.to,
         messageRequest.text,

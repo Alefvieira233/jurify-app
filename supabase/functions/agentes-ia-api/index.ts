@@ -7,7 +7,6 @@ Deno.serve(async (req) => {
 
   const startTime = Date.now();
 
-  console.log(`🤖 [Agentes API] Request iniciado`);
 
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
@@ -91,7 +90,6 @@ Deno.serve(async (req) => {
       );
     }
 
-    console.log(`📋 [Agentes API] Buscando agente: ${agente_id}`);
 
     // Buscar dados do agente
     const { data: agente, error: agenteError } = await supabaseClient
@@ -110,7 +108,6 @@ Deno.serve(async (req) => {
       );
     }
 
-    console.log(`✅ [Agentes API] Agente encontrado: ${agente.nome}`);
 
     // Criar log inicial
     const { data: logData } = await supabaseClient
@@ -125,7 +122,6 @@ Deno.serve(async (req) => {
       .select()
       .single();
 
-    console.log(`📝 [Agentes API] Log criado: ${logData?.id}`);
 
     // Buscar OpenAI API Key
     const openaiKey = Deno.env.get('OPENAI_API_KEY');
@@ -135,7 +131,6 @@ Deno.serve(async (req) => {
     }
 
     // Chamar OpenAI
-    console.log(`🤖 [Agentes API] Chamando OpenAI...`);
 
     const openaiPayload = {
       model: agente.modelo_ia || 'gpt-4o-mini',
@@ -178,7 +173,6 @@ Deno.serve(async (req) => {
         .eq('id', logData.id);
     }
 
-    console.log(`✅ [Agentes API] Processamento concluído em ${executionTime}ms`);
 
     return new Response(JSON.stringify({
       success: true,

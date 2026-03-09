@@ -19,6 +19,7 @@ initSentry();
 // Componentes críticos - import direto (necessários no carregamento inicial)
 import Auth from "./pages/Auth";
 import GoogleAuthCallback from "./pages/GoogleAuthCallback";
+import ResetPassword from "./pages/ResetPassword";
 import NotFound from "./pages/NotFound";
 const CookieBanner = lazyWithRetry(() => import("./components/CookieBanner"));
 
@@ -38,6 +39,8 @@ const AgentesIAManager = lazyWithRetry(() => import("./features/ai-agents/Agente
 // Módulos jurídicos
 const ProcessosManager = lazyWithRetry(() => import("./features/processos/ProcessosManager"));
 const PrazosManager    = lazyWithRetry(() => import("./features/prazos/PrazosManager"));
+const PrazosDashboard  = lazyWithRetry(() => import("./features/prazos/PrazosDashboard"));
+const AuditTrail       = lazyWithRetry(() => import("./features/audit/AuditTrail"));
 const HonorariosManager = lazyWithRetry(() => import("./features/honorarios/HonorariosManager"));
 const DocumentosManager = lazyWithRetry(() => import("./features/documentos/DocumentosManager"));
 const UsuariosManager = lazyWithRetry(() => import("./features/users/UsuariosManager"));
@@ -96,6 +99,7 @@ const App = () => (
                 {/* Rotas públicas */}
                 <Route path="/auth" element={<Auth />} />
                 <Route path="/auth/google/callback" element={<GoogleAuthCallback />} />
+                <Route path="/reset-password" element={<ResetPassword />} />
                 <Route path="/termos" element={<TermosDeUso />} />
                 <Route path="/privacidade" element={<PoliticaDePrivacidade />} />
                 <Route path="/precos" element={<Pricing />} />
@@ -134,6 +138,8 @@ const App = () => (
                   {/* Módulos Jurídicos */}
                   <Route path="processos" element={<ErrorBoundary><ProcessosManager /></ErrorBoundary>} />
                   <Route path="prazos" element={<ErrorBoundary><PrazosManager /></ErrorBoundary>} />
+                  <Route path="painel-prazos" element={<ErrorBoundary><PrazosDashboard /></ErrorBoundary>} />
+                  <Route path="auditoria" element={<ProtectedRoute requiredRoles={['admin', 'manager']}><ErrorBoundary><AuditTrail /></ErrorBoundary></ProtectedRoute>} />
                   <Route path="honorarios" element={
                     <ProtectedRoute requiredRoles={['admin', 'manager']}>
                       <ErrorBoundary><HonorariosManager /></ErrorBoundary>

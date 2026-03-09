@@ -53,7 +53,6 @@ Deno.serve(async (req) => {
   const supabase = createClient(supabaseUrl, supabaseServiceKey);
   const now = new Date().toISOString();
 
-  console.log(`[cleanup-agent-memory] Running at ${now}`);
 
   const { data, error, count } = await supabase
     .from("agent_memory")
@@ -71,7 +70,6 @@ Deno.serve(async (req) => {
   }
 
   const deleted = data?.length ?? count ?? 0;
-  console.log(`[cleanup-agent-memory] Deleted ${deleted} expired memory rows`);
 
   return new Response(
     JSON.stringify({

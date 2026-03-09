@@ -48,7 +48,7 @@ export const useAgentesMetrics = () => {
         .select('agente_id, status, tempo_execucao, created_at')
         .eq('tenant_id', profile.tenant_id)
         .gte('created_at', inicioHoje.toISOString())
-        .eq('status', 'sucesso');
+        .eq('status', 'success');
 
       if (errorHoje) throw errorHoje;
 
@@ -94,7 +94,7 @@ export const useAgentesMetrics = () => {
         : 0;
 
       // Taxa de sucesso
-      const execucoesSucesso = execucoesMes?.filter(log => log.status === 'sucesso').length || 0;
+      const execucoesSucesso = execucoesMes?.filter(log => ['success', 'completed'].includes(log.status)).length || 0;
       const sucessoRate = execucoesMesCount > 0
         ? Math.round((execucoesSucesso / execucoesMesCount) * 100)
         : 0;

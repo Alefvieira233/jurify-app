@@ -69,6 +69,14 @@ Deno.serve(async (req) => {
       `📝 ${prazo.descricao}\n` +
       `📅 Vencimento: ${new Date(prazo.data_prazo as string).toLocaleDateString("pt-BR")}`;
 
+    // Record in-app notification (non-blocking)
+    void supabase.from("notificacoes").insert({
+      tenant_id: prazo.tenant_id,
+      tipo: diasRestantes <= 1 ? "erro" : "alerta",
+      titulo: `Prazo urgente — ${diasRestantes} dia(s)`,
+      mensagem: `${prazo.descricao} · Processo ${numeroProcesso} · Vence em ${new Date(prazo.data_prazo as string).toLocaleDateString("pt-BR")}`,
+    });
+
     try {
       await fetch(`${EVOLUTION_API_URL}/message/sendText/${instanceName}`, {
         method: "POST",
