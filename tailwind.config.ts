@@ -18,6 +18,9 @@ export default {
 			}
 		},
 		extend: {
+			screens: {
+				'xs': '475px',
+			},
 			fontFamily: {
 				sans: ['DM Sans', 'system-ui', '-apple-system', 'sans-serif'],
 			},
