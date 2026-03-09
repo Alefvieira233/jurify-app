@@ -14,6 +14,8 @@ import AIAssistantChat from "@/components/ai/AIAssistantChat";
 import { useRealtimeSync } from "@/hooks/useRealtimeSync";
 import { useNetworkStatus } from "@/hooks/useNetworkStatus";
 import { WifiOff, Wifi } from "lucide-react";
+import { useCapacitor } from '@/hooks/useCapacitor';
+import { App as CapacitorApp } from '@capacitor/app';
 
 const Layout = () => {
     const { user, loading, profile } = useAuth();
@@ -24,6 +26,24 @@ const Layout = () => {
     // Realtime sync — all core tables auto-invalidate React Query cache
     useRealtimeSync();
     const { isOnline, wasOffline } = useNetworkStatus();
+    const { isNative, isAndroid } = useCapacitor();
+
+    // Android hardware back button: close menu → navigate back → exit app
+    useEffect(() => {
+      if (!isAndroid) return;
+
+      const listenerPromise = CapacitorApp.addListener('backButton', ({ canGoBack }) => {
+        if (mobileMenuOpen) {
+          setMobileMenuOpen(false);
+        } else if (canGoBack) {
+          window.history.back();
+        } else {
+          void CapacitorApp.exitApp();
+        }
+      });
+
+      return () => { void listenerPromise.then(l => l.remove()); };
+    }, [isAndroid, mobileMenuOpen]);
 
     const getActiveSection = (path: string) => {
         if (path === '/' || path === '/dashboard') return 'dashboard';
@@ -90,7 +110,7 @@ const Layout = () => {
             <AIAssistantChat />
 
             {/* ── Mobile Header (< lg) ── */}
-            <header className="lg:hidden fixed top-0 inset-x-0 z-50 h-14 bg-primary border-b border-primary/80 flex items-center gap-3 px-4 shadow-sm">
+            <header className={`lg:hidden fixed top-0 inset-x-0 z-50 bg-primary border-b border-primary/80 flex items-center gap-3 px-4 shadow-sm ${isNative ? 'mobile-header-offset pt-2' : 'h-14'}`}>
                 <Button
                     variant="ghost"
                     size="icon"
@@ -140,7 +160,7 @@ const Layout = () => {
                 </div>
 
                 {/* Main content area */}
-                <main className="flex-1 min-w-0 overflow-y-auto pt-14 lg:pt-0">
+                <main className={`flex-1 min-w-0 overflow-y-auto pt-14 lg:pt-0 ${isNative ? 'mobile-bottom-safe' : ''}`}>
                     <div className="reveal-up">
                         <Outlet />
                     </div>
