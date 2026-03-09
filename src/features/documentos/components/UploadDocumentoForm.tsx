@@ -2,6 +2,8 @@ import { useState, useRef } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Upload, FileText, X } from 'lucide-react';
+import { Camera, CameraResultType, CameraSource } from '@capacitor/camera';
+import { Capacitor } from '@capacitor/core';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -42,6 +44,29 @@ const UploadDocumentoForm = ({ onSubmit, onCancel, loading, processoId }: Upload
   const [dragOver, setDragOver] = useState(false);
   const [fileError, setFileError] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const isNative = Capacitor.isNativePlatform();
+
+  const handleCameraCapture = async () => {
+    try {
+      const image = await Camera.getPhoto({
+        quality: 85,
+        allowEditing: false,
+        resultType: CameraResultType.Uri,
+        source: CameraSource.Prompt,
+      });
+
+      if (!image.webPath) return;
+
+      const response = await fetch(image.webPath);
+      const blob = await response.blob();
+      const fileName = `documento_${Date.now()}.jpg`;
+      const file = new File([blob], fileName, { type: 'image/jpeg' });
+      handleFileSelect(file);
+    } catch {
+      // User cancelled — ignore
+    }
+  };
 
   const {
     register,
@@ -124,6 +149,15 @@ const UploadDocumentoForm = ({ onSubmit, onCancel, loading, processoId }: Upload
               </button>
             </p>
             <p className="text-xs text-muted-foreground mt-1">PDF, DOC, DOCX, JPG, PNG — máx. 20 MB</p>
+            {isNative && (
+              <button
+                type="button"
+                className="text-primary underline text-sm mt-2"
+                onClick={() => { void handleCameraCapture(); }}
+              >
+                ou tirar foto com a câmera
+              </button>
+            )}
           </div>
         )}
         <input
