@@ -14,14 +14,14 @@ import { createLogger } from '@/lib/logger';
 
 const log = createLogger('RealtimeSync');
 
-type TableName = 'leads' | 'contratos' | 'agendamentos' | 'agent_executions' | 'whatsapp_messages';
+type TableName = 'leads' | 'contratos' | 'agendamentos' | 'agent_executions' | 'whatsapp_messages' | 'notificacoes';
 
 interface RealtimeConfig {
   tables?: TableName[];
   enabled?: boolean;
 }
 
-const DEFAULT_TABLES: TableName[] = ['leads', 'contratos', 'agendamentos', 'agent_executions'];
+const DEFAULT_TABLES: TableName[] = ['leads', 'contratos', 'agendamentos', 'agent_executions', 'notificacoes'];
 
 // Map table names to their React Query cache keys
 const TABLE_QUERY_KEY_MAP: Record<TableName, string[]> = {
@@ -30,6 +30,7 @@ const TABLE_QUERY_KEY_MAP: Record<TableName, string[]> = {
   agendamentos: ['agendamentos', 'calendar-events', 'dashboard-metrics-fast'],
   agent_executions: ['agent-executions', 'dashboard-metrics-fast'],
   whatsapp_messages: ['whatsapp-messages'],
+  notificacoes: ['notificacoes'],
 };
 
 export function useRealtimeSync(config: RealtimeConfig = {}) {

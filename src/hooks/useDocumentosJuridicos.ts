@@ -74,15 +74,19 @@ export const useDocumentosJuridicos = (options?: { processoId?: string; leadId?:
       const { data, error, count } = await query;
       if (error) { log.error('Erro ao buscar documentos', error); throw error; }
 
-      const items = await Promise.all(
-        (data || []).map(async (row) => {
-          const doc = normalizeDocumento(row as Record<string, unknown>);
-          const { data: signedData } = await supabase.storage
-            .from('documents')
-            .createSignedUrl(doc.storage_path, 3600);
-          return { ...doc, signedUrl: signedData?.signedUrl ?? null } as DocumentoWithSignedUrl;
-        })
-      );
+      const docs = (data || []).map(row => normalizeDocumento(row as Record<string, unknown>));
+
+      // Batch signed URL creation (1 request instead of N)
+      const paths = docs.map(d => d.storage_path).filter(Boolean);
+      const { data: signedUrls } = paths.length > 0
+        ? await supabase.storage.from('documents').createSignedUrls(paths, 3600)
+        : { data: [] };
+
+      const urlMap = new Map((signedUrls ?? []).map(s => [s.path, s.signedUrl ?? null]));
+      const items: DocumentoWithSignedUrl[] = docs.map(doc => ({
+        ...doc,
+        signedUrl: urlMap.get(doc.storage_path) ?? null,
+      }));
 
       return {
         items,

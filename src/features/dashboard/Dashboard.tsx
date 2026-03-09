@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Users, FileText, Calendar, Bot, TrendingUp, Clock, CheckCircle, AlertTriangle, Sparkles, ArrowUpRight, BarChart3, Activity, CalendarCheck, CalendarDays, UserCheck, Hourglass, Plus, MessageSquare } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -45,6 +45,11 @@ const Dashboard = () => {
       setSearchParams({}, { replace: true });
     }
   }, [searchParams, setSearchParams, toast]);
+
+  // Memoized derived data — avoid recomputing on every render
+  const leadsPorStatusEntries = useMemo(() => Object.entries(metrics.leadsPorStatus), [metrics.leadsPorStatus]);
+  const topAreas = useMemo(() => metrics.leadsPorArea.slice(0, 5), [metrics.leadsPorArea]);
+  const topAgentes = useMemo(() => metrics.execucoesRecentesAgentes, [metrics.execucoesRecentesAgentes]);
 
   /* Seed data — dados de demonstração */
   const handleGenerateTestData = async () => {
@@ -440,7 +445,7 @@ const Dashboard = () => {
             </div>
           </CardHeader>
           <CardContent className="space-y-5">
-            {Object.entries(metrics.leadsPorStatus).map(([status, count]) => {
+            {leadsPorStatusEntries.map(([status, count]) => {
               const statusLabels: Record<string, string> = {
                 novo_lead: 'Novos Leads', em_qualificacao: 'Em Qualificação',
                 proposta_enviada: 'Proposta Enviada', contrato_assinado: 'Contrato Assinado',
@@ -486,7 +491,7 @@ const Dashboard = () => {
             </div>
           </CardHeader>
           <CardContent className="space-y-4">
-            {metrics.leadsPorArea.slice(0, 5).map((area) => (
+            {topAreas.map((area) => (
               <div key={area.area} className="flex justify-between items-center p-2.5 rounded-lg bg-muted/40 hover:bg-muted/70 transition-colors">
                 <span className="text-sm font-medium text-foreground">{area.area}</span>
                 <Badge variant="info">{area.total}</Badge>
@@ -514,7 +519,7 @@ const Dashboard = () => {
         </CardHeader>
         <CardContent>
           <div className="space-y-2">
-            {metrics.execucoesRecentesAgentes.map((agente) => {
+            {topAgentes.map((agente) => {
               const successRate = agente.total_execucoes > 0
                 ? (agente.sucesso / agente.total_execucoes) * 100
                 : 0;

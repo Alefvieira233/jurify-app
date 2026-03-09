@@ -2,7 +2,7 @@
  * Hook para gerenciamento de Prazos Processuais.
  * Padrão: useProcessos.ts
  */
-import { useCallback, useState } from 'react';
+import { useCallback, useState, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabaseUntyped as supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -99,12 +99,12 @@ export const usePrazosProcessuais = (options?: {
   const totalPages = enablePagination ? Math.ceil(totalCount / pageSize) : 1;
   const error = queryError ? queryError.message : null;
 
-  // Prazos urgentes (vencendo em até 7 dias)
-  const prazosUrgentes = prazos.filter(p => {
+  // Prazos urgentes (vencendo em até 7 dias) — memoized
+  const prazosUrgentes = useMemo(() => prazos.filter(p => {
     if (p.status !== 'pendente') return false;
     const dias = Math.ceil((new Date(p.data_prazo).getTime() - Date.now()) / (1000 * 60 * 60 * 24));
     return dias <= 7 && dias >= 0;
-  });
+  }), [prazos]);
 
   const createMutation = useMutation({
     mutationFn: async (data: PrazoInput) => {

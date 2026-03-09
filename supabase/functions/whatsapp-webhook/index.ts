@@ -796,13 +796,14 @@ ${conversationHistory ? `HISTORICO DA CONVERSA:\n${conversationHistory}\n` : ""}
         .from("whatsapp_conversations")
         .update({ ia_active: false })
         .eq("id", conversationId)
-        .eq("tenant_id", tenantId);
+        .eq("tenant_id", tenantId)
+        .then(({ error }) => { if (error) console.error("[webhook] handoff update error:", error.message); });
       void supabase.from("notificacoes").insert({
         tenant_id: tenantId,
         tipo: "alerta",
         titulo: "Conversa requer atenção humana",
         mensagem: `A IA não conseguiu responder ao cliente ${name} (${from}). Conversa pausada.`,
-      });
+      }).then(({ error }) => { if (error) console.error("[webhook] notificacao insert error:", error.message); });
     }
 
     // --- SAVE TO AGENT MEMORY (non-blocking, only when has legal context) ---
