@@ -11,7 +11,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { prazoFormSchema, type PrazoFormData, TIPOS_PRAZO, STATUS_PRAZO } from '@/schemas/prazoSchema';
+import { prazoFormSchema, type PrazoFormData, TIPOS_PRAZO, STATUS_PRAZO, TIPO_LABELS, STATUS_LABELS } from '@/schemas/prazoSchema';
 import type { PrazoProcessual } from '@/hooks/usePrazosProcessuais';
 
 interface NovoPrazoFormProps {
@@ -21,24 +21,6 @@ interface NovoPrazoFormProps {
   initialData?: PrazoProcessual | null;
   processoId?: string;
 }
-
-const TIPO_LABELS: Record<string, string> = {
-  audiencia: 'Audiência',
-  peticao: 'Petição',
-  recurso: 'Recurso',
-  manifestacao: 'Manifestação',
-  prazo_fatal: 'Prazo Fatal',
-  despacho: 'Despacho',
-  sentenca: 'Sentença',
-  outro: 'Outro',
-};
-
-const STATUS_LABELS: Record<string, string> = {
-  pendente: 'Pendente',
-  cumprido: 'Cumprido',
-  perdido: 'Perdido',
-  cancelado: 'Cancelado',
-};
 
 const NovoPrazoForm = ({ onSubmit, onCancel, loading, initialData, processoId }: NovoPrazoFormProps) => {
   const {

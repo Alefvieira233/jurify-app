@@ -14,3 +14,16 @@ export const documentoFormSchema = z.object({
 });
 
 export type DocumentoFormData = z.infer<typeof documentoFormSchema>;
+
+export const TIPO_LABELS: Record<string, string> = {
+  peticao: 'Petição',
+  contrato: 'Contrato',
+  procuracao: 'Procuração',
+  comprovante: 'Comprovante',
+  sentenca: 'Sentença',
+  recurso: 'Recurso',
+  acordo: 'Acordo',
+  laudo: 'Laudo',
+  certidao: 'Certidão',
+  outro: 'Outro',
+};

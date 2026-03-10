@@ -6,13 +6,27 @@ const EVOLUTION_API_URL = Deno.env.get("EVOLUTION_API_URL") ?? "";
 const EVOLUTION_API_KEY = Deno.env.get("EVOLUTION_API_KEY") ?? "";
 
 Deno.serve(async (req) => {
+  const origin = req.headers.get("origin") ?? undefined;
+
   if (req.method === "OPTIONS") {
-    return new Response("ok", { headers: getCorsHeaders(req) });
+    return new Response("ok", { headers: getCorsHeaders(origin) });
+  }
+
+  // Auth gate: require service-role key (this is a cron/internal function)
+  const authHeader = req.headers.get("Authorization");
+  const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
+  const token = authHeader?.replace("Bearer ", "") ?? "";
+
+  if (!supabaseServiceKey || token !== supabaseServiceKey) {
+    return new Response(JSON.stringify({ error: "Unauthorized" }), {
+      status: 401,
+      headers: { ...getCorsHeaders(origin), "Content-Type": "application/json" },
+    });
   }
 
   const supabase = createClient(
     Deno.env.get("SUPABASE_URL") ?? "",
-    Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
+    supabaseServiceKey,
   );
 
   const { data: prazos, error } = await supabase
@@ -90,6 +104,6 @@ Deno.serve(async (req) => {
   }
 
   return new Response(JSON.stringify({ processed: prazos?.length ?? 0, sent }), {
-    headers: { ...getCorsHeaders(req), "Content-Type": "application/json" },
+    headers: { ...getCorsHeaders(origin), "Content-Type": "application/json" },
   });
 });

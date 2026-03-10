@@ -18,6 +18,10 @@ import {
   FASES_PROCESSUAIS,
   POSICOES,
   STATUS_PROCESSO,
+  TIPO_ACAO_LABELS,
+  FASE_LABELS,
+  POSICAO_LABELS,
+  STATUS_LABELS,
 } from '@/schemas/processoSchema';
 import type { Processo } from '@/hooks/useProcessos';
 
@@ -27,42 +31,6 @@ interface NovoProcessoFormProps {
   loading?: boolean;
   initialData?: Processo | null;
 }
-
-const TIPO_ACAO_LABELS: Record<string, string> = {
-  civel: 'Cível',
-  criminal: 'Criminal',
-  trabalhista: 'Trabalhista',
-  previdenciario: 'Previdenciário',
-  familia: 'Família',
-  empresarial: 'Empresarial',
-  tributario: 'Tributário',
-  administrativo: 'Administrativo',
-  outro: 'Outro',
-};
-
-const FASE_LABELS: Record<string, string> = {
-  conhecimento: 'Conhecimento',
-  recurso: 'Recurso',
-  execucao: 'Execução',
-  cumprimento_sentenca: 'Cumprimento de Sentença',
-  encerrado: 'Encerrado',
-};
-
-const POSICAO_LABELS: Record<string, string> = {
-  autor: 'Autor',
-  reu: 'Réu',
-  terceiro: 'Terceiro',
-  assistente: 'Assistente',
-};
-
-const STATUS_LABELS: Record<string, string> = {
-  ativo: 'Ativo',
-  suspenso: 'Suspenso',
-  encerrado_vitoria: 'Encerrado — Vitória',
-  encerrado_derrota: 'Encerrado — Derrota',
-  encerrado_acordo: 'Encerrado — Acordo',
-  arquivado: 'Arquivado',
-};
 
 const NovoProcessoForm = ({ onSubmit, onCancel, loading, initialData }: NovoProcessoFormProps) => {
   const {

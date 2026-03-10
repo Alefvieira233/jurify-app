@@ -16,6 +16,8 @@ import {
   type HonorarioFormData,
   TIPOS_HONORARIO,
   STATUS_HONORARIO,
+  TIPO_LABELS,
+  STATUS_LABELS,
 } from '@/schemas/honorarioSchema';
 import type { Honorario } from '@/hooks/useHonorarios';
 
@@ -26,22 +28,6 @@ interface NovoHonorarioFormProps {
   initialData?: Honorario | null;
   processoId?: string;
 }
-
-const TIPO_LABELS: Record<string, string> = {
-  fixo: 'Honorário Fixo',
-  hora: 'Por Hora',
-  contingencia: 'Contingência (%)',
-  misto: 'Misto',
-  retainer: 'Retainer (Mensal)',
-};
-
-const STATUS_LABELS: Record<string, string> = {
-  vigente: 'Vigente',
-  pago: 'Pago',
-  inadimplente: 'Inadimplente',
-  cancelado: 'Cancelado',
-  disputado: 'Disputado',
-};
 
 const NovoHonorarioForm = ({ onSubmit, onCancel, loading, initialData, processoId }: NovoHonorarioFormProps) => {
   const {

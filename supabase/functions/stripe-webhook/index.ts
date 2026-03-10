@@ -173,6 +173,34 @@ Deno.serve(async (req) => {
                 }
                 break;
             }
+            case 'charge.refunded': {
+                const charge = event.data.object;
+                const customerId = charge.customer as string;
+
+                console.log(`[stripe-webhook] Processing charge.refunded for customer: ${customerId}, charge: ${charge.id}`);
+
+                const { data: refundedProfile } = await supabase
+                    .from('profiles')
+                    .select('id, email, nome_completo, subscription_tier')
+                    .eq('stripe_customer_id', customerId)
+                    .maybeSingle();
+
+                if (refundedProfile?.email) {
+                    const amountRefundedCents = charge.amount_refunded ?? 0;
+                    const amountFormatted = (amountRefundedCents / 100).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+
+                    await sendEmail(refundedProfile.email, 'charge-refunded', {
+                        name: refundedProfile.nome_completo ?? refundedProfile.email,
+                        amount: amountFormatted,
+                        charge_id: charge.id,
+                    });
+
+                    console.log(`[stripe-webhook] Refund email sent to ${refundedProfile.email} for ${amountFormatted}`);
+                } else {
+                    console.warn(`[stripe-webhook] No profile found for stripe customer ${customerId} on charge.refunded`);
+                }
+                break;
+            }
             default:
         }
 

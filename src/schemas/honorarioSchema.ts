@@ -23,3 +23,19 @@ export const honorarioFormSchema = z.object({
 });
 
 export type HonorarioFormData = z.infer<typeof honorarioFormSchema>;
+
+export const TIPO_LABELS: Record<string, string> = {
+  fixo: 'Honorário Fixo',
+  hora: 'Por Hora',
+  contingencia: 'Contingência (%)',
+  misto: 'Misto',
+  retainer: 'Retainer (Mensal)',
+};
+
+export const STATUS_LABELS: Record<string, string> = {
+  vigente: 'Vigente',
+  pago: 'Pago',
+  inadimplente: 'Inadimplente',
+  cancelado: 'Cancelado',
+  disputado: 'Disputado',
+};

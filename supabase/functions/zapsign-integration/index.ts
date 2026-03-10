@@ -1,5 +1,3 @@
-
-import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.50.0';
 import { getCorsHeaders } from "../_shared/cors.ts";
 import { applyRateLimit } from "../_shared/rate-limiter.ts";

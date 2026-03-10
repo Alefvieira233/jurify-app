@@ -28,6 +28,7 @@ type EmailTemplate =
   | "reset-password"
   | "billing-confirmation"
   | "subscription-cancelled"
+  | "payment-failed"
   | "agent-alert";
 
 interface TemplateData {
@@ -142,6 +143,29 @@ function buildEmailContent(
   </div>
 </div>`,
         textBody: `Sua assinatura do plano ${data.plan_name} foi cancelada. Reative em: https://jurify-app.vercel.app/planos`,
+      };
+
+    case "payment-failed":
+      return {
+        subject: "Falha no pagamento — Jurify ⚠️",
+        htmlBody: `
+<div style="font-family:Inter,Arial,sans-serif;max-width:600px;margin:0 auto;padding:40px 20px;color:#111827">
+  <div style="text-align:center;margin-bottom:32px">
+    <h1 style="color:#1e3a8a;font-size:28px;margin:0">Jurify</h1>
+  </div>
+  <div style="background:#fef2f2;border-left:4px solid #ef4444;padding:16px;border-radius:4px;margin-bottom:24px">
+    <p style="margin:0;font-weight:600;color:#dc2626">⚠️ Falha no pagamento</p>
+  </div>
+  <p style="color:#374151;line-height:1.6">Olá, ${data.name ?? ""}. Não conseguimos processar o pagamento do seu plano <strong>${data.plan_name ?? ""}</strong>.</p>
+  <p style="color:#374151;line-height:1.6">Por favor, verifique seus dados de pagamento para evitar a suspensão do serviço.</p>
+  <div style="text-align:center;margin:32px 0">
+    <a href="https://jurify-app.vercel.app/configuracoes?tab=assinatura" style="background:#1e3a8a;color:white;padding:14px 32px;border-radius:8px;text-decoration:none;font-weight:600;font-size:16px">
+      Atualizar Pagamento
+    </a>
+  </div>
+  <p style="color:#6b7280;font-size:13px;text-align:center">Se o problema persistir, entre em contato com nosso suporte.</p>
+</div>`,
+        textBody: `Falha no pagamento do plano ${data.plan_name ?? ""}.\nAtualize seus dados em: https://jurify-app.vercel.app/configuracoes?tab=assinatura`,
       };
 
     case "agent-alert":

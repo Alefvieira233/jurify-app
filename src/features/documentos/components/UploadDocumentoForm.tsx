@@ -15,7 +15,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { documentoFormSchema, type DocumentoFormData, TIPOS_DOCUMENTO } from '@/schemas/documentoSchema';
+import { documentoFormSchema, type DocumentoFormData, TIPOS_DOCUMENTO, TIPO_LABELS } from '@/schemas/documentoSchema';
 
 interface UploadDocumentoFormProps {
   onSubmit: (file: File, metadata: DocumentoFormData) => Promise<boolean>;
@@ -23,19 +23,6 @@ interface UploadDocumentoFormProps {
   loading?: boolean;
   processoId?: string;
 }
-
-const TIPO_LABELS: Record<string, string> = {
-  peticao: 'Petição',
-  contrato: 'Contrato',
-  procuracao: 'Procuração',
-  comprovante: 'Comprovante',
-  sentenca: 'Sentença',
-  recurso: 'Recurso',
-  acordo: 'Acordo',
-  laudo: 'Laudo',
-  certidao: 'Certidão',
-  outro: 'Outro',
-};
 
 const MAX_FILE_SIZE = 20 * 1024 * 1024; // 20 MB
 

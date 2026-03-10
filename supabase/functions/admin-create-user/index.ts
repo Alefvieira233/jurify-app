@@ -81,7 +81,7 @@ Deno.serve(async (req) => {
       });
     }
 
-    const isAdmin = (rolesData || []).some((r) => r.role === "administrador");
+    const isAdmin = (rolesData || []).some((r) => r.role === "admin" || r.role === "administrador");
     if (!isAdmin) {
       return new Response(JSON.stringify({ error: "Insufficient permissions" }), {
         status: 403,
@@ -179,10 +179,10 @@ Deno.serve(async (req) => {
       JSON.stringify({ success: true, user_id: userId }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("[admin-create-user] Error:", error);
     return new Response(
-      JSON.stringify({ error: error?.message || "Internal error" }),
+      JSON.stringify({ error: "Internal server error" }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }

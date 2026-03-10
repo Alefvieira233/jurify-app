@@ -7,21 +7,7 @@ import { usePrazosProcessuais } from '@/hooks/usePrazosProcessuais';
 import { useHonorarios } from '@/hooks/useHonorarios';
 import { useDocumentosJuridicos } from '@/hooks/useDocumentosJuridicos';
 import PrazoAlertaBadge from '@/features/prazos/components/PrazoAlertaBadge';
-
-const STATUS_LABELS: Record<string, string> = {
-  ativo: 'Ativo',
-  suspenso: 'Suspenso',
-  encerrado_vitoria: 'Encerrado — Vitória',
-  encerrado_derrota: 'Encerrado — Derrota',
-  encerrado_acordo: 'Encerrado — Acordo',
-  arquivado: 'Arquivado',
-};
-
-const TIPO_LABELS: Record<string, string> = {
-  civel: 'Cível', criminal: 'Criminal', trabalhista: 'Trabalhista',
-  previdenciario: 'Previdenciário', familia: 'Família', empresarial: 'Empresarial',
-  tributario: 'Tributário', administrativo: 'Administrativo', outro: 'Outro',
-};
+import { STATUS_LABELS, TIPO_ACAO_LABELS as TIPO_LABELS } from '@/schemas/processoSchema';
 
 const HONORARIO_TIPO_LABELS: Record<string, string> = {
   fixo: 'Fixo', hora: 'Por hora', contingencia: 'Contingência',

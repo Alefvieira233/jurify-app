@@ -24,13 +24,24 @@ Deno.serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  // Auth gate: require service-role key (this is a cron/internal function)
+  const authHeader = req.headers.get("Authorization");
+  const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
+  const token = authHeader?.replace("Bearer ", "") ?? "";
+
+  if (!supabaseServiceKey || token !== supabaseServiceKey) {
+    return new Response(JSON.stringify({ error: "Unauthorized" }), {
+      status: 401,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
+
   const startTime = Date.now();
   let processed = 0;
   let failed = 0;
 
   try {
     const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
-    const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
 
     if (!supabaseUrl || !supabaseServiceKey) {
       throw new Error("Supabase environment variables not configured");

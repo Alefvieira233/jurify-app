@@ -178,7 +178,7 @@ Deno.serve(async (req) => {
     }
 
     const endTime = Date.now();
-    healthStatus.uptime = endTime;
+    healthStatus.uptime = endTime - startTime;
     healthStatus.performance.responseTime = endTime - startTime;
 
     try {

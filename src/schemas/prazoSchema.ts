@@ -21,3 +21,21 @@ export const prazoFormSchema = z.object({
 });
 
 export type PrazoFormData = z.infer<typeof prazoFormSchema>;
+
+export const TIPO_LABELS: Record<string, string> = {
+  audiencia: 'Audiência',
+  peticao: 'Petição',
+  recurso: 'Recurso',
+  manifestacao: 'Manifestação',
+  prazo_fatal: 'Prazo Fatal',
+  despacho: 'Despacho',
+  sentenca: 'Sentença',
+  outro: 'Outro',
+};
+
+export const STATUS_LABELS: Record<string, string> = {
+  pendente: 'Pendente',
+  cumprido: 'Cumprido',
+  perdido: 'Perdido',
+  cancelado: 'Cancelado',
+};

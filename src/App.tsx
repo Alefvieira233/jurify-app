@@ -61,7 +61,7 @@ const AdminStatus = lazyWithRetry(() => import("./pages/AdminStatus"));
 import { WhatsAppErrorBoundary } from "./features/whatsapp/WhatsAppErrorBoundary";
 
 // Prefetch rotas mais acessadas após o idle do browser
-if (typeof window !== 'undefined' && 'requestIdleCallback' in window) {
+if (typeof window !== 'undefined' && 'requestIdleCallback' in window && !Capacitor.isNativePlatform()) {
   window.requestIdleCallback(() => {
     void import("./features/pipeline/PipelineJuridico");
     void import("./features/scheduling/AgendamentosManager");
