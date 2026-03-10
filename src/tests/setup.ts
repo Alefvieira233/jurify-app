@@ -75,3 +75,81 @@ Object.defineProperty(global, 'crypto', {
 });
 
 console.log('✅ Vitest test environment configured');
+
+// ─── Capacitor Mocks ───────────────────────────────────────────────────────
+
+vi.mock('@capacitor/core', () => ({
+  Capacitor: {
+    getPlatform: vi.fn(() => 'web'),
+    isNativePlatform: vi.fn(() => false),
+    isPluginAvailable: vi.fn(() => false),
+  },
+}));
+
+vi.mock('@capacitor/push-notifications', () => ({
+  PushNotifications: {
+    checkPermissions: vi.fn().mockResolvedValue({ receive: 'granted' }),
+    requestPermissions: vi.fn().mockResolvedValue({ receive: 'granted' }),
+    register: vi.fn().mockResolvedValue(undefined),
+    addListener: vi.fn().mockResolvedValue({ remove: vi.fn() }),
+    removeAllListeners: vi.fn().mockResolvedValue(undefined),
+  },
+}));
+
+vi.mock('@capacitor/network', () => ({
+  Network: {
+    getStatus: vi.fn().mockResolvedValue({ connected: true, connectionType: 'wifi' }),
+    addListener: vi.fn().mockResolvedValue({ remove: vi.fn() }),
+  },
+}));
+
+vi.mock('@capacitor/camera', () => ({
+  Camera: {
+    getPhoto: vi.fn().mockResolvedValue({ webPath: 'blob:test-image', format: 'jpeg' }),
+    requestPermissions: vi.fn().mockResolvedValue({ camera: 'granted', photos: 'granted' }),
+  },
+  CameraResultType: { Uri: 'uri', Base64: 'base64', DataUrl: 'dataUrl' },
+  CameraSource: { Prompt: 'PROMPT', Camera: 'CAMERA', Photos: 'PHOTOS' },
+}));
+
+vi.mock('@capacitor/app', () => ({
+  App: {
+    addListener: vi.fn().mockResolvedValue({ remove: vi.fn() }),
+    exitApp: vi.fn(),
+    getState: vi.fn().mockResolvedValue({ isActive: true }),
+  },
+}));
+
+vi.mock('@capacitor/haptics', () => ({
+  Haptics: {
+    impact: vi.fn().mockResolvedValue(undefined),
+    notification: vi.fn().mockResolvedValue(undefined),
+    selectionChanged: vi.fn().mockResolvedValue(undefined),
+  },
+  ImpactStyle: { Light: 'LIGHT', Medium: 'MEDIUM', Heavy: 'HEAVY' },
+  NotificationType: { Success: 'SUCCESS', Warning: 'WARNING', Error: 'ERROR' },
+}));
+
+vi.mock('@capacitor/share', () => ({
+  Share: {
+    share: vi.fn().mockResolvedValue({ activityType: 'com.apple.UIKit.activity.Message' }),
+    canShare: vi.fn().mockResolvedValue({ value: true }),
+  },
+}));
+
+vi.mock('@capacitor/local-notifications', () => ({
+  LocalNotifications: {
+    checkPermissions: vi.fn().mockResolvedValue({ display: 'granted' }),
+    requestPermissions: vi.fn().mockResolvedValue({ display: 'granted' }),
+    schedule: vi.fn().mockResolvedValue(undefined),
+    cancel: vi.fn().mockResolvedValue(undefined),
+    getPending: vi.fn().mockResolvedValue({ notifications: [] }),
+  },
+}));
+
+vi.mock('@aparajita/capacitor-biometric-auth', () => ({
+  BiometricAuth: {
+    authenticate: vi.fn().mockResolvedValue(undefined),
+    checkBiometry: vi.fn().mockResolvedValue({ isAvailable: true, biometryType: 2 }),
+  },
+}));
