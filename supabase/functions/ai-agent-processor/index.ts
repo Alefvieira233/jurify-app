@@ -169,10 +169,14 @@ async function processAIRequest(
   };
 }
 
-// ðŸ†” Gera execution_id Ãºnico
+// 🆔 Gera execution_id único (criptograficamente seguro)
 function generateExecutionId(): string {
   const timestamp = Date.now();
-  const random = Math.random().toString(36).substring(2, 11);
+  const array = new Uint8Array(4);
+  crypto.getRandomValues(array);
+  const random = Array.from(array)
+    .map((b) => b.toString(36).padStart(2, '0'))
+    .join('');
   return `exec_${timestamp}_${random}`;
 }
 
