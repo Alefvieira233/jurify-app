@@ -314,7 +314,7 @@ const FollowUpSequenceEditor: React.FC = () => {
                 Cancelar
               </Button>
               <Button
-                onClick={handleSave}
+                onClick={() => { void handleSave(); }}
                 disabled={saving || !formName.trim() || formSteps.every(s => !s.template.trim())}
                 className="h-8 text-xs gap-1.5"
               >
@@ -410,7 +410,7 @@ const FollowUpSequenceEditor: React.FC = () => {
                     variant="ghost"
                     size="sm"
                     className="h-6 text-[10px] px-2 text-destructive hover:text-destructive"
-                    onClick={() => void deleteSequence(seq.id)}
+                    onClick={() => { void deleteSequence(seq.id); }}
                   >
                     <Trash2 className="h-3 w-3" />
                   </Button>
