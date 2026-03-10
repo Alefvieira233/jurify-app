@@ -183,7 +183,7 @@ const Sidebar = ({ activeSection, onSectionChange }: SidebarProps) => {
             isActive ? 'pl-3.5 pr-2.5' : 'px-2.5',
             isActive
               ? 'bg-sidebar-accent text-sidebar-foreground font-medium'
-              : 'text-sidebar-foreground/55 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground/85 font-normal'
+              : 'text-sidebar-foreground/55 hover:bg-sidebar-accent/50 active:bg-accent/80 hover:text-sidebar-foreground/85 font-normal'
           )}
         >
           <Icon
@@ -252,7 +252,7 @@ const Sidebar = ({ activeSection, onSectionChange }: SidebarProps) => {
               new KeyboardEvent('keydown', { key: 'k', ctrlKey: true, bubbles: true })
             )
           }
-          className="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-md bg-muted/50 hover:bg-muted/80 text-muted-foreground/55 hover:text-muted-foreground transition-all duration-150"
+          className="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-md bg-muted/50 hover:bg-muted/80 active:bg-accent/80 text-muted-foreground/55 hover:text-muted-foreground transition-all duration-150"
         >
           <Search className="h-3 w-3 flex-shrink-0" />
           <span className="flex-1 text-left text-[11px]">Buscar...</span>
@@ -279,7 +279,7 @@ const Sidebar = ({ activeSection, onSectionChange }: SidebarProps) => {
                 type="button"
                 onClick={() => setSistemaOpen(prev => !prev)}
                 aria-expanded={sistemaOpen}
-                className="flex items-center gap-1 text-[9px] font-semibold uppercase tracking-widest text-muted-foreground/40 hover:text-muted-foreground/70 transition-colors select-none"
+                className="flex items-center gap-1 text-[9px] font-semibold uppercase tracking-widest text-muted-foreground/40 hover:text-muted-foreground/70 active:bg-accent/80 transition-colors select-none"
               >
                 <span>Sistema</span>
                 <ChevronRight
@@ -306,7 +306,7 @@ const Sidebar = ({ activeSection, onSectionChange }: SidebarProps) => {
           <button
             type="button"
             onClick={() => onSectionChange('billing')}
-            className="w-full flex items-center gap-2 px-3 py-2 rounded-md bg-amber-500/10 hover:bg-amber-500/20 border border-amber-400/25 transition-all duration-150 group"
+            className="w-full flex items-center gap-2 px-3 py-2 rounded-md bg-amber-500/10 hover:bg-amber-500/20 active:bg-accent/80 border border-amber-400/25 transition-all duration-150 group"
           >
             <ArrowUpRight className="h-3.5 w-3.5 text-amber-500 flex-shrink-0 group-hover:scale-110 transition-transform" />
             <div className="flex-1 min-w-0 text-left">
@@ -332,7 +332,7 @@ const Sidebar = ({ activeSection, onSectionChange }: SidebarProps) => {
             onClick={() => setShortcutsOpen(true)}
             aria-label="Atalhos de teclado"
             title="Atalhos de teclado"
-            className="h-7 w-7 flex items-center justify-center rounded-md text-muted-foreground/35 hover:text-foreground hover:bg-muted transition-colors flex-shrink-0"
+            className="h-7 w-7 flex items-center justify-center rounded-md text-muted-foreground/35 hover:text-foreground hover:bg-muted active:bg-accent/80 transition-colors flex-shrink-0"
           >
             <HelpCircle className="h-3.5 w-3.5" strokeWidth={2} />
           </button>
@@ -340,7 +340,7 @@ const Sidebar = ({ activeSection, onSectionChange }: SidebarProps) => {
             type="button"
             onClick={() => { void signOut(); }}
             title="Sair"
-            className="h-7 w-7 flex items-center justify-center rounded-md text-muted-foreground/35 hover:text-destructive hover:bg-destructive/10 transition-colors flex-shrink-0"
+            className="h-7 w-7 flex items-center justify-center rounded-md text-muted-foreground/35 hover:text-destructive hover:bg-destructive/10 active:bg-accent/80 transition-colors flex-shrink-0"
           >
             <LogOut className="h-3.5 w-3.5" strokeWidth={2} />
           </button>

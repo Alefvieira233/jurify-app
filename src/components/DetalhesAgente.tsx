@@ -67,7 +67,7 @@ const DetalhesAgente: FC<DetalhesAgenteProps> = ({ agente, onClose, onEdit }) =>
 
   return (
     <Dialog open={true} onOpenChange={onClose}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="w-[95vw] max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-3">

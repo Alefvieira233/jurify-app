@@ -169,7 +169,7 @@ const UsuariosManager = () => {
                 Novo Usuário
               </Button>
             </DialogTrigger>
-            <DialogContent className="max-w-2xl">
+            <DialogContent className="w-[95vw] max-w-2xl">
               <DialogHeader>
                 <DialogTitle>Novo Usuário</DialogTitle>
               </DialogHeader>
@@ -296,7 +296,7 @@ const UsuariosManager = () => {
 
       {/* Diï¿½logos */}
       <Dialog open={isEditarUsuarioOpen} onOpenChange={setIsEditarUsuarioOpen}>
-        <DialogContent className="max-w-2xl">
+        <DialogContent className="w-[95vw] max-w-2xl">
           <DialogHeader>
             <DialogTitle>Editar Usuï¿½rio</DialogTitle>
           </DialogHeader>
@@ -310,7 +310,7 @@ const UsuariosManager = () => {
       </Dialog>
 
       <Dialog open={isPermissoesOpen} onOpenChange={setIsPermissoesOpen}>
-        <DialogContent className="max-w-4xl">
+        <DialogContent className="w-[95vw] max-w-4xl">
           <DialogHeader>
             <DialogTitle>Gerenciar Permissï¿½es</DialogTitle>
           </DialogHeader>

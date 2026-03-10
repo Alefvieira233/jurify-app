@@ -168,7 +168,7 @@ const FollowUpSequenceEditor: React.FC = () => {
               <Plus className="h-3.5 w-3.5" /> Nova Sequência
             </Button>
           </DialogTrigger>
-          <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
+          <DialogContent className="w-[95vw] max-w-2xl max-h-[85vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>{editingId ? 'Editar' : 'Nova'} Sequência</DialogTitle>
               <DialogDescription>

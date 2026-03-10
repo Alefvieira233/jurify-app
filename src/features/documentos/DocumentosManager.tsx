@@ -282,7 +282,7 @@ const DocumentosManager = () => {
 
       {/* Preview Dialog */}
       <Dialog open={!!previewDoc} onOpenChange={open => !open && setPreviewDoc(null)}>
-        <DialogContent className="max-w-3xl max-h-[90vh]">
+        <DialogContent className="w-[95vw] max-w-3xl max-h-[90vh]">
           <DialogHeader>
             <DialogTitle>{previewDoc?.nome_original}</DialogTitle>
           </DialogHeader>

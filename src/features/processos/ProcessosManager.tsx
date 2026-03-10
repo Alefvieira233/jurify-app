@@ -231,7 +231,7 @@ const ProcessosManager = () => {
           } : undefined}
         />
         <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
-          <DialogContent className="max-w-2xl">
+          <DialogContent className="w-[95vw] max-w-2xl">
             <DialogHeader>
               <DialogTitle>Novo Processo</DialogTitle>
             </DialogHeader>
@@ -472,7 +472,7 @@ const ProcessosManager = () => {
 
       {/* Form Dialog */}
       <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="w-[95vw] max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>{selectedProcesso ? 'Editar Processo' : 'Novo Processo'}</DialogTitle>
           </DialogHeader>
@@ -487,7 +487,7 @@ const ProcessosManager = () => {
 
       {/* Detalhes Dialog — tabbed view */}
       <Dialog open={isDetalhesOpen} onOpenChange={setIsDetalhesOpen}>
-        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="w-[95vw] max-w-3xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>
               {selectedProcesso?.numero_processo

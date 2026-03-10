@@ -190,7 +190,7 @@ const AgendamentosManager = () => {
         </div>
 
         <Dialog open={isNovoAgendamentoOpen} onOpenChange={setIsNovoAgendamentoOpen}>
-          <DialogContent className="max-w-3xl">
+          <DialogContent className="w-[95vw] max-w-3xl">
             <DialogHeader>
               <DialogTitle>Novo Agendamento</DialogTitle>
             </DialogHeader>
@@ -352,7 +352,7 @@ const AgendamentosManager = () => {
       )}
 
       <Dialog open={isNovoAgendamentoOpen} onOpenChange={setIsNovoAgendamentoOpen}>
-        <DialogContent className="max-w-3xl">
+        <DialogContent className="w-[95vw] max-w-3xl">
           <DialogHeader>
             <DialogTitle>Novo Agendamento</DialogTitle>
           </DialogHeader>
@@ -364,7 +364,7 @@ const AgendamentosManager = () => {
       </Dialog>
 
       <Dialog open={isDetalhesOpen} onOpenChange={setIsDetalhesOpen}>
-        <DialogContent className="max-w-4xl">
+        <DialogContent className="w-[95vw] max-w-4xl">
           <DialogHeader>
             <DialogTitle>Detalhes do Agendamento</DialogTitle>
           </DialogHeader>

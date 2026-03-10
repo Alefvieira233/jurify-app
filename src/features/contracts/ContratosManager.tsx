@@ -435,7 +435,7 @@ const ContratosManager = () => {
       </Tabs>
 
       <Dialog open={isNovoContratoOpen} onOpenChange={setIsNovoContratoOpen}>
-        <DialogContent className="max-w-5xl">
+        <DialogContent className="w-[95vw] max-w-5xl">
           <DialogHeader>
             <DialogTitle>Novo Contrato</DialogTitle>
           </DialogHeader>
@@ -447,7 +447,7 @@ const ContratosManager = () => {
       </Dialog>
 
       <Dialog open={isDetalhesOpen} onOpenChange={setIsDetalhesOpen}>
-        <DialogContent className="max-w-5xl">
+        <DialogContent className="w-[95vw] max-w-5xl">
           <DialogHeader>
             <DialogTitle>Detalhes do Contrato</DialogTitle>
           </DialogHeader>

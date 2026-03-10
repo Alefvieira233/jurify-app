@@ -124,7 +124,7 @@ const NotificacoesSection = () => {
                   Novo Template
                 </Button>
               </DialogTrigger>
-              <DialogContent className="max-w-2xl">
+              <DialogContent className="w-[95vw] max-w-2xl">
                 <DialogHeader>
                   <DialogTitle>
                     {editingTemplate ? 'Editar Template' : 'Novo Template'}
