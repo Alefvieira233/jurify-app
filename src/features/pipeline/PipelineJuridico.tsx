@@ -11,6 +11,7 @@ import NovoLeadForm from '@/components/forms/NovoLeadForm';
 import PipelineColumn from './PipelineColumn';
 import { PIPELINE_STAGES, STAGE_COLORS } from './pipelineConfig';
 import { usePageTitle } from '@/hooks/usePageTitle';
+import { triggerHaptic } from '@/hooks/useCapacitor';
 
 const fmt = (val: number) =>
   new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 }).format(val);
@@ -51,11 +52,15 @@ const PipelineJuridico = () => {
   const handleDragEnd = (result: DropResult) => {
     const { destination, source, draggableId } = result;
     if (!destination || destination.droppableId === source.droppableId) return;
+    void triggerHaptic('medium');
     const fromStage = PIPELINE_STAGES.find(s => s.id === source.droppableId)?.title ?? source.droppableId;
     const toStage   = PIPELINE_STAGES.find(s => s.id === destination.droppableId)?.title ?? destination.droppableId;
     void (async () => {
       const ok = await updateLead(draggableId, { status: destination.droppableId });
-      if (ok) toast({ title: 'Lead movido', description: `${fromStage} → ${toStage}` });
+      if (ok) {
+        void triggerHaptic('success');
+        toast({ title: 'Lead movido', description: `${fromStage} → ${toStage}` });
+      }
     })();
   };
 

@@ -14,6 +14,7 @@ import AIAssistantChat from "@/components/ai/AIAssistantChat";
 import { useRealtimeSync } from "@/hooks/useRealtimeSync";
 import { useNetworkStatus } from "@/hooks/useNetworkStatus";
 import { usePushNotifications } from '@/hooks/usePushNotifications';
+import { useLocalPrazosNotifications } from '@/hooks/useLocalPrazosNotifications';
 import { WifiOff, Wifi } from "lucide-react";
 import { useCapacitor } from '@/hooks/useCapacitor';
 import { App as CapacitorApp } from '@capacitor/app';
@@ -27,6 +28,7 @@ const Layout = () => {
     // Realtime sync — all core tables auto-invalidate React Query cache
     useRealtimeSync();
     usePushNotifications();
+    useLocalPrazosNotifications();
     const { isOnline, wasOffline } = useNetworkStatus();
     const { isNative, isAndroid } = useCapacitor();
 

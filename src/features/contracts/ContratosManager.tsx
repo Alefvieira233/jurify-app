@@ -1,6 +1,7 @@
 
 import { useState, useMemo } from 'react';
-import { Plus, Search, Eye, Edit, FileSignature, Send, AlertCircle, RefreshCw, Trash2 } from 'lucide-react';
+import { Plus, Search, Eye, Edit, FileSignature, Send, AlertCircle, RefreshCw, Trash2, Share2 } from 'lucide-react';
+import { nativeShare } from '@/hooks/useNativeShare';
 import { useDebounce } from '@/hooks/useDebounce';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -395,6 +396,21 @@ const ContratosManager = () => {
                           <FileSignature className="h-4 w-4" />
                         </Button>
                       )}
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-8 w-8 p-0"
+                        onClick={() => {
+                          void nativeShare({
+                            title: `Contrato — ${contrato.nome_cliente ?? ''}`,
+                            text: `Contrato Jurify\nCliente: ${contrato.nome_cliente ?? ''}\nStatus: ${contrato.status ?? ''}\nValor: ${contrato.valor_causa ? `R$ ${contrato.valor_causa}` : 'A definir'}`,
+                            dialogTitle: 'Compartilhar contrato',
+                          });
+                        }}
+                        aria-label="Compartilhar contrato"
+                      >
+                        <Share2 className="h-4 w-4" />
+                      </Button>
                       <Button
                         variant="outline"
                         size="sm"
