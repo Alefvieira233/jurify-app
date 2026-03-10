@@ -6,6 +6,12 @@ import { supabaseUntyped as supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { createLogger } from '@/lib/logger';
 
+const ALLOWED_PUSH_ROUTES = new Set([
+  '/dashboard', '/pipeline', '/agenda', '/whatsapp', '/agentes',
+  '/contratos', '/clientes', '/notificacoes', '/processos', '/prazos',
+  '/honorarios', '/documentos', '/configuracoes', '/relatorios',
+]);
+
 const logger = createLogger('PushNotifications');
 
 export function usePushNotifications() {
@@ -39,7 +45,14 @@ export function usePushNotifications() {
 
     const actionListener = PushNotifications.addListener('pushNotificationActionPerformed', (action) => {
       const data = action.notification.data as { route?: string };
-      if (data?.route) navigate(data.route);
+      if (data?.route && typeof data.route === 'string') {
+        const baseRoute = '/' + (data.route.replace(/^\//, '').split('/')[0] ?? '');
+        if (ALLOWED_PUSH_ROUTES.has(baseRoute)) {
+          navigate(data.route);
+        } else {
+          logger.warn('Push notification route bloqueada', { route: data.route });
+        }
+      }
     });
 
     return () => {

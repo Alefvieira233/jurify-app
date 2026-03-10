@@ -45,7 +45,7 @@ export default function WhatsAppEvolutionSetup({ onConnectionSuccess }: WhatsApp
   const [instance, setInstanceState] = useState<InstanceInfo>(() => {
     // Carregar do localStorage se existir
     try {
-      const saved = localStorage.getItem('whatsapp_evolution_instance');
+      const saved = sessionStorage.getItem('whatsapp_evolution_instance');
       if (saved) {
         const parsed = JSON.parse(saved);
         // Só restaura se não for mais antigo que 2 horas
@@ -69,7 +69,7 @@ export default function WhatsAppEvolutionSetup({ onConnectionSuccess }: WhatsApp
     setInstanceState((prev) => {
       const newState = typeof update === 'function' ? update(prev) : update;
       try {
-        localStorage.setItem('whatsapp_evolution_instance', JSON.stringify({
+        sessionStorage.setItem('whatsapp_evolution_instance', JSON.stringify({
           data: newState,
           timestamp: Date.now(),
         }));
@@ -383,7 +383,7 @@ export default function WhatsAppEvolutionSetup({ onConnectionSuccess }: WhatsApp
 
     try {
       await callEvolutionManager('delete', instance.instanceName);
-      try { localStorage.removeItem('whatsapp_evolution_instance'); } catch { /* ignore */ }
+      try { sessionStorage.removeItem('whatsapp_evolution_instance'); } catch { /* ignore */ }
       setInstance({ instanceName: '', state: 'idle', qrCode: null, error: null });
       toast({ title: 'Instancia removida' });
     } catch (err: unknown) {

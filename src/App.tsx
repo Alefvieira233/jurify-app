@@ -87,6 +87,14 @@ const queryClient = new QueryClient({
 // Wrap BrowserRouter com Sentry para tracking de navegação
 const SentryRoutes = Sentry.withSentryReactRouterV6Routing(Routes);
 
+// Rotas válidas para deep links jurify://
+const ALLOWED_DEEP_LINK_PATHS = new Set([
+  '/dashboard', '/pipeline', '/agenda', '/whatsapp', '/agentes',
+  '/contratos', '/clientes', '/notificacoes', '/processos', '/prazos',
+  '/honorarios', '/documentos', '/configuracoes', '/relatorios',
+  '/usuarios', '/logs', '/integracoes', '/billing',
+]);
+
 function DeepLinkHandler() {
   const navigate = useNavigate();
 
@@ -96,14 +104,14 @@ function DeepLinkHandler() {
     const listenerPromise = CapacitorApp.addListener('appUrlOpen', (event) => {
       try {
         const url = new URL(event.url);
-        const path = url.hostname
-          ? `/${url.hostname}${url.pathname !== '/' ? url.pathname : ''}`
-          : url.pathname;
-        if (path && path !== '/') {
-          navigate(path);
+        const basePath = url.hostname ? `/${url.hostname}` : url.pathname;
+        const fullPath = basePath + (url.pathname !== '/' && url.hostname ? url.pathname : '');
+        const baseRoute = '/' + (fullPath.split('/')[1] ?? '');
+        if (fullPath && fullPath !== '/' && ALLOWED_DEEP_LINK_PATHS.has(baseRoute)) {
+          navigate(fullPath + url.search);
         }
       } catch {
-        // invalid URL, ignore
+        // URL inválida, ignorar silenciosamente
       }
     });
 

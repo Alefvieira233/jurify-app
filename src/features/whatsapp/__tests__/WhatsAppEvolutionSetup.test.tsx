@@ -57,6 +57,7 @@ describe('WhatsAppEvolutionSetup', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     localStorage.clear();
+    sessionStorage.clear();
     mockMaybeSingle.mockResolvedValue({ data: null, error: null });
   });
 
