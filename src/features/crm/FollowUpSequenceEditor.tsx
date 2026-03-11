@@ -314,7 +314,7 @@ const FollowUpSequenceEditor: React.FC = () => {
                 Cancelar
               </Button>
               <Button
-                onClick={handleSave}
+                onClick={() => { void handleSave(); }}
                 disabled={saving || !formName.trim() || formSteps.every(s => !s.template.trim())}
                 className="h-8 text-xs gap-1.5"
               >
@@ -365,7 +365,7 @@ const FollowUpSequenceEditor: React.FC = () => {
               </div>
               <Switch
                 checked={seq.is_active}
-                onCheckedChange={() => void toggleActive(seq.id, seq.is_active)}
+                onCheckedChange={() => { void toggleActive(seq.id, seq.is_active); }}
                 className="scale-75"
               />
             </CardHeader>
