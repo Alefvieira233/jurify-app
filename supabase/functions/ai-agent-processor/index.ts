@@ -293,11 +293,11 @@ async function logAIProcessing(
       prompt_tokens: response.usage?.prompt_tokens || 0,
       completion_tokens: response.usage?.completion_tokens || 0,
       total_tokens: response.usage?.total_tokens || 0,
-      result_preview: redactPII(response.result.substring(0, 200)),
-      // Advanced Logging (LangSmith Style) — redacted to protect PII
-      system_prompt: redactPII(request.systemPrompt.substring(0, 500)),
-      user_prompt: redactPII(request.userPrompt.substring(0, 500)),
-      full_result: redactPII(response.result.substring(0, 2000)),
+      result_preview: redactPII(response.result).substring(0, 200),
+      // Advanced Logging (LangSmith Style) — redacted BEFORE truncation to protect partial tokens
+      system_prompt: redactPII(request.systemPrompt).substring(0, 500),
+      user_prompt: redactPII(request.userPrompt).substring(0, 500),
+      full_result: redactPII(response.result).substring(0, 2000),
       context: request.context || null,
       created_at: new Date().toISOString(),
     });
