@@ -74,4 +74,10 @@ Object.defineProperty(global, 'crypto', {
   },
 });
 
+// Forçar variáveis de ambiente dummy para evitar erros em testes unitários que não precisam de conexão real
+if (typeof process !== 'undefined') {
+  process.env.VITE_SUPABASE_URL = process.env.VITE_SUPABASE_URL || 'https://dummy.supabase.co';
+  process.env.VITE_SUPABASE_ANON_KEY = process.env.VITE_SUPABASE_ANON_KEY || 'dummy-key';
+}
+
 console.log('✅ Vitest test environment configured');
