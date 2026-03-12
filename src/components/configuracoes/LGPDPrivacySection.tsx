@@ -144,7 +144,7 @@ const LGPDPrivacySection = () => {
             <Button
               variant="outline"
               size="sm"
-              onClick={handleExportData}
+              onClick={() => { void handleExportData(); }}
               disabled={exporting}
               data-testid="btn-lgpd-export"
             >
@@ -229,7 +229,7 @@ const LGPDPrivacySection = () => {
             <Button
               variant="destructive"
               disabled={deleteConfirmText !== 'EXCLUIR' || deleting}
-              onClick={handleDeleteAccount}
+              onClick={() => { void handleDeleteAccount(); }}
             >
               {deleting ? 'Processando...' : 'Confirmar exclusão'}
             </Button>
