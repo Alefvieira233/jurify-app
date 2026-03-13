@@ -26,17 +26,17 @@ interface PIIPattern {
 const PII_PATTERNS: PIIPattern[] = [
   {
     name: 'PROCESSO_CNJ',
-    regex: /\d{7}-\d{2}\.\d{4}\.\d\.\d{2}\.\d{4}/g,
+    regex: /\b\d{7}-\d{2}\.\d{4}\.\d\.\d{2}\.\d{4}\b/g,
     prefix: 'CNJ',
   },
   {
     name: 'CNPJ',
-    regex: /\d{2}\.\d{3}\.\d{3}\/\d{4}-\d{2}/g,
+    regex: /\b\d{2}\.\d{3}\.\d{3}\/\d{4}-\d{2}\b/g,
     prefix: 'CNPJ',
   },
   {
     name: 'CPF_FORMATTED',
-    regex: /\d{3}\.\d{3}\.\d{3}-\d{2}/g,
+    regex: /\b\d{3}\.\d{3}\.\d{3}-\d{2}\b/g,
     prefix: 'CPF',
   },
   {
@@ -51,26 +51,23 @@ const PII_PATTERNS: PIIPattern[] = [
   },
   {
     name: 'PHONE_BR',
-    regex: /(?:\+55\s?)?(?:\(\d{2}\)|\d{2})\s?\d{4,5}[-\s]?\d{4}/g,
+    regex: /\b(?:\+55\s?)?(?:\(\d{2}\)|\d{2})\s?9?\d{4}[-\s]?\d{4}\b/g,
     prefix: 'TEL',
   },
   {
     name: 'EMAIL',
-    regex: /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g,
+    regex: /\b[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}\b/g,
     prefix: 'EMAIL',
   },
 ];
 
-// ─── UUID Generator (no crypto dependency needed) ───────────────────────────
+// ─── UUID Generator (cryptographically secure) ─────────────────────────────
 
 function generateTokenId(): string {
-  // Simple UUID v4-like generator that works in all environments
-  const hex = '0123456789abcdef';
-  let id = '';
-  for (let i = 0; i < 8; i++) {
-    id += hex[Math.floor(Math.random() * 16)];
-  }
-  return id;
+  // Secure random generator that works in browser and Edge Functions
+  const bytes = new Uint8Array(4);
+  crypto.getRandomValues(bytes);
+  return Array.from(bytes, (b) => b.toString(16).padStart(2, '0')).join('');
 }
 
 // ─── Core Types ─────────────────────────────────────────────────────────────
