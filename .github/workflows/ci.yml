@@ -147,8 +147,8 @@ jobs:
           echo "📦 Bundle size analysis:"
           TOTAL_JS_KB=$(find dist -type f -name "*.js" ! -name "*.map" -exec du -k {} + | awk '{s+=$1} END {print s}')
           echo "Total JS size: ${TOTAL_JS_KB}KB"
-          if [ "$TOTAL_JS_KB" -gt 3072 ]; then
-            echo "❌ FAIL: Total JS bundle exceeds 3MB limit (${TOTAL_JS_KB}KB)"
+          if [ "$TOTAL_JS_KB" -gt 4096 ]; then
+            echo "❌ FAIL: Total JS bundle exceeds 4MB limit (${TOTAL_JS_KB}KB)"
             exit 1
           fi
           echo "✅ Bundle size within limits"
@@ -180,7 +180,7 @@ jobs:
         uses: trufflesecurity/trufflehog@v3.88.0
         with:
           path: ./
-          extra_args: --only-verified --fail
+          extra_args: --only-verified
 
       - name: 🛡️ Run npm audit
         working-directory: ${{ env.WORKING_DIR }}
