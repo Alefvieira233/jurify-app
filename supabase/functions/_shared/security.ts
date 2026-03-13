@@ -97,7 +97,7 @@ const PII_PATTERNS: Array<{ pattern: RegExp; label: string; replacement: string 
   { pattern: /\b\d{2}\.?\d{3}\.?\d{3}\/\d{4}-\d{2}\b/g, label: "CNPJ", replacement: "***CNPJ***" },
   { pattern: /\b\d{4}\s?\d{4}\s?\d{4}\s?\d{4}\b/g, label: "Card", replacement: "***CARD***" },
   { pattern: /\b[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}\b/g, label: "Email", replacement: "***EMAIL***" },
-  { pattern: /\b(?:\+55\s?)?(?:\(\d{2}\)|\d{2})\s?9?\d{4}[-\s]?\d{4}\b/g, label: "Phone", replacement: "***PHONE***" },
+  { pattern: /(?:\+55\s?)?(?:\(\d{2}\)|\d{2})\s?9?\d{4}[-\s]?\d{4}\b/g, label: "Phone", replacement: "***PHONE***" },
   { pattern: /\b(?:AC|AL|AP|AM|BA|CE|DF|ES|GO|MA|MT|MS|MG|PA|PB|PR|PE|PI|RJ|RN|RS|RO|RR|SC|SP|SE|TO)\s?\d{4,6}\b/g, label: "OAB", replacement: "***OAB***" },
   { pattern: /\b\d{7}-\d{2}\.\d{4}\.\d\.\d{2}\.\d{4}\b/g, label: "CNJ", replacement: "***PROCESS***" },
 ];

@@ -51,7 +51,7 @@ const PII_PATTERNS: PIIPattern[] = [
   },
   {
     name: 'PHONE_BR',
-    regex: /\b(?:\+55\s?)?(?:\(\d{2}\)|\d{2})\s?9?\d{4}[-\s]?\d{4}\b/g,
+    regex: /(?:\+55\s?)?(?:\(\d{2}\)|\d{2})\s?9?\d{4}[-\s]?\d{4}\b/g,
     prefix: 'TEL',
   },
   {
