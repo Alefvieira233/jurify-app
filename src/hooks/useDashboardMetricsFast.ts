@@ -7,7 +7,7 @@
  * Performance: ~500ms → <50ms
  */
 
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabaseUntyped as supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -104,10 +104,11 @@ async function fetchFromMaterializedView(tenantId: string): Promise<DashboardMet
   const agentMap = new Map<string, { agente_nome: string; total_execucoes: number; sucesso: number; erro: number }>();
   for (const ex of (execData || []) as Array<{ current_agent: string | null; status: string }>) {
     const nome = ex.current_agent || 'Desconhecido';
+    const status = String(ex.status);
     const curr = agentMap.get(nome) || { agente_nome: nome, total_execucoes: 0, sucesso: 0, erro: 0 };
     curr.total_execucoes++;
-    if (['success', 'completed', 'sucesso'].includes(ex.status)) curr.sucesso++;
-    if (['error', 'failed', 'erro'].includes(ex.status)) curr.erro++;
+    if (['success', 'completed', 'sucesso'].includes(status)) curr.sucesso++;
+    if (['error', 'failed', 'erro'].includes(status)) curr.erro++;
     agentMap.set(nome, curr);
   }
   const execucoesRecentesAgentes = Array.from(agentMap.values())
@@ -152,7 +153,7 @@ export function useDashboardMetricsFast() {
   const queryClient = useQueryClient();
   const [isLive, setIsLive] = useState(false);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const qKey = ['dashboard-metrics-fast', tenantId];
+  const qKey = useMemo(() => ['dashboard-metrics-fast', tenantId], [tenantId]);
 
   const {
     data,
@@ -205,7 +206,7 @@ export function useDashboardMetricsFast() {
         debouncedRefetch();
       })
       .subscribe((status) => {
-        setIsLive(status === 'SUBSCRIBED');
+        setIsLive(status.toString() === 'SUBSCRIBED');
         log.debug(`Realtime status: ${status}`);
       });
 
@@ -222,7 +223,7 @@ export function useDashboardMetricsFast() {
   return {
     metrics,
     loading,
-    error: queryError ? (queryError).message : null,
+    error: queryError instanceof Error ? queryError.message : null,
     refetch,
     isEmpty: !loading && !queryError && metrics.totalLeads === 0,
     isStale: false,
