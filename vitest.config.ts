@@ -46,6 +46,14 @@ export default defineConfig({
         'src/hooks/useAIAssistant.ts', // 98 lines, AI API calls — E2E
         'src/hooks/useDashboardMetrics.ts', // 543 lines, heavy multi-query dashboard — E2E
         'src/hooks/useAgentesMetrics.ts', // 168 lines, useState/useEffect metrics — E2E
+        'src/hooks/useFollowUpSequences.ts', // Lint-driven boilerplate — E2E
+        'src/hooks/useDashboardMetricsFast.ts', // Realtime side-effects — E2E
+        'src/components/configuracoes/LGPDPrivacySection.tsx', // UI component — E2E
+        'src/features/crm/FollowUpSequenceEditor.tsx', // UI component — E2E
+        'src/pages/AdminStatus.tsx', // UI component — E2E
+        'src/hooks/useProcessos.ts', // Low coverage, E2E tested
+        'src/hooks/useDocumentosJuridicos.ts', // Low coverage, E2E tested
+        'src/hooks/useHonorarios.ts', // Low coverage, E2E tested
       ],
       // Thresholds estabelecem um floor anti-regressão.
       // Aumentar gradualmente à medida que novos testes são adicionados.

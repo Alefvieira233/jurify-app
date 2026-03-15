@@ -7,7 +7,7 @@
  * Performance: ~500ms → <50ms
  */
 
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabaseUntyped as supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -106,8 +106,8 @@ async function fetchFromMaterializedView(tenantId: string): Promise<DashboardMet
     const nome = ex.current_agent || 'Desconhecido';
     const curr = agentMap.get(nome) || { agente_nome: nome, total_execucoes: 0, sucesso: 0, erro: 0 };
     curr.total_execucoes++;
-    if (['success', 'completed', 'sucesso'].includes(ex.status)) curr.sucesso++;
-    if (['error', 'failed', 'erro'].includes(ex.status)) curr.erro++;
+    if (['success', 'completed', 'sucesso'].includes(ex.status.toString())) curr.sucesso++;
+    if (['error', 'failed', 'erro'].includes(ex.status.toString())) curr.erro++;
     agentMap.set(nome, curr);
   }
   const execucoesRecentesAgentes = Array.from(agentMap.values())
@@ -152,14 +152,14 @@ export function useDashboardMetricsFast() {
   const queryClient = useQueryClient();
   const [isLive, setIsLive] = useState(false);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const qKey = ['dashboard-metrics-fast', tenantId];
+  const qKey = useMemo(() => ['dashboard-metrics-fast', tenantId], [tenantId]);
 
   const {
     data,
     isLoading: loading,
     error: queryError,
     refetch,
-  } = useQuery<QueryResult>({
+  } = useQuery<QueryResult, Error>({
     queryKey: qKey,
     queryFn: async (): Promise<QueryResult> => {
       if (!tenantId) return { metrics: DEFAULT_METRICS, fromFallback: true };
@@ -205,7 +205,7 @@ export function useDashboardMetricsFast() {
         debouncedRefetch();
       })
       .subscribe((status) => {
-        setIsLive(status === 'SUBSCRIBED');
+      setIsLive(status.toString() === 'SUBSCRIBED');
         log.debug(`Realtime status: ${status}`);
       });
 

@@ -50,7 +50,48 @@ export class GoogleOAuthService {
     return token.access_token
   }
 
-  private async refreshToken(refreshToken: string): Promise<GoogleToken> {
+  async exchangeCode(code: string, redirect_uri: string): Promise<Partial<GoogleToken>> {
+    const response = await fetch('https://oauth2.googleapis.com/token', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({
+        client_id: Deno.env.get('GOOGLE_CLIENT_ID')!,
+        client_secret: Deno.env.get('GOOGLE_CLIENT_SECRET')!,
+        code,
+        redirect_uri,
+        grant_type: 'authorization_code',
+      }),
+    })
+
+    if (!response.ok) {
+      const error = await response.json()
+      throw new Error(`Failed to exchange code: ${error.error_description || error.error || 'Unknown error'}`)
+    }
+
+    const tokenData = await response.json()
+    const expiresAt = new Date(Date.now() + tokenData.expires_in * 1000)
+
+    await this.supabase
+      .from('google_calendar_tokens')
+      .upsert({
+        user_id: this.userId,
+        access_token: tokenData.access_token,
+        refresh_token: tokenData.refresh_token,
+        expires_at: expiresAt.toISOString(),
+        token_type: tokenData.token_type,
+        scope: tokenData.scope,
+        updated_at: new Date().toISOString(),
+      })
+
+    return {
+      access_token: tokenData.access_token,
+      expires_at: expiresAt.toISOString(),
+      scope: tokenData.scope,
+      token_type: tokenData.token_type,
+    }
+  }
+
+  async refreshToken(refreshToken: string): Promise<Partial<GoogleToken>> {
     const response = await fetch('https://oauth2.googleapis.com/token', {
       method: 'POST',
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
@@ -65,8 +106,6 @@ export class GoogleOAuthService {
     if (!response.ok) throw new Error('Failed to refresh token')
 
     const tokenData = await response.json()
-    
-    // Update token in database
     const expiresAt = new Date(Date.now() + tokenData.expires_in * 1000)
     
     await this.supabase
@@ -79,7 +118,6 @@ export class GoogleOAuthService {
 
     return {
       access_token: tokenData.access_token,
-      refresh_token: tokenData.refresh_token || refreshToken,
       expires_at: expiresAt.toISOString(),
       scope: tokenData.scope,
       token_type: tokenData.token_type,
