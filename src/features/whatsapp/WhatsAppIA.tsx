@@ -1,4 +1,4 @@
-import { useState, useMemo, useRef } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import type { RefObject } from 'react';
 import {
   MessageSquare,
@@ -25,6 +25,8 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { usePageTitle } from '@/hooks/usePageTitle';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
 
 type ConversationFilter = 'todos' | 'leads' | 'agendados';
 
@@ -392,7 +394,38 @@ const WhatsAppIA = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [activeFilter, setActiveFilter] = useState<ConversationFilter>('todos');
   const [showMobileChat, setShowMobileChat] = useState(false);
+  const [isWhatsAppConnected, setIsWhatsAppConnected] = useState(() => {
+    // Restaura do sessionStorage se disponível
+    try {
+      const saved = sessionStorage.getItem('whatsapp_evolution_instance');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (parsed.timestamp && Date.now() - parsed.timestamp < 2 * 60 * 60 * 1000) {
+          return parsed.data?.state === 'connected';
+        }
+      }
+    } catch { /* ignore */ }
+    return false;
+  });
+  const connectedManuallyRef = useRef(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const { profile } = useAuth();
+
+  // Verifica se o WhatsApp está conectado (configuracoes_integracoes) — apenas no mount
+  useEffect(() => {
+    if (!profile?.tenant_id || connectedManuallyRef.current) return;
+    const checkConnection = async () => {
+      const { data } = await supabase
+        .from('configuracoes_integracoes')
+        .select('status')
+        .eq('nome_integracao', 'whatsapp_evolution')
+        .maybeSingle();
+      if (data?.status === 'ativa') {
+        setIsWhatsAppConnected(true);
+      }
+    };
+    void checkConnection();
+  }, [profile?.tenant_id]);
 
   const {
     conversations,
@@ -458,6 +491,8 @@ const WhatsAppIA = () => {
     return (
       <WhatsAppSetup
         onConnectionSuccess={() => {
+          connectedManuallyRef.current = true;
+          setIsWhatsAppConnected(true);
           setShowSetup(false);
           void fetchConversations();
         }}
@@ -512,8 +547,8 @@ const WhatsAppIA = () => {
     );
   }
 
-  // ── Empty state ──
-  if (isEmpty) {
+  // ── Empty state — só mostra tela de "Conectar" se NÃO está conectado ──
+  if (isEmpty && !isWhatsAppConnected) {
     return (
       <div className="flex h-[calc(100vh-4rem)] items-center justify-center bg-[hsl(var(--background))]">
         <div className="text-center max-w-md">

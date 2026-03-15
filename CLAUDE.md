@@ -1,7 +1,7 @@
 # Jurify - Legal SaaS Platform
 
 ## Quick Start
-- `npm run dev` - Start dev server on port 8080
+- `npm run dev` - Start dev server on port 8081
 - `npm run build` - Production build
 - `npm run test` - Run tests
 - `npm run lint` - Lint check

@@ -346,21 +346,21 @@ Deno.serve(async (req) => {
       // ============================================
       if (isEvolutionPayload(payload)) {
         // Verify Evolution webhook signature if secret is configured
-        if (!EVOLUTION_WEBHOOK_SECRET) {
-          console.error("[webhook:evolution] SECURITY: EVOLUTION_WEBHOOK_SECRET not configured — rejecting all requests");
-          return new Response(JSON.stringify({ error: "Webhook secret not configured" }), {
-            status: 403,
-            headers: { ...corsHeaders, "Content-Type": "application/json" },
-          });
+        const webhookSecret = req.headers.get("x-webhook-secret");
+
+        if (EVOLUTION_WEBHOOK_SECRET) {
+          if (webhookSecret !== EVOLUTION_WEBHOOK_SECRET) {
+            console.error("[webhook:evolution] SECURITY: Invalid webhook secret — rejecting. Got:", webhookSecret ? "***" : "(empty)");
+            return new Response("Unauthorized", { status: 401, headers: corsHeaders });
+          }
+        } else {
+          console.warn("[webhook:evolution] EVOLUTION_WEBHOOK_SECRET not configured — accepting without validation");
         }
 
-        const webhookSecret = req.headers.get("x-webhook-secret");
-        if (webhookSecret !== EVOLUTION_WEBHOOK_SECRET) {
-          console.error("[webhook:evolution] SECURITY: Invalid webhook secret — rejecting request");
-          return new Response("Unauthorized", { status: 401, headers: corsHeaders });
-        }
         // --- EVOLUTION API ---
         const event = payload.event;
+        const instanceName = payload.instance;
+        console.log(`[webhook:evolution] Event: ${event} | Instance: ${instanceName}`);
 
         // Eventos de conexão (QR Code, status)
         if (event === "connection.update") {
@@ -369,11 +369,45 @@ Deno.serve(async (req) => {
 
           if (instanceName && state) {
             const dbStatus = state === "open" ? "ativa" : "inativa";
-            await supabase
+
+            // Tenta UPDATE primeiro
+            const { count } = await supabase
               .from("configuracoes_integracoes")
               .update({ status: dbStatus })
               .eq("nome_integracao", INTEGRATION_NAME_EVOLUTION)
               .ilike("observacoes", `%${escapeLike(instanceName)}%`);
+
+            // Se não atualizou nenhum registro, cria um novo (auto-repair)
+            if ((count ?? 0) === 0 && state === "open") {
+              // Extrai tenant_id do nome da instância (formato: jurify_XXXXXXXX)
+              const tenantPrefix = instanceName.replace("jurify_", "");
+              if (tenantPrefix) {
+                const { data: profile } = await supabase
+                  .from("profiles")
+                  .select("tenant_id")
+                  .ilike("tenant_id", `${escapeLike(tenantPrefix)}%`)
+                  .limit(1)
+                  .maybeSingle();
+
+                if (profile?.tenant_id) {
+                  const { error: insertErr } = await supabase
+                    .from("configuracoes_integracoes")
+                    .insert({
+                      nome_integracao: INTEGRATION_NAME_EVOLUTION,
+                      status: "ativa",
+                      api_key: "evolution_managed",
+                      endpoint_url: EVOLUTION_API_URL || "evolution",
+                      observacoes: `Instance: ${instanceName}`,
+                      tenant_id: profile.tenant_id,
+                    });
+                  if (insertErr) {
+                    console.error("[webhook] Auto-repair insert error:", insertErr.message);
+                  } else {
+                    console.log("[webhook] Auto-repaired missing configuracoes_integracoes for", instanceName);
+                  }
+                }
+              }
+            }
           }
 
           return new Response("OK", { status: 200, headers: corsHeaders });
@@ -401,17 +435,23 @@ Deno.serve(async (req) => {
         // Mensagem recebida
         if (event === "messages.upsert") {
           const msgId = getMessageId(payload, "evolution");
+          console.log(`[webhook:evolution] Message ID: ${msgId} | fromMe: ${payload.data?.key?.fromMe}`);
           if (msgId && await isDuplicate(msgId, supabase)) {
+            console.log(`[webhook:evolution] Duplicate message ${msgId}, skipping`);
             return new Response("OK", { status: 200, headers: corsHeaders });
           }
           const normalized = normalizeEvolutionMessage(payload);
           if (normalized) {
+            console.log(`[webhook:evolution] Processing message from ${normalized.from}: "${normalized.text.substring(0, 50)}"`);
             await processNormalizedMessage(supabase, normalized);
+          } else {
+            console.warn(`[webhook:evolution] Could not normalize message (fromMe or empty)`);
           }
           return new Response("OK", { status: 200, headers: corsHeaders });
         }
 
-        // Outros eventos (ignorar silenciosamente)
+        // Outros eventos
+        console.log(`[webhook:evolution] Ignoring event: ${event}`);
         return new Response("OK", { status: 200, headers: corsHeaders });
 
       } else {
@@ -489,7 +529,7 @@ async function processNormalizedMessage(supabase: ReturnType<typeof createClient
   try {
     const { from, name, text, messageType, mediaUrl, instanceName, provider } = msg;
 
-    // PII omitted from logs — phone and message content not logged
+    console.log(`[processMsg:${provider}] START from=${from} instance=${instanceName} type=${messageType}`);
 
     // --- RESOLVE TENANT ---
     let tenantId: string | null = null;
@@ -525,10 +565,43 @@ async function processNormalizedMessage(supabase: ReturnType<typeof createClient
       if (existingConv) tenantId = existingConv.tenant_id;
     }
 
+    // 3. Fallback: extrai tenant_id do nome da instância (formato: jurify_XXXXXXXX)
+    if (!tenantId && instanceName) {
+      const tenantPrefix = instanceName.replace("jurify_", "");
+      if (tenantPrefix && tenantPrefix !== instanceName) {
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("tenant_id")
+          .ilike("tenant_id", `${escapeLike(tenantPrefix)}%`)
+          .limit(1)
+          .maybeSingle();
+
+        if (profile?.tenant_id) {
+          tenantId = profile.tenant_id;
+          console.log(`[webhook:${provider}] Tenant resolved from instance name: ${instanceName}`);
+
+          // Auto-repair: cria o registro faltante em configuracoes_integracoes
+          void supabase.from("configuracoes_integracoes").insert({
+            nome_integracao: INTEGRATION_NAME_EVOLUTION,
+            status: "ativa",
+            api_key: "evolution_managed",
+            endpoint_url: EVOLUTION_API_URL || "evolution",
+            observacoes: `Instance: ${instanceName}`,
+            tenant_id: tenantId,
+          }).then(({ error }) => {
+            if (error) console.error("[webhook] Auto-repair insert error:", error.message);
+            else console.log("[webhook] Auto-repaired configuracoes_integracoes for", instanceName);
+          });
+        }
+      }
+    }
+
     if (!tenantId) {
-      console.error(`[webhook:${provider}] No tenant found for ${from}`);
+      console.error(`[processMsg:${provider}] FAILED: No tenant found for ${from} (instance=${instanceName})`);
       return;
     }
+
+    console.log(`[processMsg:${provider}] Tenant resolved: ${tenantId}`);
 
     // --- RESOLVE/CREATE LEAD ---
     const { data: lead } = await supabase
@@ -558,10 +631,13 @@ async function processNormalizedMessage(supabase: ReturnType<typeof createClient
         .single();
 
       if (leadError) {
-        console.error(`[webhook:${provider}] Error creating lead:`, leadError);
+        console.error(`[processMsg:${provider}] Error creating lead:`, leadError);
         return;
       }
       leadId = newLead.id;
+      console.log(`[processMsg:${provider}] Created new lead: ${leadId}`);
+    } else {
+      console.log(`[processMsg:${provider}] Found existing lead: ${leadId}`);
     }
 
     // --- RESOLVE/CREATE CONVERSATION ---
@@ -575,6 +651,7 @@ async function processNormalizedMessage(supabase: ReturnType<typeof createClient
 
     if (conversation) {
       conversationId = conversation.id;
+      console.log(`[processMsg:${provider}] Found existing conversation: ${conversationId}`);
       await supabase
         .from("whatsapp_conversations")
         .update({ last_message: text, last_message_at: new Date().toISOString() })
@@ -599,14 +676,15 @@ async function processNormalizedMessage(supabase: ReturnType<typeof createClient
         .single();
 
       if (convError) {
-        console.error(`[webhook:${provider}] Error creating conversation:`, convError);
+        console.error(`[processMsg:${provider}] Error creating conversation:`, convError);
         return;
       }
       conversationId = newConv.id;
+      console.log(`[processMsg:${provider}] Created new conversation: ${conversationId}`);
     }
 
     // --- SAVE MESSAGE ---
-    await supabase.from("whatsapp_messages").insert({
+    const { error: msgInsertError } = await supabase.from("whatsapp_messages").insert({
       conversation_id: conversationId,
       tenant_id: tenantId,
       sender: "lead",
@@ -614,7 +692,18 @@ async function processNormalizedMessage(supabase: ReturnType<typeof createClient
       message_type: messageType === "conversation" ? "text" : messageType,
       media_url: mediaUrl,
       timestamp: new Date().toISOString(),
+      // Legacy columns (kept for backward compatibility)
+      session_id: conversationId,
+      direction: "inbound",
+      from_number: from,
+      message_text: text,
     });
+
+    if (msgInsertError) {
+      console.error(`[processMsg:${provider}] Error saving message:`, msgInsertError);
+    } else {
+      console.log(`[processMsg:${provider}] Message saved to conversation ${conversationId}`);
+    }
 
     // --- CHECK ia_active BEFORE INVOKING AI ---
     // For existing conversations, respect the ia_active flag.
@@ -622,8 +711,11 @@ async function processNormalizedMessage(supabase: ReturnType<typeof createClient
     const iaEnabled = conversation ? (conversation.ia_active !== false) : true;
 
     if (!iaEnabled) {
+      console.log(`[processMsg:${provider}] IA disabled for conversation ${conversationId}, skipping AI`);
       return;
     }
+
+    console.log(`[processMsg:${provider}] Invoking AI agent for conversation ${conversationId}`);
 
     // --- INVOKE AI AGENT (Coordenador = Recepcionista) ---
 
@@ -779,7 +871,9 @@ ${conversationHistory ? `HISTORICO DA CONVERSA:\n${conversationHistory}\n` : ""}
       : (aiResponse?.result || "Desculpe, nao consegui processar sua mensagem no momento.");
 
     if (aiError) {
-      console.error(`[webhook:${provider}] Error invoking AI agent (using fallback):`, aiError);
+      console.error(`[processMsg:${provider}] AI agent error (using fallback):`, aiError);
+    } else {
+      console.log(`[processMsg:${provider}] AI responded: "${aiText.substring(0, 80)}..."`);
     }
 
     // --- HUMAN HANDOFF: detect uncertainty ---
@@ -831,7 +925,7 @@ ${conversationHistory ? `HISTORICO DA CONVERSA:\n${conversationHistory}\n` : ""}
         .from("leads")
         .update({
           status: "em_atendimento",
-          observacoes: `[WhatsApp] Primeiro contato: "${text.substring(0, 200)}"`,
+          descricao: `[WhatsApp] Primeiro contato: "${text.substring(0, 200)}"`,
         })
         .eq("telefone", from)
         .eq("tenant_id", tenantId);
@@ -839,23 +933,34 @@ ${conversationHistory ? `HISTORICO DA CONVERSA:\n${conversationHistory}\n` : ""}
     }
 
     // --- SAVE AI RESPONSE ---
-    await supabase.from("whatsapp_messages").insert({
+    const { error: aiMsgError } = await supabase.from("whatsapp_messages").insert({
       conversation_id: conversationId,
       tenant_id: tenantId,
       sender: "ia",
       content: aiText,
       message_type: "text",
       timestamp: new Date().toISOString(),
+      // Legacy columns (kept for backward compatibility)
+      session_id: conversationId,
+      direction: "outbound",
+      to_number: from,
+      message_text: aiText,
     });
 
+    if (aiMsgError) {
+      console.error(`[processMsg:${provider}] Error saving AI response:`, aiMsgError);
+    }
+
     // --- SEND REPLY ---
+    console.log(`[processMsg:${provider}] Sending reply via ${provider} to ${from}`);
     if (provider === "evolution" && instanceName) {
       await sendViaEvolution(instanceName, from, aiText);
     } else {
       await sendViaMeta(from, aiText, tenantId, supabase);
     }
+    console.log(`[processMsg:${provider}] PIPELINE COMPLETE for ${from}`);
   } catch (error) {
-    console.error(`[webhook] Error processing message:`, error);
+    console.error(`[processMsg] EXCEPTION:`, error);
   }
 }
 

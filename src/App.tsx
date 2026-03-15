@@ -127,10 +127,10 @@ const App = () => (
       <TooltipProvider>
         <Toaster />
         <Sonner />
-        <Suspense fallback={null}><CookieBanner /></Suspense>
         <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
           <DeepLinkHandler />
           <AuthProvider>
+            <Suspense fallback={null}><CookieBanner /></Suspense>
             <Suspense fallback={<LoadingSpinner fullScreen text="Carregando..." />}>
               <SentryRoutes>
                 {/* Rotas públicas */}

@@ -93,25 +93,36 @@ export default function WhatsAppEvolutionSetup({ onConnectionSuccess }: WhatsApp
       const session = (await supabase.auth.getSession()).data.session;
       if (!session?.access_token) throw new Error('Not authenticated');
 
-      const invokePromise = supabase.functions.invoke('evolution-manager', {
-        body: { action, instanceName },
-        headers: { Authorization: `Bearer ${session.access_token}` },
-      });
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 30000);
 
-      const timeoutPromise = new Promise<never>((_, reject) =>
-        setTimeout(() => reject(new Error('Tempo esgotado (30s). A Evolution API não respondeu.')), 30000)
-      );
+      try {
+        console.log(`[WhatsApp] Calling evolution-manager: action=${action}, instance=${instanceName ?? 'auto'}`);
 
-      const { data, error } = await Promise.race([invokePromise, timeoutPromise]);
+        const { data, error } = await supabase.functions.invoke('evolution-manager', {
+          body: { action, instanceName },
+          headers: { Authorization: `Bearer ${session.access_token}` },
+        });
 
-      // SDK-level error (network, auth 401, etc.)
-      if (error) {
-        // Tenta extrair mensagem real do body se disponível
-        const realMessage = (data as Record<string, unknown> | null)?.error as string | undefined;
-        throw new Error(realMessage || error.message || 'Erro na Edge Function');
+        clearTimeout(timeoutId);
+
+        console.log(`[WhatsApp] Response for action=${action}:`, { data, error });
+
+        // SDK-level error (network, auth 401, etc.)
+        if (error) {
+          const realMessage = (data as Record<string, unknown> | null)?.error as string | undefined;
+          throw new Error(realMessage || error.message || 'Erro na Edge Function');
+        }
+
+        return data;
+      } catch (err) {
+        clearTimeout(timeoutId);
+        if (controller.signal.aborted) {
+          console.error('[WhatsApp] Request timed out after 30s');
+          throw new Error('Tempo esgotado (30s). A Evolution API não respondeu.');
+        }
+        throw err;
       }
-
-      return data;
     },
     []
   );
@@ -158,6 +169,24 @@ export default function WhatsAppEvolutionSetup({ onConnectionSuccess }: WhatsApp
     void loadExisting();
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tenantId]);
+
+  // Safety: se ficar em 'creating' por mais de 15s, transicionar para erro
+  useEffect(() => {
+    if (instance.state !== 'creating') return;
+    const safetyTimer = setTimeout(() => {
+      setInstance((prev) => {
+        if (prev.state !== 'creating') return prev;
+        console.warn('[WhatsApp] Creating state stuck for 15s, transitioning to error');
+        return {
+          ...prev,
+          state: 'error',
+          error: 'Tempo esgotado aguardando QR Code. Clique em "Tentar novamente".',
+        };
+      });
+      setLoading(false);
+    }, 15000);
+    return () => clearTimeout(safetyTimer);
+  }, [instance.state, setInstance]);
 
   // Polling de status quando aguardando QR (refs para evitar stale closures)
   const instanceRef = useRef(instance);
@@ -304,16 +333,32 @@ export default function WhatsAppEvolutionSetup({ onConnectionSuccess }: WhatsApp
         error: null,
       });
 
-      // Se não veio QR, tenta buscar
+      // Se não veio QR, tenta buscar separadamente
       if (!qr && result.instanceName) {
         log.debug('Buscando QR Code separadamente');
-        const qrResult = await callEvolutionManager('qrcode', result.instanceName);
-        log.debug('Resposta do QR Code', { hasQR: !!qrResult?.qrcode });
-        if (qrResult?.qrcode) {
+        try {
+          const qrResult = await callEvolutionManager('qrcode', result.instanceName);
+          log.debug('Resposta do QR Code', { hasQR: !!qrResult?.qrcode });
+          if (qrResult?.qrcode) {
+            setInstance((prev) => ({
+              ...prev,
+              state: 'qr_ready',
+              qrCode: qrResult.qrcode,
+            }));
+          } else {
+            // QR code não disponível — mostrar erro com retry
+            setInstance((prev) => ({
+              ...prev,
+              state: 'error',
+              error: 'QR Code não disponível. A Evolution API pode estar offline. Tente novamente.',
+            }));
+          }
+        } catch (qrErr) {
+          log.error('Erro ao buscar QR Code separadamente', qrErr);
           setInstance((prev) => ({
             ...prev,
-            state: 'qr_ready',
-            qrCode: qrResult.qrcode,
+            state: 'error',
+            error: 'Não foi possível obter o QR Code. Tente novamente.',
           }));
         }
       }

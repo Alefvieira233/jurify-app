@@ -140,11 +140,12 @@ async function createInstance(instanceName: string, supabase: unknown, profile: 
     return { success: false, error: msg, httpStatus: result.status };
   }
 
-  // Salva configuração no banco (sem gravar a key em texto plano)
+  // Salva configuração no banco
   const db = supabase as ReturnType<typeof createClient>;
   const { error: dbError } = await db.from("configuracoes_integracoes").insert({
     nome_integracao: "whatsapp_evolution",
     status: "inativa",
+    api_key: "evolution_managed",
     endpoint_url: EVOLUTION_BASE_URL,
     observacoes: `Instance: ${instanceName}`,
     tenant_id: profile.tenant_id,
@@ -152,9 +153,15 @@ async function createInstance(instanceName: string, supabase: unknown, profile: 
 
   if (dbError) {
     console.error("[evolution-manager] DB insert error:", dbError.message);
+  } else {
+    console.log("[evolution-manager] DB record created for instance:", instanceName);
   }
 
   const qrcode = extractQRCode(result.data);
+
+  if (!qrcode) {
+    console.warn("[evolution-manager] createInstance: QR code not found in response. Keys:", Object.keys(result.data));
+  }
 
   return {
     success: true,
@@ -177,6 +184,10 @@ async function getQRCode(instanceName: string) {
   }
 
   const qrcode = extractQRCode(result.data);
+
+  if (!qrcode) {
+    console.warn("[evolution-manager] getQRCode: QR code not found in response. Keys:", Object.keys(result.data));
+  }
 
   return {
     success: true,
@@ -376,6 +387,7 @@ Deno.serve(async (req) => {
         if (existing) {
           const existingName = extractName(existing.observacoes as string | null);
           if (existing.status !== "ativa") {
+            console.log(`[evolution-manager] Reconnecting existing instance: ${existingName}`);
             result = await getQRCode(existingName);
             result.instanceName = existingName;
             result.reconnecting = true;
@@ -388,6 +400,23 @@ Deno.serve(async (req) => {
             };
           }
         } else {
+          // Limpar qualquer instância antiga na Evolution API antes de criar nova
+          console.log(`[evolution-manager] Cleaning up old instance before create: ${resolvedInstanceName}`);
+          const logoutResult = await evoFetch(`/instance/logout/${resolvedInstanceName}`, "POST");
+          if (logoutResult.ok) {
+            console.log(`[evolution-manager] Logged out old instance: ${resolvedInstanceName}`);
+          }
+          const deleteResult = await evoFetch(`/instance/delete/${resolvedInstanceName}`, "DELETE");
+          if (deleteResult.ok) {
+            console.log(`[evolution-manager] Deleted old instance: ${resolvedInstanceName}`);
+          }
+          // Também limpa registros órfãos do banco
+          await supabase
+            .from("configuracoes_integracoes")
+            .delete()
+            .eq("nome_integracao", "whatsapp_evolution")
+            .eq("tenant_id", profile.tenant_id);
+
           result = await createInstance(resolvedInstanceName, supabase, profile);
         }
         break;

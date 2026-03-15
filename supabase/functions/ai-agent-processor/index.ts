@@ -325,7 +325,20 @@ Deno.serve(async (req) => {
     }
 
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
-    const isServiceRoleRequest = authHeader === `Bearer ${supabaseServiceKey}`;
+    const token = authHeader.replace("Bearer ", "");
+
+    // Decode JWT payload to check role (base64url decode, no verification needed —
+    // Supabase gateway already verified the signature)
+    let isServiceRoleRequest = false;
+    try {
+      const payloadB64 = token.split(".")[1];
+      const payloadJson = atob(payloadB64.replace(/-/g, "+").replace(/_/g, "/"));
+      const payload = JSON.parse(payloadJson);
+      isServiceRoleRequest = payload.role === "service_role";
+    } catch {
+      // If decoding fails, treat as user request
+    }
+
     let user: { id: string } | null = null;
 
     if (!isServiceRoleRequest) {
@@ -333,14 +346,13 @@ Deno.serve(async (req) => {
       const {
         data: { user: authenticatedUser },
         error: authError,
-      } = await supabase.auth.getUser(authHeader.replace("Bearer ", ""));
+      } = await supabase.auth.getUser(token);
 
       if (authError || !authenticatedUser) {
         throw new Error("Unauthorized: Invalid token");
       }
 
       user = authenticatedUser;
-    } else {
     }
 
     // Parse e valida request
@@ -404,9 +416,6 @@ Deno.serve(async (req) => {
       );
       return rateLimitCheck.response;
     }
-
-      "Rate limit OK: " + rateLimitCheck.result.remaining + "/" + rateLimitCheck.result.limit + " remaining"
-    );
 
     // ── Monthly AI quota check (plan limits enforcement) ──
     const PLAN_AI_LIMITS: Record<string, number> = {

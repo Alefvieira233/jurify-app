@@ -332,9 +332,6 @@ Deno.serve(async (req) => {
       return rateLimitCheck.response;
     }
 
-      `✅ Rate limit OK: ${rateLimitCheck.result.remaining}/${rateLimitCheck.result.limit} remaining`
-    );
-
     // 📥 Parse e valida request
     const requestData = await req.json();
     validateRequest(requestData);
