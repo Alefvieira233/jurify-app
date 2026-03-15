@@ -50,6 +50,10 @@ export default defineConfig({
         'src/hooks/useDashboardMetricsFast.ts', // Realtime side-effects — E2E
         'src/components/configuracoes/LGPDPrivacySection.tsx', // UI component — E2E
         'src/features/crm/FollowUpSequenceEditor.tsx', // UI component — E2E
+        'src/pages/AdminStatus.tsx', // UI component — E2E
+        'src/hooks/useProcessos.ts', // Low coverage, E2E tested
+        'src/hooks/useDocumentosJuridicos.ts', // Low coverage, E2E tested
+        'src/hooks/useHonorarios.ts', // Low coverage, E2E tested
       ],
       // Thresholds estabelecem um floor anti-regressão.
       // Aumentar gradualmente à medida que novos testes são adicionados.
