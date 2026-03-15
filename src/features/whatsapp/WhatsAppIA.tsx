@@ -12,10 +12,13 @@ import {
   Wifi,
   User,
   ArrowLeft,
+  Check,
+  CheckCheck,
+  Clock,
 } from 'lucide-react';
 import { relativeTime, fmtMessageTime } from '@/utils/formatting';
 import { useWhatsAppConversations } from '@/hooks/useWhatsAppConversations';
-import type { WhatsAppConversation, WhatsAppMessage } from '@/hooks/useWhatsAppConversations';
+import type { WhatsAppConversation, WhatsAppMessage, MessageSendStatus } from '@/hooks/useWhatsAppConversations';
 import WhatsAppSetup from './WhatsAppSetup';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -25,6 +28,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { usePageTitle } from '@/hooks/usePageTitle';
+import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 
@@ -69,6 +73,41 @@ function getStatusBadge(status: string) {
   );
 }
 
+function getDeliveryStatusIcon(status: MessageSendStatus | undefined) {
+  switch (status) {
+    case 'pending':
+      return <Clock className="h-3 w-3 text-amber-300" />;
+    case 'sent':
+      return <Check className="h-3 w-3 text-white/60" />;
+    case 'delivered':
+      return <CheckCheck className="h-3 w-3 text-blue-300" />;
+    case 'read':
+      return <CheckCheck className="h-3 w-3 text-blue-400" />;
+    case 'failed':
+      return <AlertCircle className="h-3 w-3 text-red-400" />;
+    default:
+      return <Check className="h-3 w-3 text-white/60" />;
+  }
+}
+
+function getAgentStatusBadge(agentStatus: string | undefined) {
+  if (agentStatus === 'failed') {
+    return (
+      <Badge variant="outline" className="text-[10px] px-1.5 py-0 border-red-300 text-red-600 bg-red-50 dark:bg-red-950/20">
+        Erro IA
+      </Badge>
+    );
+  }
+  if (agentStatus === 'waiting_human') {
+    return (
+      <Badge variant="outline" className="text-[10px] px-1.5 py-0 border-amber-300 text-amber-600 bg-amber-50 dark:bg-amber-950/20">
+        Aguardando humano
+      </Badge>
+    );
+  }
+  return null;
+}
+
 // ── ConversationList ─────────────────────────────────────────────────────────
 
 interface ConversationListProps {
@@ -80,6 +119,7 @@ interface ConversationListProps {
   filteredConversations: WhatsAppConversation[];
   selectedConversation: WhatsAppConversation | null;
   stats: { total: number; active: number; pending: number; qualified: number };
+  isConnected: boolean;
   onSelectConversation: (id: string) => void;
   onRefresh: () => void;
   onSetup: () => void;
@@ -94,6 +134,7 @@ const ConversationList = ({
   filteredConversations,
   selectedConversation,
   stats,
+  isConnected,
   onSelectConversation,
   onRefresh,
   onSetup,
@@ -204,10 +245,13 @@ const ConversationList = ({
     {/* Stats Footer */}
     <div className="p-3 border-t border-[hsl(var(--border))] bg-[hsl(var(--muted))]/30">
       <div className="flex items-center justify-between text-[10px] text-[hsl(var(--muted-foreground))]">
+        <span className="flex items-center gap-1">
+          <span className={`inline-block h-2 w-2 rounded-full ${isConnected ? 'bg-emerald-500' : 'bg-red-500'}`} />
+          {isConnected ? 'Conectado' : 'Desconectado'}
+        </span>
         <span>{stats.total} conversas</span>
         <span>{stats.active} ativos</span>
         <span>{stats.pending} pendentes</span>
-        <span>{stats.qualified} agendados</span>
       </div>
     </div>
   </div>
@@ -281,6 +325,7 @@ const ChatPanel = ({
               {selectedConversation.contact_name || selectedConversation.phone_number}
             </h3>
             {getStatusBadge(selectedConversation.status)}
+            {getAgentStatusBadge(selectedConversation.agent_status)}
           </div>
           <p className="text-xs text-[hsl(var(--muted-foreground))]">
             {selectedConversation.phone_number}
@@ -341,9 +386,13 @@ const ChatPanel = ({
                       </div>
                     )}
                     <p className="text-sm whitespace-pre-line leading-relaxed">{message.content}</p>
-                    <p className={`text-[10px] mt-1 text-right ${isLead ? 'text-[hsl(var(--muted-foreground))]' : 'text-white/70'}`}>
-                      {fmtMessageTime(message.timestamp)}
-                    </p>
+                    {!isLead && message.send_status === 'failed' && message.send_error && (
+                      <p className="text-[10px] mt-1 text-red-300">Falha no envio</p>
+                    )}
+                    <div className={`flex items-center justify-end gap-1 mt-1 ${isLead ? 'text-[hsl(var(--muted-foreground))]' : 'text-white/70'}`}>
+                      <span className="text-[10px]">{fmtMessageTime(message.timestamp)}</span>
+                      {!isLead && getDeliveryStatusIcon(message.send_status)}
+                    </div>
                   </div>
                 </div>
               );
@@ -410,6 +459,7 @@ const WhatsAppIA = () => {
   const connectedManuallyRef = useRef(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { profile } = useAuth();
+  const { toast } = useToast();
 
   // Verifica se o WhatsApp está conectado (configuracoes_integracoes) — apenas no mount
   useEffect(() => {
@@ -495,6 +545,10 @@ const WhatsAppIA = () => {
           setIsWhatsAppConnected(true);
           setShowSetup(false);
           void fetchConversations();
+          toast({
+            title: 'WhatsApp conectado!',
+            description: 'Apenas mensagens recebidas a partir de agora serão sincronizadas.',
+          });
         }}
       />
     );
@@ -584,6 +638,7 @@ const WhatsAppIA = () => {
         filteredConversations={filteredConversations}
         selectedConversation={selectedConversation}
         stats={stats}
+        isConnected={isWhatsAppConnected}
         onSelectConversation={handleSelectConversation}
         onRefresh={() => void fetchConversations()}
         onSetup={() => setShowSetup(true)}

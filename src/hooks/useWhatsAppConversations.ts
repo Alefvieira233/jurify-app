@@ -21,7 +21,12 @@ export interface WhatsAppConversation {
   ia_active: boolean;
   created_at: string;
   updated_at: string;
+  agent_status?: 'idle' | 'processing' | 'failed' | 'waiting_human';
+  last_agent_error?: string | null;
+  agent_processed_at?: string | null;
 }
+
+export type MessageSendStatus = 'pending' | 'sent' | 'failed' | 'delivered' | 'read';
 
 export interface WhatsAppMessage {
   id: string;
@@ -33,6 +38,9 @@ export interface WhatsAppMessage {
   read: boolean;
   timestamp: string;
   created_at: string;
+  send_status?: MessageSendStatus;
+  send_error?: string | null;
+  processed_by_agent?: boolean;
 }
 
 interface UseWhatsAppConversationsReturn {

@@ -495,27 +495,44 @@ Deno.serve(async (req) => {
 // ============================================
 // 📊 STATUS UPDATES (Meta format)
 // ============================================
-async function processStatusUpdate(supabase: ReturnType<typeof createClient>, status: MetaWebhookStatus) {
+async function processStatusUpdate(supabase: ReturnType<typeof createClient>, status: MetaWebhookStatus & { id?: string }) {
   try {
     const statusValue = status.status;
-    const recipientId = status.recipient_id;
+    const metaMsgId = status.id; // Meta message ID from the status callback
+
+    if (!metaMsgId) {
+      console.warn("[webhook] Status update without message ID, skipping");
+      return;
+    }
+
+    if (statusValue === "delivered") {
+      await supabase
+        .from("whatsapp_messages")
+        .update({ send_status: "delivered" })
+        .eq("provider_message_id", metaMsgId);
+    }
 
     if (statusValue === "read") {
       await supabase
         .from("whatsapp_messages")
-        .update({ read: true })
-        .eq("sender", "ia")
-        .ilike("content", `%${escapeLike(recipientId)}%`)
-        .is("read", false);
+        .update({ read: true, send_status: "read" })
+        .eq("provider_message_id", metaMsgId);
     }
 
     if (statusValue === "failed") {
       const errorInfo = status.errors?.[0];
+      const errorMsg = errorInfo?.title || `Error code: ${errorInfo?.code || "unknown"}`;
       console.error("[webhook] Message delivery failed:", {
-        recipient: recipientId,
+        messageId: metaMsgId,
+        recipient: status.recipient_id,
         error_code: errorInfo?.code,
         error_title: errorInfo?.title,
       });
+
+      await supabase
+        .from("whatsapp_messages")
+        .update({ send_status: "failed", send_error: errorMsg })
+        .eq("provider_message_id", metaMsgId);
     }
   } catch (error) {
     console.error("[webhook] Error processing status update:", error);
@@ -683,8 +700,8 @@ async function processNormalizedMessage(supabase: ReturnType<typeof createClient
       console.log(`[processMsg:${provider}] Created new conversation: ${conversationId}`);
     }
 
-    // --- SAVE MESSAGE ---
-    const { error: msgInsertError } = await supabase.from("whatsapp_messages").insert({
+    // --- SAVE MESSAGE (inbound = already delivered) ---
+    const { data: savedMsg, error: msgInsertError } = await supabase.from("whatsapp_messages").insert({
       conversation_id: conversationId,
       tenant_id: tenantId,
       sender: "lead",
@@ -692,12 +709,16 @@ async function processNormalizedMessage(supabase: ReturnType<typeof createClient
       message_type: messageType === "conversation" ? "text" : messageType,
       media_url: mediaUrl,
       timestamp: new Date().toISOString(),
+      send_status: "delivered",
+      processed_by_agent: false,
       // Legacy columns (kept for backward compatibility)
       session_id: conversationId,
       direction: "inbound",
       from_number: from,
       message_text: text,
-    });
+    }).select("id").single();
+
+    const inboundMsgId = savedMsg?.id || null;
 
     if (msgInsertError) {
       console.error(`[processMsg:${provider}] Error saving message:`, msgInsertError);
@@ -932,7 +953,18 @@ ${conversationHistory ? `HISTORICO DA CONVERSA:\n${conversationHistory}\n` : ""}
 
     }
 
-    // --- SAVE AI RESPONSE ---
+    // --- SEND REPLY FIRST, THEN SAVE ---
+    console.log(`[processMsg:${provider}] Sending reply via ${provider} to ${from}`);
+    let sendResult: SendResult;
+    if (provider === "evolution" && instanceName) {
+      sendResult = await sendViaEvolution(instanceName, from, aiText);
+    } else {
+      sendResult = await sendViaMeta(from, aiText, tenantId, supabase);
+    }
+
+    const aiProcessedOk = !aiError && !!aiResponse?.result;
+
+    // --- SAVE AI RESPONSE WITH DELIVERY STATUS ---
     const { error: aiMsgError } = await supabase.from("whatsapp_messages").insert({
       conversation_id: conversationId,
       tenant_id: tenantId,
@@ -940,6 +972,10 @@ ${conversationHistory ? `HISTORICO DA CONVERSA:\n${conversationHistory}\n` : ""}
       content: aiText,
       message_type: "text",
       timestamp: new Date().toISOString(),
+      send_status: sendResult.success ? "sent" : "failed",
+      provider_message_id: sendResult.messageId,
+      send_error: sendResult.error,
+      processed_by_agent: aiProcessedOk,
       // Legacy columns (kept for backward compatibility)
       session_id: conversationId,
       direction: "outbound",
@@ -951,14 +987,36 @@ ${conversationHistory ? `HISTORICO DA CONVERSA:\n${conversationHistory}\n` : ""}
       console.error(`[processMsg:${provider}] Error saving AI response:`, aiMsgError);
     }
 
-    // --- SEND REPLY ---
-    console.log(`[processMsg:${provider}] Sending reply via ${provider} to ${from}`);
-    if (provider === "evolution" && instanceName) {
-      await sendViaEvolution(instanceName, from, aiText);
-    } else {
-      await sendViaMeta(from, aiText, tenantId, supabase);
+    // --- UPDATE AGENT STATUS ON CONVERSATION ---
+    const agentStatus = aiError ? "failed" : (shouldHandoff ? "waiting_human" : "idle");
+    void supabase
+      .from("whatsapp_conversations")
+      .update({
+        agent_status: agentStatus,
+        last_agent_error: aiError ? "AI processing failed" : null,
+        agent_processed_at: new Date().toISOString(),
+      })
+      .eq("id", conversationId)
+      .eq("tenant_id", tenantId)
+      .then(({ error: agentErr }) => {
+        if (agentErr) console.error("[webhook] agent_status update error:", agentErr.message);
+      });
+
+    // --- MARK INBOUND MESSAGE AS PROCESSED ---
+    if (inboundMsgId && aiProcessedOk) {
+      void supabase
+        .from("whatsapp_messages")
+        .update({ processed_by_agent: true })
+        .eq("id", inboundMsgId)
+        .then(({ error: updateErr }) => {
+          if (updateErr) console.error("[webhook] processed_by_agent update error:", updateErr.message);
+        });
     }
-    console.log(`[processMsg:${provider}] PIPELINE COMPLETE for ${from}`);
+
+    if (!sendResult.success) {
+      console.error(`[processMsg:${provider}] SEND FAILED: ${sendResult.error}`);
+    }
+    console.log(`[processMsg:${provider}] PIPELINE COMPLETE for ${from} (sent=${sendResult.success})`);
   } catch (error) {
     console.error(`[processMsg] EXCEPTION:`, error);
   }
@@ -967,13 +1025,19 @@ ${conversationHistory ? `HISTORICO DA CONVERSA:\n${conversationHistory}\n` : ""}
 // ============================================
 // 📤 ENVIO VIA EVOLUTION API (com retry exponencial)
 // ============================================
-async function sendViaEvolution(instanceName: string, to: string, text: string) {
+interface SendResult {
+  success: boolean;
+  messageId: string | null;
+  error: string | null;
+}
+
+async function sendViaEvolution(instanceName: string, to: string, text: string): Promise<SendResult> {
   const apiUrl = EVOLUTION_API_URL;
   const apiKey = EVOLUTION_API_KEY;
 
   if (!apiUrl || !apiKey) {
     console.error("[webhook:evolution] EVOLUTION_API_URL or EVOLUTION_API_KEY not configured");
-    return;
+    return { success: false, messageId: null, error: "Evolution API not configured" };
   }
 
   const MAX_RETRIES = 2;
@@ -999,28 +1063,33 @@ async function sendViaEvolution(instanceName: string, to: string, text: string) 
           await new Promise((r) => setTimeout(r, delay));
           continue;
         }
+        const errorMsg = typeof data?.message === "string" ? data.message : `HTTP ${response.status}`;
         console.error("[webhook:evolution] Error sending message:", data);
-        return;
+        return { success: false, messageId: null, error: errorMsg };
       }
 
-      // Message sent successfully (phone not logged)
-      return;
+      // Extract messageId from Evolution response
+      const messageId = data?.key?.id || data?.messageId || null;
+      return { success: true, messageId, error: null };
     } catch (error) {
       if (attempt < MAX_RETRIES) {
         const delay = Math.pow(2, attempt) * 1000;
         console.warn(`[webhook:evolution] Network error, retry in ${delay}ms (attempt ${attempt + 1}):`, error);
         await new Promise((r) => setTimeout(r, delay));
       } else {
+        const errorMsg = error instanceof Error ? error.message : "Network error after retries";
         console.error("[webhook:evolution] Network error after retries:", error);
+        return { success: false, messageId: null, error: errorMsg };
       }
     }
   }
+  return { success: false, messageId: null, error: "Max retries exceeded" };
 }
 
 // ============================================
 // 📤 ENVIO VIA META OFFICIAL API (backward compatible)
 // ============================================
-async function sendViaMeta(to: string, text: string, tenantId: string, supabase: ReturnType<typeof createClient>) {
+async function sendViaMeta(to: string, text: string, tenantId: string, supabase: ReturnType<typeof createClient>): Promise<SendResult> {
   let accessToken = Deno.env.get("WHATSAPP_ACCESS_TOKEN") || "";
   let phoneNumberId = Deno.env.get("WHATSAPP_PHONE_NUMBER_ID") || "";
 
@@ -1042,7 +1111,7 @@ async function sendViaMeta(to: string, text: string, tenantId: string, supabase:
 
   if (!accessToken || !phoneNumberId) {
     console.error("[webhook:meta] Missing credentials for sending");
-    return;
+    return { success: false, messageId: null, error: "Meta API credentials not configured" };
   }
 
   try {
@@ -1062,10 +1131,15 @@ async function sendViaMeta(to: string, text: string, tenantId: string, supabase:
 
     const data = await response.json();
     if (!response.ok) {
+      const errorMsg = data?.error?.message || `HTTP ${response.status}`;
       console.error("[webhook:meta] Error sending:", data);
-    } else {
+      return { success: false, messageId: null, error: errorMsg };
     }
+    const messageId = data?.messages?.[0]?.id || null;
+    return { success: true, messageId, error: null };
   } catch (error) {
+    const errorMsg = error instanceof Error ? error.message : "Network error";
     console.error("[webhook:meta] Network error:", error);
+    return { success: false, messageId: null, error: errorMsg };
   }
 }
