@@ -206,12 +206,18 @@ describe('useRBAC', () => {
       expect(result.current.can('leads', 'delete')).toBe(false);
     });
 
-    it('should not access logs or integracoes', () => {
+    it('should not access logs', () => {
       const { result } = renderHook(() => useRBAC());
 
       expect(result.current.can('logs', 'read')).toBe(false);
-      expect(result.current.can('integracoes', 'read')).toBe(false);
       expect(result.current.canViewLogs).toBe(false);
+    });
+
+    it('should read integracoes but not manage', () => {
+      const { result } = renderHook(() => useRBAC());
+
+      expect(result.current.can('integracoes', 'read')).toBe(true);
+      expect(result.current.can('integracoes', 'manage')).toBe(false);
     });
 
     it('should report isUser true', () => {
