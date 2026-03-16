@@ -50,7 +50,7 @@ export const useRBAC = () => {
   const canManageConfig = can('configuracoes', 'manage');
   const canViewLogs = can('logs', 'read');
   const canExecuteAgents = can('agentes_ia', 'execute');
-  const canManageIntegrations = can('integracoes', 'manage');
+  const canManageIntegrations = can('integracoes', 'read');
 
   return {
     can,

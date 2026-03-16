@@ -133,13 +133,18 @@ describe('useRBAC', () => {
       expect(result.current.can('configuracoes', 'read')).toBe(false);
     });
 
-    it('should not manage anything', () => {
+    it('should not manage users or config', () => {
       const { result } = renderHook(() => useRBAC());
 
       expect(result.current.canManageUsers).toBe(false);
       expect(result.current.canDeleteUsers).toBe(false);
       expect(result.current.canManageConfig).toBe(false);
-      expect(result.current.canManageIntegrations).toBe(false);
+    });
+
+    it('should access integracoes (read)', () => {
+      const { result } = renderHook(() => useRBAC());
+
+      expect(result.current.canManageIntegrations).toBe(true);
     });
 
     it('should report isViewer true', () => {
