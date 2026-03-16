@@ -70,6 +70,7 @@ const ALL_MENU_ITEMS: MenuItem[] = [
   { id: 'prazos',                label: 'Prazos',           icon: Clock,           resource: 'prazos',        action: 'read', group: 'main', badge: 'notification' },
   { id: 'crm',                   label: 'Clientes',         icon: Users,           resource: 'leads',         action: 'read', group: 'main' },
   { id: 'notificacoes',          label: 'Notificações',     icon: Bell,            resource: 'notificacoes',  action: 'read', group: 'main', badge: 'notification' },
+  { id: 'integracoes',           label: 'Integrações',     icon: Zap,             resource: 'integracoes',   action: 'read', group: 'main', adminOnly: true },
   /* ── Sistema (colapsável) ── */
   { id: 'painel-prazos',         label: 'Painel de Prazos', icon: PieChart,        resource: 'prazos',        action: 'read', group: 'sistema' },
   { id: 'auditoria',             label: 'Auditoria',        icon: ShieldCheck,     resource: 'logs',          action: 'read', group: 'sistema', managerOk: true },
@@ -78,7 +79,6 @@ const ALL_MENU_ITEMS: MenuItem[] = [
   { id: 'documentos',            label: 'Documentos',       icon: FolderOpen,      resource: 'documentos',    action: 'read', group: 'sistema' },
   { id: 'billing',               label: 'Assinatura',      icon: CreditCard,      resource: 'dashboard',     action: 'read', group: 'sistema', badge: 'upgrade' },
   { id: 'usuarios',              label: 'Usuários',        icon: UserCog,         resource: 'usuarios',      action: 'read', group: 'sistema', managerOk: true },
-  { id: 'integracoes',           label: 'Integrações',     icon: Zap,             resource: 'integracoes',   action: 'read', group: 'sistema', adminOnly: true },
   { id: 'logs',                  label: 'Logs',            icon: Activity,        resource: 'logs',          action: 'read', group: 'sistema', adminOnly: true },
   { id: 'admin/mission-control', label: 'Monitoramento',   icon: Rocket,          resource: 'dashboard',     action: 'read', group: 'sistema', adminOnly: true },
   { id: 'configuracoes',         label: 'Configurações',   icon: Settings,        resource: 'configuracoes', action: 'read', group: 'sistema', adminOnly: true },
