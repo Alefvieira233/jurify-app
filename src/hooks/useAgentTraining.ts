@@ -59,6 +59,20 @@ export const useAgentTraining = () => {
     void fetchDocuments();
   }, [fetchDocuments]);
 
+  // Helpers — stable references (declared before consumers)
+  const updateLocalDoc = useCallback((docId: string, updates: Partial<TrainingDocument>) => {
+    setDocuments(prev => prev.map(d => d.id === docId ? { ...d, ...updates } : d));
+  }, []);
+
+  const updateDocStatus = useCallback(async (docId: string, status: string, errorMessage: string | null) => {
+    await supabase
+      .from('agent_training_documents')
+      .update({ status, error_message: errorMessage })
+      .eq('id', docId);
+
+    updateLocalDoc(docId, { status, error_message: errorMessage } as Partial<TrainingDocument>);
+  }, [updateLocalDoc]);
+
   // Upload and process a training document
   const uploadDocument = useCallback(async (file: File): Promise<boolean> => {
     if (!user || !tenantId) return false;
@@ -344,20 +358,6 @@ export const useAgentTraining = () => {
       return false;
     }
   }, [documents, tenantId, toast, updateDocStatus, updateLocalDoc]);
-
-  // Helpers — stable references (no deps needed)
-  const updateLocalDoc = useCallback((docId: string, updates: Partial<TrainingDocument>) => {
-    setDocuments(prev => prev.map(d => d.id === docId ? { ...d, ...updates } : d));
-  }, []);
-
-  const updateDocStatus = useCallback(async (docId: string, status: string, errorMessage: string | null) => {
-    await supabase
-      .from('agent_training_documents')
-      .update({ status, error_message: errorMessage })
-      .eq('id', docId);
-
-    updateLocalDoc(docId, { status, error_message: errorMessage } as Partial<TrainingDocument>);
-  }, [updateLocalDoc]);
 
   const stats = {
     total: documents.length,
