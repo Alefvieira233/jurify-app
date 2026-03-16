@@ -53,6 +53,7 @@ interface UseWhatsAppConversationsReturn {
   selectedConversation: WhatsAppConversation | null;
   selectConversation: (id: string) => void;
   sendMessage: (conversationId: string, content: string, sender: 'agent') => Promise<boolean>;
+  sendMedia: (conversationId: string, file: File, mediaType: 'image' | 'audio' | 'document') => Promise<boolean>;
   markAsRead: (conversationId: string) => Promise<void>;
   toggleIA: (conversationId: string) => Promise<void>;
   fetchConversations: () => Promise<void>;
@@ -230,6 +231,84 @@ export const useWhatsAppConversations = (): UseWhatsAppConversationsReturn => {
     }
   }, [toast]);
 
+  // Enviar mídia (imagem, áudio, documento)
+  const sendMedia = useCallback(async (
+    conversationId: string,
+    file: File,
+    mediaType: 'image' | 'audio' | 'document',
+  ): Promise<boolean> => {
+    try {
+      const { data: conversation, error: convError } = await supabase
+        .from('whatsapp_conversations')
+        .select('phone_number, lead_id, tenant_id')
+        .eq('id', conversationId)
+        .single();
+
+      if (convError || !conversation) {
+        throw new Error('Conversa não encontrada');
+      }
+
+      // Convert file to base64
+      const base64 = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => {
+          const result = reader.result as string;
+          // Remove data:...;base64, prefix
+          resolve(result.split(',')[1] || '');
+        };
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+
+      log.info(`Enviando ${mediaType} via WhatsApp API (${file.name}, ${(file.size / 1024).toFixed(0)}KB)`);
+
+      const { data: sendResult, error: sendError } = await supabase.functions.invoke(
+        'send-whatsapp-message',
+        {
+          body: {
+            to: conversation.phone_number,
+            text: '',
+            mediaType,
+            mediaBase64: base64,
+            mimeType: file.type,
+            fileName: file.name,
+            caption: mediaType !== 'audio' ? file.name : undefined,
+            conversationId,
+            leadId: conversation.lead_id,
+            tenantId: conversation.tenant_id,
+          },
+        }
+      );
+
+      if (sendError) {
+        throw new Error(sendError.message || 'Erro ao enviar mídia via WhatsApp');
+      }
+
+      if (!sendResult?.success) {
+        throw new Error(sendResult?.error || 'Falha ao enviar mídia');
+      }
+
+      const labelMap = { image: 'Imagem', audio: 'Áudio', document: 'Documento' };
+      toast({
+        title: `${labelMap[mediaType]} enviado(a)`,
+        description: `${file.name} enviado via WhatsApp com sucesso`,
+      });
+
+      // Refresh messages
+      void fetchMessages(conversationId);
+      return true;
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Erro ao enviar mídia';
+      log.error('Erro ao enviar mídia', err);
+      toast({
+        title: 'Erro ao enviar mídia',
+        description: message,
+        variant: 'destructive',
+      });
+      return false;
+    }
+  }, [toast, fetchMessages]);
+
   // Marcar como lido
   const markAsRead = useCallback(async (conversationId: string) => {
     if (!profile?.tenant_id) return;
@@ -403,6 +482,7 @@ export const useWhatsAppConversations = (): UseWhatsAppConversationsReturn => {
     selectedConversation,
     selectConversation,
     sendMessage,
+    sendMedia,
     markAsRead,
     toggleIA,
     fetchConversations,

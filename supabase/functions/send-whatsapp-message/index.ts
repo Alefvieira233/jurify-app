@@ -24,6 +24,12 @@ interface SendMessageRequest {
   leadId?: string;         // ID do lead (opcional)
   conversationId?: string; // ID da conversa (opcional)
   tenantId?: string;       // ID do tenant (opcional, será inferido do usuário)
+  // Media fields
+  mediaType?: "image" | "audio" | "document";
+  mediaBase64?: string;    // Base64-encoded media content
+  mimeType?: string;       // MIME type of the media (e.g., audio/webm, image/png)
+  fileName?: string;       // Original file name
+  caption?: string;        // Caption for images/documents
 }
 
 interface SendMessageResponse {
@@ -41,12 +47,25 @@ function validateRequest(data: unknown): data is SendMessageRequest {
     throw new Error("Campo 'to' é obrigatório e deve ser uma string");
   }
 
-  if (!req.text || typeof req.text !== "string") {
-    throw new Error("Campo 'text' é obrigatório e deve ser uma string");
+  // Text OR media is required
+  const hasText = req.text && typeof req.text === "string";
+  const hasMedia = req.mediaType && req.mediaBase64;
+
+  if (!hasText && !hasMedia) {
+    throw new Error("Campo 'text' ou mídia (mediaType + mediaBase64) é obrigatório");
   }
 
-  if (req.text.length > 4096) {
+  if (hasText && req.text!.length > 4096) {
     throw new Error("Mensagem muito longa (máximo 4096 caracteres)");
+  }
+
+  if (hasMedia && !["image", "audio", "document"].includes(req.mediaType!)) {
+    throw new Error("mediaType inválido (use: image, audio, document)");
+  }
+
+  // Max 10MB base64 (~13.3MB encoded)
+  if (req.mediaBase64 && req.mediaBase64.length > 14_000_000) {
+    throw new Error("Arquivo muito grande (máximo 10MB)");
   }
 
   // Validação básica de número de telefone (formato internacional)
@@ -100,6 +119,75 @@ async function sendViaEvolution(
     return { success: true, messageId };
   } catch (error) {
     console.error("❌ Network error (Evolution):", error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Network error",
+    };
+  }
+}
+
+// 📤 Envia mídia via Evolution API
+async function sendMediaViaEvolution(
+  to: string,
+  mediaType: "image" | "audio" | "document",
+  mediaBase64: string,
+  instanceName: string,
+  mimeType?: string,
+  fileName?: string,
+  caption?: string,
+): Promise<{ success: boolean; messageId?: string; error?: string }> {
+  if (!EVOLUTION_API_URL || !EVOLUTION_API_KEY) {
+    return { success: false, error: "Evolution API credentials not configured" };
+  }
+
+  try {
+    const endpointMap: Record<string, string> = {
+      image: "sendImage",
+      audio: "sendWhatsAppAudio",
+      document: "sendDocument",
+    };
+    const endpoint = endpointMap[mediaType] || "sendDocument";
+
+    // Build body per Evolution API spec
+    const body: Record<string, unknown> = { number: to };
+
+    if (mediaType === "image") {
+      body.media = `data:${mimeType || "image/jpeg"};base64,${mediaBase64}`;
+      if (caption) body.caption = caption;
+    } else if (mediaType === "audio") {
+      body.media = `data:${mimeType || "audio/ogg"};base64,${mediaBase64}`;
+    } else {
+      body.media = `data:${mimeType || "application/octet-stream"};base64,${mediaBase64}`;
+      if (fileName) body.fileName = fileName;
+      if (caption) body.caption = caption;
+    }
+
+    const response = await fetch(
+      `${EVOLUTION_API_URL}/message/${endpoint}/${instanceName}`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          apikey: EVOLUTION_API_KEY,
+        },
+        body: JSON.stringify(body),
+      }
+    );
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      console.error(`❌ Evolution API Error (${endpoint}):`, data);
+      return {
+        success: false,
+        error: data.message || `Evolution API error: ${response.status}`,
+      };
+    }
+
+    const messageId = data.key?.id || data.messageId || "sent";
+    return { success: true, messageId };
+  } catch (error) {
+    console.error("❌ Network error (Evolution media):", error);
     return {
       success: false,
       error: error instanceof Error ? error.message : "Network error",
@@ -163,17 +251,22 @@ async function saveMessageToDatabase(
   try {
     // Se temos conversationId, salvamos a mensagem
     if (request.conversationId) {
+      const msgType = request.mediaType || "text";
+      const content = request.mediaType
+        ? (request.caption || request.fileName || `[${msgType}]`)
+        : request.text;
+
       const { error } = await supabase.from("whatsapp_messages").insert({
         conversation_id: request.conversationId,
         sender: "agent",
-        content: request.text,
-        message_type: "text",
+        content,
+        message_type: msgType,
         timestamp: new Date().toISOString(),
-        read: true, // Mensagens enviadas pelo agente já são "lidas"
+        read: true,
         send_status: sendResult.success ? "sent" : "failed",
         provider_message_id: sendResult.messageId || null,
         send_error: sendResult.error || null,
-        processed_by_agent: false, // Agent messages are human-sent, not AI-processed
+        processed_by_agent: false,
       });
 
       if (error) {
@@ -181,10 +274,13 @@ async function saveMessageToDatabase(
         // Não interrompemos o fluxo se falhar o salvamento
       } else {
         // Atualiza última mensagem da conversa
+        const lastMsg = request.mediaType
+          ? (request.caption || `[${request.mediaType === "image" ? "Imagem" : request.mediaType === "audio" ? "Áudio" : "Documento"}]`)
+          : request.text;
         await supabase
           .from("whatsapp_conversations")
           .update({
-            last_message: request.text,
+            last_message: lastMsg,
             last_message_at: new Date().toISOString(),
           })
           .eq("id", request.conversationId);
@@ -363,17 +459,31 @@ Deno.serve(async (req) => {
 
     // 📤 Envia mensagem via provider detectado
     let result: { success: boolean; messageId?: string; error?: string };
+    const isMedia = messageRequest.mediaType && messageRequest.mediaBase64;
 
     if (credentials.provider === "evolution" && credentials.instanceName) {
-      result = await sendViaEvolution(
-        messageRequest.to,
-        messageRequest.text,
-        credentials.instanceName
-      );
+      if (isMedia) {
+        result = await sendMediaViaEvolution(
+          messageRequest.to,
+          messageRequest.mediaType!,
+          messageRequest.mediaBase64!,
+          credentials.instanceName,
+          messageRequest.mimeType,
+          messageRequest.fileName,
+          messageRequest.caption,
+        );
+      } else {
+        result = await sendViaEvolution(
+          messageRequest.to,
+          messageRequest.text,
+          credentials.instanceName
+        );
+      }
     } else if (credentials.provider === "meta" && credentials.phoneNumberId && credentials.accessToken) {
+      // Meta API media sending not yet implemented — fallback to text
       result = await sendViaMeta(
         messageRequest.to,
-        messageRequest.text,
+        isMedia ? (messageRequest.caption || messageRequest.text || "[Mídia]") : messageRequest.text,
         credentials.phoneNumberId,
         credentials.accessToken
       );
