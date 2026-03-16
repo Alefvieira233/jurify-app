@@ -158,7 +158,7 @@ const App = () => (
                   <Route path="agentes" element={<ErrorBoundary><AgentesIAManager /></ErrorBoundary>} />
                   <Route path="usuarios" element={<ProtectedRoute requiredRoles={['admin', 'manager']}><ErrorBoundary><UsuariosManager /></ErrorBoundary></ProtectedRoute>} />
                   <Route path="logs" element={<ProtectedRoute requiredRoles={['admin', 'manager']}><ErrorBoundary><LogsPanel /></ErrorBoundary></ProtectedRoute>} />
-                  <Route path="integracoes" element={<ProtectedRoute requiredRoles={['admin']}><ErrorBoundary><IntegracoesConfig /></ErrorBoundary></ProtectedRoute>} />
+                  <Route path="integracoes" element={<ProtectedRoute><ErrorBoundary><IntegracoesConfig /></ErrorBoundary></ProtectedRoute>} />
                   <Route path="configuracoes" element={<ProtectedRoute requiredRoles={['admin']}><ErrorBoundary><ConfiguracoesGerais /></ErrorBoundary></ProtectedRoute>} />
                   <Route path="notificacoes" element={<ErrorBoundary><NotificationsPanel /></ErrorBoundary>} />
                   {/* /timeline absorvido por Clientes (CRM) */}

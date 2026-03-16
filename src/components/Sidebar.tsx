@@ -70,7 +70,7 @@ const ALL_MENU_ITEMS: MenuItem[] = [
   { id: 'prazos',                label: 'Prazos',           icon: Clock,           resource: 'prazos',        action: 'read', group: 'main', badge: 'notification' },
   { id: 'crm',                   label: 'Clientes',         icon: Users,           resource: 'leads',         action: 'read', group: 'main' },
   { id: 'notificacoes',          label: 'Notificações',     icon: Bell,            resource: 'notificacoes',  action: 'read', group: 'main', badge: 'notification' },
-  { id: 'integracoes',           label: 'Integrações',     icon: Zap,             resource: 'integracoes',   action: 'read', group: 'main', adminOnly: true },
+  { id: 'integracoes',           label: 'Integrações',     icon: Zap,             resource: 'integracoes',   action: 'read', group: 'main' },
   /* ── Sistema (colapsável) ── */
   { id: 'painel-prazos',         label: 'Painel de Prazos', icon: PieChart,        resource: 'prazos',        action: 'read', group: 'sistema' },
   { id: 'auditoria',             label: 'Auditoria',        icon: ShieldCheck,     resource: 'logs',          action: 'read', group: 'sistema', managerOk: true },
