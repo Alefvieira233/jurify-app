@@ -91,6 +91,14 @@ function getDeliveryStatusIcon(status: MessageSendStatus | undefined) {
 }
 
 function getAgentStatusBadge(agentStatus: string | undefined) {
+  if (!agentStatus || agentStatus === 'idle') return null;
+  if (agentStatus === 'processing') {
+    return (
+      <Badge variant="outline" className="text-[10px] px-1.5 py-0 border-emerald-300 text-emerald-600 bg-emerald-50 dark:bg-emerald-950/20 animate-pulse">
+        IA processando...
+      </Badge>
+    );
+  }
   if (agentStatus === 'failed') {
     return (
       <Badge variant="outline" className="text-[10px] px-1.5 py-0 border-red-300 text-red-600 bg-red-50 dark:bg-red-950/20">
@@ -354,49 +362,84 @@ const ChatPanel = ({
       </div>
 
       {/* Messages Area */}
-      <ScrollArea className="flex-1 px-4 py-3">
+      <ScrollArea className="flex-1 px-4 py-3 bg-[#efeae2] dark:bg-[#0b141a]" style={{ backgroundImage: 'url("data:image/svg+xml,%3Csvg width=\'200\' height=\'200\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cdefs%3E%3Cpattern id=\'p\' width=\'40\' height=\'40\' patternUnits=\'userSpaceOnUse\'%3E%3Cpath d=\'M0 20h40M20 0v40\' stroke=\'%23d1d5db15\' fill=\'none\'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width=\'200\' height=\'200\' fill=\'url(%23p)\'/%3E%3C/svg%3E")' }}>
         <div className="space-y-3 max-w-3xl mx-auto">
           {messages.length === 0 ? (
             <div className="flex items-center justify-center py-20">
               <p className="text-sm text-[hsl(var(--muted-foreground))]">Nenhuma mensagem ainda</p>
             </div>
           ) : (
-            messages.map((message) => {
-              const isLead = message.sender === 'lead';
-              const isIA = message.sender === 'ia';
-              return (
-                <div key={message.id} className={`flex ${isLead ? 'justify-start' : 'justify-end'}`}>
-                  <div className={`max-w-[75%] rounded-2xl px-4 py-2.5 ${
-                    isLead
-                      ? 'bg-[hsl(var(--card))] border border-[hsl(var(--border))] rounded-bl-md'
-                      : isIA
-                        ? 'bg-emerald-600 text-white rounded-br-md'
-                        : 'bg-blue-600 text-white rounded-br-md'
-                  }`}>
-                    {isIA && (
-                      <div className="flex items-center gap-1 mb-1">
-                        <Bot className="h-3 w-3 text-emerald-200" />
-                        <span className="text-[10px] text-emerald-200 font-medium">IA Jurídica</span>
+            <>
+              {messages.map((message, index) => {
+                const isLead = message.sender === 'lead';
+                const isIA = message.sender === 'ia';
+
+                // Date separator
+                const messageDate = new Date(message.timestamp).toLocaleDateString('pt-BR');
+                const prevMsg = index > 0 ? messages[index - 1] : undefined;
+                const prevDate = prevMsg ? new Date(prevMsg.timestamp).toLocaleDateString('pt-BR') : null;
+                const showDateSeparator = index === 0 || messageDate !== prevDate;
+
+                // Check if today/yesterday
+                const today = new Date().toLocaleDateString('pt-BR');
+                const yesterday = new Date(Date.now() - 86400000).toLocaleDateString('pt-BR');
+                const dateLabel = messageDate === today ? 'Hoje' : messageDate === yesterday ? 'Ontem' : messageDate;
+
+                return (
+                  <div key={message.id}>
+                    {showDateSeparator && (
+                      <div className="flex items-center justify-center my-4">
+                        <span className="text-[11px] text-[hsl(var(--muted-foreground))] bg-[hsl(var(--muted))] px-3 py-1 rounded-md shadow-sm">
+                          {dateLabel}
+                        </span>
                       </div>
                     )}
-                    {!isLead && !isIA && (
-                      <div className="flex items-center gap-1 mb-1">
-                        <User className="h-3 w-3 text-blue-200" />
-                        <span className="text-[10px] text-blue-200 font-medium">Você</span>
+                    <div className={`flex ${isLead ? 'justify-start' : 'justify-end'}`}>
+                      <div className={`max-w-[75%] rounded-lg px-3 py-2 shadow-sm ${
+                        isLead
+                          ? 'bg-white dark:bg-[#202c33] border border-[hsl(var(--border))]/30 rounded-tl-none'
+                          : isIA
+                            ? 'bg-[#d9fdd3] dark:bg-[#005c4b] text-[hsl(var(--foreground))] dark:text-white rounded-tr-none'
+                            : 'bg-[#d4e4fa] dark:bg-[#1f3a5f] text-[hsl(var(--foreground))] dark:text-white rounded-tr-none'
+                      }`}>
+                        {isIA && (
+                          <div className="flex items-center gap-1 mb-0.5">
+                            <Bot className="h-3 w-3 text-emerald-600 dark:text-emerald-300" />
+                            <span className="text-[10px] text-emerald-600 dark:text-emerald-300 font-medium">IA Jurídica</span>
+                          </div>
+                        )}
+                        {!isLead && !isIA && (
+                          <div className="flex items-center gap-1 mb-0.5">
+                            <User className="h-3 w-3 text-blue-600 dark:text-blue-300" />
+                            <span className="text-[10px] text-blue-600 dark:text-blue-300 font-medium">Você</span>
+                          </div>
+                        )}
+                        <p className="text-sm whitespace-pre-line leading-relaxed">{message.content}</p>
+                        {!isLead && message.send_status === 'failed' && message.send_error && (
+                          <p className="text-[10px] mt-1 text-red-500 dark:text-red-400">Falha no envio</p>
+                        )}
+                        <div className={`flex items-center justify-end gap-1 mt-1 ${isLead ? 'text-[hsl(var(--muted-foreground))]' : 'text-[hsl(var(--muted-foreground))] dark:text-white/60'}`}>
+                          <span className="text-[10px]">{fmtMessageTime(message.timestamp)}</span>
+                          {!isLead && getDeliveryStatusIcon(message.send_status)}
+                        </div>
                       </div>
-                    )}
-                    <p className="text-sm whitespace-pre-line leading-relaxed">{message.content}</p>
-                    {!isLead && message.send_status === 'failed' && message.send_error && (
-                      <p className="text-[10px] mt-1 text-red-300">Falha no envio</p>
-                    )}
-                    <div className={`flex items-center justify-end gap-1 mt-1 ${isLead ? 'text-[hsl(var(--muted-foreground))]' : 'text-white/70'}`}>
-                      <span className="text-[10px]">{fmtMessageTime(message.timestamp)}</span>
-                      {!isLead && getDeliveryStatusIcon(message.send_status)}
                     </div>
                   </div>
+                );
+              })}
+            </>
+          )}
+          {/* Typing/Processing Indicator */}
+          {selectedConversation.ia_active && selectedConversation.agent_status === 'processing' && (
+            <div className="flex justify-start">
+              <div className="bg-[hsl(var(--card))] border border-[hsl(var(--border))] rounded-2xl rounded-bl-md px-4 py-3 max-w-[75%]">
+                <div className="flex items-center gap-1">
+                  <span className="h-2 w-2 bg-emerald-500 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+                  <span className="h-2 w-2 bg-emerald-500 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+                  <span className="h-2 w-2 bg-emerald-500 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
                 </div>
-              );
-            })
+              </div>
+            </div>
           )}
           <div ref={messagesEndRef} />
         </div>
@@ -404,10 +447,15 @@ const ChatPanel = ({
 
       {/* Message Input */}
       <div className="px-4 py-3 border-t border-[hsl(var(--border))] bg-[hsl(var(--card))]">
-        <div className="flex items-center gap-2 max-w-3xl mx-auto">
-          <Input
+        <div className="flex items-end gap-2 max-w-3xl mx-auto">
+          <textarea
             value={newMessage}
-            onChange={(e) => setNewMessage(e.target.value)}
+            onChange={(e) => {
+              setNewMessage(e.target.value);
+              // Auto-grow
+              e.target.style.height = 'auto';
+              e.target.style.height = Math.min(e.target.scrollHeight, 120) + 'px';
+            }}
             onKeyDown={(e) => {
               if (e.key === 'Enter' && !e.shiftKey) {
                 e.preventDefault();
@@ -415,7 +463,8 @@ const ChatPanel = ({
               }
             }}
             placeholder="Digite uma mensagem..."
-            className="flex-1 h-10"
+            className="flex-1 min-h-[40px] max-h-[120px] py-2.5 px-3 text-sm rounded-md border border-input bg-background resize-none overflow-y-auto focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+            rows={1}
           />
           <Button
             onClick={onSendMessage}

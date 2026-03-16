@@ -11,6 +11,104 @@ function escapeLike(value: string): string {
   return value.replace(/[%_\\]/g, "\\$&");
 }
 
+// ============================================
+// 🎯 AUTO-QUALIFICATION: Analyze conversation to qualify leads
+// ============================================
+interface QualificationResult {
+  suggestedStatus: string;
+  extractedName: string | null;
+  extractedArea: string | null;
+  extractedUrgency: 'alta' | 'media' | 'baixa' | null;
+  temperature: 'hot' | 'warm' | 'cold';
+}
+
+function analyzeQualification(
+  messages: Array<{ sender: string; content: string }>,
+  currentStatus: string,
+  _aiResponseText: string
+): QualificationResult {
+  const leadMessages = messages.filter(m => m.sender === 'lead').map(m => m.content.toLowerCase());
+  const allText = leadMessages.join(' ');
+
+  // Extract name (look for patterns like "meu nome é X", "sou X", "me chamo X")
+  let extractedName: string | null = null;
+  const namePatterns = [
+    /meu nome (?:é|e)\s+([A-ZÀ-ÿ][a-zà-ÿ]+(?:\s+[A-ZÀ-ÿ][a-zà-ÿ]+)*)/i,
+    /(?:sou|me chamo)\s+(?:o|a)?\s*([A-ZÀ-ÿ][a-zà-ÿ]+(?:\s+[A-ZÀ-ÿ][a-zà-ÿ]+)*)/i,
+  ];
+  for (const pattern of namePatterns) {
+    for (const msg of messages.filter(m => m.sender === 'lead')) {
+      const match = msg.content.match(pattern);
+      if (match?.[1] && match[1].length > 2) {
+        extractedName = match[1].trim();
+        break;
+      }
+    }
+    if (extractedName) break;
+  }
+
+  // Extract legal area
+  const areaMap: Record<string, string> = {
+    'trabalhist': 'Trabalhista',
+    'familia': 'Família', 'divorcio': 'Família', 'divórcio': 'Família',
+    'pensao': 'Família', 'pensão': 'Família', 'guarda': 'Família',
+    'consumidor': 'Consumidor',
+    'criminal': 'Criminal', 'penal': 'Criminal',
+    'tributar': 'Tributário', 'imposto': 'Tributário',
+    'imovel': 'Imobiliário', 'imóvel': 'Imobiliário', 'imobiliar': 'Imobiliário',
+    'contrato': 'Contratual', 'contrat': 'Contratual',
+    'previden': 'Previdenciário', 'inss': 'Previdenciário', 'aposentad': 'Previdenciário',
+    'empresarial': 'Empresarial', 'societar': 'Empresarial',
+    'civel': 'Cível', 'cível': 'Cível',
+    'acidente': 'Cível', 'indeniza': 'Cível',
+  };
+  let extractedArea: string | null = null;
+  for (const [keyword, area] of Object.entries(areaMap)) {
+    if (allText.includes(keyword)) {
+      extractedArea = area;
+      break;
+    }
+  }
+
+  // Detect urgency
+  const urgencyHigh = ['urgente', 'urgência', 'hoje', 'amanhã', 'prazo', 'audiência amanhã', 'preso', 'liminar', 'emergência', 'socorro'];
+  const urgencyMed = ['preciso', 'importante', 'rápido', 'logo', 'breve'];
+  let extractedUrgency: 'alta' | 'media' | 'baixa' | null = null;
+  if (urgencyHigh.some(u => allText.includes(u))) extractedUrgency = 'alta';
+  else if (urgencyMed.some(u => allText.includes(u))) extractedUrgency = 'media';
+  else if (leadMessages.length >= 3) extractedUrgency = 'baixa';
+
+  // Determine temperature
+  let temperature: 'hot' | 'warm' | 'cold' = 'cold';
+  if (extractedUrgency === 'alta' || (extractedName && extractedArea)) temperature = 'hot';
+  else if (extractedArea || extractedUrgency === 'media') temperature = 'warm';
+
+  // Determine suggested status based on conversation progress
+  let suggestedStatus = currentStatus;
+  const messageCount = leadMessages.length;
+
+  // First message → move to qualification
+  if (currentStatus === 'novo_lead' && messageCount >= 1) {
+    suggestedStatus = 'em_qualificacao';
+  }
+  // 2+ messages with some data → still qualifying
+  if (messageCount >= 2 && (extractedName || extractedArea)) {
+    suggestedStatus = 'em_qualificacao';
+  }
+  // Name AND area identified → ready for legal analysis
+  if (extractedName && extractedArea) {
+    suggestedStatus = 'analise_juridica';
+  }
+
+  // Don't downgrade status (never go backwards in pipeline)
+  const statusOrder = ['novo_lead', 'em_qualificacao', 'analise_juridica', 'proposta_enviada', 'negociacao', 'contrato_assinado', 'em_atendimento'];
+  const currentIdx = statusOrder.indexOf(currentStatus);
+  const suggestedIdx = statusOrder.indexOf(suggestedStatus);
+  if (suggestedIdx < currentIdx) suggestedStatus = currentStatus;
+
+  return { suggestedStatus, extractedName, extractedArea, extractedUrgency, temperature };
+}
+
 // --- Typed webhook payloads ---
 
 interface EvolutionMessageKey {
@@ -235,24 +333,19 @@ async function isDuplicate(
   // Fast path: in-memory check (survives within same instance)
   if (isInMemoryDuplicate(messageId)) return true;
 
-  // Durable check: DB-backed idempotency
-  const { data: existing } = await supabase
+  // Durable check: atomic upsert to avoid race condition between SELECT + INSERT
+  const { data } = await supabase
     .from("webhook_events")
-    .select("id")
-    .eq("event_id", messageId)
-    .eq("source", "whatsapp")
-    .maybeSingle();
-
-  if (existing) return true;
-
-  // Record event for future dedup
-  await supabase
-    .from("webhook_events")
-    .insert({ event_id: messageId, source: "whatsapp" })
+    .upsert(
+      { event_id: messageId, source: "whatsapp" },
+      { onConflict: "event_id,source", ignoreDuplicates: true }
+    )
     .select()
     .maybeSingle();
 
-  return false;
+  // If upsert returned a row, it was newly inserted → NOT a duplicate
+  // If upsert returned null, the row already existed (ignored) → IS a duplicate
+  return !data;
 }
 
 function getMessageId(payload: WebhookPayload, provider: "evolution" | "meta"): string | null {
@@ -348,13 +441,13 @@ Deno.serve(async (req) => {
         // Verify Evolution webhook signature if secret is configured
         const webhookSecret = req.headers.get("x-webhook-secret");
 
-        if (EVOLUTION_WEBHOOK_SECRET) {
-          if (webhookSecret !== EVOLUTION_WEBHOOK_SECRET) {
-            console.error("[webhook:evolution] SECURITY: Invalid webhook secret — rejecting. Got:", webhookSecret ? "***" : "(empty)");
-            return new Response("Unauthorized", { status: 401, headers: corsHeaders });
-          }
-        } else {
-          console.warn("[webhook:evolution] EVOLUTION_WEBHOOK_SECRET not configured — accepting without validation");
+        if (!EVOLUTION_WEBHOOK_SECRET) {
+          console.error("[webhook:evolution] CRITICAL: EVOLUTION_WEBHOOK_SECRET not configured — rejecting");
+          return new Response("Service misconfigured", { status: 503, headers: corsHeaders });
+        }
+        if (webhookSecret !== EVOLUTION_WEBHOOK_SECRET) {
+          console.error("[webhook:evolution] SECURITY: Invalid webhook secret — rejecting");
+          return new Response("Unauthorized", { status: 401, headers: corsHeaders });
         }
 
         // --- EVOLUTION API ---
@@ -623,12 +716,13 @@ async function processNormalizedMessage(supabase: ReturnType<typeof createClient
     // --- RESOLVE/CREATE LEAD ---
     const { data: lead } = await supabase
       .from("leads")
-      .select("id")
+      .select("id, status, area_juridica")
       .eq("telefone", from)
       .eq("tenant_id", tenantId)
       .maybeSingle();
 
     let leadId = lead?.id || null;
+    const currentLeadStatus: string = lead?.status || 'novo_lead';
 
     if (!leadId) {
       const { data: newLead, error: leadError } = await supabase
@@ -939,18 +1033,40 @@ ${conversationHistory ? `HISTORICO DA CONVERSA:\n${conversationHistory}\n` : ""}
       })();
     }
 
-    // --- UPDATE LEAD STATUS IN CRM ---
-    // Se é primeiro contato, atualiza status para "em_atendimento"
-    if (!conversation) {
-      await supabase
-        .from("leads")
-        .update({
-          status: "em_atendimento",
-          descricao: `[WhatsApp] Primeiro contato: "${text.substring(0, 200)}"`,
-        })
-        .eq("telefone", from)
-        .eq("tenant_id", tenantId);
+    // --- AUTO-QUALIFY LEAD IN CRM ---
+    const messagesForAnalysis = (recentMessages || []).map((m: { sender: string; content: string }) => ({
+      sender: m.sender,
+      content: m.content,
+    }));
 
+    const qualification = analyzeQualification(messagesForAnalysis, currentLeadStatus, aiText);
+
+    const leadUpdate: Record<string, unknown> = {
+      status: qualification.suggestedStatus,
+      updated_at: new Date().toISOString(),
+    };
+
+    if (qualification.extractedName && name === "Unknown") {
+      leadUpdate.nome = qualification.extractedName;
+    }
+    if (qualification.extractedArea) {
+      leadUpdate.area_juridica = qualification.extractedArea;
+    }
+    if (qualification.temperature) {
+      leadUpdate.temperature = qualification.temperature;
+    }
+    if (!conversation) {
+      leadUpdate.descricao = `[WhatsApp] Primeiro contato: "${text.substring(0, 200)}"`;
+    }
+
+    await supabase
+      .from("leads")
+      .update(leadUpdate)
+      .eq("id", leadId)
+      .eq("tenant_id", tenantId);
+
+    if (qualification.suggestedStatus !== currentLeadStatus) {
+      console.log(`[processMsg:${provider}] Lead ${leadId} qualified: ${currentLeadStatus} → ${qualification.suggestedStatus} (area=${qualification.extractedArea}, temp=${qualification.temperature})`);
     }
 
     // --- SEND REPLY FIRST, THEN SAVE ---
@@ -1042,6 +1158,8 @@ async function sendViaEvolution(instanceName: string, to: string, text: string):
 
   const MAX_RETRIES = 2;
   for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 10_000);
     try {
       const response = await fetch(`${apiUrl}/message/sendText/${instanceName}`, {
         method: "POST",
@@ -1050,7 +1168,7 @@ async function sendViaEvolution(instanceName: string, to: string, text: string):
           apikey: apiKey,
         },
         body: JSON.stringify({ number: to, text }),
-        signal: AbortSignal.timeout(15_000),
+        signal: controller.signal,
       });
 
       const data = await response.json().catch(() => ({}));
@@ -1081,6 +1199,8 @@ async function sendViaEvolution(instanceName: string, to: string, text: string):
         console.error("[webhook:evolution] Network error after retries:", error);
         return { success: false, messageId: null, error: errorMsg };
       }
+    } finally {
+      clearTimeout(timeoutId);
     }
   }
   return { success: false, messageId: null, error: "Max retries exceeded" };

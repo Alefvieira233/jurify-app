@@ -331,8 +331,11 @@ Deno.serve(async (req) => {
     // Supabase gateway already verified the signature)
     let isServiceRoleRequest = false;
     try {
-      const payloadB64 = token.split(".")[1];
-      const payloadJson = atob(payloadB64.replace(/-/g, "+").replace(/_/g, "/"));
+      let payloadB64 = token.split(".")[1];
+      // Add Base64 padding for Base64URL tokens
+      payloadB64 = payloadB64.replace(/-/g, "+").replace(/_/g, "/");
+      while (payloadB64.length % 4) payloadB64 += "=";
+      const payloadJson = atob(payloadB64);
       const payload = JSON.parse(payloadJson);
       isServiceRoleRequest = payload.role === "service_role";
     } catch {
