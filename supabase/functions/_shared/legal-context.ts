@@ -113,7 +113,7 @@ export async function buildLegalContext(
     prazos_urgentes: prazos,
     honorarios,
     documentos_count,
-    has_context: processos.length > 0,
+    has_context: processos.length > 0 || prazos.length > 0 || honorarios.length > 0 || documentos_count > 0,
     memories,
   };
 }

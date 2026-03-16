@@ -1,10 +1,40 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { createClient } from "jsr:@supabase/supabase-js@2";
+import { OpenAI } from "https://deno.land/x/openai@v4.24.0/mod.ts";
 import { getCorsHeaders } from "../_shared/cors.ts";
-import { applyRateLimit, getRequestIdentifier } from "../_shared/rate-limiter.ts";
+import { applyRateLimit } from "../_shared/rate-limiter.ts";
 import { buildLegalContext } from "../_shared/legal-context.ts";
+import { DEFAULT_OPENAI_MODEL } from "../_shared/ai-model.ts";
 
 // whatsapp-webhook: Evolution API + Meta compatible
+
+/**
+ * Calls a Supabase Edge Function via HTTP fetch.
+ * Uses service role key for auth. Avoids functions.invoke() issues.
+ */
+async function callEdgeFunction<T>(
+  functionName: string,
+  body: Record<string, unknown>,
+): Promise<T> {
+  const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+  const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+
+  const response = await fetch(`${supabaseUrl}/functions/v1/${functionName}`, {
+    method: "POST",
+    headers: {
+      "Authorization": `Bearer ${serviceKey}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(body),
+  });
+
+  if (!response.ok) {
+    const errText = await response.text().catch(() => "");
+    throw new Error(`${functionName} failed: HTTP ${response.status} — ${errText}`);
+  }
+
+  return response.json() as Promise<T>;
+}
 
 /** Escapa caracteres especiais do LIKE para evitar manipulação de padrões */
 function escapeLike(value: string): string {
@@ -291,7 +321,7 @@ function normalizeMetaMessages(payload: WebhookPayload): NormalizedMessage[] {
             break;
         }
 
-        if (text) {
+        if (text && from) {
           results.push({
             from,
             name,
@@ -830,46 +860,58 @@ async function processNormalizedMessage(supabase: ReturnType<typeof createClient
       return;
     }
 
-    console.log(`[processMsg:${provider}] Invoking AI agent for conversation ${conversationId}`);
+    console.log(`[processMsg:${provider}] Starting AI pipeline for conversation ${conversationId}`);
 
-    // --- INVOKE AI AGENT (Coordenador = Recepcionista) ---
+    // ========================================
+    // STAGE 1: MEDIA PROCESSING
+    // ========================================
+    let processedText = text;
+    let mediaCategory = "text";
 
-    // Busca configuracao do escritorio para personalizar o prompt da IA
-    let officeName = "nosso escritorio";
-    let assistantName = "Ana";
-    try {
-      // Try escritorios table first (custom table some tenants may have)
-      const { data: tenantConfig } = await supabase
-        .from("escritorios")
-        .select("nome, whatsapp_assistant_name")
-        .eq("tenant_id", tenantId)
-        .maybeSingle();
-
-      if (tenantConfig?.nome) officeName = tenantConfig.nome;
-      if (tenantConfig?.whatsapp_assistant_name) assistantName = tenantConfig.whatsapp_assistant_name;
-    } catch {
-      // Table may not exist — try configuracoes_integracoes as fallback
+    if (msg.mediaUrl && msg.messageType !== "text") {
+      console.log(`[processMsg:${provider}] Processing media: ${msg.messageType}`);
       try {
-        const { data: intConfig } = await supabase
-          .from("configuracoes_integracoes")
-          .select("observacoes")
-          .eq("tenant_id", tenantId)
-          .eq("nome_integracao", "whatsapp_config")
-          .maybeSingle();
+        const mediaResult = await callEdgeFunction<{
+          extractedText: string;
+          mediaCategory: string;
+          processingMethod: string;
+          durationMs: number;
+        }>("media-processor", {
+          mediaUrl: msg.mediaUrl,
+          messageType: msg.messageType,
+          caption: text !== `[${msg.messageType.charAt(0).toUpperCase() + msg.messageType.slice(1)} recebido]` ? text : undefined,
+          tenantId: tenantId,
+        });
 
-        if (intConfig?.observacoes) {
-          // Parse "office:NomeEscritorio;assistant:NomeAssistente" format
-          const obs = intConfig.observacoes as string;
-          const officeMatch = obs.match(/office:\s*(.+?)(?:;|$)/);
-          const assistantMatch = obs.match(/assistant:\s*(.+?)(?:;|$)/);
-          if (officeMatch?.[1]) officeName = officeMatch[1].trim();
-          if (assistantMatch?.[1]) assistantName = assistantMatch[1].trim();
-        }
-      } catch {
+        processedText = mediaResult.extractedText;
+        mediaCategory = mediaResult.mediaCategory;
+        console.log(`[processMsg:${provider}] Media processed (${mediaResult.processingMethod}, ${mediaResult.durationMs}ms): "${processedText.substring(0, 80)}..."`);
+      } catch (mediaErr) {
+        console.error(`[processMsg:${provider}] Media processing failed, using raw text:`, mediaErr);
       }
     }
 
-    // Busca historico recente da conversa para contexto
+    // ========================================
+    // STAGE 2: BUILD CONTEXT + ORCHESTRATE
+    // ========================================
+
+    // Legal context
+    const legalCtx = await buildLegalContext(supabase, leadId, tenantId, processedText);
+
+    // Command detection
+    const COMMANDS: Record<string, string> = {
+      "/prazos": "liste os prazos processuais do cliente",
+      "/processos": "liste os processos ativos do cliente",
+      "/documentos": "informe quantos documentos o cliente tem no sistema",
+      "/honorarios": "informe o status dos honorários do cliente",
+      "/status": "dê um resumo completo dos casos do cliente",
+    };
+    const commandKey = Object.keys(COMMANDS).find((cmd) =>
+      processedText.trim().toLowerCase().startsWith(cmd)
+    );
+    const commandIntent = commandKey ? COMMANDS[commandKey] : null;
+
+    // Conversation history
     let conversationHistory = "";
     const { data: recentMessages } = await supabase
       .from("whatsapp_messages")
@@ -885,43 +927,74 @@ async function processNormalizedMessage(supabase: ReturnType<typeof createClient
         .join("\n");
     }
 
-    const coordenadorPrompt = `Voce e a recepcionista virtual do escritorio de advocacia ${officeName}. Seu nome e ${assistantName}.
+    // Get office name from tenants
+    let officeName = "nosso escritório";
+    let assistantName = "Ana";
+    try {
+      const { data: tenantConfig } = await supabase
+        .from("tenants")
+        .select("nome, configuracoes")
+        .eq("id", tenantId)
+        .maybeSingle();
 
-REGRAS OBRIGATORIAS:
-1. Seja educada, profissional e acolhedora. Use linguagem simples e direta.
-2. Na PRIMEIRA mensagem de qualquer pessoa, cumprimente e pergunte como pode ajudar.
-3. Seu objetivo principal e QUALIFICAR o lead: entender o problema juridico, urgencia e dados basicos.
-4. Faca perguntas uma de cada vez, nao bombardeie o cliente.
-5. Colete: nome completo, tipo de problema juridico (trabalhista, familia, consumidor, etc), urgencia.
-6. Quando tiver informacoes suficientes, informe que um advogado especialista de ${officeName} entrara em contato.
-7. NUNCA de orientacao juridica especifica. Diga que o advogado ira analisar o caso.
-8. Responda SEMPRE em portugues brasileiro.
-9. Mantenha respostas curtas (maximo 3 paragrafos) — e WhatsApp, ninguem le textao.
-10. Se o cliente mandar apenas "oi", "ola", "bom dia" etc, responda com uma saudacao e pergunte como pode ajudar.
+      if (tenantConfig?.nome) officeName = tenantConfig.nome;
+      const config = tenantConfig?.configuracoes as Record<string, unknown> | null;
+      if (config?.whatsapp_assistant_name) assistantName = config.whatsapp_assistant_name as string;
+    } catch { /* use defaults */ }
 
-FLUXO DE QUALIFICACAO:
-- Saudacao → Entender problema → Coletar nome → Classificar area juridica → Verificar urgencia → Encaminhar
+    // Orchestrate: decide which specialist agent handles this
+    let agentName: string;
+    let agentPrompt: string;
+    let agentTemp: number;
+    let agentMaxTokens: number;
 
-${conversationHistory ? `HISTORICO DA CONVERSA:\n${conversationHistory}\n` : ""}`;
+    if (commandKey) {
+      // Commands always go to juridico
+      agentName = "Assistente Jurídico";
+      agentPrompt = "";
+      agentTemp = 0.3;
+      agentMaxTokens = 800;
+    } else {
+      try {
+        const routing = await callEdgeFunction<{
+          agent: string;
+          agentDefinition: { name: string; specialization: string; systemPrompt: string; temperature: number; maxTokens: number };
+          reason: string;
+        }>("agent-orchestrator", {
+          messageText: processedText,
+          hasLegalContext: legalCtx.has_context,
+          hasMedia: mediaCategory !== "text",
+          mediaCategory,
+          isFirstContact: !conversation,
+          leadId,
+          tenantId,
+        });
 
-    // --- DETECT COMMAND ---
-    const COMMANDS: Record<string, string> = {
-      "/prazos": "liste os prazos processuais do cliente",
-      "/processos": "liste os processos ativos do cliente",
-      "/documentos": "informe quantos documentos o cliente tem no sistema",
-      "/honorarios": "informe o status dos honorários do cliente",
-      "/status": "dê um resumo completo dos casos do cliente",
-    };
-    const commandKey = Object.keys(COMMANDS).find((cmd) =>
-      text.trim().toLowerCase().startsWith(cmd)
-    );
-    const commandIntent = commandKey ? COMMANDS[commandKey] : null;
+        agentName = routing.agentDefinition.name;
+        agentPrompt = routing.agentDefinition.systemPrompt;
+        agentTemp = routing.agentDefinition.temperature;
+        agentMaxTokens = routing.agentDefinition.maxTokens;
+        console.log(`[processMsg:${provider}] Orchestrator routed to: ${routing.agent} (${routing.reason})`);
+      } catch (orchErr) {
+        console.error(`[processMsg:${provider}] Orchestrator failed, using default:`, orchErr);
+        agentName = legalCtx.has_context ? "Assistente Jurídico" : "Recepcionista";
+        agentPrompt = "";
+        agentTemp = 0.5;
+        agentMaxTokens = legalCtx.has_context ? 800 : 400;
+      }
+    }
 
-    // --- BUILD LEGAL CONTEXT ---
-    const legalCtx = await buildLegalContext(supabase, leadId, tenantId, text);
+    // Build final system prompt
+    let finalSystemPrompt = agentPrompt ||
+      `Você é ${assistantName}, ${agentName.toLowerCase()} do escritório ${officeName}. Atenda o cliente de forma profissional e objetiva em português brasileiro. Respostas curtas (WhatsApp).`;
 
-    // --- UPGRADE SYSTEM PROMPT IF HAS LEGAL CONTEXT ---
-    let finalSystemPrompt = coordenadorPrompt;
+    finalSystemPrompt = `Você trabalha no escritório ${officeName}. Seu nome é ${assistantName}.\n\n${finalSystemPrompt}`;
+
+    if (conversationHistory) {
+      finalSystemPrompt += `\n\nHISTÓRICO DA CONVERSA:\n${conversationHistory}`;
+    }
+
+    // Add legal context if available
     if (legalCtx.has_context) {
       const sections = [
         legalCtx.processos.length > 0
@@ -950,46 +1023,132 @@ ${conversationHistory ? `HISTORICO DA CONVERSA:\n${conversationHistory}\n` : ""}
           : null,
       ].filter(Boolean).join("\n\n");
 
-      finalSystemPrompt = coordenadorPrompt +
-        `\n\n== CONTEXTO JURÍDICO DO CLIENTE ==\n${sections}\n\n` +
-        `IMPORTANTE: Este é um cliente existente. Use os dados acima para responder com precisão. ` +
-        `Não diga que não tem acesso — você TEM. Responda de forma contextualizada e objetiva.`;
+      finalSystemPrompt += `\n\n== CONTEXTO JURÍDICO DO CLIENTE ==\n${sections}\n\nIMPORTANTE: Use os dados acima para responder com precisão. Responda de forma contextualizada e objetiva.`;
     }
 
-    const { data: aiResponse, error: aiError } = await supabase.functions.invoke("ai-agent-processor", {
-      body: {
-        agentName: legalCtx.has_context ? "Assistente Juridico" : "Coordenador",
-        agentSpecialization: legalCtx.has_context
-          ? "Assistência jurídica contextual para clientes ativos"
-          : "Recepcao e Qualificacao de Leads Juridicos",
-        systemPrompt: finalSystemPrompt,
-        userPrompt: commandIntent ?? text,
-        leadId: leadId,
-        tenantId: tenantId,
-        temperature: 0.5,
-        maxTokens: legalCtx.has_context ? 800 : 500,
-        context: {
-          channel: "whatsapp",
-          phone: from,
-          contactName: name,
-          isFirstContact: !conversation,
-          has_legal_context: legalCtx.has_context,
-          active_processos: legalCtx.processos.length,
-          urgent_prazos: legalCtx.prazos_urgentes.length,
-          command: commandKey ?? null,
-        },
-      },
-    });
+    // ========================================
+    // STAGE 3: CALL SPECIALIST AGENT (Direct OpenAI)
+    // ========================================
+    let aiResponse: { result: string; usage?: { prompt_tokens: number; completion_tokens: number; total_tokens: number }; model: string } | null = null;
+    let aiError: Error | null = null;
+
+    const executionId = `exec_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
+    const aiStartTime = Date.now();
+    let executionRowId: string | null = null;
+
+    try {
+      const { data: execData } = await supabase
+        .from("agent_executions")
+        .insert({
+          execution_id: executionId,
+          lead_id: leadId,
+          tenant_id: tenantId,
+          status: "processing",
+          current_agent: agentName,
+          agents_involved: [agentName],
+          started_at: new Date().toISOString(),
+        })
+        .select("id")
+        .single();
+      executionRowId = execData?.id ?? null;
+    } catch { /* non-critical */ }
+
+    try {
+      const openaiApiKey = Deno.env.get("OPENAI_API_KEY");
+      if (!openaiApiKey) throw new Error("OPENAI_API_KEY not configured");
+
+      const openai = new OpenAI({ apiKey: openaiApiKey });
+
+      const aiMessages: Array<{ role: string; content: string }> = [
+        { role: "system", content: finalSystemPrompt },
+        { role: "user", content: commandIntent ?? processedText },
+      ];
+
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 30_000);
+
+      let completion;
+      try {
+        completion = await openai.chat.completions.create(
+          {
+            model: DEFAULT_OPENAI_MODEL,
+            messages: aiMessages,
+            temperature: agentTemp,
+            max_tokens: agentMaxTokens,
+          },
+          { signal: controller.signal }
+        );
+      } finally {
+        clearTimeout(timeoutId);
+      }
+
+      const resultText = completion.choices[0]?.message?.content || "";
+      aiResponse = {
+        result: resultText,
+        usage: completion.usage
+          ? {
+            prompt_tokens: completion.usage.prompt_tokens,
+            completion_tokens: completion.usage.completion_tokens,
+            total_tokens: completion.usage.total_tokens,
+          }
+          : undefined,
+        model: completion.model,
+      };
+
+      // Mark execution completed
+      const duration = Date.now() - aiStartTime;
+      void supabase
+        .from("agent_executions")
+        .update({
+          status: "completed",
+          completed_at: new Date().toISOString(),
+          total_duration_ms: duration,
+          total_tokens: aiResponse.usage?.total_tokens || 0,
+        })
+        .eq("execution_id", executionId)
+        .eq("tenant_id", tenantId)
+        .then(({ error }) => { if (error) console.error("[webhook] execution complete error:", error.message); });
+
+      // Log AI processing (non-blocking)
+      if (executionRowId) {
+        void supabase.from("agent_ai_logs").insert({
+          execution_id: executionRowId,
+          agent_name: agentName,
+          lead_id: leadId,
+          tenant_id: tenantId,
+          model: aiResponse.model,
+          prompt_tokens: aiResponse.usage?.prompt_tokens || 0,
+          completion_tokens: aiResponse.usage?.completion_tokens || 0,
+          total_tokens: aiResponse.usage?.total_tokens || 0,
+          result_preview: resultText.substring(0, 200),
+          system_prompt: finalSystemPrompt.substring(0, 500),
+          user_prompt: (commandIntent ?? processedText).substring(0, 500),
+          full_result: resultText.substring(0, 2000),
+          context: { mediaCategory, agent: agentName, hasLegalContext: legalCtx.has_context },
+          created_at: new Date().toISOString(),
+        }).then(({ error }) => { if (error) console.error("[webhook] ai_log insert error:", error.message); });
+      }
+
+      console.log(`[processMsg:${provider}] ${agentName} responded: "${resultText.substring(0, 80)}..."`);
+    } catch (err) {
+      aiError = err instanceof Error ? err : new Error(String(err));
+      console.error(`[processMsg:${provider}] AI error (using fallback):`, aiError.message);
+
+      void supabase
+        .from("agent_executions")
+        .update({
+          status: "failed",
+          error_message: aiError.message,
+          completed_at: new Date().toISOString(),
+        })
+        .eq("execution_id", executionId)
+        .eq("tenant_id", tenantId)
+        .then(({ error }) => { if (error) console.error("[webhook] execution fail error:", error.message); });
+    }
 
     const aiText = aiError
-      ? `Ola! Recebi sua mensagem e em breve um de nossos advogados entrara em contato. Obrigado pelo contato com ${officeName}!`
-      : (aiResponse?.result || "Desculpe, nao consegui processar sua mensagem no momento.");
-
-    if (aiError) {
-      console.error(`[processMsg:${provider}] AI agent error (using fallback):`, aiError);
-    } else {
-      console.log(`[processMsg:${provider}] AI responded: "${aiText.substring(0, 80)}..."`);
-    }
+      ? `Olá! Recebi sua mensagem e em breve um de nossos advogados entrará em contato. Obrigado pelo contato com ${officeName}!`
+      : (aiResponse?.result || "Desculpe, não consegui processar sua mensagem no momento.");
 
     // --- HUMAN HANDOFF: detect uncertainty ---
     const HANDOFF_PATTERNS = [
@@ -1022,7 +1181,7 @@ ${conversationHistory ? `HISTORICO DA CONVERSA:\n${conversationHistory}\n` : ""}
           await supabase.from("agent_memory").insert({
             tenant_id: tenantId,
             lead_id: leadId,
-            agent_name: "Assistente Juridico",
+            agent_name: agentName,
             memory_type: "conversation",
             content: `Cliente: "${text.substring(0, 200)}". Assistente: "${(aiResponse.result as string).substring(0, 300)}"`,
             importance: legalCtx.prazos_urgentes.length > 0 ? 7 : 5,
@@ -1249,7 +1408,7 @@ async function sendViaMeta(to: string, text: string, tenantId: string, supabase:
       }),
     });
 
-    const data = await response.json();
+    const data = await response.json().catch(() => ({}));
     if (!response.ok) {
       const errorMsg = data?.error?.message || `HTTP ${response.status}`;
       console.error("[webhook:meta] Error sending:", data);
