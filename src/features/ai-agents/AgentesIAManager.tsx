@@ -24,6 +24,7 @@ import NovoAgenteForm from '@/components/NovoAgenteForm';
 import DetalhesAgente from '@/components/DetalhesAgente';
 import ApiKeysManager from '@/components/ApiKeysManager';
 import LogsMonitoramento from '@/components/LogsMonitoramento';
+import KnowledgeBaseSection from './KnowledgeBaseSection';
 
 // Monitoring
 import { trackUserAction } from '@/utils/monitoring';
@@ -304,8 +305,9 @@ const AgentesIAManager = () => {
       )}
 
       <Tabs defaultValue="agentes" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-3 bg-[hsl(var(--muted))] border border-[hsl(var(--border))]">
+        <TabsList className="grid w-full grid-cols-4 bg-[hsl(var(--muted))] border border-[hsl(var(--border))]">
           <TabsTrigger value="agentes">Agentes</TabsTrigger>
+          <TabsTrigger value="knowledge">Base de Conhecimento</TabsTrigger>
           <TabsTrigger value="api-keys">API Keys</TabsTrigger>
           <TabsTrigger value="logs">Logs</TabsTrigger>
         </TabsList>
@@ -352,6 +354,10 @@ const AgentesIAManager = () => {
               ))}
             </div>
           )}
+        </TabsContent>
+
+        <TabsContent value="knowledge">
+          <KnowledgeBaseSection />
         </TabsContent>
 
         <TabsContent value="api-keys">
