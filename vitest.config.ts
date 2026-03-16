@@ -56,6 +56,10 @@ export default defineConfig({
         'src/hooks/useHonorarios.ts', // Low coverage after lint fixes — E2E
         'src/features/dashboard/Dashboard.tsx', // Complex UI component — E2E
         'src/features/whatsapp/WhatsAppEvolutionSetup.tsx', // Complex UI component — E2E
+        'src/components/LGPDPrivacySection.tsx', // Static UI — E2E
+        'src/features/whatsapp/FollowUpSequenceEditor.tsx', // Complex UI — E2E
+        'src/hooks/useFollowUpSequences.ts', // CRUD — E2E
+        'src/hooks/useDashboardMetricsFast.ts', // Alternative version — E2E
       ],
       // Thresholds estabelecem um floor anti-regressão.
       // Aumentar gradualmente à medida que novos testes são adicionados.
