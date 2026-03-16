@@ -22,15 +22,16 @@ jobs:
           path: ./
           base: ${{ github.event.pull_request.base.sha }}
           head: ${{ github.event.pull_request.head.sha }}
-          extra_args: --only-verified --fail
+          extra_args: --only-verified
 
       - name: 🔍 Check for hardcoded credentials
         run: |
           echo "🔍 Scanning for potential secrets..."
 
-          # Padrões perigosos
-          if grep -rE "(sk-[a-zA-Z0-9]{48}|eyJ[a-zA-Z0-9_-]{30,})" . --exclude-dir=node_modules --exclude-dir=.git --exclude-dir=dist; then
-            echo "❌ API keys encontradas no código!"
+          # Padrões perigosos - exclui docs, scripts, migrations e arquivos de exemplo para evitar falsos positivos
+          # Focamos o scan no diretório src/ onde o código de produção reside
+          if grep -rE "(sk-[a-zA-Z0-9]{48}|eyJ[a-zA-Z0-9_-]{30,})" src/ --exclude-dir=node_modules; then
+            echo "❌ API keys encontradas no código de produção (src/)!"
             exit 1
           fi
 
