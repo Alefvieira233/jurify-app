@@ -87,7 +87,7 @@ export const useAgendamentos = () => {
     },
     enabled: !!user,
     staleTime: 2 * 60 * 1000,
-    refetchOnWindowFocus: true,
+    refetchOnWindowFocus: false,
   });
 
   const error = queryError ? (queryError).message : null;

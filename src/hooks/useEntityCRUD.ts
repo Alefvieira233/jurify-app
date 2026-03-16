@@ -191,7 +191,7 @@ export function useEntityCRUD<
     },
     enabled: !!user,
     staleTime: 2 * 60 * 1000,
-    refetchOnWindowFocus: true,
+    refetchOnWindowFocus: false,
   });
 
   const data = queryData?.items ?? [];

@@ -175,7 +175,7 @@ export function useDashboardMetricsFast() {
     enabled: !!user && !!tenantId,
     staleTime: 60_000,
     refetchInterval: 300_000,
-    refetchOnWindowFocus: true,
+    refetchOnWindowFocus: false,
   });
 
   // Debounced refetch to avoid hammering the DB on rapid changes

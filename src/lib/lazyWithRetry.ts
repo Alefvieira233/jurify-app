@@ -24,10 +24,10 @@ async function retryImport<T extends ComponentType<unknown>>(
     return await factory();
   } catch (error) {
     if (retries <= 0) {
-      // If we haven't reloaded yet for this session, do a hard reload
-      // to pick up the new chunk manifest after a deploy
+      // Only force reload if tab is visible (browser throttles fetches
+      // on hidden tabs, causing false chunk-load failures)
       const reloadKey = 'jurify_chunk_reload';
-      if (!sessionStorage.getItem(reloadKey)) {
+      if (!document.hidden && !sessionStorage.getItem(reloadKey)) {
         sessionStorage.setItem(reloadKey, '1');
         window.location.reload();
       }

@@ -130,7 +130,7 @@ export const useProcessos = (options?: {
     },
     enabled: !!user,
     staleTime: 2 * 60 * 1000,
-    refetchOnWindowFocus: true,
+    refetchOnWindowFocus: false,
   });
 
   const processos = queryData?.items ?? [];

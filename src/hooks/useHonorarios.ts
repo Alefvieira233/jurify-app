@@ -88,7 +88,7 @@ export const useHonorarios = (options?: { processoId?: string; page?: number }) 
     },
     enabled: !!user,
     staleTime: 2 * 60 * 1000,
-    refetchOnWindowFocus: true,
+    refetchOnWindowFocus: false,
   });
 
   const honorarios = queryData?.items ?? [];

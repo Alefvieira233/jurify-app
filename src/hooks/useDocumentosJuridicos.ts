@@ -95,7 +95,7 @@ export const useDocumentosJuridicos = (options?: { processoId?: string; leadId?:
     },
     enabled: !!user,
     staleTime: 2 * 60 * 1000,
-    refetchOnWindowFocus: true,
+    refetchOnWindowFocus: false,
   });
 
   const documentos = queryData?.items ?? [];

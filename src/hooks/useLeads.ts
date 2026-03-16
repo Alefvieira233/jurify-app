@@ -199,7 +199,7 @@ export const useLeads = (options?: { enablePagination?: boolean; pageSize?: numb
     },
     enabled: !!user,
     staleTime: 2 * 60 * 1000,    // 2 min — leads mudam com frequência média
-    refetchOnWindowFocus: true,
+    refetchOnWindowFocus: false,
   });
 
   const leads = queryData?.leads ?? [];

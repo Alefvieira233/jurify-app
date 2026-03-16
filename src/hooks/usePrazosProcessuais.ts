@@ -91,7 +91,7 @@ export const usePrazosProcessuais = (options?: {
     },
     enabled: !!user,
     staleTime: 2 * 60 * 1000,
-    refetchOnWindowFocus: true,
+    refetchOnWindowFocus: false,
   });
 
   const prazos = useMemo(() => queryData?.items ?? [], [queryData?.items]);

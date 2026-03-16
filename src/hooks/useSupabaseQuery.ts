@@ -136,28 +136,11 @@ export const useSupabaseQuery = <T>(
       setLoading(false);
     }
 
-    const handleVisibility = () => {
-      if (!document.hidden && user && enabled) {
-        void executeQuery(true);
-      }
-    };
-
-    const handleFocus = () => {
-      if (user && enabled) {
-        void executeQuery(true);
-      }
-    };
-
-    document.addEventListener('visibilitychange', handleVisibility);
-    window.addEventListener('focus', handleFocus);
-
     return () => {
       mountedRef.current = false;
       if (abortControllerRef.current) {
         abortControllerRef.current.abort();
       }
-      document.removeEventListener('visibilitychange', handleVisibility);
-      window.removeEventListener('focus', handleFocus);
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user, enabled, queryKey]);
