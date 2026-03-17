@@ -41,7 +41,7 @@ const AgentesIAManager = lazyWithRetry(() => import("./features/ai-agents/Agente
 // Módulos jurídicos
 const ProcessosManager = lazyWithRetry(() => import("./features/processos/ProcessosManager"));
 const PrazosManager    = lazyWithRetry(() => import("./features/prazos/PrazosManager"));
-const PrazosDashboard  = lazyWithRetry(() => import("./features/prazos/PrazosDashboard"));
+// PrazosDashboard now embedded in PrazosManager as a tab
 const AuditTrail       = lazyWithRetry(() => import("./features/audit/AuditTrail"));
 const HonorariosManager = lazyWithRetry(() => import("./features/honorarios/HonorariosManager"));
 const DocumentosManager = lazyWithRetry(() => import("./features/documentos/DocumentosManager"));
@@ -175,7 +175,7 @@ const App = () => (
                   {/* Módulos Jurídicos */}
                   <Route path="processos" element={<ErrorBoundary><ProcessosManager /></ErrorBoundary>} />
                   <Route path="prazos" element={<ErrorBoundary><PrazosManager /></ErrorBoundary>} />
-                  <Route path="painel-prazos" element={<ErrorBoundary><PrazosDashboard /></ErrorBoundary>} />
+                  <Route path="painel-prazos" element={<Navigate to="/prazos?tab=painel" replace />} />
                   <Route path="auditoria" element={<ProtectedRoute requiredRoles={['admin', 'manager']}><ErrorBoundary><AuditTrail /></ErrorBoundary></ProtectedRoute>} />
                   <Route path="honorarios" element={
                     <ProtectedRoute requiredRoles={['admin', 'manager']}>

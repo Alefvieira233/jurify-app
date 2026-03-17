@@ -1,20 +1,30 @@
 
 import { useMemo, lazy, Suspense, useState } from 'react';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
+import {
+  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
+  PieChart, Pie, Cell, LineChart, Line, ComposedChart,
+} from 'recharts';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
-import { Download, TrendingUp, Users, FileText, Calendar, BarChart3 } from 'lucide-react';
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
+import { Input } from '@/components/ui/input';
+import { Download, TrendingUp, Users, FileText, Calendar, BarChart3, Filter } from 'lucide-react';
 import { useDashboardMetricsFast } from '@/hooks/useDashboardMetricsFast';
 import { useMRR } from '@/hooks/useMRR';
 import { useResponseTime } from '@/hooks/useResponseTime';
+import { useLeads } from '@/hooks/useLeads';
 import { ConversionFunnel } from '@/components/analytics/ConversionFunnel';
 import { RevenueCard } from '@/components/analytics/RevenueCard';
 import { ResponseTimeChart } from '@/components/analytics/ResponseTimeChart';
 import { ChurnCard } from '@/components/analytics/ChurnCard';
 import { usePageTitle } from '@/hooks/usePageTitle';
+import { formatarEtapaPipeline } from '@/utils/formatting';
+import { useQuery } from '@tanstack/react-query';
+import { supabaseUntyped as supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
 
 /* Analytics avançado — lazy para não bloquear o bundle principal */
 const AnalyticsDashboard = lazy(() =>
@@ -23,12 +33,129 @@ const AnalyticsDashboard = lazy(() =>
 
 /* ─────────────────────────────────────────────────────────────────────────── */
 
+type PeriodKey = 'hoje' | 'esta_semana' | 'este_mes' | '30_dias' | '90_dias' | 'personalizado';
+
+interface PeriodRange {
+  start: Date;
+  end: Date;
+}
+
+function computePeriodRange(period: PeriodKey, customStart?: string, customEnd?: string): PeriodRange {
+  const now = new Date();
+  const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const todayEnd = new Date(todayStart);
+  todayEnd.setDate(todayEnd.getDate() + 1);
+
+  switch (period) {
+    case 'hoje':
+      return { start: todayStart, end: todayEnd };
+    case 'esta_semana': {
+      const day = todayStart.getDay();
+      const diff = day === 0 ? 6 : day - 1;
+      const weekStart = new Date(todayStart);
+      weekStart.setDate(weekStart.getDate() - diff);
+      return { start: weekStart, end: todayEnd };
+    }
+    case 'este_mes': {
+      const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+      return { start: monthStart, end: todayEnd };
+    }
+    case '30_dias': {
+      const d30 = new Date(todayStart);
+      d30.setDate(d30.getDate() - 30);
+      return { start: d30, end: todayEnd };
+    }
+    case '90_dias': {
+      const d90 = new Date(todayStart);
+      d90.setDate(d90.getDate() - 90);
+      return { start: d90, end: todayEnd };
+    }
+    case 'personalizado': {
+      const s = customStart ? new Date(customStart) : todayStart;
+      const e = customEnd ? new Date(customEnd) : todayEnd;
+      e.setHours(23, 59, 59, 999);
+      return { start: s, end: e };
+    }
+  }
+}
+
+const PERIOD_LABELS: Record<PeriodKey, string> = {
+  hoje: 'Hoje',
+  esta_semana: 'Esta semana',
+  este_mes: 'Este mês',
+  '30_dias': 'Últimos 30 dias',
+  '90_dias': 'Últimos 90 dias',
+  personalizado: 'Personalizado',
+};
+
+/* ─── Empty chart placeholder ─────────────────────────────────────────────── */
+
+const EmptyChart = ({ message = 'Sem dados para o período' }: { message?: string }) => (
+  <div className="flex flex-col items-center justify-center py-16 text-center">
+    <BarChart3 className="h-12 w-12 text-muted-foreground/40 mb-4" />
+    <h3 className="text-lg font-medium text-foreground mb-2">{message}</h3>
+    <p className="text-sm text-muted-foreground">Aguarde os primeiros registros serem criados</p>
+  </div>
+);
+
+/* ─────────────────────────────────────────────────────────────────────────── */
+
 const RelatoriosGerenciais = () => {
   usePageTitle('Relatórios');
+  const { profile } = useAuth();
+  const tenantId = profile?.tenant_id;
   const { metrics, loading, error } = useDashboardMetricsFast();
   const { data: mrrData } = useMRR();
   const { data: responseTimeData = [] } = useResponseTime(7);
+  const { leads } = useLeads();
   const [tab, setTab] = useState<'resumo' | 'financeiro' | 'analytics'>('resumo');
+
+  /* ── Period filter state ── */
+  const [selectedPeriod, setSelectedPeriod] = useState<PeriodKey>('30_dias');
+  const [customStart, setCustomStart] = useState('');
+  const [customEnd, setCustomEnd] = useState('');
+
+  const periodRange = useMemo(
+    () => computePeriodRange(selectedPeriod, customStart, customEnd),
+    [selectedPeriod, customStart, customEnd],
+  );
+
+  /* ── Agendamentos query for "por área" chart ── */
+  const { data: agendamentosList = [] } = useQuery({
+    queryKey: ['agendamentos-report', tenantId],
+    queryFn: async () => {
+      if (!tenantId) return [];
+      const { data } = await supabase
+        .from('agendamentos')
+        .select('id, area_juridica, data_hora, status, created_at')
+        .eq('tenant_id', tenantId);
+      return (data || []) as Array<{
+        id: string;
+        area_juridica: string | null;
+        data_hora: string;
+        status: string | null;
+        created_at: string;
+      }>;
+    },
+    enabled: !!tenantId,
+    staleTime: 2 * 60 * 1000,
+  });
+
+  /* ── Clients per month query (Analytics tab) ── */
+  const { data: clientsList = [] } = useQuery({
+    queryKey: ['clients-report', tenantId],
+    queryFn: async () => {
+      if (!tenantId) return [];
+      const { data } = await supabase
+        .from('leads')
+        .select('id, status, created_at')
+        .eq('tenant_id', tenantId)
+        .in('status', ['contrato_assinado', 'em_atendimento', 'convertido']);
+      return (data || []) as Array<{ id: string; status: string | null; created_at: string }>;
+    },
+    enabled: !!tenantId,
+    staleTime: 2 * 60 * 1000,
+  });
 
   /* ── CSV export helpers ── */
   type CsvRow = { section: string; name: string; value: string | number; value_2?: string | number; value_3?: string | number };
@@ -82,7 +209,7 @@ const RelatoriosGerenciais = () => {
 
   const statusData = useMemo(() =>
     metrics ? Object.entries(metrics.leadsPorStatus).map(([status, count]) => ({
-      name: status.replace('_', ' ').toUpperCase(), value: count,
+      name: formatarEtapaPipeline(status), value: count,
     })) : [],
   [metrics]);
 
@@ -95,6 +222,76 @@ const RelatoriosGerenciais = () => {
       name: a.agente_nome, execucoes: a.total_execucoes, sucesso: a.sucesso, erro: a.erro,
     })) : [],
   [metrics]);
+
+  /* ── Origem dos Leads — horizontal bar chart ── */
+  const origemData = useMemo(() => {
+    if (!leads || leads.length === 0) return [];
+    const filtered = leads.filter(l => {
+      const created = new Date(l.created_at);
+      return created >= periodRange.start && created <= periodRange.end;
+    });
+    const origemMap = new Map<string, number>();
+    for (const lead of filtered) {
+      const origem = lead.origem || 'Não informado';
+      origemMap.set(origem, (origemMap.get(origem) ?? 0) + 1);
+    }
+    return Array.from(origemMap.entries())
+      .map(([name, value]) => ({ name, value }))
+      .sort((a, b) => b.value - a.value)
+      .slice(0, 8);
+  }, [leads, periodRange]);
+
+  /* ── Agendamentos por Área Jurídica — pie chart ── */
+  const agendamentosPorAreaData = useMemo(() => {
+    if (!agendamentosList || agendamentosList.length === 0) return [];
+    const filtered = agendamentosList.filter(a => {
+      const created = new Date(a.created_at);
+      return created >= periodRange.start && created <= periodRange.end;
+    });
+    const areaMap = new Map<string, number>();
+    for (const ag of filtered) {
+      const area = ag.area_juridica || 'Não informado';
+      areaMap.set(area, (areaMap.get(area) ?? 0) + 1);
+    }
+    return Array.from(areaMap.entries())
+      .map(([name, value]) => ({ name, value }))
+      .sort((a, b) => b.value - a.value)
+      .slice(0, 6);
+  }, [agendamentosList, periodRange]);
+
+  /* ── Clients per month (Analytics) ── */
+  const clientsPerMonthData = useMemo(() => {
+    if (!clientsList || clientsList.length === 0) return [];
+    const monthMap = new Map<string, number>();
+    for (const client of clientsList) {
+      const d = new Date(client.created_at);
+      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+      monthMap.set(key, (monthMap.get(key) ?? 0) + 1);
+    }
+    const monthNames = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
+    return Array.from(monthMap.entries())
+      .sort(([a], [b]) => a.localeCompare(b))
+      .slice(-12)
+      .map(([key, value]) => {
+        const [year, month] = key.split('-');
+        const label = `${monthNames[Number(month) - 1]}/${year?.slice(2)}`;
+        return { name: label, clientes: value };
+      });
+  }, [clientsList]);
+
+  /* ── Agentes IA analytics (bar + line) ── */
+  const agentesAnalyticsData = useMemo(() => {
+    if (!metrics) return [];
+    return metrics.execucoesRecentesAgentes.map(a => ({
+      name: a.agente_nome,
+      total: a.total_execucoes,
+      sucesso: a.sucesso,
+      erro: a.erro,
+      taxaSucesso: a.total_execucoes > 0
+        ? Number(((a.sucesso / a.total_execucoes) * 100).toFixed(1))
+        : 0,
+    }));
+  }, [metrics]);
 
   const tooltipStyle = {
     contentStyle: {
@@ -184,7 +381,48 @@ const RelatoriosGerenciais = () => {
           </div>
         </div>
 
-        {/* Tab list abaixo do título */}
+        {/* ── Period filter (above tabs) ── */}
+        <div className="mt-2.5 flex flex-wrap items-center gap-2">
+          <Filter className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
+          <Select value={selectedPeriod} onValueChange={(v) => setSelectedPeriod(v as PeriodKey)}>
+            <SelectTrigger className="h-7 w-[180px] text-[11px]">
+              <SelectValue placeholder="Selecionar período" />
+            </SelectTrigger>
+            <SelectContent>
+              {Object.entries(PERIOD_LABELS).map(([key, label]) => (
+                <SelectItem key={key} value={key} className="text-xs">
+                  {label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          {selectedPeriod === 'personalizado' && (
+            <div className="flex items-center gap-1.5">
+              <Input
+                type="date"
+                value={customStart}
+                onChange={(e) => setCustomStart(e.target.value)}
+                className="h-7 w-[130px] text-[11px]"
+                aria-label="Data inicial"
+              />
+              <span className="text-[11px] text-muted-foreground">até</span>
+              <Input
+                type="date"
+                value={customEnd}
+                onChange={(e) => setCustomEnd(e.target.value)}
+                className="h-7 w-[130px] text-[11px]"
+                aria-label="Data final"
+              />
+            </div>
+          )}
+
+          <span className="text-[10px] text-muted-foreground ml-1">
+            {periodRange.start.toLocaleDateString('pt-BR')} — {periodRange.end.toLocaleDateString('pt-BR')}
+          </span>
+        </div>
+
+        {/* Tab list abaixo do filtro */}
         <div className="mt-2.5">
           <Tabs value={tab} onValueChange={v => setTab(v as typeof tab)}>
             <TabsList className="h-7 p-0.5 bg-muted/60">
@@ -263,7 +501,7 @@ const RelatoriosGerenciais = () => {
               </Card>
             </div>
 
-            {/* Charts */}
+            {/* Existing Charts */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
               <Card className="border-border shadow-card">
                 <CardHeader className="px-4 py-3 border-b border-border">
@@ -271,11 +509,7 @@ const RelatoriosGerenciais = () => {
                 </CardHeader>
                 <CardContent className="p-4">
                   {statusData.length === 0 ? (
-                    <div className="flex flex-col items-center justify-center py-16 text-center">
-                      <BarChart3 className="h-12 w-12 text-muted-foreground/40 mb-4" />
-                      <h3 className="text-lg font-medium text-foreground mb-2">Sem dados para o período</h3>
-                      <p className="text-sm text-muted-foreground">Aguarde os primeiros leads serem registrados</p>
-                    </div>
+                    <EmptyChart message="Sem dados para o período" />
                   ) : (
                     <ResponsiveContainer width="100%" height={280}>
                       <PieChart>
@@ -283,7 +517,7 @@ const RelatoriosGerenciais = () => {
                           label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
                           outerRadius={80} fill="#8884d8" dataKey="value"
                         >
-                          {statusData.map((_e, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
+                          {statusData.map((_e, i) => <Cell key={`status-${i}`} fill={COLORS[i % COLORS.length]} />)}
                         </Pie>
                         <Tooltip {...tooltipStyle} />
                       </PieChart>
@@ -298,11 +532,7 @@ const RelatoriosGerenciais = () => {
                 </CardHeader>
                 <CardContent className="p-4">
                   {areaData.length === 0 ? (
-                    <div className="flex flex-col items-center justify-center py-16 text-center">
-                      <BarChart3 className="h-12 w-12 text-muted-foreground/40 mb-4" />
-                      <h3 className="text-lg font-medium text-foreground mb-2">Sem dados para o período</h3>
-                      <p className="text-sm text-muted-foreground">Aguarde os primeiros leads serem registrados</p>
-                    </div>
+                    <EmptyChart message="Sem dados para o período" />
                   ) : (
                     <ResponsiveContainer width="100%" height={280}>
                       <BarChart data={areaData}>
@@ -323,11 +553,7 @@ const RelatoriosGerenciais = () => {
                 </CardHeader>
                 <CardContent className="p-4">
                   {agentesData.length === 0 ? (
-                    <div className="flex flex-col items-center justify-center py-16 text-center">
-                      <BarChart3 className="h-12 w-12 text-muted-foreground/40 mb-4" />
-                      <h3 className="text-lg font-medium text-foreground mb-2">Sem dados de agentes</h3>
-                      <p className="text-sm text-muted-foreground">Nenhuma execução de agente registrada ainda</p>
-                    </div>
+                    <EmptyChart message="Sem dados de agentes" />
                   ) : (
                     <ResponsiveContainer width="100%" height={280}>
                       <BarChart data={agentesData}>
@@ -374,6 +600,61 @@ const RelatoriosGerenciais = () => {
                 </CardContent>
               </Card>
             </div>
+
+            {/* ── NEW: Origem dos Leads + Agendamentos por Área ── */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+              <Card className="border-border shadow-card">
+                <CardHeader className="px-4 py-3 border-b border-border">
+                  <CardTitle className="text-sm font-semibold">Origem dos Leads</CardTitle>
+                </CardHeader>
+                <CardContent className="p-4">
+                  {origemData.length === 0 ? (
+                    <EmptyChart message="Sem dados de origem" />
+                  ) : (
+                    <ResponsiveContainer width="100%" height={280}>
+                      <BarChart data={origemData} layout="vertical">
+                        <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" horizontal={false} />
+                        <XAxis type="number" tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }} axisLine={false} tickLine={false} />
+                        <YAxis dataKey="name" type="category" width={100} tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }} axisLine={false} tickLine={false} />
+                        <Tooltip {...tooltipStyle} />
+                        <Bar dataKey="value" fill="#4f46e5" radius={[0, 4, 4, 0]} name="Leads" />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  )}
+                </CardContent>
+              </Card>
+
+              <Card className="border-border shadow-card">
+                <CardHeader className="px-4 py-3 border-b border-border">
+                  <CardTitle className="text-sm font-semibold">Agendamentos por Área Jurídica</CardTitle>
+                </CardHeader>
+                <CardContent className="p-4">
+                  {agendamentosPorAreaData.length === 0 ? (
+                    <EmptyChart message="Sem dados de agendamentos" />
+                  ) : (
+                    <ResponsiveContainer width="100%" height={280}>
+                      <PieChart>
+                        <Pie
+                          data={agendamentosPorAreaData}
+                          cx="50%"
+                          cy="50%"
+                          labelLine={false}
+                          label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                          outerRadius={80}
+                          fill="#8884d8"
+                          dataKey="value"
+                        >
+                          {agendamentosPorAreaData.map((_e, i) => (
+                            <Cell key={`ag-area-${i}`} fill={COLORS[i % COLORS.length]} />
+                          ))}
+                        </Pie>
+                        <Tooltip {...tooltipStyle} />
+                      </PieChart>
+                    </ResponsiveContainer>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
           </TabsContent>
 
           {/* ── Aba: Financeiro ── */}
@@ -413,6 +694,92 @@ const RelatoriosGerenciais = () => {
             }>
               <AnalyticsDashboard />
             </Suspense>
+
+            {/* ── Additional Analytics: Clientes + Agentes IA ── */}
+            <div className="px-5 py-5 space-y-5">
+
+              {/* Novos Clientes por Mês */}
+              <Card className="border-border shadow-card">
+                <CardHeader className="px-4 py-3 border-b border-border">
+                  <CardTitle className="text-sm font-semibold">Novos Clientes por Mês</CardTitle>
+                </CardHeader>
+                <CardContent className="p-4">
+                  {clientsPerMonthData.length === 0 ? (
+                    <EmptyChart message="Sem dados de clientes" />
+                  ) : (
+                    <ResponsiveContainer width="100%" height={300}>
+                      <LineChart data={clientsPerMonthData}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
+                        <XAxis dataKey="name" tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }} axisLine={false} tickLine={false} />
+                        <YAxis tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }} axisLine={false} tickLine={false} allowDecimals={false} />
+                        <Tooltip {...tooltipStyle} />
+                        <Line
+                          type="monotone"
+                          dataKey="clientes"
+                          stroke="#2563eb"
+                          strokeWidth={2}
+                          dot={{ fill: '#2563eb', r: 4 }}
+                          activeDot={{ r: 6 }}
+                          name="Clientes"
+                        />
+                      </LineChart>
+                    </ResponsiveContainer>
+                  )}
+                </CardContent>
+              </Card>
+
+              {/* Agentes IA — Detalhamento */}
+              <Card className="border-border shadow-card">
+                <CardHeader className="px-4 py-3 border-b border-border">
+                  <CardTitle className="text-sm font-semibold">Agentes IA — Detalhamento</CardTitle>
+                </CardHeader>
+                <CardContent className="p-4">
+                  {agentesAnalyticsData.length === 0 ? (
+                    <EmptyChart message="Sem dados de agentes IA" />
+                  ) : (
+                    <div className="space-y-4">
+                      <ResponsiveContainer width="100%" height={300}>
+                        <ComposedChart data={agentesAnalyticsData}>
+                          <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
+                          <XAxis dataKey="name" tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }} axisLine={false} tickLine={false} />
+                          <YAxis yAxisId="left" orientation="left" tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }} axisLine={false} tickLine={false} />
+                          <YAxis yAxisId="right" orientation="right" tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }} axisLine={false} tickLine={false} domain={[0, 100]} unit="%" />
+                          <Tooltip {...tooltipStyle} />
+                          <Legend wrapperStyle={{ fontSize: 11 }} />
+                          <Bar yAxisId="left" dataKey="sucesso" fill="#059669" name="Sucesso" stackId="exec" />
+                          <Bar yAxisId="left" dataKey="erro" fill="#e11d48" name="Erro" stackId="exec" radius={[4, 4, 0, 0]} />
+                          <Line yAxisId="right" type="monotone" dataKey="taxaSucesso" stroke="#d97706" strokeWidth={2} dot={{ fill: '#d97706', r: 3 }} name="Taxa de Sucesso (%)" />
+                        </ComposedChart>
+                      </ResponsiveContainer>
+
+                      {/* Summary cards */}
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+                        {agentesAnalyticsData.map(agent => (
+                          <div key={agent.name} className="flex justify-between items-center p-2.5 bg-muted/40 border border-border rounded-lg">
+                            <div className="min-w-0">
+                              <p className="text-xs font-medium text-foreground truncate">{agent.name}</p>
+                              <p className="text-[10px] text-muted-foreground">{agent.total} execuções</p>
+                            </div>
+                            <Badge
+                              variant="secondary"
+                              className={`text-[10px] flex-shrink-0 ${
+                                agent.taxaSucesso >= 80
+                                  ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
+                                  : agent.taxaSucesso >= 50
+                                    ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400'
+                                    : 'bg-red-500/10 text-red-600 dark:text-red-400'
+                              }`}
+                            >
+                              {agent.taxaSucesso}%
+                            </Badge>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
           </TabsContent>
 
         </Tabs>

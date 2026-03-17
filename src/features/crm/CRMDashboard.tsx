@@ -1,14 +1,17 @@
 
 import { useState, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   Target, TrendingUp, Clock, Users, DollarSign,
-  BarChart3, Tag, ArrowRight, AlertCircle,
+  BarChart3, Tag, ArrowRight, AlertCircle, Search, Plus, UserCheck,
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
+import { Input } from '@/components/ui/input';
 import FollowUpPanel from './FollowUpPanel';
 import { useCRMPipeline, type PipelineStage } from '@/hooks/useCRMPipeline';
 import { useFollowUps } from '@/hooks/useFollowUps';
@@ -24,7 +27,14 @@ const KPI_COLORS = {
   rose:    { hex: '#e11d48', bg: 'rgba(225,29,72,0.08)'   },
 };
 
-import { fmtCurrency as fmt, fmtDateTime as fmtDt } from '@/utils/formatting';
+import { fmtCurrency as fmt, fmtDateTime as fmtDt, fmtDate } from '@/utils/formatting';
+
+/* ── Client status filter ── */
+const CLIENT_STATUSES = ['contrato_assinado', 'em_atendimento'] as const;
+const STATUS_LABEL: Record<string, string> = {
+  contrato_assinado: 'Contrato Assinado',
+  em_atendimento: 'Em Atendimento',
+};
 
 /* ── Priority badge classes ── */
 const PRIORITY_CLS: Record<string, string> = {
@@ -41,12 +51,15 @@ const PRIORITY_LABEL: Record<string, string> = {
 
 const CRMDashboard = () => {
   usePageTitle('CRM');
+  const navigate = useNavigate();
   const { stages, loading: stagesLoading } = useCRMPipeline();
   const { followUps, overdueCount, loading: followUpsLoading } = useFollowUps();
   const { tags } = useCRMTags();
   const { leads, loading: leadsLoading } = useLeads();
   const [selectedStage, setSelectedStage] = useState<string | null>(null);
   const [followUpsOpen, setFollowUpsOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState('pipeline');
+  const [clientSearch, setClientSearch] = useState('');
 
   const loading = stagesLoading || followUpsLoading || leadsLoading;
 
@@ -64,6 +77,17 @@ const CRMDashboard = () => {
       .sort((a, b) => new Date(a.scheduled_at).getTime() - new Date(b.scheduled_at).getTime())
       .slice(0, 5),
   [followUps]);
+
+  const clients = useMemo(() => {
+    const filtered = leads.filter(l =>
+      CLIENT_STATUSES.includes(l.status as typeof CLIENT_STATUSES[number]),
+    );
+    if (!clientSearch.trim()) return filtered;
+    const q = clientSearch.trim().toLowerCase();
+    return filtered.filter(l =>
+      (l.nome_completo ?? l.nome ?? '').toLowerCase().includes(q),
+    );
+  }, [leads, clientSearch]);
 
   /* ── Loading ── */
   if (loading) {
@@ -128,7 +152,34 @@ const CRMDashboard = () => {
       </header>
 
       {/* ── Scrollable body ── */}
-      <div className="flex-1 overflow-y-auto px-5 py-5 space-y-5">
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col overflow-hidden">
+        <div className="flex-shrink-0 px-5 pt-4 pb-0">
+          <TabsList className="h-8 p-0.5 bg-muted/60">
+            <TabsTrigger value="pipeline" className="h-7 text-xs px-3 gap-1.5">
+              <BarChart3 className="h-3.5 w-3.5" />
+              Pipeline
+            </TabsTrigger>
+            <TabsTrigger value="followups" className="h-7 text-xs px-3 gap-1.5">
+              <Clock className="h-3.5 w-3.5" />
+              Follow-ups
+              {metrics.overdueCount > 0 && (
+                <Badge variant="destructive" className="ml-0.5 h-4 min-w-4 px-1 text-[10px] font-bold">
+                  {metrics.overdueCount}
+                </Badge>
+              )}
+            </TabsTrigger>
+            <TabsTrigger value="clientes" className="h-7 text-xs px-3 gap-1.5">
+              <UserCheck className="h-3.5 w-3.5" />
+              Clientes
+              {clients.length > 0 && (
+                <span className="ml-0.5 text-[10px] text-muted-foreground">({clients.length})</span>
+              )}
+            </TabsTrigger>
+          </TabsList>
+        </div>
+
+        {/* ── Pipeline Tab ── */}
+        <TabsContent value="pipeline" className="mt-0 flex-1 overflow-y-auto px-5 py-5 space-y-5">
 
       {/* ── KPI Cards ── */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
@@ -346,7 +397,111 @@ const CRMDashboard = () => {
         </Card>
       </div>
 
-      </div>
+        </TabsContent>
+
+        {/* ── Follow-ups Tab ── */}
+        <TabsContent value="followups" className="mt-0 flex-1 overflow-y-auto px-5 py-5">
+          <FollowUpPanel />
+        </TabsContent>
+
+        {/* ── Clientes Tab ── */}
+        <TabsContent value="clientes" className="mt-0 flex-1 overflow-y-auto px-5 py-5 space-y-4">
+          {/* Search + Action Bar */}
+          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
+            <div className="relative flex-1 w-full sm:max-w-sm">
+              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+              <Input
+                placeholder="Buscar cliente por nome..."
+                value={clientSearch}
+                onChange={e => setClientSearch(e.target.value)}
+                className="h-8 pl-8 text-xs"
+              />
+            </div>
+            <Button
+              size="sm"
+              className="h-8 text-xs gap-1.5"
+              onClick={() => navigate('/pipeline')}
+            >
+              <Plus className="h-3.5 w-3.5" />
+              Novo Cliente
+            </Button>
+          </div>
+
+          {/* Clients Table */}
+          <Card className="shadow-sm border-border/60">
+            <CardContent className="p-0">
+              {clients.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-12 text-center">
+                  <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center mb-3">
+                    <UserCheck className="h-5 w-5 text-muted-foreground/40" />
+                  </div>
+                  <p className="text-sm font-medium text-muted-foreground">
+                    {clientSearch.trim() ? 'Nenhum cliente encontrado' : 'Nenhum cliente ativo'}
+                  </p>
+                  <p className="text-xs text-muted-foreground/70 mt-1 max-w-xs">
+                    {clientSearch.trim()
+                      ? 'Tente buscar por outro nome.'
+                      : 'Leads com status "Contrato Assinado" ou "Em Atendimento" aparecem aqui.'}
+                  </p>
+                </div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-xs">
+                    <thead>
+                      <tr className="border-b border-border/60 bg-muted/30">
+                        <th className="text-left px-4 py-2.5 font-medium text-muted-foreground">Nome</th>
+                        <th className="text-left px-4 py-2.5 font-medium text-muted-foreground hidden md:table-cell">CPF/CNPJ</th>
+                        <th className="text-left px-4 py-2.5 font-medium text-muted-foreground hidden sm:table-cell">Telefone</th>
+                        <th className="text-left px-4 py-2.5 font-medium text-muted-foreground hidden lg:table-cell">Email</th>
+                        <th className="text-left px-4 py-2.5 font-medium text-muted-foreground">Status</th>
+                        <th className="text-left px-4 py-2.5 font-medium text-muted-foreground hidden sm:table-cell">Data de Cadastro</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {clients.map(client => (
+                        <tr
+                          key={client.id}
+                          className="border-b border-border/40 hover:bg-muted/40 cursor-pointer transition-colors"
+                          onClick={() => navigate(`/crm/lead/${client.id}`)}
+                        >
+                          <td className="px-4 py-2.5 font-medium text-foreground">
+                            {client.nome_completo ?? client.nome ?? '—'}
+                          </td>
+                          <td className="px-4 py-2.5 text-muted-foreground hidden md:table-cell tabular-nums">
+                            {client.cpf_cnpj ?? '—'}
+                          </td>
+                          <td className="px-4 py-2.5 text-muted-foreground hidden sm:table-cell tabular-nums">
+                            {client.telefone ?? '—'}
+                          </td>
+                          <td className="px-4 py-2.5 text-muted-foreground hidden lg:table-cell truncate max-w-[200px]">
+                            {client.email ?? '—'}
+                          </td>
+                          <td className="px-4 py-2.5">
+                            <Badge
+                              variant="outline"
+                              className={`text-[10px] font-medium ${
+                                client.status === 'contrato_assinado'
+                                  ? 'border-emerald-300 text-emerald-700 bg-emerald-50 dark:border-emerald-700 dark:text-emerald-300 dark:bg-emerald-900/30'
+                                  : 'border-cyan-300 text-cyan-700 bg-cyan-50 dark:border-cyan-700 dark:text-cyan-300 dark:bg-cyan-900/30'
+                              }`}
+                            >
+                              {STATUS_LABEL[client.status ?? ''] ?? client.status}
+                            </Badge>
+                          </td>
+                          <td className="px-4 py-2.5 text-muted-foreground hidden sm:table-cell tabular-nums">
+                            {fmtDate(client.created_at)}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+      </Tabs>
 
       <Sheet open={followUpsOpen} onOpenChange={setFollowUpsOpen}>
         <SheetContent side="right" className="w-full sm:max-w-xl p-0">

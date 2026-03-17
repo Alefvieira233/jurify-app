@@ -1,11 +1,13 @@
-import { useState } from 'react';
-import { Plus, Search, Clock, AlertCircle, RefreshCw, Edit, Trash2, CheckCircle, List, CalendarDays } from 'lucide-react';
+import { useState, lazy, Suspense } from 'react';
+import { Plus, Search, Clock, AlertCircle, RefreshCw, Edit, Trash2, CheckCircle, List, CalendarDays, PieChart } from 'lucide-react';
+import { useSearchParams } from 'react-router-dom';
 import { useDebounce } from '@/hooks/useDebounce';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { usePrazosProcessuais } from '@/hooks/usePrazosProcessuais';
 import type { PrazoProcessual } from '@/hooks/usePrazosProcessuais';
@@ -22,6 +24,8 @@ import NovoPrazoForm from './components/NovoPrazoForm';
 import { PrazosCalendario } from './components/PrazosCalendario';
 import type { PrazoFormData } from '@/schemas/prazoSchema';
 
+const PrazosDashboard = lazy(() => import('./PrazosDashboard'));
+
 const log = createLogger('PrazosManager');
 
 const TIPO_LABELS: Record<string, string> = {
@@ -37,6 +41,15 @@ const TIPO_LABELS: Record<string, string> = {
 
 const PrazosManager = () => {
   usePageTitle('Prazos Processuais');
+  const [searchParams, setSearchParams] = useSearchParams();
+  const activeTab = searchParams.get('tab') === 'painel' ? 'painel' : 'lista';
+  const handleTabChange = (tab: string) => {
+    if (tab === 'painel') {
+      setSearchParams({ tab: 'painel' }, { replace: true });
+    } else {
+      setSearchParams({}, { replace: true });
+    }
+  };
   const [view, setView] = useState<'lista' | 'calendario'>('lista');
   const [searchTerm, setSearchTerm] = useState('');
   const debouncedSearch = useDebounce(searchTerm, 300);
@@ -180,24 +193,26 @@ const PrazosManager = () => {
               </p>
             </div>
             <div className="flex items-center gap-2">
-              <div className="flex border rounded-md">
-                <Button
-                  size="sm"
-                  variant={view === 'lista' ? 'default' : 'ghost'}
-                  onClick={() => setView('lista')}
-                  title="Visualizar como lista"
-                >
-                  <List className="w-4 h-4" />
-                </Button>
-                <Button
-                  size="sm"
-                  variant={view === 'calendario' ? 'default' : 'ghost'}
-                  onClick={() => setView('calendario')}
-                  title="Visualizar como calendário"
-                >
-                  <CalendarDays className="w-4 h-4" />
-                </Button>
-              </div>
+              {activeTab === 'lista' && (
+                <div className="flex border rounded-md">
+                  <Button
+                    size="sm"
+                    variant={view === 'lista' ? 'default' : 'ghost'}
+                    onClick={() => setView('lista')}
+                    title="Visualizar como lista"
+                  >
+                    <List className="w-4 h-4" />
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant={view === 'calendario' ? 'default' : 'ghost'}
+                    onClick={() => setView('calendario')}
+                    title="Visualizar como calendário"
+                  >
+                    <CalendarDays className="w-4 h-4" />
+                  </Button>
+                </div>
+              )}
               {can('prazos', 'create') && (
                 <Button onClick={() => { setSelectedPrazo(null); setIsFormOpen(true); }}>
                   <Plus className="w-4 h-4 mr-2" />
@@ -208,6 +223,25 @@ const PrazosManager = () => {
           </div>
         </CardHeader>
       </Card>
+
+      {/* Tabs: Lista | Painel */}
+      <Tabs value={activeTab} onValueChange={handleTabChange}>
+        <TabsList className="grid w-full grid-cols-2">
+          <TabsTrigger value="lista" className="flex items-center gap-1.5">
+            <List className="w-3.5 h-3.5" /> Lista
+          </TabsTrigger>
+          <TabsTrigger value="painel" className="flex items-center gap-1.5">
+            <PieChart className="w-3.5 h-3.5" /> Painel
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="painel" className="mt-4">
+          <Suspense fallback={<Skeleton className="h-96 w-full rounded-xl" />}>
+            <PrazosDashboard />
+          </Suspense>
+        </TabsContent>
+
+        <TabsContent value="lista" className="mt-4 space-y-6">
 
       {view === 'calendario' && tenantId ? (
         <PrazosCalendario tenantId={tenantId} />
@@ -344,6 +378,8 @@ const PrazosManager = () => {
       />
       </>
       )}
+        </TabsContent>
+      </Tabs>
 
       <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
         <DialogContent className="max-w-lg">

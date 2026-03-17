@@ -80,6 +80,24 @@ export function relativeTime(iso: string | null): string {
   return new Date(iso).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
 }
 
+/* ── Pipeline stages ── */
+
+const ETAPA_MAP: Record<string, string> = {
+  novo_lead: 'Novo Lead',
+  em_qualificacao: 'Em Qualificação',
+  proposta_enviada: 'Proposta Enviada',
+  contrato_assinado: 'Contrato Assinado',
+  em_atendimento: 'Em Atendimento',
+  lead_perdido: 'Lead Perdido',
+  ativo: 'Ativo',
+  inativo: 'Inativo',
+  convertido: 'Convertido',
+};
+
+/** Formats a pipeline stage key into a human-readable label. */
+export const formatarEtapaPipeline = (etapa: string): string =>
+  ETAPA_MAP[etapa] ?? etapa.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+
 /* ── Strings ── */
 
 /** Truncates text to length, appending "…" if needed. */

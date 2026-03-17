@@ -1,10 +1,24 @@
-import { useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Clock, AlertTriangle, CheckCircle, XCircle, ArrowRight, Calendar } from 'lucide-react';
+import { useMemo, useState } from 'react';
+import { Clock, AlertTriangle, CheckCircle, XCircle, Calendar, Filter } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
 import { usePrazosProcessuais } from '@/hooks/usePrazosProcessuais';
 import { usePageTitle } from '@/hooks/usePageTitle';
 
@@ -31,17 +45,53 @@ function badgeDias(dias: number) {
   return <Badge variant="outline">{new Date(Date.now() + dias * 86400000).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' })}</Badge>;
 }
 
-const PrazosDashboard = () => {
-  usePageTitle('Painel de Prazos');
-  const navigate = useNavigate();
+function badgeDiasRestantes(dias: number) {
+  if (dias < 0) return <Badge className="bg-gray-500/15 text-gray-500 border-gray-300">Vencido</Badge>;
+  if (dias < 3) return <Badge className="bg-red-500/15 text-red-600 border-red-200">{dias}d</Badge>;
+  if (dias <= 7) return <Badge className="bg-yellow-500/15 text-yellow-600 border-yellow-200">{dias}d</Badge>;
+  return <Badge className="bg-emerald-500/15 text-emerald-600 border-emerald-200">{dias}d</Badge>;
+}
 
-  const { prazos, loading } = usePrazosProcessuais();
+function badgeStatus(status: string) {
+  switch (status) {
+    case 'pendente':
+      return <Badge variant="outline" className="text-blue-600 border-blue-300">Pendente</Badge>;
+    case 'cumprido':
+      return <Badge className="bg-emerald-500/15 text-emerald-600 border-emerald-200">Cumprido</Badge>;
+    case 'cancelado':
+      return <Badge className="bg-gray-500/15 text-gray-500 border-gray-300">Cancelado</Badge>;
+    default:
+      return <Badge variant="outline">{status}</Badge>;
+  }
+}
+
+const PrazosDashboard = () => {
+  usePageTitle('Prazos Processuais');
+
+  const { prazos, loading, updatePrazo } = usePrazosProcessuais();
+
+  const [filtroTipo, setFiltroTipo] = useState<string>('todos');
+
+  // Derive unique tipos from data for the filter dropdown
+  const tiposDisponiveis = useMemo(() => {
+    const tipos = new Set<string>();
+    prazos.forEach(p => {
+      if (p.tipo) tipos.add(p.tipo);
+    });
+    return Array.from(tipos).sort();
+  }, [prazos]);
+
+  // Filtered prazos based on selected tipo
+  const prazosFiltrados = useMemo(() => {
+    if (filtroTipo === 'todos') return prazos;
+    return prazos.filter(p => p.tipo === filtroTipo);
+  }, [prazos, filtroTipo]);
 
   const stats = useMemo(() => {
-    const pendentes = prazos.filter(p => p.status === 'pendente');
+    const pendentes = prazosFiltrados.filter(p => p.status === 'pendente');
     const vencidos  = pendentes.filter(p => diasAte(p.data_prazo) < 0);
     const urgentes  = pendentes.filter(p => { const d = diasAte(p.data_prazo); return d >= 0 && d <= 7; });
-    const cumpridos = prazos.filter(p => p.status === 'cumprido');
+    const cumpridos = prazosFiltrados.filter(p => p.status === 'cumprido');
 
     const porTipo = Object.entries(
       pendentes.reduce<Record<string, number>>((acc, p) => {
@@ -57,11 +107,28 @@ const PrazosDashboard = () => {
       .slice(0, 10);
 
     return { pendentes: pendentes.length, vencidos: vencidos.length, urgentes: urgentes.length, cumpridos: cumpridos.length, porTipo, proximos };
-  }, [prazos]);
+  }, [prazosFiltrados]);
+
+  // Prazos criticos: all prazos with vencimento within 15 days, sorted ASC
+  const prazosCriticos = useMemo(() => {
+    return prazosFiltrados
+      .filter(p => {
+        const dias = diasAte(p.data_prazo);
+        return dias <= 15;
+      })
+      .sort((a, b) => new Date(a.data_prazo).getTime() - new Date(b.data_prazo).getTime());
+  }, [prazosFiltrados]);
+
+  const handleMarcarCumprido = (id: string) => {
+    void updatePrazo(id, {
+      status: 'cumprido',
+      data_cumprimento: new Date().toISOString(),
+    });
+  };
 
   if (loading) {
     return (
-      <div className="p-6 space-y-6">
+      <div className="space-y-6">
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
           {[1,2,3,4].map(i => <Skeleton key={i} className="h-28 w-full rounded-xl" />)}
         </div>
@@ -69,25 +136,38 @@ const PrazosDashboard = () => {
           <Skeleton className="h-64 w-full rounded-xl" />
           <Skeleton className="h-64 w-full rounded-xl" />
         </div>
+        <Skeleton className="h-64 w-full rounded-xl" />
       </div>
     );
   }
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
-          <h1 className="text-xl font-bold text-foreground flex items-center gap-2">
+          <h1 className="text-lg font-bold text-foreground flex items-center gap-2">
             <Calendar className="h-5 w-5 text-primary" />
-            Painel de Prazos
+            Painel Analítico
           </h1>
           <p className="text-sm text-muted-foreground mt-0.5">Visão analítica dos prazos processuais</p>
         </div>
-        <Button size="sm" variant="outline" onClick={() => navigate('/prazos')}>
-          Gerenciar prazos
-          <ArrowRight className="h-4 w-4 ml-1.5" />
-        </Button>
+        <div className="flex items-center gap-2">
+          <Filter className="h-4 w-4 text-muted-foreground" />
+          <Select value={filtroTipo} onValueChange={setFiltroTipo}>
+            <SelectTrigger className="w-[180px] h-9 text-sm">
+              <SelectValue placeholder="Filtrar por tipo" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="todos">Todos os tipos</SelectItem>
+              {tiposDisponiveis.map(tipo => (
+                <SelectItem key={tipo} value={tipo}>
+                  {TIPO_LABELS[tipo] ?? tipo}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
       </div>
 
       {/* Stat cards */}
@@ -132,6 +212,84 @@ const PrazosDashboard = () => {
           </CardContent>
         </Card>
       </div>
+
+      {/* Prazos Criticos table */}
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-sm font-semibold flex items-center gap-2">
+            <AlertTriangle className="h-4 w-4 text-amber-500" />
+            Prazos Críticos
+            {prazosCriticos.length > 0 && (
+              <Badge variant="secondary" className="ml-1 text-xs">{prazosCriticos.length}</Badge>
+            )}
+          </CardTitle>
+          <p className="text-xs text-muted-foreground">Prazos com vencimento nos próximos 15 dias</p>
+        </CardHeader>
+        <CardContent>
+          {prazosCriticos.length === 0 ? (
+            <div className="flex items-center gap-2 text-emerald-600 text-sm py-4">
+              <CheckCircle className="h-4 w-4" />
+              Nenhum prazo crítico nos próximos 15 dias.
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="text-xs">Descrição</TableHead>
+                    <TableHead className="text-xs">Tipo</TableHead>
+                    <TableHead className="text-xs">Vencimento</TableHead>
+                    <TableHead className="text-xs text-center">Dias Restantes</TableHead>
+                    <TableHead className="text-xs text-center">Status</TableHead>
+                    <TableHead className="text-xs text-right">Ação</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {prazosCriticos.map(prazo => {
+                    const dias = diasAte(prazo.data_prazo);
+                    const isCumprido = prazo.status === 'cumprido';
+                    return (
+                      <TableRow key={prazo.id}>
+                        <TableCell className="text-sm font-medium max-w-[250px] truncate">
+                          {prazo.descricao}
+                        </TableCell>
+                        <TableCell className="text-sm text-muted-foreground">
+                          {TIPO_LABELS[prazo.tipo] ?? prazo.tipo}
+                        </TableCell>
+                        <TableCell className="text-sm text-muted-foreground whitespace-nowrap">
+                          {new Date(prazo.data_prazo).toLocaleDateString('pt-BR', {
+                            day: '2-digit',
+                            month: '2-digit',
+                            year: 'numeric',
+                          })}
+                        </TableCell>
+                        <TableCell className="text-center">
+                          {badgeDiasRestantes(dias)}
+                        </TableCell>
+                        <TableCell className="text-center">
+                          {badgeStatus(prazo.status)}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="h-7 text-xs text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 dark:hover:bg-emerald-950"
+                            disabled={isCumprido}
+                            onClick={() => handleMarcarCumprido(prazo.id)}
+                          >
+                            <CheckCircle className="h-3.5 w-3.5 mr-1" />
+                            {isCumprido ? 'Cumprido' : 'Marcar cumprido'}
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
       {/* Lower section */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

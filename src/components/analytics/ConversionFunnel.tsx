@@ -49,7 +49,7 @@ export const ConversionFunnel = ({ data }: ConversionFunnelProps) => {
   const stepRates = stages.map((s, i) => {
     if (i === 0) return 100;
     const prev = stages[i - 1]?.value ?? 0;
-    return prev > 0 ? Math.round((s.value / prev) * 100) : 0;
+    return prev > 0 ? Math.min(Math.round((s.value / prev) * 100), 100) : 0;
   });
 
   return (

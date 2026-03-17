@@ -1,6 +1,6 @@
 
 import { useState, useEffect, useMemo } from 'react';
-import { Users, FileText, Calendar, Bot, TrendingUp, Clock, CheckCircle, AlertTriangle, Sparkles, ArrowUpRight, BarChart3, Activity, CalendarCheck, CalendarDays, UserCheck, Hourglass, Plus, MessageSquare } from 'lucide-react';
+import { Users, FileText, Calendar, Bot, TrendingUp, Clock, CheckCircle, AlertTriangle, Sparkles, ArrowUpRight, BarChart3, Activity, CalendarCheck, CalendarDays, UserCheck, Hourglass, Plus, MessageSquare, Bell, ExternalLink, UserX, FileSignature } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -10,6 +10,10 @@ import { useToast } from '@/hooks/use-toast';
 import { useAgendaMetrics } from '@/hooks/useAgendaMetrics';
 import { useAuth } from '@/contexts/AuthContext';
 import { useSearchParams, useNavigate } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
+import { supabaseUntyped } from '@/integrations/supabase/client';
+import { formatDistanceToNow, format, startOfDay, endOfDay, addDays } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
 import { createLogger } from '@/lib/logger';
 import { usePageTitle } from '@/hooks/usePageTitle';
 import PrazosUrgentesWidget from '@/features/dashboard/components/PrazosUrgentesWidget';
@@ -45,6 +49,127 @@ const Dashboard = () => {
       setSearchParams({}, { replace: true });
     }
   }, [searchParams, setSearchParams, toast]);
+
+  // ── New queries for activity & alerts sections ──
+  const tenantId = profile?.tenant_id;
+
+  const { data: recentLeads = [] } = useQuery({
+    queryKey: ['dashboard-recent-leads', tenantId],
+    queryFn: async () => {
+      const { data } = await supabaseUntyped
+        .from('leads')
+        .select('id, nome, nome_completo, origem, status, created_at')
+        .eq('tenant_id', tenantId!)
+        .order('created_at', { ascending: false })
+        .limit(5);
+      return (data ?? []) as Array<{
+        id: string;
+        nome: string | null;
+        nome_completo: string | null;
+        origem: string | null;
+        status: string | null;
+        created_at: string;
+      }>;
+    },
+    enabled: !!tenantId && !isEmpty,
+    staleTime: 60_000,
+  });
+
+  const { data: upcomingAgendamentos = [] } = useQuery({
+    queryKey: ['dashboard-upcoming-agendamentos', tenantId],
+    queryFn: async () => {
+      const now = new Date();
+      const weekEnd = addDays(now, 7);
+      const { data } = await supabaseUntyped
+        .from('agendamentos')
+        .select('id, data_hora, area_juridica, responsavel, status')
+        .eq('tenant_id', tenantId!)
+        .gte('data_hora', now.toISOString())
+        .lte('data_hora', weekEnd.toISOString())
+        .order('data_hora', { ascending: true })
+        .limit(3);
+      return (data ?? []) as Array<{
+        id: string;
+        data_hora: string;
+        area_juridica: string | null;
+        responsavel: string | null;
+        status: string | null;
+      }>;
+    },
+    enabled: !!tenantId && !isEmpty,
+    staleTime: 60_000,
+  });
+
+  const { data: staleLeads = [] } = useQuery({
+    queryKey: ['dashboard-stale-leads', tenantId],
+    queryFn: async () => {
+      const threshold = addDays(new Date(), -7).toISOString();
+      const { data } = await supabaseUntyped
+        .from('leads')
+        .select('id, nome, nome_completo, last_activity_at, created_at')
+        .eq('tenant_id', tenantId!)
+        .in('status', ['novo_lead', 'em_qualificacao'])
+        .or(`last_activity_at.lt.${threshold},last_activity_at.is.null`)
+        .order('last_activity_at', { ascending: true, nullsFirst: true })
+        .limit(5);
+      return (data ?? []) as Array<{
+        id: string;
+        nome: string | null;
+        nome_completo: string | null;
+        last_activity_at: string | null;
+        created_at: string;
+      }>;
+    },
+    enabled: !!tenantId && !isEmpty,
+    staleTime: 120_000,
+  });
+
+  const { data: pendingContratos = [] } = useQuery({
+    queryKey: ['dashboard-pending-contratos', tenantId],
+    queryFn: async () => {
+      const { data } = await supabaseUntyped
+        .from('contratos')
+        .select('id, titulo, status, created_at')
+        .eq('tenant_id', tenantId!)
+        .in('status', ['pendente', 'enviado'])
+        .order('created_at', { ascending: false })
+        .limit(5);
+      return (data ?? []) as Array<{
+        id: string;
+        titulo: string | null;
+        status: string | null;
+        created_at: string;
+      }>;
+    },
+    enabled: !!tenantId && !isEmpty,
+    staleTime: 120_000,
+  });
+
+  const { data: todayPrazos = [] } = useQuery({
+    queryKey: ['dashboard-today-prazos', tenantId],
+    queryFn: async () => {
+      const now = new Date();
+      const { data } = await supabaseUntyped
+        .from('prazos_processuais')
+        .select('id, descricao, tipo, data_prazo')
+        .eq('tenant_id', tenantId!)
+        .eq('status', 'pendente')
+        .gte('data_prazo', startOfDay(now).toISOString())
+        .lte('data_prazo', endOfDay(addDays(now, 1)).toISOString())
+        .order('data_prazo', { ascending: true })
+        .limit(5);
+      return (data ?? []) as Array<{
+        id: string;
+        descricao: string;
+        tipo: string;
+        data_prazo: string;
+      }>;
+    },
+    enabled: !!tenantId && !isEmpty,
+    staleTime: 120_000,
+  });
+
+  const totalAlerts = todayPrazos.length + staleLeads.length + pendingContratos.length;
 
   // Memoized derived data — avoid recomputing on every render
   const leadsPorStatusEntries = useMemo(() => Object.entries(metrics.leadsPorStatus), [metrics.leadsPorStatus]);
@@ -500,6 +625,318 @@ const Dashboard = () => {
           </CardContent>
         </Card>
       </div>
+
+      {/* ── Atividade Recente (2 columns) ── */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 fade-in" style={{ animationDelay: '0.33s' }}>
+
+        {/* Últimos Leads */}
+        <Card className="border-border bg-card shadow-sm">
+          <CardHeader className="pb-3">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
+                <Users className="h-4 w-4 text-blue-600 dark:text-blue-400" strokeWidth={2} />
+              </div>
+              <div className="flex-1 min-w-0">
+                <CardTitle className="text-base font-semibold">Últimos Leads</CardTitle>
+                <CardDescription>Leads mais recentes do escritório</CardDescription>
+              </div>
+              <Button
+                size="sm"
+                variant="ghost"
+                className="h-7 text-xs gap-1 text-muted-foreground hover:text-foreground"
+                onClick={() => navigate('/pipeline')}
+              >
+                Ver todos <ExternalLink className="h-3 w-3" />
+              </Button>
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-1.5">
+            {recentLeads.length === 0 ? (
+              <p className="text-xs text-muted-foreground text-center py-4">Nenhum lead cadastrado ainda</p>
+            ) : (
+              recentLeads.map((lead) => {
+                const statusLabels: Record<string, string> = {
+                  novo_lead: 'Novo', em_qualificacao: 'Qualificação',
+                  proposta_enviada: 'Proposta', contrato_assinado: 'Assinado',
+                  em_atendimento: 'Atendimento', lead_perdido: 'Perdido',
+                };
+                const statusColors: Record<string, string> = {
+                  novo_lead: 'bg-blue-500/15 text-blue-600',
+                  em_qualificacao: 'bg-yellow-500/15 text-yellow-600',
+                  proposta_enviada: 'bg-purple-500/15 text-purple-600',
+                  contrato_assinado: 'bg-green-500/15 text-green-600',
+                  em_atendimento: 'bg-teal-500/15 text-teal-600',
+                  lead_perdido: 'bg-red-500/15 text-red-600',
+                };
+                const displayName = lead.nome_completo || lead.nome || 'Sem nome';
+                return (
+                  <div
+                    key={lead.id}
+                    className="flex items-center justify-between p-2.5 rounded-lg bg-muted/40 hover:bg-muted/70 transition-colors cursor-pointer"
+                    onClick={() => navigate(`/crm/lead/${lead.id}`)}
+                    role="button"
+                    tabIndex={0}
+                    onKeyDown={(e) => { if (e.key === 'Enter') navigate(`/crm/lead/${lead.id}`); }}
+                  >
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-foreground truncate">{displayName}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {lead.origem ?? 'Sem origem'} · {formatDistanceToNow(new Date(lead.created_at), { addSuffix: true, locale: ptBR })}
+                      </p>
+                    </div>
+                    <Badge className={statusColors[lead.status ?? ''] ?? 'bg-muted text-muted-foreground'}>
+                      {statusLabels[lead.status ?? ''] ?? lead.status ?? '—'}
+                    </Badge>
+                  </div>
+                );
+              })
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Próximos Agendamentos */}
+        <Card className="border-border bg-card shadow-sm">
+          <CardHeader className="pb-3">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-amber-50 dark:bg-amber-900/20 rounded-lg">
+                <CalendarCheck className="h-4 w-4 text-amber-600 dark:text-amber-400" strokeWidth={2} />
+              </div>
+              <div className="flex-1 min-w-0">
+                <CardTitle className="text-base font-semibold">Próximos Agendamentos</CardTitle>
+                <CardDescription>Eventos desta semana</CardDescription>
+              </div>
+              <Button
+                size="sm"
+                variant="ghost"
+                className="h-7 text-xs gap-1 text-muted-foreground hover:text-foreground"
+                onClick={() => navigate('/agendamentos')}
+              >
+                Ver todos <ExternalLink className="h-3 w-3" />
+              </Button>
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-1.5">
+            {upcomingAgendamentos.length === 0 ? (
+              <p className="text-xs text-muted-foreground text-center py-4">Nenhum agendamento previsto para os próximos dias</p>
+            ) : (
+              upcomingAgendamentos.map((ag) => {
+                const agDate = new Date(ag.data_hora);
+                const isToday = startOfDay(agDate).getTime() === startOfDay(new Date()).getTime();
+                return (
+                  <div
+                    key={ag.id}
+                    className="flex items-center justify-between p-2.5 rounded-lg bg-muted/40 hover:bg-muted/70 transition-colors cursor-pointer"
+                    onClick={() => navigate('/agendamentos')}
+                    role="button"
+                    tabIndex={0}
+                    onKeyDown={(e) => { if (e.key === 'Enter') navigate('/agendamentos'); }}
+                  >
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-foreground truncate">
+                        {ag.area_juridica ?? 'Consulta'}
+                        {ag.responsavel ? ` — ${ag.responsavel}` : ''}
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        {format(agDate, "dd/MM 'às' HH:mm", { locale: ptBR })}
+                        {' · '}
+                        {formatDistanceToNow(agDate, { addSuffix: true, locale: ptBR })}
+                      </p>
+                    </div>
+                    {isToday && (
+                      <Badge className="bg-amber-500/15 text-amber-600">Hoje</Badge>
+                    )}
+                  </div>
+                );
+              })
+            )}
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* ── Mini Pipeline Visual ── */}
+      <Card className="border-border bg-card shadow-sm fade-in" style={{ animationDelay: '0.36s' }}>
+        <CardHeader className="pb-3">
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-primary/8 dark:bg-primary/20 rounded-lg">
+              <TrendingUp className="h-4 w-4 text-primary" strokeWidth={2} />
+            </div>
+            <div className="flex-1 min-w-0">
+              <CardTitle className="text-base font-semibold">Funil de Conversão</CardTitle>
+              <CardDescription>Distribuição visual dos leads no pipeline</CardDescription>
+            </div>
+            <Button
+              size="sm"
+              variant="ghost"
+              className="h-7 text-xs gap-1 text-muted-foreground hover:text-foreground"
+              onClick={() => navigate('/pipeline')}
+            >
+              Abrir pipeline <ExternalLink className="h-3 w-3" />
+            </Button>
+          </div>
+        </CardHeader>
+        <CardContent>
+          {metrics.totalLeads === 0 ? (
+            <p className="text-xs text-muted-foreground text-center py-4">Nenhum lead no pipeline ainda</p>
+          ) : (
+            <>
+              {/* Compact funnel bar */}
+              <div
+                className="flex h-8 rounded-lg overflow-hidden cursor-pointer"
+                onClick={() => navigate('/pipeline')}
+                role="button"
+                tabIndex={0}
+                onKeyDown={(e) => { if (e.key === 'Enter') navigate('/pipeline'); }}
+              >
+                {(() => {
+                  const stages = [
+                    { key: 'novo_lead', label: 'Novos', color: 'bg-blue-500' },
+                    { key: 'em_qualificacao', label: 'Qualificação', color: 'bg-yellow-500' },
+                    { key: 'proposta_enviada', label: 'Proposta', color: 'bg-purple-500' },
+                    { key: 'contrato_assinado', label: 'Assinado', color: 'bg-green-500' },
+                    { key: 'em_atendimento', label: 'Atendimento', color: 'bg-teal-500' },
+                    { key: 'lead_perdido', label: 'Perdido', color: 'bg-red-500' },
+                  ];
+                  return stages
+                    .filter((s) => (metrics.leadsPorStatus[s.key as keyof typeof metrics.leadsPorStatus] ?? 0) > 0)
+                    .map((s) => {
+                      const count = metrics.leadsPorStatus[s.key as keyof typeof metrics.leadsPorStatus] ?? 0;
+                      const pct = (count / metrics.totalLeads) * 100;
+                      return (
+                        <div
+                          key={s.key}
+                          className={`${s.color} flex items-center justify-center min-w-[2rem] transition-all duration-500`}
+                          style={{ width: `${pct}%` }}
+                          title={`${s.label}: ${count} (${pct.toFixed(0)}%)`}
+                        >
+                          {pct >= 10 && (
+                            <span className="text-[10px] font-semibold text-white truncate px-1">
+                              {count}
+                            </span>
+                          )}
+                        </div>
+                      );
+                    });
+                })()}
+              </div>
+
+              {/* Legend */}
+              <div className="flex flex-wrap gap-x-4 gap-y-1 mt-3">
+                {[
+                  { key: 'novo_lead', label: 'Novos', color: 'bg-blue-500' },
+                  { key: 'em_qualificacao', label: 'Qualificação', color: 'bg-yellow-500' },
+                  { key: 'proposta_enviada', label: 'Proposta', color: 'bg-purple-500' },
+                  { key: 'contrato_assinado', label: 'Assinado', color: 'bg-green-500' },
+                  { key: 'em_atendimento', label: 'Atendimento', color: 'bg-teal-500' },
+                  { key: 'lead_perdido', label: 'Perdido', color: 'bg-red-500' },
+                ].filter((s) => (metrics.leadsPorStatus[s.key as keyof typeof metrics.leadsPorStatus] ?? 0) > 0)
+                  .map((s) => (
+                    <div key={s.key} className="flex items-center gap-1.5">
+                      <span className={`w-2.5 h-2.5 rounded-sm ${s.color}`} />
+                      <span className="text-[11px] text-muted-foreground">{s.label}</span>
+                    </div>
+                  ))}
+              </div>
+            </>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* ── Alertas Inteligentes ── */}
+      {totalAlerts > 0 && (
+        <Card className="border-amber-200 dark:border-amber-800 bg-card shadow-sm fade-in" style={{ animationDelay: '0.38s' }}>
+          <CardHeader className="pb-3">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-amber-50 dark:bg-amber-900/20 rounded-lg">
+                <Bell className="h-4 w-4 text-amber-600 dark:text-amber-400" strokeWidth={2} />
+              </div>
+              <div className="flex-1 min-w-0">
+                <CardTitle className="text-base font-semibold">Alertas Inteligentes</CardTitle>
+                <CardDescription>Itens que precisam de atenção</CardDescription>
+              </div>
+              <Badge variant="destructive">{totalAlerts}</Badge>
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-1.5">
+            {/* Prazos vencendo hoje/amanhã */}
+            {todayPrazos.map((prazo) => {
+              const dias = Math.ceil((new Date(prazo.data_prazo).getTime() - Date.now()) / (1000 * 60 * 60 * 24));
+              return (
+                <div
+                  key={`prazo-${prazo.id}`}
+                  className="flex items-center gap-3 p-2.5 rounded-lg bg-red-500/5 hover:bg-red-500/10 transition-colors cursor-pointer"
+                  onClick={() => navigate('/prazos')}
+                  role="button"
+                  tabIndex={0}
+                  onKeyDown={(e) => { if (e.key === 'Enter') navigate('/prazos'); }}
+                >
+                  <div className="p-1.5 bg-red-500/10 rounded-md flex-shrink-0">
+                    <Clock className="h-3.5 w-3.5 text-red-500" strokeWidth={2} />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-foreground truncate">{prazo.descricao}</p>
+                    <p className="text-xs text-muted-foreground">{prazo.tipo} · {dias <= 0 ? 'Vence hoje' : 'Vence amanhã'}</p>
+                  </div>
+                  <Badge className="bg-red-500/15 text-red-600 flex-shrink-0">{dias <= 0 ? 'Hoje' : 'Amanhã'}</Badge>
+                </div>
+              );
+            })}
+
+            {/* Leads sem contato */}
+            {staleLeads.map((lead) => {
+              const displayName = lead.nome_completo || lead.nome || 'Sem nome';
+              const lastDate = lead.last_activity_at || lead.created_at;
+              return (
+                <div
+                  key={`stale-${lead.id}`}
+                  className="flex items-center gap-3 p-2.5 rounded-lg bg-orange-500/5 hover:bg-orange-500/10 transition-colors cursor-pointer"
+                  onClick={() => navigate(`/crm/lead/${lead.id}`)}
+                  role="button"
+                  tabIndex={0}
+                  onKeyDown={(e) => { if (e.key === 'Enter') navigate(`/crm/lead/${lead.id}`); }}
+                >
+                  <div className="p-1.5 bg-orange-500/10 rounded-md flex-shrink-0">
+                    <UserX className="h-3.5 w-3.5 text-orange-500" strokeWidth={2} />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-foreground truncate">{displayName}</p>
+                    <p className="text-xs text-muted-foreground">
+                      Sem contato {formatDistanceToNow(new Date(lastDate), { addSuffix: false, locale: ptBR })}
+                    </p>
+                  </div>
+                  <Badge className="bg-orange-500/15 text-orange-600 flex-shrink-0">Sem contato</Badge>
+                </div>
+              );
+            })}
+
+            {/* Contratos pendentes */}
+            {pendingContratos.map((contrato) => (
+              <div
+                key={`contrato-${contrato.id}`}
+                className="flex items-center gap-3 p-2.5 rounded-lg bg-violet-500/5 hover:bg-violet-500/10 transition-colors cursor-pointer"
+                onClick={() => navigate('/contratos')}
+                role="button"
+                tabIndex={0}
+                onKeyDown={(e) => { if (e.key === 'Enter') navigate('/contratos'); }}
+              >
+                <div className="p-1.5 bg-violet-500/10 rounded-md flex-shrink-0">
+                  <FileSignature className="h-3.5 w-3.5 text-violet-500" strokeWidth={2} />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-foreground truncate">{contrato.titulo ?? 'Contrato sem título'}</p>
+                  <p className="text-xs text-muted-foreground">
+                    {contrato.status === 'enviado' ? 'Enviado, aguardando assinatura' : 'Pendente de envio'}
+                    {' · '}
+                    {formatDistanceToNow(new Date(contrato.created_at), { addSuffix: true, locale: ptBR })}
+                  </p>
+                </div>
+                <Badge className="bg-violet-500/15 text-violet-600 flex-shrink-0">
+                  {contrato.status === 'enviado' ? 'Aguardando' : 'Pendente'}
+                </Badge>
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+      )}
 
       {/* ── Prazos Urgentes ── */}
       <PrazosUrgentesWidget />

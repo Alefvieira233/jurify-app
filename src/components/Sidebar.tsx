@@ -21,12 +21,9 @@ import {
   Search,
   HelpCircle,
   ChevronRight,
-  ArrowUpRight,
   Clock,
   DollarSign,
-  FolderOpen,
   Gavel,
-  PieChart,
   ShieldCheck,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -68,15 +65,15 @@ const ALL_MENU_ITEMS: MenuItem[] = [
   { id: 'contratos',             label: 'Contratos',        icon: FileText,        resource: 'contratos',     action: 'read', group: 'main' },
   { id: 'processos',             label: 'Processos',        icon: Gavel,           resource: 'processos',     action: 'read', group: 'main' },
   { id: 'prazos',                label: 'Prazos',           icon: Clock,           resource: 'prazos',        action: 'read', group: 'main', badge: 'notification' },
-  { id: 'crm',                   label: 'Clientes',         icon: Users,           resource: 'leads',         action: 'read', group: 'main' },
+  { id: 'crm',                   label: 'CRM',              icon: Users,           resource: 'leads',         action: 'read', group: 'main' },
   { id: 'notificacoes',          label: 'Notificações',     icon: Bell,            resource: 'notificacoes',  action: 'read', group: 'main', badge: 'notification' },
   { id: 'integracoes',           label: 'Integrações',     icon: Zap,             resource: 'integracoes',   action: 'read', group: 'main' },
   /* ── Sistema (colapsável) ── */
-  { id: 'painel-prazos',         label: 'Painel de Prazos', icon: PieChart,        resource: 'prazos',        action: 'read', group: 'sistema' },
   { id: 'auditoria',             label: 'Auditoria',        icon: ShieldCheck,     resource: 'logs',          action: 'read', group: 'sistema', managerOk: true },
   { id: 'relatorios',            label: 'Relatórios',       icon: BarChart3,       resource: 'relatorios',    action: 'read', group: 'sistema' },
   { id: 'honorarios',            label: 'Honorários',       icon: DollarSign,      resource: 'honorarios',    action: 'read', group: 'sistema', managerOk: true },
-  { id: 'documentos',            label: 'Documentos',       icon: FolderOpen,      resource: 'documentos',    action: 'read', group: 'sistema' },
+  // TODO: Documentos - implementar preview, busca e categorização
+  // { id: 'documentos',            label: 'Documentos',       icon: FolderOpen,      resource: 'documentos',    action: 'read', group: 'sistema' },
   { id: 'billing',               label: 'Assinatura',      icon: CreditCard,      resource: 'dashboard',     action: 'read', group: 'sistema', badge: 'upgrade' },
   { id: 'usuarios',              label: 'Usuários',        icon: UserCog,         resource: 'usuarios',      action: 'read', group: 'sistema', managerOk: true },
   { id: 'logs',                  label: 'Logs',            icon: Activity,        resource: 'logs',          action: 'read', group: 'sistema', adminOnly: true },
@@ -306,13 +303,11 @@ const Sidebar = ({ activeSection, onSectionChange }: SidebarProps) => {
           <button
             type="button"
             onClick={() => onSectionChange('billing')}
-            className="w-full flex items-center gap-2 px-3 py-2 rounded-md bg-amber-500/10 hover:bg-amber-500/20 active:bg-accent/80 border border-amber-400/25 transition-all duration-150 group"
+            className="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-md bg-muted/50 hover:bg-muted/80 border border-border/40 transition-all duration-150 group"
           >
-            <ArrowUpRight className="h-3.5 w-3.5 text-amber-500 flex-shrink-0 group-hover:scale-110 transition-transform" />
-            <div className="flex-1 min-w-0 text-left">
-              <p className="text-[11px] font-semibold text-amber-600 dark:text-amber-400 leading-none">Fazer upgrade</p>
-              <p className="text-[9px] text-amber-500/70 leading-none mt-0.5">Desbloquear todos os recursos</p>
-            </div>
+            <span className="text-[10px] text-muted-foreground/70 group-hover:text-muted-foreground transition-colors">
+              Plano Free · <span className="font-medium">Fazer upgrade →</span>
+            </span>
           </button>
         </div>
       )}
