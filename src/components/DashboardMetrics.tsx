@@ -48,7 +48,7 @@ const DashboardMetrics = () => {
 
   const agentesAtivos = agentes.filter(a => a.status === 'ativo').length;
 
-  const taxaConversao = totalLeads > 0 ? (leadsPorStatus.convertido / totalLeads) * 100 : 0;
+  const taxaConversao = totalLeads > 0 ? Math.min((leadsPorStatus.convertido / totalLeads) * 100, 100) : 0;
 
   return (
     <div className="space-y-6">

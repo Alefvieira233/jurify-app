@@ -217,35 +217,6 @@ const ProcessosManager = () => {
     );
   }
 
-  // ── Empty ──────────────────────────────────────────────────────────────────
-  if (isEmpty) {
-    return (
-      <div className="p-6">
-        <EmptyState
-          icon={Scale}
-          title="Nenhum Processo"
-          description="Não há processos cadastrados. Adicione o primeiro processo para começar a gerenciar seus expedientes."
-          action={can('processos', 'create') ? {
-            label: 'Novo Processo',
-            onClick: () => { setSelectedProcesso(null); setIsFormOpen(true); },
-          } : undefined}
-        />
-        <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
-          <DialogContent className="w-[95vw] max-w-2xl">
-            <DialogHeader>
-              <DialogTitle>Novo Processo</DialogTitle>
-            </DialogHeader>
-            <NovoProcessoForm
-              onSubmit={handleSubmitForm}
-              onCancel={() => setIsFormOpen(false)}
-              loading={formLoading}
-            />
-          </DialogContent>
-        </Dialog>
-      </div>
-    );
-  }
-
   // ── Main ───────────────────────────────────────────────────────────────────
   return (
     <div className="p-6 space-y-6">
@@ -256,8 +227,10 @@ const ProcessosManager = () => {
             <div>
               <CardTitle className="text-2xl">Processos Jurídicos</CardTitle>
               <p className="text-muted-foreground">
-                {totalCount} processo{totalCount !== 1 ? 's' : ''}
-                {filterStatus || filterTipo || debouncedSearch ? ' (filtrados)' : ''}
+                {isEmpty ? 'Gerencie os processos e expedientes do escritório' : (
+                  <>{totalCount} processo{totalCount !== 1 ? 's' : ''}
+                  {filterStatus || filterTipo || debouncedSearch ? ' (filtrados)' : ''}</>
+                )}
               </p>
             </div>
             {can('processos', 'create') && (
@@ -318,6 +291,18 @@ const ProcessosManager = () => {
         </Card>
       </div>
 
+      {isEmpty ? (
+        <EmptyState
+          icon={Scale}
+          title="Nenhum Processo"
+          description="Não há processos cadastrados. Adicione o primeiro processo para começar a gerenciar seus expedientes."
+          action={can('processos', 'create') ? {
+            label: 'Novo Processo',
+            onClick: () => { setSelectedProcesso(null); setIsFormOpen(true); },
+          } : undefined}
+        />
+      ) : (
+      <>
       {/* Filters */}
       <Card>
         <CardContent className="p-4">
@@ -469,6 +454,8 @@ const ProcessosManager = () => {
         onNext={nextPage}
         label="processos"
       />
+      </>
+      )}
 
       {/* Form Dialog */}
       <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>

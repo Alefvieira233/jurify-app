@@ -80,6 +80,29 @@ export function relativeTime(iso: string | null): string {
   return new Date(iso).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
 }
 
+/* ── Legal Areas ── */
+
+const AREA_MAP: Record<string, string> = {
+  trabalhista: 'Trabalhista',
+  direito_consumidor: 'Direito do Consumidor',
+  direito_civil: 'Direito Civil',
+  direito_penal: 'Direito Penal',
+  direito_familia: 'Família e Sucessões',
+  direito_tributario: 'Direito Tributário',
+  direito_empresarial: 'Direito Empresarial',
+  direito_administrativo: 'Direito Administrativo',
+  direito_previdenciario: 'Direito Previdenciário',
+  direito_ambiental: 'Direito Ambiental',
+  direito_imobiliario: 'Direito Imobiliário',
+  direito_digital: 'Direito Digital',
+  propriedade_intelectual: 'Propriedade Intelectual',
+  consulta_geral: 'Consulta Geral',
+};
+
+/** Formats a legal area key into a human-readable label. */
+export const formatarAreaJuridica = (area: string): string =>
+  AREA_MAP[area] ?? area.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+
 /* ── Pipeline stages ── */
 
 const ETAPA_MAP: Record<string, string> = {

@@ -155,28 +155,6 @@ const PrazosManager = () => {
     );
   }
 
-  if (isEmpty) {
-    return (
-      <div className="p-6">
-        <EmptyState
-          icon={Clock}
-          title="Nenhum Prazo"
-          description="Não há prazos cadastrados. Adicione o primeiro prazo para controlar seus prazos processuais."
-          action={can('prazos', 'create') ? {
-            label: 'Novo Prazo',
-            onClick: () => { setSelectedPrazo(null); setIsFormOpen(true); },
-          } : undefined}
-        />
-        <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
-          <DialogContent className="max-w-lg">
-            <DialogHeader><DialogTitle>Novo Prazo</DialogTitle></DialogHeader>
-            <NovoPrazoForm onSubmit={handleSubmitForm} onCancel={() => setIsFormOpen(false)} loading={formLoading} />
-          </DialogContent>
-        </Dialog>
-      </div>
-    );
-  }
-
   return (
     <div className="p-6 space-y-6">
       {/* Header */}
@@ -186,14 +164,16 @@ const PrazosManager = () => {
             <div>
               <CardTitle className="text-2xl">Prazos Processuais</CardTitle>
               <p className="text-muted-foreground">
-                {filteredPrazos.length} prazo{filteredPrazos.length !== 1 ? 's' : ''}
-                {prazosUrgentes.length > 0 && (
-                  <span className="ml-2 text-amber-600 font-medium">• {prazosUrgentes.length} urgente{prazosUrgentes.length !== 1 ? 's' : ''}</span>
+                {isEmpty ? 'Controle seus prazos processuais' : (
+                  <>{filteredPrazos.length} prazo{filteredPrazos.length !== 1 ? 's' : ''}
+                  {prazosUrgentes.length > 0 && (
+                    <span className="ml-2 text-amber-600 font-medium">• {prazosUrgentes.length} urgente{prazosUrgentes.length !== 1 ? 's' : ''}</span>
+                  )}</>
                 )}
               </p>
             </div>
             <div className="flex items-center gap-2">
-              {activeTab === 'lista' && (
+              {activeTab === 'lista' && !isEmpty && (
                 <div className="flex border rounded-md">
                   <Button
                     size="sm"
@@ -243,6 +223,18 @@ const PrazosManager = () => {
 
         <TabsContent value="lista" className="mt-4 space-y-6">
 
+      {isEmpty ? (
+        <EmptyState
+          icon={Clock}
+          title="Nenhum Prazo"
+          description="Não há prazos cadastrados. Adicione o primeiro prazo para controlar seus prazos processuais."
+          action={can('prazos', 'create') ? {
+            label: 'Novo Prazo',
+            onClick: () => { setSelectedPrazo(null); setIsFormOpen(true); },
+          } : undefined}
+        />
+      ) : (
+      <>
       {view === 'calendario' && tenantId ? (
         <PrazosCalendario tenantId={tenantId} />
       ) : (
@@ -376,6 +368,8 @@ const PrazosManager = () => {
         onNext={nextPage}
         label="prazos"
       />
+      </>
+      )}
       </>
       )}
         </TabsContent>

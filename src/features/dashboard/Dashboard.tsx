@@ -17,6 +17,7 @@ import { ptBR } from 'date-fns/locale';
 import { createLogger } from '@/lib/logger';
 import { usePageTitle } from '@/hooks/usePageTitle';
 import PrazosUrgentesWidget from '@/features/dashboard/components/PrazosUrgentesWidget';
+import { formatarAreaJuridica } from '@/utils/formatting';
 
 const log = createLogger('Dashboard');
 
@@ -71,7 +72,7 @@ const Dashboard = () => {
         created_at: string;
       }>;
     },
-    enabled: !!tenantId && !isEmpty,
+    enabled: !!tenantId,
     staleTime: 60_000,
   });
 
@@ -96,7 +97,7 @@ const Dashboard = () => {
         status: string | null;
       }>;
     },
-    enabled: !!tenantId && !isEmpty,
+    enabled: !!tenantId,
     staleTime: 60_000,
   });
 
@@ -120,7 +121,7 @@ const Dashboard = () => {
         created_at: string;
       }>;
     },
-    enabled: !!tenantId && !isEmpty,
+    enabled: !!tenantId,
     staleTime: 120_000,
   });
 
@@ -141,7 +142,7 @@ const Dashboard = () => {
         created_at: string;
       }>;
     },
-    enabled: !!tenantId && !isEmpty,
+    enabled: !!tenantId,
     staleTime: 120_000,
   });
 
@@ -165,7 +166,7 @@ const Dashboard = () => {
         data_prazo: string;
       }>;
     },
-    enabled: !!tenantId && !isEmpty,
+    enabled: !!tenantId,
     staleTime: 120_000,
   });
 
@@ -618,7 +619,7 @@ const Dashboard = () => {
           <CardContent className="space-y-4">
             {topAreas.map((area) => (
               <div key={area.area} className="flex justify-between items-center p-2.5 rounded-lg bg-muted/40 hover:bg-muted/70 transition-colors">
-                <span className="text-sm font-medium text-foreground">{area.area}</span>
+                <span className="text-sm font-medium text-foreground">{formatarAreaJuridica(area.area)}</span>
                 <Badge variant="info">{area.total}</Badge>
               </div>
             ))}
@@ -733,7 +734,7 @@ const Dashboard = () => {
                   >
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-medium text-foreground truncate">
-                        {ag.area_juridica ?? 'Consulta'}
+                        {formatarAreaJuridica(ag.area_juridica ?? 'consulta_geral')}
                         {ag.responsavel ? ` — ${ag.responsavel}` : ''}
                       </p>
                       <p className="text-xs text-muted-foreground">

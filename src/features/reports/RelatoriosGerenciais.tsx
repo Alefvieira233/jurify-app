@@ -21,7 +21,7 @@ import { RevenueCard } from '@/components/analytics/RevenueCard';
 import { ResponseTimeChart } from '@/components/analytics/ResponseTimeChart';
 import { ChurnCard } from '@/components/analytics/ChurnCard';
 import { usePageTitle } from '@/hooks/usePageTitle';
-import { formatarEtapaPipeline } from '@/utils/formatting';
+import { formatarEtapaPipeline, formatarAreaJuridica } from '@/utils/formatting';
 import { useQuery } from '@tanstack/react-query';
 import { supabaseUntyped as supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -214,7 +214,7 @@ const RelatoriosGerenciais = () => {
   [metrics]);
 
   const areaData = useMemo(() =>
-    metrics ? metrics.leadsPorArea.slice(0, 6).map(item => ({ name: item.area, leads: item.total })) : [],
+    metrics ? metrics.leadsPorArea.slice(0, 6).map(item => ({ name: formatarAreaJuridica(item.area), leads: item.total })) : [],
   [metrics]);
 
   const agentesData = useMemo(() =>
@@ -250,7 +250,7 @@ const RelatoriosGerenciais = () => {
     });
     const areaMap = new Map<string, number>();
     for (const ag of filtered) {
-      const area = ag.area_juridica || 'Não informado';
+      const area = formatarAreaJuridica(ag.area_juridica || 'consulta_geral');
       areaMap.set(area, (areaMap.get(area) ?? 0) + 1);
     }
     return Array.from(areaMap.entries())
@@ -578,7 +578,7 @@ const RelatoriosGerenciais = () => {
                   <div className="flex justify-between items-center p-2.5 bg-blue-500/8 border border-blue-500/20 rounded-lg">
                     <span className="text-xs font-medium text-foreground">Taxa de Conversão</span>
                     <Badge variant="secondary" className="text-xs">
-                      {metrics.totalLeads > 0 ? `${((metrics.contratosAssinados / metrics.totalLeads) * 100).toFixed(1)}%` : '0%'}
+                      {metrics.totalLeads > 0 ? `${Math.min((metrics.contratosAssinados / metrics.totalLeads) * 100, 100).toFixed(1)}%` : '0%'}
                     </Badge>
                   </div>
                   <div className="flex justify-between items-center p-2.5 bg-emerald-500/8 border border-emerald-500/20 rounded-lg">

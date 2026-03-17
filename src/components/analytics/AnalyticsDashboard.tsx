@@ -132,7 +132,7 @@ export const AnalyticsDashboard = () => {
             const prevContractsCount = prevContracts?.length || 0;
             const contractsGrowth = prevContractsCount > 0 ? ((currentContractsCount - prevContractsCount) / prevContractsCount) * 100 : 0;
 
-            const conversionRate = currentLeadsCount > 0 ? (currentContractsCount / currentLeadsCount) * 100 : 0;
+            const conversionRate = currentLeadsCount > 0 ? Math.min((currentContractsCount / currentLeadsCount) * 100, 100) : 0;
 
             setMetrics({
                 totalLeads: allLeads?.length || 0,
