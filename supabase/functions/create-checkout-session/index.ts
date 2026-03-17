@@ -2,6 +2,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import Stripe from "https://esm.sh/stripe@14.21.0";
 import { getCorsHeaders } from "../_shared/cors.ts";
 import { createEdgeLogger } from "../_shared/logger.ts";
+import { applyRateLimit } from "../_shared/rate-limiter.ts";
 
 const log = createEdgeLogger("create-checkout-session");
 log.info("Function started");
@@ -32,16 +33,73 @@ Deno.serve(async (req) => {
             throw new Error('Unauthorized');
         }
 
+        // 2b. Rate Limit (use service-role client for durable rate limiting across cold starts)
+        const supabaseService = createClient(
+            Deno.env.get('SUPABASE_URL') ?? '',
+            Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+        );
+        const rateLimitCheck = await applyRateLimit(req, {
+            maxRequests: 5,
+            windowSeconds: 60,
+            namespace: "create-checkout-session",
+        }, { supabase: supabaseService, user, corsHeaders });
+
+        if (!rateLimitCheck.allowed) {
+            return rateLimitCheck.response;
+        }
+
         // 3. Parse Body
         const { priceId, planId, successUrl, cancelUrl, mode: requestMode } = await req.json();
         if (!priceId) {
             throw new Error('Missing priceId');
         }
 
+        // Validate redirect URLs against allowed origins
+        if (successUrl || cancelUrl) {
+            const origin = req.headers.get('origin') || '';
+            const allowedOrigins = [
+                origin,
+                'https://jurify.vercel.app',
+                'https://jurify-app.vercel.app',
+                'https://jurify.com.br',
+            ].filter(Boolean);
+
+            const isValidRedirectUrl = (url: string): boolean => {
+                try {
+                    const parsed = new URL(url);
+                    return allowedOrigins.some(o => parsed.origin === o);
+                } catch {
+                    return false;
+                }
+            };
+
+            if (successUrl && !isValidRedirectUrl(successUrl)) {
+                return new Response(
+                    JSON.stringify({ error: 'Invalid successUrl' }),
+                    { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+                );
+            }
+            if (cancelUrl && !isValidRedirectUrl(cancelUrl)) {
+                return new Response(
+                    JSON.stringify({ error: 'Invalid cancelUrl' }),
+                    { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+                );
+            }
+        }
+
         const mode = requestMode === 'payment' ? 'payment' : 'subscription';
 
-        // 4. Init Stripe
-        const stripe = new Stripe(Deno.env.get('STRIPE_SECRET_KEY') ?? '', {
+        // 4. Init Stripe — fail early if not configured
+        const stripeSecretKey = Deno.env.get('STRIPE_SECRET_KEY');
+        if (!stripeSecretKey) {
+            log.error("STRIPE_SECRET_KEY not configured");
+            return new Response(
+                JSON.stringify({ error: "Payment service not configured" }),
+                { status: 503, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+            );
+        }
+
+        const stripe = new Stripe(stripeSecretKey, {
             apiVersion: '2023-10-16',
             httpClient: Stripe.createFetchHttpClient(),
         });

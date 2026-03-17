@@ -3,6 +3,7 @@ import { createClient } from "jsr:@supabase/supabase-js@2";
 import { getCorsHeaders } from "../_shared/cors.ts";
 import { initSentry, captureError } from "../_shared/sentry.ts";
 import { generateEmbedding } from "../_shared/embeddings.ts";
+import { applyRateLimit } from "../_shared/rate-limiter.ts";
 
 initSentry();
 
@@ -48,6 +49,17 @@ Deno.serve(async (req) => {
         status: 401,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
+    }
+
+    const supabaseServiceForRL = createClient(supabaseUrl, serviceRoleKey);
+    const rateLimitCheck = await applyRateLimit(req, {
+      maxRequests: 20,
+      windowSeconds: 60,
+      namespace: "vector-search",
+    }, { supabase: supabaseServiceForRL, user: userData.user, corsHeaders });
+
+    if (!rateLimitCheck.allowed) {
+      return rateLimitCheck.response;
     }
 
     const { query, tenant_id, top_k, match_threshold, model }: VectorSearchRequest = await req.json();
@@ -110,8 +122,7 @@ Deno.serve(async (req) => {
     });
   } catch (error) {
     captureError(error);
-    const message = error instanceof Error ? error.message : "Unexpected error";
-    return new Response(JSON.stringify({ error: message }), {
+    return new Response(JSON.stringify({ error: "Internal server error" }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });

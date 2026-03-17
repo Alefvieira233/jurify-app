@@ -22,10 +22,14 @@ async function sendEmail(
   }
 }
 
-const stripe = new Stripe(Deno.env.get('STRIPE_SECRET_KEY') ?? '', {
-    apiVersion: '2023-10-16',
-    httpClient: Stripe.createFetchHttpClient(),
-});
+const STRIPE_SECRET_KEY = Deno.env.get('STRIPE_SECRET_KEY');
+
+const stripe = STRIPE_SECRET_KEY
+  ? new Stripe(STRIPE_SECRET_KEY, {
+      apiVersion: '2023-10-16',
+      httpClient: Stripe.createFetchHttpClient(),
+    })
+  : null;
 
 const cryptoProvider = Stripe.createSubtleCryptoProvider();
 
@@ -45,6 +49,11 @@ function mapPriceToPlanId(priceId: string, metadataPlanId?: string | null) {
 
 Deno.serve(async (req) => {
     try {
+        if (!stripe) {
+            console.error("[stripe-webhook] STRIPE_SECRET_KEY not configured");
+            return new Response("Payment service not configured", { status: 503 });
+        }
+
         const signature = req.headers.get("Stripe-Signature");
         const body = await req.text();
         const webhookSecret = Deno.env.get("STRIPE_WEBHOOK_SECRET");

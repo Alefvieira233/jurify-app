@@ -315,6 +315,8 @@ export function useAgendaAutomation() {
                     .update({ google_event_id: eventId })
                     .eq('id', agendamento.id)
                     .eq('tenant_id', agendamento.tenant_id);
+                } else {
+                  throw new Error('Google Calendar não conectado ou sync falhou');
                 }
               } else {
                 await createEmailInvite(agendamento, config);

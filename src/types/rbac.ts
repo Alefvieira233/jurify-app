@@ -24,7 +24,11 @@ export type Resource =
   | 'processos'
   | 'prazos'
   | 'honorarios'
-  | 'documentos';
+  | 'documentos'
+  // Conexões
+  | 'conexoes'
+  // Departamentos
+  | 'departamentos';
 
 // Acoes possiveis
 export type Action = 'create' | 'read' | 'update' | 'delete' | 'execute' | 'manage';
@@ -54,6 +58,8 @@ export const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
     { resource: 'prazos',     actions: ['create', 'read', 'update', 'delete'] },
     { resource: 'honorarios', actions: ['create', 'read', 'update', 'delete', 'manage'] },
     { resource: 'documentos', actions: ['create', 'read', 'update', 'delete'] },
+    { resource: 'conexoes', actions: ['create', 'read', 'update', 'delete', 'manage'] },
+    { resource: 'departamentos', actions: ['create', 'read', 'update', 'delete'] },
   ],
 
   // Manager: gerencia operacoes, sem usuarios/configuracoes
@@ -73,6 +79,8 @@ export const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
     { resource: 'prazos',     actions: ['create', 'read', 'update'] },
     { resource: 'honorarios', actions: ['read', 'create'] },
     { resource: 'documentos', actions: ['create', 'read', 'update'] },
+    { resource: 'conexoes', actions: ['create', 'read', 'update', 'manage'] },
+    { resource: 'departamentos', actions: ['create', 'read', 'update'] },
   ],
 
   // User: operacoes basicas
@@ -92,6 +100,8 @@ export const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
     { resource: 'prazos',     actions: ['read', 'create'] },
     { resource: 'honorarios', actions: [] },
     { resource: 'documentos', actions: ['read', 'create'] },
+    { resource: 'conexoes', actions: ['read'] },
+    { resource: 'departamentos', actions: ['read'] },
   ],
 
   // Viewer: somente leitura
@@ -111,6 +121,8 @@ export const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
     { resource: 'prazos',     actions: ['read'] },
     { resource: 'honorarios', actions: [] },
     { resource: 'documentos', actions: ['read'] },
+    { resource: 'conexoes', actions: ['read'] },
+    { resource: 'departamentos', actions: ['read'] },
   ],
 };
 

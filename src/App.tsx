@@ -54,6 +54,7 @@ const AgentsPlayground = lazyWithRetry(() => import("./pages/AgentsPlayground"))
 const MissionControl = lazyWithRetry(() => import("./features/mission-control/MissionControl"));
 const SubscriptionManager = lazyWithRetry(() => import("./components/billing/SubscriptionManager"));
 const CRMDashboard = lazyWithRetry(() => import("./features/crm/CRMDashboard"));
+const ConexoesManager = lazyWithRetry(() => import("./features/conexoes/ConexoesManager"));
 const LeadDetailPanel = lazyWithRetry(() => import("./features/crm/LeadDetailPanel"));
 const AdminStatus = lazyWithRetry(() => import("./pages/AdminStatus"));
 
@@ -92,7 +93,7 @@ const ALLOWED_DEEP_LINK_PATHS = new Set([
   '/dashboard', '/pipeline', '/agenda', '/whatsapp', '/agentes',
   '/contratos', '/clientes', '/notificacoes', '/processos', '/prazos',
   '/honorarios', '/documentos', '/configuracoes', '/relatorios',
-  '/usuarios', '/logs', '/integracoes', '/billing',
+  '/usuarios', '/logs', '/integracoes', '/billing', '/conexoes',
 ]);
 
 function DeepLinkHandler() {
@@ -146,6 +147,7 @@ const App = () => (
                   <Route path="dashboard" element={<Navigate to="/" replace />} />
                   {/* /leads absorvido por Pipeline — redirect para evitar rotas fantasma */}
                   <Route path="leads" element={<Navigate to="/pipeline" replace />} />
+                  <Route path="conexoes" element={<ErrorBoundary><ConexoesManager /></ErrorBoundary>} />
                   <Route path="pipeline" element={<ErrorBoundary><PipelineJuridico /></ErrorBoundary>} />
                   <Route path="agendamentos" element={<ErrorBoundary><AgendamentosManager /></ErrorBoundary>} />
                   <Route path="contratos" element={<ErrorBoundary><ContratosManager /></ErrorBoundary>} />

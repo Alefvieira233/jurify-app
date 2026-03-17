@@ -12,6 +12,7 @@
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { getCorsHeaders } from "../_shared/cors.ts";
+import { applyRateLimit } from "../_shared/rate-limiter.ts";
 
 const POSTMARK_API = "https://api.postmarkapp.com/email";
 
@@ -221,6 +222,7 @@ Deno.serve(async (req) => {
   }
   const token = authHeader.replace("Bearer ", "");
   const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
+  let isServiceRole = false;
   if (token !== serviceRoleKey) {
     const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
     const anonKey = Deno.env.get("SUPABASE_ANON_KEY") ?? "";
@@ -234,6 +236,20 @@ Deno.serve(async (req) => {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
+
+    // Rate limit user JWT requests (skip for service-role)
+    const supabaseServiceForRL = createClient(supabaseUrl, serviceRoleKey);
+    const rateLimitCheck = await applyRateLimit(req, {
+      maxRequests: 10,
+      windowSeconds: 60,
+      namespace: "send-email",
+    }, { supabase: supabaseServiceForRL, user, corsHeaders });
+
+    if (!rateLimitCheck.allowed) {
+      return rateLimitCheck.response;
+    }
+  } else {
+    isServiceRole = true;
   }
 
   if (!POSTMARK_TOKEN) {

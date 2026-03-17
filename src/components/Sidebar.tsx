@@ -1,9 +1,9 @@
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import {
   Scale,
   MessageSquare,
-  FileText,
+  MessageCircle,
   Calendar,
   LayoutDashboard,
   BarChart3,
@@ -13,9 +13,7 @@ import {
   TrendingUp,
   UserCog,
   LogOut,
-  Bell,
   Activity,
-  Zap,
   CreditCard,
   Rocket,
   Search,
@@ -25,6 +23,8 @@ import {
   DollarSign,
   Gavel,
   ShieldCheck,
+  Link2,
+  BookOpen,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/contexts/AuthContext';
@@ -38,7 +38,7 @@ interface SidebarProps {
   onSectionChange: (section: string) => void;
 }
 
-type MenuItem = {
+type MenuLeaf = {
   id:         string;
   label:      string;
   icon:       React.ComponentType<{ className?: string }>;
@@ -46,42 +46,78 @@ type MenuItem = {
   action:     string;
   adminOnly?: boolean;
   managerOk?: boolean;
-  group:      'main' | 'sistema';
   badge?:     'notification' | 'upgrade';
+  disabled?:  boolean;
 };
 
+type MenuSection = {
+  id:         string;
+  label:      string;
+  icon:       React.ComponentType<{ className?: string }>;
+  children:   MenuLeaf[];
+};
+
+type NavEntry = (MenuLeaf & { kind: 'leaf' }) | (MenuSection & { kind: 'section' });
+
 /* ─────────────────────────────────────────────────────────────────────────
-   Menu items
-   Main  → visível sempre, operacional (fluxo diário do advogado)
-   Sistema → colapsável, raramente acessado, admin/billing
+   Navigation structure — LíderHub pattern
+   Main  → flat items + expandable sections (Atendimento, Automações)
+   Sistema → collapsible group at the bottom
 ───────────────────────────────────────────────────────────────────────── */
-const ALL_MENU_ITEMS: MenuItem[] = [
-  /* ── Main (9 itens) ── */
-  { id: 'dashboard',             label: 'Dashboard',       icon: LayoutDashboard, resource: 'dashboard',     action: 'read', group: 'main' },
-  { id: 'pipeline',              label: 'Pipeline',         icon: TrendingUp,      resource: 'leads',         action: 'read', group: 'main' },
-  { id: 'agendamentos',          label: 'Agenda',           icon: Calendar,        resource: 'agendamentos',  action: 'read', group: 'main' },
-  { id: 'whatsapp',              label: 'WhatsApp',         icon: MessageSquare,   resource: 'whatsapp',      action: 'read', group: 'main' },
-  { id: 'agentes',               label: 'Agentes IA',       icon: Bot,             resource: 'agentes_ia',    action: 'read', group: 'main' },
-  { id: 'contratos',             label: 'Contratos',        icon: FileText,        resource: 'contratos',     action: 'read', group: 'main' },
-  { id: 'processos',             label: 'Processos',        icon: Gavel,           resource: 'processos',     action: 'read', group: 'main' },
-  { id: 'prazos',                label: 'Prazos',           icon: Clock,           resource: 'prazos',        action: 'read', group: 'main', badge: 'notification' },
-  { id: 'crm',                   label: 'CRM',              icon: Users,           resource: 'leads',         action: 'read', group: 'main' },
-  { id: 'notificacoes',          label: 'Notificações',     icon: Bell,            resource: 'notificacoes',  action: 'read', group: 'main', badge: 'notification' },
-  { id: 'integracoes',           label: 'Integrações',     icon: Zap,             resource: 'integracoes',   action: 'read', group: 'main' },
-  /* ── Sistema (colapsável) ── */
-  { id: 'auditoria',             label: 'Auditoria',        icon: ShieldCheck,     resource: 'logs',          action: 'read', group: 'sistema', managerOk: true },
-  { id: 'relatorios',            label: 'Relatórios',       icon: BarChart3,       resource: 'relatorios',    action: 'read', group: 'sistema' },
-  { id: 'honorarios',            label: 'Honorários',       icon: DollarSign,      resource: 'honorarios',    action: 'read', group: 'sistema', managerOk: true },
-  // TODO: Documentos - implementar preview, busca e categorização
-  // { id: 'documentos',            label: 'Documentos',       icon: FolderOpen,      resource: 'documentos',    action: 'read', group: 'sistema' },
-  { id: 'billing',               label: 'Assinatura',      icon: CreditCard,      resource: 'dashboard',     action: 'read', group: 'sistema', badge: 'upgrade' },
-  { id: 'usuarios',              label: 'Usuários',        icon: UserCog,         resource: 'usuarios',      action: 'read', group: 'sistema', managerOk: true },
-  { id: 'logs',                  label: 'Logs',            icon: Activity,        resource: 'logs',          action: 'read', group: 'sistema', adminOnly: true },
-  { id: 'admin/mission-control', label: 'Monitoramento',   icon: Rocket,          resource: 'dashboard',     action: 'read', group: 'sistema', adminOnly: true },
-  { id: 'configuracoes',         label: 'Configurações',   icon: Settings,        resource: 'configuracoes', action: 'read', group: 'sistema', adminOnly: true },
+const MAIN_NAV: NavEntry[] = [
+  { kind: 'leaf', id: 'dashboard', label: 'Home', icon: LayoutDashboard, resource: 'dashboard', action: 'read' },
+  { kind: 'leaf', id: 'conexoes',  label: 'Conexões', icon: Link2, resource: 'whatsapp', action: 'read' },
+  {
+    kind: 'section',
+    id: 'atendimento',
+    label: 'Atendimento',
+    icon: MessageSquare,
+    children: [
+      { id: 'whatsapp', label: 'Conversas',  icon: MessageCircle, resource: 'whatsapp', action: 'read' },
+      { id: 'crm',      label: 'Contatos',   icon: Users,         resource: 'leads',    action: 'read' },
+      { id: 'pipeline', label: 'Kanban',     icon: TrendingUp,    resource: 'leads',    action: 'read' },
+    ],
+  },
+  {
+    kind: 'section',
+    id: 'automacoes',
+    label: 'Automações',
+    icon: Bot,
+    children: [
+      { id: 'agentes',             label: 'Agentes',              icon: Bot,      resource: 'agentes_ia', action: 'read' },
+      { id: 'base-conhecimento',   label: 'Base de Conhecimento', icon: BookOpen, resource: 'agentes_ia', action: 'read', disabled: true },
+    ],
+  },
+  { kind: 'leaf', id: 'agendamentos',  label: 'Tarefas',        icon: Calendar, resource: 'agendamentos', action: 'read' },
+  { kind: 'leaf', id: 'configuracoes', label: 'Configurações', icon: Settings, resource: 'configuracoes', action: 'read' },
 ];
 
-const SISTEMA_IDS = ALL_MENU_ITEMS.filter(i => i.group === 'sistema').map(i => i.id);
+const SISTEMA_NAV: MenuLeaf[] = [
+  { id: 'relatorios',            label: 'Relatórios',     icon: BarChart3,   resource: 'relatorios',    action: 'read' },
+  { id: 'auditoria',             label: 'Auditoria',      icon: ShieldCheck, resource: 'logs',          action: 'read', managerOk: true },
+  { id: 'honorarios',            label: 'Honorários',     icon: DollarSign,  resource: 'honorarios',    action: 'read', managerOk: true },
+  { id: 'processos',             label: 'Processos',      icon: Gavel,       resource: 'processos',     action: 'read' },
+  { id: 'prazos',                label: 'Prazos',         icon: Clock,       resource: 'prazos',        action: 'read' },
+  { id: 'billing',               label: 'Assinatura',     icon: CreditCard,  resource: 'dashboard',     action: 'read', badge: 'upgrade' },
+  { id: 'usuarios',              label: 'Usuários',       icon: UserCog,     resource: 'usuarios',      action: 'read', managerOk: true },
+  { id: 'logs',                  label: 'Logs',           icon: Activity,    resource: 'logs',          action: 'read', adminOnly: true },
+  { id: 'admin/mission-control', label: 'Monitoramento',  icon: Rocket,      resource: 'dashboard',     action: 'read', adminOnly: true },
+];
+
+/** All sistema IDs for auto-expand logic */
+const SISTEMA_IDS = SISTEMA_NAV.map(i => i.id);
+
+/** All leaf items flattened (for RBAC filtering) */
+function allLeaves(): MenuLeaf[] {
+  const out: MenuLeaf[] = [];
+  for (const entry of MAIN_NAV) {
+    if (entry.kind === 'leaf') out.push(entry);
+    else for (const child of entry.children) out.push(child);
+  }
+  for (const item of SISTEMA_NAV) out.push(item);
+  return out;
+}
+const ALL_LEAVES = allLeaves();
 
 /* ─────────────────────────────────────────────────────────────────────────
    Component
@@ -89,44 +125,90 @@ const SISTEMA_IDS = ALL_MENU_ITEMS.filter(i => i.group === 'sistema').map(i => i
 const Sidebar = ({ activeSection, onSectionChange }: SidebarProps) => {
   const { signOut, profile, user, hasPermission } = useAuth();
   const [unreadCount, setUnreadCount]   = useState(0);
-  const [visibleItems, setVisibleItems] = useState<MenuItem[]>([]);
+  const [visibleIds, setVisibleIds]     = useState<Set<string>>(new Set());
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
-  const [sistemaOpen, setSistemaOpen]   = useState(
-    () => SISTEMA_IDS.includes(activeSection)
-  );
+
+  // Expandable sections state
+  const [expandedSections, setExpandedSections] = useState<Set<string>>(() => {
+    const initial = new Set<string>();
+    // Auto-expand sections containing the active route
+    for (const entry of MAIN_NAV) {
+      if (entry.kind === 'section' && entry.children.some(c => c.id === activeSection)) {
+        initial.add(entry.id);
+      }
+    }
+    if (SISTEMA_IDS.includes(activeSection)) initial.add('sistema');
+    return initial;
+  });
+
+  const toggleSection = useCallback((sectionId: string) => {
+    setExpandedSections(prev => {
+      const next = new Set(prev);
+      if (next.has(sectionId)) next.delete(sectionId);
+      else next.add(sectionId);
+      return next;
+    });
+  }, []);
 
   /* ── RBAC filter ── */
   useEffect(() => {
     const filter = async () => {
-      if (!user) { setVisibleItems([]); return; }
+      if (!user) { setVisibleIds(new Set()); return; }
+
+      const ids = new Set<string>();
+
       if (!profile) {
-        setVisibleItems(ALL_MENU_ITEMS.filter(i => !i.adminOnly && !i.managerOk));
+        // Fallback: show non-admin, non-manager items
+        for (const item of ALL_LEAVES) {
+          if (!item.adminOnly && !item.managerOk) ids.add(item.id);
+        }
+        setVisibleIds(ids);
         return;
       }
 
-      const out: MenuItem[] = [];
-      for (const item of ALL_MENU_ITEMS) {
-        if (profile.role === 'admin') { out.push(item); continue; }
+      for (const item of ALL_LEAVES) {
+        if (item.disabled) { ids.add(item.id); continue; } // always show disabled items
+        if (profile.role === 'admin') { ids.add(item.id); continue; }
         if (item.adminOnly) continue;
         if (item.managerOk && profile.role !== 'manager') continue;
         try {
-          if (await hasPermission(item.resource, item.action)) out.push(item);
+          if (await hasPermission(item.resource, item.action)) ids.add(item.id);
         } catch {
-          out.push(item);
+          ids.add(item.id);
         }
       }
-      setVisibleItems(
-        out.length === 0
-          ? ALL_MENU_ITEMS.filter(i => !i.adminOnly && !i.managerOk)
-          : out
-      );
+
+      if (ids.size === 0) {
+        for (const item of ALL_LEAVES) {
+          if (!item.adminOnly && !item.managerOk) ids.add(item.id);
+        }
+      }
+
+      setVisibleIds(ids);
     };
     void filter();
   }, [user, profile, hasPermission]);
 
-  /* ── Auto-open Sistema if active route belongs to it ── */
+  /* ── Auto-expand sections if active route is inside ── */
   useEffect(() => {
-    if (SISTEMA_IDS.includes(activeSection)) setSistemaOpen(true);
+    for (const entry of MAIN_NAV) {
+      if (entry.kind === 'section' && entry.children.some(c => c.id === activeSection)) {
+        setExpandedSections(prev => {
+          if (prev.has(entry.id)) return prev;
+          const next = new Set(prev);
+          next.add(entry.id);
+          return next;
+        });
+      }
+    }
+    if (SISTEMA_IDS.includes(activeSection)) {
+      setExpandedSections(prev => {
+        if (prev.has('sistema')) return prev;
+        const next = new Set(prev);
+        next.add('sistema');
+        return next;
+      });
+    }
   }, [activeSection]);
 
   /* ── Unread notifications (30s poll) ── */
@@ -143,9 +225,11 @@ const Sidebar = ({ activeSection, onSectionChange }: SidebarProps) => {
     return () => clearInterval(t);
   }, [user?.id]);
 
-  /* ── Split by group ── */
-  const mainItems    = useMemo(() => visibleItems.filter(i => i.group === 'main'),    [visibleItems]);
-  const sistemaItems = useMemo(() => visibleItems.filter(i => i.group === 'sistema'), [visibleItems]);
+  /* ── Filtered sistema items ── */
+  const filteredSistemaItems = useMemo(
+    () => SISTEMA_NAV.filter(i => visibleIds.has(i.id)),
+    [visibleIds]
+  );
 
   const isFreeTier = !profile?.subscription_tier || profile.subscription_tier === 'free';
 
@@ -157,10 +241,11 @@ const Sidebar = ({ activeSection, onSectionChange }: SidebarProps) => {
     : profile?.role === 'manager' ? 'Gestor'
     : 'Usuário';
 
-  /* ── Render a single nav item ── */
-  const renderItem = (item: MenuItem) => {
+  /* ── Render a single leaf nav item ── */
+  const renderLeaf = (item: MenuLeaf, indent = false) => {
     const Icon     = item.icon;
     const isActive = activeSection === item.id;
+    const isDisabled = item.disabled;
 
     return (
       <li key={item.id} role="listitem" className="relative">
@@ -172,13 +257,17 @@ const Sidebar = ({ activeSection, onSectionChange }: SidebarProps) => {
         )}
         <button
           type="button"
-          onClick={() => onSectionChange(item.id)}
+          onClick={() => !isDisabled && onSectionChange(item.id)}
+          disabled={isDisabled}
           aria-current={isActive ? 'page' : undefined}
-          aria-label={`${item.label}${item.badge === 'notification' && unreadCount > 0 ? ` (${unreadCount} não lidas)` : ''}`}
+          aria-label={`${item.label}${item.badge === 'notification' && unreadCount > 0 ? ` (${unreadCount} não lidas)` : ''}${isDisabled ? ' (em breve)' : ''}`}
           className={cn(
             'group w-full flex items-center gap-2.5 py-1.5 rounded-md text-xs transition-all duration-150 text-left',
-            isActive ? 'pl-3.5 pr-2.5' : 'px-2.5',
-            isActive
+            indent ? 'pl-6 pr-2.5' : (isActive ? 'pl-3.5 pr-2.5' : 'px-2.5'),
+            isActive && indent && 'pl-7',
+            isDisabled
+              ? 'text-sidebar-foreground/25 cursor-not-allowed'
+              : isActive
               ? 'bg-sidebar-accent text-sidebar-foreground font-medium'
               : 'text-sidebar-foreground/55 hover:bg-sidebar-accent/50 active:bg-accent/80 hover:text-sidebar-foreground/85 font-normal'
           )}
@@ -186,12 +275,20 @@ const Sidebar = ({ activeSection, onSectionChange }: SidebarProps) => {
           <Icon
             className={cn(
               'h-3.5 w-3.5 flex-shrink-0 transition-colors duration-150',
-              isActive
+              isDisabled
+                ? 'text-sidebar-foreground/20'
+                : isActive
                 ? 'text-primary'
                 : 'text-sidebar-foreground/40 group-hover:text-sidebar-foreground/65'
             )}
           />
           <span className="flex-1 truncate">{item.label}</span>
+
+          {isDisabled && (
+            <span className="text-[8px] text-sidebar-foreground/25 font-medium uppercase tracking-wide">
+              Em breve
+            </span>
+          )}
 
           {item.badge === 'notification' && unreadCount > 0 && (
             <Badge variant="destructive" className="h-4 min-w-4 px-1 text-[9px] font-bold">
@@ -210,6 +307,62 @@ const Sidebar = ({ activeSection, onSectionChange }: SidebarProps) => {
         </button>
       </li>
     );
+  };
+
+  /* ── Render an expandable section ── */
+  const renderSection = (section: MenuSection) => {
+    const Icon = section.icon;
+    const isExpanded = expandedSections.has(section.id);
+    const visibleChildren = section.children.filter(c => visibleIds.has(c.id));
+    if (visibleChildren.length === 0) return null;
+
+    const hasActiveChild = section.children.some(c => c.id === activeSection);
+
+    return (
+      <li key={section.id} role="listitem">
+        <button
+          type="button"
+          onClick={() => toggleSection(section.id)}
+          aria-expanded={isExpanded}
+          className={cn(
+            'group w-full flex items-center gap-2.5 py-1.5 px-2.5 rounded-md text-xs transition-all duration-150 text-left',
+            hasActiveChild
+              ? 'text-sidebar-foreground font-medium'
+              : 'text-sidebar-foreground/55 hover:bg-sidebar-accent/50 active:bg-accent/80 hover:text-sidebar-foreground/85 font-normal'
+          )}
+        >
+          <Icon
+            className={cn(
+              'h-3.5 w-3.5 flex-shrink-0 transition-colors duration-150',
+              hasActiveChild
+                ? 'text-primary'
+                : 'text-sidebar-foreground/40 group-hover:text-sidebar-foreground/65'
+            )}
+          />
+          <span className="flex-1 truncate">{section.label}</span>
+          <ChevronRight
+            className={cn(
+              'h-3 w-3 flex-shrink-0 text-sidebar-foreground/30 transition-transform duration-200',
+              isExpanded && 'rotate-90'
+            )}
+          />
+        </button>
+        {isExpanded && (
+          <ul className="space-y-px mt-px" role="list">
+            {visibleChildren.map(child => renderLeaf(child, true))}
+          </ul>
+        )}
+      </li>
+    );
+  };
+
+  /* ── Render a main nav entry ── */
+  const renderNavEntry = (entry: NavEntry) => {
+    if (entry.kind === 'leaf') {
+      if (!visibleIds.has(entry.id)) return null;
+      return renderLeaf(entry);
+    }
+    return renderSection(entry);
   };
 
   return (
@@ -262,35 +415,35 @@ const Sidebar = ({ activeSection, onSectionChange }: SidebarProps) => {
       {/* ── Navigation ── */}
       <nav className="flex-1 px-2 pb-2 overflow-y-auto scrollbar-thin" role="navigation">
 
-        {/* Main items — sem divider, fluxo diário */}
+        {/* Main items — hierarchical with expandable sections */}
         <ul className="space-y-px mt-1.5" role="list">
-          {mainItems.map(renderItem)}
+          {MAIN_NAV.map(renderNavEntry)}
         </ul>
 
-        {/* Sistema — colapsável, raramente acessado */}
-        {sistemaItems.length > 0 && (
+        {/* Sistema — collapsible, rarely accessed */}
+        {filteredSistemaItems.length > 0 && (
           <div className="mt-1">
             <div className="flex items-center gap-2 px-1.5 pt-2.5 pb-0.5">
               <div className="h-px flex-1 bg-border/50" />
               <button
                 type="button"
-                onClick={() => setSistemaOpen(prev => !prev)}
-                aria-expanded={sistemaOpen}
+                onClick={() => toggleSection('sistema')}
+                aria-expanded={expandedSections.has('sistema')}
                 className="flex items-center gap-1 text-[9px] font-semibold uppercase tracking-widest text-muted-foreground/40 hover:text-muted-foreground/70 active:bg-accent/80 transition-colors select-none"
               >
                 <span>Sistema</span>
                 <ChevronRight
                   className={cn(
                     'h-2.5 w-2.5 transition-transform duration-200',
-                    sistemaOpen && 'rotate-90'
+                    expandedSections.has('sistema') && 'rotate-90'
                   )}
                 />
               </button>
             </div>
 
-            {sistemaOpen && (
+            {expandedSections.has('sistema') && (
               <ul className="space-y-px" role="list">
-                {sistemaItems.map(renderItem)}
+                {filteredSistemaItems.map(item => renderLeaf(item))}
               </ul>
             )}
           </div>

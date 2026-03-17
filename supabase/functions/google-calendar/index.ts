@@ -36,6 +36,14 @@ Deno.serve(async (req) => {
 
     const { method, data } = await req.json()
 
+    const ALLOWED_METHODS = ['listEvents', 'createEvent', 'updateEvent', 'deleteEvent', 'syncEvents']
+    if (!ALLOWED_METHODS.includes(method)) {
+      return new Response(
+        JSON.stringify({ error: 'Invalid method' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+
     const googleService = new GoogleOAuthService(supabase, user.id)
 
     switch (method) {
@@ -95,7 +103,7 @@ Deno.serve(async (req) => {
     return new Response(
       JSON.stringify({ error: 'Internal server error' }),
       {
-        status: 400,
+        status: 500,
         headers: { ...getCorsHeaders(req.headers.get('origin') || undefined), 'Content-Type': 'application/json' }
       }
     )

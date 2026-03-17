@@ -3,6 +3,7 @@ import { createClient } from "jsr:@supabase/supabase-js@2";
 import { getCorsHeaders } from "../_shared/cors.ts";
 import { initSentry, captureError } from "../_shared/sentry.ts";
 import { generateEmbedding } from "../_shared/embeddings.ts";
+import { applyRateLimit } from "../_shared/rate-limiter.ts";
 
 initSentry();
 
@@ -70,10 +71,30 @@ Deno.serve(async (req) => {
       });
     }
 
+    const supabaseService = createClient(supabaseUrl, serviceRoleKey!);
+
+    const rateLimitCheck = await applyRateLimit(req, {
+      maxRequests: 10,
+      windowSeconds: 60,
+      namespace: "ingest-document",
+    }, { supabase: supabaseService, user: userData.user, corsHeaders });
+
+    if (!rateLimitCheck.allowed) {
+      return rateLimitCheck.response;
+    }
+
     const { text, tenant_id, doc_id, source, metadata, model }: IngestRequest = await req.json();
 
     if (!text || typeof text !== "string") {
       return new Response(JSON.stringify({ error: "text is required" }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    const MAX_TEXT_LENGTH = 100_000;
+    if (text.length > MAX_TEXT_LENGTH) {
+      return new Response(JSON.stringify({ error: `Text exceeds maximum length of ${MAX_TEXT_LENGTH} characters` }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -114,8 +135,6 @@ Deno.serve(async (req) => {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
-
-    const supabaseService = createClient(supabaseUrl, serviceRoleKey);
 
     if (doc_id && typeof doc_id === "string") {
       const { error: deleteError } = await supabaseService
@@ -164,8 +183,7 @@ Deno.serve(async (req) => {
     );
   } catch (error) {
     captureError(error);
-    const message = error instanceof Error ? error.message : "Unexpected error";
-    return new Response(JSON.stringify({ error: message }), {
+    return new Response(JSON.stringify({ error: "Internal server error" }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });

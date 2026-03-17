@@ -3,6 +3,7 @@ import { createClient } from "jsr:@supabase/supabase-js@2";
 import { getCorsHeaders } from "../_shared/cors.ts";
 import { initSentry, captureError } from "../_shared/sentry.ts";
 import { generateEmbedding } from "../_shared/embeddings.ts";
+import { applyRateLimit } from "../_shared/rate-limiter.ts";
 
 initSentry();
 
@@ -45,6 +46,18 @@ Deno.serve(async (req) => {
       status: 401,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
+  }
+
+  const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
+  const supabaseServiceForRL = serviceRoleKey ? createClient(supabaseUrl, serviceRoleKey) : undefined;
+  const rateLimitCheck = await applyRateLimit(req, {
+    maxRequests: 20,
+    windowSeconds: 60,
+    namespace: "generate-embedding",
+  }, { supabase: supabaseServiceForRL, user: userData.user, corsHeaders });
+
+  if (!rateLimitCheck.allowed) {
+    return rateLimitCheck.response;
   }
 
   try {

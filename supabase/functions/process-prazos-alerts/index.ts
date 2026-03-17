@@ -33,6 +33,7 @@ Deno.serve(async (req) => {
     .from("prazos_processuais")
     .select(`
       id, tenant_id, tipo, descricao, data_prazo, alertas_dias, responsavel_id,
+      last_alert_sent_at, last_alert_dias,
       processos:processo_id(numero_processo),
       responsavel:responsavel_id(telefone, nome_completo)
     `)
@@ -67,6 +68,14 @@ Deno.serve(async (req) => {
     const alertas = (prazo.alertas_dias as number[]) ?? [7, 3, 1];
     if (!alertas.includes(diasRestantes)) continue;
 
+    // Anti-spam: skip if same alert (same dias threshold) was sent within 24h
+    const lastSentAt = prazo.last_alert_sent_at as string | null;
+    const lastDias = prazo.last_alert_dias as number | null;
+    if (lastSentAt && lastDias === diasRestantes) {
+      const hoursSinceLast = (Date.now() - new Date(lastSentAt).getTime()) / (1000 * 60 * 60);
+      if (hoursSinceLast < 24) continue;
+    }
+
     const responsavel = prazo.responsavel as { telefone: string | null; nome_completo: string | null } | null;
     if (!responsavel?.telefone) continue;
 
@@ -97,6 +106,16 @@ Deno.serve(async (req) => {
         headers: { "Content-Type": "application/json", "apikey": EVOLUTION_API_KEY },
         body: JSON.stringify({ number: phone, text: message }),
       });
+
+      // Mark alert as sent to prevent re-sending within 24h
+      void supabase
+        .from("prazos_processuais")
+        .update({
+          last_alert_sent_at: new Date().toISOString(),
+          last_alert_dias: diasRestantes,
+        })
+        .eq("id", prazo.id);
+
       sent++;
     } catch (e) {
       console.error("[prazos-alerts] Failed to send WhatsApp alert:", e);

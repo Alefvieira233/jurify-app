@@ -41,7 +41,12 @@ Deno.serve(async (req) => {
       .eq('user_id', user.id)
       .single()
 
-    if (!token) throw new Error('Google not connected')
+    if (!token) {
+      return new Response(
+        JSON.stringify({ error: 'Integration not configured' }),
+        { status: 503, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
 
     const mainFolder = await createDriveFolder(token.access_token, name)
 
@@ -83,7 +88,7 @@ Deno.serve(async (req) => {
     return new Response(
       JSON.stringify({ error: 'Internal server error' }),
       {
-        status: 400,
+        status: 500,
         headers: { ...getCorsHeaders(req.headers.get('origin') || undefined), 'Content-Type': 'application/json' }
       }
     )
