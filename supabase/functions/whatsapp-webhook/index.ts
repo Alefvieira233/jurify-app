@@ -5,6 +5,7 @@ import { getCorsHeaders } from "../_shared/cors.ts";
 import { applyRateLimit } from "../_shared/rate-limiter.ts";
 import { buildLegalContext } from "../_shared/legal-context.ts";
 import { DEFAULT_OPENAI_MODEL } from "../_shared/ai-model.ts";
+import { redactPII } from "../_shared/security.ts";
 
 // whatsapp-webhook: Evolution API + Meta compatible
 
@@ -1032,7 +1033,9 @@ async function processNormalizedMessage(supabase: ReturnType<typeof createClient
     let aiResponse: { result: string; usage?: { prompt_tokens: number; completion_tokens: number; total_tokens: number }; model: string } | null = null;
     let aiError: Error | null = null;
 
-    const executionId = `exec_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
+    const array = new Uint32Array(2);
+    crypto.getRandomValues(array);
+    const executionId = `exec_${Date.now()}_${Array.from(array).map(n => n.toString(36)).join("")}`;
     const aiStartTime = Date.now();
     let executionRowId: string | null = null;
 
@@ -1120,10 +1123,10 @@ async function processNormalizedMessage(supabase: ReturnType<typeof createClient
           prompt_tokens: aiResponse.usage?.prompt_tokens || 0,
           completion_tokens: aiResponse.usage?.completion_tokens || 0,
           total_tokens: aiResponse.usage?.total_tokens || 0,
-          result_preview: resultText.substring(0, 200),
-          system_prompt: finalSystemPrompt.substring(0, 500),
-          user_prompt: (commandIntent ?? processedText).substring(0, 500),
-          full_result: resultText.substring(0, 2000),
+          result_preview: redactPII(resultText.substring(0, 200)),
+          system_prompt: redactPII(finalSystemPrompt.substring(0, 500)),
+          user_prompt: redactPII((commandIntent ?? processedText).substring(0, 500)),
+          full_result: redactPII(resultText.substring(0, 2000)),
           context: { mediaCategory, agent: agentName, hasLegalContext: legalCtx.has_context },
           created_at: new Date().toISOString(),
         }).then(({ error }) => { if (error) console.error("[webhook] ai_log insert error:", error.message); });
