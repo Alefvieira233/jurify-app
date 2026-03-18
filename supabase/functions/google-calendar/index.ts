@@ -34,9 +34,19 @@ Deno.serve(async (req) => {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) throw new Error('Unauthorized')
 
-    const { method, data } = await req.json()
+    const body = await req.json()
+    const method = body.method || body.action
+    const data = body.data || body
 
-    const ALLOWED_METHODS = ['listEvents', 'createEvent', 'updateEvent', 'deleteEvent', 'syncEvents']
+    const ALLOWED_METHODS = [
+      'listEvents',
+      'createEvent',
+      'updateEvent',
+      'deleteEvent',
+      'syncEvents',
+      'exchange_code',
+      'refresh_token'
+    ]
     if (!ALLOWED_METHODS.includes(method)) {
       return new Response(
         JSON.stringify({ error: 'Invalid method' }),
@@ -91,6 +101,21 @@ Deno.serve(async (req) => {
         })
 
         return new Response(JSON.stringify({ success: true }), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        })
+      }
+
+      case 'exchange_code': {
+        const { code, redirect_uri } = data
+        const result = await googleService.exchangeCode(code, redirect_uri)
+        return new Response(JSON.stringify(result), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        })
+      }
+
+      case 'refresh_token': {
+        const result = await googleService.refreshUserToken()
+        return new Response(JSON.stringify(result), {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         })
       }

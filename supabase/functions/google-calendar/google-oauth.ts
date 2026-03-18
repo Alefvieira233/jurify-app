@@ -50,7 +50,118 @@ export class GoogleOAuthService {
     return token.access_token
   }
 
-  private async refreshToken(refreshToken: string): Promise<GoogleToken> {
+  async exchangeCode(code: string, redirectUri: string): Promise<any> {
+    const response = await fetch('https://oauth2.googleapis.com/token', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({
+        code,
+        client_id: Deno.env.get('GOOGLE_CLIENT_ID')!,
+        client_secret: Deno.env.get('GOOGLE_CLIENT_SECRET')!,
+        redirect_uri: redirectUri,
+        grant_type: 'authorization_code',
+      }),
+    })
+
+    if (!response.ok) {
+      const err = await response.json()
+      throw new Error(`Token exchange failed: ${err.error_description || err.error}`)
+    }
+
+    const tokenData = await response.json()
+    const expiresAt = new Date(Date.now() + tokenData.expires_in * 1000).toISOString()
+
+    // Fetch user info from Google
+    const userInfoRes = await fetch('https://www.googleapis.com/oauth2/v2/userinfo', {
+      headers: { Authorization: `Bearer ${tokenData.access_token}` },
+    })
+
+    if (!userInfoRes.ok) {
+      throw new Error(`Failed to fetch user info from Google: ${userInfoRes.statusText}`)
+    }
+
+    const userInfo = await userInfoRes.json()
+
+    // Upsert tokens in database
+    const { error: upsertError } = await this.supabase
+      .from('google_calendar_tokens')
+      .upsert({
+        user_id: this.userId,
+        access_token: tokenData.access_token,
+        refresh_token: tokenData.refresh_token,
+        expires_at: expiresAt,
+        scope: tokenData.scope,
+        token_type: tokenData.token_type,
+        email: userInfo.email,
+        name: userInfo.name,
+        picture: userInfo.picture,
+      }, { onConflict: 'user_id' })
+
+    if (upsertError) throw new Error(`DB error: ${upsertError.message}`)
+
+    return {
+      access_token: tokenData.access_token,
+      refresh_token: tokenData.refresh_token,
+      expires_in: tokenData.expires_in,
+      token_type: tokenData.token_type,
+      scope: tokenData.scope,
+      email: userInfo.email,
+      name: userInfo.name
+    }
+  }
+
+  async refreshUserToken(): Promise<any> {
+    const { data: token, error: fetchError } = await this.supabase
+      .from('google_calendar_tokens')
+      .select('refresh_token')
+      .eq('user_id', this.userId)
+      .single()
+
+    if (fetchError || !token?.refresh_token) {
+      throw new Error('No refresh token found for user')
+    }
+
+    const refreshToken = token.refresh_token
+    const response = await fetch('https://oauth2.googleapis.com/token', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({
+        client_id: Deno.env.get('GOOGLE_CLIENT_ID')!,
+        client_secret: Deno.env.get('GOOGLE_CLIENT_SECRET')!,
+        refresh_token: refreshToken,
+        grant_type: 'refresh_token',
+      }),
+    })
+
+    if (!response.ok) {
+      const err = await response.json()
+      throw new Error(`Failed to refresh token: ${err.error_description || err.error}`)
+    }
+
+    const tokenData = await response.json()
+
+    // Update token in database
+    const expiresAt = new Date(Date.now() + tokenData.expires_in * 1000)
+
+    const { error: updateError } = await this.supabase
+      .from('google_calendar_tokens')
+      .update({
+        access_token: tokenData.access_token,
+        expires_at: expiresAt.toISOString(),
+      })
+      .eq('user_id', this.userId)
+
+    if (updateError) throw new Error(`DB error updating token: ${updateError.message}`)
+
+    return {
+      access_token: tokenData.access_token,
+      expires_in: tokenData.expires_in,
+      token_type: tokenData.token_type,
+      scope: tokenData.scope
+    }
+  }
+
+  async refreshToken(refreshToken: string): Promise<GoogleToken> {
     const response = await fetch('https://oauth2.googleapis.com/token', {
       method: 'POST',
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
