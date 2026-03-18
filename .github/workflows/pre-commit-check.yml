@@ -28,11 +28,12 @@ jobs:
         run: |
           echo "🔍 Scanning for potential secrets..."
 
-          # Padrões perigosos - Exclui docs, scripts e arquivos .example para evitar falsos positivos
-          # Também ignora o próprio script de auditoria e migrações SQL que contém placeholders
-          if grep -rE "(sk-[a-zA-Z0-9]{48}|eyJ[a-zA-Z0-9_-]{30,})" . \
+          # Padrões perigosos - Exclui docs, scripts, SQL e Markdown para evitar falsos positivos de documentação
+          # Também ignora o próprio script de auditoria e migrações SQL que contêm placeholders
+          if grep -rE \
             --exclude-dir=node_modules --exclude-dir=.git --exclude-dir=dist --exclude-dir=docs --exclude-dir=scripts \
-            --exclude="*.example" --exclude="*.sql"; then
+            --exclude="*.example" --exclude="*.sql" --exclude="*.md" \
+            "(sk-[a-zA-Z0-9]{48}|eyJ[a-zA-Z0-9_-]{30,})" .; then
             echo "❌ API keys encontradas no código!"
             exit 1
           fi
