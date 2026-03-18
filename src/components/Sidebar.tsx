@@ -25,6 +25,9 @@ import {
   ShieldCheck,
   Link2,
   BookOpen,
+  Building2,
+  Tags,
+  FolderOpen,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/contexts/AuthContext';
@@ -88,18 +91,46 @@ const MAIN_NAV: NavEntry[] = [
       { id: 'base-conhecimento',   label: 'Base de Conhecimento', icon: BookOpen, resource: 'agentes_ia', action: 'read', disabled: true },
     ],
   },
-  { kind: 'leaf', id: 'agendamentos',  label: 'Tarefas',        icon: Calendar, resource: 'agendamentos', action: 'read' },
-  { kind: 'leaf', id: 'configuracoes', label: 'Configurações', icon: Settings, resource: 'configuracoes', action: 'read' },
+  {
+    kind: 'section',
+    id: 'operacao',
+    label: 'Operação',
+    icon: Building2,
+    children: [
+      { id: 'agendamentos',   label: 'Tarefas',        icon: Calendar,  resource: 'agendamentos',   action: 'read' },
+      { id: 'usuarios',       label: 'Equipe',         icon: UserCog,   resource: 'usuarios',        action: 'read', managerOk: true },
+      { id: 'departamentos',  label: 'Departamentos',  icon: Building2, resource: 'departamentos',   action: 'read' },
+      { id: 'tags',           label: 'Tags',           icon: Tags,      resource: 'tags',            action: 'read' },
+    ],
+  },
+  {
+    kind: 'section',
+    id: 'juridico',
+    label: 'Jurídico',
+    icon: Gavel,
+    children: [
+      { id: 'processos',   label: 'Processos',    icon: Gavel,      resource: 'processos',   action: 'read' },
+      { id: 'prazos',      label: 'Prazos',       icon: Clock,      resource: 'prazos',      action: 'read' },
+      { id: 'honorarios',  label: 'Honorários',   icon: DollarSign, resource: 'honorarios',  action: 'read', managerOk: true },
+      { id: 'documentos',  label: 'Documentos',   icon: FolderOpen, resource: 'documentos',  action: 'read' },
+    ],
+  },
+  {
+    kind: 'section',
+    id: 'admin',
+    label: 'Administração',
+    icon: Settings,
+    children: [
+      { id: 'conexoes',      label: 'Conexões',       icon: Link2,      resource: 'whatsapp',       action: 'read' },
+      { id: 'configuracoes', label: 'Configurações',   icon: Settings,   resource: 'configuracoes',  action: 'read' },
+      { id: 'relatorios',    label: 'Métricas',        icon: BarChart3,  resource: 'relatorios',     action: 'read' },
+    ],
+  },
 ];
 
 const SISTEMA_NAV: MenuLeaf[] = [
-  { id: 'relatorios',            label: 'Relatórios',     icon: BarChart3,   resource: 'relatorios',    action: 'read' },
   { id: 'auditoria',             label: 'Auditoria',      icon: ShieldCheck, resource: 'logs',          action: 'read', managerOk: true },
-  { id: 'honorarios',            label: 'Honorários',     icon: DollarSign,  resource: 'honorarios',    action: 'read', managerOk: true },
-  { id: 'processos',             label: 'Processos',      icon: Gavel,       resource: 'processos',     action: 'read' },
-  { id: 'prazos',                label: 'Prazos',         icon: Clock,       resource: 'prazos',        action: 'read' },
   { id: 'billing',               label: 'Assinatura',     icon: CreditCard,  resource: 'dashboard',     action: 'read', badge: 'upgrade' },
-  { id: 'usuarios',              label: 'Usuários',       icon: UserCog,     resource: 'usuarios',      action: 'read', managerOk: true },
   { id: 'logs',                  label: 'Logs',           icon: Activity,    resource: 'logs',          action: 'read', adminOnly: true },
   { id: 'admin/mission-control', label: 'Monitoramento',  icon: Rocket,      resource: 'dashboard',     action: 'read', adminOnly: true },
 ];

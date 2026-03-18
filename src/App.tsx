@@ -55,6 +55,8 @@ const MissionControl = lazyWithRetry(() => import("./features/mission-control/Mi
 const SubscriptionManager = lazyWithRetry(() => import("./components/billing/SubscriptionManager"));
 const CRMDashboard = lazyWithRetry(() => import("./features/crm/CRMDashboard"));
 const ConexoesManager = lazyWithRetry(() => import("./features/conexoes/ConexoesManager"));
+const DepartamentosManager = lazyWithRetry(() => import("./features/departamentos/DepartamentosManager"));
+const TagsManager = lazyWithRetry(() => import("./features/tags/TagsManager"));
 const LeadDetailPanel = lazyWithRetry(() => import("./features/crm/LeadDetailPanel"));
 const AdminStatus = lazyWithRetry(() => import("./pages/AdminStatus"));
 
@@ -94,6 +96,7 @@ const ALLOWED_DEEP_LINK_PATHS = new Set([
   '/contratos', '/clientes', '/notificacoes', '/processos', '/prazos',
   '/honorarios', '/documentos', '/configuracoes', '/relatorios',
   '/usuarios', '/logs', '/integracoes', '/billing', '/conexoes',
+  '/departamentos', '/tags',
 ]);
 
 function DeepLinkHandler() {
@@ -185,6 +188,8 @@ const App = () => (
                     </ProtectedRoute>
                   } />
                   <Route path="documentos" element={<ErrorBoundary><DocumentosManager /></ErrorBoundary>} />
+                  <Route path="departamentos" element={<ErrorBoundary><DepartamentosManager /></ErrorBoundary>} />
+                  <Route path="tags" element={<ErrorBoundary><TagsManager /></ErrorBoundary>} />
                   <Route path="admin/playground" element={<ProtectedRoute requiredRoles={['admin']}><ErrorBoundary><AgentsPlayground /></ErrorBoundary></ProtectedRoute>} />
                   <Route path="admin/mission-control" element={<ProtectedRoute requiredRoles={['admin']}><ErrorBoundary><MissionControl /></ErrorBoundary></ProtectedRoute>} />
                   <Route path="admin/status" element={<ProtectedRoute requiredRoles={['admin']}><ErrorBoundary><AdminStatus /></ErrorBoundary></ProtectedRoute>} />

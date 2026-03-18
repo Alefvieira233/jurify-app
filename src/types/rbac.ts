@@ -28,7 +28,9 @@ export type Resource =
   // Conexões
   | 'conexoes'
   // Departamentos
-  | 'departamentos';
+  | 'departamentos'
+  // Tags
+  | 'tags';
 
 // Acoes possiveis
 export type Action = 'create' | 'read' | 'update' | 'delete' | 'execute' | 'manage';
@@ -60,6 +62,7 @@ export const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
     { resource: 'documentos', actions: ['create', 'read', 'update', 'delete'] },
     { resource: 'conexoes', actions: ['create', 'read', 'update', 'delete', 'manage'] },
     { resource: 'departamentos', actions: ['create', 'read', 'update', 'delete'] },
+    { resource: 'tags', actions: ['create', 'read', 'update', 'delete'] },
   ],
 
   // Manager: gerencia operacoes, sem usuarios/configuracoes
@@ -81,6 +84,7 @@ export const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
     { resource: 'documentos', actions: ['create', 'read', 'update'] },
     { resource: 'conexoes', actions: ['create', 'read', 'update', 'manage'] },
     { resource: 'departamentos', actions: ['create', 'read', 'update'] },
+    { resource: 'tags', actions: ['create', 'read', 'update'] },
   ],
 
   // User: operacoes basicas
@@ -102,6 +106,7 @@ export const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
     { resource: 'documentos', actions: ['read', 'create'] },
     { resource: 'conexoes', actions: ['read'] },
     { resource: 'departamentos', actions: ['read'] },
+    { resource: 'tags', actions: ['read', 'create'] },
   ],
 
   // Viewer: somente leitura
@@ -123,6 +128,7 @@ export const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
     { resource: 'documentos', actions: ['read'] },
     { resource: 'conexoes', actions: ['read'] },
     { resource: 'departamentos', actions: ['read'] },
+    { resource: 'tags', actions: ['read'] },
   ],
 };
 

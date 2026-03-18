@@ -60,6 +60,18 @@ export type Lead = {
   followup_count: number;
   company_name: string | null;
   cpf_cnpj: string | null;
+  // CRM Operacional fields
+  departamento_id: string | null;
+  conexao_id: string | null;
+  prioridade: 'baixa' | 'media' | 'alta' | 'urgente';
+  assigned_at: string | null;
+  inactive_since: string | null;
+  ultima_interacao: string | null;
+  proxima_acao: string | null;
+  proxima_acao_data: string | null;
+  arquivado_em: string | null;
+  motivo_arquivamento: string | null;
+  data_reativacao_prevista: string | null;
 };
 
 export type CreateLeadData = {
@@ -111,6 +123,18 @@ function normalizeLead(lead: Record<string, unknown>): Lead {
     followup_count: (lead.followup_count as number) ?? 0,
     company_name: (lead.company_name as string) ?? null,
     cpf_cnpj: (lead.cpf_cnpj as string) ?? null,
+    // CRM Operacional
+    departamento_id: (lead.departamento_id as string) ?? null,
+    conexao_id: (lead.conexao_id as string) ?? null,
+    prioridade: (lead.prioridade as Lead['prioridade']) ?? 'media',
+    assigned_at: (lead.assigned_at as string) ?? null,
+    inactive_since: (lead.inactive_since as string) ?? null,
+    ultima_interacao: (lead.ultima_interacao as string) ?? null,
+    proxima_acao: (lead.proxima_acao as string) ?? null,
+    proxima_acao_data: (lead.proxima_acao_data as string) ?? null,
+    arquivado_em: (lead.arquivado_em as string) ?? null,
+    motivo_arquivamento: (lead.motivo_arquivamento as string) ?? null,
+    data_reativacao_prevista: (lead.data_reativacao_prevista as string) ?? null,
   };
 }
 
@@ -312,6 +336,78 @@ export const useLeads = (options?: { enablePagination?: boolean; pageSize?: numb
     },
   });
 
+  // ── Archive / Unarchive ──────────────────────────────────────────────────
+
+  const archiveMutation = useMutation({
+    mutationFn: async ({ id, motivo, observacao, dataReativacao }: {
+      id: string; motivo: string; observacao?: string; dataReativacao?: string;
+    }) => {
+      if (!tenantId) throw new Error('Tenant não identificado');
+      const { data: updated, error } = await supabase
+        .from('leads')
+        .update({
+          arquivado_em: new Date().toISOString(),
+          motivo_arquivamento: `${motivo}${observacao ? ` — ${observacao}` : ''}`,
+          data_reativacao_prevista: dataReativacao ?? null,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', id)
+        .eq('tenant_id', tenantId)
+        .select()
+        .single();
+      if (error) throw error;
+      return normalizeLead(updated);
+    },
+    onSuccess: (updated) => {
+      queryClient.setQueryData(qKey, (prev: typeof queryData) => ({
+        leads: (prev?.leads ?? []).map(l => l.id === updated.id ? updated : l),
+        totalCount: prev?.totalCount ?? 0,
+      }));
+      toast({ title: 'Lead arquivado com sucesso' });
+    },
+    onError: (err: unknown) => {
+      toast({ title: 'Erro ao arquivar', description: err instanceof Error ? err.message : 'Erro desconhecido', variant: 'destructive' });
+    },
+  });
+
+  const unarchiveMutation = useMutation({
+    mutationFn: async (id: string) => {
+      if (!tenantId) throw new Error('Tenant não identificado');
+      const { data: updated, error } = await supabase
+        .from('leads')
+        .update({
+          arquivado_em: null,
+          motivo_arquivamento: null,
+          data_reativacao_prevista: null,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', id)
+        .eq('tenant_id', tenantId)
+        .select()
+        .single();
+      if (error) throw error;
+      return normalizeLead(updated);
+    },
+    onSuccess: (updated) => {
+      queryClient.setQueryData(qKey, (prev: typeof queryData) => ({
+        leads: (prev?.leads ?? []).map(l => l.id === updated.id ? updated : l),
+        totalCount: prev?.totalCount ?? 0,
+      }));
+      toast({ title: 'Lead reativado com sucesso' });
+    },
+    onError: (err: unknown) => {
+      toast({ title: 'Erro ao reativar', description: err instanceof Error ? err.message : 'Erro desconhecido', variant: 'destructive' });
+    },
+  });
+
+  const archiveLead = useCallback(async (id: string, motivo: string, observacao?: string, dataReativacao?: string): Promise<boolean> => {
+    try { await archiveMutation.mutateAsync({ id, motivo, observacao, dataReativacao }); return true; } catch { return false; }
+  }, [archiveMutation]);
+
+  const unarchiveLead = useCallback(async (id: string): Promise<boolean> => {
+    try { await unarchiveMutation.mutateAsync(id); return true; } catch { return false; }
+  }, [unarchiveMutation]);
+
   // ── Pagination helpers ─────────────────────────────────────────────────────
 
   const goToPage = useCallback((page: number) => {
@@ -383,6 +479,8 @@ export const useLeads = (options?: { enablePagination?: boolean; pageSize?: numb
     createLead,
     updateLead,
     deleteLead,
+    archiveLead,
+    unarchiveLead,
     planUsage,
     planLimits,
     canUsePlan,
