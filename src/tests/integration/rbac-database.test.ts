@@ -31,6 +31,9 @@ function hasPermissionSQL(role: string | null, resource: string, action: string)
       prazos: ['create', 'read', 'update', 'delete'],
       honorarios: ['create', 'read', 'update', 'delete', 'manage'],
       documentos: ['create', 'read', 'update', 'delete'],
+      conexoes: ['create', 'read', 'update', 'delete', 'manage'],
+      departamentos: ['create', 'read', 'update', 'delete'],
+      tags: ['create', 'read', 'update', 'delete'],
     },
     manager: {
       leads: ['create', 'read', 'update', 'delete'],
@@ -49,6 +52,9 @@ function hasPermissionSQL(role: string | null, resource: string, action: string)
       prazos: ['create', 'read', 'update'],
       honorarios: ['read', 'create'],
       documentos: ['create', 'read', 'update'],
+      conexoes: ['create', 'read', 'update', 'manage'],
+      departamentos: ['create', 'read', 'update'],
+      tags: ['create', 'read', 'update'],
     },
     user: {
       leads: ['create', 'read', 'update'],
@@ -65,6 +71,9 @@ function hasPermissionSQL(role: string | null, resource: string, action: string)
       processos: ['read'],
       prazos: ['read', 'create'],
       documentos: ['read', 'create'],
+      conexoes: ['read'],
+      departamentos: ['read'],
+      tags: ['read', 'create'],
     },
     viewer: {
       leads: ['read'],
@@ -79,6 +88,9 @@ function hasPermissionSQL(role: string | null, resource: string, action: string)
       processos: ['read'],
       prazos: ['read'],
       documentos: ['read'],
+      conexoes: ['read'],
+      departamentos: ['read'],
+      tags: ['read'],
     },
   };
 

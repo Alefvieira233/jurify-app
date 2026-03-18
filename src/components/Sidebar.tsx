@@ -69,7 +69,7 @@ type NavEntry = (MenuLeaf & { kind: 'leaf' }) | (MenuSection & { kind: 'section'
 ───────────────────────────────────────────────────────────────────────── */
 const MAIN_NAV: NavEntry[] = [
   { kind: 'leaf', id: 'dashboard', label: 'Home', icon: LayoutDashboard, resource: 'dashboard', action: 'read' },
-  { kind: 'leaf', id: 'conexoes',  label: 'Conexões', icon: Link2, resource: 'whatsapp', action: 'read' },
+  // Conexões is inside Admin section — no duplicate top-level leaf
   {
     kind: 'section',
     id: 'atendimento',
@@ -121,7 +121,7 @@ const MAIN_NAV: NavEntry[] = [
     label: 'Administração',
     icon: Settings,
     children: [
-      { id: 'conexoes',      label: 'Conexões',       icon: Link2,      resource: 'whatsapp',       action: 'read' },
+      { id: 'conexoes',      label: 'Conexões',       icon: Link2,      resource: 'conexoes',       action: 'read' },
       { id: 'configuracoes', label: 'Configurações',   icon: Settings,   resource: 'configuracoes',  action: 'read' },
       { id: 'relatorios',    label: 'Métricas',        icon: BarChart3,  resource: 'relatorios',     action: 'read' },
     ],

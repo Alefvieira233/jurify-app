@@ -1,5 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { renderHook } from '@testing-library/react';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import React from 'react';
 
 // Mock AuthContext before importing useRBAC
 const mockUseAuth = vi.fn();
@@ -7,9 +9,29 @@ vi.mock('@/contexts/AuthContext', () => ({
   useAuth: () => mockUseAuth(),
 }));
 
+// Mock supabase client (useRBAC queries departamento_membros via useQuery)
+vi.mock('@/integrations/supabase/client', () => {
+  const mockFrom = () => ({
+    select: () => ({
+      eq: () => Promise.resolve({ data: [], error: null }),
+    }),
+  });
+  return {
+    supabase: { from: mockFrom },
+  };
+});
+
 import { useRBAC, usePermission } from '../useRBAC';
 import { ROLE_PERMISSIONS } from '@/types/rbac';
 import type { User } from '@supabase/supabase-js';
+
+function createWrapper() {
+  const queryClient = new QueryClient({
+    defaultOptions: { queries: { retry: false } },
+  });
+  return ({ children }: { children: React.ReactNode }) =>
+    React.createElement(QueryClientProvider, { client: queryClient }, children);
+}
 
 const mockUser: User = {
   id: 'test-user-id',
@@ -28,21 +50,21 @@ describe('useRBAC', () => {
   describe('when user has no profile', () => {
     it('should return false for can() when profile is null', () => {
       mockUseAuth.mockReturnValue({ user: mockUser, profile: null });
-      const { result } = renderHook(() => useRBAC());
+      const { result } = renderHook(() => useRBAC(), { wrapper: createWrapper() });
 
       expect(result.current.can('leads', 'read')).toBe(false);
     });
 
     it('should return false for can() when user is null', () => {
       mockUseAuth.mockReturnValue({ user: null, profile: null });
-      const { result } = renderHook(() => useRBAC());
+      const { result } = renderHook(() => useRBAC(), { wrapper: createWrapper() });
 
       expect(result.current.can('leads', 'read')).toBe(false);
     });
 
     it('should default userRole to viewer when role is missing', () => {
       mockUseAuth.mockReturnValue({ user: mockUser, profile: { role: undefined } });
-      const { result } = renderHook(() => useRBAC());
+      const { result } = renderHook(() => useRBAC(), { wrapper: createWrapper() });
 
       expect(result.current.userRole).toBe('viewer');
     });
@@ -57,7 +79,7 @@ describe('useRBAC', () => {
     });
 
     it('should have full CRUD on leads', () => {
-      const { result } = renderHook(() => useRBAC());
+      const { result } = renderHook(() => useRBAC(), { wrapper: createWrapper() });
 
       expect(result.current.can('leads', 'create')).toBe(true);
       expect(result.current.can('leads', 'read')).toBe(true);
@@ -66,7 +88,7 @@ describe('useRBAC', () => {
     });
 
     it('should be able to manage usuarios', () => {
-      const { result } = renderHook(() => useRBAC());
+      const { result } = renderHook(() => useRBAC(), { wrapper: createWrapper() });
 
       expect(result.current.can('usuarios', 'manage')).toBe(true);
       expect(result.current.can('usuarios', 'delete')).toBe(true);
@@ -75,32 +97,32 @@ describe('useRBAC', () => {
     });
 
     it('should manage configuracoes', () => {
-      const { result } = renderHook(() => useRBAC());
+      const { result } = renderHook(() => useRBAC(), { wrapper: createWrapper() });
 
       expect(result.current.can('configuracoes', 'manage')).toBe(true);
       expect(result.current.canManageConfig).toBe(true);
     });
 
     it('should read logs', () => {
-      const { result } = renderHook(() => useRBAC());
+      const { result } = renderHook(() => useRBAC(), { wrapper: createWrapper() });
 
       expect(result.current.canViewLogs).toBe(true);
     });
 
     it('should execute agentes_ia', () => {
-      const { result } = renderHook(() => useRBAC());
+      const { result } = renderHook(() => useRBAC(), { wrapper: createWrapper() });
 
       expect(result.current.canExecuteAgents).toBe(true);
     });
 
     it('should manage integracoes', () => {
-      const { result } = renderHook(() => useRBAC());
+      const { result } = renderHook(() => useRBAC(), { wrapper: createWrapper() });
 
       expect(result.current.canManageIntegrations).toBe(true);
     });
 
     it('should report isAdmin true', () => {
-      const { result } = renderHook(() => useRBAC());
+      const { result } = renderHook(() => useRBAC(), { wrapper: createWrapper() });
 
       expect(result.current.isAdmin).toBe(true);
       expect(result.current.isManager).toBe(false);
@@ -118,7 +140,7 @@ describe('useRBAC', () => {
     });
 
     it('should only read leads, not create/update/delete', () => {
-      const { result } = renderHook(() => useRBAC());
+      const { result } = renderHook(() => useRBAC(), { wrapper: createWrapper() });
 
       expect(result.current.can('leads', 'read')).toBe(true);
       expect(result.current.can('leads', 'create')).toBe(false);
@@ -127,14 +149,14 @@ describe('useRBAC', () => {
     });
 
     it('should not access usuarios or configuracoes', () => {
-      const { result } = renderHook(() => useRBAC());
+      const { result } = renderHook(() => useRBAC(), { wrapper: createWrapper() });
 
       expect(result.current.can('usuarios', 'read')).toBe(false);
       expect(result.current.can('configuracoes', 'read')).toBe(false);
     });
 
     it('should not manage users or config', () => {
-      const { result } = renderHook(() => useRBAC());
+      const { result } = renderHook(() => useRBAC(), { wrapper: createWrapper() });
 
       expect(result.current.canManageUsers).toBe(false);
       expect(result.current.canDeleteUsers).toBe(false);
@@ -142,13 +164,13 @@ describe('useRBAC', () => {
     });
 
     it('should access integracoes (read)', () => {
-      const { result } = renderHook(() => useRBAC());
+      const { result } = renderHook(() => useRBAC(), { wrapper: createWrapper() });
 
       expect(result.current.canManageIntegrations).toBe(true);
     });
 
     it('should report isViewer true', () => {
-      const { result } = renderHook(() => useRBAC());
+      const { result } = renderHook(() => useRBAC(), { wrapper: createWrapper() });
 
       expect(result.current.isViewer).toBe(true);
       expect(result.current.isAdmin).toBe(false);
@@ -164,7 +186,7 @@ describe('useRBAC', () => {
     });
 
     it('should have full CRUD on leads', () => {
-      const { result } = renderHook(() => useRBAC());
+      const { result } = renderHook(() => useRBAC(), { wrapper: createWrapper() });
 
       expect(result.current.can('leads', 'create')).toBe(true);
       expect(result.current.can('leads', 'read')).toBe(true);
@@ -173,7 +195,7 @@ describe('useRBAC', () => {
     });
 
     it('should only read usuarios, not manage', () => {
-      const { result } = renderHook(() => useRBAC());
+      const { result } = renderHook(() => useRBAC(), { wrapper: createWrapper() });
 
       expect(result.current.can('usuarios', 'read')).toBe(true);
       expect(result.current.can('usuarios', 'manage')).toBe(false);
@@ -181,14 +203,14 @@ describe('useRBAC', () => {
     });
 
     it('should only read configuracoes, not manage', () => {
-      const { result } = renderHook(() => useRBAC());
+      const { result } = renderHook(() => useRBAC(), { wrapper: createWrapper() });
 
       expect(result.current.can('configuracoes', 'read')).toBe(true);
       expect(result.current.can('configuracoes', 'manage')).toBe(false);
     });
 
     it('should report isManager true', () => {
-      const { result } = renderHook(() => useRBAC());
+      const { result } = renderHook(() => useRBAC(), { wrapper: createWrapper() });
 
       expect(result.current.isManager).toBe(true);
     });
@@ -203,7 +225,7 @@ describe('useRBAC', () => {
     });
 
     it('should create/read/update leads but not delete', () => {
-      const { result } = renderHook(() => useRBAC());
+      const { result } = renderHook(() => useRBAC(), { wrapper: createWrapper() });
 
       expect(result.current.can('leads', 'create')).toBe(true);
       expect(result.current.can('leads', 'read')).toBe(true);
@@ -212,21 +234,21 @@ describe('useRBAC', () => {
     });
 
     it('should not access logs', () => {
-      const { result } = renderHook(() => useRBAC());
+      const { result } = renderHook(() => useRBAC(), { wrapper: createWrapper() });
 
       expect(result.current.can('logs', 'read')).toBe(false);
       expect(result.current.canViewLogs).toBe(false);
     });
 
     it('should read integracoes but not manage', () => {
-      const { result } = renderHook(() => useRBAC());
+      const { result } = renderHook(() => useRBAC(), { wrapper: createWrapper() });
 
       expect(result.current.can('integracoes', 'read')).toBe(true);
       expect(result.current.can('integracoes', 'manage')).toBe(false);
     });
 
     it('should report isUser true', () => {
-      const { result } = renderHook(() => useRBAC());
+      const { result } = renderHook(() => useRBAC(), { wrapper: createWrapper() });
 
       expect(result.current.isUser).toBe(true);
     });
@@ -238,7 +260,7 @@ describe('useRBAC', () => {
         user: mockUser,
         profile: { id: 'admin-id', role: 'admin' },
       });
-      const { result } = renderHook(() => useRBAC());
+      const { result } = renderHook(() => useRBAC(), { wrapper: createWrapper() });
 
       expect(result.current.canAll('leads', ['create', 'read', 'update', 'delete'])).toBe(true);
     });
@@ -248,7 +270,7 @@ describe('useRBAC', () => {
         user: mockUser,
         profile: { id: 'viewer-id', role: 'viewer' },
       });
-      const { result } = renderHook(() => useRBAC());
+      const { result } = renderHook(() => useRBAC(), { wrapper: createWrapper() });
 
       expect(result.current.canAll('leads', ['read', 'create'])).toBe(false);
     });
@@ -258,7 +280,7 @@ describe('useRBAC', () => {
         user: mockUser,
         profile: { id: 'viewer-id', role: 'viewer' },
       });
-      const { result } = renderHook(() => useRBAC());
+      const { result } = renderHook(() => useRBAC(), { wrapper: createWrapper() });
 
       expect(result.current.canAll('leads', [])).toBe(true);
     });
@@ -270,7 +292,7 @@ describe('useRBAC', () => {
         user: mockUser,
         profile: { id: 'viewer-id', role: 'viewer' },
       });
-      const { result } = renderHook(() => useRBAC());
+      const { result } = renderHook(() => useRBAC(), { wrapper: createWrapper() });
 
       expect(result.current.canAny('leads', ['read', 'delete'])).toBe(true);
     });
@@ -280,7 +302,7 @@ describe('useRBAC', () => {
         user: mockUser,
         profile: { id: 'viewer-id', role: 'viewer' },
       });
-      const { result } = renderHook(() => useRBAC());
+      const { result } = renderHook(() => useRBAC(), { wrapper: createWrapper() });
 
       expect(result.current.canAny('usuarios', ['create', 'manage'])).toBe(false);
     });
@@ -290,7 +312,7 @@ describe('useRBAC', () => {
         user: mockUser,
         profile: { id: 'admin-id', role: 'admin' },
       });
-      const { result } = renderHook(() => useRBAC());
+      const { result } = renderHook(() => useRBAC(), { wrapper: createWrapper() });
 
       expect(result.current.canAny('leads', [])).toBe(false);
     });
@@ -302,7 +324,7 @@ describe('useRBAC', () => {
         user: mockUser,
         profile: { id: 'admin-id', role: 'admin' },
       });
-      const { result } = renderHook(() => useRBAC());
+      const { result } = renderHook(() => useRBAC(), { wrapper: createWrapper() });
 
       expect(result.current.canAccessResource('leads')).toBe(true);
     });
@@ -312,7 +334,7 @@ describe('useRBAC', () => {
         user: mockUser,
         profile: { id: 'user-id', role: 'user' },
       });
-      const { result } = renderHook(() => useRBAC());
+      const { result } = renderHook(() => useRBAC(), { wrapper: createWrapper() });
 
       // user role has empty actions for logs
       expect(result.current.canAccessResource('logs')).toBe(false);
@@ -320,7 +342,7 @@ describe('useRBAC', () => {
 
     it('should return false when no user/profile', () => {
       mockUseAuth.mockReturnValue({ user: null, profile: null });
-      const { result } = renderHook(() => useRBAC());
+      const { result } = renderHook(() => useRBAC(), { wrapper: createWrapper() });
 
       expect(result.current.canAccessResource('leads')).toBe(false);
     });
@@ -333,7 +355,7 @@ describe('usePermission', () => {
       user: mockUser,
       profile: { id: 'admin-id', role: 'admin' },
     });
-    const { result } = renderHook(() => usePermission('leads', 'delete'));
+    const { result } = renderHook(() => usePermission('leads', 'delete'), { wrapper: createWrapper() });
 
     expect(result.current).toBe(true);
   });
@@ -343,7 +365,7 @@ describe('usePermission', () => {
       user: mockUser,
       profile: { id: 'viewer-id', role: 'viewer' },
     });
-    const { result } = renderHook(() => usePermission('leads', 'delete'));
+    const { result } = renderHook(() => usePermission('leads', 'delete'), { wrapper: createWrapper() });
 
     expect(result.current).toBe(false);
   });

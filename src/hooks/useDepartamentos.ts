@@ -19,6 +19,7 @@ export function useDepartamentos() {
       const { data, error } = await db
         .from('departamentos')
         .select('*')
+        .eq('tenant_id', tenantId!)
         .order('ordem', { ascending: true });
       if (error) throw error;
       return (data ?? []) as Departamento[];

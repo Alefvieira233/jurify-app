@@ -78,13 +78,18 @@ async function createConexaoAlerta(
 }
 
 async function findConexao(supabaseClient: ReturnType<typeof createClient>, instanceName: string) {
-  const { data } = await supabaseClient
-    .from('conexoes_whatsapp')
-    .select('id, tenant_id')
-    .eq('instance_name', instanceName)
-    .limit(1)
-    .single();
-  return data as { id: string; tenant_id: string } | null;
+  try {
+    const { data } = await supabaseClient
+      .from('conexoes_whatsapp')
+      .select('id, tenant_id')
+      .eq('instance_name', instanceName)
+      .limit(1)
+      .single();
+    return data as { id: string; tenant_id: string } | null;
+  } catch (e) {
+    console.error('[findConexao] failed:', e);
+    return null;
+  }
 }
 
 // Suporta tanto EVOLUTION_API_BASE_URL quanto EVOLUTION_API_URL (legado)
@@ -493,33 +498,41 @@ Deno.serve(async (req) => {
           result = await createInstance(resolvedInstanceName, supabase, profile);
         }
 
-        // Fire-and-forget logging for create action
-        const createConexao = await findConexao(supabase, resolvedInstanceName);
-        if (createConexao) {
-          if (result.success) {
-            logConexaoEvent(supabase, createConexao.id, createConexao.tenant_id, 'conexao_criada', 'info', `Instância ${resolvedInstanceName} criada com sucesso`).catch(() => {});
-            if (result.qrcode) {
-              logConexaoEvent(supabase, createConexao.id, createConexao.tenant_id, 'qr_gerado', 'info', 'QR Code gerado na criação da instância').catch(() => {});
+        // Fire-and-forget logging for create action (non-blocking)
+        (async () => {
+          try {
+            const createConexao = await findConexao(supabase, resolvedInstanceName);
+            if (createConexao) {
+              if (result.success) {
+                logConexaoEvent(supabase, createConexao.id, createConexao.tenant_id, 'conexao_criada', 'info', `Instância ${resolvedInstanceName} criada com sucesso`).catch(() => {});
+                if (result.qrcode) {
+                  logConexaoEvent(supabase, createConexao.id, createConexao.tenant_id, 'qr_gerado', 'info', 'QR Code gerado na criação da instância').catch(() => {});
+                }
+              } else {
+                logConexaoEvent(supabase, createConexao.id, createConexao.tenant_id, 'falha_reconexao', 'error', `Falha ao criar instância: ${result.error ?? 'unknown'}`).catch(() => {});
+                createConexaoAlerta(supabase, createConexao.id, createConexao.tenant_id, 'falha_reconexao', `Falha ao criar instância WhatsApp: ${result.error ?? 'unknown'}`, 'error').catch(() => {});
+              }
             }
-          } else {
-            logConexaoEvent(supabase, createConexao.id, createConexao.tenant_id, 'erro_criacao', 'error', `Falha ao criar instância: ${result.error ?? 'unknown'}`).catch(() => {});
-            createConexaoAlerta(supabase, createConexao.id, createConexao.tenant_id, 'erro_criacao', `Falha ao criar instância WhatsApp: ${result.error ?? 'unknown'}`, 'error').catch(() => {});
-          }
-        }
+          } catch (e) { console.error('[evolution-manager] create logging failed:', e); }
+        })();
         break;
       }
 
       case "qrcode": {
         result = await getQRCode(resolvedInstanceName);
-        // Fire-and-forget logging
-        const qrConexao = await findConexao(supabase, resolvedInstanceName);
-        if (qrConexao) {
-          if (result.success) {
-            logConexaoEvent(supabase, qrConexao.id, qrConexao.tenant_id, 'qr_gerado', 'info', 'QR Code solicitado com sucesso').catch(() => {});
-          } else {
-            logConexaoEvent(supabase, qrConexao.id, qrConexao.tenant_id, 'erro_qr', 'error', `Falha ao obter QR Code: ${result.error ?? 'unknown'}`).catch(() => {});
-          }
-        }
+        // Fire-and-forget logging (non-blocking)
+        (async () => {
+          try {
+            const qrConexao = await findConexao(supabase, resolvedInstanceName);
+            if (qrConexao) {
+              if (result.success) {
+                logConexaoEvent(supabase, qrConexao.id, qrConexao.tenant_id, 'qr_gerado', 'info', 'QR Code solicitado com sucesso').catch(() => {});
+              } else {
+                logConexaoEvent(supabase, qrConexao.id, qrConexao.tenant_id, 'qr_expirado', 'error', `Falha ao obter QR Code: ${result.error ?? 'unknown'}`).catch(() => {});
+              }
+            }
+          } catch (e) { console.error('[evolution-manager] qr logging failed:', e); }
+        })();
         break;
       }
 
@@ -534,37 +547,45 @@ Deno.serve(async (req) => {
             .ilike("observacoes", `%${resolvedInstanceName}%`)
             .eq("tenant_id", profile.tenant_id);
         }
-        // Fire-and-forget logging for status
-        const statusConexao = await findConexao(supabase, resolvedInstanceName);
-        if (statusConexao) {
-          if (result.success && result.connected) {
-            logConexaoEvent(supabase, statusConexao.id, statusConexao.tenant_id, 'sessao_conectada', 'info', `Instância ${resolvedInstanceName} conectada`).catch(() => {});
-            // Auto-resolve open desconexao alerts
-            supabase.from('conexoes_alertas')
-              .update({ resolvido: true, resolvido_em: new Date().toISOString() })
-              .eq('conexao_id', statusConexao.id).eq('tipo', 'desconexao').eq('resolvido', false)
-              .then(() => {}).catch(() => {});
-          } else if (result.success && !result.connected) {
-            logConexaoEvent(supabase, statusConexao.id, statusConexao.tenant_id, 'sessao_desconectada', 'warning', `Instância ${resolvedInstanceName} desconectada (state: ${result.state ?? 'unknown'})`).catch(() => {});
-            createConexaoAlerta(supabase, statusConexao.id, statusConexao.tenant_id, 'desconexao', `Instância WhatsApp ${resolvedInstanceName} está desconectada`, 'warning').catch(() => {});
-          } else {
-            logConexaoEvent(supabase, statusConexao.id, statusConexao.tenant_id, 'erro_status', 'error', `Falha ao verificar status: ${result.error ?? 'unknown'}`).catch(() => {});
-          }
-        }
+        // Fire-and-forget logging for status (non-blocking)
+        (async () => {
+          try {
+            const statusConexao = await findConexao(supabase, resolvedInstanceName);
+            if (statusConexao) {
+              if (result.success && result.connected) {
+                logConexaoEvent(supabase, statusConexao.id, statusConexao.tenant_id, 'sessao_conectada', 'info', `Instância ${resolvedInstanceName} conectada`).catch(() => {});
+                // Auto-resolve open desconexao alerts
+                supabase.from('conexoes_alertas')
+                  .update({ resolvido: true, resolvido_em: new Date().toISOString() })
+                  .eq('conexao_id', statusConexao.id).eq('tipo', 'desconexao').eq('resolvido', false)
+                  .catch(() => {});
+              } else if (result.success && !result.connected) {
+                logConexaoEvent(supabase, statusConexao.id, statusConexao.tenant_id, 'sessao_desconectada', 'warning', `Instância ${resolvedInstanceName} desconectada (state: ${result.state ?? 'unknown'})`).catch(() => {});
+                createConexaoAlerta(supabase, statusConexao.id, statusConexao.tenant_id, 'desconexao', `Instância WhatsApp ${resolvedInstanceName} está desconectada`, 'warning').catch(() => {});
+              } else {
+                logConexaoEvent(supabase, statusConexao.id, statusConexao.tenant_id, 'instabilidade', 'error', `Falha ao verificar status: ${result.error ?? 'unknown'}`).catch(() => {});
+              }
+            }
+          } catch (e) { console.error('[evolution-manager] status logging failed:', e); }
+        })();
         break;
       }
 
       case "disconnect": {
         result = await disconnectInstance(resolvedInstanceName, supabase, profile);
-        // Fire-and-forget logging
-        const disconnConexao = await findConexao(supabase, resolvedInstanceName);
-        if (disconnConexao) {
-          if (result.success) {
-            logConexaoEvent(supabase, disconnConexao.id, disconnConexao.tenant_id, 'sessao_desconectada', 'info', `Instância ${resolvedInstanceName} desconectada pelo usuário`).catch(() => {});
-          } else {
-            logConexaoEvent(supabase, disconnConexao.id, disconnConexao.tenant_id, 'erro_desconexao', 'error', `Falha ao desconectar: ${result.error ?? 'unknown'}`).catch(() => {});
-          }
-        }
+        // Fire-and-forget logging (non-blocking)
+        (async () => {
+          try {
+            const disconnConexao = await findConexao(supabase, resolvedInstanceName);
+            if (disconnConexao) {
+              if (result.success) {
+                logConexaoEvent(supabase, disconnConexao.id, disconnConexao.tenant_id, 'sessao_desconectada', 'info', `Instância ${resolvedInstanceName} desconectada pelo usuário`).catch(() => {});
+              } else {
+                logConexaoEvent(supabase, disconnConexao.id, disconnConexao.tenant_id, 'falha_reconexao', 'error', `Falha ao desconectar: ${result.error ?? 'unknown'}`).catch(() => {});
+              }
+            }
+          } catch (e) { console.error('[evolution-manager] disconnect logging failed:', e); }
+        })();
         break;
       }
 

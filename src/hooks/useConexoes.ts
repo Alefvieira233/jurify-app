@@ -69,6 +69,7 @@ export function useConexoes() {
       const { data, error } = await supabaseUntyped
         .from('conexoes_whatsapp')
         .select('*')
+        .eq('tenant_id', tenantId!)
         .order('created_at', { ascending: false });
 
       if (error) {
@@ -77,6 +78,7 @@ export function useConexoes() {
         const { data: legacyData, error: legacyError } = await supabase
           .from('configuracoes_integracoes')
           .select('*')
+          .eq('tenant_id', tenantId!)
           .like('nome_integracao', 'whatsapp%');
 
         if (legacyError) throw legacyError;

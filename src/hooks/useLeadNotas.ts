@@ -30,12 +30,13 @@ export function useLeadNotas(leadId: string | null) {
 
   const createNota = useMutation({
     mutationFn: async ({ conteudo, fixada }: { conteudo: string; fixada?: boolean }) => {
+      if (!leadId || !tenantId || !user) throw new Error('Contexto de autenticação não disponível');
       const { data, error } = await db
         .from('lead_notas')
         .insert({
-          lead_id: leadId!,
-          tenant_id: tenantId!,
-          autor_id: user!.id,
+          lead_id: leadId,
+          tenant_id: tenantId,
+          autor_id: user.id,
           autor_nome: profile?.nome_completo || 'Usuário',
           conteudo,
           fixada: fixada ?? false,

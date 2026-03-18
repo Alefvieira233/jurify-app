@@ -92,7 +92,7 @@ const SentryRoutes = Sentry.withSentryReactRouterV6Routing(Routes);
 
 // Rotas válidas para deep links jurify://
 const ALLOWED_DEEP_LINK_PATHS = new Set([
-  '/dashboard', '/pipeline', '/agenda', '/whatsapp', '/agentes',
+  '/dashboard', '/pipeline', '/agendamentos', '/whatsapp', '/agentes',
   '/contratos', '/clientes', '/notificacoes', '/processos', '/prazos',
   '/honorarios', '/documentos', '/configuracoes', '/relatorios',
   '/usuarios', '/logs', '/integracoes', '/billing', '/conexoes',

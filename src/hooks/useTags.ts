@@ -19,6 +19,7 @@ export function useTags() {
       const { data, error } = await db
         .from('tags')
         .select('*')
+        .eq('tenant_id', tenantId!)
         .order('ordem', { ascending: true });
       if (error) throw error;
       return (data ?? []) as Tag[];

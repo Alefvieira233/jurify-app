@@ -14,6 +14,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { useQueryClient } from '@tanstack/react-query';
 import { useRBAC } from '@/hooks/useRBAC';
 import { useConexoes, useConexaoLogs, useConexaoAlertas, type ConexaoWhatsApp, type ConexaoLog, type ConexaoAlerta } from '@/hooks/useConexoes';
 import ConfirmDialog from '@/components/ConfirmDialog';
@@ -76,6 +77,7 @@ const ConnectionDetailsDrawer = ({ conexao, open, onOpenChange }: ConnectionDeta
   const { toast } = useToast();
   const { can } = useRBAC();
   const { deleteConexao } = useConexoes();
+  const queryClient = useQueryClient();
   const { data: logs = [], isLoading: logsLoading } = useConexaoLogs(open && conexao ? conexao.id : null);
   const { data: alertas = [], isLoading: alertasLoading } = useConexaoAlertas(open && conexao ? conexao.id : null);
 
@@ -236,6 +238,7 @@ const ConnectionDetailsDrawer = ({ conexao, open, onOpenChange }: ConnectionDeta
         .eq('id', alertaId);
       if (error) throw error;
       toast({ title: 'Alerta marcado como resolvido' });
+      void queryClient.invalidateQueries({ queryKey: ['conexoes_alertas', conexao?.id] });
     } catch {
       toast({ title: 'Erro ao resolver alerta', variant: 'destructive' });
     }

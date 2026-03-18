@@ -123,7 +123,7 @@ export default function LeadDrawer({ lead, open, onOpenChange }: LeadDrawerProps
             <TabsTrigger value="dados" className="text-xs">Dados</TabsTrigger>
             <TabsTrigger value="operacional" className="text-xs">Operacional</TabsTrigger>
             <TabsTrigger value="notas" className="text-xs">Notas</TabsTrigger>
-            <TabsTrigger value="historico" className="text-xs">Hist&oacute;rico</TabsTrigger>
+            <TabsTrigger value="historico" className="text-xs">Histórico</TabsTrigger>
           </TabsList>
 
           <div className="p-4">
