@@ -1,11 +1,11 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { ArrowLeft, Loader2, RefreshCw, AlertTriangle, CheckCircle2, Smartphone } from 'lucide-react';
+import { ArrowLeft, Loader2, RefreshCw, AlertTriangle, CheckCircle2, Smartphone, Clock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 
-type WizardState = 'idle' | 'creating' | 'qr_ready' | 'connected' | 'error';
+type WizardState = 'idle' | 'creating' | 'qr_ready' | 'qr_scanned' | 'authenticating' | 'connected' | 'expired' | 'error';
 
 interface QRCodeWizardProps {
   onBack: () => void;
@@ -52,6 +52,11 @@ const QRCodeWizard = ({ onBack, onConnected }: QRCodeWizardProps) => {
         setState('connected');
         onConnected(name);
         toast({ title: 'WhatsApp conectado com sucesso!' });
+      } else if (data?.state === 'connecting' || data?.status === 'qrReadSuccess') {
+        setState('qr_scanned');
+        setTimeout(() => {
+          setState(prev => prev === 'qr_scanned' ? 'authenticating' : prev);
+        }, 1000);
       }
     } catch {
       // Silent - polling will retry
@@ -64,7 +69,7 @@ const QRCodeWizard = ({ onBack, onConnected }: QRCodeWizardProps) => {
       pollCountRef.current += 1;
       if (pollCountRef.current >= MAX_POLL_ATTEMPTS) {
         cleanup();
-        setState('idle');
+        setState('expired');
         setQrCode(null);
         toast({ title: 'QR Code expirado', description: 'Gere um novo QR Code para tentar novamente.', variant: 'destructive' });
         return;
@@ -182,6 +187,33 @@ const QRCodeWizard = ({ onBack, onConnected }: QRCodeWizardProps) => {
 
       {/* QR Area */}
       <div className="flex flex-col items-center mt-8">
+        {/* Step Indicator */}
+        <div className="flex items-center justify-center gap-2 mb-6">
+          {['Gerar QR', 'Escanear', 'Autenticar', 'Conectado'].map((step, i) => {
+            const stepStates: WizardState[][] = [['idle', 'creating'], ['qr_ready'], ['qr_scanned', 'authenticating'], ['connected']];
+            const currentStepStates = stepStates[i] ?? [];
+            const isActive = currentStepStates.includes(state);
+            const isPast = i < stepStates.findIndex(s => s.includes(state));
+            return (
+              <div key={step} className="flex items-center gap-2">
+                {i > 0 && <div className={cn('w-8 h-0.5', isPast ? 'bg-primary' : 'bg-border')} />}
+                <div className={cn(
+                  'flex items-center gap-1.5 text-xs',
+                  isActive ? 'text-primary font-medium' : isPast ? 'text-primary/60' : 'text-muted-foreground/40'
+                )}>
+                  <div className={cn(
+                    'w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold',
+                    isActive ? 'bg-primary text-white' : isPast ? 'bg-primary/20 text-primary' : 'bg-muted text-muted-foreground/40'
+                  )}>
+                    {isPast ? '\u2713' : i + 1}
+                  </div>
+                  <span className="hidden sm:inline">{step}</span>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
         <div className="w-64 h-64 border-2 border-dashed border-border rounded-xl flex items-center justify-center bg-muted/30">
           {state === 'idle' && (
             <div className="text-center">
@@ -206,10 +238,41 @@ const QRCodeWizard = ({ onBack, onConnected }: QRCodeWizardProps) => {
             <img src={qrCode} alt="QR Code WhatsApp" className="w-56 h-56 object-contain" />
           )}
 
+          {state === 'qr_scanned' && (
+            <div className="text-center">
+              <div className="w-16 h-16 mx-auto mb-3 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center animate-pulse">
+                <Smartphone className="h-8 w-8 text-green-600" />
+              </div>
+              <p className="text-sm font-medium text-green-600">QR Code lido!</p>
+              <p className="text-xs text-muted-foreground mt-1">Aguardando autenticação...</p>
+            </div>
+          )}
+
+          {state === 'authenticating' && (
+            <div className="text-center">
+              <Loader2 className="h-10 w-10 animate-spin text-primary mx-auto mb-2" />
+              <p className="text-sm font-medium text-foreground">Autenticando sessão...</p>
+              <p className="text-xs text-muted-foreground mt-1">Isso pode levar alguns segundos</p>
+            </div>
+          )}
+
           {state === 'connected' && (
             <div className="text-center">
               <CheckCircle2 className="h-12 w-12 text-green-500 mx-auto mb-2" />
               <p className="text-sm font-medium text-green-600">Conectado com sucesso!</p>
+            </div>
+          )}
+
+          {state === 'expired' && (
+            <div className="text-center">
+              <div className="w-16 h-16 mx-auto mb-3 rounded-full bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center">
+                <Clock className="h-8 w-8 text-amber-600" />
+              </div>
+              <p className="text-sm font-medium text-amber-600">QR Code expirado</p>
+              <p className="text-xs text-muted-foreground mt-2 mb-4">O código expirou. Gere um novo para continuar.</p>
+              <Button onClick={() => { void generateQR(); }}>
+                Gerar novo QR Code
+              </Button>
             </div>
           )}
 

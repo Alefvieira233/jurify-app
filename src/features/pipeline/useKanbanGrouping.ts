@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
 import type { Lead } from '@/hooks/useLeads';
 
-export type GroupBy = 'status' | 'departamento' | 'responsavel' | 'origem' | 'prioridade';
+export type GroupBy = 'status' | 'departamento' | 'responsavel' | 'origem' | 'prioridade' | 'conexao';
 
 export interface KanbanColumn {
   id: string;
@@ -44,11 +44,17 @@ interface ProfileLike {
   nome_completo?: string | null;
 }
 
+interface ConexaoLike {
+  id: string;
+  nome: string;
+}
+
 export function useKanbanGrouping(
   leads: Lead[],
   groupBy: GroupBy,
   departamentos?: DepartamentoLike[],
   profiles?: ProfileLike[],
+  conexoes?: ConexaoLike[],
 ): { columns: KanbanColumn[] } {
   const columns = useMemo(() => {
     switch (groupBy) {
@@ -146,10 +152,37 @@ export function useKanbanGrouping(
         });
       }
 
+      case 'conexao': {
+        const nullCol: KanbanColumn = {
+          id: '__sem_conexao__',
+          label: 'Sem conexão',
+          color: '#6b7280',
+          leads: leads.filter((l) => !l.conexao_id),
+          count: 0,
+        };
+        nullCol.count = nullCol.leads.length;
+
+        const conexaoMap = new Map((conexoes ?? []).map((c) => [c.id, c.nome]));
+        const conexaoIds = [...new Set(leads.map((l) => l.conexao_id).filter((id): id is string => !!id))];
+
+        const conexaoCols: KanbanColumn[] = conexaoIds.map((id) => {
+          const matched = leads.filter((l) => l.conexao_id === id);
+          return {
+            id,
+            label: conexaoMap.get(id) ?? 'Conexão desconhecida',
+            color: '#10b981',
+            leads: matched,
+            count: matched.length,
+          };
+        });
+
+        return [nullCol, ...conexaoCols];
+      }
+
       default:
         return [];
     }
-  }, [leads, groupBy, departamentos, profiles]);
+  }, [leads, groupBy, departamentos, profiles, conexoes]);
 
   return { columns };
 }

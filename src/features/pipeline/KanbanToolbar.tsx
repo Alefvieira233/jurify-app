@@ -26,6 +26,7 @@ const GROUP_OPTIONS: { value: GroupBy; label: string }[] = [
   { value: 'responsavel',  label: 'Por Responsavel' },
   { value: 'origem',       label: 'Por Origem' },
   { value: 'prioridade',   label: 'Por Prioridade' },
+  { value: 'conexao',      label: 'Por Conexão' },
 ];
 
 export function KanbanToolbar({

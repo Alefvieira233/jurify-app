@@ -1,6 +1,7 @@
 import { useState, useMemo, useCallback } from 'react';
 import { DragDropContext, Droppable, Draggable, type DropResult } from '@hello-pangea/dnd';
 import { useLeads, type Lead } from '@/hooks/useLeads';
+import { useConexoes } from '@/hooks/useConexoes';
 import { usePageTitle } from '@/hooks/usePageTitle';
 import { useDebounce } from '@/hooks/useDebounce';
 import { useToast } from '@/hooks/use-toast';
@@ -17,6 +18,7 @@ const GROUP_TO_FIELD: Record<GroupBy, string> = {
   responsavel:  'responsavel_id',
   origem:       'origem',
   prioridade:   'prioridade',
+  conexao:      'conexao_id',
 };
 
 const KanbanOperacional = () => {
@@ -28,6 +30,7 @@ const KanbanOperacional = () => {
 
   const { toast } = useToast();
   const { leads, loading, updateLead } = useLeads();
+  const { conexoes } = useConexoes();
   const debouncedSearch = useDebounce(search, 300);
 
   // Filter leads
@@ -51,7 +54,7 @@ const KanbanOperacional = () => {
   }, [leads, debouncedSearch, showArchived]);
 
   // Group into columns
-  const { columns } = useKanbanGrouping(filteredLeads, groupBy);
+  const { columns } = useKanbanGrouping(filteredLeads, groupBy, undefined, undefined, conexoes);
 
   // Handle drag end
   const handleDragEnd = useCallback(

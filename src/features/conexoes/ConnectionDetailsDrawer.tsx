@@ -1,7 +1,8 @@
-import { useState } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   WifiOff, RefreshCw, Trash2, AlertTriangle,
   Zap, Activity, Loader2, Copy,
+  Bell, Shield, CheckCircle2,
 } from 'lucide-react';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
@@ -14,8 +15,11 @@ import { cn } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useRBAC } from '@/hooks/useRBAC';
-import { useConexoes, useConexaoLogs, type ConexaoWhatsApp, type ConexaoLog } from '@/hooks/useConexoes';
+import { useConexoes, useConexaoLogs, useConexaoAlertas, type ConexaoWhatsApp, type ConexaoLog, type ConexaoAlerta } from '@/hooks/useConexoes';
 import ConfirmDialog from '@/components/ConfirmDialog';
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const supabaseUntyped = supabase as any;
 
 interface ConnectionDetailsDrawerProps {
   conexao: ConexaoWhatsApp | null;
@@ -38,19 +42,116 @@ const STATUS_BADGE: Record<string, { label: string; variant: 'default' | 'second
   error:        { label: 'Erro',         variant: 'destructive' },
 };
 
+const ALERTA_TYPE_LABELS: Record<string, string> = {
+  desconexao:          'Desconexão',
+  qr_expirado:        'QR Expirado',
+  falha_reconexao:     'Falha de Reconexão',
+  erro_autenticacao:   'Erro de Autenticação',
+  instabilidade:       'Instabilidade',
+  falha_envio:         'Falha de Envio',
+};
+
+interface DiagnosticoResult {
+  sessaoConectada: boolean | null;
+  ultimoHeartbeat: string | null;
+  reconexoes: number;
+  ultimoErro: string | null;
+  evolutionReachable: boolean | null;
+}
+
+function formatRelativeTime(dateStr: string): string {
+  const now = Date.now();
+  const then = new Date(dateStr).getTime();
+  const diffMs = now - then;
+  const diffMin = Math.floor(diffMs / 60000);
+  if (diffMin < 1) return 'agora';
+  if (diffMin < 60) return `há ${diffMin} min`;
+  const diffH = Math.floor(diffMin / 60);
+  if (diffH < 24) return `há ${diffH}h`;
+  const diffD = Math.floor(diffH / 24);
+  return `há ${diffD}d`;
+}
+
 const ConnectionDetailsDrawer = ({ conexao, open, onOpenChange }: ConnectionDetailsDrawerProps) => {
   const { toast } = useToast();
   const { can } = useRBAC();
   const { deleteConexao } = useConexoes();
   const { data: logs = [], isLoading: logsLoading } = useConexaoLogs(open && conexao ? conexao.id : null);
+  const { data: alertas = [], isLoading: alertasLoading } = useConexaoAlertas(open && conexao ? conexao.id : null);
 
   const [activeTab, setActiveTab] = useState('geral');
   const [isReconnecting, setIsReconnecting] = useState(false);
   const [isTesting, setIsTesting] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [diagLoading, setDiagLoading] = useState(false);
+  const [diagResult, setDiagResult] = useState<DiagnosticoResult | null>(null);
+  const [diagRanOnce, setDiagRanOnce] = useState(false);
 
   const canManage = can('conexoes', 'manage');
   const canDelete = can('conexoes', 'delete');
+
+  const unresolvedCount = useMemo(
+    () => alertas.filter((a) => !a.resolvido).length,
+    [alertas],
+  );
+
+  // Reset diagnostic state when drawer closes or conexao changes
+  useEffect(() => {
+    if (!open) {
+      setDiagResult(null);
+      setDiagRanOnce(false);
+      setActiveTab('geral');
+    }
+  }, [open]);
+
+  const runDiagnostico = useCallback(async () => {
+    if (!conexao?.instance_name) return;
+    setDiagLoading(true);
+    try {
+      // Run status check and health-check in parallel
+      const [statusRes, healthRes] = await Promise.all([
+        supabase.functions.invoke('evolution-manager', {
+          body: { action: 'status', instanceName: conexao.instance_name },
+        }),
+        supabase.functions.invoke('health-check', {
+          body: {},
+        }),
+      ]);
+
+      const statusData = statusRes.data;
+      const healthData = healthRes.data;
+      const connected = statusData?.connected || statusData?.state === 'open';
+      const evolutionOk = healthData?.services?.evolution?.status === 'connected'
+        || healthData?.services?.evolution === 'connected';
+
+      setDiagResult({
+        sessaoConectada: connected ?? false,
+        ultimoHeartbeat: conexao.last_heartbeat,
+        reconexoes: conexao.reconnect_attempts,
+        ultimoErro: conexao.last_error,
+        evolutionReachable: statusRes.error ? false : (evolutionOk ?? !healthRes.error),
+      });
+    } catch {
+      setDiagResult({
+        sessaoConectada: null,
+        ultimoHeartbeat: conexao.last_heartbeat,
+        reconexoes: conexao.reconnect_attempts,
+        ultimoErro: conexao.last_error,
+        evolutionReachable: false,
+      });
+      toast({ title: 'Erro ao executar diagnóstico', variant: 'destructive' });
+    } finally {
+      setDiagLoading(false);
+    }
+  }, [conexao?.instance_name, conexao?.last_heartbeat, conexao?.reconnect_attempts, conexao?.last_error, toast]);
+
+  // Auto-run diagnostic when tab opens
+  useEffect(() => {
+    if (activeTab === 'diagnostico' && !diagRanOnce && conexao?.instance_name) {
+      setDiagRanOnce(true);
+      void runDiagnostico();
+    }
+  }, [activeTab, diagRanOnce, conexao?.instance_name, runDiagnostico]);
 
   if (!conexao) return null;
 
@@ -127,9 +228,30 @@ const ConnectionDetailsDrawer = ({ conexao, open, onOpenChange }: ConnectionDeta
     }
   };
 
+  const handleResolverAlerta = async (alertaId: string) => {
+    try {
+      const { error } = await supabaseUntyped
+        .from('conexoes_alertas')
+        .update({ resolvido: true, resolvido_em: new Date().toISOString() })
+        .eq('id', alertaId);
+      if (error) throw error;
+      toast({ title: 'Alerta marcado como resolvido' });
+    } catch {
+      toast({ title: 'Erro ao resolver alerta', variant: 'destructive' });
+    }
+  };
+
   const copyToClipboard = (text: string) => {
     void navigator.clipboard.writeText(text);
     toast({ title: 'Copiado!' });
+  };
+
+  const getOverallHealth = (result: DiagnosticoResult): { label: string; color: string } => {
+    const hasError = !result.sessaoConectada || !result.evolutionReachable || result.sessaoConectada === null;
+    const hasWarning = result.reconexoes > 3 || !!result.ultimoErro;
+    if (hasError) return { label: 'Crítico', color: 'text-red-600 bg-red-50 dark:bg-red-900/30' };
+    if (hasWarning) return { label: 'Atenção', color: 'text-amber-600 bg-amber-50 dark:bg-amber-900/30' };
+    return { label: 'Saudável', color: 'text-green-600 bg-green-50 dark:bg-green-900/30' };
   };
 
   return (
@@ -164,11 +286,20 @@ const ConnectionDetailsDrawer = ({ conexao, open, onOpenChange }: ConnectionDeta
 
           {/* Tabs */}
           <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col overflow-hidden">
-            <TabsList className="mx-6 mt-4 shrink-0">
+            <TabsList className="mx-6 mt-4 shrink-0 flex overflow-x-auto">
               <TabsTrigger value="geral" className="text-xs">Geral</TabsTrigger>
               <TabsTrigger value="logs" className="text-xs">Logs</TabsTrigger>
               <TabsTrigger value="config" className="text-xs">Configurações</TabsTrigger>
               <TabsTrigger value="acoes" className="text-xs">Ações</TabsTrigger>
+              <TabsTrigger value="alertas" className="text-xs flex items-center gap-1">
+                Alertas
+                {unresolvedCount > 0 && (
+                  <span className="inline-flex items-center justify-center h-4 min-w-4 px-1 rounded-full bg-red-500 text-white text-[10px] font-bold">
+                    {unresolvedCount}
+                  </span>
+                )}
+              </TabsTrigger>
+              <TabsTrigger value="diagnostico" className="text-xs">Diagnóstico</TabsTrigger>
             </TabsList>
 
             {/* Tab: Geral */}
@@ -332,6 +463,138 @@ const ConnectionDetailsDrawer = ({ conexao, open, onOpenChange }: ConnectionDeta
                 </>
               )}
             </TabsContent>
+
+            {/* Tab: Alertas */}
+            <TabsContent value="alertas" className="flex-1 overflow-y-auto px-6 pb-6 mt-4">
+              {alertasLoading ? (
+                <div className="space-y-3">
+                  {Array.from({ length: 3 }).map((_, i) => (
+                    <Skeleton key={i} className="h-20 w-full rounded-lg" />
+                  ))}
+                </div>
+              ) : alertas.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-12 text-center">
+                  <Bell className="h-8 w-8 text-muted-foreground/30 mb-2" />
+                  <p className="text-sm text-muted-foreground">Nenhum alerta registrado</p>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {alertas.map((alerta) => (
+                    <AlertaCard
+                      key={alerta.id}
+                      alerta={alerta}
+                      onResolver={() => { void handleResolverAlerta(alerta.id); }}
+                    />
+                  ))}
+                </div>
+              )}
+            </TabsContent>
+
+            {/* Tab: Diagnóstico */}
+            <TabsContent value="diagnostico" className="flex-1 overflow-y-auto px-6 pb-6 mt-4 space-y-4">
+              <div className="flex items-center justify-between">
+                <h4 className="text-sm font-medium text-foreground">Painel de Diagnóstico</h4>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="gap-2"
+                  disabled={diagLoading}
+                  onClick={() => { void runDiagnostico(); }}
+                >
+                  {diagLoading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Shield className="h-3.5 w-3.5" />}
+                  Executar diagnóstico
+                </Button>
+              </div>
+
+              {diagLoading && !diagResult && (
+                <div className="flex flex-col items-center justify-center py-12 text-center">
+                  <Loader2 className="h-8 w-8 text-muted-foreground animate-spin mb-3" />
+                  <p className="text-sm text-muted-foreground">Executando diagnóstico...</p>
+                </div>
+              )}
+
+              {diagResult && (
+                <div className="space-y-4">
+                  {/* Overall health badge */}
+                  {(() => {
+                    const health = getOverallHealth(diagResult);
+                    return (
+                      <div className={cn('p-3 rounded-lg border text-center', health.color)}>
+                        <span className="text-sm font-semibold">Estado geral: {health.label}</span>
+                      </div>
+                    );
+                  })()}
+
+                  {/* Checklist items */}
+                  <div className="space-y-3">
+                    <DiagnosticoItem
+                      label="Sessão WhatsApp"
+                      ok={diagResult.sessaoConectada === true}
+                      unknown={diagResult.sessaoConectada === null}
+                      valueOk="Conectada"
+                      valueFail="Desconectada"
+                    />
+
+                    <DiagnosticoItem
+                      label="Último heartbeat"
+                      ok={diagResult.ultimoHeartbeat != null}
+                      valueOk={
+                        diagResult.ultimoHeartbeat
+                          ? `${formatDate(diagResult.ultimoHeartbeat)} (${formatRelativeTime(diagResult.ultimoHeartbeat)})`
+                          : '—'
+                      }
+                      valueFail="Sem registro"
+                    />
+
+                    <div className="flex items-start gap-3 p-3 rounded-lg bg-muted/50">
+                      <div className={cn(
+                        'mt-0.5 h-5 w-5 rounded-full flex items-center justify-center text-white text-xs',
+                        diagResult.reconexoes > 3 ? 'bg-amber-500' : 'bg-green-500',
+                      )}>
+                        {diagResult.reconexoes > 3 ? '!' : <CheckCircle2 className="h-3 w-3" />}
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium">Reconexões</p>
+                        <p className={cn('text-xs', diagResult.reconexoes > 3 ? 'text-amber-600' : 'text-muted-foreground')}>
+                          {diagResult.reconexoes} tentativa{diagResult.reconexoes !== 1 ? 's' : ''}
+                          {diagResult.reconexoes > 3 && ' — acima do esperado'}
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="flex items-start gap-3 p-3 rounded-lg bg-muted/50">
+                      <div className={cn(
+                        'mt-0.5 h-5 w-5 rounded-full flex items-center justify-center text-white text-xs',
+                        diagResult.ultimoErro ? 'bg-red-500' : 'bg-green-500',
+                      )}>
+                        {diagResult.ultimoErro ? '!' : <CheckCircle2 className="h-3 w-3" />}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium">Último erro</p>
+                        <p className="text-xs text-muted-foreground truncate">
+                          {diagResult.ultimoErro || 'Nenhum'}
+                        </p>
+                      </div>
+                    </div>
+
+                    <DiagnosticoItem
+                      label="Evolution API"
+                      ok={diagResult.evolutionReachable === true}
+                      unknown={diagResult.evolutionReachable === null}
+                      valueOk="Acessível"
+                      valueFail="Inacessível"
+                    />
+                  </div>
+                </div>
+              )}
+
+              {!diagLoading && !diagResult && (
+                <div className="flex flex-col items-center justify-center py-12 text-center">
+                  <Shield className="h-8 w-8 text-muted-foreground/30 mb-2" />
+                  <p className="text-sm text-muted-foreground">Clique em "Executar diagnóstico" para verificar a saúde da conexão</p>
+                </div>
+              )}
+            </TabsContent>
           </Tabs>
         </SheetContent>
       </Sheet>
@@ -390,6 +653,79 @@ function LogEntry({ log }: { log: ConexaoLog }) {
         {log.origem && (
           <span className="text-[10px] text-muted-foreground/70">via {log.origem}</span>
         )}
+      </div>
+    </div>
+  );
+}
+
+function AlertaCard({ alerta, onResolver }: { alerta: ConexaoAlerta; onResolver: () => void }) {
+  const severityStyle = SEVERITY_STYLES[alerta.severidade] || SEVERITY_STYLES.info;
+  const typeLabel = ALERTA_TYPE_LABELS[alerta.tipo] || alerta.tipo;
+
+  return (
+    <div className="p-3 rounded-lg border space-y-2">
+      <div className="flex items-center gap-2 flex-wrap">
+        <Badge variant="outline" className={cn('text-[10px] px-1.5 py-0', severityStyle)}>
+          {alerta.severidade}
+        </Badge>
+        <span className="text-xs font-medium text-foreground">{typeLabel}</span>
+        {alerta.lido && (
+          <Badge variant="secondary" className="text-[10px] px-1.5 py-0">
+            Lido
+          </Badge>
+        )}
+        {alerta.resolvido && (
+          <Badge variant="outline" className="text-[10px] px-1.5 py-0 text-green-600 bg-green-50 dark:bg-green-900/30 gap-1">
+            <CheckCircle2 className="h-2.5 w-2.5" />
+            Resolvido
+          </Badge>
+        )}
+      </div>
+      <p className="text-xs text-muted-foreground">{alerta.mensagem}</p>
+      <div className="flex items-center justify-between">
+        <span className="text-[10px] text-muted-foreground/70">
+          {formatRelativeTime(alerta.created_at)}
+        </span>
+        {!alerta.resolvido && (
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-6 text-xs gap-1 text-green-600 hover:text-green-700"
+            onClick={onResolver}
+          >
+            <CheckCircle2 className="h-3 w-3" />
+            Marcar como resolvido
+          </Button>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function DiagnosticoItem({
+  label, ok, unknown, valueOk, valueFail,
+}: {
+  label: string;
+  ok: boolean;
+  unknown?: boolean;
+  valueOk: string;
+  valueFail: string;
+}) {
+  const isUnknown = unknown === true;
+
+  return (
+    <div className="flex items-start gap-3 p-3 rounded-lg bg-muted/50">
+      <div className={cn(
+        'mt-0.5 h-5 w-5 rounded-full flex items-center justify-center text-white text-xs',
+        isUnknown ? 'bg-slate-400' : ok ? 'bg-green-500' : 'bg-red-500',
+      )}>
+        {isUnknown ? '?' : ok ? <CheckCircle2 className="h-3 w-3" /> : '!'}
+      </div>
+      <div>
+        <p className="text-sm font-medium">{label}</p>
+        <p className={cn('text-xs', isUnknown ? 'text-muted-foreground' : ok ? 'text-green-600' : 'text-red-600')}>
+          {isUnknown ? 'Indisponível' : ok ? valueOk : valueFail}
+        </p>
       </div>
     </div>
   );

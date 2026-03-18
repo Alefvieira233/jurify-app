@@ -14,6 +14,79 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { getCorsHeaders } from "../_shared/cors.ts";
 
 
+// ---------------------------------------------------------------------------
+// Helpers — Logging & Alerting for conexoes tables
+// ---------------------------------------------------------------------------
+
+async function logConexaoEvent(
+  supabaseClient: ReturnType<typeof createClient>,
+  conexaoId: string,
+  tenantId: string,
+  evento: string,
+  severidade: 'debug' | 'info' | 'warning' | 'error' | 'critical',
+  descricao?: string,
+  origem?: string,
+  metadata?: Record<string, unknown>
+) {
+  try {
+    await supabaseClient.from('conexoes_logs').insert({
+      conexao_id: conexaoId,
+      tenant_id: tenantId,
+      evento,
+      severidade,
+      descricao: descricao ?? null,
+      origem: origem ?? 'evolution-manager',
+      metadata: metadata ?? {},
+    });
+  } catch (e) {
+    console.error('[logConexaoEvent] failed:', e);
+  }
+}
+
+async function createConexaoAlerta(
+  supabaseClient: ReturnType<typeof createClient>,
+  conexaoId: string,
+  tenantId: string,
+  tipo: string,
+  mensagem: string,
+  severidade: 'info' | 'warning' | 'error' | 'critical'
+) {
+  try {
+    // Don't duplicate: check if there's an unresolved alert of same type in last hour
+    const { data: existing } = await supabaseClient
+      .from('conexoes_alertas')
+      .select('id')
+      .eq('conexao_id', conexaoId)
+      .eq('tipo', tipo)
+      .eq('resolvido', false)
+      .gte('created_at', new Date(Date.now() - 3600_000).toISOString())
+      .limit(1);
+    if (existing && existing.length > 0) return; // dedup
+
+    await supabaseClient.from('conexoes_alertas').insert({
+      conexao_id: conexaoId,
+      tenant_id: tenantId,
+      tipo,
+      mensagem,
+      severidade,
+      lido: false,
+      resolvido: false,
+    });
+  } catch (e) {
+    console.error('[createConexaoAlerta] failed:', e);
+  }
+}
+
+async function findConexao(supabaseClient: ReturnType<typeof createClient>, instanceName: string) {
+  const { data } = await supabaseClient
+    .from('conexoes_whatsapp')
+    .select('id, tenant_id')
+    .eq('instance_name', instanceName)
+    .limit(1)
+    .single();
+  return data as { id: string; tenant_id: string } | null;
+}
+
 // Suporta tanto EVOLUTION_API_BASE_URL quanto EVOLUTION_API_URL (legado)
 const EVOLUTION_BASE_URL = (
   Deno.env.get("EVOLUTION_API_BASE_URL") ||
@@ -419,12 +492,36 @@ Deno.serve(async (req) => {
 
           result = await createInstance(resolvedInstanceName, supabase, profile);
         }
+
+        // Fire-and-forget logging for create action
+        const createConexao = await findConexao(supabase, resolvedInstanceName);
+        if (createConexao) {
+          if (result.success) {
+            logConexaoEvent(supabase, createConexao.id, createConexao.tenant_id, 'conexao_criada', 'info', `Instância ${resolvedInstanceName} criada com sucesso`).catch(() => {});
+            if (result.qrcode) {
+              logConexaoEvent(supabase, createConexao.id, createConexao.tenant_id, 'qr_gerado', 'info', 'QR Code gerado na criação da instância').catch(() => {});
+            }
+          } else {
+            logConexaoEvent(supabase, createConexao.id, createConexao.tenant_id, 'erro_criacao', 'error', `Falha ao criar instância: ${result.error ?? 'unknown'}`).catch(() => {});
+            createConexaoAlerta(supabase, createConexao.id, createConexao.tenant_id, 'erro_criacao', `Falha ao criar instância WhatsApp: ${result.error ?? 'unknown'}`, 'error').catch(() => {});
+          }
+        }
         break;
       }
 
-      case "qrcode":
+      case "qrcode": {
         result = await getQRCode(resolvedInstanceName);
+        // Fire-and-forget logging
+        const qrConexao = await findConexao(supabase, resolvedInstanceName);
+        if (qrConexao) {
+          if (result.success) {
+            logConexaoEvent(supabase, qrConexao.id, qrConexao.tenant_id, 'qr_gerado', 'info', 'QR Code solicitado com sucesso').catch(() => {});
+          } else {
+            logConexaoEvent(supabase, qrConexao.id, qrConexao.tenant_id, 'erro_qr', 'error', `Falha ao obter QR Code: ${result.error ?? 'unknown'}`).catch(() => {});
+          }
+        }
         break;
+      }
 
       case "status": {
         result = await getInstanceStatus(resolvedInstanceName);
@@ -437,16 +534,54 @@ Deno.serve(async (req) => {
             .ilike("observacoes", `%${resolvedInstanceName}%`)
             .eq("tenant_id", profile.tenant_id);
         }
+        // Fire-and-forget logging for status
+        const statusConexao = await findConexao(supabase, resolvedInstanceName);
+        if (statusConexao) {
+          if (result.success && result.connected) {
+            logConexaoEvent(supabase, statusConexao.id, statusConexao.tenant_id, 'sessao_conectada', 'info', `Instância ${resolvedInstanceName} conectada`).catch(() => {});
+            // Auto-resolve open desconexao alerts
+            supabase.from('conexoes_alertas')
+              .update({ resolvido: true, resolvido_em: new Date().toISOString() })
+              .eq('conexao_id', statusConexao.id).eq('tipo', 'desconexao').eq('resolvido', false)
+              .then(() => {}).catch(() => {});
+          } else if (result.success && !result.connected) {
+            logConexaoEvent(supabase, statusConexao.id, statusConexao.tenant_id, 'sessao_desconectada', 'warning', `Instância ${resolvedInstanceName} desconectada (state: ${result.state ?? 'unknown'})`).catch(() => {});
+            createConexaoAlerta(supabase, statusConexao.id, statusConexao.tenant_id, 'desconexao', `Instância WhatsApp ${resolvedInstanceName} está desconectada`, 'warning').catch(() => {});
+          } else {
+            logConexaoEvent(supabase, statusConexao.id, statusConexao.tenant_id, 'erro_status', 'error', `Falha ao verificar status: ${result.error ?? 'unknown'}`).catch(() => {});
+          }
+        }
         break;
       }
 
-      case "disconnect":
+      case "disconnect": {
         result = await disconnectInstance(resolvedInstanceName, supabase, profile);
+        // Fire-and-forget logging
+        const disconnConexao = await findConexao(supabase, resolvedInstanceName);
+        if (disconnConexao) {
+          if (result.success) {
+            logConexaoEvent(supabase, disconnConexao.id, disconnConexao.tenant_id, 'sessao_desconectada', 'info', `Instância ${resolvedInstanceName} desconectada pelo usuário`).catch(() => {});
+          } else {
+            logConexaoEvent(supabase, disconnConexao.id, disconnConexao.tenant_id, 'erro_desconexao', 'error', `Falha ao desconectar: ${result.error ?? 'unknown'}`).catch(() => {});
+          }
+        }
         break;
+      }
 
-      case "delete":
+      case "delete": {
+        // Lookup conexao BEFORE delete (since the record may be removed)
+        const delConexao = await findConexao(supabase, resolvedInstanceName);
         result = await deleteInstance(resolvedInstanceName, supabase, profile);
+        // Fire-and-forget logging
+        if (delConexao) {
+          if (result.success) {
+            logConexaoEvent(supabase, delConexao.id, delConexao.tenant_id, 'conexao_removida', 'info', `Instância ${resolvedInstanceName} removida pelo usuário`).catch(() => {});
+          } else {
+            logConexaoEvent(supabase, delConexao.id, delConexao.tenant_id, 'erro_remocao', 'error', `Falha ao remover instância: ${result.error ?? 'unknown'}`).catch(() => {});
+          }
+        }
         break;
+      }
 
       case "list":
         result = await listInstances();
