@@ -26,12 +26,12 @@ interface PIIPattern {
 const PII_PATTERNS: PIIPattern[] = [
   {
     name: 'PROCESSO_CNJ',
-    regex: /\d{7}-\d{2}\.\d{4}\.\d\.\d{2}\.\d{4}/g,
+    regex: /\b\d{7}-\d{2}\.\d{4}\.\d\.\d{2}\.\d{4}\b/g,
     prefix: 'CNJ',
   },
   {
     name: 'CNPJ',
-    regex: /\d{2}\.\d{3}\.\d{3}\/\d{4}-\d{2}/g,
+    regex: /\b\d{2}\.\d{3}\.\d{3}\/\d{4}-\d{2}\b/g,
     prefix: 'CNPJ',
   },
   {
@@ -56,19 +56,34 @@ const PII_PATTERNS: PIIPattern[] = [
   },
   {
     name: 'EMAIL',
-    regex: /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g,
+    regex: /\b[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}\b/g,
     prefix: 'EMAIL',
+  },
+  {
+    name: 'CARD',
+    regex: /\b\d{4}\s?\d{4}\s?\d{4}\s?\d{4}\b/g,
+    prefix: 'CARD',
+  },
+  {
+    name: 'RG',
+    regex: /\b\d{2}\.?\d{3}\.?\d{3}-?[\dXx]\b/g,
+    prefix: 'RG',
   },
 ];
 
-// ─── UUID Generator (no crypto dependency needed) ───────────────────────────
+// ─── UUID Generator (using Web Crypto API) ──────────────────────────────────
 
 function generateTokenId(): string {
-  // Simple UUID v4-like generator that works in all environments
+  // Secure UUID v4-like generator using crypto.getRandomValues()
   const hex = '0123456789abcdef';
+  const array = new Uint8Array(8);
+  crypto.getRandomValues(array);
   let id = '';
   for (let i = 0; i < 8; i++) {
-    id += hex[Math.floor(Math.random() * 16)];
+    // Safety check for TypeScript: array[i] is guaranteed since length is 8
+    const byte = array[i] ?? 0;
+    const char = hex[byte % 16] ?? '0';
+    id += char;
   }
   return id;
 }

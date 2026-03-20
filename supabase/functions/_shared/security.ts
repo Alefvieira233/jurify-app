@@ -92,8 +92,14 @@ export function sanitizeInput(
 // ---------------------------------------------------------------------------
 
 const PII_PATTERNS: Array<{ pattern: RegExp; label: string; replacement: string }> = [
+  { pattern: /\b\d{7}-\d{2}\.\d{4}\.\d\.\d{2}\.\d{4}\b/g, label: "CNJ", replacement: "***PROCESSO***" },
+  { pattern: /\b\d{2}\.\d{3}\.\d{3}\/\d{4}-\d{2}\b/g, label: "CNPJ", replacement: "***CNPJ***" },
   { pattern: /\b\d{3}\.?\d{3}\.?\d{3}-?\d{2}\b/g, label: "CPF", replacement: "***CPF***" },
+  { pattern: /(?<!\d)\d{11}(?!\d)/g, label: "CPF_RAW", replacement: "***CPF***" },
+  { pattern: /\b(?:AC|AL|AP|AM|BA|CE|DF|ES|GO|MA|MT|MS|MG|PA|PB|PR|PE|PI|RJ|RN|RS|RO|RR|SC|SP|SE|TO)\s?\d{4,6}\b/g, label: "OAB", replacement: "***OAB***" },
   { pattern: /\b\d{2}\.?\d{3}\.?\d{3}-?[\dXx]\b/g, label: "RG", replacement: "***RG***" },
+  { pattern: /(?:\+55\s?)?(?:\(\d{2}\)|\d{2})\s?\d{4,5}[-\s]?\d{4}/g, label: "Phone", replacement: "***TEL***" },
+  { pattern: /\b[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}\b/g, label: "Email", replacement: "***EMAIL***" },
   { pattern: /\b\d{4}\s?\d{4}\s?\d{4}\s?\d{4}\b/g, label: "Card", replacement: "***CARD***" },
 ];
 
@@ -104,6 +110,17 @@ export function redactPII(text: string): string {
     result = result.replace(pattern, replacement);
   }
   return result;
+}
+
+/** Generate a cryptographically secure random string for IDs. */
+export function generateSecureId(prefix = "exec", length = 4): string {
+  const timestamp = Date.now();
+  const array = new Uint8Array(length);
+  crypto.getRandomValues(array);
+  const random = Array.from(array, (byte) => byte.toString(36).padStart(2, "0"))
+    .join("")
+    .substring(0, 9);
+  return `${prefix}_${timestamp}_${random}`;
 }
 
 // ---------------------------------------------------------------------------
