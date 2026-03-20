@@ -26,12 +26,12 @@ interface PIIPattern {
 const PII_PATTERNS: PIIPattern[] = [
   {
     name: 'PROCESSO_CNJ',
-    regex: /\d{7}-\d{2}\.\d{4}\.\d\.\d{2}\.\d{4}/g,
+    regex: /\b\d{7}-\d{2}\.\d{4}\.\d\.\d{2}\.\d{4}\b/g,
     prefix: 'CNJ',
   },
   {
     name: 'CNPJ',
-    regex: /\d{2}\.\d{3}\.\d{3}\/\d{4}-\d{2}/g,
+    regex: /\b\d{2}\.\d{3}\.\d{3}\/\d{4}-\d{2}\b/g,
     prefix: 'CNPJ',
   },
   {
