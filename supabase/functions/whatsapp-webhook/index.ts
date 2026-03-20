@@ -5,7 +5,7 @@ import { getCorsHeaders } from "../_shared/cors.ts";
 import { applyRateLimit } from "../_shared/rate-limiter.ts";
 import { buildLegalContext } from "../_shared/legal-context.ts";
 import { DEFAULT_OPENAI_MODEL } from "../_shared/ai-model.ts";
-import { redactPII } from "../_shared/security.ts";
+import { redactPII, generateSecureId } from "../_shared/security.ts";
 
 // whatsapp-webhook: Evolution API + Meta compatible
 
@@ -1033,10 +1033,7 @@ async function processNormalizedMessage(supabase: ReturnType<typeof createClient
     let aiResponse: { result: string; usage?: { prompt_tokens: number; completion_tokens: number; total_tokens: number }; model: string } | null = null;
     let aiError: Error | null = null;
 
-    const executionRandomArray = new Uint8Array(4);
-    crypto.getRandomValues(executionRandomArray);
-    const executionRandom = Array.from(executionRandomArray, (byte) => byte.toString(36).padStart(2, '0')).join('').substring(0, 9);
-    const executionId = `exec_${Date.now()}_${executionRandom}`;
+    const executionId = generateSecureId("exec", 4);
     const aiStartTime = Date.now();
     let executionRowId: string | null = null;
 

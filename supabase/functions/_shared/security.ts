@@ -112,6 +112,17 @@ export function redactPII(text: string): string {
   return result;
 }
 
+/** Generate a cryptographically secure random string for IDs. */
+export function generateSecureId(prefix = "exec", length = 4): string {
+  const timestamp = Date.now();
+  const array = new Uint8Array(length);
+  crypto.getRandomValues(array);
+  const random = Array.from(array, (byte) => byte.toString(36).padStart(2, "0"))
+    .join("")
+    .substring(0, 9);
+  return `${prefix}_${timestamp}_${random}`;
+}
+
 // ---------------------------------------------------------------------------
 // Audit trail
 // ---------------------------------------------------------------------------

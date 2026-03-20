@@ -59,6 +59,16 @@ const PII_PATTERNS: PIIPattern[] = [
     regex: /\b[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}\b/g,
     prefix: 'EMAIL',
   },
+  {
+    name: 'CARD',
+    regex: /\b\d{4}\s?\d{4}\s?\d{4}\s?\d{4}\b/g,
+    prefix: 'CARD',
+  },
+  {
+    name: 'RG',
+    regex: /\b\d{2}\.?\d{3}\.?\d{3}-?[\dXx]\b/g,
+    prefix: 'RG',
+  },
 ];
 
 // ─── UUID Generator (using Web Crypto API) ──────────────────────────────────
@@ -70,7 +80,10 @@ function generateTokenId(): string {
   crypto.getRandomValues(array);
   let id = '';
   for (let i = 0; i < 8; i++) {
-    id += hex[array[i] % 16];
+    // Safety check for TypeScript: array[i] is guaranteed since length is 8
+    const byte = array[i] ?? 0;
+    const char = hex[byte % 16] ?? '0';
+    id += char;
   }
   return id;
 }

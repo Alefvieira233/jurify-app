@@ -15,7 +15,7 @@ import { applyRateLimit } from "../_shared/rate-limiter.ts";
 import { getCorsHeaders } from "../_shared/cors.ts";
 import { initSentry, captureError } from "../_shared/sentry.ts";
 import { DEFAULT_OPENAI_MODEL } from "../_shared/ai-model.ts";
-import { redactPII } from "../_shared/security.ts";
+import { redactPII, generateSecureId } from "../_shared/security.ts";
 
 // 🚀 INIT SENTRY
 initSentry();
@@ -171,11 +171,7 @@ async function processAIRequest(
 
 // 🆔 Gera execution_id único (cryptographically secure)
 function generateExecutionId(): string {
-  const timestamp = Date.now();
-  const array = new Uint8Array(4);
-  crypto.getRandomValues(array);
-  const random = Array.from(array, (byte) => byte.toString(36).padStart(2, '0')).join('').substring(0, 9);
-  return `exec_${timestamp}_${random}`;
+  return generateSecureId("exec", 4);
 }
 
 // ðŸ“ Cria registro de execuÃ§Ã£o no banco
