@@ -56,19 +56,21 @@ const PII_PATTERNS: PIIPattern[] = [
   },
   {
     name: 'EMAIL',
-    regex: /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g,
+    regex: /\b[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}\b/g,
     prefix: 'EMAIL',
   },
 ];
 
-// ─── UUID Generator (no crypto dependency needed) ───────────────────────────
+// ─── UUID Generator (using Web Crypto API) ──────────────────────────────────
 
 function generateTokenId(): string {
-  // Simple UUID v4-like generator that works in all environments
+  // Secure UUID v4-like generator using crypto.getRandomValues()
   const hex = '0123456789abcdef';
+  const array = new Uint8Array(8);
+  crypto.getRandomValues(array);
   let id = '';
   for (let i = 0; i < 8; i++) {
-    id += hex[Math.floor(Math.random() * 16)];
+    id += hex[array[i] % 16];
   }
   return id;
 }
