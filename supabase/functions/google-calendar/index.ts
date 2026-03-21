@@ -34,12 +34,17 @@ Deno.serve(async (req) => {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) throw new Error('Unauthorized')
 
-    const { method, data } = await req.json()
+    const body = await req.json()
+    const method = body.method || body.action
+    const data = body.data || body
 
-    const ALLOWED_METHODS = ['listEvents', 'createEvent', 'updateEvent', 'deleteEvent', 'syncEvents']
+    const ALLOWED_METHODS = [
+      'listEvents', 'createEvent', 'updateEvent', 'deleteEvent', 'syncEvents',
+      'exchange_code', 'refresh_token'
+    ]
     if (!ALLOWED_METHODS.includes(method)) {
       return new Response(
-        JSON.stringify({ error: 'Invalid method' }),
+        JSON.stringify({ error: `Invalid method or action: ${method}` }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
@@ -47,6 +52,38 @@ Deno.serve(async (req) => {
     const googleService = new GoogleOAuthService(supabase, user.id)
 
     switch (method) {
+      case 'exchange_code': {
+        const { code, redirect_uri } = data
+        const token = await googleService.exchangeCode(code, redirect_uri)
+        // Never return refresh_token to client for security
+        const { refresh_token, ...safeToken } = token
+        return new Response(JSON.stringify(safeToken), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        })
+      }
+
+      case 'refresh_token': {
+        const { refresh_token } = data
+        // For security, if refresh_token is not provided in data, try to get it from DB
+        let tokenToUse = refresh_token
+        if (!tokenToUse) {
+          const { data: dbToken } = await supabase
+            .from('google_calendar_tokens')
+            .select('refresh_token')
+            .eq('user_id', user.id)
+            .single()
+          tokenToUse = dbToken?.refresh_token
+        }
+
+        if (!tokenToUse) throw new Error('Refresh token not found')
+
+        const token = await googleService.refreshToken(tokenToUse)
+        const { refresh_token: _, ...safeToken } = token
+        return new Response(JSON.stringify(safeToken), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        })
+      }
+
       case 'listEvents': {
         const { calendarId = 'primary', timeMin, timeMax } = data
         const events = await googleService.listEvents(calendarId, timeMin, timeMax)
