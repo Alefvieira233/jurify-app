@@ -50,7 +50,52 @@ export class GoogleOAuthService {
     return token.access_token
   }
 
-  private async refreshToken(refreshToken: string): Promise<GoogleToken> {
+  async exchangeCode(code: string, redirectUri: string): Promise<GoogleToken> {
+    const response = await fetch('https://oauth2.googleapis.com/token', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({
+        client_id: Deno.env.get('GOOGLE_CLIENT_ID')!,
+        client_secret: Deno.env.get('GOOGLE_CLIENT_SECRET')!,
+        code,
+        redirect_uri: redirectUri,
+        grant_type: 'authorization_code',
+      }),
+    })
+
+    if (!response.ok) {
+      const error = await response.json()
+      throw new Error(`Failed to exchange code: ${error.error_description || error.error || 'Unknown error'}`)
+    }
+
+    const tokenData = await response.json()
+    const expiresAt = new Date(Date.now() + tokenData.expires_in * 1000)
+
+    const token: GoogleToken = {
+      access_token: tokenData.access_token,
+      refresh_token: tokenData.refresh_token,
+      expires_at: expiresAt.toISOString(),
+      scope: tokenData.scope,
+      token_type: tokenData.token_type,
+    }
+
+    // Save token in database
+    await this.supabase
+      .from('google_calendar_tokens')
+      .upsert({
+        user_id: this.userId,
+        access_token: token.access_token,
+        refresh_token: token.refresh_token || null,
+        expires_at: token.expires_at,
+        token_type: token.token_type,
+        scope: token.scope,
+        updated_at: new Date().toISOString(),
+      })
+
+    return token
+  }
+
+  async refreshToken(refreshToken: string): Promise<GoogleToken> {
     const response = await fetch('https://oauth2.googleapis.com/token', {
       method: 'POST',
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
