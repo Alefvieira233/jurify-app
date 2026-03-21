@@ -65,9 +65,17 @@ const PII_PATTERNS: PIIPattern[] = [
 
 function generateTokenId(): string {
   // Use crypto.getRandomValues for cryptographic strength and environment compatibility
-  const array = new Uint32Array(1);
-  crypto.getRandomValues(array);
-  return array[0].toString(16).padStart(8, '0');
+  const globalObj = typeof window !== 'undefined' ? window : (typeof self !== 'undefined' ? self : null);
+
+  if (globalObj && globalObj.crypto && globalObj.crypto.getRandomValues) {
+    const array = new Uint32Array(1);
+    globalObj.crypto.getRandomValues(array);
+    const val = array[0];
+    return val !== undefined ? val.toString(16).padStart(8, '0') : Math.floor(Math.random() * 0xffffffff).toString(16).padStart(8, '0');
+  }
+
+  // Fallback for environments where crypto is not available (though it should be in modern browsers/Deno)
+  return Math.floor(Math.random() * 0xffffffff).toString(16).padStart(8, '0');
 }
 
 // ─── Core Types ─────────────────────────────────────────────────────────────
