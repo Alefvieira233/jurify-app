@@ -12,6 +12,8 @@ import RelatoriosGerenciais from "@/features/reports/RelatoriosGerenciais";
 import WhatsAppIA from "@/features/whatsapp/WhatsAppIA";
 import AgentesIAManager from "@/features/ai-agents/AgentesIAManager";
 import UsuariosManager from "@/features/users/UsuariosManager";
+import DepartamentosManager from "@/features/departamentos/DepartamentosManager";
+import ConexoesManager from "@/features/conexoes/ConexoesManager";
 import ConfiguracoesGerais from "@/features/settings/ConfiguracoesGerais";
 import NotificationsPanel from "@/features/notifications/NotificationsPanel";
 import LogsPanel from "@/features/logs/LogsPanel";
@@ -21,23 +23,13 @@ import LoadingSpinner from "@/components/LoadingSpinner";
 import TimelineConversas from "@/features/timeline/TimelineConversas";
 import { useSearchParams } from "react-router-dom";
 
-type ActiveTab = 'dashboard' | 'leads' | 'pipeline' | 'agendamentos' | 'contratos' | 'relatorios' | 'whatsapp' | 'agentes' | 'usuarios' | 'configuracoes' | 'notificacoes' | 'logs' | 'integracoes' | 'timeline';
+type ActiveTab = 'dashboard' | 'crm' | 'leads' | 'pipeline' | 'agendamentos' | 'contratos' | 'relatorios' | 'metricas' | 'whatsapp' | 'agentes' | 'usuarios' | 'equipe' | 'departamentos' | 'conexoes' | 'configuracoes' | 'notificacoes' | 'logs' | 'integracoes' | 'timeline';
 
 const VALID_TABS: ActiveTab[] = [
-  'dashboard',
-  'leads',
-  'pipeline',
-  'agendamentos',
-  'contratos',
-  'relatorios',
-  'whatsapp',
-  'agentes',
-  'usuarios',
-  'configuracoes',
-  'notificacoes',
-  'logs',
-  'integracoes',
-  'timeline',
+  'dashboard', 'crm', 'leads', 'pipeline', 'agendamentos', 'contratos', 
+  'relatorios', 'metricas', 'whatsapp', 'agentes', 'usuarios', 'equipe', 
+  'departamentos', 'conexoes', 'configuracoes', 'notificacoes', 'logs', 
+  'integracoes', 'timeline',
 ];
 const Index = () => {
   const { user, loading } = useAuth();
@@ -59,28 +51,22 @@ const Index = () => {
 
   const renderContent = useCallback(() => {
     switch (activeTab) {
-      case 'dashboard':
-        return <Dashboard />;
-      case 'leads':
-        return <LeadsPanel />;
-      case 'pipeline':
-        return <PipelineJuridico />;
-      case 'agendamentos':
-        return <AgendamentosManager />;
-      case 'contratos':
-        return <ContratosManager />;
-      case 'relatorios':
-        return <RelatoriosGerenciais />;
-      case 'whatsapp':
-        return <WhatsAppIA />;
-      case 'agentes':
-        return <AgentesIAManager />;
-      case 'usuarios':
-        return <UsuariosManager />;
-      case 'logs':
-        return <LogsPanel />;
-      case 'integracoes':
-        return <IntegracoesConfig />;
+      case 'dashboard': return <Dashboard />;
+      case 'crm':
+      case 'leads': return <LeadsPanel />;
+      case 'pipeline': return <PipelineJuridico />;
+      case 'agendamentos': return <AgendamentosManager />;
+      case 'contratos': return <ContratosManager />;
+      case 'metricas':
+      case 'relatorios': return <RelatoriosGerenciais />;
+      case 'whatsapp': return <WhatsAppIA />;
+      case 'agentes': return <AgentesIAManager />;
+      case 'equipe':
+      case 'usuarios': return <UsuariosManager />;
+      case 'departamentos': return <DepartamentosManager />;
+      case 'conexoes': return <ConexoesManager />;
+      case 'logs': return <LogsPanel />;
+      case 'integracoes': return <IntegracoesConfig />;
       case 'configuracoes':
         return <ConfiguracoesGerais />;
       case 'notificacoes':

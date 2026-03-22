@@ -22,7 +22,7 @@ export default {
 				'xs': '475px',
 			},
 			fontFamily: {
-				sans: ['DM Sans', 'system-ui', '-apple-system', 'sans-serif'],
+				sans: ['Manrope', 'system-ui', '-apple-system', 'sans-serif'],
 			},
 			colors: {
 				border: 'hsl(var(--border))',

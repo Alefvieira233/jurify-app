@@ -99,10 +99,10 @@ const PipelineJuridico = () => {
   }
 
   return (
-    <div className="flex flex-col h-screen bg-background">
+    <div className="flex flex-col h-full bg-transparent fade-in">
 
       {/* ── Header ── */}
-      <header className="flex-shrink-0 px-5 py-3 border-b border-border bg-background">
+      <header className="flex-shrink-0 px-6 py-4 border-b border-border/10 bg-background/30 backdrop-blur-md">
 
         {/* Top row */}
         <div className="flex items-center justify-between gap-4">
@@ -164,7 +164,7 @@ const PipelineJuridico = () => {
               value={searchTerm}
               onChange={e => setSearchTerm(e.target.value)}
               data-testid="input-buscar-lead"
-              className="h-8 w-44 bg-muted/50 border border-border rounded-md pl-8 pr-3 text-xs placeholder:text-muted-foreground/50 focus:outline-none focus:ring-1 focus:ring-ring transition-shadow"
+              className="h-8 w-44 bg-background/50 border border-border/30 rounded-md pl-8 pr-3 text-xs placeholder:text-muted-foreground/50 focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary transition-shadow"
             />
           </div>
 
@@ -240,7 +240,7 @@ const PipelineJuridico = () => {
         </div>
       ) : (
         <DragDropContext onDragEnd={handleDragEnd}>
-          <div className="flex flex-1 overflow-x-auto overflow-y-hidden">
+          <div className="flex flex-1 overflow-x-auto overflow-y-hidden p-6 gap-6 bg-background/5">
             {PIPELINE_STAGES.map((stage, idx) => (
               <PipelineColumn
                 key={stage.id}

@@ -158,21 +158,26 @@ const AgendamentosManager = () => {
   if (isEmpty) {
     return (
       <div className="flex flex-col h-screen">
-        <div className="flex-shrink-0 px-5 py-3 border-b border-border bg-background">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
-                <Calendar className="h-4 w-4 text-primary" />
+        <div className="flex-shrink-0 px-8 py-6 border-b border-border/5 bg-background">
+          <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
+            <div>
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 text-primary text-xs font-bold uppercase tracking-widest mb-3">
+                <Calendar className="w-3.5 h-3.5" />
+                Operação Local
               </div>
-              <div>
-                <h1 className="text-sm font-bold text-foreground">Agendamentos</h1>
-                <p className="text-[11px] text-muted-foreground">Gerencie reuniões e compromissos</p>
-              </div>
+              <h1 className="text-3xl font-extrabold tracking-tight text-foreground">
+                Tarefas & Reuniões
+              </h1>
+              <p className="text-sm text-muted-foreground mt-2 max-w-xl">
+                Organize sua agenda e da equipe jurídica em tempo real.
+              </p>
             </div>
-            <Button size="sm" onClick={() => setIsNovoAgendamentoOpen(true)}>
-              <Plus className="h-3.5 w-3.5 mr-1.5" />
-              Novo Agendamento
-            </Button>
+            <div className="flex items-center gap-3">
+              <Button onClick={() => setIsNovoAgendamentoOpen(true)} size="lg" className="gap-2 shadow-lg shadow-primary/20 rounded-[12px]">
+                <Plus className="h-4 w-4" />
+                Novo Agendamento
+              </Button>
+            </div>
           </div>
         </div>
         <div className="flex-1 flex items-center justify-center px-5 py-4">
@@ -204,47 +209,43 @@ const AgendamentosManager = () => {
     );
   }
 
-  // Main Content
   return (
-    <div className="flex flex-col h-screen">
-      {/* Header */}
-      <div className="flex-shrink-0 px-5 py-3 border-b border-border bg-background">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
-              <Calendar className="h-4 w-4 text-primary" />
+    <div className="flex flex-col h-full bg-background fade-in">
+      {/* Header Lex Obsidian */}
+      <div className="flex-shrink-0 px-8 py-6 pb-4">
+        <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
+          <div>
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 text-primary text-xs font-bold uppercase tracking-widest mb-3">
+              <Calendar className="w-3.5 h-3.5" />
+              Operação Local
             </div>
-            <div>
-              <h1 className="text-sm font-bold text-foreground">Agendamentos</h1>
-              <p className="text-[11px] text-muted-foreground">
-                {agendamentos.length} agendamentos no total
-              </p>
-            </div>
+            <h1 className="text-3xl font-extrabold tracking-tight text-foreground">
+              Tarefas & Reuniões
+            </h1>
+            <p className="text-sm text-muted-foreground mt-2 max-w-xl">
+              Organize reuniões, audiências e prioridades da equipe em tempo real. ({agendamentos.length} abertos)
+            </p>
           </div>
-          <div className="flex items-center gap-2">
-            {/* View toggle */}
-            <div className="flex border border-border rounded-md overflow-hidden">
+          <div className="flex items-center gap-3">
+            <div className="flex bg-muted/30 border border-border/10 rounded-[12px] overflow-hidden p-1 shadow-inner">
               <button
                 onClick={() => setViewMode('list')}
-                className={cn('h-8 px-2.5 text-xs flex items-center gap-1 transition-colors', viewMode === 'list' ? 'bg-primary text-primary-foreground' : 'hover:bg-muted')}
-                title="Lista"
+                className={cn('h-9 px-4 text-xs font-bold uppercase tracking-wider rounded-[8px] flex items-center gap-2 transition-all', viewMode === 'list' ? 'bg-background shadow-md text-foreground' : 'text-muted-foreground hover:text-foreground')}
               >
-                <LayoutGrid className="h-3.5 w-3.5" />
+                <LayoutGrid className="h-4 w-4" /> Lista
               </button>
               <button
                 onClick={() => setViewMode('calendar')}
-                className={cn('h-8 px-2.5 text-xs flex items-center gap-1 transition-colors border-l border-border', viewMode === 'calendar' ? 'bg-primary text-primary-foreground' : 'hover:bg-muted')}
-                title="Calendário"
+                className={cn('h-9 px-4 text-xs font-bold uppercase tracking-wider rounded-[8px] flex items-center gap-2 transition-all', viewMode === 'calendar' ? 'bg-background shadow-md text-foreground' : 'text-muted-foreground hover:text-foreground')}
               >
-                <CalendarDays className="h-3.5 w-3.5" />
+                <CalendarDays className="h-4 w-4" /> Grade
               </button>
             </div>
-            <Button variant="outline" size="sm" onClick={handleRetry}>
-              <RefreshCw className="h-3.5 w-3.5 mr-1.5" />
-              Atualizar
+            <Button variant="outline" size="icon" onClick={handleRetry} className="h-11 w-11 rounded-[12px] border-border/20 shadow-sm">
+              <RefreshCw className="h-4 w-4 text-muted-foreground" />
             </Button>
-            <Button size="sm" onClick={() => setIsNovoAgendamentoOpen(true)}>
-              <Plus className="h-3.5 w-3.5 mr-1.5" />
+            <Button onClick={() => setIsNovoAgendamentoOpen(true)} size="lg" className="gap-2 shadow-lg shadow-primary/20 rounded-[12px]">
+              <Plus className="h-4 w-4" />
               Novo Agendamento
             </Button>
           </div>
@@ -264,83 +265,96 @@ const AgendamentosManager = () => {
         </div>
       ) : (
       <>
-      {/* Filters */}
-      <div className="px-5 py-2 border-b border-border/50 flex-shrink-0">
-        <div className="flex items-center gap-3">
-          <div className="relative flex-1">
-            <Search className="absolute left-2.5 top-1/2 transform -translate-y-1/2 text-muted-foreground/50 h-3.5 w-3.5" />
+      {/* Filters Area */}
+      <div className="px-8 pb-4">
+        <div className="flex flex-col sm:flex-row items-center gap-4 bg-muted/20 p-4 rounded-[16px] border border-border/10 shadow-inner">
+          <div className="relative flex-1 w-full">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground/50 h-4 w-4" />
             <Input
-              placeholder="Buscar por responsavel..."
+              placeholder="Buscar por responsável, nome..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-8 h-8 text-xs"
+              className="pl-9 h-11 bg-background/50 border-border/20 rounded-[12px] focus-visible:ring-1 focus-visible:ring-primary shadow-sm"
             />
           </div>
           <select
             value={filterStatus}
             onChange={(e) => setFilterStatus(e.target.value)}
-            className="h-8 px-3 text-xs border border-border rounded-md bg-background text-foreground focus:ring-1 focus:ring-ring focus:border-ring"
+            className="h-11 px-4 text-sm font-medium border border-border/20 rounded-[12px] bg-background/50 text-foreground focus:outline-none focus:ring-1 focus:ring-primary shadow-sm hover:border-border/30 transition-all w-full sm:w-[220px] cursor-pointer"
           >
-            <option value="">Todos os Status</option>
+            <option value="">Filtro: Todos os Status</option>
             <option value="agendado">Agendado</option>
             <option value="confirmado">Confirmado</option>
             <option value="reagendado">Reagendado</option>
-            <option value="cancelado">Cancelado</option>
             <option value="realizado">Realizado</option>
+            <option value="cancelado">Cancelado</option>
           </select>
         </div>
       </div>
 
       {/* Body */}
-      <div className="flex-1 overflow-y-auto px-5 py-4 space-y-2">
-        {filteredAgendamentos.map((agendamento) => (
-          <div key={agendamento.id} className="group flex items-center gap-3 px-4 py-3 rounded-lg border border-border/50 bg-card hover:bg-muted/30 transition-colors">
-            {/* Left: date badge */}
-            <div className="w-10 h-10 rounded-lg bg-primary/8 flex flex-col items-center justify-center flex-shrink-0 border border-primary/15">
-              <span className="text-[10px] font-bold text-primary leading-none">
-                {fmtDay(agendamento.data_hora)}
-              </span>
-              <span className="text-[9px] text-muted-foreground uppercase leading-none mt-0.5">
-                {fmtMonth(agendamento.data_hora)}
-              </span>
-            </div>
+      {/* Body List */}
+      <div className="flex-1 overflow-y-auto px-8 pb-12">
+        <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
+          {filteredAgendamentos.map((agendamento) => {
+            const scColor = getStatusColor(agendamento.status ?? '');
+            const scLabel = getStatusLabel(agendamento.status ?? '');
+            
+            return (
+              <div key={agendamento.id} className="group flex items-center gap-5 p-5 rounded-[20px] border border-border/10 bg-background hover:bg-card hover:shadow-xl hover:shadow-primary/5 hover:border-border/30 transition-all duration-300 hover:-translate-y-0.5 relative overflow-hidden">
+                {/* Glow status */}
+                <div className={`absolute -left-10 -top-10 w-24 h-24 blur-[40px] opacity-20 pointer-events-none transition-opacity group-hover:opacity-30 ${scColor.split(' ')[0]?.replace('/10', '') || ''}`} />
+                
+                {/* Left: date badge */}
+                <div className="w-16 h-16 rounded-[16px] bg-primary/10 flex flex-col items-center justify-center flex-shrink-0 border border-primary/20 shadow-inner z-10">
+                  <span className="text-xl font-black text-primary leading-none tracking-tighter">
+                    {fmtDay(agendamento.data_hora)}
+                  </span>
+                  <span className="text-[10px] text-primary/70 font-bold uppercase tracking-widest mt-1">
+                    {fmtMonth(agendamento.data_hora)}
+                  </span>
+                </div>
 
-            {/* Middle: info */}
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2">
-                <p className="text-xs font-semibold text-foreground truncate">
-                  {fmtMessageTime(agendamento.data_hora)}
-                  {agendamento.responsavel ? ` \u00b7 ${agendamento.responsavel}` : ''}
-                </p>
-                <span className={cn('text-[9px] font-semibold px-1.5 py-0.5 rounded-full flex-shrink-0', getStatusColor(agendamento.status ?? ''))}>
-                  {getStatusLabel(agendamento.status ?? '')}
-                </span>
+                {/* Middle: info */}
+                <div className="flex-1 min-w-0 z-10 py-1">
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className={cn('text-[10px] font-bold uppercase tracking-widest px-2 py-0.5 rounded-full flex-shrink-0', scColor)}>
+                      {scLabel}
+                    </span>
+                    <span className="text-xs font-bold text-muted-foreground bg-muted/50 px-2 py-0.5 rounded-full">
+                      {fmtMessageTime(agendamento.data_hora)}
+                    </span>
+                  </div>
+                  <p className="text-[15px] font-bold text-foreground truncate max-w-[85%]">
+                    {agendamento.responsavel || 'Reunião sem responsável'}
+                  </p>
+                  <p className="text-sm text-muted-foreground truncate max-w-[85%] mt-1">
+                    {agendamento.area_juridica ? <span className="mr-2 opacity-60 font-medium">[{agendamento.area_juridica}]</span> : ''}
+                    {agendamento.observacoes || 'Sem detalhes adiconados.'}
+                  </p>
+                </div>
+
+                {/* Right: actions */}
+                <div className="flex flex-col items-center gap-2 flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity z-10 bg-background/80 backdrop-blur-md rounded-[12px] p-2 border border-border/10 shadow-sm absolute right-4">
+                  <button type="button" onClick={() => handleOpenDetails(agendamento)} className="h-8 w-8 flex items-center justify-center rounded-[8px] text-muted-foreground hover:text-primary hover:bg-primary/10 transition-colors" title="Ver Detalhes">
+                    <Eye className="h-4 w-4" />
+                  </button>
+                  <button type="button" onClick={() => handleOpenDetails(agendamento)} className="h-8 w-8 flex items-center justify-center rounded-[8px] text-muted-foreground hover:text-foreground hover:bg-muted transition-colors" title="Editar">
+                    <Edit className="h-4 w-4" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setConfirmDelete({ open: true, id: agendamento.id, label: agendamento.responsavel ?? fmtMessageTime(agendamento.data_hora) })}
+                    className="h-8 w-8 flex items-center justify-center rounded-[8px] text-red-400 hover:text-red-500 hover:bg-red-500/10 transition-colors"
+                    title="Excluir"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </button>
+                </div>
               </div>
-              <p className="text-[11px] text-muted-foreground/70 truncate mt-0.5">
-                {agendamento.area_juridica ?? ''}
-                {agendamento.observacoes ? ` \u00b7 ${agendamento.observacoes}` : ''}
-              </p>
-            </div>
-
-            {/* Right: actions */}
-            <div className="flex items-center gap-1 flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
-              <button type="button" onClick={() => handleOpenDetails(agendamento)} className="h-7 w-7 flex items-center justify-center rounded-md text-muted-foreground/50 hover:text-foreground hover:bg-muted transition-colors">
-                <Eye className="h-3.5 w-3.5" />
-              </button>
-              <button type="button" onClick={() => handleOpenDetails(agendamento)} className="h-7 w-7 flex items-center justify-center rounded-md text-muted-foreground/50 hover:text-foreground hover:bg-muted transition-colors">
-                <Edit className="h-3.5 w-3.5" />
-              </button>
-              <button
-                type="button"
-                onClick={() => setConfirmDelete({ open: true, id: agendamento.id, label: agendamento.responsavel ?? fmtMessageTime(agendamento.data_hora) })}
-                className="h-7 w-7 flex items-center justify-center rounded-md text-muted-foreground/50 hover:text-destructive hover:bg-destructive/10 transition-colors"
-                aria-label="Excluir"
-              >
-                <Trash2 className="h-3.5 w-3.5" />
-              </button>
-            </div>
-          </div>
-        ))}
+            );
+          })}
+        </div>
 
         {filteredAgendamentos.length === 0 && searchTerm && (
           <p className="text-xs text-muted-foreground text-center py-8">

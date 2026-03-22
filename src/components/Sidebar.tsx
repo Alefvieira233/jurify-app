@@ -1,33 +1,28 @@
 
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   Scale,
   MessageSquare,
   MessageCircle,
-  Calendar,
   LayoutDashboard,
-  BarChart3,
   Settings,
   Users,
   Bot,
-  TrendingUp,
-  UserCog,
-  LogOut,
-  Activity,
-  CreditCard,
-  Rocket,
   Search,
+  LogOut,
   HelpCircle,
   ChevronRight,
-  Clock,
-  DollarSign,
-  Gavel,
-  ShieldCheck,
   Link2,
   BookOpen,
+  Gift,
+  KanbanSquare,
+  GitBranch,
+  Sliders,
+  Briefcase,
+  CheckSquare,
   Building2,
-  Tags,
-  FolderOpen,
+  LineChart,
+  Shield,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/contexts/AuthContext';
@@ -44,7 +39,7 @@ interface SidebarProps {
 type MenuLeaf = {
   id:         string;
   label:      string;
-  icon:       React.ComponentType<{ className?: string }>;
+  icon:       React.ComponentType<React.SVGProps<SVGSVGElement>>;
   resource:   string;
   action:     string;
   adminOnly?: boolean;
@@ -56,7 +51,7 @@ type MenuLeaf = {
 type MenuSection = {
   id:         string;
   label:      string;
-  icon:       React.ComponentType<{ className?: string }>;
+  icon:       React.ComponentType<React.SVGProps<SVGSVGElement>>;
   children:   MenuLeaf[];
 };
 
@@ -65,11 +60,9 @@ type NavEntry = (MenuLeaf & { kind: 'leaf' }) | (MenuSection & { kind: 'section'
 /* ─────────────────────────────────────────────────────────────────────────
    Navigation structure — LíderHub pattern
    Main  → flat items + expandable sections (Atendimento, Automações)
-   Sistema → collapsible group at the bottom
 ───────────────────────────────────────────────────────────────────────── */
 const MAIN_NAV: NavEntry[] = [
   { kind: 'leaf', id: 'dashboard',  label: 'Home',       icon: LayoutDashboard, resource: 'dashboard',  action: 'read' },
-  { kind: 'leaf', id: 'conexoes',   label: 'Conexões',   icon: Link2,           resource: 'conexoes',   action: 'read' },
   {
     kind: 'section',
     id: 'atendimento',
@@ -78,7 +71,7 @@ const MAIN_NAV: NavEntry[] = [
     children: [
       { id: 'whatsapp', label: 'Conversas',  icon: MessageCircle, resource: 'whatsapp', action: 'read' },
       { id: 'crm',      label: 'Contatos',   icon: Users,         resource: 'leads',    action: 'read' },
-      { id: 'pipeline', label: 'Kanban',     icon: TrendingUp,    resource: 'leads',    action: 'read' },
+      { id: 'pipeline', label: 'Kanban',     icon: KanbanSquare,  resource: 'leads',    action: 'read' },
     ],
   },
   {
@@ -87,39 +80,28 @@ const MAIN_NAV: NavEntry[] = [
     label: 'Automações',
     icon: Bot,
     children: [
-      { id: 'agentes',             label: 'Agentes',              icon: Bot,      resource: 'agentes_ia', action: 'read' },
-      { id: 'base-conhecimento',   label: 'Base de Conhecimento', icon: BookOpen, resource: 'agentes_ia', action: 'read', disabled: true },
+      { id: 'agentes',             label: 'Agentes',              icon: Bot,       resource: 'agentes_ia', action: 'read' },
+      { id: 'fluxos',              label: 'Fluxos',               icon: GitBranch, resource: 'agentes_ia', action: 'read', disabled: true },
+      { id: 'regras',              label: 'Regras',               icon: Sliders,   resource: 'agentes_ia', action: 'read', disabled: true },
+      { id: 'base-conhecimento',   label: 'Base de Conhecimento', icon: BookOpen,  resource: 'agentes_ia', action: 'read' },
     ],
   },
-  { kind: 'leaf', id: 'agendamentos',  label: 'Tarefas',        icon: Calendar, resource: 'agendamentos',  action: 'read' },
-  { kind: 'leaf', id: 'configuracoes', label: 'Configurações',  icon: Settings, resource: 'configuracoes', action: 'read', adminOnly: true },
   {
     kind: 'section',
-    id: 'juridico',
-    label: 'Jurídico',
-    icon: Gavel,
+    id: 'operacao',
+    label: 'Operação',
+    icon: Briefcase,
     children: [
-      { id: 'processos',   label: 'Processos',    icon: Gavel,      resource: 'processos',   action: 'read' },
-      { id: 'prazos',      label: 'Prazos',       icon: Clock,      resource: 'prazos',      action: 'read' },
-      { id: 'honorarios',  label: 'Honorários',   icon: DollarSign, resource: 'honorarios',  action: 'read', managerOk: true },
-      { id: 'documentos',  label: 'Documentos',   icon: FolderOpen, resource: 'documentos',  action: 'read' },
+      { id: 'agendamentos',  label: 'Tarefas',        icon: CheckSquare, resource: 'agendamentos', action: 'read' },
+      { id: 'equipe',        label: 'Equipe',         icon: Users,       resource: 'usuarios',     action: 'read' },
+      { id: 'departamentos', label: 'Departamentos',  icon: Building2,   resource: 'departamentos',action: 'read' },
+      { id: 'administracao', label: 'Administração',  icon: Shield,      resource: 'configuracoes',action: 'read', adminOnly: true },
     ],
   },
+  { kind: 'leaf', id: 'conexoes',      label: 'Conexões',      icon: Link2,     resource: 'conexoes',      action: 'read' },
+  { kind: 'leaf', id: 'configuracoes', label: 'Configurações', icon: Settings,  resource: 'configuracoes', action: 'read' },
+  { kind: 'leaf', id: 'metricas',      label: 'Métricas',      icon: LineChart, resource: 'relatorios',    action: 'read' },
 ];
-
-const SISTEMA_NAV: MenuLeaf[] = [
-  { id: 'usuarios',              label: 'Equipe',         icon: UserCog,     resource: 'usuarios',      action: 'read', managerOk: true },
-  { id: 'departamentos',         label: 'Departamentos',  icon: Building2,   resource: 'departamentos', action: 'read' },
-  { id: 'tags',                  label: 'Tags',           icon: Tags,        resource: 'tags',          action: 'read' },
-  { id: 'auditoria',             label: 'Auditoria',      icon: ShieldCheck, resource: 'logs',          action: 'read', managerOk: true },
-  { id: 'relatorios',             label: 'Métricas',       icon: BarChart3,   resource: 'relatorios',    action: 'read', managerOk: true },
-  { id: 'billing',               label: 'Assinatura',     icon: CreditCard,  resource: 'dashboard',     action: 'read', badge: 'upgrade' },
-  { id: 'logs',                  label: 'Logs',           icon: Activity,    resource: 'logs',          action: 'read', adminOnly: true },
-  { id: 'admin/mission-control', label: 'Monitoramento',  icon: Rocket,      resource: 'dashboard',     action: 'read', adminOnly: true },
-];
-
-/** All sistema IDs for auto-expand logic */
-const SISTEMA_IDS = SISTEMA_NAV.map(i => i.id);
 
 /** All leaf items flattened (for RBAC filtering) */
 function allLeaves(): MenuLeaf[] {
@@ -128,7 +110,6 @@ function allLeaves(): MenuLeaf[] {
     if (entry.kind === 'leaf') out.push(entry);
     else for (const child of entry.children) out.push(child);
   }
-  for (const item of SISTEMA_NAV) out.push(item);
   return out;
 }
 const ALL_LEAVES = allLeaves();
@@ -151,7 +132,6 @@ const Sidebar = ({ activeSection, onSectionChange }: SidebarProps) => {
         initial.add(entry.id);
       }
     }
-    if (SISTEMA_IDS.includes(activeSection)) initial.add('sistema');
     return initial;
   });
 
@@ -215,14 +195,6 @@ const Sidebar = ({ activeSection, onSectionChange }: SidebarProps) => {
         });
       }
     }
-    if (SISTEMA_IDS.includes(activeSection)) {
-      setExpandedSections(prev => {
-        if (prev.has('sistema')) return prev;
-        const next = new Set(prev);
-        next.add('sistema');
-        return next;
-      });
-    }
   }, [activeSection]);
 
   /* ── Unread notifications (30s poll) ── */
@@ -239,14 +211,6 @@ const Sidebar = ({ activeSection, onSectionChange }: SidebarProps) => {
     return () => clearInterval(t);
   }, [user?.id]);
 
-  /* ── Filtered sistema items ── */
-  const filteredSistemaItems = useMemo(
-    () => SISTEMA_NAV.filter(i => visibleIds.has(i.id)),
-    [visibleIds]
-  );
-
-  const isFreeTier = !profile?.subscription_tier || profile.subscription_tier === 'free';
-
   const userInitial = profile?.nome_completo?.charAt(0).toUpperCase()
     || user?.email?.charAt(0).toUpperCase()
     || 'U';
@@ -262,13 +226,7 @@ const Sidebar = ({ activeSection, onSectionChange }: SidebarProps) => {
     const isDisabled = item.disabled;
 
     return (
-      <li key={item.id} role="listitem" className="relative">
-        {isActive && (
-          <span
-            className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-4 bg-primary rounded-r-full pointer-events-none"
-            aria-hidden
-          />
-        )}
+      <li key={item.id} role="listitem" className="relative group mb-1">
         <button
           type="button"
           onClick={() => !isDisabled && onSectionChange(item.id)}
@@ -276,46 +234,37 @@ const Sidebar = ({ activeSection, onSectionChange }: SidebarProps) => {
           aria-current={isActive ? 'page' : undefined}
           aria-label={`${item.label}${item.badge === 'notification' && unreadCount > 0 ? ` (${unreadCount} não lidas)` : ''}${isDisabled ? ' (em breve)' : ''}`}
           className={cn(
-            'group w-full flex items-center gap-2.5 py-1.5 rounded-md text-xs transition-all duration-150 text-left',
-            indent ? 'pl-6 pr-2.5' : (isActive ? 'pl-3.5 pr-2.5' : 'px-2.5'),
-            isActive && indent && 'pl-7',
+            'group w-full flex items-center gap-3 py-2.5 rounded-[12px] text-[13px] transition-all duration-300 text-left border border-transparent',
+            indent ? 'pl-10 pr-3' : 'px-3.5',
             isDisabled
-              ? 'text-sidebar-foreground/25 cursor-not-allowed'
+              ? 'text-sidebar-foreground/20 cursor-not-allowed'
               : isActive
-              ? 'bg-sidebar-accent text-sidebar-foreground font-medium'
-              : 'text-sidebar-foreground/55 hover:bg-sidebar-accent/50 active:bg-accent/80 hover:text-sidebar-foreground/85 font-normal'
+              ? 'bg-primary/10 text-primary font-semibold border-primary/20 backdrop-blur-sm'
+              : 'text-sidebar-foreground/60 hover:bg-sidebar-border/15 hover:border-sidebar-border/30 hover:text-sidebar-foreground font-medium'
           )}
         >
           <Icon
             className={cn(
-              'h-3.5 w-3.5 flex-shrink-0 transition-colors duration-150',
+              'h-4 w-4 flex-shrink-0 transition-colors duration-300',
               isDisabled
                 ? 'text-sidebar-foreground/20'
                 : isActive
                 ? 'text-primary'
-                : 'text-sidebar-foreground/40 group-hover:text-sidebar-foreground/65'
+                : 'text-sidebar-foreground/40 group-hover:text-sidebar-foreground/80'
             )}
+            strokeWidth={isActive ? 2.5 : 2}
           />
-          <span className="flex-1 truncate">{item.label}</span>
+          <span className="flex-1 truncate tracking-wide">{item.label}</span>
 
           {isDisabled && (
-            <span className="text-[8px] text-sidebar-foreground/25 font-medium uppercase tracking-wide">
+            <span className="text-[9px] text-sidebar-foreground/30 font-bold uppercase tracking-widest bg-sidebar-border/20 px-1.5 py-0.5 rounded-sm">
               Em breve
             </span>
           )}
 
           {item.badge === 'notification' && unreadCount > 0 && (
-            <Badge variant="destructive" className="h-4 min-w-4 px-1 text-[9px] font-bold">
+            <Badge variant="destructive" className="h-5 min-w-5 px-1.5 text-[10px] font-bold shadow-lg shadow-destructive/20">
               {unreadCount > 99 ? '99+' : unreadCount}
-            </Badge>
-          )}
-
-          {item.badge === 'upgrade' && isFreeTier && (
-            <Badge
-              variant="outline"
-              className="h-4 px-1 text-[9px] font-bold border-amber-400/60 text-amber-500 bg-amber-50 dark:bg-amber-900/20"
-            >
-              Free
             </Badge>
           )}
         </button>
@@ -339,24 +288,25 @@ const Sidebar = ({ activeSection, onSectionChange }: SidebarProps) => {
           onClick={() => toggleSection(section.id)}
           aria-expanded={isExpanded}
           className={cn(
-            'group w-full flex items-center gap-2.5 py-1.5 px-2.5 rounded-md text-xs transition-all duration-150 text-left',
+            'group w-full flex items-center gap-3 py-2.5 px-3.5 rounded-[12px] text-[13px] transition-all duration-300 text-left border border-transparent',
             hasActiveChild
-              ? 'text-sidebar-foreground font-medium'
-              : 'text-sidebar-foreground/55 hover:bg-sidebar-accent/50 active:bg-accent/80 hover:text-sidebar-foreground/85 font-normal'
+              ? 'text-sidebar-foreground font-semibold bg-sidebar-border/5'
+              : 'text-sidebar-foreground/60 hover:bg-sidebar-border/15 hover:border-sidebar-border/30 hover:text-sidebar-foreground font-medium'
           )}
         >
           <Icon
             className={cn(
-              'h-3.5 w-3.5 flex-shrink-0 transition-colors duration-150',
+              'h-4 w-4 flex-shrink-0 transition-colors duration-300',
               hasActiveChild
-                ? 'text-primary'
-                : 'text-sidebar-foreground/40 group-hover:text-sidebar-foreground/65'
+                ? 'text-sidebar-foreground'
+                : 'text-sidebar-foreground/40 group-hover:text-sidebar-foreground/80'
             )}
+            strokeWidth={hasActiveChild ? 2.5 : 2}
           />
-          <span className="flex-1 truncate">{section.label}</span>
+          <span className="flex-1 truncate tracking-wide">{section.label}</span>
           <ChevronRight
             className={cn(
-              'h-3 w-3 flex-shrink-0 text-sidebar-foreground/30 transition-transform duration-200',
+              'h-4 w-4 flex-shrink-0 text-sidebar-foreground/30 transition-transform duration-300',
               isExpanded && 'rotate-90'
             )}
           />
@@ -382,33 +332,24 @@ const Sidebar = ({ activeSection, onSectionChange }: SidebarProps) => {
   return (
     <nav
       aria-label="Menu principal"
-      className="w-48 xs:w-56 bg-sidebar text-sidebar-foreground h-screen flex flex-col border-r border-sidebar-border"
+      className="w-64 xs:w-[280px] bg-sidebar text-sidebar-foreground h-screen flex flex-col border-r border-sidebar-border/30 shadow-2xl shadow-black/20"
     >
       {/* ── Logo ── */}
-      <div className="h-12 flex items-center gap-2.5 px-3.5 border-b border-sidebar-border flex-shrink-0">
-        <div className="w-7 h-7 bg-primary rounded-md flex items-center justify-center flex-shrink-0 shadow-sm">
-          <Scale className="h-3.5 w-3.5 text-white" strokeWidth={2.5} />
+      <div className="h-20 flex items-center gap-3 px-6 shadow-sm flex-shrink-0">
+        <div className="w-9 h-9 bg-gradient-to-br from-primary to-blue-700 rounded-[10px] flex items-center justify-center flex-shrink-0 shadow-lg shadow-primary/20 ring-1 ring-white/10">
+          <Scale className="h-5 w-5 text-white" strokeWidth={2.5} />
         </div>
-        <div className="flex-1 min-w-0 flex items-center gap-1.5">
-          <span className="text-[13px] font-bold text-sidebar-foreground tracking-tight leading-none">Jurify</span>
-          <span className={cn(
-            'text-[9px] font-semibold px-1.5 py-0.5 rounded-full leading-none',
-            profile?.subscription_tier === 'enterprise'
-              ? 'bg-violet-100 dark:bg-violet-900/30 text-violet-600 dark:text-violet-400'
-              : profile?.subscription_tier === 'pro'
-              ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400'
-              : 'bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400'
-          )}>
-            {profile?.subscription_tier === 'enterprise' ? 'Enterprise'
-              : profile?.subscription_tier === 'pro' ? 'Pro'
-              : 'Free'}
-          </span>
+        <div className="flex-1 min-w-0 flex flex-col">
+          <span className="text-lg font-bold text-sidebar-foreground tracking-tight leading-none font-sans">Jurify</span>
+          <span className="text-[10px] font-bold tracking-widest text-sidebar-foreground/50 uppercase mt-1">Enterprise</span>
         </div>
-        <ThemeToggle />
+        <div className="opacity-50 hover:opacity-100 transition-opacity">
+          <ThemeToggle />
+        </div>
       </div>
 
       {/* ── Search ── */}
-      <div className="px-2.5 py-2 border-b border-sidebar-border/50 flex-shrink-0">
+      <div className="px-4 py-4 flex-shrink-0">
         <button
           type="button"
           onClick={() =>
@@ -416,71 +357,46 @@ const Sidebar = ({ activeSection, onSectionChange }: SidebarProps) => {
               new KeyboardEvent('keydown', { key: 'k', ctrlKey: true, bubbles: true })
             )
           }
-          className="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-md bg-muted/50 hover:bg-muted/80 active:bg-accent/80 text-muted-foreground/55 hover:text-muted-foreground transition-all duration-150"
+          className="w-full flex items-center gap-3 px-3 py-2.5 rounded-[12px] bg-black/20 hover:bg-black/40 border border-sidebar-border/20 text-sidebar-foreground/50 hover:text-sidebar-foreground transition-all duration-300 shadow-inner"
         >
-          <Search className="h-3 w-3 flex-shrink-0" />
-          <span className="flex-1 text-left text-[11px]">Buscar...</span>
-          <kbd className="hidden sm:inline text-[9px] font-mono px-1 py-0.5 rounded bg-background/60 text-muted-foreground/40 border border-border/40">
+          <Search className="h-4 w-4 flex-shrink-0" />
+          <span className="flex-1 text-left text-xs font-medium">Pesquisar...</span>
+          <kbd className="hidden sm:inline text-[9px] font-mono px-1.5 py-0.5 rounded bg-white/5 text-sidebar-foreground/40 border border-white/10">
             ⌘K
           </kbd>
         </button>
       </div>
 
       {/* ── Navigation ── */}
-      <nav className="flex-1 px-2 pb-2 overflow-y-auto scrollbar-thin" role="navigation">
-
-        {/* Main items — hierarchical with expandable sections */}
-        <ul className="space-y-px mt-1.5" role="list">
+      <nav className="flex-1 px-3 pb-4 overflow-y-auto scrollbar-thin" role="navigation">
+        <ul className="space-y-1 mt-2" role="list">
+          <li className="px-3 pb-2 pt-1 text-[10px] font-bold tracking-widest text-sidebar-foreground/40 uppercase">Acesso Principal</li>
           {MAIN_NAV.map(renderNavEntry)}
         </ul>
-
-        {/* Sistema — collapsible, rarely accessed */}
-        {filteredSistemaItems.length > 0 && (
-          <div className="mt-1">
-            <div className="flex items-center gap-2 px-1.5 pt-2.5 pb-0.5">
-              <div className="h-px flex-1 bg-border/50" />
-              <button
-                type="button"
-                onClick={() => toggleSection('sistema')}
-                aria-expanded={expandedSections.has('sistema')}
-                className="flex items-center gap-1 text-[9px] font-semibold uppercase tracking-widest text-muted-foreground/40 hover:text-muted-foreground/70 active:bg-accent/80 transition-colors select-none"
-              >
-                <span>Sistema</span>
-                <ChevronRight
-                  className={cn(
-                    'h-2.5 w-2.5 transition-transform duration-200',
-                    expandedSections.has('sistema') && 'rotate-90'
-                  )}
-                />
-              </button>
-            </div>
-
-            {expandedSections.has('sistema') && (
-              <ul className="space-y-px" role="list">
-                {filteredSistemaItems.map(item => renderLeaf(item))}
-              </ul>
-            )}
-          </div>
-        )}
       </nav>
 
-      {/* ── Upgrade CTA para tier free ── */}
-      {isFreeTier && (
-        <div className="px-2.5 pb-1 flex-shrink-0">
-          <button
-            type="button"
-            onClick={() => onSectionChange('billing')}
-            className="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-md bg-muted/50 hover:bg-muted/80 border border-border/40 transition-all duration-150 group"
-          >
-            <span className="text-[10px] text-muted-foreground/70 group-hover:text-muted-foreground transition-colors">
-              Plano Free · <span className="font-medium">Fazer upgrade →</span>
-            </span>
-          </button>
-        </div>
-      )}
+      {/* ── Referral banner ── */}
+      <div className="px-4 pb-2 flex-shrink-0">
+        <button
+          type="button"
+          onClick={() => onSectionChange('suporte')}
+          className="relative overflow-hidden w-full flex flex-col gap-1 px-4 py-3.5 rounded-[14px] bg-gradient-to-br from-sidebar-border/10 to-transparent border border-sidebar-border/30 hover:border-primary/40 transition-all duration-300 group shadow-lg"
+        >
+          <div className="absolute inset-0 bg-primary/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+          <div className="flex items-center gap-2 mb-1 w-full relative z-10">
+            <Gift className="h-4 w-4 flex-shrink-0 text-amber-500 group-hover:text-amber-400 transition-colors" />
+            <p className="text-xs font-bold text-sidebar-foreground group-hover:text-white transition-colors leading-none tracking-wide text-left">
+              Indique e Ganhe
+            </p>
+          </div>
+          <p className="text-[10px] text-sidebar-foreground/50 group-hover:text-sidebar-foreground/80 transition-colors leading-relaxed text-left relative z-10">
+            Convide colegas e ganhe <strong>+R$200</strong> por indicação aprovada.
+          </p>
+        </button>
+      </div>
 
       {/* ── User footer ── */}
-      <div className="px-2.5 py-2.5 border-t border-sidebar-border flex-shrink-0">
+      <div className="px-4 py-4 flex-shrink-0 mt-2">
         <div className="flex items-center gap-2.5">
           <div className="w-7 h-7 rounded-full bg-primary flex items-center justify-center flex-shrink-0 ring-1 ring-primary/25">
             <span className="text-[10px] font-bold text-white">{userInitial}</span>

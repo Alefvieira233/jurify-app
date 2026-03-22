@@ -48,11 +48,12 @@ const DocumentosManager = lazyWithRetry(() => import("./features/documentos/Docu
 const UsuariosManager = lazyWithRetry(() => import("./features/users/UsuariosManager"));
 const LogsPanel = lazyWithRetry(() => import("./features/logs/LogsPanel"));
 const IntegracoesConfig = lazyWithRetry(() => import("./features/settings/IntegracoesConfig"));
-const ConfiguracoesGerais = lazyWithRetry(() => import("./features/settings/ConfiguracoesGerais"));
+const ConfiguracoesPage = lazyWithRetry(() => import("./features/settings/ConfiguracoesPage"));
+const SuportePage = lazyWithRetry(() => import("./features/suporte/SuportePage"));
+const BaseConhecimento = lazyWithRetry(() => import("./features/ai-agents/BaseConhecimento"));
 const NotificationsPanel = lazyWithRetry(() => import("./features/notifications/NotificationsPanel"));
 const AgentsPlayground = lazyWithRetry(() => import("./pages/AgentsPlayground"));
 const MissionControl = lazyWithRetry(() => import("./features/mission-control/MissionControl"));
-const SubscriptionManager = lazyWithRetry(() => import("./components/billing/SubscriptionManager"));
 const CRMDashboard = lazyWithRetry(() => import("./features/crm/CRMDashboard"));
 const ConexoesManager = lazyWithRetry(() => import("./features/conexoes/ConexoesManager"));
 const DepartamentosManager = lazyWithRetry(() => import("./features/departamentos/DepartamentosManager"));
@@ -96,7 +97,7 @@ const ALLOWED_DEEP_LINK_PATHS = new Set([
   '/contratos', '/clientes', '/notificacoes', '/processos', '/prazos',
   '/honorarios', '/documentos', '/configuracoes', '/relatorios',
   '/usuarios', '/logs', '/integracoes', '/billing', '/conexoes',
-  '/departamentos', '/tags',
+  '/departamentos', '/tags', '/suporte', '/base-conhecimento',
 ]);
 
 function DeepLinkHandler() {
@@ -164,7 +165,9 @@ const App = () => (
                   <Route path="usuarios" element={<ProtectedRoute requiredRoles={['admin', 'manager']}><ErrorBoundary><UsuariosManager /></ErrorBoundary></ProtectedRoute>} />
                   <Route path="logs" element={<ProtectedRoute requiredRoles={['admin', 'manager']}><ErrorBoundary><LogsPanel /></ErrorBoundary></ProtectedRoute>} />
                   <Route path="integracoes" element={<ProtectedRoute><ErrorBoundary><IntegracoesConfig /></ErrorBoundary></ProtectedRoute>} />
-                  <Route path="configuracoes" element={<ProtectedRoute requiredRoles={['admin']}><ErrorBoundary><ConfiguracoesGerais /></ErrorBoundary></ProtectedRoute>} />
+                  <Route path="configuracoes" element={<ErrorBoundary><ConfiguracoesPage /></ErrorBoundary>} />
+                  <Route path="configuracoes/:section" element={<ErrorBoundary><ConfiguracoesPage /></ErrorBoundary>} />
+                  <Route path="configuracoes/:section/:subsection" element={<ErrorBoundary><ConfiguracoesPage /></ErrorBoundary>} />
                   <Route path="notificacoes" element={<ErrorBoundary><NotificationsPanel /></ErrorBoundary>} />
                   {/* /timeline absorvido por Clientes (CRM) */}
                   <Route path="timeline" element={<Navigate to="/crm" replace />} />
@@ -172,7 +175,7 @@ const App = () => (
                   <Route path="planos" element={<Navigate to="/billing" replace />} />
                   {/* /analytics absorvido por Relatórios como aba */}
                   <Route path="analytics" element={<Navigate to="/relatorios" replace />} />
-                  <Route path="billing" element={<ErrorBoundary><SubscriptionManager /></ErrorBoundary>} />
+                  {/* billing now lives in configuracoes/plano */}
                   <Route path="crm" element={<ErrorBoundary><CRMDashboard /></ErrorBoundary>} />
                   {/* /crm/followups acessível via CRM Dashboard */}
                   <Route path="crm/followups" element={<Navigate to="/crm" replace />} />
@@ -190,6 +193,10 @@ const App = () => (
                   <Route path="documentos" element={<ErrorBoundary><DocumentosManager /></ErrorBoundary>} />
                   <Route path="departamentos" element={<ErrorBoundary><DepartamentosManager /></ErrorBoundary>} />
                   <Route path="tags" element={<ErrorBoundary><TagsManager /></ErrorBoundary>} />
+                  <Route path="suporte" element={<ErrorBoundary><SuportePage /></ErrorBoundary>} />
+                  <Route path="base-conhecimento" element={<ErrorBoundary><BaseConhecimento /></ErrorBoundary>} />
+                  {/* Redirects for old SISTEMA paths → new locations */}
+                  <Route path="billing" element={<Navigate to="/configuracoes/plano" replace />} />
                   <Route path="admin/playground" element={<ProtectedRoute requiredRoles={['admin']}><ErrorBoundary><AgentsPlayground /></ErrorBoundary></ProtectedRoute>} />
                   <Route path="admin/mission-control" element={<ProtectedRoute requiredRoles={['admin']}><ErrorBoundary><MissionControl /></ErrorBoundary></ProtectedRoute>} />
                   <Route path="admin/status" element={<ProtectedRoute requiredRoles={['admin']}><ErrorBoundary><AdminStatus /></ErrorBoundary></ProtectedRoute>} />

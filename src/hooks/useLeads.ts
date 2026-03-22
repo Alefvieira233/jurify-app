@@ -96,6 +96,8 @@ export type CreateLeadData = {
   cpf_cnpj?: string | null;
   pipeline_stage_id?: string | null;
   lost_reason?: string | null;
+  departamento_id?: string | null;
+  prioridade?: 'baixa' | 'media' | 'alta' | 'urgente';
 };
 
 export type LeadInput = CreateLeadData;

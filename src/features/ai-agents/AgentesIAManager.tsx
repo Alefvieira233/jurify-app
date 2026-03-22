@@ -44,7 +44,7 @@ const AgentesIAManager = () => {
 
   const [confirmDelete, setConfirmDelete] = useState<{ open: boolean; id: string; nome: string }>({ open: false, id: '', nome: '' });
   const { agentes, loading, error, isEmpty, updateAgente, deleteAgente, fetchAgentes } = useAgentesIA();
-  const { metrics, loading: metricsLoading, ultimaExecucaoFormatada } = useAgentesMetrics();
+  const { metrics, loading: metricsLoading } = useAgentesMetrics();
 
   // Hook de filtros otimizado
   const {
@@ -179,137 +179,88 @@ const AgentesIAManager = () => {
   }
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex justify-between items-center">
+    <div className="space-y-8 pb-12">
+      {/* Header Lex Obsidian */}
+      <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-[hsl(var(--foreground))]">Agentes de IA</h1>
-          <p className="text-[hsl(var(--muted-foreground))]">Gerencie seus assistentes inteligentes</p>
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 text-primary text-xs font-bold uppercase tracking-widest mb-3">
+            <Bot className="w-3.5 h-3.5" />
+            Automação SaaS
+          </div>
+          <h1 className="text-3xl font-extrabold tracking-tight text-foreground">
+            Agentes de IA
+          </h1>
+          <p className="text-sm text-muted-foreground mt-2 max-w-xl">
+            Configure atendentes autônomos para triar, qualificar e responder em segundos, integrados a todos os canais.
+          </p>
         </div>
-        <Button onClick={handleCreateNew} className="bg-[hsl(var(--accent))] hover:bg-[hsl(var(--accent-hover))] text-[hsl(var(--accent-foreground))]">
-          <Plus className="h-4 w-4 mr-2" />
-          Novo Agente
-        </Button>
+        <div className="flex items-center gap-3">
+          <Button variant="outline" onClick={handleRetry} size="icon" className="h-11 w-11 rounded-[12px] border-border/20 shadow-sm">
+            <Bot className="h-4 w-4 text-muted-foreground" />
+          </Button>
+          <Button onClick={handleCreateNew} size="lg" className="gap-2 shadow-lg shadow-primary/20 rounded-[12px]">
+            <Plus className="h-4 w-4" />
+            Novo Agente
+          </Button>
+        </div>
       </div>
 
-      {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center">
-              <Bot className="h-8 w-8 text-blue-300" />
-              <div className="ml-4">
-                <p className="text-sm font-medium text-[hsl(var(--muted-foreground))]">Total</p>
-                <p className="text-2xl font-bold text-[hsl(var(--foreground))]">{totalAgentes}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center">
-              <div className="h-8 w-8 bg-emerald-500/15 border border-emerald-400/30 rounded-full flex items-center justify-center">
-                <div className="h-3 w-3 bg-green-500 rounded-full"></div>
-              </div>
-              <div className="ml-4">
-                <p className="text-sm font-medium text-[hsl(var(--muted-foreground))]">Ativos</p>
-                <p className="text-2xl font-bold text-emerald-200">{agentesAtivos}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center">
-              <div className="h-8 w-8 bg-blue-500/15 border border-blue-400/30 rounded-full flex items-center justify-center">
-                📊
-              </div>
-              <div className="ml-4">
-                <p className="text-sm font-medium text-[hsl(var(--muted-foreground))]">Execuções Hoje</p>
-                <p className="text-2xl font-bold text-blue-300">
-                  {metricsLoading ? '...' : metrics.execucoesHoje}
-                </p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center">
-              <div className="h-8 w-8 bg-orange-500/15 border border-orange-400/30 rounded-full flex items-center justify-center">
-                ⏰
-              </div>
-              <div className="ml-4">
-                <p className="text-sm font-medium text-[hsl(var(--muted-foreground))]">Última Execução</p>
-                <p className="text-sm font-bold text-[hsl(var(--foreground))]">
-                  {metricsLoading ? '...' : ultimaExecucaoFormatada}
-                </p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Métricas Adicionais */}
-      {!metricsLoading && metrics.execucoesMes > 0 && (
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <Card>
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-[hsl(var(--muted-foreground))]">Execuções do Mês</p>
-                  <p className="text-2xl font-bold text-purple-200">{metrics.execucoesMes}</p>
-                </div>
-                <div className="h-8 w-8 bg-purple-500/15 border border-purple-400/30 rounded-full flex items-center justify-center">
-                  📈
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-[hsl(var(--muted-foreground))]">Taxa de Sucesso</p>
-                  <p className="text-2xl font-bold text-emerald-200">{metrics.sucessoRate}%</p>
-                </div>
-                <div className="h-8 w-8 bg-emerald-500/15 border border-emerald-400/30 rounded-full flex items-center justify-center">
-                  ✅
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          {metrics.agenteMaisAtivo && (
-            <Card>
-              <CardContent className="p-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-[hsl(var(--muted-foreground))]">Mais Ativo</p>
-                    <p className="text-lg font-bold text-amber-200 truncate">
-                      {metrics.agenteMaisAtivo}
-                    </p>
-                  </div>
-                  <div className="h-8 w-8 bg-amber-500/15 border border-amber-400/30 rounded-full flex items-center justify-center">
-                    🏆
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          )}
+        <div className="bg-background border border-border/10 rounded-[20px] p-5 relative overflow-hidden flex items-center shadow-sm">
+          <div className="absolute -right-4 -top-4 w-24 h-24 bg-blue-500/10 rounded-full blur-2xl" />
+          <div className="h-12 w-12 rounded-[14px] bg-blue-500/10 flex items-center justify-center border border-blue-500/20 shadow-inner z-10 shrink-0">
+             <Bot className="h-6 w-6 text-blue-500" />
+          </div>
+          <div className="ml-4 z-10">
+            <p className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider mb-1">Total</p>
+            <p className="text-2xl font-black text-foreground leading-none">{totalAgentes}</p>
+          </div>
         </div>
-      )}
+
+        <div className="bg-background border border-border/10 rounded-[20px] p-5 relative overflow-hidden flex items-center shadow-sm">
+          <div className="absolute -right-4 -top-4 w-24 h-24 bg-emerald-500/10 rounded-full blur-2xl" />
+          <div className="h-12 w-12 rounded-[14px] bg-emerald-500/10 flex items-center justify-center border border-emerald-500/20 shadow-inner z-10 shrink-0">
+             <div className="h-3 w-3 bg-emerald-500 rounded-full animate-pulse shadow-[0_0_10px_rgba(16,185,129,0.8)]"></div>
+          </div>
+          <div className="ml-4 z-10">
+            <p className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider mb-1">Ativos</p>
+            <p className="text-2xl font-black text-emerald-500 leading-none">{agentesAtivos}</p>
+          </div>
+        </div>
+
+        <div className="bg-background border border-border/10 rounded-[20px] p-5 relative overflow-hidden flex items-center shadow-sm">
+          <div className="absolute -right-4 -top-4 w-24 h-24 bg-purple-500/10 rounded-full blur-2xl" />
+          <div className="h-12 w-12 rounded-[14px] bg-purple-500/10 flex items-center justify-center border border-purple-500/20 shadow-inner z-10 shrink-0 text-xl">
+             📊
+          </div>
+          <div className="ml-4 z-10">
+            <p className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider mb-1">Execuções / Mês</p>
+            <p className="text-2xl font-black text-purple-400 leading-none">
+              {metricsLoading ? '...' : metrics.execucoesMes > 0 ? metrics.execucoesMes : metrics.execucoesHoje}
+            </p>
+          </div>
+        </div>
+
+        <div className="bg-background border border-border/10 rounded-[20px] p-5 relative overflow-hidden flex items-center shadow-sm">
+          <div className="absolute -right-4 -top-4 w-24 h-24 bg-amber-500/10 rounded-full blur-2xl" />
+          <div className="h-12 w-12 rounded-[14px] bg-amber-500/10 flex items-center justify-center border border-amber-500/20 shadow-inner z-10 shrink-0 text-xl">
+             🏆
+          </div>
+          <div className="ml-4 min-w-0 z-10">
+            <p className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider mb-1">Sucesso / Campeão</p>
+            <p className="text-sm font-black text-amber-500 leading-tight truncate" title={metrics.agenteMaisAtivo || '—'}>
+              {metricsLoading ? '...' : metrics.agenteMaisAtivo ? `${metrics.sucessoRate}% - ${metrics.agenteMaisAtivo}` : 'Sem dados'}
+            </p>
+          </div>
+        </div>
+      </div>
 
       <Tabs defaultValue="agentes" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-4 bg-[hsl(var(--muted))] border border-[hsl(var(--border))]">
-          <TabsTrigger value="agentes">Agentes</TabsTrigger>
-          <TabsTrigger value="knowledge">Base de Conhecimento</TabsTrigger>
-          <TabsTrigger value="api-keys">API Keys</TabsTrigger>
-          <TabsTrigger value="logs">Logs</TabsTrigger>
+        <TabsList className="bg-muted/30 p-1 border border-border/10 rounded-[14px]">
+          <TabsTrigger value="agentes" className="rounded-[10px] text-xs h-9 px-4">Workspace</TabsTrigger>
+          <TabsTrigger value="knowledge" className="rounded-[10px] text-xs h-9 px-4">Base de Conhecimento</TabsTrigger>
+          <TabsTrigger value="api-keys" className="rounded-[10px] text-xs h-9 px-4">Integrações (API)</TabsTrigger>
+          <TabsTrigger value="logs" className="rounded-[10px] text-xs h-9 px-4">Monitoramento</TabsTrigger>
         </TabsList>
 
         <TabsContent value="agentes" className="space-y-6">
@@ -325,21 +276,18 @@ const AgentesIAManager = () => {
 
           {/* Lista de Agentes */}
           {isEmpty ? (
-            <Card>
-              <CardContent className="p-12 text-center">
-                <Bot className="h-16 w-16 text-muted-foreground/50 mx-auto mb-4" />
-                <h3 className="text-lg font-semibold text-[hsl(var(--foreground))] mb-2">
-                  Nenhum agente encontrado
-                </h3>
-                <p className="text-[hsl(var(--muted-foreground))] mb-6">
-                  Crie seu primeiro agente de IA para começar a automatizar processos jurídicos.
-                </p>
-                <Button onClick={handleCreateNew} className="bg-[hsl(var(--accent))] hover:bg-[hsl(var(--accent-hover))] text-[hsl(var(--accent-foreground))]">
-                  <Plus className="h-4 w-4 mr-2" />
-                  Criar Primeiro Agente
-                </Button>
-              </CardContent>
-            </Card>
+            <div className="flex flex-col items-center justify-center py-24 text-center border border-dashed border-border/20 rounded-[24px] bg-muted/5 mt-6">
+              <div className="w-20 h-20 rounded-[20px] bg-primary/10 flex items-center justify-center mb-6 shadow-inner border border-primary/20">
+                <Bot className="h-10 w-10 text-primary" />
+              </div>
+              <h3 className="text-2xl font-bold text-foreground mb-2">Sem Agentes Ativos</h3>
+              <p className="text-base text-muted-foreground mb-8 max-w-md">
+                Configure equipes de inteligência artificial para ler documentos, qualificar leads ou disparar mensagens de acompanhamento.
+              </p>
+              <Button onClick={handleCreateNew} size="lg" className="rounded-[12px] shadow-lg shadow-primary/20">
+                <Plus className="h-4 w-4 mr-2" /> Instanciar IA
+              </Button>
+            </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {filteredAgentes.map((agente) => (

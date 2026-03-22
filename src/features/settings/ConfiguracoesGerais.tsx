@@ -36,15 +36,18 @@ const ConfiguracoesGerais = () => {
   if (!can('configuracoes', 'read')) {
     return (
       <div className="flex flex-col h-screen bg-background">
-        <header className="flex-shrink-0 px-5 py-3 border-b border-border bg-background">
-          <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
-              <Settings className="h-4 w-4 text-primary" />
-            </div>
+        <header className="flex-shrink-0 px-8 py-6 pb-4 border-b border-border/5 bg-background">
+          <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
             <div>
-              <h1 className="text-sm font-bold text-foreground leading-tight">Configurações</h1>
-              <p className="text-[11px] text-muted-foreground leading-none mt-0.5">
-                Perfil, escritório, integrações, equipe e sistema
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 text-primary text-xs font-bold uppercase tracking-widest mb-3">
+                <Settings className="w-3.5 h-3.5" />
+                Root Setup
+              </div>
+              <h1 className="text-3xl font-extrabold tracking-tight text-foreground">
+                Configurações
+              </h1>
+              <p className="text-sm text-muted-foreground mt-2 max-w-xl">
+                Acesso negado. Role e escopo insuficientes.
               </p>
             </div>
           </div>
@@ -66,16 +69,19 @@ const ConfiguracoesGerais = () => {
   return (
     <div className="flex flex-col h-screen bg-background">
 
-      {/* Header */}
-      <header className="flex-shrink-0 px-5 py-3 border-b border-border bg-background fade-in">
-        <div className="flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
-            <Settings className="h-4 w-4 text-primary" />
-          </div>
+      {/* Header Lex Obsidian */}
+      <header className="flex-shrink-0 px-8 py-6 pb-4 border-b border-border/5 bg-background fade-in">
+        <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
           <div>
-            <h1 className="text-sm font-bold text-foreground leading-tight">Configurações</h1>
-            <p className="text-[11px] text-muted-foreground leading-none mt-0.5">
-              Perfil, escritório, integrações, equipe e sistema
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 text-primary text-xs font-bold uppercase tracking-widest mb-3">
+              <Settings className="w-3.5 h-3.5" />
+              Root Setup
+            </div>
+            <h1 className="text-3xl font-extrabold tracking-tight text-foreground">
+              Configurações
+            </h1>
+            <p className="text-sm text-muted-foreground mt-2 max-w-xl">
+              Gerencie a operação central do espaço, controle suas integrações e defina as premissas do seu negócio.
             </p>
           </div>
         </div>
@@ -85,38 +91,30 @@ const ConfiguracoesGerais = () => {
       <div className="flex-1 overflow-y-auto px-5 py-5">
         <Tabs defaultValue={activeTab} className="space-y-5">
           {/* Flex scrollável — suporta n tabs sem overflow */}
-          <TabsList className="flex w-full overflow-x-auto h-9 justify-start gap-0.5">
-            <TabsTrigger value="perfil" className="flex items-center gap-1.5 text-xs shrink-0">
-              <UserCircle className="h-3.5 w-3.5" />
-              Perfil
+          <TabsList className="flex w-full overflow-x-auto h-11 justify-start gap-1 bg-muted/30 p-1 border border-border/10 rounded-[14px]">
+            <TabsTrigger value="perfil" className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider h-full rounded-[10px] px-4 shrink-0">
+              <UserCircle className="h-4 w-4" /> Perfil
             </TabsTrigger>
-            <TabsTrigger value="escritorio" className="flex items-center gap-1.5 text-xs shrink-0">
-              <Building2 className="h-3.5 w-3.5" />
-              Escritório
+            <TabsTrigger value="escritorio" className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider h-full rounded-[10px] px-4 shrink-0">
+              <Building2 className="h-4 w-4" /> Escritório
             </TabsTrigger>
-            <TabsTrigger value="integracoes" className="flex items-center gap-1.5 text-xs shrink-0">
-              <Plug className="h-3.5 w-3.5" />
-              Integrações
+            <TabsTrigger value="integracoes" className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider h-full rounded-[10px] px-4 shrink-0">
+              <Plug className="h-4 w-4" /> Integrações
             </TabsTrigger>
-            <TabsTrigger value="equipe" className="flex items-center gap-1.5 text-xs shrink-0">
-              <Users className="h-3.5 w-3.5" />
-              Equipe
+            <TabsTrigger value="equipe" className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider h-full rounded-[10px] px-4 shrink-0">
+              <Users className="h-4 w-4" /> Equipe
             </TabsTrigger>
-            <TabsTrigger value="assinatura" className="flex items-center gap-1.5 text-xs shrink-0">
-              <CreditCard className="h-3.5 w-3.5" />
-              Assinatura
+            <TabsTrigger value="assinatura" className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider h-full rounded-[10px] px-4 shrink-0">
+              <CreditCard className="h-4 w-4" /> Assinatura
             </TabsTrigger>
-            <TabsTrigger value="notificacoes" className="flex items-center gap-1.5 text-xs shrink-0">
-              <Bell className="h-3.5 w-3.5" />
-              Notificações
+            <TabsTrigger value="notificacoes" className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider h-full rounded-[10px] px-4 shrink-0">
+              <Bell className="h-4 w-4" /> Notificações
             </TabsTrigger>
-            <TabsTrigger value="sistema" className="flex items-center gap-1.5 text-xs shrink-0">
-              <Server className="h-3.5 w-3.5" />
-              Sistema
+            <TabsTrigger value="sistema" className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider h-full rounded-[10px] px-4 shrink-0">
+              <Server className="h-4 w-4" /> Sistema
             </TabsTrigger>
-            <TabsTrigger value="privacidade" className="flex items-center gap-1.5 text-xs shrink-0">
-              <Shield className="h-3.5 w-3.5" />
-              Privacidade
+            <TabsTrigger value="privacidade" className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider h-full rounded-[10px] px-4 shrink-0">
+              <Shield className="h-4 w-4" /> Privacidade
             </TabsTrigger>
           </TabsList>
 

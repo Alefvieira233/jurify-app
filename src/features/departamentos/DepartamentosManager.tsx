@@ -1,8 +1,7 @@
-import { useState } from 'react';
-import { Plus, Search, Building2, Trash2, Edit, MoreHorizontal } from 'lucide-react';
+import { useState, useMemo } from 'react';
+import { Plus, Search, Building2, Trash2, Edit, MoreHorizontal, ShieldCheck, Users } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Sheet, SheetContent } from '@/components/ui/sheet';
@@ -16,7 +15,6 @@ import { useDepartamentos } from '@/hooks/useDepartamentos';
 import { usePageTitle } from '@/hooks/usePageTitle';
 import { useRBAC } from '@/hooks/useRBAC';
 import ConfirmDialog from '@/components/ConfirmDialog';
-import EmptyState from '@/components/EmptyState';
 import DepartamentoForm from './DepartamentoForm';
 import MembrosSection from './MembrosSection';
 import type { Departamento } from '@/types/crm-operacional';
@@ -38,14 +36,15 @@ const DepartamentosManager = () => {
   const canCreate = can('departamentos', 'create');
   const canDelete = can('departamentos', 'delete');
 
-  const filtered = departamentos.filter((d) => {
-    if (!searchTerm) return true;
+  const filtered = useMemo(() => {
+    if (!searchTerm.trim()) return departamentos;
     const term = searchTerm.toLowerCase();
-    return (
-      d.nome.toLowerCase().includes(term) ||
-      (d.descricao ?? '').toLowerCase().includes(term)
+    return departamentos.filter(
+      (d) =>
+        d.nome.toLowerCase().includes(term) ||
+        (d.descricao ?? '').toLowerCase().includes(term)
     );
-  });
+  }, [departamentos, searchTerm]);
 
   const handleOpenCreate = () => {
     setSelectedDepto(null);
@@ -75,27 +74,17 @@ const DepartamentosManager = () => {
   // ── Loading ────────────────────────────────────────────────────────────────
   if (isLoading) {
     return (
-      <div className="p-6 space-y-6">
-        <Card>
-          <CardHeader>
-            <div className="flex justify-between items-center">
-              <div>
-                <CardTitle className="text-2xl">Departamentos</CardTitle>
-                <p className="text-muted-foreground">Organize sua equipe por departamentos</p>
-              </div>
-              <Skeleton className="h-10 w-44" />
-            </div>
-          </CardHeader>
-        </Card>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+      <div className="space-y-8 pb-12">
+        <div className="flex justify-between items-center">
+          <div>
+            <Skeleton className="h-10 w-64 mb-2" />
+            <Skeleton className="h-5 w-96" />
+          </div>
+          <Skeleton className="h-10 w-44 rounded-[12px]" />
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {[1, 2, 3].map((i) => (
-            <Card key={i}>
-              <CardContent className="p-6 space-y-3">
-                <Skeleton className="h-5 w-32" />
-                <Skeleton className="h-4 w-48" />
-                <Skeleton className="h-4 w-20" />
-              </CardContent>
-            </Card>
+            <Skeleton key={i} className="h-48 w-full rounded-[24px]" />
           ))}
         </div>
       </div>
@@ -104,148 +93,182 @@ const DepartamentosManager = () => {
 
   // ── Main ───────────────────────────────────────────────────────────────────
   return (
-    <div className="p-6 space-y-6">
-      {/* Header */}
-      <Card>
-        <CardHeader>
-          <div className="flex flex-wrap justify-between items-center gap-3">
-            <div>
-              <CardTitle className="text-2xl">Departamentos</CardTitle>
-              <p className="text-muted-foreground">
-                Organize sua equipe por departamentos e gerencie permissões
-              </p>
-            </div>
-            {canCreate && (
-              <Button onClick={handleOpenCreate}>
-                <Plus className="w-4 h-4 mr-2" />
-                Novo Departamento
-              </Button>
-            )}
+    <div className="space-y-8 pb-12">
+      {/* Header Premium (Lex Obsidian) */}
+      <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
+        <div>
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 text-primary text-xs font-bold uppercase tracking-widest mb-3">
+            <Building2 className="w-3.5 h-3.5" />
+            Estrutura Operacional
           </div>
-        </CardHeader>
-      </Card>
+          <h1 className="text-3xl font-extrabold tracking-tight text-foreground">
+            Departamentos
+          </h1>
+          <p className="text-sm text-muted-foreground mt-2 max-w-xl">
+            Gerencie as áreas da sua operação, organize sua equipe em esquadrões e direcione o fluxo de trabalho (Kanban) para os responsáveis adequados.
+          </p>
+        </div>
+        {canCreate && (
+          <Button onClick={handleOpenCreate} size="lg" className="gap-2 shadow-lg shadow-primary/20 rounded-[12px]">
+            <Plus className="h-4 w-4" />
+            Novo Departamento
+          </Button>
+        )}
+      </div>
+
+      {/* Dashboard Metrics / Quick Search */}
+      <div className="flex flex-col sm:flex-row items-center gap-4 bg-muted/20 p-4 rounded-[16px] border border-border/10">
+        <div className="relative flex-1 w-full">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder="Buscar departamento ou descrição..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="pl-9 h-11 bg-background/50 border-border/20 rounded-[12px]"
+          />
+        </div>
+        <div className="flex items-center gap-6 px-4">
+          <div className="text-center">
+            <p className="text-[10px] uppercase font-bold text-muted-foreground">Áreas</p>
+            <p className="text-xl font-black">{departamentos.length}</p>
+          </div>
+          <div className="w-px h-8 bg-border/20"></div>
+          <div className="text-center">
+            <p className="text-[10px] uppercase font-bold text-muted-foreground">Membros Alocados</p>
+            <p className="text-xl font-black text-primary">
+              {departamentos.reduce((acc, d) => acc + (d.membros_count || 0), 0)}
+            </p>
+          </div>
+        </div>
+      </div>
 
       {departamentos.length === 0 ? (
-        <EmptyState
-          icon={Building2}
-          title="Nenhum departamento"
-          description="Crie departamentos para organizar os membros da sua equipe e controlar permissões por área."
-          action={canCreate ? { label: 'Novo Departamento', onClick: handleOpenCreate } : undefined}
-        />
+        <div className="flex flex-col items-center justify-center py-24 text-center border border-dashed border-border/20 rounded-[24px] bg-muted/5">
+          <div className="w-20 h-20 rounded-full bg-primary/10 flex items-center justify-center mb-6">
+            <Building2 className="h-10 w-10 text-primary" />
+          </div>
+          <h3 className="text-2xl font-bold text-foreground mb-2">
+            Nenhum departamento criado
+          </h3>
+          <p className="text-base text-muted-foreground mb-8 max-w-md">
+            Crie departamentos para dividir sua esteira operacional (ex: Comercial, Jurídico Cível, Financeiro) e distribua seus leads.
+          </p>
+          {canCreate && (
+            <Button onClick={handleOpenCreate} size="lg" className="rounded-[12px]">
+              <Plus className="h-4 w-4 mr-2" />
+              Criar Primeira Área
+            </Button>
+          )}
+        </div>
       ) : (
         <>
-          {/* Search + count */}
-          <div className="flex items-center gap-3">
-            <div className="relative flex-1 max-w-sm">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-              <Input
-                placeholder="Buscar departamento..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-9"
-              />
-            </div>
-            <Badge variant="secondary">
-              {filtered.length} departamento{filtered.length !== 1 ? 's' : ''}
-            </Badge>
-          </div>
-
-          {/* Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {/* Grid de Departamentos */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {filtered.map((depto) => (
-              <Card
+              <div
                 key={depto.id}
-                className="hover:border-primary/50 transition-colors cursor-pointer"
                 onClick={() => handleOpenEdit(depto)}
+                className="group relative bg-background border border-border/10 rounded-[24px] p-6 hover:shadow-2xl hover:shadow-primary/5 transition-all duration-300 hover:-translate-y-1 overflow-hidden cursor-pointer"
               >
-                <CardContent className="p-5">
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="flex items-center gap-2 min-w-0">
-                      <span
-                        className="w-3 h-3 rounded-full flex-shrink-0"
-                        style={{ backgroundColor: depto.cor || '#6b7280' }}
-                      />
-                      <h3 className="font-semibold text-base truncate">{depto.nome}</h3>
+                {/* Glow effect matching department color */}
+                <div 
+                  className="absolute -top-10 -right-10 w-32 h-32 blur-[60px] opacity-20 pointer-events-none transition-opacity group-hover:opacity-40" 
+                  style={{ backgroundColor: depto.cor || '#3b82f6' }} 
+                />
+
+                <div className="flex items-start justify-between mb-4 relative z-10">
+                  <div className="flex items-center gap-3">
+                    <div 
+                      className="w-10 h-10 rounded-xl flex items-center justify-center shadow-lg"
+                      style={{ backgroundColor: `${depto.cor || '#3b82f6'}20`, color: depto.cor || '#3b82f6' }}
+                    >
+                      <Building2 className="w-5 h-5" />
                     </div>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
-                        <Button variant="ghost" size="sm" className="h-8 w-8 p-0 flex-shrink-0">
-                          <MoreHorizontal className="w-4 h-4" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
+                    <div>
+                      <h3 className="font-bold text-lg text-foreground leading-tight">
+                        {depto.nome}
+                      </h3>
+                      <div className="flex items-center gap-2 mt-1">
+                        <Badge variant={depto.ativo ? 'default' : 'secondary'} className={`text-[9px] font-bold uppercase tracking-wider px-2 py-0 ${depto.ativo ? 'bg-primary/10 text-primary hover:bg-primary/20 text-xs' : ''}`}>
+                          {depto.ativo ? 'Ativo' : 'Inativo'}
+                        </Badge>
+                      </div>
+                    </div>
+                  </div>
+
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
+                      <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-foreground">
+                        <MoreHorizontal className="h-5 w-5" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="w-48 rounded-[12px]">
+                      <DropdownMenuItem
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleOpenEdit(depto);
+                        }}
+                        className="rounded-[8px] cursor-pointer"
+                      >
+                        <Edit className="w-4 h-4 mr-2" />
+                        Editar Área
+                      </DropdownMenuItem>
+                      {canDelete && (
                         <DropdownMenuItem
+                          className="text-destructive focus:text-destructive rounded-[8px] cursor-pointer"
                           onClick={(e) => {
                             e.stopPropagation();
-                            handleOpenEdit(depto);
+                            setConfirmDelete({ open: true, id: depto.id, label: depto.nome });
                           }}
                         >
-                          <Edit className="w-4 h-4 mr-2" />
-                          Editar
+                          <Trash2 className="w-4 h-4 mr-2" />
+                          Excluir Área
                         </DropdownMenuItem>
-                        {canDelete && (
-                          <DropdownMenuItem
-                            className="text-destructive focus:text-destructive"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setConfirmDelete({ open: true, id: depto.id, label: depto.nome });
-                            }}
-                          >
-                            <Trash2 className="w-4 h-4 mr-2" />
-                            Excluir
-                          </DropdownMenuItem>
-                        )}
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </div>
+                      )}
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </div>
 
-                  {depto.descricao && (
-                    <p className="text-sm text-muted-foreground mt-2 line-clamp-2">
-                      {depto.descricao}
-                    </p>
-                  )}
+                <p className="text-sm text-muted-foreground mt-4 line-clamp-2 min-h-[40px] relative z-10">
+                  {depto.descricao || 'Nenhuma descrição fornecida.'}
+                </p>
 
-                  <div className="flex items-center gap-2 mt-3">
-                    <Badge variant="outline" className="text-xs">
-                      <Building2 className="w-3 h-3 mr-1" />
-                      {depto.membros_count ?? 0} membro{(depto.membros_count ?? 0) !== 1 ? 's' : ''}
-                    </Badge>
-                    <Badge
-                      variant={depto.ativo ? 'default' : 'secondary'}
-                      className="text-xs"
-                    >
-                      {depto.ativo ? 'Ativo' : 'Inativo'}
-                    </Badge>
+                <div className="flex items-center justify-between border-t border-border/5 pt-4 mt-6 relative z-10">
+                  <span className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground">Tamanho da Equipe</span>
+                  <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-muted/40 text-xs font-semibold text-foreground border border-border/10">
+                    <Users className="w-3.5 h-3.5 text-primary" />
+                    {depto.membros_count ?? 0} {(depto.membros_count ?? 0) === 1 ? 'membro' : 'membros'}
                   </div>
-                </CardContent>
-              </Card>
+                </div>
+              </div>
             ))}
           </div>
 
           {filtered.length === 0 && searchTerm && (
-            <Card>
-              <CardContent className="p-8 text-center">
-                <p className="text-muted-foreground">
-                  Nenhum departamento encontrado para &quot;{searchTerm}&quot;.
-                </p>
-                <Button variant="ghost" className="mt-2" onClick={() => setSearchTerm('')}>
-                  Limpar busca
-                </Button>
-              </CardContent>
-            </Card>
+            <div className="flex flex-col items-center justify-center py-12 text-center bg-muted/5 border border-dashed border-border/10 rounded-[24px]">
+              <ShieldCheck className="w-12 h-12 text-muted-foreground/30 mb-4" />
+              <p className="text-muted-foreground text-lg">
+                Nenhum departamento encontrado para "<span className="text-foreground font-semibold">{searchTerm}</span>".
+              </p>
+              <Button variant="ghost" className="mt-4" onClick={() => setSearchTerm('')}>
+                Limpar busca
+              </Button>
+            </div>
           )}
         </>
       )}
 
       {/* Sheet for create/edit */}
       <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
-        <SheetContent className="w-full sm:max-w-lg overflow-y-auto">
-          <DepartamentoForm departamento={selectedDepto} onClose={handleCloseSheet} />
-          {selectedDepto && (
-            <div className="mt-6 border-t pt-6">
-              <MembrosSection departamentoId={selectedDepto.id} />
-            </div>
-          )}
+        <SheetContent className="w-full sm:max-w-lg md:max-w-xl overflow-y-auto bg-background/95 backdrop-blur-xl border-l border-border/10 shadow-2xl">
+          <div className="p-6">
+            <DepartamentoForm departamento={selectedDepto} onClose={handleCloseSheet} />
+            {selectedDepto && (
+              <div className="mt-8 border-t border-border/10 pt-8">
+                <MembrosSection departamentoId={selectedDepto.id} />
+              </div>
+            )}
+          </div>
         </SheetContent>
       </Sheet>
 
@@ -254,7 +277,7 @@ const DepartamentosManager = () => {
         open={confirmDelete.open}
         onOpenChange={(v) => !deleteLoading && setConfirmDelete({ ...confirmDelete, open: v })}
         title="Excluir Departamento"
-        description={`Tem certeza que deseja excluir o departamento "${confirmDelete.label}"? Os membros serão desvinculados automaticamente.`}
+        description={`Tem certeza que deseja excluir a área "${confirmDelete.label}"? A operação será afetada e os membros vinculados a ele ficarão sem departamento.`}
         onConfirm={() => { void handleDelete(); }}
         loading={deleteLoading}
         destructive

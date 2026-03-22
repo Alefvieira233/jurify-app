@@ -1,4 +1,4 @@
-/* DM Sans é carregado via <link> no index.html para evitar render-blocking */
+/* Manrope é carregado via <link> no index.html para evitar render-blocking */
 
 @tailwind base;
 @tailwind components;
@@ -90,28 +90,28 @@
 
   .dark {
     /* ═══════════════════════════════════════════════════════
-       DARK THEME — NAVY PRO (refined depth hierarchy)
+       DARK THEME — LEX OBSIDIAN (The Silent Authority)
     ═══════════════════════════════════════════════════════ */
 
-    --background: 223 46% 7%;            /* #0e1526 — slight warmth */
-    --foreground: 210 40% 98%;           /* #f8fafc */
+    --background: 222 55% 10%;           /* #0b1326 */
+    --foreground: 226 90% 92%;           /* #dae2fd */
 
-    --card: 222 44% 11.5%;               /* #192036 — warmer, distinct from bg */
-    --card-foreground: 210 40% 98%;
-    --card-border: 222 30% 21%;          /* more visible than before */
+    --card: 223 38% 15%;                 /* #171f33 surface_container */
+    --card-foreground: 226 90% 92%;
+    --card-border: 231 13% 30%;          /* Ghost Border outline_variant */
 
-    --primary: 217 91% 60%;              /* #3b82f6 — lighter blue for dark */
-    --primary-foreground: 0 0% 100%;
+    --primary: 226 93% 55%;              /* #2253f8 */
+    --primary-foreground: 226 90% 92%;
 
-    --secondary: 222 40% 14%;
-    --secondary-foreground: 210 40% 98%;
+    --secondary: 225 24% 23%;            /* #2d3449 surface_container_highest */
+    --secondary-foreground: 226 90% 92%;
 
-    --muted: 222 38% 15.5%;              /* slightly lifted for layering */
-    --muted-foreground: 215 20% 65%;
+    --muted: 222 41% 13%;                /* #131b2e surface_container_low */
+    --muted-foreground: 231 16% 50%;     /* #8d90a2 outline */
 
-    --accent: 222 45% 16%;
-    --accent-foreground: 210 40% 98%;
-    --accent-hover: 222 45% 20%;
+    --accent: 225 24% 23%;
+    --accent-foreground: 226 90% 92%;
+    --accent-hover: 225 24% 28%;
 
     --destructive: 0 62% 50%;
     --destructive-foreground: 0 0% 100%;
@@ -122,22 +122,22 @@
     --info: 217 91% 60%;
     --info-foreground: 0 0% 100%;
 
-    --border: 222 30% 21%;               /* more definition in dark mode */
-    --input: 222 47% 11%;
-    --ring: 217 91% 60%;
+    --border: 231 13% 30%;               /* The Ghost border */
+    --input: 222 55% 10%;
+    --ring: 226 93% 55%;
 
-    --popover: 222 47% 11%;
-    --popover-foreground: 210 40% 98%;
+    --popover: 225 24% 23%;              /* #2d3449 */
+    --popover-foreground: 226 90% 92%;
 
-    /* Sidebar — distinctly darker than background for clear hierarchy */
-    --sidebar-background: 222 50% 4.5%;  /* #09101f — much darker */
-    --sidebar-foreground: 210 40% 98%;
-    --sidebar-primary: 217 91% 60%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 222 44% 11%;
-    --sidebar-accent-foreground: 210 40% 98%;
-    --sidebar-border: 222 40% 9%;        /* barely visible separator */
-    --sidebar-ring: 217 91% 60%;
+    /* Sidebar — The luxurious control panel */
+    --sidebar-background: 222 41% 13%;   /* #131b2e surface_container_low */
+    --sidebar-foreground: 226 90% 92%;
+    --sidebar-primary: 226 93% 55%;
+    --sidebar-primary-foreground: 226 90% 92%;
+    --sidebar-accent: 225 24% 23%;
+    --sidebar-accent-foreground: 226 90% 92%;
+    --sidebar-border: 231 13% 30%;       /* Subtle hairline */
+    --sidebar-ring: 226 93% 55%;
 
     /* Lead / Status colors — brighter for dark backgrounds */
     --status-novo-lead:         217 91% 65%;
@@ -157,7 +157,7 @@
   /* ── Base styles ── */
   body {
     @apply bg-background text-foreground;
-    font-family: 'DM Sans', system-ui, -apple-system, sans-serif;
+    font-family: 'Manrope', system-ui, -apple-system, sans-serif;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     line-height: 1.6;
@@ -166,7 +166,7 @@
   }
 
   h1, h2, h3, h4, h5, h6 {
-    font-family: 'DM Sans', system-ui, -apple-system, sans-serif;
+    font-family: 'Manrope', system-ui, -apple-system, sans-serif;
     @apply font-semibold tracking-tight;
     line-height: 1.25;
   }
@@ -179,7 +179,7 @@
     background-color: hsl(var(--input));
     color: hsl(var(--foreground));
     border-color: hsl(var(--border));
-    font-family: 'DM Sans', system-ui, -apple-system, sans-serif;
+    font-family: 'Manrope', system-ui, -apple-system, sans-serif;
   }
 
   input::placeholder,
@@ -445,7 +445,7 @@
     --fc-today-bg-color: hsl(var(--primary) / 0.06);
     --fc-event-border-color: transparent;
     --fc-small-font-size: 0.72em;
-    font-family: 'DM Sans', system-ui, sans-serif;
+    font-family: 'Manrope', system-ui, sans-serif;
   }
 
   .calendar-panel .fc .fc-col-header-cell {

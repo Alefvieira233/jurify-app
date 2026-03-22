@@ -357,80 +357,78 @@ const RelatoriosGerenciais = () => {
   return (
     <div className="flex flex-col h-screen bg-background">
 
-      {/* ── Header ── */}
-      <header className="flex-shrink-0 px-5 py-3 border-b border-border bg-background">
-        <div className="flex items-center justify-between gap-4">
-          <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
-              <BarChart3 className="h-4 w-4 text-primary" />
+      {/* ── Header Lex Obsidian ── */}
+      <header className="flex-shrink-0 px-8 py-6 pb-4 border-b border-border/5 bg-background">
+        <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
+          <div>
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 text-primary text-xs font-bold uppercase tracking-widest mb-3">
+              <BarChart3 className="w-3.5 h-3.5" />
+              Métricas & BI
             </div>
-            <div>
-              <h1 className="text-sm font-bold text-foreground leading-tight">Relatórios</h1>
-              <p className="text-[11px] text-muted-foreground leading-none mt-0.5">
-                {metrics.totalLeads} leads · {metrics.contratos} contratos · {metrics.agentesAtivos} agentes IA
-              </p>
-            </div>
+            <h1 className="text-3xl font-extrabold tracking-tight text-foreground">
+              Dashboard Gerencial
+            </h1>
+            <p className="text-sm text-muted-foreground mt-2 max-w-xl">
+              Análise de performance, faturamento e saúde da sua operação em tempo real.
+            </p>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-3">
             {tab === 'resumo' && (
-              <Button variant="outline" size="sm" className="h-8 text-xs gap-1.5" onClick={handleExportRelatorios}>
-                <Download className="h-3.5 w-3.5" /> Exportar CSV
+              <Button onClick={handleExportRelatorios} size="lg" className="gap-2 shadow-lg shadow-primary/20 rounded-[12px]">
+                <Download className="h-4 w-4" /> Exportar CSV
               </Button>
             )}
           </div>
         </div>
 
-        {/* ── Period filter (above tabs) ── */}
-        <div className="mt-2.5 flex flex-wrap items-center gap-2">
-          <Filter className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
-          <Select value={selectedPeriod} onValueChange={(v) => setSelectedPeriod(v as PeriodKey)}>
-            <SelectTrigger className="h-7 w-[180px] text-[11px]">
-              <SelectValue placeholder="Selecionar período" />
-            </SelectTrigger>
-            <SelectContent>
-              {Object.entries(PERIOD_LABELS).map(([key, label]) => (
-                <SelectItem key={key} value={key} className="text-xs">
-                  {label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-
-          {selectedPeriod === 'personalizado' && (
-            <div className="flex items-center gap-1.5">
-              <Input
-                type="date"
-                value={customStart}
-                onChange={(e) => setCustomStart(e.target.value)}
-                className="h-7 w-[130px] text-[11px]"
-                aria-label="Data inicial"
-              />
-              <span className="text-[11px] text-muted-foreground">até</span>
-              <Input
-                type="date"
-                value={customEnd}
-                onChange={(e) => setCustomEnd(e.target.value)}
-                className="h-7 w-[130px] text-[11px]"
-                aria-label="Data final"
-              />
-            </div>
-          )}
-
-          <span className="text-[10px] text-muted-foreground ml-1">
-            {periodRange.start.toLocaleDateString('pt-BR')} — {periodRange.end.toLocaleDateString('pt-BR')}
-          </span>
-        </div>
-
-        {/* Tab list abaixo do filtro */}
-        <div className="mt-2.5">
+        {/* ── Period filter & Tabs ── */}
+        <div className="mt-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <Tabs value={tab} onValueChange={v => setTab(v as typeof tab)}>
-            <TabsList className="h-7 p-0.5 bg-muted/60">
-              <TabsTrigger value="resumo"     className="h-6 text-[11px] px-3">Resumo</TabsTrigger>
-              <TabsTrigger value="financeiro" className="h-6 text-[11px] px-3">Financeiro</TabsTrigger>
-              <TabsTrigger value="analytics"  className="h-6 text-[11px] px-3">Analytics</TabsTrigger>
+            <TabsList className="bg-muted/30 p-1 border border-border/10 rounded-[14px]">
+              <TabsTrigger value="resumo"     className="rounded-[10px] text-xs h-9 px-4">Resumo Geral</TabsTrigger>
+              <TabsTrigger value="financeiro" className="rounded-[10px] text-xs h-9 px-4">Faturamento</TabsTrigger>
+              <TabsTrigger value="analytics"  className="rounded-[10px] text-xs h-9 px-4">Análise Avançada</TabsTrigger>
             </TabsList>
           </Tabs>
+
+          <div className="flex flex-wrap items-center gap-2 bg-muted/20 p-1 border border-border/10 rounded-[14px]">
+            <Select value={selectedPeriod} onValueChange={(v) => setSelectedPeriod(v as PeriodKey)}>
+              <SelectTrigger className="h-9 w-[180px] text-xs bg-transparent border-0 shadow-none focus:ring-0">
+                <div className="flex items-center gap-2">
+                  <Filter className="h-3.5 w-3.5 text-muted-foreground" />
+                  <SelectValue placeholder="Selecionar período" />
+                </div>
+              </SelectTrigger>
+              <SelectContent>
+                {Object.entries(PERIOD_LABELS).map(([key, label]) => (
+                  <SelectItem key={key} value={key} className="text-xs font-medium">
+                    {label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            {selectedPeriod === 'personalizado' && (
+              <div className="flex items-center gap-1.5 px-2">
+                <Input
+                  type="date"
+                  value={customStart}
+                  onChange={(e) => setCustomStart(e.target.value)}
+                  className="h-7 w-[130px] text-[11px] bg-background border-border/20 rounded-[8px]"
+                  aria-label="Data inicial"
+                />
+                <span className="text-[11px] text-muted-foreground">até</span>
+                <Input
+                  type="date"
+                  value={customEnd}
+                  onChange={(e) => setCustomEnd(e.target.value)}
+                  className="h-7 w-[130px] text-[11px] bg-background border-border/20 rounded-[8px]"
+                  aria-label="Data final"
+                />
+              </div>
+            )}
+          </div>
         </div>
       </header>
 
@@ -439,75 +437,68 @@ const RelatoriosGerenciais = () => {
         <Tabs value={tab} onValueChange={v => setTab(v as typeof tab)}>
 
           {/* ── Aba: Resumo ── */}
-          <TabsContent value="resumo" className="mt-0 px-5 py-5 space-y-5 fade-in">
+          <TabsContent value="resumo" className="mt-0 px-8 py-6 pb-12 space-y-6 fade-in">
 
-            {/* KPI Cards */}
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-              <Card className="border-border shadow-card hover:shadow-card-hover transition-shadow">
-                <CardContent className="px-4 py-3">
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="flex-1 min-w-0">
-                      <p className="text-xs text-muted-foreground">Total de Leads</p>
-                      <p className="text-2xl font-bold tabular-nums mt-0.5">{metrics.totalLeads}</p>
-                      <p className="text-[10px] text-emerald-600 dark:text-emerald-400 font-medium mt-0.5">+{metrics.leadsNovoMes} este mês</p>
-                    </div>
-                    <div className="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: 'rgba(37,99,235,0.08)' }}>
-                      <Users className="h-4 w-4" style={{ color: '#2563eb' }} />
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-              <Card className="border-border shadow-card hover:shadow-card-hover transition-shadow">
-                <CardContent className="px-4 py-3">
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="flex-1 min-w-0">
-                      <p className="text-xs text-muted-foreground">Contratos</p>
-                      <p className="text-2xl font-bold tabular-nums mt-0.5">{metrics.contratos}</p>
-                      <p className="text-[10px] text-emerald-600 dark:text-emerald-400 font-medium mt-0.5">{metrics.contratosAssinados} assinados</p>
-                    </div>
-                    <div className="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: 'rgba(5,150,105,0.08)' }}>
-                      <FileText className="h-4 w-4" style={{ color: '#059669' }} />
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-              <Card className="border-border shadow-card hover:shadow-card-hover transition-shadow">
-                <CardContent className="px-4 py-3">
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="flex-1 min-w-0">
-                      <p className="text-xs text-muted-foreground">Agendamentos</p>
-                      <p className="text-2xl font-bold tabular-nums mt-0.5">{metrics.agendamentos}</p>
-                      <p className="text-[10px] text-purple-600 dark:text-purple-400 font-medium mt-0.5">{metrics.agendamentosHoje} hoje</p>
-                    </div>
-                    <div className="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: 'rgba(147,51,234,0.08)' }}>
-                      <Calendar className="h-4 w-4" style={{ color: '#9333ea' }} />
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-              <Card className="border-border shadow-card hover:shadow-card-hover transition-shadow">
-                <CardContent className="px-4 py-3">
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="flex-1 min-w-0">
-                      <p className="text-xs text-muted-foreground">Agentes IA</p>
-                      <p className="text-2xl font-bold tabular-nums mt-0.5">{metrics.agentesAtivos}</p>
-                      <p className="text-[10px] text-amber-600 dark:text-amber-400 font-medium mt-0.5">{metrics.execucoesAgentesHoje} hoje</p>
-                    </div>
-                    <div className="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: 'rgba(217,119,6,0.08)' }}>
-                      <TrendingUp className="h-4 w-4" style={{ color: '#d97706' }} />
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
+            {/* KPI Cards Lex Obsidian */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              
+              <div className="bg-background border border-border/10 rounded-[20px] p-5 relative overflow-hidden shadow-sm flex items-center">
+                <div className="absolute -right-4 -top-4 w-24 h-24 bg-blue-500/10 rounded-full blur-2xl pointer-events-none" />
+                <div className="w-12 h-12 rounded-[14px] bg-blue-500/10 flex items-center justify-center border border-blue-500/20 shadow-inner z-10 shrink-0">
+                  <Users className="h-6 w-6 text-blue-500" />
+                </div>
+                <div className="ml-4 z-10 flex-1 min-w-0">
+                  <p className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider mb-1">Total de Leads</p>
+                  <p className="text-2xl font-black text-foreground leading-none mb-1">{metrics.totalLeads}</p>
+                  <p className="text-[10px] font-bold text-emerald-500">+{metrics.leadsNovoMes} cadastrados este mês</p>
+                </div>
+              </div>
+
+              <div className="bg-background border border-border/10 rounded-[20px] p-5 relative overflow-hidden shadow-sm flex items-center">
+                <div className="absolute -right-4 -top-4 w-24 h-24 bg-emerald-500/10 rounded-full blur-2xl pointer-events-none" />
+                <div className="w-12 h-12 rounded-[14px] bg-emerald-500/10 flex items-center justify-center border border-emerald-500/20 shadow-inner z-10 shrink-0">
+                  <FileText className="h-6 w-6 text-emerald-500" />
+                </div>
+                <div className="ml-4 z-10 flex-1 min-w-0">
+                  <p className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider mb-1">Contratos Gerados</p>
+                  <p className="text-2xl font-black text-foreground leading-none mb-1">{metrics.contratos}</p>
+                  <p className="text-[10px] font-bold text-emerald-500">{metrics.contratosAssinados} contratos concluídos/assinados</p>
+                </div>
+              </div>
+
+              <div className="bg-background border border-border/10 rounded-[20px] p-5 relative overflow-hidden shadow-sm flex items-center">
+                <div className="absolute -right-4 -top-4 w-24 h-24 bg-purple-500/10 rounded-full blur-2xl pointer-events-none" />
+                <div className="w-12 h-12 rounded-[14px] bg-purple-500/10 flex items-center justify-center border border-purple-500/20 shadow-inner z-10 shrink-0">
+                  <Calendar className="h-6 w-6 text-purple-500" />
+                </div>
+                <div className="ml-4 z-10 flex-1 min-w-0">
+                  <p className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider mb-1">Agendamentos</p>
+                  <p className="text-2xl font-black text-foreground leading-none mb-1">{metrics.agendamentos}</p>
+                  <p className="text-[10px] font-bold text-purple-400">{metrics.agendamentosHoje} reunião/tarefa para hoje</p>
+                </div>
+              </div>
+
+              <div className="bg-background border border-border/10 rounded-[20px] p-5 relative overflow-hidden shadow-sm flex items-center">
+                <div className="absolute -right-4 -top-4 w-24 h-24 bg-amber-500/10 rounded-full blur-2xl pointer-events-none" />
+                <div className="w-12 h-12 rounded-[14px] bg-amber-500/10 flex items-center justify-center border border-amber-500/20 shadow-inner z-10 shrink-0">
+                  <TrendingUp className="h-6 w-6 text-amber-500" />
+                </div>
+                <div className="ml-4 z-10 flex-1 min-w-0">
+                  <p className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider mb-1">Inteligência Artificial</p>
+                  <p className="text-2xl font-black text-foreground leading-none mb-1">{metrics.agentesAtivos}</p>
+                  <p className="text-[10px] font-bold text-amber-500">{metrics.execucoesAgentesHoje} automações executadas hoje</p>
+                </div>
+              </div>
+
             </div>
 
-            {/* Existing Charts */}
+            {/* Existing Charts - Lex Obsidian Update */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-              <Card className="border-border shadow-card">
-                <CardHeader className="px-4 py-3 border-b border-border">
-                  <CardTitle className="text-sm font-semibold">Pipeline de Leads</CardTitle>
-                </CardHeader>
-                <CardContent className="p-4">
+              <div className="bg-background border border-border/10 rounded-[24px] overflow-hidden shadow-sm">
+                <div className="px-6 py-4 border-b border-border/5">
+                  <h3 className="text-base font-bold">Pipeline de Leads</h3>
+                </div>
+                <div className="p-6">
                   {statusData.length === 0 ? (
                     <EmptyChart message="Sem dados para o período" />
                   ) : (
@@ -523,14 +514,14 @@ const RelatoriosGerenciais = () => {
                       </PieChart>
                     </ResponsiveContainer>
                   )}
-                </CardContent>
-              </Card>
+                </div>
+              </div>
 
-              <Card className="border-border shadow-card">
-                <CardHeader className="px-4 py-3 border-b border-border">
-                  <CardTitle className="text-sm font-semibold">Leads por Área Jurídica</CardTitle>
-                </CardHeader>
-                <CardContent className="p-4">
+              <div className="bg-background border border-border/10 rounded-[24px] overflow-hidden shadow-sm">
+                <div className="px-6 py-4 border-b border-border/5">
+                  <h3 className="text-base font-bold">Leads por Área Jurídica</h3>
+                </div>
+                <div className="p-6">
                   {areaData.length === 0 ? (
                     <EmptyChart message="Sem dados para o período" />
                   ) : (
@@ -544,14 +535,14 @@ const RelatoriosGerenciais = () => {
                       </BarChart>
                     </ResponsiveContainer>
                   )}
-                </CardContent>
-              </Card>
+                </div>
+              </div>
 
-              <Card className="border-border shadow-card">
-                <CardHeader className="px-4 py-3 border-b border-border">
-                  <CardTitle className="text-sm font-semibold">Performance dos Agentes IA</CardTitle>
-                </CardHeader>
-                <CardContent className="p-4">
+              <div className="bg-background border border-border/10 rounded-[24px] overflow-hidden shadow-sm">
+                <div className="px-6 py-4 border-b border-border/5">
+                  <h3 className="text-base font-bold">Performance dos Agentes IA</h3>
+                </div>
+                <div className="p-6">
                   {agentesData.length === 0 ? (
                     <EmptyChart message="Sem dados de agentes" />
                   ) : (
@@ -567,47 +558,47 @@ const RelatoriosGerenciais = () => {
                       </BarChart>
                     </ResponsiveContainer>
                   )}
-                </CardContent>
-              </Card>
+                </div>
+              </div>
 
-              <Card className="border-border shadow-card">
-                <CardHeader className="px-4 py-3 border-b border-border">
-                  <CardTitle className="text-sm font-semibold">Resumo do Período</CardTitle>
-                </CardHeader>
-                <CardContent className="p-3 space-y-2">
-                  <div className="flex justify-between items-center p-2.5 bg-blue-500/8 border border-blue-500/20 rounded-lg">
-                    <span className="text-xs font-medium text-foreground">Taxa de Conversão</span>
-                    <Badge variant="secondary" className="text-xs">
+              <div className="bg-background border border-border/10 rounded-[24px] overflow-hidden shadow-sm flex flex-col justify-center">
+                <div className="px-6 py-4 border-b border-border/5">
+                  <h3 className="text-base font-bold">Resumo Estratégico</h3>
+                </div>
+                <div className="p-6 space-y-4">
+                  <div className="flex justify-between items-center p-4 bg-muted/10 border border-border/10 rounded-[16px] hover:bg-muted/20 transition-colors">
+                    <span className="text-sm font-bold text-foreground">Taxa de Conversão</span>
+                    <Badge variant="secondary" className="px-3 py-1 font-bold">
                       {metrics.totalLeads > 0 ? `${Math.min((metrics.contratosAssinados / metrics.totalLeads) * 100, 100).toFixed(1)}%` : '0%'}
                     </Badge>
                   </div>
-                  <div className="flex justify-between items-center p-2.5 bg-emerald-500/8 border border-emerald-500/20 rounded-lg">
-                    <span className="text-xs font-medium text-foreground">Leads Ativos</span>
-                    <Badge variant="secondary" className="text-xs">
+                  <div className="flex justify-between items-center p-4 bg-muted/10 border border-border/10 rounded-[16px] hover:bg-muted/20 transition-colors">
+                    <span className="text-sm font-bold text-foreground">Leads Ativos (Quente)</span>
+                    <Badge variant="secondary" className="px-3 py-1 font-bold text-emerald-500">
                       {metrics.leadsPorStatus.em_qualificacao + metrics.leadsPorStatus.proposta_enviada}
                     </Badge>
                   </div>
-                  <div className="flex justify-between items-center p-2.5 bg-purple-500/8 border border-purple-500/20 rounded-lg">
-                    <span className="text-xs font-medium text-foreground">Agendamentos Pendentes</span>
-                    <Badge variant="secondary" className="text-xs">{metrics.agendamentos}</Badge>
+                  <div className="flex justify-between items-center p-4 bg-muted/10 border border-border/10 rounded-[16px] hover:bg-muted/20 transition-colors">
+                    <span className="text-sm font-bold text-foreground">Agendamentos Pendentes</span>
+                    <Badge variant="secondary" className="px-3 py-1 font-bold text-purple-500">{metrics.agendamentos}</Badge>
                   </div>
-                  <div className="flex justify-between items-center p-2.5 bg-amber-500/8 border border-amber-500/20 rounded-lg">
-                    <span className="text-xs font-medium text-foreground">Execuções de IA</span>
-                    <Badge variant="secondary" className="text-xs">
+                  <div className="flex justify-between items-center p-4 bg-muted/10 border border-border/10 rounded-[16px] hover:bg-muted/20 transition-colors">
+                    <span className="text-sm font-bold text-foreground">Interações Processadas por IA</span>
+                    <Badge variant="secondary" className="px-3 py-1 font-bold text-amber-500">
                       {metrics.execucoesRecentesAgentes.reduce((acc, a) => acc + a.total_execucoes, 0)}
                     </Badge>
                   </div>
-                </CardContent>
-              </Card>
+                </div>
+              </div>
             </div>
 
             {/* ── NEW: Origem dos Leads + Agendamentos por Área ── */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-              <Card className="border-border shadow-card">
-                <CardHeader className="px-4 py-3 border-b border-border">
-                  <CardTitle className="text-sm font-semibold">Origem dos Leads</CardTitle>
-                </CardHeader>
-                <CardContent className="p-4">
+              <div className="bg-background border border-border/10 rounded-[24px] overflow-hidden shadow-sm">
+                <div className="px-6 py-4 border-b border-border/5">
+                  <h3 className="text-base font-bold">Canais de Captação (Origem)</h3>
+                </div>
+                <div className="p-6">
                   {origemData.length === 0 ? (
                     <EmptyChart message="Sem dados de origem" />
                   ) : (
@@ -621,14 +612,14 @@ const RelatoriosGerenciais = () => {
                       </BarChart>
                     </ResponsiveContainer>
                   )}
-                </CardContent>
-              </Card>
+                </div>
+              </div>
 
-              <Card className="border-border shadow-card">
-                <CardHeader className="px-4 py-3 border-b border-border">
-                  <CardTitle className="text-sm font-semibold">Agendamentos por Área Jurídica</CardTitle>
-                </CardHeader>
-                <CardContent className="p-4">
+              <div className="bg-background border border-border/10 rounded-[24px] overflow-hidden shadow-sm">
+                <div className="px-6 py-4 border-b border-border/5">
+                  <h3 className="text-base font-bold">Agendamentos por Área Jurídica</h3>
+                </div>
+                <div className="p-6">
                   {agendamentosPorAreaData.length === 0 ? (
                     <EmptyChart message="Sem dados de agendamentos" />
                   ) : (
@@ -652,8 +643,8 @@ const RelatoriosGerenciais = () => {
                       </PieChart>
                     </ResponsiveContainer>
                   )}
-                </CardContent>
-              </Card>
+                </div>
+              </div>
             </div>
           </TabsContent>
 

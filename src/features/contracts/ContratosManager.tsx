@@ -298,7 +298,7 @@ const ContratosManager = () => {
 
         <TabsContent value="contratos" className="space-y-6">
           {/* Filtros */}
-          <Card>
+          <Card className="border-border/10 bg-background/10 shadow-none rounded-[12px]">
             <CardContent className="p-4">
               <div className="flex gap-4">
                 <div className="relative flex-1">
@@ -307,13 +307,13 @@ const ContratosManager = () => {
                     placeholder="Buscar por nome do cliente..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
-                    className="pl-10 bg-[hsl(var(--card))] border-[hsl(var(--border))] text-[hsl(var(--foreground))]"
+                    className="pl-10 bg-background/50 border border-border/30 rounded-md text-[hsl(var(--foreground))] focus:ring-1 focus:ring-[hsl(var(--accent))] transition-all"
                   />
                 </div>
                 <select
                   value={filterStatus}
                   onChange={(e) => setFilterStatus(e.target.value)}
-                  className="px-4 py-2 border border-[hsl(var(--border))] bg-[hsl(var(--card))] text-[hsl(var(--foreground))] rounded-lg focus:ring-2 focus:ring-[hsl(var(--accent))] focus:border-transparent"
+                  className="px-4 py-2 bg-background/50 border border-border/30 rounded-md text-[hsl(var(--foreground))] focus:ring-1 focus:ring-[hsl(var(--accent))] transition-all"
                 >
                   <option value="">Todos os Status</option>
                   <option value="rascunho">Rascunho</option>
@@ -328,7 +328,7 @@ const ContratosManager = () => {
           {/* Lista de Contratos */}
           <div className="grid gap-4">
             {filteredContratos.map((contrato) => (
-              <Card key={contrato.id}>
+              <Card key={contrato.id} className="group border-border/10 bg-background/40 hover:bg-card hover:shadow-sm hover:border-border/30 transition-all duration-300 backdrop-blur-sm rounded-[12px]">
                 <CardContent className="p-6">
                   <div className="flex justify-between items-start">
                     <div className="space-y-3 flex-1">

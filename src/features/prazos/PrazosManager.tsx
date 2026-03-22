@@ -158,7 +158,7 @@ const PrazosManager = () => {
   return (
     <div className="p-6 space-y-6">
       {/* Header */}
-      <Card>
+      <Card className="border-border/10 bg-background/30 backdrop-blur-md shadow-none rounded-[16px]">
         <CardHeader>
           <div className="flex justify-between items-center">
             <div>
@@ -251,7 +251,7 @@ const PrazosManager = () => {
       )}
 
       {/* Filters */}
-      <Card>
+      <Card className="border-border/10 bg-background/10 shadow-none rounded-[12px]">
         <CardContent className="p-4">
           <div className="flex gap-3 flex-wrap">
             <div className="relative flex-1 min-w-[200px]">
@@ -291,7 +291,7 @@ const PrazosManager = () => {
       {/* List */}
       <div className="grid gap-3">
         {filteredPrazos.map(prazo => (
-          <Card key={prazo.id} className="hover:border-primary/50 transition-colors">
+          <Card key={prazo.id} className="group border-border/10 bg-background/40 hover:bg-card hover:shadow-sm hover:border-border/30 transition-all duration-300 backdrop-blur-sm rounded-[12px]">
             <CardContent className="p-5">
               <div className="flex justify-between items-start gap-4">
                 <div className="flex-1 min-w-0">

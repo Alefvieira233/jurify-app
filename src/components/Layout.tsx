@@ -6,7 +6,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import LoadingSpinner from "@/components/LoadingSpinner";
 import OnboardingFlow from "@/components/OnboardingFlow";
 import { useKeyboardShortcuts } from "@/hooks/useKeyboardShortcuts";
-import { Menu, X, Scale } from "lucide-react";
+import { Menu, X, Scale, Bell } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import GlobalSearch from "@/components/GlobalSearch";
 import ThemeToggle from "@/components/ThemeToggle";
@@ -129,10 +129,24 @@ const Layout = () => {
                     <div className="w-6 h-6 bg-white/20 rounded flex items-center justify-center">
                         <Scale className="h-3.5 w-3.5 text-white" strokeWidth={2.5} />
                     </div>
-                    <span className="text-base font-bold text-white tracking-tight">Jurify</span>
+                    <div className="flex flex-col">
+                        <span className="text-sm font-bold text-white tracking-tight leading-tight">
+                            {profile?.tenants?.nome ?? 'Jurify'}
+                        </span>
+                        <span className="text-[10px] text-white/60 leading-tight">Workspace</span>
+                    </div>
                 </div>
 
                 <div className="ml-auto flex items-center gap-2">
+                    <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => navigate('/notificacoes')}
+                        className="h-8 w-8 text-white hover:bg-white/15 relative"
+                        aria-label="Notificações"
+                    >
+                        <Bell className="h-4 w-4" />
+                    </Button>
                     <ThemeToggle />
                     <div className="w-7 h-7 rounded-full bg-white/20 flex items-center justify-center">
                         <span className="text-xs font-bold text-white">{userInitial}</span>
@@ -164,8 +178,8 @@ const Layout = () => {
                 </div>
 
                 {/* Main content area */}
-                <main className={`flex-1 min-w-0 overflow-y-auto pt-14 lg:pt-0 ${isNative ? 'mobile-bottom-safe' : ''}`}>
-                    <div className="reveal-up">
+                <main className={`flex-1 min-w-0 overflow-y-auto pt-14 lg:p-10 bg-background ${isNative ? 'mobile-bottom-safe' : ''}`}>
+                    <div className="reveal-up mx-auto max-w-[1920px] w-full min-h-full bg-card rounded-[16px] shadow-card border border-border/10">
                         <Outlet />
                     </div>
                 </main>
