@@ -59,7 +59,7 @@ POSTMARK_FROM_NAME=Jurify
 
 ### **Pagamentos - Stripe**
 ```bash
-STRIPE_SECRET_KEY=sk_live_your_stripe_key
+STRIPE_SECRET_KEY=sk_live_...
 STRIPE_WEBHOOK_SECRET=whsec_your_webhook_secret
 STRIPE_PRICE_PRO=price_your_pro_plan
 STRIPE_PRICE_ENTERPRISE=price_your_enterprise_plan

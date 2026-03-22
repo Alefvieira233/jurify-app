@@ -15,7 +15,7 @@ SELECT cron.schedule(
     url := 'https://yfxgncbopvnsltjqetxw.supabase.co/functions/v1/process-prazos-alerts',
     headers := jsonb_build_object(
       'Content-Type', 'application/json',
-      'Authorization', 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlmeGduY2JvcHZuc2x0anFldHh3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDk5MzIzMTksImV4cCI6MjA2NTUwODMxOX0.NqVjMB81nBlAE4h7jvsHfDBOpMKXohNsquVIvEFH46A'
+      'Authorization', 'Bearer YOUR_SUPABASE_ANON_KEY'
     ),
     body := '{}'::jsonb
   );

@@ -97,8 +97,8 @@ Adicione estas variáveis:
 
 | Nome | Valor |
 |------|-------|
-| `VITE_SUPABASE_URL` | `https://yfxgncbopvnsltjqetxw.supabase.co` |
-| `VITE_SUPABASE_ANON_KEY` | `eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...` (a chave completa) |
+| `VITE_SUPABASE_URL` | `https://your-project.supabase.co` |
+| `VITE_SUPABASE_ANON_KEY` | `your-supabase-anon-key` |
 | `VITE_USE_MOCK` | `false` |
 | `VITE_APP_VERSION` | `2.1.0` |
 | `VITE_APP_NAME` | `Jurify` |
