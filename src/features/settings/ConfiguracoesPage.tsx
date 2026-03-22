@@ -213,10 +213,11 @@ const ConfiguracoesPage = () => {
                     <li key={s.id}>
                       <button
                         onClick={() => {
-                          if (hasSubsections) {
+                          const subs = s.subsections;
+                          if (subs && subs.length > 0) {
                             setExpandedClasses(!expandedClasses);
-                            if (!isActive) {
-                              navigateTo(s.id, s.subsections![0].id);
+                            if (!isActive && subs[0]) {
+                              navigateTo(s.id, subs[0].id);
                             }
                           } else {
                             navigateTo(s.id);

@@ -65,9 +65,18 @@ const PII_PATTERNS: PIIPattern[] = [
 
 function generateTokenId(): string {
   // Use Web Crypto API (supported in modern browsers and Deno)
+  const cryptoObj = typeof window !== 'undefined'
+    ? window.crypto
+    : (typeof globalThis !== 'undefined' && globalThis.crypto ? globalThis.crypto : undefined);
+
+  if (!cryptoObj) {
+    return Math.random().toString(16).substring(2, 10);
+  }
+
   const array = new Uint32Array(1);
-  crypto.getRandomValues(array);
-  return array[0].toString(16).substring(0, 8);
+  cryptoObj.getRandomValues(array);
+  const result = array[0]?.toString(16).substring(0, 8);
+  return result || Math.random().toString(16).substring(2, 10);
 }
 
 // ─── Core Types ─────────────────────────────────────────────────────────────
