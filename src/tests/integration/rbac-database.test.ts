@@ -34,6 +34,8 @@ function hasPermissionSQL(role: string | null, resource: string, action: string)
       conexoes: ['create', 'read', 'update', 'delete', 'manage'],
       departamentos: ['create', 'read', 'update', 'delete'],
       tags: ['create', 'read', 'update', 'delete'],
+      fluxos: ['create', 'read', 'update', 'delete', 'execute'],
+      regras: ['create', 'read', 'update', 'delete', 'execute'],
     },
     manager: {
       leads: ['create', 'read', 'update', 'delete'],
@@ -55,6 +57,8 @@ function hasPermissionSQL(role: string | null, resource: string, action: string)
       conexoes: ['create', 'read', 'update', 'manage'],
       departamentos: ['create', 'read', 'update'],
       tags: ['create', 'read', 'update'],
+      fluxos: ['create', 'read', 'update', 'execute'],
+      regras: ['create', 'read', 'update', 'execute'],
     },
     user: {
       leads: ['create', 'read', 'update'],
@@ -74,6 +78,8 @@ function hasPermissionSQL(role: string | null, resource: string, action: string)
       conexoes: ['read'],
       departamentos: ['read'],
       tags: ['read', 'create'],
+      fluxos: ['read'],
+      regras: ['read'],
     },
     viewer: {
       leads: ['read'],
@@ -91,6 +97,8 @@ function hasPermissionSQL(role: string | null, resource: string, action: string)
       conexoes: ['read'],
       departamentos: ['read'],
       tags: ['read'],
+      fluxos: ['read'],
+      regras: ['read'],
     },
   };
 

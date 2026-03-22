@@ -234,10 +234,10 @@ const LeadsPanel = () => {
                 </div>
 
                 <div className="mt-5 pt-4 border-t border-border/5 flex items-center justify-between">
-                  {lead.responsavel ? (
+                  {lead.responsavel_id ? (
                     <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-muted/40 border border-border/10">
                       <User className="h-3 w-3 text-muted-foreground" />
-                      <span className="text-[10px] font-medium text-foreground max-w-[90px] truncate">{lead.responsavel}</span>
+                      <span className="text-[10px] font-medium text-foreground max-w-[90px] truncate">—</span>
                     </div>
                   ) : <span />}
                   

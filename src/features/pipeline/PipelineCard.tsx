@@ -119,11 +119,11 @@ export const PipelineCard = memo(({ lead, index, stageColor, onUpdateLead, onRef
             {/* ── Bottom row: Tags / Values ── */}
             <div className="flex items-center justify-between mt-1 pt-3 border-t border-border/10">
               <div className="flex items-center gap-2 overflow-hidden">
-                {lead.responsavel && (
+                {lead.responsavel_id && (
                   <div className="flex items-center gap-1.5 px-2 py-1 rounded-[8px] bg-muted/30 border border-border/40">
                     <User className="h-3 w-3 text-muted-foreground" />
                     <span className="text-[10px] font-medium text-muted-foreground truncate max-w-[80px]">
-                      {lead.responsavel.split(' ')[0]}
+                      —
                     </span>
                   </div>
                 )}

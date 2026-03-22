@@ -15,7 +15,7 @@ import { Input } from '@/components/ui/input';
 import FollowUpPanel from './FollowUpPanel';
 import { useCRMPipeline, type PipelineStage } from '@/hooks/useCRMPipeline';
 import { useFollowUps } from '@/hooks/useFollowUps';
-import { useCRMTags } from '@/hooks/useCRMTags';
+import { useTags } from '@/hooks/useTags';
 import { useLeads } from '@/hooks/useLeads';
 import { usePageTitle } from '@/hooks/usePageTitle';
 
@@ -54,7 +54,7 @@ const CRMDashboard = () => {
   const navigate = useNavigate();
   const { stages, loading: stagesLoading } = useCRMPipeline();
   const { followUps, overdueCount, loading: followUpsLoading } = useFollowUps();
-  const { tags } = useCRMTags();
+  const { tags } = useTags();
   const { leads, loading: leadsLoading } = useLeads();
   const [selectedStage, setSelectedStage] = useState<string | null>(null);
   const [followUpsOpen, setFollowUpsOpen] = useState(false);
@@ -385,10 +385,10 @@ const CRMDashboard = () => {
                   <span
                     key={tag.id}
                     className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full border text-xs font-medium cursor-default transition-opacity hover:opacity-80"
-                    style={{ borderColor: tag.color + '60', color: tag.color, background: tag.color + '12' }}
+                    style={{ borderColor: tag.cor + '60', color: tag.cor, background: tag.cor + '12' }}
                   >
-                    <span className="w-1.5 h-1.5 rounded-full" style={{ background: tag.color }} />
-                    {tag.name}
+                    <span className="w-1.5 h-1.5 rounded-full" style={{ background: tag.cor }} />
+                    {tag.nome}
                   </span>
                 ))}
               </div>

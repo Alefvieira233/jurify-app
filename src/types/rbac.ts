@@ -30,7 +30,12 @@ export type Resource =
   // Departamentos
   | 'departamentos'
   // Tags
-  | 'tags';
+  | 'tags'
+  // Notificações
+  | 'notificacoes'
+  // Automações
+  | 'fluxos'
+  | 'regras';
 
 // Acoes possiveis
 export type Action = 'create' | 'read' | 'update' | 'delete' | 'execute' | 'manage';
@@ -63,6 +68,9 @@ export const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
     { resource: 'conexoes', actions: ['create', 'read', 'update', 'delete', 'manage'] },
     { resource: 'departamentos', actions: ['create', 'read', 'update', 'delete'] },
     { resource: 'tags', actions: ['create', 'read', 'update', 'delete'] },
+    { resource: 'notificacoes', actions: ['read', 'update', 'delete'] },
+    { resource: 'fluxos', actions: ['create', 'read', 'update', 'delete', 'execute'] },
+    { resource: 'regras', actions: ['create', 'read', 'update', 'delete', 'execute'] },
   ],
 
   // Manager: gerencia operacoes, sem usuarios/configuracoes
@@ -85,6 +93,9 @@ export const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
     { resource: 'conexoes', actions: ['create', 'read', 'update', 'manage'] },
     { resource: 'departamentos', actions: ['create', 'read', 'update'] },
     { resource: 'tags', actions: ['create', 'read', 'update'] },
+    { resource: 'notificacoes', actions: ['read', 'update'] },
+    { resource: 'fluxos', actions: ['create', 'read', 'update', 'execute'] },
+    { resource: 'regras', actions: ['create', 'read', 'update', 'execute'] },
   ],
 
   // User: operacoes basicas
@@ -107,6 +118,9 @@ export const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
     { resource: 'conexoes', actions: ['read'] },
     { resource: 'departamentos', actions: ['read'] },
     { resource: 'tags', actions: ['read', 'create'] },
+    { resource: 'notificacoes', actions: ['read', 'update'] },
+    { resource: 'fluxos', actions: ['read'] },
+    { resource: 'regras', actions: ['read'] },
   ],
 
   // Viewer: somente leitura
@@ -129,6 +143,9 @@ export const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
     { resource: 'conexoes', actions: ['read'] },
     { resource: 'departamentos', actions: ['read'] },
     { resource: 'tags', actions: ['read'] },
+    { resource: 'notificacoes', actions: ['read'] },
+    { resource: 'fluxos', actions: ['read'] },
+    { resource: 'regras', actions: ['read'] },
   ],
 };
 

@@ -40,7 +40,7 @@ export default function LeadDrawerAtendimento({ lead }: LeadDrawerAtendimentoPro
   return (
     <div className="grid grid-cols-2 gap-4">
       <Field label="Responsável">
-        {lead.responsavel ?? lead.responsavel_id ?? 'Sem responsável'}
+        {lead.responsavel_id ?? 'Sem responsável'}
       </Field>
 
       <Field label="Departamento">

@@ -53,9 +53,22 @@ export const leadFormSchema = z.object({
     .optional()
     .nullable(),
 
-  responsavel: z
+  responsavel_id: z
     .string()
-    .min(1, 'Informe o responsável'),
+    .uuid('Responsável inválido')
+    .optional()
+    .nullable(),
+
+  departamento_id: z
+    .string()
+    .uuid('Departamento inválido')
+    .optional()
+    .nullable(),
+
+  prioridade: z
+    .enum(['baixa', 'media', 'alta', 'urgente'])
+    .default('media')
+    .optional(),
 
   observacoes: z
     .string()

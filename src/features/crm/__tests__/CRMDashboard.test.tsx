@@ -22,8 +22,8 @@ const mockLeads = [
 ];
 
 const mockTags = [
-  { id: 't1', name: 'VIP', color: '#2563eb' },
-  { id: 't2', name: 'Urgente', color: '#e11d48' },
+  { id: 't1', nome: 'VIP', cor: '#2563eb', tenant_id: 'tenant-1', categoria: null, ordem: 0, ativo: true, created_at: '' },
+  { id: 't2', nome: 'Urgente', cor: '#e11d48', tenant_id: 'tenant-1', categoria: null, ordem: 1, ativo: true, created_at: '' },
 ];
 
 vi.mock('@/hooks/useCRMPipeline', () => ({
@@ -37,8 +37,8 @@ vi.mock('@/hooks/useFollowUps', () => ({
   }),
 }));
 
-vi.mock('@/hooks/useCRMTags', () => ({
-  useCRMTags: () => ({ tags: mockTags, loading: false, createTag: vi.fn(), deleteTag: vi.fn() }),
+vi.mock('@/hooks/useTags', () => ({
+  useTags: () => ({ tags: mockTags, isLoading: false, createTag: vi.fn(), updateTag: vi.fn(), deleteTag: vi.fn(), isCreating: false }),
 }));
 
 vi.mock('@/hooks/useLeads', () => ({

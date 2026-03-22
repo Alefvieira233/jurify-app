@@ -113,10 +113,10 @@ const KanbanCard = memo(({ lead, index, hex, textColor, onEdit, onTimeline: _onT
                   <span className="truncate">{lead.area_juridica}</span>
                 </div>
               )}
-              {lead.responsavel && (
+              {lead.responsavel_id && (
                 <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground/50">
                   <User className="h-3 w-3 flex-shrink-0" />
-                  <span className="truncate">{lead.responsavel}</span>
+                  <span className="truncate">—</span>
                 </div>
               )}
             </div>

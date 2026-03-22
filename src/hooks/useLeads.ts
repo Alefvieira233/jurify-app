@@ -39,7 +39,6 @@ export type Lead = {
   origem: string | null;
   valor_causa?: number | null;
   responsavel_id: string | null;
-  responsavel?: string | null;
   observacoes?: string | null;
   descricao: string | null;
   tenant_id: string | null;
@@ -81,7 +80,6 @@ export type CreateLeadData = {
   area_juridica?: string | null;
   origem?: string | null;
   valor_causa?: number | null;
-  responsavel?: string | null;
   observacoes?: string | null;
   status?: string | null;
   tenant_id?: string | null;
@@ -110,7 +108,6 @@ function normalizeLead(lead: Record<string, unknown>): Lead {
   return {
     ...(lead as Lead),
     nome_completo: (lead.nome_completo ?? lead.nome ?? null) as string | null,
-    responsavel: ((lead.metadata as LeadMetadata)?.responsavel_nome ?? null) as string | null,
     observacoes: (lead.descricao ?? null) as string | null,
     lead_score: (lead.lead_score as number) ?? 0,
     pipeline_stage_id: (lead.pipeline_stage_id as string) ?? null,
@@ -140,7 +137,7 @@ function normalizeLead(lead: Record<string, unknown>): Lead {
   };
 }
 
-function mapLeadInputToDb(data: Partial<LeadInput>, userId?: string): Record<string, unknown> {
+function mapLeadInputToDb(data: Partial<LeadInput>): Record<string, unknown> {
   const payload: Record<string, unknown> = { ...data };
 
   const hasNome = Object.prototype.hasOwnProperty.call(payload, 'nome') ||
@@ -149,16 +146,6 @@ function mapLeadInputToDb(data: Partial<LeadInput>, userId?: string): Record<str
     payload.nome = (payload.nome ?? payload.nome_completo ?? '') as string;
   }
   delete payload.nome_completo;
-
-  const responsavel = payload.responsavel as string | undefined;
-  if (responsavel) {
-    payload.metadata = {
-      ...((payload.metadata as LeadMetadata) || {}),
-      responsavel_nome: responsavel,
-    };
-    if (userId && !payload.responsavel_id) payload.responsavel_id = userId;
-  }
-  delete payload.responsavel;
 
   if (payload.observacoes && !payload.descricao) payload.descricao = payload.observacoes;
   delete payload.observacoes;
@@ -238,7 +225,7 @@ export const useLeads = (options?: { enablePagination?: boolean; pageSize?: numb
   const createMutation = useMutation({
     mutationFn: async (data: LeadInput) => {
       const payload = {
-        ...mapLeadInputToDb(data, user?.id),
+        ...mapLeadInputToDb(data),
         tenant_id: tenantId ?? null,
       };
       const { data: newLead, error } = await supabase
@@ -280,7 +267,7 @@ export const useLeads = (options?: { enablePagination?: boolean; pageSize?: numb
   const updateMutation = useMutation({
     mutationFn: async ({ id, updateData }: { id: string; updateData: Partial<LeadInput> }) => {
       if (!tenantId) throw new Error('Tenant não identificado');
-      const payload = mapLeadInputToDb(updateData, user?.id);
+      const payload = mapLeadInputToDb(updateData);
       const { data: updatedLead, error } = await supabase
         .from('leads')
         .update({ ...payload, updated_at: new Date().toISOString() })

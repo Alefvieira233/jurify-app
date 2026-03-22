@@ -72,8 +72,8 @@ export const KanbanCard = memo(({ lead, onClick, provided }: KanbanCardProps) =>
           <p className="text-xs font-semibold text-foreground leading-snug line-clamp-1">
             {lead.nome_completo ?? lead.nome ?? 'Sem nome'}
           </p>
-          {lead.responsavel && (
-            <p className="text-[10px] text-muted-foreground/60 truncate">{lead.responsavel}</p>
+          {lead.responsavel_id && (
+            <p className="text-[10px] text-muted-foreground/60 truncate">—</p>
           )}
         </div>
       </div>

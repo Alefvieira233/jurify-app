@@ -1,5 +1,5 @@
 
-import { useState, useEffect, useMemo } from 'react';
+import { useEffect, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import {
@@ -13,7 +13,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { supabaseUntyped as supabase } from '@/integrations/supabase/client';
 import { useCRMActivities, type Activity as CRMActivity } from '@/hooks/useCRMActivities';
 import { useFollowUps } from '@/hooks/useFollowUps';
-import { useCRMTags, type Tag as CRMTag } from '@/hooks/useCRMTags';
+import { useLeadTags } from '@/hooks/useTags';
 import { useLeadScoring } from '@/hooks/useLeadScoring';
 import { getInitials, getAvatarHex, fmtCurrency, fmtDateTime } from '@/utils/formatting';
 import { usePageTitle } from '@/hooks/usePageTitle';
@@ -72,11 +72,9 @@ const LeadDetailPanel = () => {
   usePageTitle('Detalhes do Lead');
   const { leadId }  = useParams<{ leadId: string }>();
   const navigate    = useNavigate();
-  const [leadTags, setLeadTags] = useState<CRMTag[]>([]);
-
   const { activities, fetchActivities }               = useCRMActivities();
   const { followUps, fetchFollowUps, completeFollowUp } = useFollowUps();
-  const { getLeadTags }                               = useCRMTags();
+  const { leadTags: leadTagsData }                    = useLeadTags(leadId ?? null);
   const { scores, getLeadScore }                      = useLeadScoring();
 
   const { data: lead, isLoading: loading } = useQuery({
@@ -94,10 +92,9 @@ const LeadDetailPanel = () => {
     if (leadId) {
       void fetchActivities(leadId);
       void fetchFollowUps({ leadId });
-      void getLeadTags(leadId).then(setLeadTags);
       void getLeadScore(leadId);
     }
-  }, [leadId, fetchActivities, fetchFollowUps, getLeadTags, getLeadScore]);
+  }, [leadId, fetchActivities, fetchFollowUps, getLeadScore]);
 
   const leadFollowUps = followUps.filter(f => f.lead_id === leadId);
   const score  = scores[leadId ?? ''] || lead?.lead_score || 0;
@@ -228,16 +225,16 @@ const LeadDetailPanel = () => {
             </div>
 
             {/* Tags */}
-            {leadTags.length > 0 && (
+            {leadTagsData.length > 0 && (
               <div className="flex flex-wrap gap-1">
-                {leadTags.map(tag => (
+                {leadTagsData.map(lt => (
                   <Badge
-                    key={tag.id}
+                    key={lt.id}
                     variant="outline"
                     className="text-[10px] px-1.5 py-0.5 gap-0.5"
-                    style={{ borderColor: tag.color + '50', color: tag.color }}
+                    style={{ borderColor: (lt.tag?.cor ?? '#6b7280') + '50', color: lt.tag?.cor ?? '#6b7280' }}
                   >
-                    <Tag className="h-2.5 w-2.5" /> {tag.name}
+                    <Tag className="h-2.5 w-2.5" /> {lt.tag?.nome ?? ''}
                   </Badge>
                 ))}
               </div>

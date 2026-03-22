@@ -51,6 +51,8 @@ const IntegracoesConfig = lazyWithRetry(() => import("./features/settings/Integr
 const ConfiguracoesPage = lazyWithRetry(() => import("./features/settings/ConfiguracoesPage"));
 const SuportePage = lazyWithRetry(() => import("./features/suporte/SuportePage"));
 const BaseConhecimento = lazyWithRetry(() => import("./features/ai-agents/BaseConhecimento"));
+const FluxosManager = lazyWithRetry(() => import("./features/automations/FluxosManager"));
+const RegrasManager = lazyWithRetry(() => import("./features/automations/RegrasManager"));
 const NotificationsPanel = lazyWithRetry(() => import("./features/notifications/NotificationsPanel"));
 const AgentsPlayground = lazyWithRetry(() => import("./pages/AgentsPlayground"));
 const MissionControl = lazyWithRetry(() => import("./features/mission-control/MissionControl"));
@@ -98,6 +100,7 @@ const ALLOWED_DEEP_LINK_PATHS = new Set([
   '/honorarios', '/documentos', '/configuracoes', '/relatorios',
   '/usuarios', '/logs', '/integracoes', '/billing', '/conexoes',
   '/departamentos', '/tags', '/suporte', '/base-conhecimento',
+  '/fluxos', '/regras',
 ]);
 
 function DeepLinkHandler() {
@@ -162,6 +165,8 @@ const App = () => (
                     </WhatsAppErrorBoundary>
                   } />
                   <Route path="agentes" element={<ErrorBoundary><AgentesIAManager /></ErrorBoundary>} />
+                  <Route path="fluxos" element={<ErrorBoundary><FluxosManager /></ErrorBoundary>} />
+                  <Route path="regras" element={<ErrorBoundary><RegrasManager /></ErrorBoundary>} />
                   <Route path="usuarios" element={<ProtectedRoute requiredRoles={['admin', 'manager']}><ErrorBoundary><UsuariosManager /></ErrorBoundary></ProtectedRoute>} />
                   <Route path="logs" element={<ProtectedRoute requiredRoles={['admin', 'manager']}><ErrorBoundary><LogsPanel /></ErrorBoundary></ProtectedRoute>} />
                   <Route path="integracoes" element={<ProtectedRoute><ErrorBoundary><IntegracoesConfig /></ErrorBoundary></ProtectedRoute>} />

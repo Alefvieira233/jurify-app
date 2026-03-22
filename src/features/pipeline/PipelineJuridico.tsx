@@ -32,7 +32,7 @@ const PipelineJuridico = () => {
     return leads.filter(lead => {
       const matchSearch    = lead.nome_completo?.toLowerCase().includes(debouncedSearch.toLowerCase()) ?? false;
       const matchArea      = filterArea === '' || lead.area_juridica === filterArea;
-      const matchResp      = filterResponsavel === '' || lead.responsavel === filterResponsavel;
+      const matchResp      = filterResponsavel === '' || lead.responsavel_id === filterResponsavel;
       return matchSearch && matchArea && matchResp;
     });
   }, [leads, debouncedSearch, filterArea, filterResponsavel]);
@@ -45,7 +45,7 @@ const PipelineJuridico = () => {
   [filteredLeads]);
 
   const areasJuridicas = useMemo(() => [...new Set(leads?.map(l => l.area_juridica).filter(Boolean) ?? [])], [leads]);
-  const responsaveis   = useMemo(() => [...new Set(leads?.map(l => l.responsavel).filter(Boolean) ?? [])], [leads]);
+  const responsaveis   = useMemo(() => [...new Set(leads?.map(l => l.responsavel_id).filter(Boolean) ?? [])], [leads]);
   const totalPipeline  = useMemo(() => filteredLeads.reduce((s, l) => s + (Number(l.valor_causa) || 0), 0), [filteredLeads]);
   const hasFilter      = searchTerm || filterArea || filterResponsavel;
 

@@ -27,7 +27,7 @@ import {
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/contexts/AuthContext';
 import { Badge } from '@/components/ui/badge';
-import { supabase } from '@/integrations/supabase/client';
+import { useRealtimeNotifications } from '@/hooks/useRealtimeNotifications';
 import ThemeToggle from '@/components/ThemeToggle';
 import KeyboardShortcutsHelp from '@/components/KeyboardShortcutsHelp';
 
@@ -81,8 +81,8 @@ const MAIN_NAV: NavEntry[] = [
     icon: Bot,
     children: [
       { id: 'agentes',             label: 'Agentes',              icon: Bot,       resource: 'agentes_ia', action: 'read' },
-      { id: 'fluxos',              label: 'Fluxos',               icon: GitBranch, resource: 'agentes_ia', action: 'read', disabled: true },
-      { id: 'regras',              label: 'Regras',               icon: Sliders,   resource: 'agentes_ia', action: 'read', disabled: true },
+      { id: 'fluxos',              label: 'Fluxos',               icon: GitBranch, resource: 'fluxos', action: 'read' },
+      { id: 'regras',              label: 'Regras',               icon: Sliders,   resource: 'regras', action: 'read' },
       { id: 'base-conhecimento',   label: 'Base de Conhecimento', icon: BookOpen,  resource: 'agentes_ia', action: 'read' },
     ],
   },
@@ -119,7 +119,7 @@ const ALL_LEAVES = allLeaves();
 ───────────────────────────────────────────────────────────────────────── */
 const Sidebar = ({ activeSection, onSectionChange }: SidebarProps) => {
   const { signOut, profile, user, hasPermission } = useAuth();
-  const [unreadCount, setUnreadCount]   = useState(0);
+  const { unreadCount } = useRealtimeNotifications();
   const [visibleIds, setVisibleIds]     = useState<Set<string>>(new Set());
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
 
@@ -197,19 +197,7 @@ const Sidebar = ({ activeSection, onSectionChange }: SidebarProps) => {
     }
   }, [activeSection]);
 
-  /* ── Unread notifications (30s poll) ── */
-  useEffect(() => {
-    const fetch = async () => {
-      if (!user?.id) return;
-      try {
-        const { data, error } = await supabase.rpc('contar_nao_lidas', { user_id: user.id });
-        if (!error && data !== null) setUnreadCount(data);
-      } catch { /* silent */ }
-    };
-    void fetch();
-    const t = setInterval(() => { void fetch(); }, 30_000);
-    return () => clearInterval(t);
-  }, [user?.id]);
+  /* ── Unread notifications — driven by useRealtimeNotifications (no polling) ── */
 
   const userInitial = profile?.nome_completo?.charAt(0).toUpperCase()
     || user?.email?.charAt(0).toUpperCase()

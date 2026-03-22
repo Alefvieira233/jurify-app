@@ -56,7 +56,7 @@ describe('leadFormSchema — Validações', () => {
       nome_completo: '',
       area_juridica: 'Direito Civil',
       origem: 'WhatsApp',
-      responsavel: 'Dr. João',
+      responsavel_id: '00000000-0000-0000-0000-000000000001',
     });
     expect(result.success).toBe(false);
   });
@@ -67,7 +67,7 @@ describe('leadFormSchema — Validações', () => {
       nome_completo: 'João <script>',
       area_juridica: 'Direito Civil',
       origem: 'WhatsApp',
-      responsavel: 'Dr. João',
+      responsavel_id: '00000000-0000-0000-0000-000000000001',
     });
     expect(result.success).toBe(false);
   });
@@ -78,7 +78,7 @@ describe('leadFormSchema — Validações', () => {
       nome_completo: "Pedro D'Ávila",
       area_juridica: 'Direito Civil',
       origem: 'WhatsApp',
-      responsavel: 'Dr. João',
+      responsavel_id: '00000000-0000-0000-0000-000000000001',
     });
     expect(result.success).toBe(true);
   });
@@ -89,7 +89,7 @@ describe('leadFormSchema — Validações', () => {
       nome_completo: 'Maria Silva',
       area_juridica: 'Direito de Família',
       origem: 'WhatsApp',
-      responsavel: 'Dr. Carlos',
+      responsavel_id: '00000000-0000-0000-0000-000000000002',
       email: 'maria@email.com',
       telefone: '11999999999',
     });

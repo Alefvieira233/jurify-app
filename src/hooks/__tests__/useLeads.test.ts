@@ -184,7 +184,7 @@ describe('useLeads', () => {
     expect(lead.temperature).toBeDefined();
     expect(lead.probability).toBeDefined();
     expect(lead.followup_count).toBeDefined();
-    expect(lead.responsavel).toBe('Maria');
+    expect(lead.responsavel_id).toBeDefined();
   });
 
   it('should expose pagination helpers', async () => {

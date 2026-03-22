@@ -36,7 +36,7 @@ export default defineConfig({
         'src/hooks/useFollowUps.ts', // 271 lines, CRM follow-ups CRUD — E2E
         'src/hooks/useAgentPipeline.ts', // 190 lines, realtime agent pipeline — E2E
         'src/hooks/useApiKeys.ts', // 160 lines, useState/useEffect CRUD — E2E
-        'src/hooks/useCRMTags.ts', // 109 lines, useState/useEffect CRUD — E2E
+        'src/hooks/useCRMTags.ts', // DEPRECATED — migrated to useTags.ts
         'src/hooks/useIntegracoesConfig.ts', // 178 lines, useState/useEffect CRUD — E2E
         'src/hooks/useActivityLogs.ts', // 207 lines, useState/useEffect CRUD — E2E
         'src/hooks/useCRMPipeline.ts', // 164 lines, useState/useEffect CRUD — E2E

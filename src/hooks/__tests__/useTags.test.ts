@@ -10,8 +10,8 @@ function createWrapper() {
 }
 
 const mockTags = [
-  { id: 't1', nome: 'Urgente', cor: '#red', tenant_id: 'tenant-1' },
-  { id: 't2', nome: 'VIP', cor: '#gold', tenant_id: 'tenant-1' },
+  { id: 't1', nome: 'Urgente', cor: '#ef4444', tenant_id: 'tenant-1', categoria: 'prioridade', ordem: 0, ativo: true, created_at: '' },
+  { id: 't2', nome: 'VIP', cor: '#eab308', tenant_id: 'tenant-1', categoria: 'qualificacao', ordem: 1, ativo: true, created_at: '' },
 ];
 
 function createChainableQuery() {
@@ -42,36 +42,41 @@ vi.mock('@/hooks/use-toast', () => ({
   useToast: () => ({ toast: vi.fn() }),
 }));
 
-vi.mock('@/lib/logger', () => ({
-  createLogger: () => ({ debug: vi.fn(), info: vi.fn(), warn: vi.fn(), error: vi.fn() }),
-}));
+import { useTags, useLeadTags } from '../useTags';
 
-import { useCRMTags } from '../useCRMTags';
-
-describe('useCRMTags', () => {
+describe('useTags', () => {
   beforeEach(() => { vi.clearAllMocks(); });
 
-  it('initializes with empty tags', () => {
-    const { result } = renderHook(() => useCRMTags(), { wrapper: createWrapper() });
+  it('initializes with empty tags array', () => {
+    const { result } = renderHook(() => useTags(), { wrapper: createWrapper() });
     expect(result.current.tags).toEqual([]);
   });
 
   it('exposes CRUD functions', () => {
-    const { result } = renderHook(() => useCRMTags(), { wrapper: createWrapper() });
+    const { result } = renderHook(() => useTags(), { wrapper: createWrapper() });
     expect(typeof result.current.createTag).toBe('function');
+    expect(typeof result.current.updateTag).toBe('function');
     expect(typeof result.current.deleteTag).toBe('function');
-    expect(typeof result.current.addTagToLead).toBe('function');
-    expect(typeof result.current.removeTagFromLead).toBe('function');
-    expect(typeof result.current.fetchTags).toBe('function');
   });
 
-  it('exposes loading state', () => {
-    const { result } = renderHook(() => useCRMTags(), { wrapper: createWrapper() });
-    expect(typeof result.current.loading).toBe('boolean');
+  it('exposes loading and creating states', () => {
+    const { result } = renderHook(() => useTags(), { wrapper: createWrapper() });
+    expect(typeof result.current.isLoading).toBe('boolean');
+    expect(typeof result.current.isCreating).toBe('boolean');
+  });
+});
+
+describe('useLeadTags', () => {
+  beforeEach(() => { vi.clearAllMocks(); });
+
+  it('returns empty array when leadId is null', () => {
+    const { result } = renderHook(() => useLeadTags(null), { wrapper: createWrapper() });
+    expect(result.current.leadTags).toEqual([]);
   });
 
-  it('exposes getLeadTags function', () => {
-    const { result } = renderHook(() => useCRMTags(), { wrapper: createWrapper() });
-    expect(typeof result.current.getLeadTags).toBe('function');
+  it('exposes add/remove functions', () => {
+    const { result } = renderHook(() => useLeadTags('lead-1'), { wrapper: createWrapper() });
+    expect(typeof result.current.addTag).toBe('function');
+    expect(typeof result.current.removeTag).toBe('function');
   });
 });

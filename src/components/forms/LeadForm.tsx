@@ -1,7 +1,7 @@
 import React, { useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { X, User, Phone, Mail, Briefcase, DollarSign, FileText, MapPin, Building2, Thermometer, Loader2 } from 'lucide-react';
+import { X, User, Phone, Mail, Briefcase, DollarSign, FileText, MapPin, Building2, Thermometer, Loader2, ShieldCheck } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -30,6 +30,9 @@ import {
 } from '@/components/ui/form';
 import { type Lead, type LeadInput } from '@/hooks/useLeads';
 import { leadFormSchema, AREAS_JURIDICAS, ORIGENS_LEAD, LEAD_TEMPERATURES, type LeadFormData } from '@/schemas/leadSchema';
+import { PRIORIDADES } from '@/types/crm-operacional';
+import { useDepartamentos } from '@/hooks/useDepartamentos';
+import { useTeamMembers } from '@/hooks/useTeamMembers';
 import { useToast } from '@/hooks/use-toast';
 
 interface LeadFormProps {
@@ -51,7 +54,9 @@ const EMPTY_DEFAULTS: LeadFormData = {
   origem: '',
   valor_causa: undefined,
   expected_value: undefined,
-  responsavel: '',
+  responsavel_id: undefined,
+  departamento_id: undefined,
+  prioridade: 'media',
   observacoes: '',
   status: 'novo_lead',
   temperature: 'warm',
@@ -71,7 +76,9 @@ function leadToFormData(lead: Lead): LeadFormData {
     origem: lead.origem || '',
     valor_causa: lead.valor_causa || undefined,
     expected_value: lead.expected_value || undefined,
-    responsavel: lead.responsavel || '',
+    responsavel_id: lead.responsavel_id || undefined,
+    departamento_id: lead.departamento_id || undefined,
+    prioridade: lead.prioridade || 'media',
     observacoes: lead.observacoes || '',
     status: lead.status || 'novo_lead',
     temperature: lead.temperature || 'warm',
@@ -92,7 +99,9 @@ function formDataToLeadInput(data: LeadFormData): LeadInput {
     origem: data.origem,
     valor_causa: data.valor_causa || null,
     expected_value: data.expected_value || null,
-    responsavel: data.responsavel,
+    responsavel_id: data.responsavel_id || null,
+    departamento_id: data.departamento_id || null,
+    prioridade: data.prioridade || 'media',
     observacoes: data.observacoes || null,
     status: data.status || 'novo_lead',
     temperature: data.temperature || 'warm',
@@ -136,6 +145,8 @@ const LeadForm: React.FC<LeadFormProps> = ({
   onSuccess,
 }) => {
   const { toast } = useToast();
+  const { activeDepartamentos } = useDepartamentos();
+  const { members } = useTeamMembers();
   const form = useForm<LeadFormData>({
     resolver: zodResolver(leadFormSchema),
     defaultValues: lead ? leadToFormData(lead) : EMPTY_DEFAULTS,
@@ -332,13 +343,24 @@ const LeadForm: React.FC<LeadFormProps> = ({
 
                 <FormField
                   control={form.control}
-                  name="responsavel"
+                  name="responsavel_id"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Responsável *</FormLabel>
-                      <FormControl>
-                        <Input placeholder="Nome do advogado responsável" {...field} />
-                      </FormControl>
+                      <FormLabel>Responsável</FormLabel>
+                      <Select onValueChange={field.onChange} value={field.value ?? undefined}>
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Selecione o responsável" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {members.map((m) => (
+                            <SelectItem key={m.id} value={m.id}>
+                              {m.nome_completo}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
                       <FormMessage />
                     </FormItem>
                   )}
@@ -452,6 +474,72 @@ const LeadForm: React.FC<LeadFormProps> = ({
                           onChange={(e) => field.onChange(parseInt(e.target.value) || 0)}
                         />
                       </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+            </div>
+
+            {/* Triagem & Operação */}
+            <div className="space-y-4 pt-4 border-t">
+              <h3 className="text-lg font-semibold text-foreground flex items-center gap-2">
+                <ShieldCheck className="h-5 w-5 text-amber-500" />
+                Triagem & Operação
+              </h3>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <FormField
+                  control={form.control}
+                  name="departamento_id"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Departamento</FormLabel>
+                      <Select onValueChange={field.onChange} value={field.value ?? undefined}>
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Selecione o departamento" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {activeDepartamentos.map((d) => (
+                            <SelectItem key={d.id} value={d.id}>
+                              <span className="flex items-center gap-2">
+                                <span className="w-2 h-2 rounded-full" style={{ background: d.cor }} />
+                                {d.nome}
+                              </span>
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="prioridade"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Prioridade</FormLabel>
+                      <Select onValueChange={field.onChange} value={field.value ?? 'media'}>
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Selecione" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {PRIORIDADES.map((p) => (
+                            <SelectItem key={p.value} value={p.value}>
+                              <span className="flex items-center gap-2">
+                                <span className="w-2 h-2 rounded-full" style={{ background: p.cor }} />
+                                {p.label}
+                              </span>
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
                       <FormMessage />
                     </FormItem>
                   )}
