@@ -14,6 +14,9 @@ interface Profile {
   tenant_id?: string;
   subscription_tier?: string;
   subscription_status?: string;
+  tenants?: {
+    nome: string;
+  };
 }
 
 interface AuthContextType {
@@ -65,7 +68,9 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
       // Supabase generated types lag behind the actual schema; cast for fields
       // added via migration but not yet regenerated (subscription_tier, subscription_status).
-      const extra = profileData as Record<string, string | null | undefined>;
+      // Supabase generated types lag behind the actual schema; cast for fields
+      // added via migration but not yet regenerated.
+      const extra = profileData as any;
       setProfile({
         id: profileData.id,
         nome_completo: profileData.nome_completo ?? '',
@@ -74,6 +79,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         tenant_id: profileData.tenant_id ?? undefined,
         subscription_tier: extra.subscription_tier ?? undefined,
         subscription_status: extra.subscription_status ?? undefined,
+        tenants: extra.tenants ? { nome: extra.tenants.nome } : undefined,
       });
     } catch (_err) {
       setProfile(null);

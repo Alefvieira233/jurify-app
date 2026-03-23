@@ -29,7 +29,7 @@ interface TenantConfig {
   data_retention_days?: number;
 }
 
-const EscritorioSection = () => {
+export const EscritorioSection = () => {
   const { profile } = useAuth();
   const { toast } = useToast();
   const [saving, setSaving] = useState(false);
