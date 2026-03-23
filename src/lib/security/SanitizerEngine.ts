@@ -67,10 +67,9 @@ function generateTokenId(): string {
   // 🛡️ Secure UUID v4-like generator using crypto.getRandomValues()
   const array = new Uint8Array(8);
 
-  // Use a local variable and cast it to any to bypass strict type checking for environments
-  // where crypto might not be perfectly typed but exists (like some Deno versions or JSDOM)
-  const g = (typeof globalThis !== 'undefined' ? globalThis : (typeof window !== 'undefined' ? window : {})) as any;
-  const currentCrypto = g.crypto;
+  // Use a type-safe check for the crypto object
+  const currentCrypto = typeof crypto !== 'undefined' ? crypto :
+    (typeof globalThis !== 'undefined' && 'crypto' in globalThis ? (globalThis as unknown as { crypto: Crypto }).crypto : null);
 
   if (currentCrypto && currentCrypto.getRandomValues) {
     currentCrypto.getRandomValues(array);
