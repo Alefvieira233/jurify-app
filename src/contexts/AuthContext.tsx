@@ -70,15 +70,20 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       // added via migration but not yet regenerated (subscription_tier, subscription_status).
       // Supabase generated types lag behind the actual schema; cast for fields
       // added via migration but not yet regenerated.
-      const extra = profileData as any;
+      type ProfileExtra = {
+        subscription_tier?: string;
+        subscription_status?: string;
+        tenants?: { nome: string };
+      };
+      const extra = profileData as unknown as ProfileExtra;
       setProfile({
         id: profileData.id,
         nome_completo: profileData.nome_completo ?? '',
         email: profileData.email,
         role: roleData?.role ?? 'viewer', // Role vem da tabela separada
         tenant_id: profileData.tenant_id ?? undefined,
-        subscription_tier: extra.subscription_tier ?? undefined,
-        subscription_status: extra.subscription_status ?? undefined,
+        subscription_tier: extra.subscription_tier,
+        subscription_status: extra.subscription_status,
         tenants: extra.tenants ? { nome: extra.tenants.nome } : undefined,
       });
     } catch (_err) {
