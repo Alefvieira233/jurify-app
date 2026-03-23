@@ -7,7 +7,7 @@ import { ErrorBoundary } from '@/components/ErrorBoundary';
 
 // Reutilizar componentes existentes
 import PerfilSection from '@/components/configuracoes/PerfilSection';
-import EscritorioSection from '@/components/configuracoes/EscritorioSection';
+import { EscritorioSection } from '@/components/configuracoes/EscritorioSection';
 import IntegracoesSection from '@/components/configuracoes/IntegracoesSection';
 import UsuariosPermissoesSection from '@/components/configuracoes/UsuariosPermissoesSection';
 import NotificacoesSection from '@/components/configuracoes/NotificacoesSection';
@@ -215,8 +215,8 @@ const ConfiguracoesPage = () => {
                         onClick={() => {
                           if (hasSubsections) {
                             setExpandedClasses(!expandedClasses);
-                            if (!isActive) {
-                              navigateTo(s.id, s.subsections![0].id);
+                            if (!isActive && s.subsections?.[0]) {
+                              navigateTo(s.id, s.subsections[0].id);
                             }
                           } else {
                             navigateTo(s.id);
