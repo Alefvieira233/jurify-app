@@ -44,12 +44,13 @@ type LeadDetail = {
 
 /* ── Status palette ── */
 const STATUS_COLORS: Record<string, { hex: string; textColor: string; label: string }> = {
-  novo_lead:         { hex: '#2563eb', textColor: '#1d4ed8', label: 'Captação'    },
-  em_qualificacao:   { hex: '#d97706', textColor: '#b45309', label: 'Qualificação' },
-  proposta_enviada:  { hex: '#4f46e5', textColor: '#4338ca', label: 'Proposta'    },
-  contrato_assinado: { hex: '#059669', textColor: '#047857', label: 'Contrato'    },
-  em_atendimento:    { hex: '#0284c7', textColor: '#0369a1', label: 'Execução'    },
-  lead_perdido:      { hex: '#e11d48', textColor: '#be123c', label: 'Arquivado'   },
+  novo:        { hex: '#2563eb', textColor: '#1d4ed8', label: 'Novo'        },
+  em_contato:  { hex: '#0891b2', textColor: '#0e7490', label: 'Em Contato'  },
+  qualificado: { hex: '#d97706', textColor: '#b45309', label: 'Qualificado' },
+  proposta:    { hex: '#4f46e5', textColor: '#4338ca', label: 'Proposta'    },
+  negociacao:  { hex: '#7c3aed', textColor: '#6d28d9', label: 'Negociação'  },
+  ganho:       { hex: '#059669', textColor: '#047857', label: 'Ganho'       },
+  perdido:     { hex: '#e11d48', textColor: '#be123c', label: 'Perdido'     },
 };
 
 const ACTIVITY_CFG: Record<string, { label: string; hex: string }> = {

@@ -5,7 +5,7 @@ import { useTeamMembers } from '@/hooks/useTeamMembers';
 import { useConexoes } from '@/hooks/useConexoes';
 import { useLeadTags } from '@/hooks/useTags';
 import { TagBadge } from '@/features/tags/TagBadge';
-import { STATUS_LABELS } from '@/features/pipeline/pipelineConfig';
+import { LEAD_STATUS_LABELS as STATUS_LABELS } from '@/features/pipeline/pipelineConfig';
 import { PRIORIDADES } from '@/types/crm-operacional';
 
 interface LeadDrawerAtendimentoProps {

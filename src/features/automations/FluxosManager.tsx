@@ -58,12 +58,12 @@ interface FlowEdge {
 // ─── Constants ───────────────────────────────────────────────────────────────
 
 const TRIGGER_LABELS: Record<string, string> = {
-  novo_lead: 'Novo Lead',
+  novo: 'Novo Lead',
   status_alterado: 'Status Alterado',
   departamento_alterado: 'Dept. Alterado',
   lead_quente: 'Lead Quente',
   agendamento_criado: 'Agendamento',
-  contrato_assinado: 'Contrato Assinado',
+  ganho: 'Ganho',
   webhook: 'Webhook',
   manual: 'Manual',
   timer: 'Timer',

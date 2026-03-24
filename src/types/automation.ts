@@ -16,29 +16,29 @@ export interface AutomationFlow {
 }
 
 export type TriggerType =
-  | 'novo_lead' | 'status_alterado' | 'departamento_alterado'
-  | 'lead_quente' | 'agendamento_criado' | 'contrato_assinado'
+  | 'novo' | 'status_alterado' | 'departamento_alterado'
+  | 'lead_quente' | 'agendamento_criado' | 'ganho'
   | 'webhook' | 'manual' | 'timer';
 
 export const TRIGGER_LABELS: Record<TriggerType, string> = {
-  novo_lead: 'Novo Lead',
+  novo: 'Novo Lead',
   status_alterado: 'Status Alterado',
   departamento_alterado: 'Departamento Alterado',
   lead_quente: 'Lead Quente',
   agendamento_criado: 'Agendamento Criado',
-  contrato_assinado: 'Contrato Assinado',
+  ganho: 'Contrato Assinado',
   webhook: 'Webhook Externo',
   manual: 'Execução Manual',
   timer: 'Temporizador',
 };
 
 export const TRIGGER_COLORS: Record<TriggerType, string> = {
-  novo_lead: '#10b981',
+  novo: '#10b981',
   status_alterado: '#f59e0b',
   departamento_alterado: '#8b5cf6',
   lead_quente: '#ef4444',
   agendamento_criado: '#06b6d4',
-  contrato_assinado: '#059669',
+  ganho: '#059669',
   webhook: '#6366f1',
   manual: '#6b7280',
   timer: '#ec4899',
@@ -76,7 +76,7 @@ export type RuleEvent =
   | 'departamento_alterado' | 'prioridade_alterada'
   | 'tag_adicionada' | 'tag_removida'
   | 'lead_arquivado' | 'lead_reativado'
-  | 'agendamento_criado' | 'contrato_assinado'
+  | 'agendamento_criado' | 'ganho'
   | 'temperatura_alterada' | 'inatividade';
 
 export const RULE_EVENT_LABELS: Record<RuleEvent, string> = {
@@ -90,7 +90,7 @@ export const RULE_EVENT_LABELS: Record<RuleEvent, string> = {
   lead_arquivado: 'Lead Arquivado',
   lead_reativado: 'Lead Reativado',
   agendamento_criado: 'Agendamento Criado',
-  contrato_assinado: 'Contrato Assinado',
+  ganho: 'Contrato Assinado',
   temperatura_alterada: 'Temperatura Alterada',
   inatividade: 'Inatividade do Lead',
 };
@@ -106,7 +106,7 @@ export const RULE_EVENT_COLORS: Record<RuleEvent, string> = {
   lead_arquivado: '#e11d48',
   lead_reativado: '#059669',
   agendamento_criado: '#06b6d4',
-  contrato_assinado: '#059669',
+  ganho: '#059669',
   temperatura_alterada: '#f97316',
   inatividade: '#64748b',
 };

@@ -116,7 +116,7 @@ describe('PipelineJuridico', () => {
     expect(screen.getAllByText('Em Contato').length).toBeGreaterThanOrEqual(1);
     expect(screen.getAllByText('Qualificado').length).toBeGreaterThanOrEqual(1);
     expect(screen.getAllByText('Proposta').length).toBeGreaterThanOrEqual(1);
-    expect(screen.getAllByText('Negociacao').length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText('Negociação').length).toBeGreaterThanOrEqual(1);
     expect(screen.getAllByText('Ganho').length).toBeGreaterThanOrEqual(1);
     expect(screen.getAllByText('Perdido').length).toBeGreaterThanOrEqual(1);
   });

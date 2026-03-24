@@ -36,7 +36,16 @@ UPDATE pipeline_stages SET nome = 'ganho'       WHERE nome = 'contrato_assinado'
 UPDATE pipeline_stages SET nome = 'em_contato'  WHERE nome = 'em_atendimento';
 UPDATE pipeline_stages SET nome = 'perdido'     WHERE nome = 'lead_perdido';
 
--- 4. Refresh materialized views that cache status counts (if they exist)
+-- 4. Convert legacy trigger/event names in automation tables
+UPDATE automation_flows SET trigger_type = 'novo'  WHERE trigger_type = 'novo_lead';
+UPDATE automation_flows SET trigger_type = 'ganho'  WHERE trigger_type = 'contrato_assinado';
+UPDATE automation_rules SET evento = 'ganho'        WHERE evento = 'contrato_assinado';
+
+-- 5. Convert legacy trigger events in follow-up sequences
+UPDATE crm_followup_sequences SET trigger_event = 'proposta' WHERE trigger_event = 'proposta_enviada';
+UPDATE crm_followup_sequences SET trigger_event = 'perdido'  WHERE trigger_event = 'lead_perdido';
+
+-- 6. Refresh materialized views that cache status counts (if they exist)
 -- These views use old column names (status_novo_lead etc.) so they need to be
 -- recreated. However, since the materialized view definition is in an older
 -- migration and may or may not exist, we do this conditionally.

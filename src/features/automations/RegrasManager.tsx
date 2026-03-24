@@ -70,7 +70,7 @@ export const EVENT_TYPE_LABELS: Record<string, string> = {
   lead_arquivado: 'Lead Arquivado',
   lead_reativado: 'Lead Reativado',
   agendamento_criado: 'Agendamento Criado',
-  contrato_assinado: 'Contrato Assinado',
+  ganho: 'Contrato Assinado',
   temperatura_alterada: 'Temperatura Alterada',
   inatividade: 'Inatividade do Lead',
 };
@@ -86,7 +86,7 @@ const EVENT_TYPE_COLORS: Record<string, string> = {
   lead_arquivado: 'bg-rose-500/15 text-rose-400 border-rose-500/20',
   lead_reativado: 'bg-cyan-500/15 text-cyan-400 border-cyan-500/20',
   agendamento_criado: 'bg-indigo-500/15 text-indigo-400 border-indigo-500/20',
-  contrato_assinado: 'bg-green-500/15 text-green-400 border-green-500/20',
+  ganho: 'bg-green-500/15 text-green-400 border-green-500/20',
   temperatura_alterada: 'bg-orange-500/15 text-orange-400 border-orange-500/20',
   inatividade: 'bg-gray-500/15 text-gray-400 border-gray-500/20',
 };

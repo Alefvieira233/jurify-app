@@ -3,6 +3,7 @@ import { Search, X, FileText, Users, Calendar, Bot, MessageSquare, ArrowRight } 
 import { useNavigate } from 'react-router-dom';
 import { supabaseUntyped as supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { useRBAC } from '@/hooks/useRBAC';
 import { useToast } from '@/hooks/use-toast';
 import { createLogger } from '@/lib/logger';
 
@@ -41,6 +42,7 @@ export default function GlobalSearch() {
   const inputRef = useRef<HTMLInputElement>(null);
   const navigate = useNavigate();
   const { profile } = useAuth();
+  const { getLeadVisibilityScope, getUserDepartamentos } = useRBAC();
   const { toast } = useToast();
 
   // Ctrl+K to open
@@ -80,13 +82,26 @@ export default function GlobalSearch() {
     const searchResults: SearchResult[] = [];
 
     try {
-      // Search leads
-      const { data: leads } = await supabase
+      // Search leads (with visibility scope filtering)
+      let leadsQuery = supabase
         .from('leads')
         .select('id, nome_completo, email, status')
         .eq('tenant_id', tenantId)
-        .or(`nome_completo.ilike.%${term}%,email.ilike.%${term}%`)
-        .limit(5);
+        .or(`nome_completo.ilike.%${term}%,email.ilike.%${term}%`);
+
+      const visibilityScope = getLeadVisibilityScope();
+      if (visibilityScope === 'own') {
+        leadsQuery = leadsQuery.eq('responsavel_id', profile?.id ?? '');
+      } else if (visibilityScope === 'department') {
+        const deptoIds = getUserDepartamentos();
+        if (deptoIds.length > 0) {
+          leadsQuery = leadsQuery.in('departamento_id', deptoIds);
+        } else {
+          leadsQuery = leadsQuery.eq('responsavel_id', profile?.id ?? '');
+        }
+      }
+
+      const { data: leads } = await leadsQuery.limit(5);
 
       leads?.forEach(l => {
         searchResults.push({
@@ -146,7 +161,7 @@ export default function GlobalSearch() {
     } finally {
       setLoading(false);
     }
-  }, [profile?.tenant_id, toast]);
+  }, [profile?.tenant_id, profile?.id, toast, getLeadVisibilityScope, getUserDepartamentos]);
 
   // Debounced search
   useEffect(() => {

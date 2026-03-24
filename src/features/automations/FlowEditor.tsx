@@ -58,12 +58,12 @@ interface FlowEditorProps {
 // ─── Constants ───────────────────────────────────────────────────────────────
 
 const TRIGGER_TYPES = [
-  { value: 'novo_lead', label: 'Novo Lead' },
+  { value: 'novo', label: 'Novo Lead' },
   { value: 'status_alterado', label: 'Status Alterado' },
   { value: 'departamento_alterado', label: 'Departamento Alterado' },
   { value: 'lead_quente', label: 'Lead Quente' },
   { value: 'agendamento_criado', label: 'Agendamento Criado' },
-  { value: 'contrato_assinado', label: 'Contrato Assinado' },
+  { value: 'ganho', label: 'Ganho' },
   { value: 'webhook', label: 'Webhook' },
   { value: 'manual', label: 'Manual' },
   { value: 'timer', label: 'Timer' },
@@ -151,7 +151,7 @@ export function FlowEditor({ initialData, onSave, onBack, saving }: FlowEditorPr
   const [status, setStatus] = useState<'rascunho' | 'ativo' | 'pausado'>(
     (initialData?.status as 'rascunho' | 'ativo' | 'pausado') ?? 'rascunho'
   );
-  const [triggerType, setTriggerType] = useState(initialData?.trigger_type ?? 'novo_lead');
+  const [triggerType, setTriggerType] = useState(initialData?.trigger_type ?? 'novo');
 
   // React Flow state
   const [nodes, setNodes, onNodesChange] = useNodesState(initialData?.nodes ?? []);
@@ -222,7 +222,7 @@ export function FlowEditor({ initialData, onSave, onBack, saving }: FlowEditorPr
         position,
         data: {
           label: defaultLabels[type] ?? type,
-          ...(type === 'trigger' ? { triggerType: 'novo_lead', active: true } : {}),
+          ...(type === 'trigger' ? { triggerType: 'novo', active: true } : {}),
           ...(type === 'action' ? { actionType: 'enviar_whatsapp' } : {}),
           ...(type === 'delay' ? { delay: '1h' } : {}),
           ...(type === 'condition' ? { campo: 'status', operador: 'igual', valor: '' } : {}),
@@ -461,7 +461,7 @@ export function FlowEditor({ initialData, onSave, onBack, saving }: FlowEditorPr
                     Tipo de Gatilho
                   </Label>
                   <Select
-                    value={(selectedNode.data.triggerType as string) ?? 'novo_lead'}
+                    value={(selectedNode.data.triggerType as string) ?? 'novo'}
                     onValueChange={(v) => updateNodeData('triggerType', v)}
                   >
                     <SelectTrigger className="rounded-[10px] bg-muted/30 border-border/10 text-xs">

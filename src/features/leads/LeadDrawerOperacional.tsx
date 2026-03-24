@@ -17,7 +17,7 @@ import { useLeads } from '@/hooks/useLeads';
 import { useDepartamentos } from '@/hooks/useDepartamentos';
 import { useTeamMembers } from '@/hooks/useTeamMembers';
 import { useConexoes } from '@/hooks/useConexoes';
-import { PIPELINE_STAGES, STATUS_LABELS } from '@/features/pipeline/pipelineConfig';
+import { PIPELINE_STAGES, LEAD_STATUS_LABELS as STATUS_LABELS } from '@/features/pipeline/pipelineConfig';
 import { PRIORIDADES } from '@/types/crm-operacional';
 import { useRBAC } from '@/hooks/useRBAC';
 

@@ -114,13 +114,6 @@ const ETAPA_MAP: Record<string, string> = {
   negociacao: 'Negociação',
   ganho: 'Ganho',
   perdido: 'Perdido',
-  // Legacy values (backwards compat)
-  novo_lead: 'Novo',
-  em_qualificacao: 'Qualificado',
-  proposta_enviada: 'Proposta',
-  contrato_assinado: 'Ganho',
-  em_atendimento: 'Em Contato',
-  lead_perdido: 'Perdido',
   ativo: 'Ativo',
   inativo: 'Inativo',
   convertido: 'Convertido',

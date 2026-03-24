@@ -26,6 +26,7 @@ import { formatarEtapaPipeline, formatarAreaJuridica } from '@/utils/formatting'
 import { useQuery } from '@tanstack/react-query';
 import { supabaseUntyped as supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { useRBAC } from '@/hooks/useRBAC';
 
 /* Analytics avançado — lazy para não bloquear o bundle principal */
 const AnalyticsDashboard = lazy(() =>
@@ -104,6 +105,7 @@ const EmptyChart = ({ message = 'Sem dados para o período' }: { message?: strin
 const RelatoriosGerenciais = () => {
   usePageTitle('Relatórios');
   const { profile } = useAuth();
+  const { getLeadVisibilityScope, getUserDepartamentos } = useRBAC();
   const tenantId = profile?.tenant_id;
   const { metrics, loading, error } = useDashboardMetricsFast();
   const { data: mrrData } = useMRR();
@@ -143,15 +145,31 @@ const RelatoriosGerenciais = () => {
   });
 
   /* ── Clients per month query (Analytics tab) ── */
+  const visibilityScope = getLeadVisibilityScope();
+  const deptoIds = getUserDepartamentos();
+
   const { data: clientsList = [] } = useQuery({
-    queryKey: ['clients-report', tenantId],
+    queryKey: ['clients-report', tenantId, visibilityScope],
     queryFn: async () => {
       if (!tenantId) return [];
-      const { data } = await supabase
+      let query = supabase
         .from('leads')
         .select('id, status, created_at')
         .eq('tenant_id', tenantId)
         .in('status', ['ganho', 'em_contato']);
+
+      // Defense-in-depth: filter by visibility scope
+      if (visibilityScope === 'own') {
+        query = query.eq('responsavel_id', profile?.id ?? '');
+      } else if (visibilityScope === 'department') {
+        if (deptoIds.length > 0) {
+          query = query.in('departamento_id', deptoIds);
+        } else {
+          query = query.eq('responsavel_id', profile?.id ?? '');
+        }
+      }
+
+      const { data } = await query;
       return (data || []) as Array<{ id: string; status: string | null; created_at: string }>;
     },
     enabled: !!tenantId,

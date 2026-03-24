@@ -4,12 +4,12 @@ import { Zap } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 
 const TRIGGER_LABELS: Record<string, string> = {
-  novo_lead: 'Novo Lead',
+  novo: 'Novo Lead',
   status_alterado: 'Status Alterado',
   departamento_alterado: 'Departamento Alterado',
   lead_quente: 'Lead Quente',
   agendamento_criado: 'Agendamento Criado',
-  contrato_assinado: 'Contrato Assinado',
+  ganho: 'Contrato Assinado',
   webhook: 'Webhook',
   manual: 'Manual',
   timer: 'Timer',

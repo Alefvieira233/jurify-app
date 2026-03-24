@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { useRBAC } from '@/hooks/useRBAC';
 
 type PeriodoFiltro = 'mes' | 'trimestre' | 'ano' | 'personalizado';
 
@@ -23,10 +24,13 @@ function getDataInicio(periodo: PeriodoFiltro): string {
 
 export const useKPIs = (periodo: PeriodoFiltro, areaJuridica: string, origemLead: string) => {
   const { profile } = useAuth();
+  const { getLeadVisibilityScope, getUserDepartamentos } = useRBAC();
   const tenantId = profile?.tenant_id || null;
+  const visibilityScope = getLeadVisibilityScope();
+  const deptoIds = getUserDepartamentos();
 
   return useQuery({
-    queryKey: ['kpis-gerais', tenantId, periodo, areaJuridica, origemLead],
+    queryKey: ['kpis-gerais', tenantId, periodo, areaJuridica, origemLead, visibilityScope],
     enabled: !!tenantId,
     queryFn: async () => {
       const baseInicio = getDataInicio(periodo);
@@ -36,6 +40,17 @@ export const useKPIs = (periodo: PeriodoFiltro, areaJuridica: string, origemLead
         .select('id, status, created_at, area_juridica, origem')
         .eq('tenant_id', tenantId!)
         .gte('created_at', baseInicio);
+
+      // Defense-in-depth: filter by visibility scope
+      if (visibilityScope === 'own') {
+        leadsQuery = leadsQuery.eq('responsavel_id', profile?.id ?? '');
+      } else if (visibilityScope === 'department') {
+        if (deptoIds.length > 0) {
+          leadsQuery = leadsQuery.in('departamento_id', deptoIds);
+        } else {
+          leadsQuery = leadsQuery.eq('responsavel_id', profile?.id ?? '');
+        }
+      }
 
       if (areaJuridica !== 'todas') {
         leadsQuery = leadsQuery.eq('area_juridica', areaJuridica);
@@ -75,10 +90,13 @@ export const useKPIs = (periodo: PeriodoFiltro, areaJuridica: string, origemLead
 
 export const useFunilData = (periodo: PeriodoFiltro, areaJuridica: string, origemLead: string) => {
   const { profile } = useAuth();
+  const { getLeadVisibilityScope, getUserDepartamentos } = useRBAC();
   const tenantId = profile?.tenant_id || null;
+  const visibilityScope = getLeadVisibilityScope();
+  const deptoIds = getUserDepartamentos();
 
   return useQuery({
-    queryKey: ['dados-funil', tenantId, periodo, areaJuridica, origemLead],
+    queryKey: ['dados-funil', tenantId, periodo, areaJuridica, origemLead, visibilityScope],
     enabled: !!tenantId,
     queryFn: async () => {
       let query = supabase
@@ -86,6 +104,17 @@ export const useFunilData = (periodo: PeriodoFiltro, areaJuridica: string, orige
         .select('status')
         .eq('tenant_id', tenantId!)
         .gte('created_at', getDataInicio(periodo));
+
+      // Defense-in-depth: filter by visibility scope
+      if (visibilityScope === 'own') {
+        query = query.eq('responsavel_id', profile?.id ?? '');
+      } else if (visibilityScope === 'department') {
+        if (deptoIds.length > 0) {
+          query = query.in('departamento_id', deptoIds);
+        } else {
+          query = query.eq('responsavel_id', profile?.id ?? '');
+        }
+      }
 
       if (areaJuridica !== 'todas') {
         query = query.eq('area_juridica', areaJuridica);
@@ -125,10 +154,13 @@ export const useFunilData = (periodo: PeriodoFiltro, areaJuridica: string, orige
 
 export const useAreaJuridicaData = (periodo: PeriodoFiltro, origemLead: string) => {
   const { profile } = useAuth();
+  const { getLeadVisibilityScope, getUserDepartamentos } = useRBAC();
   const tenantId = profile?.tenant_id || null;
+  const visibilityScope = getLeadVisibilityScope();
+  const deptoIds = getUserDepartamentos();
 
   return useQuery({
-    queryKey: ['dados-area-juridica', tenantId, periodo, origemLead],
+    queryKey: ['dados-area-juridica', tenantId, periodo, origemLead, visibilityScope],
     enabled: !!tenantId,
     queryFn: async () => {
       let query = supabase
@@ -136,6 +168,17 @@ export const useAreaJuridicaData = (periodo: PeriodoFiltro, origemLead: string) 
         .select('area_juridica')
         .eq('tenant_id', tenantId!)
         .gte('created_at', getDataInicio(periodo));
+
+      // Defense-in-depth: filter by visibility scope
+      if (visibilityScope === 'own') {
+        query = query.eq('responsavel_id', profile?.id ?? '');
+      } else if (visibilityScope === 'department') {
+        if (deptoIds.length > 0) {
+          query = query.in('departamento_id', deptoIds);
+        } else {
+          query = query.eq('responsavel_id', profile?.id ?? '');
+        }
+      }
 
       if (origemLead !== 'todas') {
         query = query.eq('origem', origemLead);
@@ -162,10 +205,13 @@ export const useAreaJuridicaData = (periodo: PeriodoFiltro, origemLead: string) 
 
 export const useOrigemData = (periodo: PeriodoFiltro, areaJuridica: string) => {
   const { profile } = useAuth();
+  const { getLeadVisibilityScope, getUserDepartamentos } = useRBAC();
   const tenantId = profile?.tenant_id || null;
+  const visibilityScope = getLeadVisibilityScope();
+  const deptoIds = getUserDepartamentos();
 
   return useQuery({
-    queryKey: ['dados-origem', tenantId, periodo, areaJuridica],
+    queryKey: ['dados-origem', tenantId, periodo, areaJuridica, visibilityScope],
     enabled: !!tenantId,
     queryFn: async () => {
       let query = supabase
@@ -173,6 +219,17 @@ export const useOrigemData = (periodo: PeriodoFiltro, areaJuridica: string) => {
         .select('origem')
         .eq('tenant_id', tenantId!)
         .gte('created_at', getDataInicio(periodo));
+
+      // Defense-in-depth: filter by visibility scope
+      if (visibilityScope === 'own') {
+        query = query.eq('responsavel_id', profile?.id ?? '');
+      } else if (visibilityScope === 'department') {
+        if (deptoIds.length > 0) {
+          query = query.in('departamento_id', deptoIds);
+        } else {
+          query = query.eq('responsavel_id', profile?.id ?? '');
+        }
+      }
 
       if (areaJuridica !== 'todas') {
         query = query.eq('area_juridica', areaJuridica);

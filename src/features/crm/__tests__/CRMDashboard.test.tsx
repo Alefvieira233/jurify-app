@@ -17,8 +17,8 @@ const mockFollowUps = [
 ];
 
 const mockLeads = [
-  { id: 'l1', nome_completo: 'João Silva', temperature: 'hot', status: 'novo_lead', lead_score: 80, probability: 70, followup_count: 2 },
-  { id: 'l2', nome_completo: 'Ana Costa', temperature: 'warm', status: 'em_qualificacao', lead_score: 50, probability: 40, followup_count: 1 },
+  { id: 'l1', nome_completo: 'João Silva', temperature: 'hot', status: 'novo', lead_score: 80, probability: 70, followup_count: 2 },
+  { id: 'l2', nome_completo: 'Ana Costa', temperature: 'warm', status: 'qualificado', lead_score: 50, probability: 40, followup_count: 1 },
 ];
 
 const mockTags = [

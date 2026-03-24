@@ -42,12 +42,12 @@ import {
 
 const TRIGGER_LABELS: Record<TriggerEvent, string> = {
   lead_created: 'Novo Lead Criado',
-  proposta_enviada: 'Proposta Enviada',
+  proposta: 'Proposta Enviada',
   sem_resposta_24h: 'Sem Resposta (24h)',
   sem_resposta_48h: 'Sem Resposta (48h)',
   contrato_enviado: 'Contrato Enviado',
   agendamento_criado: 'Agendamento Criado',
-  lead_perdido: 'Lead Perdido',
+  perdido: 'Lead Perdido',
   manual: 'Disparo Manual',
 };
 

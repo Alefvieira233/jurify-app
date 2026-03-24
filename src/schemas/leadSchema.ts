@@ -201,13 +201,7 @@ export const FOLLOWUP_TYPES = [
   { value: 'auto', label: 'Automático' },
 ] as const;
 
-// Prioridades de follow-up
-export const FOLLOWUP_PRIORITIES = [
-  { value: 'low', label: 'Baixa', color: '#6B7280' },
-  { value: 'medium', label: 'Média', color: '#F59E0B' },
-  { value: 'high', label: 'Alta', color: '#F97316' },
-  { value: 'urgent', label: 'Urgente', color: '#EF4444' },
-] as const;
+// Prioridades: use PRIORIDADES from '@/types/crm-operacional' (source of truth)
 
 // Recorrências
 export const RECURRENCE_OPTIONS = [

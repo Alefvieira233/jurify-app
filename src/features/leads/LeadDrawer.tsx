@@ -20,7 +20,7 @@ interface LeadDrawerProps {
   onOpenChange: (open: boolean) => void;
 }
 
-import { STATUS_LABELS } from '@/features/pipeline/pipelineConfig';
+import { LEAD_STATUS_LABELS as STATUS_LABELS } from '@/features/pipeline/pipelineConfig';
 
 const statusVariant = (status: string | null): 'default' | 'secondary' | 'destructive' | 'outline' => {
   switch (status) {

@@ -6,6 +6,7 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Bot, User } from 'lucide-react';
 import { supabaseUntyped as supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { useRBAC } from '@/hooks/useRBAC';
 
 interface RankingAgentesTableProps {
   periodo: string;
@@ -62,15 +63,36 @@ const getDataInicio = (periodo: string): string => {
 
 const RankingAgentesTable: React.FC<RankingAgentesTableProps> = ({ periodo }) => {
   const { profile } = useAuth();
+  const { getLeadVisibilityScope, getUserDepartamentos } = useRBAC();
   const tenantId = profile?.tenant_id || null;
 
+  const visibilityScope = getLeadVisibilityScope();
+  const deptoIds = getUserDepartamentos();
+
   const { data: rankingAgentes } = useQuery({
-    queryKey: ['ranking-agentes', tenantId, periodo],
+    queryKey: ['ranking-agentes', tenantId, periodo, visibilityScope],
     enabled: !!tenantId,
     queryFn: async () => {
 
       const dataInicio = getDataInicio(periodo);
       const iaResponsavel = 'ia juridica';
+
+      // Build leads query with visibility scope filter
+      let leadsQuery = supabase
+        .from('leads')
+        .select('area_juridica, metadata, valor_causa, status, created_at')
+        .eq('tenant_id', tenantId!)
+        .gte('created_at', dataInicio);
+
+      if (visibilityScope === 'own') {
+        leadsQuery = leadsQuery.eq('responsavel_id', profile?.id ?? '');
+      } else if (visibilityScope === 'department') {
+        if (deptoIds.length > 0) {
+          leadsQuery = leadsQuery.in('departamento_id', deptoIds);
+        } else {
+          leadsQuery = leadsQuery.eq('responsavel_id', profile?.id ?? '');
+        }
+      }
 
       const [
         { data: agentesIA, error: agentesError },
@@ -81,11 +103,7 @@ const RankingAgentesTable: React.FC<RankingAgentesTableProps> = ({ periodo }) =>
           .from('agentes_ia')
           .select('id, nome, area_juridica, delay_resposta')
           .eq('tenant_id', tenantId!),
-        supabase
-          .from('leads')
-          .select('area_juridica, metadata, valor_causa, status, created_at')
-          .eq('tenant_id', tenantId!)
-          .gte('created_at', dataInicio),
+        leadsQuery,
         supabase
           .from('contratos')
           .select('responsavel, valor_causa, status, status_assinatura, created_at')

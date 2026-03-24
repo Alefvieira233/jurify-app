@@ -9,12 +9,12 @@ const log = createLogger('FollowUpSequences');
 
 export type TriggerEvent =
   | 'lead_created'
-  | 'proposta_enviada'
+  | 'proposta'
   | 'sem_resposta_24h'
   | 'sem_resposta_48h'
   | 'contrato_enviado'
   | 'agendamento_criado'
-  | 'lead_perdido'
+  | 'perdido'
   | 'manual';
 
 export interface SequenceStep {

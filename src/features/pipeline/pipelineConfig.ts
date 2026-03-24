@@ -8,7 +8,7 @@ export const PIPELINE_STAGES = [
   { id: 'em_contato',  title: 'Em Contato',  color: 'cyan'    },
   { id: 'qualificado', title: 'Qualificado', color: 'amber'   },
   { id: 'proposta',    title: 'Proposta',    color: 'indigo'  },
-  { id: 'negociacao',  title: 'Negociacao',  color: 'purple'  },
+  { id: 'negociacao',  title: 'Negociação',  color: 'purple'  },
   { id: 'ganho',       title: 'Ganho',       color: 'emerald' },
   { id: 'perdido',     title: 'Perdido',     color: 'rose'    },
 ] as const;
@@ -33,5 +33,3 @@ export const LEAD_STATUS_LABELS: Record<string, string> = Object.fromEntries(
   PIPELINE_STAGES.map((s) => [s.id, s.title]),
 );
 
-/** @deprecated Use LEAD_STATUS_LABELS instead */
-export const STATUS_LABELS = LEAD_STATUS_LABELS;

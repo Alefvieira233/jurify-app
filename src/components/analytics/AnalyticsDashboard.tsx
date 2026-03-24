@@ -12,6 +12,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useAuth } from '@/contexts/AuthContext';
+import { useRBAC } from '@/hooks/useRBAC';
 import { supabaseUntyped as supabase } from '@/integrations/supabase/client';
 import {
     BarChart,
@@ -88,10 +89,26 @@ const COLORS = ['#8884d8', '#82ca9d', '#ffc658', '#ff7c43', '#a4de6c', '#d0ed57'
 
 export const AnalyticsDashboard = () => {
     const { profile } = useAuth();
+    const { getLeadVisibilityScope, getUserDepartamentos } = useRBAC();
     const [metrics, setMetrics] = useState<DashboardMetrics | null>(null);
     const [chartData, setChartData] = useState<ChartData | null>(null);
     const [loading, setLoading] = useState(true);
     const [selectedPeriod, setSelectedPeriod] = useState<'7d' | '30d' | '90d'>('30d');
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const applyLeadVisibilityFilter = useCallback((query: any) => {
+        const scope = getLeadVisibilityScope();
+        if (scope === 'own') {
+            return query.eq('responsavel_id', profile?.id ?? '');
+        } else if (scope === 'department') {
+            const deptoIds = getUserDepartamentos();
+            if (deptoIds.length > 0) {
+                return query.in('departamento_id', deptoIds);
+            }
+            return query.eq('responsavel_id', profile?.id ?? '');
+        }
+        return query;
+    }, [getLeadVisibilityScope, getUserDepartamentos, profile?.id]);
 
     const loadAnalytics = useCallback(async () => {
         if (!profile?.tenant_id) return;
@@ -106,7 +123,7 @@ export const AnalyticsDashboard = () => {
             const startDate = new Date(now.getTime() - periodDays * 24 * 60 * 60 * 1000);
             const prevStartDate = new Date(startDate.getTime() - periodDays * 24 * 60 * 60 * 1000);
 
-            // Fetch all data in parallel
+            // Fetch all data in parallel (leads filtered by visibility scope)
             const [
                 { data: currentLeads },
                 { data: prevLeads },
@@ -115,12 +132,12 @@ export const AnalyticsDashboard = () => {
                 { data: aiLogs },
                 { data: allLeads },
             ] = await Promise.all([
-                supabase.from('leads').select('*').eq('tenant_id', tenantId).gte('created_at', startDate.toISOString()),
-                supabase.from('leads').select('*').eq('tenant_id', tenantId).gte('created_at', prevStartDate.toISOString()).lt('created_at', startDate.toISOString()),
+                applyLeadVisibilityFilter(supabase.from('leads').select('*').eq('tenant_id', tenantId).gte('created_at', startDate.toISOString())),
+                applyLeadVisibilityFilter(supabase.from('leads').select('*').eq('tenant_id', tenantId).gte('created_at', prevStartDate.toISOString()).lt('created_at', startDate.toISOString())),
                 supabase.from('contratos').select('*').eq('tenant_id', tenantId).gte('created_at', startDate.toISOString()),
                 supabase.from('contratos').select('*').eq('tenant_id', tenantId).gte('created_at', prevStartDate.toISOString()).lt('created_at', startDate.toISOString()),
                 supabase.from('agent_ai_logs').select('*').eq('tenant_id', tenantId).gte('created_at', new Date().toISOString().split('T')[0]),
-                supabase.from('leads').select('*').eq('tenant_id', tenantId),
+                applyLeadVisibilityFilter(supabase.from('leads').select('*').eq('tenant_id', tenantId)),
             ]);
 
             // Calculate metrics
@@ -165,7 +182,7 @@ export const AnalyticsDashboard = () => {
         } finally {
             setLoading(false);
         }
-    }, [profile?.tenant_id, selectedPeriod]);
+    }, [profile?.tenant_id, selectedPeriod, applyLeadVisibilityFilter]);
 
     useEffect(() => {
         void loadAnalytics();
