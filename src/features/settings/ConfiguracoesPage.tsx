@@ -215,8 +215,8 @@ const ConfiguracoesPage = () => {
                         onClick={() => {
                           if (hasSubsections) {
                             setExpandedClasses(!expandedClasses);
-                            if (!isActive) {
-                              navigateTo(s.id, s.subsections![0].id);
+                            if (!isActive && s.subsections?.[0]) {
+                              navigateTo(s.id, s.subsections[0].id);
                             }
                           } else {
                             navigateTo(s.id);
