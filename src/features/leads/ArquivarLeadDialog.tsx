@@ -20,17 +20,18 @@ import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Archive } from 'lucide-react';
 import type { Lead } from '@/hooks/useLeads';
+import { useTeamMembers } from '@/hooks/useTeamMembers';
 
 interface ArquivarLeadDialogProps {
   lead: Lead | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onArchive: (id: string, motivo: string, observacao?: string, dataReativacao?: string) => Promise<boolean>;
+  onArchive: (id: string, motivo: string, observacao?: string, dataReativacao?: string, proximoResponsavelId?: string) => Promise<boolean>;
 }
 
 const MOTIVOS = [
   { value: 'chat_resolvido', label: 'Chat resolvido' },
-  { value: 'cliente_nao_responde', label: 'Cliente nao responde' },
+  { value: 'cliente_nao_responde', label: 'Cliente não responde' },
   { value: 'aberto_por_engano', label: 'Aberto por engano' },
   { value: 'duplicado', label: 'Lead duplicado' },
   { value: 'lead_sem_fit', label: 'Lead sem fit' },
@@ -46,13 +47,16 @@ export default function ArquivarLeadDialog({
   const [motivo, setMotivo] = useState('');
   const [observacao, setObservacao] = useState('');
   const [dataReativacao, setDataReativacao] = useState('');
+  const [proximoResponsavel, setProximoResponsavel] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const { members } = useTeamMembers();
 
   const handleOpenChange = (nextOpen: boolean) => {
     if (!nextOpen) {
       setMotivo('');
       setObservacao('');
       setDataReativacao('');
+      setProximoResponsavel('');
     }
     onOpenChange(nextOpen);
   };
@@ -66,6 +70,7 @@ export default function ArquivarLeadDialog({
         motivo,
         observacao.trim() || undefined,
         dataReativacao || undefined,
+        proximoResponsavel || undefined,
       );
       if (success) {
         handleOpenChange(false);
@@ -109,25 +114,44 @@ export default function ArquivarLeadDialog({
 
           {/* Observacao */}
           <div className="space-y-2">
-            <Label htmlFor="observacao">Observacao</Label>
+            <Label htmlFor="observacao">Observação</Label>
             <Textarea
               id="observacao"
               value={observacao}
               onChange={(e) => setObservacao(e.target.value)}
-              placeholder="Observacoes adicionais..."
+              placeholder="Observações adicionais..."
               rows={3}
             />
           </div>
 
           {/* Data de reativacao */}
           <div className="space-y-2">
-            <Label htmlFor="data-reativacao">Data prevista para reativacao</Label>
+            <Label htmlFor="data-reativacao">Data prevista para reativação</Label>
             <Input
               id="data-reativacao"
               type="date"
               value={dataReativacao}
               onChange={(e) => setDataReativacao(e.target.value)}
             />
+          </div>
+
+          {/* Proximo responsavel */}
+          <div className="space-y-2">
+            <Label htmlFor="proximo-responsavel">Próximo responsável</Label>
+            <Select value={proximoResponsavel} onValueChange={setProximoResponsavel}>
+              <SelectTrigger id="proximo-responsavel">
+                <SelectValue placeholder="Nenhum" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="__nenhum__">Nenhum</SelectItem>
+                {members.map((m) => (
+                  <SelectItem key={m.id} value={m.id}>
+                    {m.nome_completo}
+                  </SelectItem>
+                ))}
+                <SelectItem value="__ia__">IA (automático)</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
         </div>
 

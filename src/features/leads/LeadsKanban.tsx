@@ -13,12 +13,13 @@ interface LeadsKanbanProps {
 
 /* ── Stage config (mirrors Pipeline) ── */
 const COLUMNS = [
-  { id: 'novo_lead',         title: 'Captação',     hex: '#2563eb', textColor: '#1d4ed8' },
-  { id: 'em_qualificacao',   title: 'Qualificação', hex: '#d97706', textColor: '#b45309' },
-  { id: 'proposta_enviada',  title: 'Proposta',     hex: '#4f46e5', textColor: '#4338ca' },
-  { id: 'contrato_assinado', title: 'Contrato',     hex: '#059669', textColor: '#047857' },
-  { id: 'em_atendimento',    title: 'Execução',     hex: '#0284c7', textColor: '#0369a1' },
-  { id: 'lead_perdido',      title: 'Arquivados',   hex: '#e11d48', textColor: '#be123c' },
+  { id: 'novo',        title: 'Novo',        hex: '#2563eb', textColor: '#1d4ed8' },
+  { id: 'em_contato',  title: 'Em Contato',  hex: '#06b6d4', textColor: '#0891b2' },
+  { id: 'qualificado', title: 'Qualificado', hex: '#d97706', textColor: '#b45309' },
+  { id: 'proposta',    title: 'Proposta',     hex: '#4f46e5', textColor: '#4338ca' },
+  { id: 'negociacao',  title: 'Negociação',   hex: '#7c3aed', textColor: '#6d28d9' },
+  { id: 'ganho',       title: 'Ganho',        hex: '#059669', textColor: '#047857' },
+  { id: 'perdido',     title: 'Perdido',      hex: '#e11d48', textColor: '#be123c' },
 ];
 
 /* ── Avatar helpers ── */

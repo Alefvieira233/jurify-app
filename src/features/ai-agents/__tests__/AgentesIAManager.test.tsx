@@ -62,7 +62,7 @@ vi.mock('@/utils/monitoring', () => ({
   trackUserAction: vi.fn(),
 }));
 
-// Mock heavy child components — NovoAgenteForm is rendered conditionally (no open prop)
+// Mock heavy child components
 vi.mock('@/components/NovoAgenteForm', () => ({
   default: () => <div data-testid="novo-agente-form">Form</div>,
 }));
@@ -74,6 +74,28 @@ vi.mock('@/components/ApiKeysManager', () => ({
 }));
 vi.mock('@/components/LogsMonitoramento', () => ({
   default: () => <div data-testid="logs-monitoramento">Logs</div>,
+}));
+
+// Mock local sibling components (paths relative to __tests__/ → parent dir)
+vi.mock('../KnowledgeBaseSection', () => ({
+  default: () => <div data-testid="knowledge-base">Knowledge</div>,
+}));
+vi.mock('../AgentesIACard', () => ({
+  AgentesIACard: (props: any) => <div data-testid={`agent-card-${props.agente?.id}`}>{props.agente?.nome}</div>,
+}));
+vi.mock('../AgentesIAFilters', () => ({
+  AgentesIAFilters: () => <div data-testid="agentes-filters">Filters</div>,
+}));
+vi.mock('../hooks/useAgentesIAFilters', () => ({
+  useAgentesIAFilters: (agentes: any[]) => ({
+    filters: { search: '', status: '', tipo: '' },
+    filteredAgentes: agentes,
+    agentesAtivos: agentes.filter((a: any) => a.status === 'ativo').length,
+    updateFilter: vi.fn(),
+    clearFilters: vi.fn(),
+    totalAgentes: agentes.length,
+    totalFiltrados: agentes.length,
+  }),
 }));
 
 import AgentesIAManager from '../AgentesIAManager';
@@ -99,7 +121,7 @@ describe('AgentesIAManager', () => {
 
   it('renders subtitle', () => {
     render(<AgentesIAManager />, { wrapper: createWrapper() });
-    expect(screen.getByText(/gerencie seus assistentes/i)).toBeInTheDocument();
+    expect(screen.getByText(/configure atendentes autônomos/i)).toBeInTheDocument();
   });
 
   it('renders Novo Agente button', () => {
@@ -113,22 +135,17 @@ describe('AgentesIAManager', () => {
     expect(screen.getByText('Ativos')).toBeInTheDocument();
   });
 
-  it('renders tabs: Agentes, API Keys, Logs', () => {
+  it('renders tabs: Workspace, Base de Conhecimento, Integrações (API), Monitoramento', () => {
     render(<AgentesIAManager />, { wrapper: createWrapper() });
-    expect(screen.getByText('Agentes')).toBeInTheDocument();
-    expect(screen.getByText('API Keys')).toBeInTheDocument();
-    expect(screen.getByText('Logs')).toBeInTheDocument();
+    expect(screen.getByText('Workspace')).toBeInTheDocument();
+    expect(screen.getByText('Base de Conhecimento')).toBeInTheDocument();
+    expect(screen.getByText('Integrações (API)')).toBeInTheDocument();
+    expect(screen.getByText('Monitoramento')).toBeInTheDocument();
   });
 
-  it('renders search input with placeholder', () => {
+  it('renders filters section', () => {
     render(<AgentesIAManager />, { wrapper: createWrapper() });
-    expect(screen.getByPlaceholderText(/nome, área jurídica/i)).toBeInTheDocument();
-  });
-
-  it('renders agent count summary', () => {
-    render(<AgentesIAManager />, { wrapper: createWrapper() });
-    // "{filteredCount} de {totalCount} agentes"
-    expect(screen.getByText(/agentes/)).toBeInTheDocument();
+    expect(screen.getByTestId('agentes-filters')).toBeInTheDocument();
   });
 
   it('opens novo agente form when button is clicked', () => {

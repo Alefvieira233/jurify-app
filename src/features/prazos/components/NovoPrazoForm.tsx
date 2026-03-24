@@ -11,7 +11,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { prazoFormSchema, type PrazoFormData, TIPOS_PRAZO, STATUS_PRAZO, TIPO_LABELS, STATUS_LABELS } from '@/schemas/prazoSchema';
+import { prazoFormSchema, type PrazoFormData, TIPOS_PRAZO, STATUS_PRAZO, TIPO_LABELS, PRAZO_STATUS_LABELS } from '@/schemas/prazoSchema';
 import type { PrazoProcessual } from '@/hooks/usePrazosProcessuais';
 
 interface NovoPrazoFormProps {
@@ -76,7 +76,7 @@ const NovoPrazoForm = ({ onSubmit, onCancel, loading, initialData, processoId }:
             <SelectTrigger><SelectValue /></SelectTrigger>
             <SelectContent>
               {STATUS_PRAZO.map(s => (
-                <SelectItem key={s} value={s}>{STATUS_LABELS[s]}</SelectItem>
+                <SelectItem key={s} value={s}>{PRAZO_STATUS_LABELS[s]}</SelectItem>
               ))}
             </SelectContent>
           </Select>

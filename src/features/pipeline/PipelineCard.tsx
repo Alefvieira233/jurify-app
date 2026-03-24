@@ -22,7 +22,7 @@ import {
   SelectTrigger, SelectValue,
 } from '@/components/ui/select';
 import LeadDrawer from '@/components/forms/LeadDrawer';
-import { STATUS_LABELS, STATUS_LEAD } from '@/schemas/leadSchema';
+import { LEAD_STATUS_LABELS, STATUS_LEAD } from '@/schemas/leadSchema';
 import { type StageColors } from './pipelineConfig';
 
 interface PipelineCardProps {
@@ -42,7 +42,7 @@ export const PipelineCard = memo(({ lead, index, stageColor, onUpdateLead, onRef
   const [showNotes,  setShowNotes]  = useState(false);
   const [showDate,   setShowDate]   = useState(false);
 
-  const [statusVal, setStatusVal] = useState(lead.status ?? 'novo_lead');
+  const [statusVal, setStatusVal] = useState(lead.status ?? 'novo');
   const [notesVal,  setNotesVal]  = useState(lead.observacoes ?? '');
   const [dateVal,   setDateVal]   = useState('');
 
@@ -157,7 +157,7 @@ export const PipelineCard = memo(({ lead, index, stageColor, onUpdateLead, onRef
                     <DropdownMenuItem className="gap-2 text-xs" onClick={() => { setNotesVal(lead.observacoes ?? ''); setShowNotes(true); }}>
                       <ClipboardList className="h-3.5 w-3.5 text-primary" /> Observações
                     </DropdownMenuItem>
-                    <DropdownMenuItem className="gap-2 text-xs" onClick={() => { setStatusVal(lead.status ?? 'novo_lead'); setShowStatus(true); }}>
+                    <DropdownMenuItem className="gap-2 text-xs" onClick={() => { setStatusVal(lead.status ?? 'novo'); setShowStatus(true); }}>
                       <Pencil className="h-3.5 w-3.5 text-primary" /> Alterar status
                     </DropdownMenuItem>
                     <DropdownMenuItem className="gap-2 text-xs" onClick={() => setShowEdit(true)}>
@@ -183,7 +183,7 @@ export const PipelineCard = memo(({ lead, index, stageColor, onUpdateLead, onRef
               <Select value={statusVal} onValueChange={setStatusVal}>
                 <SelectTrigger><SelectValue placeholder="Selecione o status" /></SelectTrigger>
                 <SelectContent>
-                  {STATUS_LEAD.map(s => <SelectItem key={s} value={s}>{STATUS_LABELS[s]}</SelectItem>)}
+                  {STATUS_LEAD.map(s => <SelectItem key={s} value={s}>{LEAD_STATUS_LABELS[s]}</SelectItem>)}
                 </SelectContent>
               </Select>
               <DialogFooter>

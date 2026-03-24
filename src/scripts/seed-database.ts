@@ -51,7 +51,7 @@ export const seedDatabase = async () => {
         area_juridica: 'Direito Trabalhista',
         origem: 'Google Ads',
         valor_causa: 28000,
-        status: 'novo_lead',
+        status: 'novo',
         descricao: 'Reclamação trabalhista por horas extras não pagas e FGTS.',
       },
       {
@@ -63,7 +63,7 @@ export const seedDatabase = async () => {
         area_juridica: 'Direito de Família',
         origem: 'Indicação',
         valor_causa: 15000,
-        status: 'em_qualificacao',
+        status: 'qualificado',
         descricao: 'Divórcio consensual com partilha de bens.',
       },
       {
@@ -75,7 +75,7 @@ export const seedDatabase = async () => {
         area_juridica: 'Direito Civil',
         origem: 'LinkedIn',
         valor_causa: 180000,
-        status: 'proposta_enviada',
+        status: 'proposta',
         descricao: 'Ação de cobrança por inadimplemento em contrato de empreitada.',
       },
       {
@@ -87,7 +87,7 @@ export const seedDatabase = async () => {
         area_juridica: 'Direito Empresarial',
         origem: 'Networking',
         valor_causa: 450000,
-        status: 'contrato_assinado',
+        status: 'ganho',
         descricao: 'Consultoria jurídica em fusão e aquisição de empresas.',
       },
     ])

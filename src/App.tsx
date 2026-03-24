@@ -33,6 +33,7 @@ const Pricing = lazyWithRetry(() => import("./pages/Pricing"));
 // Lazy loading para features (carregamento sob demanda) — with auto-retry on chunk failure
 const Dashboard = lazyWithRetry(() => import("./features/dashboard/Dashboard"));
 const PipelineJuridico = lazyWithRetry(() => import("./features/pipeline/PipelineJuridico"));
+const KanbanOperacional = lazyWithRetry(() => import("./features/pipeline/KanbanOperacional"));
 const AgendamentosManager = lazyWithRetry(() => import("./features/scheduling/AgendamentosManager"));
 const ContratosManager = lazyWithRetry(() => import("./features/contracts/ContratosManager"));
 const RelatoriosGerenciais = lazyWithRetry(() => import("./features/reports/RelatoriosGerenciais"));
@@ -61,6 +62,9 @@ const ConexoesManager = lazyWithRetry(() => import("./features/conexoes/Conexoes
 const DepartamentosManager = lazyWithRetry(() => import("./features/departamentos/DepartamentosManager"));
 const TagsManager = lazyWithRetry(() => import("./features/tags/TagsManager"));
 const LeadDetailPanel = lazyWithRetry(() => import("./features/crm/LeadDetailPanel"));
+const EquipeManager = lazyWithRetry(() => import("./features/equipe/EquipeManager"));
+const ArquivadosView = lazyWithRetry(() => import("./features/leads/ArquivadosView"));
+const MetricasOperacionais = lazyWithRetry(() => import("./features/reports/MetricasOperacionais"));
 const AdminStatus = lazyWithRetry(() => import("./pages/AdminStatus"));
 
 // WhatsApp Error Boundary - import direto (necessário para wrapping)
@@ -100,7 +104,7 @@ const ALLOWED_DEEP_LINK_PATHS = new Set([
   '/honorarios', '/documentos', '/configuracoes', '/relatorios',
   '/usuarios', '/logs', '/integracoes', '/billing', '/conexoes',
   '/departamentos', '/tags', '/suporte', '/base-conhecimento',
-  '/fluxos', '/regras',
+  '/fluxos', '/regras', '/equipe', '/arquivados', '/metricas',
 ]);
 
 function DeepLinkHandler() {
@@ -155,7 +159,8 @@ const App = () => (
                   {/* /leads absorvido por Pipeline — redirect para evitar rotas fantasma */}
                   <Route path="leads" element={<Navigate to="/pipeline" replace />} />
                   <Route path="conexoes" element={<ErrorBoundary><ConexoesManager /></ErrorBoundary>} />
-                  <Route path="pipeline" element={<ErrorBoundary><PipelineJuridico /></ErrorBoundary>} />
+                  <Route path="pipeline" element={<ErrorBoundary><KanbanOperacional /></ErrorBoundary>} />
+                  <Route path="pipeline/classico" element={<ErrorBoundary><PipelineJuridico /></ErrorBoundary>} />
                   <Route path="agendamentos" element={<ErrorBoundary><AgendamentosManager /></ErrorBoundary>} />
                   <Route path="contratos" element={<ErrorBoundary><ContratosManager /></ErrorBoundary>} />
                   <Route path="relatorios" element={<ErrorBoundary><RelatoriosGerenciais /></ErrorBoundary>} />
@@ -198,10 +203,14 @@ const App = () => (
                   <Route path="documentos" element={<ErrorBoundary><DocumentosManager /></ErrorBoundary>} />
                   <Route path="departamentos" element={<ErrorBoundary><DepartamentosManager /></ErrorBoundary>} />
                   <Route path="tags" element={<ErrorBoundary><TagsManager /></ErrorBoundary>} />
+                  <Route path="equipe" element={<ProtectedRoute requiredRoles={['admin', 'manager']}><ErrorBoundary><EquipeManager /></ErrorBoundary></ProtectedRoute>} />
+                  <Route path="arquivados" element={<ErrorBoundary><ArquivadosView /></ErrorBoundary>} />
+                  <Route path="metricas" element={<ErrorBoundary><MetricasOperacionais /></ErrorBoundary>} />
                   <Route path="suporte" element={<ErrorBoundary><SuportePage /></ErrorBoundary>} />
                   <Route path="base-conhecimento" element={<ErrorBoundary><BaseConhecimento /></ErrorBoundary>} />
                   {/* Redirects for old SISTEMA paths → new locations */}
                   <Route path="billing" element={<Navigate to="/configuracoes/plano" replace />} />
+                  <Route path="administracao" element={<Navigate to="/configuracoes" replace />} />
                   <Route path="admin/playground" element={<ProtectedRoute requiredRoles={['admin']}><ErrorBoundary><AgentsPlayground /></ErrorBoundary></ProtectedRoute>} />
                   <Route path="admin/mission-control" element={<ProtectedRoute requiredRoles={['admin']}><ErrorBoundary><MissionControl /></ErrorBoundary></ProtectedRoute>} />
                   <Route path="admin/status" element={<ProtectedRoute requiredRoles={['admin']}><ErrorBoundary><AdminStatus /></ErrorBoundary></ProtectedRoute>} />

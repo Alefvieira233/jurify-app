@@ -27,10 +27,10 @@ const DashboardMetrics = () => {
   // Métricas calculadas
   const totalLeads = leads.length;
   const leadsPorStatus = {
-    novo_lead: leads.filter(l => l.status === 'novo_lead').length,
+    novo: leads.filter(l => l.status === 'novo').length,
     em_contato: leads.filter(l => l.status === 'em_contato').length,
     qualificado: leads.filter(l => l.status === 'qualificado').length,
-    convertido: leads.filter(l => l.status === 'convertido').length,
+    ganho: leads.filter(l => l.status === 'ganho').length,
   };
 
   const totalContratos = contratos.length;
@@ -48,7 +48,7 @@ const DashboardMetrics = () => {
 
   const agentesAtivos = agentes.filter(a => a.status === 'ativo').length;
 
-  const taxaConversao = totalLeads > 0 ? Math.min((leadsPorStatus.convertido / totalLeads) * 100, 100) : 0;
+  const taxaConversao = totalLeads > 0 ? Math.min((leadsPorStatus.ganho / totalLeads) * 100, 100) : 0;
 
   return (
     <div className="space-y-6">
@@ -62,7 +62,7 @@ const DashboardMetrics = () => {
           <CardContent>
             <div className="text-5xl font-black tracking-tighter">{totalLeads}</div>
             <div className="flex items-center gap-2 mt-4">
-              <div className="px-2 py-0.5 bg-green-500/10 text-green-500 text-[9px] font-bold">+{leadsPorStatus.novo_lead} NOVO</div>
+              <div className="px-2 py-0.5 bg-green-500/10 text-green-500 text-[9px] font-bold">+{leadsPorStatus.novo} NOVO</div>
               <span className="text-[9px] text-foreground/30 font-bold uppercase tracking-widest">ESTE MÊS</span>
             </div>
           </CardContent>
@@ -145,7 +145,7 @@ const DashboardMetrics = () => {
                 <AlertCircle className="h-4 w-4 text-blue-500" />
                 <span className="text-sm font-medium">Novos</span>
               </div>
-              <div className="text-2xl font-bold">{leadsPorStatus.novo_lead}</div>
+              <div className="text-2xl font-bold">{leadsPorStatus.novo}</div>
               <Badge variant="secondary">Primeiro contato</Badge>
             </div>
 
@@ -170,9 +170,9 @@ const DashboardMetrics = () => {
             <div className="space-y-2">
               <div className="flex items-center gap-2">
                 <CheckCircle className="h-4 w-4 text-green-500" />
-                <span className="text-sm font-medium">Convertidos</span>
+                <span className="text-sm font-medium">Ganhos</span>
               </div>
-              <div className="text-2xl font-bold">{leadsPorStatus.convertido}</div>
+              <div className="text-2xl font-bold">{leadsPorStatus.ganho}</div>
               <Badge variant="default">Clientes</Badge>
             </div>
           </div>

@@ -17,7 +17,7 @@ import {
   TIPOS_HONORARIO,
   STATUS_HONORARIO,
   TIPO_LABELS,
-  STATUS_LABELS,
+  HONORARIO_STATUS_LABELS,
 } from '@/schemas/honorarioSchema';
 import type { Honorario } from '@/hooks/useHonorarios';
 
@@ -89,7 +89,7 @@ const NovoHonorarioForm = ({ onSubmit, onCancel, loading, initialData, processoI
             <SelectTrigger><SelectValue /></SelectTrigger>
             <SelectContent>
               {STATUS_HONORARIO.map(s => (
-                <SelectItem key={s} value={s}>{STATUS_LABELS[s]}</SelectItem>
+                <SelectItem key={s} value={s}>{HONORARIO_STATUS_LABELS[s]}</SelectItem>
               ))}
             </SelectContent>
           </Select>

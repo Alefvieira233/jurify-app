@@ -106,12 +106,21 @@ export const formatarAreaJuridica = (area: string): string =>
 /* ── Pipeline stages ── */
 
 const ETAPA_MAP: Record<string, string> = {
-  novo_lead: 'Novo Lead',
-  em_qualificacao: 'Em Qualificação',
-  proposta_enviada: 'Proposta Enviada',
-  contrato_assinado: 'Contrato Assinado',
-  em_atendimento: 'Em Atendimento',
-  lead_perdido: 'Lead Perdido',
+  // Current CRM Operacional status values
+  novo: 'Novo',
+  em_contato: 'Em Contato',
+  qualificado: 'Qualificado',
+  proposta: 'Proposta',
+  negociacao: 'Negociação',
+  ganho: 'Ganho',
+  perdido: 'Perdido',
+  // Legacy values (backwards compat)
+  novo_lead: 'Novo',
+  em_qualificacao: 'Qualificado',
+  proposta_enviada: 'Proposta',
+  contrato_assinado: 'Ganho',
+  em_atendimento: 'Em Contato',
+  lead_perdido: 'Perdido',
   ativo: 'Ativo',
   inativo: 'Inativo',
   convertido: 'Convertido',

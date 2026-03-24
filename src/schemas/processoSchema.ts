@@ -76,7 +76,7 @@ export const POSICAO_LABELS: Record<string, string> = {
   assistente: 'Assistente',
 };
 
-export const STATUS_LABELS: Record<string, string> = {
+export const PROCESSO_STATUS_LABELS: Record<string, string> = {
   ativo: 'Ativo',
   suspenso: 'Suspenso',
   encerrado_vitoria: 'Encerrado — Vitória',

@@ -78,7 +78,7 @@ export const leadFormSchema = z.object({
 
   status: z
     .string()
-    .default('novo_lead'),
+    .default('novo'),
 
   temperature: z
     .enum(['cold', 'warm', 'hot'])
@@ -163,27 +163,25 @@ export const ORIGENS_LEAD = [
   'Outro',
 ] as const;
 
-// Status possíveis de lead
+// Status possíveis de lead (canonical pipeline statuses)
 export const STATUS_LEAD = [
-  'novo_lead',
-  'em_qualificacao',
-  'analise_juridica',
-  'proposta_enviada',
+  'novo',
+  'em_contato',
+  'qualificado',
+  'proposta',
   'negociacao',
-  'contrato_assinado',
-  'em_atendimento',
-  'lead_perdido',
+  'ganho',
+  'perdido',
 ] as const;
 
-export const STATUS_LABELS: Record<typeof STATUS_LEAD[number], string> = {
-  novo_lead: 'Novo Lead',
-  em_qualificacao: 'Em Qualificação',
-  analise_juridica: 'Análise Jurídica',
-  proposta_enviada: 'Proposta Enviada',
+export const LEAD_STATUS_LABELS: Record<typeof STATUS_LEAD[number], string> = {
+  novo: 'Novo',
+  em_contato: 'Em Contato',
+  qualificado: 'Qualificado',
+  proposta: 'Proposta',
   negociacao: 'Negociação',
-  contrato_assinado: 'Contrato Assinado',
-  em_atendimento: 'Em Atendimento',
-  lead_perdido: 'Lead Perdido',
+  ganho: 'Ganho',
+  perdido: 'Perdido',
 };
 
 // Temperaturas do lead

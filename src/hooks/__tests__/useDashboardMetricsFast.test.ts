@@ -207,8 +207,8 @@ describe('useDashboardMetricsFast with materialized view data', () => {
     await waitFor(() => {
       expect(result.current.loading).toBe(false);
     });
-    expect(result.current.metrics.leadsPorStatus.novo_lead).toBe(10);
-    expect(result.current.metrics.leadsPorStatus.lead_perdido).toBe(2);
+    expect(result.current.metrics.leadsPorStatus.novo).toBe(10);
+    expect(result.current.metrics.leadsPorStatus.perdido).toBe(2);
   });
 
   it('aggregates execucoesRecentesAgentes from query data', async () => {

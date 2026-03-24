@@ -107,7 +107,7 @@ export const useMultiAgentSystem = () => {
         .gte('created_at', since);
 
       const totalLeads = leads?.length || 0;
-      const convertedLeads = leads?.filter((l) => l.status === 'contrato_assinado').length || 0;
+      const convertedLeads = leads?.filter((l) => l.status === 'ganho').length || 0;
       const conversionRate = totalLeads > 0 ? (convertedLeads / totalLeads) * 100 : 0;
 
       const agentsPerformance: AgentStats[] = [
@@ -173,7 +173,7 @@ export const useMultiAgentSystem = () => {
         total_leads_processed: totalLeads,
         conversion_rate: conversionRate,
         avg_qualification_time: 4.2,
-        active_conversations: leads?.filter((l) => l.status === 'em_atendimento').length || 0,
+        active_conversations: leads?.filter((l) => l.status === 'em_contato').length || 0,
         agents_performance: agentsPerformance,
       });
     } catch (error) {
@@ -198,7 +198,7 @@ export const useMultiAgentSystem = () => {
             telefone: leadData.phone || null,
             area_juridica: leadData.legal_area || 'Nao informado',
             origem: leadData.source,
-            status: 'novo_lead',
+            status: 'novo',
             responsavel_id: user?.id || null,
             descricao: leadData.message,
             metadata: {

@@ -1,7 +1,6 @@
 import { describe, it, expect, vi } from 'vitest';
-import { render, screen } from '@testing-library/react';
 import '@testing-library/jest-dom';
-import { STATUS_LABELS } from '../schemas/leadSchema';
+import { LEAD_STATUS_LABELS } from '../schemas/leadSchema';
 
 // Mock @hello-pangea/dnd to avoid DragDropContext requirement
 vi.mock('@hello-pangea/dnd', () => ({
@@ -19,26 +18,26 @@ vi.mock('@/integrations/supabase/client', () => ({
 }));
 
 describe('Enterprise Golden Path — Schemas e Configurações', () => {
-  it('STATUS_LABELS deve ter todas as chaves obrigatórias', () => {
-    expect(STATUS_LABELS).toHaveProperty('novo_lead');
-    expect(STATUS_LABELS).toHaveProperty('em_qualificacao');
-    expect(STATUS_LABELS).toHaveProperty('analise_juridica');
-    expect(STATUS_LABELS).toHaveProperty('proposta_enviada');
-    expect(STATUS_LABELS).toHaveProperty('negociacao');
-    expect(STATUS_LABELS).toHaveProperty('contrato_assinado');
-    expect(STATUS_LABELS).toHaveProperty('lead_perdido');
+  it('LEAD_STATUS_LABELS deve ter todas as chaves obrigatórias', () => {
+    expect(LEAD_STATUS_LABELS).toHaveProperty('novo');
+    expect(LEAD_STATUS_LABELS).toHaveProperty('em_contato');
+    expect(LEAD_STATUS_LABELS).toHaveProperty('qualificado');
+    expect(LEAD_STATUS_LABELS).toHaveProperty('proposta');
+    expect(LEAD_STATUS_LABELS).toHaveProperty('negociacao');
+    expect(LEAD_STATUS_LABELS).toHaveProperty('ganho');
+    expect(LEAD_STATUS_LABELS).toHaveProperty('perdido');
   });
 
-  it('STATUS_LABELS deve ter valores em português', () => {
-    expect(STATUS_LABELS.novo_lead).toBe('Novo Lead');
-    expect(STATUS_LABELS.em_qualificacao).toBe('Em Qualificação');
-    expect(STATUS_LABELS.contrato_assinado).toBe('Contrato Assinado');
-    expect(STATUS_LABELS.lead_perdido).toBe('Lead Perdido');
+  it('LEAD_STATUS_LABELS deve ter valores em português', () => {
+    expect(LEAD_STATUS_LABELS.novo).toBe('Novo');
+    expect(LEAD_STATUS_LABELS.em_contato).toBe('Em Contato');
+    expect(LEAD_STATUS_LABELS.ganho).toBe('Ganho');
+    expect(LEAD_STATUS_LABELS.perdido).toBe('Perdido');
   });
 
-  it('STATUS_LABELS não deve ter valores undefined ou vazios', () => {
-    for (const [key, value] of Object.entries(STATUS_LABELS)) {
-      expect(value, `STATUS_LABELS.${key} não deve ser vazio`).toBeTruthy();
+  it('LEAD_STATUS_LABELS não deve ter valores undefined ou vazios', () => {
+    for (const [key, value] of Object.entries(LEAD_STATUS_LABELS)) {
+      expect(value, `LEAD_STATUS_LABELS.${key} não deve ser vazio`).toBeTruthy();
       expect(typeof value).toBe('string');
     }
   });

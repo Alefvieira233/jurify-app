@@ -30,10 +30,9 @@ const KPI_COLORS = {
 import { fmtCurrency as fmt, fmtDateTime as fmtDt, fmtDate } from '@/utils/formatting';
 
 /* ── Client status filter ── */
-const CLIENT_STATUSES = ['contrato_assinado', 'em_atendimento'] as const;
+const CLIENT_STATUSES = ['ganho'] as const;
 const STATUS_LABEL: Record<string, string> = {
-  contrato_assinado: 'Contrato Assinado',
-  em_atendimento: 'Em Atendimento',
+  ganho: 'Ganho',
 };
 
 /* ── Priority badge classes ── */
@@ -480,7 +479,7 @@ const CRMDashboard = () => {
                             <Badge
                               variant="outline"
                               className={`text-[10px] font-medium ${
-                                client.status === 'contrato_assinado'
+                                client.status === 'ganho'
                                   ? 'border-emerald-300 text-emerald-700 bg-emerald-50 dark:border-emerald-700 dark:text-emerald-300 dark:bg-emerald-900/30'
                                   : 'border-cyan-300 text-cyan-700 bg-cyan-50 dark:border-cyan-700 dark:text-cyan-300 dark:bg-cyan-900/30'
                               }`}

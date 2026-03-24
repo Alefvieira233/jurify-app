@@ -118,20 +118,20 @@ function analyzeQualification(
   const messageCount = leadMessages.length;
 
   // First message → move to qualification
-  if (currentStatus === 'novo_lead' && messageCount >= 1) {
-    suggestedStatus = 'em_qualificacao';
+  if (currentStatus === 'novo' && messageCount >= 1) {
+    suggestedStatus = 'qualificado';
   }
   // 2+ messages with some data → still qualifying
   if (messageCount >= 2 && (extractedName || extractedArea)) {
-    suggestedStatus = 'em_qualificacao';
+    suggestedStatus = 'qualificado';
   }
-  // Name AND area identified → ready for legal analysis
+  // Name AND area identified → ready for proposal
   if (extractedName && extractedArea) {
-    suggestedStatus = 'analise_juridica';
+    suggestedStatus = 'proposta';
   }
 
   // Don't downgrade status (never go backwards in pipeline)
-  const statusOrder = ['novo_lead', 'em_qualificacao', 'analise_juridica', 'proposta_enviada', 'negociacao', 'contrato_assinado', 'em_atendimento'];
+  const statusOrder = ['novo', 'em_contato', 'qualificado', 'proposta', 'negociacao', 'ganho', 'perdido'];
   const currentIdx = statusOrder.indexOf(currentStatus);
   const suggestedIdx = statusOrder.indexOf(suggestedStatus);
   if (suggestedIdx < currentIdx) suggestedStatus = currentStatus;
@@ -752,7 +752,7 @@ async function processNormalizedMessage(supabase: ReturnType<typeof createClient
       .maybeSingle();
 
     let leadId = lead?.id || null;
-    const currentLeadStatus: string = lead?.status || 'novo_lead';
+    const currentLeadStatus: string = lead?.status || 'novo';
 
     if (!leadId) {
       const { data: newLead, error: leadError } = await supabase
@@ -764,7 +764,7 @@ async function processNormalizedMessage(supabase: ReturnType<typeof createClient
           email: null,
           area_juridica: "Nao informado",
           origem: "whatsapp",
-          status: "novo_lead",
+          status: "novo",
           descricao: text,
           metadata: { responsavel_nome: "Sistema" },
         })

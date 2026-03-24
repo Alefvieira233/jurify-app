@@ -138,7 +138,7 @@ const NotificacoesSection = () => {
                         id="name"
                         value={formData.name}
                         onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
-                        placeholder="Ex: novo_lead"
+                        placeholder="Ex: novo"
                       />
                     </div>
                     <div>

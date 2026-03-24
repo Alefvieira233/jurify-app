@@ -1,16 +1,16 @@
 import { Badge } from '@/components/ui/badge';
 import type { Lead } from '@/hooks/useLeads';
+import { useDepartamentos } from '@/hooks/useDepartamentos';
+import { useTeamMembers } from '@/hooks/useTeamMembers';
+import { useConexoes } from '@/hooks/useConexoes';
+import { useLeadTags } from '@/hooks/useTags';
+import { TagBadge } from '@/features/tags/TagBadge';
+import { STATUS_LABELS } from '@/features/pipeline/pipelineConfig';
+import { PRIORIDADES } from '@/types/crm-operacional';
 
 interface LeadDrawerAtendimentoProps {
   lead: Lead;
 }
-
-const prioridadeColor: Record<string, string> = {
-  baixa: 'bg-gray-100 text-gray-700',
-  media: 'bg-blue-100 text-blue-700',
-  alta: 'bg-amber-100 text-amber-700',
-  urgente: 'bg-red-100 text-red-700',
-};
 
 function formatDate(dateStr: string | null): string {
   if (!dateStr) return '\u2014';
@@ -37,39 +37,84 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
 }
 
 export default function LeadDrawerAtendimento({ lead }: LeadDrawerAtendimentoProps) {
+  const { activeDepartamentos } = useDepartamentos();
+  const { members } = useTeamMembers();
+  const { conexoes } = useConexoes();
+  const { leadTags } = useLeadTags(lead.id);
+
+  // Resolve human names
+  const responsavelNome = lead.responsavel_id
+    ? members.find((m) => m.id === lead.responsavel_id)?.nome_completo ?? 'Desconhecido'
+    : 'Sem responsável';
+
+  const departamentoNome = lead.departamento_id
+    ? activeDepartamentos.find((d) => d.id === lead.departamento_id)?.nome ?? 'Desconhecido'
+    : 'Sem departamento';
+
+  const conexaoNome = lead.conexao_id
+    ? (conexoes ?? []).find((c) => c.id === lead.conexao_id)?.nome ?? 'Desconhecida'
+    : '\u2014';
+
+  const prioridadeConfig = PRIORIDADES.find((p) => p.value === lead.prioridade);
+
   return (
-    <div className="grid grid-cols-2 gap-4">
-      <Field label="Responsável">
-        {lead.responsavel_id ?? 'Sem responsável'}
-      </Field>
+    <div className="space-y-4">
+      <div className="grid grid-cols-2 gap-4">
+        <Field label="Responsável">
+          {responsavelNome}
+        </Field>
 
-      <Field label="Departamento">
-        {lead.departamento_id ?? '\u2014'}
-      </Field>
+        <Field label="Departamento">
+          {departamentoNome}
+        </Field>
 
-      <Field label="Status">
-        {lead.status ? (
-          <Badge variant="secondary" className="text-xs">{lead.status}</Badge>
-        ) : '\u2014'}
-      </Field>
+        <Field label="Status">
+          {lead.status ? (
+            <Badge variant="secondary" className="text-xs">
+              {STATUS_LABELS[lead.status] ?? lead.status}
+            </Badge>
+          ) : '\u2014'}
+        </Field>
 
-      <Field label="Prioridade">
-        <Badge className={`text-xs ${prioridadeColor[lead.prioridade] ?? ''}`}>
-          {lead.prioridade}
-        </Badge>
-      </Field>
+        <Field label="Prioridade">
+          <Badge
+            className="text-xs"
+            style={prioridadeConfig ? { backgroundColor: `${prioridadeConfig.cor}20`, color: prioridadeConfig.cor } : undefined}
+          >
+            {prioridadeConfig?.label ?? lead.prioridade}
+          </Badge>
+        </Field>
 
-      <Field label="Conexão">
-        {lead.conexao_id ?? '\u2014'}
-      </Field>
+        <Field label="Conexão">
+          {conexaoNome}
+        </Field>
 
-      <Field label="Última interação">
-        {formatDate(lead.ultima_interacao)}
-      </Field>
+        <Field label="Última interação">
+          {formatDate(lead.ultima_interacao)}
+        </Field>
 
-      <Field label="Atribuído em">
-        {formatDate(lead.assigned_at)}
-      </Field>
+        <Field label="Atribuído em">
+          {formatDate(lead.assigned_at)}
+        </Field>
+
+        <Field label="Origem">
+          {lead.origem ?? '\u2014'}
+        </Field>
+      </div>
+
+      {/* Tags */}
+      {leadTags.length > 0 && (
+        <div>
+          <p className="text-xs text-muted-foreground mb-2">Tags</p>
+          <div className="flex flex-wrap gap-1.5">
+            {leadTags.map((lt) =>
+              lt.tag ? (
+                <TagBadge key={lt.id} nome={lt.tag.nome} cor={lt.tag.cor} size="sm" />
+              ) : null,
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -23,7 +23,7 @@ interface KanbanToolbarProps {
 const GROUP_OPTIONS: { value: GroupBy; label: string }[] = [
   { value: 'status',       label: 'Por Status' },
   { value: 'departamento', label: 'Por Departamento' },
-  { value: 'responsavel',  label: 'Por Responsavel' },
+  { value: 'responsavel',  label: 'Por Responsável' },
   { value: 'origem',       label: 'Por Origem' },
   { value: 'prioridade',   label: 'Por Prioridade' },
   { value: 'conexao',      label: 'Por Conexão' },

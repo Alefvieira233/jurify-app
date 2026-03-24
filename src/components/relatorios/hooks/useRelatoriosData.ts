@@ -99,12 +99,13 @@ export const useFunilData = (periodo: PeriodoFiltro, areaJuridica: string, orige
       if (error) throw error;
 
       const contadores = {
-        novo_lead: 0,
-        em_qualificacao: 0,
-        proposta_enviada: 0,
-        contrato_assinado: 0,
-        em_atendimento: 0,
-        lead_perdido: 0
+        novo: 0,
+        em_contato: 0,
+        qualificado: 0,
+        proposta: 0,
+        negociacao: 0,
+        ganho: 0,
+        perdido: 0,
       };
 
       if (data && Array.isArray(data)) {

@@ -12,6 +12,7 @@ import LeadDrawerDados from './LeadDrawerDados';
 import LeadDrawerOperacional from './LeadDrawerOperacional';
 import LeadDrawerNotas from './LeadDrawerNotas';
 import LeadDrawerHistorico from './LeadDrawerHistorico';
+import { useRBAC } from '@/hooks/useRBAC';
 
 interface LeadDrawerProps {
   lead: Lead | null;
@@ -19,15 +20,20 @@ interface LeadDrawerProps {
   onOpenChange: (open: boolean) => void;
 }
 
+import { STATUS_LABELS } from '@/features/pipeline/pipelineConfig';
+
 const statusVariant = (status: string | null): 'default' | 'secondary' | 'destructive' | 'outline' => {
   switch (status) {
     case 'novo':
       return 'default';
-    case 'em_atendimento':
+    case 'em_contato':
     case 'qualificado':
+    case 'proposta':
+    case 'negociacao':
       return 'secondary';
+    case 'ganho':
+      return 'default';
     case 'perdido':
-    case 'arquivado':
       return 'destructive';
     default:
       return 'outline';
@@ -36,6 +42,8 @@ const statusVariant = (status: string | null): 'default' | 'secondary' | 'destru
 
 export default function LeadDrawer({ lead, open, onOpenChange }: LeadDrawerProps) {
   const { archiveLead, unarchiveLead } = useLeads();
+  const { can } = useRBAC();
+  const canUpdate = can('leads', 'update');
   const [archiveDialogOpen, setArchiveDialogOpen] = useState(false);
   const [reactivating, setReactivating] = useState(false);
 
@@ -59,17 +67,19 @@ export default function LeadDrawer({ lead, open, onOpenChange }: LeadDrawerProps
         {/* Archived banner */}
         {isArchived && (
           <div className="flex items-center justify-between gap-2 px-4 py-2 bg-yellow-50 border-b border-yellow-200 text-yellow-800 text-sm">
-            <span className="font-medium">Este lead esta arquivado</span>
-            <Button
-              size="sm"
-              variant="outline"
-              className="h-7 text-xs border-yellow-300 hover:bg-yellow-100"
-              onClick={() => { void handleUnarchive(); }}
-              disabled={reactivating}
-            >
-              <RotateCcw className="mr-1 h-3 w-3" />
-              {reactivating ? 'Reativando...' : 'Reativar'}
-            </Button>
+            <span className="font-medium">Este lead está arquivado</span>
+            {canUpdate && (
+              <Button
+                size="sm"
+                variant="outline"
+                className="h-7 text-xs border-yellow-300 hover:bg-yellow-100"
+                onClick={() => { void handleUnarchive(); }}
+                disabled={reactivating}
+              >
+                <RotateCcw className="mr-1 h-3 w-3" />
+                {reactivating ? 'Reativando...' : 'Reativar'}
+              </Button>
+            )}
           </div>
         )}
 
@@ -84,11 +94,11 @@ export default function LeadDrawer({ lead, open, onOpenChange }: LeadDrawerProps
             </SheetTitle>
             {lead.status && (
               <Badge variant={statusVariant(lead.status)} className="mt-0.5 text-xs">
-                {lead.status}
+                {STATUS_LABELS[lead.status] ?? lead.status}
               </Badge>
             )}
           </div>
-          {!isArchived && (
+          {!isArchived && canUpdate && (
             <Button
               size="sm"
               variant="ghost"

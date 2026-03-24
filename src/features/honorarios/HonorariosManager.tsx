@@ -21,6 +21,7 @@ import ConfirmDialog from '@/components/ConfirmDialog';
 import EmptyState from '@/components/EmptyState';
 import NovoHonorarioForm from './components/NovoHonorarioForm';
 import type { HonorarioFormData } from '@/schemas/honorarioSchema';
+import { HONORARIO_STATUS_LABELS } from '@/schemas/honorarioSchema';
 
 const log = createLogger('HonorariosManager');
 
@@ -30,14 +31,6 @@ const STATUS_COLORS: Record<string, string> = {
   inadimplente: 'bg-red-500/10 text-red-600 dark:text-red-300',
   cancelado: 'bg-slate-500/10 text-slate-500',
   disputado: 'bg-amber-500/10 text-amber-600 dark:text-amber-300',
-};
-
-const STATUS_LABELS: Record<string, string> = {
-  vigente: 'Vigente',
-  pago: 'Pago',
-  inadimplente: 'Inadimplente',
-  cancelado: 'Cancelado',
-  disputado: 'Disputado',
 };
 
 const TIPO_LABELS: Record<string, string> = {
@@ -252,7 +245,7 @@ const HonorariosManager = () => {
               className="px-3 py-2 border border-border rounded-md text-sm bg-background"
             >
               <option value="">Todos os status</option>
-              {Object.entries(STATUS_LABELS).map(([v, l]) => (
+              {Object.entries(HONORARIO_STATUS_LABELS).map(([v, l]) => (
                 <option key={v} value={v}>{l}</option>
               ))}
             </select>
@@ -269,7 +262,7 @@ const HonorariosManager = () => {
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 flex-wrap">
                     <Badge variant="outline">{TIPO_LABELS[h.tipo] ?? h.tipo}</Badge>
-                    <Badge className={STATUS_COLORS[h.status] ?? ''}>{STATUS_LABELS[h.status] ?? h.status}</Badge>
+                    <Badge className={STATUS_COLORS[h.status] ?? ''}>{HONORARIO_STATUS_LABELS[h.status] ?? h.status}</Badge>
                     {h.overdue && <Badge variant="destructive" className="text-xs">Vencido</Badge>}
                   </div>
                   <div className="flex gap-4 mt-2 text-sm">

@@ -131,7 +131,7 @@ const Layout = () => {
                     </div>
                     <div className="flex flex-col">
                         <span className="text-sm font-bold text-white tracking-tight leading-tight">
-                            {profile?.tenants?.nome ?? 'Jurify'}
+                            {'Jurify'}
                         </span>
                         <span className="text-[10px] text-white/60 leading-tight">Workspace</span>
                     </div>

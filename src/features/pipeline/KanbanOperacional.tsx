@@ -2,6 +2,10 @@ import { useState, useMemo, useCallback } from 'react';
 import { DragDropContext, Droppable, Draggable, type DropResult } from '@hello-pangea/dnd';
 import { useLeads, type Lead } from '@/hooks/useLeads';
 import { useConexoes } from '@/hooks/useConexoes';
+import { useDepartamentos } from '@/hooks/useDepartamentos';
+import { useTeamMembers } from '@/hooks/useTeamMembers';
+import { useLeadTagsBatch } from '@/hooks/useLeadTagsBatch';
+import { useRBAC } from '@/hooks/useRBAC';
 import { usePageTitle } from '@/hooks/usePageTitle';
 import { useDebounce } from '@/hooks/useDebounce';
 import { useToast } from '@/hooks/use-toast';
@@ -10,6 +14,7 @@ import { useKanbanGrouping, type GroupBy } from './useKanbanGrouping';
 import { KanbanToolbar } from './KanbanToolbar';
 import { KanbanColumnComponent } from './KanbanColumn';
 import { KanbanCard } from './KanbanCard';
+import LeadDrawer from '@/features/leads/LeadDrawer';
 
 /** Maps GroupBy value to the lead field that should be updated on drag */
 const GROUP_TO_FIELD: Record<GroupBy, string> = {
@@ -27,11 +32,23 @@ const KanbanOperacional = () => {
   const [groupBy, setGroupBy] = useState<GroupBy>('status');
   const [search, setSearch] = useState('');
   const [showArchived, setShowArchived] = useState(false);
+  const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
+  const [drawerOpen, setDrawerOpen] = useState(false);
 
   const { toast } = useToast();
   const { leads, loading, updateLead } = useLeads();
   const { conexoes } = useConexoes();
+  const { activeDepartamentos } = useDepartamentos();
+  const { members } = useTeamMembers();
+  const { leadTagsMap } = useLeadTagsBatch();
+  const { can, canInDepartment, isAdmin, isManager } = useRBAC();
   const debouncedSearch = useDebounce(search, 300);
+
+  // Build lookup maps
+  const conexaoMap = useMemo(
+    () => new Map((conexoes ?? []).map((c) => [c.id, c.nome])),
+    [conexoes],
+  );
 
   // Filter leads
   const filteredLeads = useMemo(() => {
@@ -46,21 +63,52 @@ const KanbanOperacional = () => {
         const term = debouncedSearch.toLowerCase();
         const matchNome = (lead.nome_completo ?? lead.nome ?? '').toLowerCase().includes(term);
         const matchTel = (lead.telefone ?? '').toLowerCase().includes(term);
-        if (!matchNome && !matchTel) return false;
+        const matchEmail = (lead.email ?? '').toLowerCase().includes(term);
+        if (!matchNome && !matchTel && !matchEmail) return false;
       }
 
       return true;
     });
   }, [leads, debouncedSearch, showArchived]);
 
-  // Group into columns
-  const { columns } = useKanbanGrouping(filteredLeads, groupBy, undefined, undefined, conexoes);
+  // Group into columns — pass real departamentos and profiles
+  const { columns } = useKanbanGrouping(
+    filteredLeads,
+    groupBy,
+    activeDepartamentos,
+    members,
+    conexoes,
+  );
+
+  // Check drag permission
+  const canDrag = useCallback(
+    (lead: Lead, targetGroupBy: GroupBy): boolean => {
+      if (isAdmin || isManager) return true;
+      if (!can('pipeline', 'update')) return false;
+
+      // Department-specific checks
+      if (targetGroupBy === 'departamento' && lead.departamento_id) {
+        return canInDepartment(lead.departamento_id, 'mover');
+      }
+      if (targetGroupBy === 'responsavel' && lead.departamento_id) {
+        return canInDepartment(lead.departamento_id, 'atribuir');
+      }
+      return true;
+    },
+    [isAdmin, isManager, can, canInDepartment],
+  );
 
   // Handle drag end
   const handleDragEnd = useCallback(
     (result: DropResult) => {
       const { destination, source, draggableId } = result;
       if (!destination || destination.droppableId === source.droppableId) return;
+
+      const lead = filteredLeads.find((l) => l.id === draggableId);
+      if (lead && !canDrag(lead, groupBy)) {
+        toast({ title: 'Sem permissao', description: 'Voce nao tem permissao para mover este lead.', variant: 'destructive' });
+        return;
+      }
 
       const field = GROUP_TO_FIELD[groupBy];
       const targetValue = destination.droppableId.startsWith('__') ? null : destination.droppableId;
@@ -78,13 +126,29 @@ const KanbanOperacional = () => {
         }
       })();
     },
-    [groupBy, columns, updateLead, toast],
+    [groupBy, columns, updateLead, toast, filteredLeads, canDrag],
   );
 
-  // Card click handler
-  const handleCardClick = useCallback((_lead: Lead) => {
-    // Future: open lead detail drawer/modal
+  // Card click handler — open drawer
+  const handleCardClick = useCallback((lead: Lead) => {
+    setSelectedLead(lead);
+    setDrawerOpen(true);
   }, []);
+
+  // When drawer closes, refresh the selected lead from latest data
+  const handleDrawerOpenChange = useCallback((open: boolean) => {
+    setDrawerOpen(open);
+    if (!open) {
+      // Keep selectedLead for smooth animation; will be refreshed on next open
+      setTimeout(() => setSelectedLead(null), 300);
+    }
+  }, []);
+
+  // Keep selectedLead in sync with latest leads data
+  const currentLead = useMemo(() => {
+    if (!selectedLead) return null;
+    return leads?.find((l) => l.id === selectedLead.id) ?? selectedLead;
+  }, [selectedLead, leads]);
 
   /* Loading skeleton */
   if (loading) {
@@ -132,6 +196,8 @@ const KanbanOperacional = () => {
                           lead={lead}
                           onClick={handleCardClick}
                           provided={draggableProvided}
+                          tags={leadTagsMap.get(lead.id)}
+                          conexaoNome={lead.conexao_id ? conexaoMap.get(lead.conexao_id) : undefined}
                         />
                       )}
                     </Draggable>
@@ -142,6 +208,13 @@ const KanbanOperacional = () => {
           ))}
         </div>
       </DragDropContext>
+
+      {/* Lead Drawer */}
+      <LeadDrawer
+        lead={currentLead}
+        open={drawerOpen}
+        onOpenChange={handleDrawerOpenChange}
+      />
     </div>
   );
 };

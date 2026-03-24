@@ -4,12 +4,13 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import FunilVendasChart from './FunilVendasChart';
 
 interface FunilVendasData {
-  novo_lead: number;
-  em_qualificacao: number;
-  proposta_enviada: number;
-  contrato_assinado: number;
-  em_atendimento: number;
-  lead_perdido: number;
+  novo: number;
+  em_contato: number;
+  qualificado: number;
+  proposta: number;
+  negociacao: number;
+  ganho: number;
+  perdido: number;
 }
 
 interface FunilVendasSectionProps {

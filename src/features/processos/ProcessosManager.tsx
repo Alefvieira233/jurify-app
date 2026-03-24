@@ -24,6 +24,7 @@ import NovoProcessoForm from './components/NovoProcessoForm';
 import ProcessoDetalhes from './components/ProcessoDetalhes';
 import { EncerrarProcessoDialog } from './components/EncerrarProcessoDialog';
 import type { ProcessoFormData } from '@/schemas/processoSchema';
+import { PROCESSO_STATUS_LABELS } from '@/schemas/processoSchema';
 
 const log = createLogger('ProcessosManager');
 
@@ -34,15 +35,6 @@ const STATUS_COLORS: Record<string, string> = {
   encerrado_derrota: 'bg-red-500/10 text-red-600 dark:text-red-300',
   encerrado_acordo: 'bg-purple-500/10 text-purple-600 dark:text-purple-300',
   arquivado: 'bg-slate-500/10 text-slate-600 dark:text-slate-300',
-};
-
-const STATUS_LABELS: Record<string, string> = {
-  ativo: 'Ativo',
-  suspenso: 'Suspenso',
-  encerrado_vitoria: 'Encerrado — Vitória',
-  encerrado_derrota: 'Encerrado — Derrota',
-  encerrado_acordo: 'Encerrado — Acordo',
-  arquivado: 'Arquivado',
 };
 
 const TIPO_LABELS: Record<string, string> = {
@@ -322,7 +314,7 @@ const ProcessosManager = () => {
               className="px-3 py-2 border border-border rounded-md text-sm bg-background"
             >
               <option value="">Todos os status</option>
-              {Object.entries(STATUS_LABELS).map(([v, l]) => (
+              {Object.entries(PROCESSO_STATUS_LABELS).map(([v, l]) => (
                 <option key={v} value={v}>{l}</option>
               ))}
             </select>
@@ -352,7 +344,7 @@ const ProcessosManager = () => {
                       {processo.numero_processo || 'Sem número'}
                     </h3>
                     <Badge className={STATUS_COLORS[processo.status] ?? 'bg-muted text-muted-foreground'}>
-                      {STATUS_LABELS[processo.status] ?? processo.status}
+                      {PROCESSO_STATUS_LABELS[processo.status] ?? processo.status}
                     </Badge>
                     <Badge variant="outline" className="text-xs">
                       {TIPO_LABELS[processo.tipo_acao] ?? processo.tipo_acao}

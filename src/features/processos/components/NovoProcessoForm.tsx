@@ -21,7 +21,7 @@ import {
   TIPO_ACAO_LABELS,
   FASE_LABELS,
   POSICAO_LABELS,
-  STATUS_LABELS,
+  PROCESSO_STATUS_LABELS,
 } from '@/schemas/processoSchema';
 import type { Processo } from '@/hooks/useProcessos';
 
@@ -156,7 +156,7 @@ const NovoProcessoForm = ({ onSubmit, onCancel, loading, initialData }: NovoProc
             <SelectTrigger><SelectValue /></SelectTrigger>
             <SelectContent>
               {STATUS_PROCESSO.map(s => (
-                <SelectItem key={s} value={s}>{STATUS_LABELS[s]}</SelectItem>
+                <SelectItem key={s} value={s}>{PROCESSO_STATUS_LABELS[s]}</SelectItem>
               ))}
             </SelectContent>
           </Select>

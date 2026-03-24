@@ -16,6 +16,7 @@ import { useCallback, useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabaseUntyped as supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { useRBAC } from '@/hooks/useRBAC';
 import { useToast } from '@/hooks/use-toast';
 import { createLogger } from '@/lib/logger';
 import { addSentryBreadcrumb } from '@/lib/sentry';
@@ -155,8 +156,8 @@ function mapLeadInputToDb(data: Partial<LeadInput>): Record<string, unknown> {
 
 // ─── Query key factory ───────────────────────────────────────────────────────
 
-export const leadsQueryKey = (tenantId: string | undefined, page?: number) =>
-  ['leads', tenantId, page ?? 1] as const;
+export const leadsQueryKey = (tenantId: string | undefined, page?: number, scope?: string) =>
+  ['leads', tenantId, page ?? 1, scope ?? 'all'] as const;
 
 // ─── Hook ────────────────────────────────────────────────────────────────────
 
@@ -164,16 +165,18 @@ export const useLeads = (options?: { enablePagination?: boolean; pageSize?: numb
   const { user, profile } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const { getLeadVisibilityScope, getUserDepartamentos } = useRBAC();
 
   const enablePagination = options?.enablePagination ?? false;
   const pageSize = options?.pageSize ?? ITEMS_PER_PAGE;
   const tenantId = profile?.tenant_id;
+  const visibilityScope = getLeadVisibilityScope();
 
   // Paginação local — só usado quando enablePagination=true
   const [currentPage, setCurrentPage] = useState(1);
 
   // ── Query ──────────────────────────────────────────────────────────────────
-  const qKey = leadsQueryKey(tenantId, enablePagination ? currentPage : undefined);
+  const qKey = leadsQueryKey(tenantId, enablePagination ? currentPage : undefined, visibilityScope);
 
   const {
     data: queryData,
@@ -198,6 +201,20 @@ export const useLeads = (options?: { enablePagination?: boolean; pageSize?: numb
       } else {
         log.warn('Sem tenant_id disponível para filtro. RLS deve atuar.');
       }
+
+      // Defense-in-depth: filter by visibility scope (RLS is authoritative, this is UX guard)
+      if (visibilityScope === 'own') {
+        query = query.eq('responsavel_id', profile?.id ?? '');
+      } else if (visibilityScope === 'department') {
+        const deptoIds = getUserDepartamentos();
+        if (deptoIds.length > 0) {
+          query = query.in('departamento_id', deptoIds);
+        } else {
+          // No department memberships → fall back to own leads only
+          query = query.eq('responsavel_id', profile?.id ?? '');
+        }
+      }
+      // visibilityScope === 'all' → no additional filter (admin/manager)
 
       if (enablePagination) {
         const from = (currentPage - 1) * pageSize;
@@ -328,18 +345,22 @@ export const useLeads = (options?: { enablePagination?: boolean; pageSize?: numb
   // ── Archive / Unarchive ──────────────────────────────────────────────────
 
   const archiveMutation = useMutation({
-    mutationFn: async ({ id, motivo, observacao, dataReativacao }: {
-      id: string; motivo: string; observacao?: string; dataReativacao?: string;
+    mutationFn: async ({ id, motivo, observacao, dataReativacao, proximoResponsavelId }: {
+      id: string; motivo: string; observacao?: string; dataReativacao?: string; proximoResponsavelId?: string;
     }) => {
       if (!tenantId) throw new Error('Tenant não identificado');
+      const updatePayload: Record<string, unknown> = {
+        arquivado_em: new Date().toISOString(),
+        motivo_arquivamento: `${motivo}${observacao ? ` — ${observacao}` : ''}`,
+        data_reativacao_prevista: dataReativacao ?? null,
+        updated_at: new Date().toISOString(),
+      };
+      if (proximoResponsavelId && proximoResponsavelId !== '__nenhum__') {
+        updatePayload.responsavel_id = proximoResponsavelId;
+      }
       const { data: updated, error } = await supabase
         .from('leads')
-        .update({
-          arquivado_em: new Date().toISOString(),
-          motivo_arquivamento: `${motivo}${observacao ? ` — ${observacao}` : ''}`,
-          data_reativacao_prevista: dataReativacao ?? null,
-          updated_at: new Date().toISOString(),
-        })
+        .update(updatePayload)
         .eq('id', id)
         .eq('tenant_id', tenantId)
         .select()
@@ -389,8 +410,8 @@ export const useLeads = (options?: { enablePagination?: boolean; pageSize?: numb
     },
   });
 
-  const archiveLead = useCallback(async (id: string, motivo: string, observacao?: string, dataReativacao?: string): Promise<boolean> => {
-    try { await archiveMutation.mutateAsync({ id, motivo, observacao, dataReativacao }); return true; } catch { return false; }
+  const archiveLead = useCallback(async (id: string, motivo: string, observacao?: string, dataReativacao?: string, proximoResponsavelId?: string): Promise<boolean> => {
+    try { await archiveMutation.mutateAsync({ id, motivo, observacao, dataReativacao, proximoResponsavelId }); return true; } catch { return false; }
   }, [archiveMutation]);
 
   const unarchiveLead = useCallback(async (id: string): Promise<boolean> => {

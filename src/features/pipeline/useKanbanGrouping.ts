@@ -1,5 +1,7 @@
 import { useMemo } from 'react';
 import type { Lead } from '@/hooks/useLeads';
+import { PIPELINE_STAGES, STAGE_COLORS } from './pipelineConfig';
+import { PRIORIDADES } from '@/types/crm-operacional';
 
 export type GroupBy = 'status' | 'departamento' | 'responsavel' | 'origem' | 'prioridade' | 'conexao';
 
@@ -11,22 +13,19 @@ export interface KanbanColumn {
   count: number;
 }
 
-const STATUS_CONFIG: { id: string; label: string; color: string }[] = [
-  { id: 'novo',        label: 'Novo',        color: '#2563eb' },
-  { id: 'em_contato',  label: 'Em Contato',  color: '#0891b2' },
-  { id: 'qualificado', label: 'Qualificado', color: '#d97706' },
-  { id: 'proposta',    label: 'Proposta',    color: '#4f46e5' },
-  { id: 'negociacao',  label: 'Negociacao',  color: '#7c3aed' },
-  { id: 'ganho',       label: 'Ganho',       color: '#059669' },
-  { id: 'perdido',     label: 'Perdido',     color: '#e11d48' },
-];
+/** Build STATUS_CONFIG from unified pipelineConfig */
+const STATUS_CONFIG = PIPELINE_STAGES.map((stage) => ({
+  id: stage.id,
+  label: stage.title,
+  color: STAGE_COLORS[stage.color]?.hex ?? '#6b7280',
+}));
 
-const PRIORIDADE_CONFIG: { id: string; label: string; color: string }[] = [
-  { id: 'urgente', label: 'Urgente', color: '#dc2626' },
-  { id: 'alta',    label: 'Alta',    color: '#ea580c' },
-  { id: 'media',   label: 'Media',   color: '#d97706' },
-  { id: 'baixa',   label: 'Baixa',   color: '#6b7280' },
-];
+/** Build PRIORIDADE_CONFIG from canonical PRIORIDADES (high→low for Kanban columns) */
+const PRIORIDADE_CONFIG = [...PRIORIDADES].reverse().map((p) => ({
+  id: p.value,
+  label: p.label,
+  color: p.cor,
+}));
 
 const DYNAMIC_COLORS = [
   '#2563eb', '#7c3aed', '#db2777', '#ea580c',
@@ -34,17 +33,18 @@ const DYNAMIC_COLORS = [
   '#d97706', '#4f46e5', '#059669', '#e11d48',
 ];
 
-interface DepartamentoLike {
+export interface DepartamentoLike {
   id: string;
   nome: string;
+  cor?: string;
 }
 
-interface ProfileLike {
+export interface ProfileLike {
   id: string;
   nome_completo?: string | null;
 }
 
-interface ConexaoLike {
+export interface ConexaoLike {
   id: string;
   nome: string;
 }
@@ -80,7 +80,7 @@ export function useKanbanGrouping(
           return {
             id: dept.id,
             label: dept.nome,
-            color: DYNAMIC_COLORS[i % DYNAMIC_COLORS.length]!,
+            color: dept.cor ?? DYNAMIC_COLORS[i % DYNAMIC_COLORS.length]!,
             leads: matched,
             count: matched.length,
           };
@@ -93,7 +93,7 @@ export function useKanbanGrouping(
           const matched = leads.filter((l) => l.departamento_id === id);
           return {
             id,
-            label: id,
+            label: `Departamento (${id.slice(0, 6)})`,
             color: DYNAMIC_COLORS[(deptCols.length + i) % DYNAMIC_COLORS.length]!,
             leads: matched,
             count: matched.length,
@@ -106,21 +106,21 @@ export function useKanbanGrouping(
       case 'responsavel': {
         const nullCol: KanbanColumn = {
           id: '__sem_responsavel__',
-          label: 'Sem responsavel',
+          label: 'Sem responsável',
           color: '#6b7280',
           leads: leads.filter((l) => !l.responsavel_id),
           count: 0,
         };
         nullCol.count = nullCol.leads.length;
 
-        const profileMap = new Map((profiles ?? []).map((p) => [p.id, p.nome_completo ?? p.id]));
+        const profileMap = new Map((profiles ?? []).map((p) => [p.id, p.nome_completo ?? 'Sem nome']));
         const responsavelIds = [...new Set(leads.map((l) => l.responsavel_id).filter((id): id is string => !!id))];
 
         const respCols: KanbanColumn[] = responsavelIds.map((id, i) => {
           const matched = leads.filter((l) => l.responsavel_id === id);
           return {
             id,
-            label: profileMap.get(id) ?? id,
+            label: profileMap.get(id) ?? `Membro (${id.slice(0, 6)})`,
             color: DYNAMIC_COLORS[i % DYNAMIC_COLORS.length]!,
             leads: matched,
             count: matched.length,
@@ -131,18 +131,31 @@ export function useKanbanGrouping(
       }
 
       case 'origem': {
-        const origemSet = [...new Set(leads.map((l) => l.origem ?? '__sem_origem__'))];
-        return origemSet.map((origem, i) => {
-          const isNull = origem === '__sem_origem__';
-          const matched = leads.filter((l) => isNull ? !l.origem : l.origem === origem);
+        const nullLeads = leads.filter((l) => !l.origem);
+        const origens = [...new Set(leads.map((l) => l.origem).filter((o): o is string => !!o))];
+
+        const cols: KanbanColumn[] = origens.map((origem, i) => {
+          const matched = leads.filter((l) => l.origem === origem);
           return {
             id: origem,
-            label: isNull ? 'Sem origem' : origem,
+            label: origem,
             color: DYNAMIC_COLORS[i % DYNAMIC_COLORS.length]!,
             leads: matched,
             count: matched.length,
           };
         });
+
+        if (nullLeads.length > 0 || cols.length === 0) {
+          cols.unshift({
+            id: '__sem_origem__',
+            label: 'Sem origem',
+            color: '#6b7280',
+            leads: nullLeads,
+            count: nullLeads.length,
+          });
+        }
+
+        return cols;
       }
 
       case 'prioridade': {
@@ -165,12 +178,12 @@ export function useKanbanGrouping(
         const conexaoMap = new Map((conexoes ?? []).map((c) => [c.id, c.nome]));
         const conexaoIds = [...new Set(leads.map((l) => l.conexao_id).filter((id): id is string => !!id))];
 
-        const conexaoCols: KanbanColumn[] = conexaoIds.map((id) => {
+        const conexaoCols: KanbanColumn[] = conexaoIds.map((id, i) => {
           const matched = leads.filter((l) => l.conexao_id === id);
           return {
             id,
-            label: conexaoMap.get(id) ?? 'Conexão desconhecida',
-            color: '#10b981',
+            label: conexaoMap.get(id) ?? `Conexão (${id.slice(0, 6)})`,
+            color: DYNAMIC_COLORS[i % DYNAMIC_COLORS.length]!,
             leads: matched,
             count: matched.length,
           };

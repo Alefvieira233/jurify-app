@@ -140,28 +140,6 @@ export const PRIORIDADES = [
 
 export type Prioridade = 'baixa' | 'media' | 'alta' | 'urgente';
 
-// ── Kanban Grouping ──
-
-export const KANBAN_GROUP_OPTIONS = [
-  { value: 'status',        label: 'Status' },
-  { value: 'departamento',  label: 'Departamento' },
-  { value: 'responsavel',   label: 'Responsável' },
-  { value: 'origem',        label: 'Origem' },
-  { value: 'prioridade',    label: 'Prioridade' },
-  { value: 'pipeline',      label: 'Pipeline' },
-] as const;
-
-export type KanbanGroupBy = (typeof KANBAN_GROUP_OPTIONS)[number]['value'];
-
-export interface KanbanColumn {
-  id: string;
-  title: string;
-  color: string;
-  leads: string[]; // lead IDs
-  count: number;
-  totalValue: number;
-}
-
 // ── Arquivamento ──
 
 export const MOTIVOS_ARQUIVAMENTO = [

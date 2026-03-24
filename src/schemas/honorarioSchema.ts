@@ -32,7 +32,7 @@ export const TIPO_LABELS: Record<string, string> = {
   retainer: 'Retainer (Mensal)',
 };
 
-export const STATUS_LABELS: Record<string, string> = {
+export const HONORARIO_STATUS_LABELS: Record<string, string> = {
   vigente: 'Vigente',
   pago: 'Pago',
   inadimplente: 'Inadimplente',

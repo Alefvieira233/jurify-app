@@ -17,12 +17,13 @@ import ConfirmDialog from '@/components/ConfirmDialog';
 import { getAvatarHex, getInitials } from '@/utils/formatting';
 
 const STATUS_MAP: Record<string, { label: string; dot: string; bg: string; text: string }> = {
-  novo_lead:         { label: 'Captação',     dot: 'bg-blue-500',    bg: 'bg-blue-500/10',    text: 'text-blue-500' },
-  em_qualificacao:   { label: 'Qualificação', dot: 'bg-purple-500',  bg: 'bg-purple-500/10',  text: 'text-purple-500' },
-  proposta_enviada:  { label: 'Proposta',     dot: 'bg-amber-500',   bg: 'bg-amber-500/10',   text: 'text-amber-500' },
-  contrato_assinado: { label: 'Contrato',     dot: 'bg-emerald-500', bg: 'bg-emerald-500/10', text: 'text-emerald-500' },
-  em_atendimento:    { label: 'Execução',     dot: 'bg-cyan-500',    bg: 'bg-cyan-500/10',    text: 'text-cyan-500' },
-  lead_perdido:      { label: 'Arquivado',    dot: 'bg-slate-500',   bg: 'bg-slate-500/10',   text: 'text-slate-500' },
+  novo:        { label: 'Novo',        dot: 'bg-blue-500',    bg: 'bg-blue-500/10',    text: 'text-blue-500' },
+  em_contato:  { label: 'Em Contato',  dot: 'bg-cyan-500',    bg: 'bg-cyan-500/10',    text: 'text-cyan-500' },
+  qualificado: { label: 'Qualificado', dot: 'bg-amber-500',   bg: 'bg-amber-500/10',   text: 'text-amber-500' },
+  proposta:    { label: 'Proposta',     dot: 'bg-indigo-500',  bg: 'bg-indigo-500/10',  text: 'text-indigo-500' },
+  negociacao:  { label: 'Negociação',   dot: 'bg-purple-500',  bg: 'bg-purple-500/10',  text: 'text-purple-500' },
+  ganho:       { label: 'Ganho',        dot: 'bg-emerald-500', bg: 'bg-emerald-500/10', text: 'text-emerald-500' },
+  perdido:     { label: 'Perdido',      dot: 'bg-rose-500',    bg: 'bg-rose-500/10',    text: 'text-rose-500' },
 };
 
 const fmtCurrency = (v: number) =>

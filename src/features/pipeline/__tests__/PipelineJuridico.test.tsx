@@ -4,21 +4,21 @@ import { render, screen, fireEvent } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { MemoryRouter } from 'react-router-dom';
 
-// --- Mock data ---
+// --- Mock data with canonical statuses ---
 const mockLeads = [
   {
     id: 'l1', nome_completo: 'João Silva', email: 'joao@test.com', telefone: '11999999999',
-    area_juridica: 'Civil', status: 'novo_lead', origem: 'Website', responsavel: 'Maria',
+    area_juridica: 'Civil', status: 'novo', origem: 'Website', responsavel_id: 'r1',
     valor_causa: 50000, created_at: '2025-01-01T00:00:00Z', observacoes: null, metadata: {},
   },
   {
     id: 'l2', nome_completo: 'Ana Costa', email: 'ana@test.com', telefone: '11888888888',
-    area_juridica: 'Trabalhista', status: 'em_qualificacao', origem: 'Indicação', responsavel: 'Pedro',
+    area_juridica: 'Trabalhista', status: 'qualificado', origem: 'Indicação', responsavel_id: 'r2',
     valor_causa: 30000, created_at: '2025-01-02T00:00:00Z', observacoes: null, metadata: {},
   },
   {
     id: 'l3', nome_completo: 'Carlos Lima', email: 'carlos@test.com', telefone: '11777777777',
-    area_juridica: 'Civil', status: 'proposta_enviada', origem: 'WhatsApp', responsavel: 'Maria',
+    area_juridica: 'Civil', status: 'proposta', origem: 'WhatsApp', responsavel_id: 'r1',
     valor_causa: 100000, created_at: '2025-01-03T00:00:00Z', observacoes: null, metadata: {},
   },
 ];
@@ -54,6 +54,15 @@ vi.mock('@/contexts/AuthContext', () => ({
   }),
 }));
 
+vi.mock('@/hooks/useRBAC', () => ({
+  useRBAC: () => ({
+    can: () => true,
+    getLeadVisibilityScope: () => 'all',
+    getUserDepartamentos: () => [],
+    canInDepartment: () => true,
+  }),
+}));
+
 vi.mock('@/hooks/use-toast', () => ({
   useToast: () => ({ toast: vi.fn() }),
 }));
@@ -68,6 +77,10 @@ vi.mock('@/hooks/usePageTitle', () => ({
 
 vi.mock('@/lib/logger', () => ({
   createLogger: () => ({ debug: vi.fn(), info: vi.fn(), warn: vi.fn(), error: vi.fn() }),
+}));
+
+vi.mock('@/hooks/useCapacitor', () => ({
+  triggerHaptic: vi.fn(),
 }));
 
 // Mock NovoLeadForm to avoid complex form dependencies
@@ -97,14 +110,15 @@ describe('PipelineJuridico', () => {
     expect(screen.getByText('Pipeline Jurídico')).toBeInTheDocument();
   });
 
-  it('renders all 6 pipeline stages', () => {
+  it('renders all 7 pipeline stages', () => {
     render(<PipelineJuridico />, { wrapper: createWrapper() });
-    expect(screen.getAllByText('Captação').length).toBeGreaterThanOrEqual(1);
-    expect(screen.getAllByText('Qualificação').length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText('Novo').length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText('Em Contato').length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText('Qualificado').length).toBeGreaterThanOrEqual(1);
     expect(screen.getAllByText('Proposta').length).toBeGreaterThanOrEqual(1);
-    expect(screen.getAllByText('Contrato').length).toBeGreaterThanOrEqual(1);
-    expect(screen.getAllByText('Execução').length).toBeGreaterThanOrEqual(1);
-    expect(screen.getAllByText('Arquivados').length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText('Negociacao').length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText('Ganho').length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText('Perdido').length).toBeGreaterThanOrEqual(1);
   });
 
   it('renders lead names in the board', () => {
@@ -129,7 +143,6 @@ describe('PipelineJuridico', () => {
     const input = screen.getByPlaceholderText(/buscar lead/i);
     fireEvent.change(input, { target: { value: 'João' } });
     expect(screen.getByText('João Silva')).toBeInTheDocument();
-    // Other leads should be filtered out from pipeline (empty state or hidden)
     expect(screen.queryByText('Ana Costa')).not.toBeInTheDocument();
   });
 

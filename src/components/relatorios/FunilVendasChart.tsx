@@ -3,12 +3,13 @@ import React from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 
 interface FunilVendasData {
-  novo_lead: number;
-  em_qualificacao: number;
-  proposta_enviada: number;
-  contrato_assinado: number;
-  em_atendimento: number;
-  lead_perdido: number;
+  novo: number;
+  em_contato: number;
+  qualificado: number;
+  proposta: number;
+  negociacao: number;
+  ganho: number;
+  perdido: number;
 }
 
 interface FunilVendasChartProps {
@@ -21,12 +22,13 @@ const FunilVendasChart: React.FC<FunilVendasChartProps> = ({ data }) => {
   }
 
   const chartData = [
-    { etapa: 'Novos Clientes', valor: data.novo_lead, cor: '#3B82F6' },
-    { etapa: 'Em Qualificação', valor: data.em_qualificacao, cor: '#10B981' },
-    { etapa: 'Proposta Enviada', valor: data.proposta_enviada, cor: '#F59E0B' },
-    { etapa: 'Contrato Assinado', valor: data.contrato_assinado, cor: '#EF4444' },
-    { etapa: 'Em Atendimento', valor: data.em_atendimento, cor: '#8B5CF6' },
-    { etapa: 'Clientes Perdidos', valor: data.lead_perdido, cor: '#6B7280' }
+    { etapa: 'Novo',        valor: data.novo,        cor: '#3B82F6' },
+    { etapa: 'Em Contato',  valor: data.em_contato,  cor: '#06B6D4' },
+    { etapa: 'Qualificado', valor: data.qualificado, cor: '#F59E0B' },
+    { etapa: 'Proposta',    valor: data.proposta,    cor: '#4F46E5' },
+    { etapa: 'Negociação',  valor: data.negociacao,  cor: '#7C3AED' },
+    { etapa: 'Ganho',       valor: data.ganho,       cor: '#10B981' },
+    { etapa: 'Perdido',     valor: data.perdido,     cor: '#E11D48' },
   ];
 
   return (

@@ -29,12 +29,13 @@ interface DashboardMetrics {
   execucoesSucesso: number;
   execucoesErro: number;
   leadsPorStatus: {
-    novo_lead: number;
-    em_qualificacao: number;
-    proposta_enviada: number;
-    contrato_assinado: number;
-    em_atendimento: number;
-    lead_perdido: number;
+    novo: number;
+    em_contato: number;
+    qualificado: number;
+    proposta: number;
+    negociacao: number;
+    ganho: number;
+    perdido: number;
   };
   leadsPorArea: Array<{ area: string; total: number }>;
   execucoesRecentesAgentes: Array<{
@@ -60,12 +61,13 @@ const DEFAULT_METRICS: DashboardMetrics = {
   execucoesSucesso: 0,
   execucoesErro: 0,
   leadsPorStatus: {
-    novo_lead: 0,
-    em_qualificacao: 0,
-    proposta_enviada: 0,
-    contrato_assinado: 0,
-    em_atendimento: 0,
-    lead_perdido: 0,
+    novo: 0,
+    em_contato: 0,
+    qualificado: 0,
+    proposta: 0,
+    negociacao: 0,
+    ganho: 0,
+    perdido: 0,
   },
   leadsPorArea: [],
   execucoesRecentesAgentes: [],
@@ -128,12 +130,13 @@ async function fetchFromMaterializedView(tenantId: string): Promise<DashboardMet
     execucoesSucesso: Number(row.execucoes_sucesso) || 0,
     execucoesErro: Number(row.execucoes_erro) || 0,
     leadsPorStatus: {
-      novo_lead: Number(row.status_novo_lead) || 0,
-      em_qualificacao: Number(row.status_em_qualificacao) || 0,
-      proposta_enviada: Number(row.status_proposta_enviada) || 0,
-      contrato_assinado: Number(row.status_contrato_assinado) || 0,
-      em_atendimento: Number(row.status_em_atendimento) || 0,
-      lead_perdido: Number(row.status_lead_perdido) || 0,
+      novo: Number(row.status_novo_lead) || 0,
+      em_contato: Number(row.status_em_atendimento) || 0,
+      qualificado: Number(row.status_em_qualificacao) || 0,
+      proposta: Number(row.status_proposta_enviada) || 0,
+      negociacao: 0,
+      ganho: Number(row.status_contrato_assinado) || 0,
+      perdido: Number(row.status_lead_perdido) || 0,
     },
     leadsPorArea,
     execucoesRecentesAgentes,

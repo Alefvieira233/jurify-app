@@ -18,7 +18,7 @@ import {
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabaseUntyped as supabase } from '@/integrations/supabase/client';
-import { STATUS_LEAD, STATUS_LABELS } from '@/schemas/leadSchema';
+import { STATUS_LEAD, LEAD_STATUS_LABELS } from '@/schemas/leadSchema';
 import { PRIORIDADES } from '@/types/crm-operacional';
 import type { AutomationRule } from './RegrasManager';
 import { EVENT_TYPE_LABELS } from './RegrasManager';
@@ -106,7 +106,7 @@ function isEnumField(campo: string): boolean {
 function getEnumOptions(campo: string): { value: string; label: string }[] {
   switch (campo) {
     case 'status':
-      return STATUS_LEAD.map((s) => ({ value: s, label: STATUS_LABELS[s] }));
+      return STATUS_LEAD.map((s) => ({ value: s, label: LEAD_STATUS_LABELS[s] }));
     case 'prioridade':
       return PRIORIDADES.map((p) => ({ value: p.value, label: p.label }));
     case 'temperatura':
@@ -459,7 +459,7 @@ const RuleEditor = ({ open, rule, onClose, onSaved }: RuleEditorProps) => {
               <SelectContent>
                 {STATUS_LEAD.map((s) => (
                   <SelectItem key={s} value={s}>
-                    {STATUS_LABELS[s]}
+                    {LEAD_STATUS_LABELS[s]}
                   </SelectItem>
                 ))}
               </SelectContent>

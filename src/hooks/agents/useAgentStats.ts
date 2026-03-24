@@ -53,12 +53,12 @@ export const useAgentStats = (tenantId: string | null) => {
         const stats: AgentStats = {
           totalInteractions: filteredInteractions.length,
           successfulConversions:
-            leadsProcessed?.filter((l) => ['contrato_assinado', 'em_atendimento'].includes(l.status))
+            leadsProcessed?.filter((l) => ['ganho', 'em_contato'].includes(l.status))
               .length || 0,
           averageResponseTime: 2.5,
           satisfactionScore: 4.2,
           activeConversations:
-            leadsProcessed?.filter((l) => ['em_qualificacao', 'proposta_enviada'].includes(l.status))
+            leadsProcessed?.filter((l) => ['qualificado', 'proposta'].includes(l.status))
               .length || 0,
           leadsProcessed: leadsProcessed?.length || 0,
         };

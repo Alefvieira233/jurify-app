@@ -7,7 +7,7 @@ import { usePrazosProcessuais } from '@/hooks/usePrazosProcessuais';
 import { useHonorarios } from '@/hooks/useHonorarios';
 import { useDocumentosJuridicos } from '@/hooks/useDocumentosJuridicos';
 import PrazoAlertaBadge from '@/features/prazos/components/PrazoAlertaBadge';
-import { STATUS_LABELS, TIPO_ACAO_LABELS as TIPO_LABELS } from '@/schemas/processoSchema';
+import { PROCESSO_STATUS_LABELS, TIPO_ACAO_LABELS as TIPO_LABELS } from '@/schemas/processoSchema';
 
 const HONORARIO_TIPO_LABELS: Record<string, string> = {
   fixo: 'Fixo', hora: 'Por hora', contingencia: 'Contingência',
@@ -201,7 +201,7 @@ const ResumoTab = ({ processo }: { processo: Processo }) => (
       <div><span className="font-medium text-muted-foreground">Posição:</span> <span className="ml-1 capitalize">{processo.posicao}</span></div>
       <div>
         <span className="font-medium text-muted-foreground">Status:</span>{' '}
-        <span className="ml-1">{STATUS_LABELS[processo.status] ?? processo.status}</span>
+        <span className="ml-1">{PROCESSO_STATUS_LABELS[processo.status] ?? processo.status}</span>
       </div>
       {processo.valor_causa && (
         <div><span className="font-medium text-muted-foreground">Valor da Causa:</span> <span className="ml-1">{fmt(processo.valor_causa)}</span></div>

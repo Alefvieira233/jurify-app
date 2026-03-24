@@ -5,26 +5,27 @@ import { Card, CardContent, CardHeader } from '@/components/ui/card';
 
 interface ConversionFunnelProps {
   data: {
-    novo_lead?:         number;
-    em_qualificacao?:   number;
-    proposta_enviada?:  number;
-    contrato_assinado?: number;
-    em_atendimento?:    number;
-    lead_perdido?:      number;
+    novo?:        number;
+    em_contato?:  number;
+    qualificado?: number;
+    proposta?:    number;
+    negociacao?:  number;
+    ganho?:       number;
+    perdido?:     number;
   };
 }
 
-type StageKey = 'novo_lead' | 'em_qualificacao' | 'proposta_enviada' | 'contrato_assinado';
+type StageKey = 'novo' | 'qualificado' | 'proposta' | 'ganho';
 
 const STAGE_CONFIG: Record<StageKey, { label: string; hex: string; textColor: string }> = {
-  novo_lead:         { label: 'Captação',     hex: '#2563eb', textColor: '#1d4ed8' },
-  em_qualificacao:   { label: 'Qualificação', hex: '#d97706', textColor: '#b45309' },
-  proposta_enviada:  { label: 'Proposta',     hex: '#4f46e5', textColor: '#4338ca' },
-  contrato_assinado: { label: 'Contrato',     hex: '#059669', textColor: '#047857' },
+  novo:        { label: 'Novo',        hex: '#2563eb', textColor: '#1d4ed8' },
+  qualificado: { label: 'Qualificado', hex: '#d97706', textColor: '#b45309' },
+  proposta:    { label: 'Proposta',     hex: '#4f46e5', textColor: '#4338ca' },
+  ganho:       { label: 'Ganho',        hex: '#059669', textColor: '#047857' },
 };
 
 const STAGE_ORDER: StageKey[] = [
-  'novo_lead', 'em_qualificacao', 'proposta_enviada', 'contrato_assinado',
+  'novo', 'qualificado', 'proposta', 'ganho',
 ];
 
 /* Rate coloring: green ≥50 · amber 30–49 · rose <30 */
@@ -43,7 +44,7 @@ export const ConversionFunnel = ({ data }: ConversionFunnelProps) => {
   const topValue   = stages[0]?.value ?? 0;
   const converted  = stages[stages.length - 1]?.value ?? 0;
   const overallPct = topValue > 0 ? (converted / topValue) * 100 : 0;
-  const lostLeads  = data.lead_perdido ?? 0;
+  const lostLeads  = data.perdido ?? 0;
 
   /* Step conversion rates */
   const stepRates = stages.map((s, i) => {

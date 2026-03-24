@@ -1,5 +1,6 @@
 
 import { useMemo, lazy, Suspense, useState } from 'react';
+const MetricasOperacionais = lazy(() => import('./MetricasOperacionais'));
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
   PieChart, Pie, Cell, LineChart, Line, ComposedChart,
@@ -108,7 +109,7 @@ const RelatoriosGerenciais = () => {
   const { data: mrrData } = useMRR();
   const { data: responseTimeData = [] } = useResponseTime(7);
   const { leads } = useLeads();
-  const [tab, setTab] = useState<'resumo' | 'financeiro' | 'analytics'>('resumo');
+  const [tab, setTab] = useState<'resumo' | 'financeiro' | 'analytics' | 'operacional'>('resumo');
 
   /* ── Period filter state ── */
   const [selectedPeriod, setSelectedPeriod] = useState<PeriodKey>('30_dias');
@@ -150,7 +151,7 @@ const RelatoriosGerenciais = () => {
         .from('leads')
         .select('id, status, created_at')
         .eq('tenant_id', tenantId)
-        .in('status', ['contrato_assinado', 'em_atendimento', 'convertido']);
+        .in('status', ['ganho', 'em_contato']);
       return (data || []) as Array<{ id: string; status: string | null; created_at: string }>;
     },
     enabled: !!tenantId,
@@ -386,9 +387,10 @@ const RelatoriosGerenciais = () => {
         <div className="mt-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <Tabs value={tab} onValueChange={v => setTab(v as typeof tab)}>
             <TabsList className="bg-muted/30 p-1 border border-border/10 rounded-[14px]">
-              <TabsTrigger value="resumo"     className="rounded-[10px] text-xs h-9 px-4">Resumo Geral</TabsTrigger>
-              <TabsTrigger value="financeiro" className="rounded-[10px] text-xs h-9 px-4">Faturamento</TabsTrigger>
-              <TabsTrigger value="analytics"  className="rounded-[10px] text-xs h-9 px-4">Análise Avançada</TabsTrigger>
+              <TabsTrigger value="resumo"      className="rounded-[10px] text-xs h-9 px-4">Resumo Geral</TabsTrigger>
+              <TabsTrigger value="financeiro"  className="rounded-[10px] text-xs h-9 px-4">Faturamento</TabsTrigger>
+              <TabsTrigger value="analytics"   className="rounded-[10px] text-xs h-9 px-4">Analise Avancada</TabsTrigger>
+              <TabsTrigger value="operacional" className="rounded-[10px] text-xs h-9 px-4">Operacional</TabsTrigger>
             </TabsList>
           </Tabs>
 
@@ -575,7 +577,7 @@ const RelatoriosGerenciais = () => {
                   <div className="flex justify-between items-center p-4 bg-muted/10 border border-border/10 rounded-[16px] hover:bg-muted/20 transition-colors">
                     <span className="text-sm font-bold text-foreground">Leads Ativos (Quente)</span>
                     <Badge variant="secondary" className="px-3 py-1 font-bold text-emerald-500">
-                      {metrics.leadsPorStatus.em_qualificacao + metrics.leadsPorStatus.proposta_enviada}
+                      {metrics.leadsPorStatus.qualificado + metrics.leadsPorStatus.proposta}
                     </Badge>
                   </div>
                   <div className="flex justify-between items-center p-4 bg-muted/10 border border-border/10 rounded-[16px] hover:bg-muted/20 transition-colors">
@@ -771,6 +773,13 @@ const RelatoriosGerenciais = () => {
                 </CardContent>
               </Card>
             </div>
+          </TabsContent>
+
+          {/* ── Aba: Operacional ── */}
+          <TabsContent value="operacional" className="mt-0 px-5 py-5 pb-12 fade-in">
+            <Suspense fallback={<div className="flex items-center justify-center py-20 text-sm text-muted-foreground">Carregando metricas operacionais...</div>}>
+              <MetricasOperacionais />
+            </Suspense>
           </TabsContent>
 
         </Tabs>

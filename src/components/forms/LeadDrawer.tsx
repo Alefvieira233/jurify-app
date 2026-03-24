@@ -25,7 +25,7 @@ import {
   MessageSquare,
   Trash2
 } from 'lucide-react';
-import { STATUS_LEAD, STATUS_LABELS } from '@/schemas/leadSchema';
+import { STATUS_LEAD, LEAD_STATUS_LABELS } from '@/schemas/leadSchema';
 import { PRIORIDADES, type Prioridade } from '@/types/crm-operacional';
 import { useDepartamentos } from '@/hooks/useDepartamentos';
 import { useTeamMembers } from '@/hooks/useTeamMembers';
@@ -45,7 +45,7 @@ export const LeadDrawer: React.FC<LeadDrawerProps> = ({ open, onOpenChange, lead
   const { members } = useTeamMembers();
   const [isSaving, setIsSaving] = useState(false);
 
-  const [statusVal, setStatusVal] = useState(lead.status ?? 'novo_lead');
+  const [statusVal, setStatusVal] = useState(lead.status ?? 'novo');
   const [departamentoVal, setDepartamentoVal] = useState(lead.departamento_id ?? '');
   const [prioridadeVal, setPrioridadeVal] = useState<Prioridade>(lead.prioridade || 'media');
   const [responsavelVal, setResponsavelVal] = useState(lead.responsavel_id ?? '');
@@ -91,7 +91,7 @@ export const LeadDrawer: React.FC<LeadDrawerProps> = ({ open, onOpenChange, lead
               </SheetTitle>
               <div className="flex items-center gap-2 mt-1.5 opacity-80">
                 <Badge variant="outline" className="text-[10px] font-semibold border-primary/20 bg-primary/5 text-primary">
-                  {STATUS_LABELS[statusVal as keyof typeof STATUS_LABELS] || 'Lead'}
+                  {LEAD_STATUS_LABELS[statusVal as keyof typeof LEAD_STATUS_LABELS] || 'Lead'}
                 </Badge>
                 {lead.telefone && (
                   <span className="text-[11px] text-muted-foreground flex items-center gap-1">
@@ -188,7 +188,7 @@ export const LeadDrawer: React.FC<LeadDrawerProps> = ({ open, onOpenChange, lead
                     <SelectValue placeholder="Status..." />
                   </SelectTrigger>
                   <SelectContent>
-                    {STATUS_LEAD.map(s => <SelectItem key={s} value={s}>{STATUS_LABELS[s]}</SelectItem>)}
+                    {STATUS_LEAD.map(s => <SelectItem key={s} value={s}>{LEAD_STATUS_LABELS[s]}</SelectItem>)}
                   </SelectContent>
                 </Select>
               </div>

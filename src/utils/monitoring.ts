@@ -164,10 +164,10 @@ class MonitoringService {
 
   private getConversionType(fromStatus: string, toStatus: string): string {
     const conversions: Record<string, string> = {
-      'novo_lead->em_qualificacao': 'qualification',
-      'em_qualificacao->proposta_enviada': 'proposal',
-      'proposta_enviada->contrato_assinado': 'conversion',
-      'contrato_assinado->em_atendimento': 'activation'
+      'novo->qualificado': 'qualification',
+      'qualificado->proposta': 'proposal',
+      'proposta->ganho': 'conversion',
+      'ganho->em_contato': 'activation'
     };
     
     return conversions[`${fromStatus}->${toStatus}`] || 'other';

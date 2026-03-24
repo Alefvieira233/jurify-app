@@ -33,7 +33,7 @@ export const TIPO_LABELS: Record<string, string> = {
   outro: 'Outro',
 };
 
-export const STATUS_LABELS: Record<string, string> = {
+export const PRAZO_STATUS_LABELS: Record<string, string> = {
   pendente: 'Pendente',
   cumprido: 'Cumprido',
   perdido: 'Perdido',
