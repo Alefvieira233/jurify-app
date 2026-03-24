@@ -106,7 +106,7 @@ export const formatarAreaJuridica = (area: string): string =>
 /* ── Pipeline stages ── */
 
 const ETAPA_MAP: Record<string, string> = {
-  // Current CRM Operacional status values
+  // Canonical pipeline status values (unified system)
   novo: 'Novo',
   em_contato: 'Em Contato',
   qualificado: 'Qualificado',
@@ -114,9 +114,6 @@ const ETAPA_MAP: Record<string, string> = {
   negociacao: 'Negociação',
   ganho: 'Ganho',
   perdido: 'Perdido',
-  ativo: 'Ativo',
-  inativo: 'Inativo',
-  convertido: 'Convertido',
 };
 
 /** Formats a pipeline stage key into a human-readable label. */

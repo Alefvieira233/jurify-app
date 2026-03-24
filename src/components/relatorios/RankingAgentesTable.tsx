@@ -239,7 +239,7 @@ const RankingAgentesTable: React.FC<RankingAgentesTableProps> = ({ periodo }) =>
 
       {rankingAgentes.length === 0 && (
         <div className="text-center py-8 text-muted-foreground">
-          Nenhum dado encontrado para o periodo selecionado
+          Nenhum dado encontrado para o período selecionado
         </div>
       )}
     </div>

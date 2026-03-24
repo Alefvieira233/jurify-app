@@ -106,7 +106,7 @@ const KanbanOperacional = () => {
 
       const lead = filteredLeads.find((l) => l.id === draggableId);
       if (lead && !canDrag(lead, groupBy)) {
-        toast({ title: 'Sem permissao', description: 'Voce nao tem permissao para mover este lead.', variant: 'destructive' });
+        toast({ title: 'Sem permissão', description: 'Você não tem permissão para mover este lead.', variant: 'destructive' });
         return;
       }
 
