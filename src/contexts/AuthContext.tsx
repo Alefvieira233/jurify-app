@@ -14,6 +14,7 @@ interface Profile {
   tenant_id?: string;
   subscription_tier?: string;
   subscription_status?: string;
+  tenants?: { nome: string };
 }
 
 interface AuthContextType {
@@ -50,7 +51,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     try {
       const { data: profileData, error: profileError } = await supabase
         .from('profiles')
-        .select('*')
+        .select('*, tenants(nome)')
         .eq('id', userId)
         .maybeSingle();
 
@@ -74,6 +75,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         tenant_id: profileData.tenant_id ?? undefined,
         subscription_tier: extra.subscription_tier ?? undefined,
         subscription_status: extra.subscription_status ?? undefined,
+        tenants: (profileData as unknown as { tenants: { nome: string } | null }).tenants ?? undefined,
       });
     } catch (_err) {
       setProfile(null);
