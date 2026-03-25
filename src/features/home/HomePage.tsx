@@ -19,7 +19,7 @@ export default function HomePage() {
   };
 
   const leadsHoje = leads?.filter(l => {
-    const today = new Date().toISOString().split('T')[0];
+    const today = new Date().toISOString().split('T')[0] ?? '';
     return l.created_at?.startsWith(today);
   }).length ?? 0;
 

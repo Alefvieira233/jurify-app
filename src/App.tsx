@@ -59,7 +59,6 @@ const RegrasManager = lazyWithRetry(() => import("./features/automations/RegrasM
 const NotificationsPanel = lazyWithRetry(() => import("./features/notifications/NotificationsPanel"));
 const AgentsPlayground = lazyWithRetry(() => import("./pages/AgentsPlayground"));
 const MissionControl = lazyWithRetry(() => import("./features/mission-control/MissionControl"));
-const CRMDashboard = lazyWithRetry(() => import("./features/crm/CRMDashboard"));
 const ContatosTable = lazyWithRetry(() => import("./features/contatos/ContatosTable"));
 const ConexoesManager = lazyWithRetry(() => import("./features/conexoes/ConexoesManager"));
 const DepartamentosManager = lazyWithRetry(() => import("./features/departamentos/DepartamentosManager"));

@@ -127,7 +127,7 @@ export default function TarefasPage() {
               </TableRow>
             ) : (
               filtered.map(tarefa => {
-                const cfg = STATUS_CONFIG[tarefa.status] ?? STATUS_CONFIG.pendente;
+                const cfg = STATUS_CONFIG[tarefa.status] ?? { label: 'Pendente', color: 'bg-amber-100 text-amber-700', icon: Clock };
                 return (
                   <TableRow key={tarefa.id} className="hover:bg-accent/50 transition-colors">
                     <TableCell>

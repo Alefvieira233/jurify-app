@@ -1,10 +1,39 @@
 import React from 'react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 
 vi.mock('@/hooks/usePageTitle', () => ({
   usePageTitle: vi.fn(),
+}));
+
+vi.mock('@/hooks/useLeads', () => ({
+  useLeads: () => ({
+    leads: [
+      { id: '1', status: 'novo', created_at: new Date().toISOString() },
+      { id: '2', status: 'ganho', created_at: new Date().toISOString() },
+      { id: '3', status: 'em_contato', created_at: new Date().toISOString() },
+    ],
+    loading: false,
+  }),
+}));
+
+vi.mock('@/contexts/AuthContext', () => ({
+  useAuth: () => ({
+    profile: { id: 'test', tenant_id: 'tenant1', nome_completo: 'Test User' },
+    user: { id: 'test' },
+  }),
+}));
+
+vi.mock('@/hooks/useRBAC', () => ({
+  useRBAC: () => ({
+    getLeadVisibilityScope: () => 'all',
+    getUserDepartamentos: () => [],
+  }),
+}));
+
+vi.mock('@/components/relatorios/RankingAgentesTable', () => ({
+  default: () => React.createElement('div', { 'data-testid': 'ranking-table' }, 'RankingTable'),
 }));
 
 import Dashboard from '../Dashboard';
@@ -19,68 +48,40 @@ describe('Dashboard', () => {
     vi.clearAllMocks();
   });
 
-  it('renders hero title', () => {
+  it('renders dashboard title', () => {
     render(<Dashboard />, { wrapper: createWrapper() });
-    expect(screen.getByText('O que você precisa automatizar hoje?')).toBeInTheDocument();
+    expect(screen.getByText('Dashboard')).toBeInTheDocument();
   });
 
-  it('renders badge subtitle', () => {
+  it('renders stat cards', () => {
     render(<Dashboard />, { wrapper: createWrapper() });
-    expect(screen.getByText(/escritório trabalhando mais rápido/i)).toBeInTheDocument();
+    expect(screen.getByText('Total de Leads')).toBeInTheDocument();
+    expect(screen.getByText('Novos')).toBeInTheDocument();
+    expect(screen.getByText('Ganhos')).toBeInTheDocument();
+    // "Em Contato" appears in both stat card and pipeline overview
+    expect(screen.getAllByText('Em Contato').length).toBeGreaterThanOrEqual(1);
   });
 
-  it('renders search input', () => {
+  it('renders pipeline overview', () => {
     render(<Dashboard />, { wrapper: createWrapper() });
-    expect(screen.getByPlaceholderText(/Criar Petição INSS/)).toBeInTheDocument();
+    expect(screen.getByText('Pipeline por Status')).toBeInTheDocument();
   });
 
-  it('renders tab navigation', () => {
+  it('renders period selector', () => {
     render(<Dashboard />, { wrapper: createWrapper() });
-    expect(screen.getByText('Assistentes Práticos')).toBeInTheDocument();
-    expect(screen.getByText('Meus Arquivos')).toBeInTheDocument();
-    expect(screen.getByText('Histórico')).toBeInTheDocument();
+    expect(screen.getByText('Semana')).toBeInTheDocument();
+    expect(screen.getByText('Mês')).toBeInTheDocument();
+    expect(screen.getByText('Trimestre')).toBeInTheDocument();
   });
 
-  it('renders all 6 AI tool cards', () => {
+  it('renders ranking table', () => {
     render(<Dashboard />, { wrapper: createWrapper() });
-    expect(screen.getByText('Elaborar Petição Inicial (INSS)')).toBeInTheDocument();
-    expect(screen.getByText('Análise de Contrato ou Acordo')).toBeInTheDocument();
-    expect(screen.getByText('Assistente de Triagem de WhatsApp')).toBeInTheDocument();
-    expect(screen.getByText('Pesquisa Rápida de Jurisprudência')).toBeInTheDocument();
-    expect(screen.getByText('Resumo de Processo e Autos')).toBeInTheDocument();
-    expect(screen.getByText('Controle de Intimações (Diários)')).toBeInTheDocument();
+    expect(screen.getByTestId('ranking-table')).toBeInTheDocument();
   });
 
-  it('renders agent action buttons', () => {
+  it('displays correct lead counts', () => {
     render(<Dashboard />, { wrapper: createWrapper() });
-    expect(screen.getByText('Criar Petição')).toBeInTheDocument();
-    expect(screen.getByText('Analisar Contrato')).toBeInTheDocument();
-    expect(screen.getByText('Ver Chatbot')).toBeInTheDocument();
-    expect(screen.getByText('Fazer Pesquisa')).toBeInTheDocument();
-    expect(screen.getByText('Resumir Autos')).toBeInTheDocument();
-    expect(screen.getByText('Ver Intimações')).toBeInTheDocument();
-  });
-
-  it('renders status badges', () => {
-    render(<Dashboard />, { wrapper: createWrapper() });
-    const ativoBadges = screen.getAllByText('Ativo');
-    expect(ativoBadges.length).toBeGreaterThanOrEqual(4);
-    expect(screen.getByText('Configurar')).toBeInTheDocument();
-    expect(screen.getByText('Novo')).toBeInTheDocument();
-  });
-
-  it('filters agents by search', () => {
-    render(<Dashboard />, { wrapper: createWrapper() });
-    const input = screen.getByPlaceholderText(/Criar Petição INSS/);
-    fireEvent.change(input, { target: { value: 'Petição' } });
-    expect(screen.getByText('Elaborar Petição Inicial (INSS)')).toBeInTheDocument();
-    expect(screen.queryByText('Análise de Contrato ou Acordo')).not.toBeInTheDocument();
-  });
-
-  it('shows empty state when search has no results', () => {
-    render(<Dashboard />, { wrapper: createWrapper() });
-    const input = screen.getByPlaceholderText(/Criar Petição INSS/);
-    fireEvent.change(input, { target: { value: 'xyznonexistent' } });
-    expect(screen.getByText('Nenhuma ferramenta encontrada')).toBeInTheDocument();
+    // Total leads = 3
+    expect(screen.getByText('3')).toBeInTheDocument();
   });
 });

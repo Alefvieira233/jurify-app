@@ -783,11 +783,11 @@ const WhatsAppIA = () => {
       );
     }
     if (activeFilter === 'ia') {
-      filtered = filtered.filter(c => (c as WhatsAppConversation & { respondido_por_ia?: boolean }).respondido_por_ia === true || c.status === 'ia');
+      filtered = filtered.filter(c => (c as WhatsAppConversation & { respondido_por_ia?: boolean }).respondido_por_ia === true || (c.status as string) === 'ia');
     } else if (activeFilter === 'ativos') {
-      filtered = filtered.filter(c => c.status === 'ativo' || c.status === 'Ativo');
+      filtered = filtered.filter(c => c.status === 'ativo' || (c.status as string) === 'Ativo');
     } else if (activeFilter === 'pendentes') {
-      filtered = filtered.filter(c => c.status === 'aguardando' || c.status === 'pendente' || c.status === 'Aguardando');
+      filtered = filtered.filter(c => c.status === 'aguardando' || (c.status as string) === 'pendente' || (c.status as string) === 'Aguardando');
     }
     return filtered;
   }, [conversations, searchQuery, activeFilter]);
