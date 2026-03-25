@@ -213,10 +213,10 @@ const ConfiguracoesPage = () => {
                     <li key={s.id}>
                       <button
                         onClick={() => {
-                          if (hasSubsections) {
+                          if (hasSubsections && s.subsections) {
                             setExpandedClasses(!expandedClasses);
-                            if (!isActive) {
-                              navigateTo(s.id, s.subsections![0].id);
+                            if (!isActive && s.subsections[0]) {
+                              navigateTo(s.id, s.subsections[0].id);
                             }
                           } else {
                             navigateTo(s.id);
@@ -237,9 +237,9 @@ const ConfiguracoesPage = () => {
                           )} />
                         )}
                       </button>
-                      {hasSubsections && (isActive || expandedClasses) && (
+                      {hasSubsections && s.subsections && (isActive || expandedClasses) && (
                         <ul className="ml-4 space-y-0.5 mt-0.5">
-                          {s.subsections!.map(sub => (
+                          {s.subsections.map(sub => (
                             <li key={sub.id}>
                               <button
                                 onClick={() => navigateTo(s.id, sub.id)}
