@@ -36,6 +36,7 @@ const Dashboard = lazyWithRetry(() => import("./features/dashboard/Dashboard"));
 const PipelineJuridico = lazyWithRetry(() => import("./features/pipeline/PipelineJuridico"));
 const KanbanOperacional = lazyWithRetry(() => import("./features/pipeline/KanbanOperacional"));
 const AgendamentosManager = lazyWithRetry(() => import("./features/scheduling/AgendamentosManager"));
+const TarefasPage = lazyWithRetry(() => import("./features/tarefas/TarefasPage"));
 const ContratosManager = lazyWithRetry(() => import("./features/contracts/ContratosManager"));
 const RelatoriosGerenciais = lazyWithRetry(() => import("./features/reports/RelatoriosGerenciais"));
 const WhatsAppIA = lazyWithRetry(() => import("./features/whatsapp/WhatsAppIA"));
@@ -165,6 +166,7 @@ const App = () => (
                   <Route path="pipeline" element={<ErrorBoundary><KanbanOperacional /></ErrorBoundary>} />
                   <Route path="pipeline/classico" element={<ErrorBoundary><PipelineJuridico /></ErrorBoundary>} />
                   <Route path="agendamentos" element={<ErrorBoundary><AgendamentosManager /></ErrorBoundary>} />
+                  <Route path="tarefas" element={<ErrorBoundary><TarefasPage /></ErrorBoundary>} />
                   <Route path="contratos" element={<ErrorBoundary><ContratosManager /></ErrorBoundary>} />
                   <Route path="relatorios" element={<ErrorBoundary><RelatoriosGerenciais /></ErrorBoundary>} />
                   <Route path="whatsapp" element={
