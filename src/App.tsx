@@ -31,6 +31,7 @@ const PoliticaDePrivacidade = lazyWithRetry(() => import("./pages/PoliticaDePriv
 const Pricing = lazyWithRetry(() => import("./pages/Pricing"));
 
 // Lazy loading para features (carregamento sob demanda) — with auto-retry on chunk failure
+const HomePage = lazyWithRetry(() => import("./features/home/HomePage"));
 const Dashboard = lazyWithRetry(() => import("./features/dashboard/Dashboard"));
 const PipelineJuridico = lazyWithRetry(() => import("./features/pipeline/PipelineJuridico"));
 const KanbanOperacional = lazyWithRetry(() => import("./features/pipeline/KanbanOperacional"));
@@ -99,7 +100,7 @@ const SentryRoutes = Sentry.withSentryReactRouterV6Routing(Routes);
 
 // Rotas válidas para deep links jurify://
 const ALLOWED_DEEP_LINK_PATHS = new Set([
-  '/dashboard', '/pipeline', '/agendamentos', '/whatsapp', '/agentes',
+  '/home', '/dashboard', '/pipeline', '/agendamentos', '/whatsapp', '/agentes',
   '/contratos', '/clientes', '/notificacoes', '/processos', '/prazos',
   '/honorarios', '/documentos', '/configuracoes', '/relatorios',
   '/usuarios', '/logs', '/integracoes', '/billing', '/conexoes',
@@ -154,8 +155,9 @@ const App = () => (
                 <Route path="/precos" element={<Pricing />} />
 
                 <Route path="/" element={<ProtectedRoute><Layout /></ProtectedRoute>}>
-                  <Route index element={<ErrorBoundary><Dashboard /></ErrorBoundary>} />
-                  <Route path="dashboard" element={<Navigate to="/" replace />} />
+                  <Route index element={<ErrorBoundary><HomePage /></ErrorBoundary>} />
+                  <Route path="home" element={<Navigate to="/" replace />} />
+                  <Route path="dashboard" element={<ErrorBoundary><Dashboard /></ErrorBoundary>} />
                   {/* /leads absorvido por Pipeline — redirect para evitar rotas fantasma */}
                   <Route path="leads" element={<Navigate to="/pipeline" replace />} />
                   <Route path="conexoes" element={<ErrorBoundary><ConexoesManager /></ErrorBoundary>} />

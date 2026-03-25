@@ -48,7 +48,8 @@ const Layout = () => {
     }, [isAndroid, mobileMenuOpen]);
 
     const getActiveSection = (path: string) => {
-        if (path === '/' || path === '/dashboard') return 'dashboard';
+        if (path === '/') return 'home';
+        if (path === '/dashboard') return 'dashboard';
         if (path.startsWith('/crm/followups')) return 'crm/followups';
         if (path.startsWith('/crm')) return 'crm';
         if (path.startsWith('/admin/')) return path.substring(1);
@@ -63,7 +64,7 @@ const Layout = () => {
     }, [location.pathname]);
 
     const handleSectionChange = (section: string) => {
-        navigate(section === 'dashboard' ? '/' : `/${section}`);
+        navigate(section === 'home' ? '/' : `/${section}`);
         setMobileMenuOpen(false);
     };
 
