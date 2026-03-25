@@ -59,6 +59,7 @@ const NotificationsPanel = lazyWithRetry(() => import("./features/notifications/
 const AgentsPlayground = lazyWithRetry(() => import("./pages/AgentsPlayground"));
 const MissionControl = lazyWithRetry(() => import("./features/mission-control/MissionControl"));
 const CRMDashboard = lazyWithRetry(() => import("./features/crm/CRMDashboard"));
+const ContatosTable = lazyWithRetry(() => import("./features/contatos/ContatosTable"));
 const ConexoesManager = lazyWithRetry(() => import("./features/conexoes/ConexoesManager"));
 const DepartamentosManager = lazyWithRetry(() => import("./features/departamentos/DepartamentosManager"));
 const TagsManager = lazyWithRetry(() => import("./features/tags/TagsManager"));
@@ -188,7 +189,7 @@ const App = () => (
                   {/* /analytics absorvido por Relatórios como aba */}
                   <Route path="analytics" element={<Navigate to="/relatorios" replace />} />
                   {/* billing now lives in configuracoes/plano */}
-                  <Route path="crm" element={<ErrorBoundary><CRMDashboard /></ErrorBoundary>} />
+                  <Route path="crm" element={<ErrorBoundary><ContatosTable /></ErrorBoundary>} />
                   {/* /crm/followups acessível via CRM Dashboard */}
                   <Route path="crm/followups" element={<Navigate to="/crm" replace />} />
                   <Route path="crm/lead/:leadId" element={<ErrorBoundary><LeadDetailPanel /></ErrorBoundary>} />
