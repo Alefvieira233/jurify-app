@@ -12,13 +12,12 @@ interface KanbanColumnProps {
 
 export const KanbanColumnComponent = memo(({ column, children, provided }: KanbanColumnProps) => {
   return (
-    <div className="flex flex-col min-w-[280px] w-[300px] bg-muted/30 rounded-lg border border-border shrink-0">
+    <div className="flex flex-col min-w-[280px] w-[300px] bg-muted/10 rounded-lg border border-border shrink-0">
       {/* Header */}
-      <div className="flex items-center gap-2 px-3 py-2.5 border-b border-border">
-        <span
-          className="w-2.5 h-2.5 rounded-full shrink-0"
-          style={{ backgroundColor: column.color }}
-        />
+      <div
+        className="flex items-center gap-2 px-3 py-2 bg-white dark:bg-card rounded-t-lg border-b border-border border-l-4"
+        style={{ borderLeftColor: column.color }}
+      >
         <h3 className="text-xs font-semibold text-foreground truncate flex-1">
           {column.label}
         </h3>

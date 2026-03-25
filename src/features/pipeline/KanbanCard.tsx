@@ -77,7 +77,7 @@ export const KanbanCard = memo(({ lead, onClick, provided, tags, conexaoNome }: 
       role="button"
       tabIndex={0}
       onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') onClick(lead); }}
-      className="p-3 rounded-lg border border-border bg-card hover:shadow-md hover:border-primary/20 transition-all cursor-pointer select-none group"
+      className="p-3 rounded-lg border border-border bg-card hover:shadow-sm transition-shadow cursor-pointer select-none group"
     >
       {/* Top: avatar + name + priority */}
       <div className="flex items-start gap-2 mb-1.5">
@@ -88,7 +88,7 @@ export const KanbanCard = memo(({ lead, onClick, provided, tags, conexaoNome }: 
           {initials}
         </div>
         <div className="flex-1 min-w-0">
-          <p className="text-xs font-semibold text-foreground leading-snug line-clamp-1">
+          <p className="text-xs font-medium text-foreground leading-snug line-clamp-1">
             {lead.nome_completo ?? lead.nome ?? 'Sem nome'}
           </p>
           {lead.telefone && (
