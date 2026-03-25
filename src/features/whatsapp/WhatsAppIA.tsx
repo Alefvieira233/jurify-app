@@ -38,7 +38,7 @@ import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 
-type ConversationFilter = 'todos' | 'leads' | 'agendados';
+type ConversationFilter = 'todos' | 'ia' | 'ativos' | 'pendentes';
 
 // ── Module-level pure helpers ────────────────────────────────────────────────
 
@@ -184,12 +184,32 @@ const ConversationList = ({
 
       {/* Filters */}
       <Tabs value={activeFilter} onValueChange={(v) => setActiveFilter(v as ConversationFilter)}>
-        <TabsList className="w-full h-8">
-          <TabsTrigger value="todos" className="text-xs flex-1">Todos</TabsTrigger>
-          <TabsTrigger value="leads" className="text-xs flex-1">Leads</TabsTrigger>
-          <TabsTrigger value="agendados" className="text-xs flex-1">Agendados</TabsTrigger>
+        <TabsList className="w-full grid grid-cols-4 h-8">
+          <TabsTrigger value="todos" className="text-xs">Todos</TabsTrigger>
+          <TabsTrigger value="ia" className="text-xs">IA</TabsTrigger>
+          <TabsTrigger value="ativos" className="text-xs">Ativos</TabsTrigger>
+          <TabsTrigger value="pendentes" className="text-xs">Pendentes</TabsTrigger>
         </TabsList>
       </Tabs>
+    </div>
+
+    {/* Filter bar */}
+    <div className="flex items-center gap-2 px-3 py-2 border-b border-border">
+      <select
+        className="text-xs border border-border rounded px-2 py-1 bg-background text-foreground"
+        defaultValue=""
+      >
+        <option value="">Responsável</option>
+      </select>
+      <select
+        className="text-xs border border-border rounded px-2 py-1 bg-background text-foreground"
+        defaultValue=""
+      >
+        <option value="">Status</option>
+        <option value="ativo">Ativo</option>
+        <option value="pendente">Pendente</option>
+        <option value="finalizado">Finalizado</option>
+      </select>
     </div>
 
     {/* Conversation Items */}
@@ -762,10 +782,12 @@ const WhatsAppIA = () => {
         (c.last_message?.toLowerCase().includes(q))
       );
     }
-    if (activeFilter === 'leads') {
-      filtered = filtered.filter(c => c.status === 'ativo' || c.status === 'aguardando');
-    } else if (activeFilter === 'agendados') {
-      filtered = filtered.filter(c => c.status === 'qualificado');
+    if (activeFilter === 'ia') {
+      filtered = filtered.filter(c => (c as WhatsAppConversation & { respondido_por_ia?: boolean }).respondido_por_ia === true || c.status === 'ia');
+    } else if (activeFilter === 'ativos') {
+      filtered = filtered.filter(c => c.status === 'ativo' || c.status === 'Ativo');
+    } else if (activeFilter === 'pendentes') {
+      filtered = filtered.filter(c => c.status === 'aguardando' || c.status === 'pendente' || c.status === 'Aguardando');
     }
     return filtered;
   }, [conversations, searchQuery, activeFilter]);
