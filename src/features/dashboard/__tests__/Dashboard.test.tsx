@@ -98,123 +98,51 @@ describe('Dashboard', () => {
     vi.clearAllMocks();
   });
 
-  it('renders Dashboard header', () => {
+  it('renders hero title', () => {
     render(<Dashboard />, { wrapper: createWrapper() });
-    expect(screen.getAllByText('Dashboard').length).toBeGreaterThanOrEqual(1);
+    expect(screen.getByText(/O que você precisa automatizar hoje\?/i)).toBeInTheDocument();
   });
 
-  it('renders subtitle text', () => {
+  it('renders efficiency badge', () => {
     render(<Dashboard />, { wrapper: createWrapper() });
-    expect(screen.getByText(/métricas em tempo real/i)).toBeInTheDocument();
+    expect(screen.getByText(/Seu escritório trabalhando mais rápido/i)).toBeInTheDocument();
   });
 
-  it('shows Atualizar button that calls refetch', () => {
+  it('renders search input with correct placeholder', () => {
     render(<Dashboard />, { wrapper: createWrapper() });
-    const btn = screen.getByText('Atualizar');
-    fireEvent.click(btn);
-    expect(mockRefetch).toHaveBeenCalled();
+    expect(screen.getByPlaceholderText(/Ex: 'Criar Petição INSS', 'Analisar Contrato'\.\.\./i)).toBeInTheDocument();
   });
 
-  // --- KPI Cards ---
-
-  it('renders Total de Leads KPI', () => {
+  it('renders tabs', () => {
     render(<Dashboard />, { wrapper: createWrapper() });
-    expect(screen.getByText('Total de Leads')).toBeInTheDocument();
-    expect(screen.getByText('42')).toBeInTheDocument();
+    expect(screen.getByText('Assistentes Práticos')).toBeInTheDocument();
+    expect(screen.getByText('Meus Arquivos')).toBeInTheDocument();
+    expect(screen.getByText('Histórico')).toBeInTheDocument();
   });
 
-  it('renders Contratos KPI', () => {
+  it('renders AI agent cards', () => {
     render(<Dashboard />, { wrapper: createWrapper() });
-    expect(screen.getByText('Contratos')).toBeInTheDocument();
-    expect(screen.getAllByText('15').length).toBeGreaterThanOrEqual(1);
+    expect(screen.getByText('Elaborar Petição Inicial (INSS)')).toBeInTheDocument();
+    expect(screen.getByText('Análise de Contrato ou Acordo')).toBeInTheDocument();
+    expect(screen.getByText('Assistente de Triagem de WhatsApp')).toBeInTheDocument();
   });
 
-  it('renders Agendamentos KPI', () => {
+  it('filters agents by search query', () => {
     render(<Dashboard />, { wrapper: createWrapper() });
-    expect(screen.getAllByText('Agendamentos').length).toBeGreaterThanOrEqual(1);
-    expect(screen.getByText('20')).toBeInTheDocument();
+    const input = screen.getByPlaceholderText(/Ex: 'Criar Petição INSS', 'Analisar Contrato'\.\.\./i);
+
+    fireEvent.change(input, { target: { value: 'Petição' } });
+
+    expect(screen.getByText('Elaborar Petição Inicial (INSS)')).toBeInTheDocument();
+    expect(screen.queryByText('Análise de Contrato ou Acordo')).not.toBeInTheDocument();
   });
 
-  it('renders Agentes IA KPI', () => {
+  it('shows empty state when no tool matches search', () => {
     render(<Dashboard />, { wrapper: createWrapper() });
-    expect(screen.getByText('Agentes IA')).toBeInTheDocument();
-    expect(screen.getAllByText('5').length).toBeGreaterThanOrEqual(1);
-  });
+    const input = screen.getByPlaceholderText(/Ex: 'Criar Petição INSS', 'Analisar Contrato'\.\.\./i);
 
-  // --- Pipeline ---
+    fireEvent.change(input, { target: { value: 'NonExistentTool' } });
 
-  it('renders Pipeline de Leads section', () => {
-    render(<Dashboard />, { wrapper: createWrapper() });
-    expect(screen.getByText('Pipeline de Leads')).toBeInTheDocument();
-  });
-
-  it('renders pipeline status labels', () => {
-    render(<Dashboard />, { wrapper: createWrapper() });
-    expect(screen.getByText('Novos Leads')).toBeInTheDocument();
-    expect(screen.getByText('Em Qualificação')).toBeInTheDocument();
-    expect(screen.getByText('Proposta Enviada')).toBeInTheDocument();
-  });
-
-  // --- Áreas Jurídicas ---
-
-  it('renders Áreas Jurídicas section', () => {
-    render(<Dashboard />, { wrapper: createWrapper() });
-    expect(screen.getByText('Áreas Jurídicas')).toBeInTheDocument();
-    expect(screen.getByText('Trabalhista')).toBeInTheDocument();
-    expect(screen.getByText('Civil')).toBeInTheDocument();
-  });
-
-  // --- Agenda Intelligence ---
-
-  it('renders Inteligência de Agenda section', () => {
-    render(<Dashboard />, { wrapper: createWrapper() });
-    expect(screen.getByText('Inteligência de Agenda')).toBeInTheDocument();
-  });
-
-  it('shows agenda metrics', () => {
-    render(<Dashboard />, { wrapper: createWrapper() });
-    expect(screen.getByText('Comparecimento')).toBeInTheDocument();
-    expect(screen.getByText('85%')).toBeInTheDocument();
-    expect(screen.getByText('09:00 · 14:00')).toBeInTheDocument();
-  });
-
-  // --- Agentes Performance ---
-
-  it('renders Performance dos Agentes IA section', () => {
-    render(<Dashboard />, { wrapper: createWrapper() });
-    expect(screen.getByText('Performance dos Agentes IA')).toBeInTheDocument();
-  });
-
-  it('renders agent names', () => {
-    render(<Dashboard />, { wrapper: createWrapper() });
-    expect(screen.getByText('Qualificador')).toBeInTheDocument();
-    expect(screen.getByText('Analista')).toBeInTheDocument();
-  });
-
-  // --- Plan & Quick Actions ---
-
-  it('renders Plano Atual section with Free badge', () => {
-    render(<Dashboard />, { wrapper: createWrapper() });
-    expect(screen.getByText('Plano Atual')).toBeInTheDocument();
-    expect(screen.getByText('Free')).toBeInTheDocument();
-  });
-
-  it('renders quick action buttons', () => {
-    render(<Dashboard />, { wrapper: createWrapper() });
-    expect(screen.getByText('Novo lead')).toBeInTheDocument();
-    expect(screen.getByText('Agendar consulta')).toBeInTheDocument();
-    expect(screen.getByText('Fazer upgrade')).toBeInTheDocument();
-  });
-
-  it('navigates to pipeline on Novo lead click', () => {
-    render(<Dashboard />, { wrapper: createWrapper() });
-    fireEvent.click(screen.getByText('Novo lead'));
-    expect(mockNavigate).toHaveBeenCalledWith('/pipeline');
-  });
-
-  it('navigates to billing on Fazer upgrade click', () => {
-    render(<Dashboard />, { wrapper: createWrapper() });
-    fireEvent.click(screen.getByText('Fazer upgrade'));
-    expect(mockNavigate).toHaveBeenCalledWith('/billing');
+    expect(screen.getByText('Nenhuma ferramenta encontrada')).toBeInTheDocument();
   });
 });
