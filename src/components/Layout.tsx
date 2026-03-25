@@ -6,10 +6,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import LoadingSpinner from "@/components/LoadingSpinner";
 import OnboardingFlow from "@/components/OnboardingFlow";
 import { useKeyboardShortcuts } from "@/hooks/useKeyboardShortcuts";
-import { Menu, X, Scale, Bell } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import GlobalSearch from "@/components/GlobalSearch";
-import ThemeToggle from "@/components/ThemeToggle";
 import AIAssistantChat from "@/components/ai/AIAssistantChat";
 import { useRealtimeSync } from "@/hooks/useRealtimeSync";
 import { useNetworkStatus } from "@/hooks/useNetworkStatus";
@@ -18,9 +15,10 @@ import { useLocalPrazosNotifications } from '@/hooks/useLocalPrazosNotifications
 import { WifiOff, Wifi } from "lucide-react";
 import { useCapacitor } from '@/hooks/useCapacitor';
 import { App as CapacitorApp } from '@capacitor/app';
+import TopBar from '@/components/TopBar';
 
 const Layout = () => {
-    const { user, loading, profile } = useAuth();
+    const { user, loading } = useAuth();
     const location = useLocation();
     const navigate = useNavigate();
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -92,8 +90,6 @@ const Layout = () => {
     if (loading) return <LoadingSpinner fullScreen text="Carregando aplicação..." />;
     if (!user)   return <LoadingSpinner fullScreen text="Redirecionando para login..." />;
 
-    const userInitial = (profile?.nome_completo ?? user.email ?? 'U').charAt(0).toUpperCase();
-
     return (
         <div className="min-h-screen bg-background flex flex-col">
             {/* Network status banner */}
@@ -113,46 +109,8 @@ const Layout = () => {
             <GlobalSearch />
             <AIAssistantChat />
 
-            {/* ── Mobile Header (< lg) ── */}
-            <header className={`lg:hidden fixed top-0 inset-x-0 z-50 bg-primary border-b border-primary/80 flex items-center gap-3 px-4 shadow-sm ${isNative ? 'mobile-header-offset pt-2' : 'h-14'}`}>
-                <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-                    className="h-9 w-9 text-white hover:bg-white/15 flex-shrink-0"
-                    aria-label="Abrir menu"
-                >
-                    {mobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
-                </Button>
-
-                <div className="flex items-center gap-2">
-                    <div className="w-6 h-6 bg-white/20 rounded flex items-center justify-center">
-                        <Scale className="h-3.5 w-3.5 text-white" strokeWidth={2.5} />
-                    </div>
-                    <div className="flex flex-col">
-                        <span className="text-sm font-bold text-white tracking-tight leading-tight">
-                            {'Jurify'}
-                        </span>
-                        <span className="text-[10px] text-white/60 leading-tight">Workspace</span>
-                    </div>
-                </div>
-
-                <div className="ml-auto flex items-center gap-2">
-                    <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => navigate('/notificacoes')}
-                        className="h-8 w-8 text-white hover:bg-white/15 relative"
-                        aria-label="Notificações"
-                    >
-                        <Bell className="h-4 w-4" />
-                    </Button>
-                    <ThemeToggle />
-                    <div className="w-7 h-7 rounded-full bg-white/20 flex items-center justify-center">
-                        <span className="text-xs font-bold text-white">{userInitial}</span>
-                    </div>
-                </div>
-            </header>
+            {/* ── TopBar — all screen sizes ── */}
+            <TopBar onMenuToggle={() => setMobileMenuOpen(!mobileMenuOpen)} />
 
             {/* ── Mobile Menu Overlay ── */}
             {mobileMenuOpen && (
@@ -164,7 +122,7 @@ const Layout = () => {
             )}
 
             {/* ── Body: Sidebar + Main ── */}
-            <div className="flex flex-1 lg:h-screen">
+            <div className="flex flex-1 overflow-hidden">
                 {/* Sidebar — slide-in on mobile, always visible on desktop */}
                 <div className={`
                     fixed lg:relative inset-y-0 left-0 z-50
@@ -178,7 +136,7 @@ const Layout = () => {
                 </div>
 
                 {/* Main content area */}
-                <main className={`flex-1 min-w-0 overflow-y-auto pt-14 lg:p-10 bg-background ${isNative ? 'mobile-bottom-safe' : ''}`}>
+                <main className={`flex-1 min-w-0 overflow-y-auto lg:p-10 bg-background ${isNative ? 'mobile-bottom-safe' : ''}`}>
                     <div className="reveal-up mx-auto max-w-[1920px] w-full min-h-full bg-card rounded-[16px] shadow-card border border-border/10">
                         <Outlet />
                     </div>
