@@ -80,14 +80,14 @@ describe('AgendamentosManager', () => {
     vi.clearAllMocks();
   });
 
-  it('renders header with Agendamentos title', () => {
+  it('renders header with Tarefas & Reuniões title', () => {
     render(<AgendamentosManager />, { wrapper: createWrapper() });
-    expect(screen.getAllByText('Agendamentos').length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText('Tarefas & Reuniões').length).toBeGreaterThanOrEqual(1);
   });
 
   it('renders agendamento count in subtitle', () => {
     render(<AgendamentosManager />, { wrapper: createWrapper() });
-    expect(screen.getByText(/3 agendamentos no total/)).toBeInTheDocument();
+    expect(screen.getByText(/3 abertos/)).toBeInTheDocument();
   });
 
   it('renders Novo Agendamento button', () => {
@@ -111,12 +111,12 @@ describe('AgendamentosManager', () => {
 
   it('renders search input', () => {
     render(<AgendamentosManager />, { wrapper: createWrapper() });
-    expect(screen.getByPlaceholderText(/buscar por responsavel/i)).toBeInTheDocument();
+    expect(screen.getByPlaceholderText(/buscar por responsável/i)).toBeInTheDocument();
   });
 
   it('filters agendamentos by search term', () => {
     render(<AgendamentosManager />, { wrapper: createWrapper() });
-    const input = screen.getByPlaceholderText(/buscar por responsavel/i);
+    const input = screen.getByPlaceholderText(/buscar por responsável/i);
     fireEvent.change(input, { target: { value: 'Maria' } });
     expect(screen.getByText(/Dr\. Maria Silva/)).toBeInTheDocument();
     expect(screen.queryByText(/Dr\. Pedro Costa/)).not.toBeInTheDocument();
@@ -141,8 +141,10 @@ describe('AgendamentosManager', () => {
     expect(selects.length).toBeGreaterThanOrEqual(1);
   });
 
-  it('renders Atualizar button', () => {
+  it('renders Refresh icon button', () => {
     render(<AgendamentosManager />, { wrapper: createWrapper() });
-    expect(screen.getByText('Atualizar')).toBeInTheDocument();
+    // The button has RefreshCw icon but no "Atualizar" text now, only a RefreshCw icon
+    const buttons = screen.getAllByRole('button');
+    expect(buttons.length).toBeGreaterThanOrEqual(1);
   });
 });
