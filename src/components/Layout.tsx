@@ -16,6 +16,7 @@ import { WifiOff, Wifi } from "lucide-react";
 import { useCapacitor } from '@/hooks/useCapacitor';
 import { App as CapacitorApp } from '@capacitor/app';
 import TopBar from '@/components/TopBar';
+import Breadcrumbs from '@/components/Breadcrumbs';
 
 const Layout = () => {
     const { user, loading } = useAuth();
@@ -69,10 +70,10 @@ const Layout = () => {
     };
 
     useKeyboardShortcuts([
-        { key: 'd', ctrl: true, callback: () => navigate('/'),          description: 'Dashboard' },
-        { key: 'l', ctrl: true, callback: () => navigate('/crm'),       description: 'Clientes' },
+        { key: 'd', ctrl: true, callback: () => navigate('/dashboard'), description: 'Dashboard' },
+        { key: 'l', ctrl: true, callback: () => navigate('/crm'),       description: 'Contatos' },
         { key: 'a', ctrl: true, callback: () => navigate('/agentes'),   description: 'Agentes IA' },
-        { key: 'p', ctrl: true, callback: () => navigate('/pipeline'),  description: 'Pipeline' },
+        { key: 'p', ctrl: true, callback: () => navigate('/pipeline'),  description: 'Kanban' },
     ]);
 
     useEffect(() => {
@@ -137,8 +138,9 @@ const Layout = () => {
                 </div>
 
                 {/* Main content area */}
-                <main className={`flex-1 min-w-0 overflow-y-auto lg:p-10 bg-background ${isNative ? 'mobile-bottom-safe' : ''}`}>
-                    <div className="reveal-up mx-auto max-w-[1920px] w-full min-h-full bg-card rounded-[16px] shadow-card border border-border/10">
+                <main className={`flex-1 min-w-0 overflow-y-auto bg-background ${isNative ? 'mobile-bottom-safe' : ''}`}>
+                    <Breadcrumbs />
+                    <div className="mx-auto max-w-[1920px] w-full min-h-full">
                         <Outlet />
                     </div>
                 </main>
