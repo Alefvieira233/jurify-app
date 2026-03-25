@@ -6,68 +6,62 @@
 
 @layer base {
   :root {
-    /* ═══════════════════════════════════════════════════════
-       JURIFY — ENTERPRISE DESIGN SYSTEM
-       Primary: Deep Blue #1e3a8a  |  Font: DM Sans
-    ═══════════════════════════════════════════════════════ */
-
-    /* Backgrounds */
-    --background: 220 17% 98%;           /* #f9fafb */
-    --foreground: 222 47% 11%;           /* #111827 */
+    /* LíderHub — Clean White + Blue */
+    --background: 0 0% 100%;              /* pure white */
+    --foreground: 222 47% 11%;            /* gray-900 */
 
     /* Cards */
-    --card: 0 0% 100%;                   /* #ffffff */
+    --card: 0 0% 100%;
     --card-foreground: 222 47% 11%;
-    --card-border: 220 13% 91%;          /* #e5e7eb */
+    --card-border: 220 13% 91%;
 
-    /* Primary — Enterprise Blue */
-    --primary: 224 64% 33%;              /* #1e3a8a */
+    /* Primary — blue-500 */
+    --primary: 217 91% 60%;              /* #3b82f6 */
     --primary-foreground: 0 0% 100%;
 
     /* Secondary */
-    --secondary: 220 14% 96%;            /* #f1f5f9 */
+    --secondary: 220 14% 96%;
     --secondary-foreground: 222 47% 11%;
 
     /* Muted */
     --muted: 220 14% 96%;
-    --muted-foreground: 220 9% 46%;      /* #6b7280 */
+    --muted-foreground: 220 9% 46%;
 
-    /* Accent — brand-tinted, visually distinct from muted */
-    --accent: 220 55% 95.5%;             /* subtle blue tint — feels interactive */
-    --accent-foreground: 224 64% 28%;
-    --accent-hover: 220 55% 91%;
+    /* Accent — blue-50 tint */
+    --accent: 217 91% 97%;
+    --accent-foreground: 217 91% 45%;
 
     /* Semantic */
-    --destructive: 0 84% 60%;            /* #ef4444 */
+    --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 100%;
-    --success: 160 84% 39%;              /* #10b981 */
+    --success: 160 84% 39%;
     --success-foreground: 0 0% 100%;
-    --warning: 38 92% 50%;               /* #f59e0b */
+    --warning: 38 92% 50%;
     --warning-foreground: 0 0% 100%;
-    --info: 217 91% 60%;                 /* #3b82f6 */
+    --info: 217 91% 60%;
     --info-foreground: 0 0% 100%;
 
     /* UI tokens */
-    --border: 220 14% 89.5%;             /* slightly more visible than before */
-    --input: 0 0% 100%;
-    --ring: 224 64% 33%;
-    --radius: 10px;                      /* modern rounded — up from 8px */
+    --border: 220 13% 91%;               /* gray-200 */
+    --input: 220 13% 91%;
+    --ring: 217 91% 60%;                 /* blue-500 */
+    --radius: 0.5rem;                    /* 8px */
 
     /* Popovers */
     --popover: 0 0% 100%;
     --popover-foreground: 222 47% 11%;
 
-    /* Sidebar — subtle cool blue-gray, distinct from pure white content */
-    --sidebar-background: 220 28% 96.5%; /* #eff3f9 — not white, not gray */
-    --sidebar-foreground: 222 47% 11%;
-    --sidebar-primary: 224 64% 33%;
+    /* Sidebar — white like LíderHub */
+    --sidebar-background: 0 0% 100%;     /* pure white */
+    --sidebar-foreground: 220 9% 46%;    /* gray-500 text */
+    --sidebar-primary: 217 91% 60%;      /* blue-500 */
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 220 45% 94%;
-    --sidebar-accent-foreground: 222 47% 11%;
-    --sidebar-border: 220 18% 91%;
-    --sidebar-ring: 224 64% 33%;
+    --sidebar-accent: 217 91% 97%;       /* blue-50 */
+    --sidebar-accent-foreground: 217 91% 45%;
+    --sidebar-border: 220 13% 91%;       /* gray-200 */
+    --sidebar-ring: 217 91% 60%;         /* blue-500 */
 
-    /* Lead / Status colors — adaptive light/dark */
+    /* Status colors */
     --status-novo-lead:         217 91% 46%;
     --status-qualificacao:       32 95% 44%;
     --status-proposta:          239 84% 61%;
@@ -76,10 +70,10 @@
     --status-arquivado:         347 100% 50%;
 
     /* Shadow system */
-    --shadow-card: 0 1px 3px 0 rgb(0 0 0 / 0.06), 0 1px 2px -1px rgb(0 0 0 / 0.04);
-    --shadow-card-hover: 0 4px 14px 0 rgb(0 0 0 / 0.09), 0 2px 4px -2px rgb(0 0 0 / 0.05);
-    --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
-    --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.08), 0 2px 4px -2px rgb(0 0 0 / 0.05);
+    --shadow-card: 0 0 0 1px rgb(0 0 0 / 0.05);
+    --shadow-card-hover: 0 1px 3px 0 rgb(0 0 0 / 0.06);
+    --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.03);
+    --shadow-md: 0 2px 4px -1px rgb(0 0 0 / 0.06);
 
     /* Safe areas for Capacitor native (notch, home indicator) */
     --safe-top: env(safe-area-inset-top, 0px);
