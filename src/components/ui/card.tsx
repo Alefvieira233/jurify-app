@@ -5,14 +5,13 @@ import { cn } from "@/lib/utils"
 const Card = React.forwardRef<
   HTMLDivElement,
   React.HTMLAttributes<HTMLDivElement>
->(({ className, style, ...props }, ref) => (
+>(({ className, ...props }, ref) => (
   <div
     ref={ref}
     className={cn(
-      "rounded-lg border bg-card text-card-foreground",
+      "rounded-lg border border-border bg-card text-card-foreground",
       className
     )}
-    style={{ boxShadow: 'var(--shadow-card)', ...style }}
     {...props}
   />
 ))
