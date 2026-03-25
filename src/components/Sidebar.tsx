@@ -2,6 +2,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import {
   Scale,
+  Home,
   MessageSquare,
   MessageCircle,
   LayoutDashboard,
@@ -16,13 +17,7 @@ import {
   BookOpen,
   Gift,
   KanbanSquare,
-  GitBranch,
-  Sliders,
-  Briefcase,
   CheckSquare,
-  Building2,
-  LineChart,
-  Shield,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/contexts/AuthContext';
@@ -62,16 +57,18 @@ type NavEntry = (MenuLeaf & { kind: 'leaf' }) | (MenuSection & { kind: 'section'
    Main  → flat items + expandable sections (Atendimento, Automações)
 ───────────────────────────────────────────────────────────────────────── */
 const MAIN_NAV: NavEntry[] = [
-  { kind: 'leaf', id: 'dashboard',  label: 'Home',       icon: LayoutDashboard, resource: 'dashboard',  action: 'read' },
+  { kind: 'leaf', id: 'home',       label: 'Home',          icon: Home,            resource: 'dashboard',     action: 'read' },
+  { kind: 'leaf', id: 'dashboard',  label: 'Dashboard',     icon: LayoutDashboard, resource: 'dashboard',     action: 'read' },
+  { kind: 'leaf', id: 'conexoes',   label: 'Conexões',      icon: Link2,           resource: 'conexoes',      action: 'read' },
   {
     kind: 'section',
     id: 'atendimento',
     label: 'Atendimento',
     icon: MessageSquare,
     children: [
-      { id: 'whatsapp', label: 'Conversas',  icon: MessageCircle, resource: 'whatsapp', action: 'read' },
-      { id: 'crm',      label: 'Contatos',   icon: Users,         resource: 'leads',    action: 'read' },
-      { id: 'pipeline', label: 'Kanban',     icon: KanbanSquare,  resource: 'leads',    action: 'read' },
+      { id: 'whatsapp',  label: 'Conversas', icon: MessageCircle, resource: 'whatsapp', action: 'read' },
+      { id: 'crm',       label: 'Contatos',  icon: Users,         resource: 'leads',    action: 'read' },
+      { id: 'pipeline',  label: 'Kanban',    icon: KanbanSquare,  resource: 'leads',    action: 'read' },
     ],
   },
   {
@@ -80,27 +77,13 @@ const MAIN_NAV: NavEntry[] = [
     label: 'Automações',
     icon: Bot,
     children: [
-      { id: 'agentes',             label: 'Agentes',              icon: Bot,       resource: 'agentes_ia', action: 'read' },
-      { id: 'fluxos',              label: 'Fluxos',               icon: GitBranch, resource: 'fluxos', action: 'read' },
-      { id: 'regras',              label: 'Regras',               icon: Sliders,   resource: 'regras', action: 'read' },
-      { id: 'base-conhecimento',   label: 'Base de Conhecimento', icon: BookOpen,  resource: 'agentes_ia', action: 'read' },
+      { id: 'agentes',           label: 'Agentes',              icon: Bot,      resource: 'agentes_ia', action: 'read' },
+      { id: 'base-conhecimento', label: 'Base de Conhecimento', icon: BookOpen, resource: 'agentes_ia', action: 'read' },
     ],
   },
-  {
-    kind: 'section',
-    id: 'operacao',
-    label: 'Operação',
-    icon: Briefcase,
-    children: [
-      { id: 'agendamentos',  label: 'Tarefas',        icon: CheckSquare, resource: 'agendamentos', action: 'read' },
-      { id: 'equipe',        label: 'Equipe',         icon: Users,       resource: 'usuarios',     action: 'read' },
-      { id: 'departamentos', label: 'Departamentos',  icon: Building2,   resource: 'departamentos',action: 'read' },
-      { id: 'administracao', label: 'Administração',  icon: Shield,      resource: 'configuracoes',action: 'read', adminOnly: true },
-    ],
-  },
-  { kind: 'leaf', id: 'conexoes',      label: 'Conexões',      icon: Link2,     resource: 'conexoes',      action: 'read' },
-  { kind: 'leaf', id: 'configuracoes', label: 'Configurações', icon: Settings,  resource: 'configuracoes', action: 'read' },
-  { kind: 'leaf', id: 'metricas',      label: 'Métricas',      icon: LineChart, resource: 'relatorios',    action: 'read' },
+  { kind: 'leaf', id: 'agendamentos',  label: 'Tarefas',        icon: CheckSquare, resource: 'agendamentos', action: 'read' },
+  { kind: 'leaf', id: 'configuracoes', label: 'Configurações',  icon: Settings,    resource: 'configuracoes', action: 'read' },
+  { kind: 'leaf', id: 'suporte',       label: 'Suporte',        icon: HelpCircle,  resource: 'dashboard',     action: 'read' },
 ];
 
 /** All leaf items flattened (for RBAC filtering) */
@@ -222,23 +205,23 @@ const Sidebar = ({ activeSection, onSectionChange }: SidebarProps) => {
           aria-current={isActive ? 'page' : undefined}
           aria-label={`${item.label}${item.badge === 'notification' && unreadCount > 0 ? ` (${unreadCount} não lidas)` : ''}${isDisabled ? ' (em breve)' : ''}`}
           className={cn(
-            'group w-full flex items-center gap-3 py-2.5 rounded-[12px] text-[13px] transition-all duration-300 text-left border border-transparent',
+            'group w-full flex items-center gap-3 py-2.5 rounded-[12px] text-[13px] transition-all duration-300 text-left border-l-2',
             indent ? 'pl-10 pr-3' : 'px-3.5',
             isDisabled
-              ? 'text-sidebar-foreground/20 cursor-not-allowed'
+              ? 'text-muted-foreground/40 cursor-not-allowed border-transparent'
               : isActive
-              ? 'bg-primary/10 text-primary font-semibold border-primary/20 backdrop-blur-sm'
-              : 'text-sidebar-foreground/60 hover:bg-sidebar-border/15 hover:border-sidebar-border/30 hover:text-sidebar-foreground font-medium'
+              ? 'text-primary font-medium bg-primary/5 border-primary'
+              : 'text-muted-foreground hover:bg-accent border-transparent font-medium'
           )}
         >
           <Icon
             className={cn(
               'h-4 w-4 flex-shrink-0 transition-colors duration-300',
               isDisabled
-                ? 'text-sidebar-foreground/20'
+                ? 'text-muted-foreground/40'
                 : isActive
                 ? 'text-primary'
-                : 'text-sidebar-foreground/40 group-hover:text-sidebar-foreground/80'
+                : 'text-muted-foreground/60 group-hover:text-foreground'
             )}
             strokeWidth={isActive ? 2.5 : 2}
           />
@@ -320,7 +303,7 @@ const Sidebar = ({ activeSection, onSectionChange }: SidebarProps) => {
   return (
     <nav
       aria-label="Menu principal"
-      className="w-64 xs:w-[280px] bg-sidebar text-sidebar-foreground h-screen flex flex-col border-r border-sidebar-border/30 shadow-2xl shadow-black/20"
+      className="w-[220px] bg-background text-sidebar-foreground h-full flex flex-col border-r border-border"
     >
       {/* ── Logo ── */}
       <div className="h-20 flex items-center gap-3 px-6 shadow-sm flex-shrink-0">
@@ -363,24 +346,15 @@ const Sidebar = ({ activeSection, onSectionChange }: SidebarProps) => {
         </ul>
       </nav>
 
-      {/* ── Referral banner ── */}
-      <div className="px-4 pb-2 flex-shrink-0">
-        <button
-          type="button"
-          onClick={() => onSectionChange('suporte')}
-          className="relative overflow-hidden w-full flex flex-col gap-1 px-4 py-3.5 rounded-[14px] bg-gradient-to-br from-sidebar-border/10 to-transparent border border-sidebar-border/30 hover:border-primary/40 transition-all duration-300 group shadow-lg"
-        >
-          <div className="absolute inset-0 bg-primary/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-          <div className="flex items-center gap-2 mb-1 w-full relative z-10">
-            <Gift className="h-4 w-4 flex-shrink-0 text-amber-500 group-hover:text-amber-400 transition-colors" />
-            <p className="text-xs font-bold text-sidebar-foreground group-hover:text-white transition-colors leading-none tracking-wide text-left">
-              Indique e Ganhe
-            </p>
+      {/* Referral CTA */}
+      <div className="mt-auto border-t border-border p-3">
+        <div className="flex items-center gap-2 text-xs text-muted-foreground cursor-pointer hover:text-foreground transition-colors">
+          <Gift className="h-3.5 w-3.5 shrink-0" />
+          <div>
+            <div className="font-medium text-foreground text-[11px]">Indique Jurify</div>
+            <div className="text-[10px]">Ganhe R$200 por indicação</div>
           </div>
-          <p className="text-[10px] text-sidebar-foreground/50 group-hover:text-sidebar-foreground/80 transition-colors leading-relaxed text-left relative z-10">
-            Convide colegas e ganhe <strong>+R$200</strong> por indicação aprovada.
-          </p>
-        </button>
+        </div>
       </div>
 
       {/* ── User footer ── */}
