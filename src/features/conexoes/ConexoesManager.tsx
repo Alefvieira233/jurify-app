@@ -181,8 +181,7 @@ const ConexoesManager = () => {
                 Conecte seu primeiro número de WhatsApp para iniciar.
               </p>
 
-              {canCreate && (
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 w-full max-w-2xl">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 w-full max-w-2xl">
                   {/* Card API Não Oficial */}
                   <button
                     type="button"
@@ -241,7 +240,6 @@ const ConexoesManager = () => {
                     </ul>
                   </button>
                 </div>
-              )}
             </>
           )}
         </div>
