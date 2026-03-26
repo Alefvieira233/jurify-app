@@ -12,10 +12,7 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { getCorsHeaders } from "../_shared/cors.ts";
 import { applyRateLimit } from "../_shared/rate-limiter.ts";
-
-
-const EVOLUTION_API_URL = Deno.env.get("EVOLUTION_API_URL");
-const EVOLUTION_API_KEY = Deno.env.get("EVOLUTION_API_KEY");
+import { sendTextMessage as kapsoSendText, sendMediaMessage as kapsoSendMedia } from "../_shared/kapso-client.ts";
 
 // 🔒 TIPOS DE REQUISIÇÃO
 interface SendMessageRequest {
@@ -78,119 +75,42 @@ function validateRequest(data: unknown): data is SendMessageRequest {
   return true;
 }
 
-// 📤 Envia mensagem via Evolution API (self-hosted)
-async function sendViaEvolution(
+// 📤 Envia mensagem via Kapso API
+async function sendViaKapso(
   to: string,
   text: string,
-  instanceName: string
 ): Promise<{ success: boolean; messageId?: string; error?: string }> {
-  if (!EVOLUTION_API_URL || !EVOLUTION_API_KEY) {
-    return { success: false, error: "Evolution API credentials not configured" };
-  }
-
   try {
-    const response = await fetch(
-      `${EVOLUTION_API_URL}/message/sendText/${instanceName}`,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          apikey: EVOLUTION_API_KEY,
-        },
-        body: JSON.stringify({
-          number: to,
-          text: text,
-        }),
-      }
-    );
-
-    const data = await response.json();
-
-    if (!response.ok) {
-      console.error("❌ Evolution API Error:", data);
-      return {
-        success: false,
-        error: data.message || `Evolution API error: ${response.status}`,
-      };
-    }
-
-    const messageId = data.key?.id || data.messageId || "sent";
-
-    return { success: true, messageId };
+    const result = await kapsoSendText(to, text);
+    return { success: true, messageId: result.messageId };
   } catch (error) {
-    console.error("❌ Network error (Evolution):", error);
+    console.error("❌ Kapso API Error:", error);
     return {
       success: false,
-      error: error instanceof Error ? error.message : "Network error",
+      error: error instanceof Error ? error.message : "Kapso API error",
     };
   }
 }
 
-// 📤 Envia mídia via Evolution API
-async function sendMediaViaEvolution(
+// 📤 Envia mídia via Kapso API
+async function sendMediaViaKapso(
   to: string,
   mediaType: "image" | "audio" | "document",
   mediaBase64: string,
-  instanceName: string,
   mimeType?: string,
   fileName?: string,
   caption?: string,
 ): Promise<{ success: boolean; messageId?: string; error?: string }> {
-  if (!EVOLUTION_API_URL || !EVOLUTION_API_KEY) {
-    return { success: false, error: "Evolution API credentials not configured" };
-  }
-
   try {
-    const endpointMap: Record<string, string> = {
-      image: "sendImage",
-      audio: "sendWhatsAppAudio",
-      document: "sendDocument",
-    };
-    const endpoint = endpointMap[mediaType] || "sendDocument";
-
-    // Build body per Evolution API spec
-    const body: Record<string, unknown> = { number: to };
-
-    if (mediaType === "image") {
-      body.media = `data:${mimeType || "image/jpeg"};base64,${mediaBase64}`;
-      if (caption) body.caption = caption;
-    } else if (mediaType === "audio") {
-      body.media = `data:${mimeType || "audio/ogg"};base64,${mediaBase64}`;
-    } else {
-      body.media = `data:${mimeType || "application/octet-stream"};base64,${mediaBase64}`;
-      if (fileName) body.fileName = fileName;
-      if (caption) body.caption = caption;
-    }
-
-    const response = await fetch(
-      `${EVOLUTION_API_URL}/message/${endpoint}/${instanceName}`,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          apikey: EVOLUTION_API_KEY,
-        },
-        body: JSON.stringify(body),
-      }
-    );
-
-    const data = await response.json();
-
-    if (!response.ok) {
-      console.error(`❌ Evolution API Error (${endpoint}):`, data);
-      return {
-        success: false,
-        error: data.message || `Evolution API error: ${response.status}`,
-      };
-    }
-
-    const messageId = data.key?.id || data.messageId || "sent";
-    return { success: true, messageId };
+    // Kapso expects a URL, not base64. Upload to Supabase Storage first or use data URI.
+    const dataUri = `data:${mimeType || "application/octet-stream"};base64,${mediaBase64}`;
+    const result = await kapsoSendMedia(to, mediaType, dataUri, caption, fileName);
+    return { success: true, messageId: result.messageId };
   } catch (error) {
-    console.error("❌ Network error (Evolution media):", error);
+    console.error("❌ Kapso Media Error:", error);
     return {
       success: false,
-      error: error instanceof Error ? error.message : "Network error",
+      error: error instanceof Error ? error.message : "Kapso media error",
     };
   }
 }
@@ -292,10 +212,9 @@ async function saveMessageToDatabase(
   }
 }
 
-// 🔑 Busca credenciais do WhatsApp para o tenant (Evolution ou Meta)
+// 🔑 Busca credenciais do WhatsApp para o tenant (Kapso ou Meta)
 interface WhatsAppCredentials {
-  provider: "evolution" | "meta";
-  instanceName?: string;   // Evolution: nome da instância
+  provider: "kapso" | "meta";
   phoneNumberId?: string;  // Meta: phone number ID
   accessToken?: string;    // Meta: access token
 }
@@ -304,52 +223,46 @@ async function getWhatsAppCredentials(
   supabase: ReturnType<typeof createClient>,
   tenantId?: string
 ): Promise<WhatsAppCredentials | null> {
-  if (!tenantId) {
-    // Fallback para credenciais globais Meta
-    const phoneNumberId = Deno.env.get("WHATSAPP_PHONE_NUMBER_ID");
-    const accessToken = Deno.env.get("WHATSAPP_ACCESS_TOKEN");
-    if (phoneNumberId && accessToken) {
-      return { provider: "meta", phoneNumberId, accessToken };
+  // 1. Tenta Kapso API (prioridade — env vars globais)
+  const kapsoKey = Deno.env.get("KAPSO_API_KEY");
+  const kapsoPhoneId = Deno.env.get("KAPSO_PHONE_NUMBER_ID");
+  if (kapsoKey && kapsoPhoneId) {
+    // Verify tenant has active kapso config
+    if (tenantId) {
+      const { data: kapsoConfig } = await supabase
+        .from("configuracoes_integracoes")
+        .select("status")
+        .eq("tenant_id", tenantId)
+        .eq("nome_integracao", "whatsapp_kapso")
+        .eq("status", "ativa")
+        .maybeSingle();
+
+      if (kapsoConfig) {
+        return { provider: "kapso" };
+      }
+    } else {
+      // No tenant — use global Kapso config
+      return { provider: "kapso" };
     }
-    return null;
   }
 
-  // 1. Tenta Evolution API primeiro (prioridade)
-  const { data: evolutionConfig } = await supabase
-    .from("configuracoes_integracoes")
-    .select("observacoes, status")
-    .eq("tenant_id", tenantId)
-    .eq("nome_integracao", "whatsapp_evolution")
-    .eq("status", "ativa")
-    .maybeSingle();
+  // 2. Tenta Meta Official API (direct)
+  if (tenantId) {
+    const { data: metaConfig } = await supabase
+      .from("configuracoes_integracoes")
+      .select("api_key, endpoint_url")
+      .eq("tenant_id", tenantId)
+      .eq("nome_integracao", "whatsapp_oficial")
+      .eq("status", "ativa")
+      .maybeSingle();
 
-  if (evolutionConfig?.observacoes && EVOLUTION_API_URL && EVOLUTION_API_KEY) {
-    // Extract instanceName from observacoes (format: "Instance: nome")
-    const match = evolutionConfig.observacoes.match(/Instance:\s*([^|]+)/);
-    const instanceName = match ? match[1].trim() : null;
-    if (instanceName) {
+    if (metaConfig?.api_key && metaConfig?.endpoint_url) {
       return {
-        provider: "evolution",
-        instanceName,
+        provider: "meta",
+        phoneNumberId: metaConfig.endpoint_url,
+        accessToken: metaConfig.api_key,
       };
     }
-  }
-
-  // 2. Tenta Meta Official API
-  const { data: metaConfig } = await supabase
-    .from("configuracoes_integracoes")
-    .select("api_key, endpoint_url")
-    .eq("tenant_id", tenantId)
-    .eq("nome_integracao", "whatsapp_oficial")
-    .eq("status", "ativa")
-    .maybeSingle();
-
-  if (metaConfig?.api_key && metaConfig?.endpoint_url) {
-    return {
-      provider: "meta",
-      phoneNumberId: metaConfig.endpoint_url,
-      accessToken: metaConfig.api_key,
-    };
   }
 
   // 3. Fallback para credenciais globais Meta
@@ -461,22 +374,20 @@ Deno.serve(async (req) => {
     let result: { success: boolean; messageId?: string; error?: string };
     const isMedia = messageRequest.mediaType && messageRequest.mediaBase64;
 
-    if (credentials.provider === "evolution" && credentials.instanceName) {
+    if (credentials.provider === "kapso") {
       if (isMedia) {
-        result = await sendMediaViaEvolution(
+        result = await sendMediaViaKapso(
           messageRequest.to,
           messageRequest.mediaType!,
           messageRequest.mediaBase64!,
-          credentials.instanceName,
           messageRequest.mimeType,
           messageRequest.fileName,
           messageRequest.caption,
         );
       } else {
-        result = await sendViaEvolution(
+        result = await sendViaKapso(
           messageRequest.to,
           messageRequest.text,
-          credentials.instanceName
         );
       }
     } else if (credentials.provider === "meta" && credentials.phoneNumberId && credentials.accessToken) {

@@ -57,7 +57,8 @@ export function useRealtimeSync(config: RealtimeConfig = {}) {
       channelRef.current = null;
     }
 
-    const channelName = `realtime-${tenantId}-${tables.join('-')}`;
+    // Use unique suffix to avoid reusing an already-subscribed channel instance
+    const channelName = `realtime-${tenantId}-${tables.join('-')}-${Date.now()}`;
     let channel = supabase.channel(channelName);
 
     // Subscribe to each table
@@ -120,14 +121,18 @@ export function useRealtimeSync(config: RealtimeConfig = {}) {
       );
     }
 
-    channel.subscribe((status) => {
-      if ((status as string) === 'SUBSCRIBED') {
-        log.debug(`Subscribed to ${tables.join(', ')} for tenant ${tenantId}`);
-      }
-      if ((status as string) === 'CHANNEL_ERROR') {
-        log.error(`Channel error for ${channelName}`);
-      }
-    });
+    try {
+      channel.subscribe((status) => {
+        if ((status as string) === 'SUBSCRIBED') {
+          log.debug(`Subscribed to ${tables.join(', ')} for tenant ${tenantId}`);
+        }
+        if ((status as string) === 'CHANNEL_ERROR') {
+          log.error(`Channel error for ${channelName}`);
+        }
+      });
+    } catch (err) {
+      log.error('Failed to subscribe to realtime channel', err);
+    }
 
     channelRef.current = channel;
 
@@ -151,16 +156,17 @@ export function useRealtimePresence() {
   useEffect(() => {
     if (!user || !tenantId) return;
 
-    const channel = supabase.channel(`presence-${tenantId}`, {
+    const channel = supabase.channel(`presence-${tenantId}-${Date.now()}`, {
       config: { presence: { key: user.id } },
     });
 
-    channel
-      .on('presence', { event: 'sync' }, () => {
-        const state = channel.presenceState();
-        log.debug(`Online users: ${Object.keys(state).length}`);
-      })
-      .subscribe((status) => {
+    channel.on('presence', { event: 'sync' }, () => {
+      const state = channel.presenceState();
+      log.debug(`Online users: ${Object.keys(state).length}`);
+    });
+
+    try {
+      channel.subscribe((status) => {
         if ((status as string) === 'SUBSCRIBED') {
           void channel.track({
             user_id: user.id,
@@ -169,6 +175,9 @@ export function useRealtimePresence() {
           });
         }
       });
+    } catch (err) {
+      log.error('Failed to subscribe to presence channel', err);
+    }
 
     channelRef.current = channel;
 

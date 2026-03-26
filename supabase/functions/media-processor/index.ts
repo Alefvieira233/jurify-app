@@ -1,7 +1,7 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { OpenAI } from "https://deno.land/x/openai@v4.24.0/mod.ts";
 import { getCorsHeaders } from "../_shared/cors.ts";
-import { downloadEvolutionMedia, detectMediaCategory } from "../_shared/media-utils.ts";
+import { downloadKapsoMedia, detectMediaCategory } from "../_shared/media-utils.ts";
 import { DEFAULT_OPENAI_MODEL, WHISPER_MODEL } from "../_shared/ai-model.ts";
 
 interface MediaProcessRequest {
@@ -127,6 +127,18 @@ Deno.serve(async (req) => {
     return new Response("ok", { headers: corsHeaders });
   }
 
+  // Auth: require service-role key (this function is called server-to-server only)
+  const authHeader = req.headers.get("Authorization");
+  const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
+  const token = authHeader?.replace("Bearer ", "") ?? "";
+
+  if (!serviceKey || !token || token !== serviceKey) {
+    return new Response(JSON.stringify({ error: "Unauthorized" }), {
+      status: 401,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
+
   const startTime = Date.now();
 
   try {
@@ -143,7 +155,7 @@ Deno.serve(async (req) => {
     console.log(`[media-processor] Processing ${messageType} media from URL: ${mediaUrl.substring(0, 80)}...`);
 
     // Step 1: Download media
-    const media = await downloadEvolutionMedia(mediaUrl);
+    const media = await downloadKapsoMedia(mediaUrl);
     const category = detectMediaCategory(media.mimeType);
 
     console.log(`[media-processor] Downloaded ${media.sizeBytes} bytes, detected: ${category} (${media.mimeType})`);

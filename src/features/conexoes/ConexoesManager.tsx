@@ -1,37 +1,34 @@
 import { useState, useMemo } from 'react';
 import {
-  Plus, Search, MoreHorizontal, Wifi, WifiOff, RefreshCw,
-  Trash2, Eye, Link2, AlertTriangle, ShieldCheck, Activity
+  Plus, Search, MoreHorizontal, RefreshCw,
+  Trash2, GripVertical, LayoutGrid, Activity
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Badge } from '@/components/ui/badge';
+import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import {
-  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
+  DropdownMenu, DropdownMenuContent, DropdownMenuItem,
+  DropdownMenuTrigger, DropdownMenuCheckboxItem,
 } from '@/components/ui/dropdown-menu';
-import { Sheet, SheetContent } from '@/components/ui/sheet';
+import {
+  Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
+} from '@/components/ui/table';
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useConexoes, type ConexaoWhatsApp } from '@/hooks/useConexoes';
 import { useRBAC } from '@/hooks/useRBAC';
 import { usePageTitle } from '@/hooks/usePageTitle';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { getAvatarHex, getInitials } from '@/utils/formatting';
+import { getInitials } from '@/utils/formatting';
 import ConnectionTypeChooser from './ConnectionTypeChooser';
 import QRCodeWizard from './QRCodeWizard';
 import ConnectionDetailsDrawer from './ConnectionDetailsDrawer';
 
 type NewConnectionStep = 'choose' | 'wizard';
 
-const STATUS_CONFIG: Record<string, { label: string; bg: string; text: string; dot: string; icon: typeof Wifi }> = {
-  connected:    { label: 'Conectado',    bg: 'bg-emerald-500/10',     text: 'text-emerald-500', dot: 'bg-emerald-500', icon: Wifi },
-  disconnected: { label: 'Desconectado', bg: 'bg-red-500/10',         text: 'text-red-500',     dot: 'bg-red-500',     icon: WifiOff },
-  connecting:   { label: 'Conectando',   bg: 'bg-amber-500/10',       text: 'text-amber-500',   dot: 'bg-amber-500 animate-pulse', icon: RefreshCw },
-  error:        { label: 'Erro Crítico', bg: 'bg-destructive/10',     text: 'text-destructive', dot: 'bg-destructive animate-ping', icon: AlertTriangle },
-};
-
 const ConexoesManager = () => {
-  usePageTitle('Conexões & Canais');
+  usePageTitle('Conexões');
   const { conexoes, isLoading, deleteConexao } = useConexoes();
   const { can } = useRBAC();
   const { toast } = useToast();
@@ -41,6 +38,7 @@ const ConexoesManager = () => {
   const [newConnStep, setNewConnStep] = useState<NewConnectionStep>('choose');
   const [selectedConexao, setSelectedConexao] = useState<ConexaoWhatsApp | null>(null);
   const [detailsOpen, setDetailsOpen] = useState(false);
+  const [visibleCols, setVisibleCols] = useState({ status_padrao: true, departamento: true });
 
   const canCreate = can('conexoes', 'create');
   const canDelete = can('conexoes', 'delete');
@@ -61,10 +59,11 @@ const ConexoesManager = () => {
     setNewConnOpen(true);
   };
 
-  const handleTypeSelected = (type: 'evolution' | 'oficial') => {
-    if (type === 'evolution') {
+  const handleTypeSelected = (type: 'kapso_qr' | 'kapso_oficial') => {
+    if (type === 'kapso_qr') {
       setNewConnStep('wizard');
     }
+    // kapso_oficial flow will be handled when Kapso official setup is implemented
   };
 
   const handleConnected = (instanceName: string) => {
@@ -80,8 +79,8 @@ const ConexoesManager = () => {
   const handleReconnect = async (conexao: ConexaoWhatsApp) => {
     if (!conexao.instance_name) return;
     try {
-      const { data, error } = await supabase.functions.invoke('evolution-manager', {
-        body: { action: 'restart', instanceName: conexao.instance_name },
+      const { data, error } = await supabase.functions.invoke('kapso-manager', {
+        body: { action: 'qrcode', instanceName: conexao.instance_name },
       });
       if (error) throw error;
       toast({ title: data?.success ? 'Reconexão iniciada' : 'Falha na reconexão' });
@@ -93,7 +92,7 @@ const ConexoesManager = () => {
   const handleDelete = async (conexao: ConexaoWhatsApp) => {
     try {
       if (conexao.instance_name) {
-        await supabase.functions.invoke('evolution-manager', {
+        await supabase.functions.invoke('kapso-manager', {
           body: { action: 'delete', instanceName: conexao.instance_name },
         });
       }
@@ -103,203 +102,256 @@ const ConexoesManager = () => {
     }
   };
 
-  const formatDate = (dateStr: string | null) => {
-    if (!dateStr) return 'Nenhuma sincronização';
-    return new Date(dateStr).toLocaleDateString('pt-BR', {
-      day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit',
-    });
-  };
-
   return (
-    <div className="space-y-8 pb-12">
-      {/* Header Premium (Lex Obsidian) */}
-      <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
-        <div>
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 text-primary text-xs font-bold uppercase tracking-widest mb-3">
-            <Link2 className="w-3.5 h-3.5" />
-            Módulo Enterprise
-          </div>
-          <h1 className="text-3xl font-extrabold tracking-tight text-foreground">
-            Conexões & Canais
-          </h1>
-          <p className="text-sm text-muted-foreground mt-2 max-w-xl">
-            Gerencie todas as entradas e saídas de comunicação. Monitore instâncias, rotas de atendimento e saúde do servidor de mensagens.
-          </p>
-        </div>
-        {canCreate && (
-          <Button onClick={handleNewConnection} size="lg" className="gap-2 shadow-lg shadow-primary/20 rounded-[12px]">
-            <Plus className="h-4 w-4" />
-            Nova Conexão
-          </Button>
-        )}
+    <div className="space-y-6 pb-12">
+      {/* Header */}
+      <div>
+        <h1 className="text-2xl font-bold tracking-tight">Conexões</h1>
+        <p className="text-muted-foreground">
+          Gerencie suas conexões com canais de comunicação.
+        </p>
       </div>
 
-      {/* Dashboard Metrics / Quick Search */}
-      <div className="flex flex-col sm:flex-row items-center gap-4 bg-muted/20 p-4 rounded-[16px] border border-border/10">
-        <div className="relative flex-1 w-full">
+      {/* Search + Actions */}
+      <div className="flex items-center justify-between gap-4">
+        <div className="relative flex-1 max-w-sm">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
-            placeholder="Buscar por nome, telefone ou instância..."
+            placeholder="Pesquisar conexões..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="pl-9 h-11 bg-background/50 border-border/20 rounded-[12px]"
+            className="pl-9"
           />
         </div>
-        <div className="flex items-center gap-6 px-4">
-          <div className="text-center">
-            <p className="text-[10px] uppercase font-bold text-muted-foreground">Total</p>
-            <p className="text-xl font-black">{conexoes.length}</p>
-          </div>
-          <div className="w-px h-8 bg-border/20"></div>
-          <div className="text-center">
-            <p className="text-[10px] uppercase font-bold text-muted-foreground">Conectados</p>
-            <p className="text-xl font-black text-emerald-500">
-              {conexoes.filter(c => c.status === 'connected').length}
-            </p>
-          </div>
-        </div>
-      </div>
-
-      {/* Cards Grid */}
-      {isLoading ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {Array.from({ length: 3 }).map((_, i) => (
-            <Skeleton key={i} className="h-48 w-full rounded-[24px]" />
-          ))}
-        </div>
-      ) : filtered.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-24 text-center border border-dashed border-border/20 rounded-[24px] bg-muted/5">
-          <div className="w-20 h-20 rounded-full bg-primary/10 flex items-center justify-center mb-6">
-            <ShieldCheck className="h-10 w-10 text-primary" />
-          </div>
-          <h3 className="text-2xl font-bold text-foreground mb-2">
-            {search ? 'Nenhuma conexão encontrada' : 'Central de Comunicação Vazia'}
-          </h3>
-          <p className="text-base text-muted-foreground mb-8 max-w-md">
-            {search
-              ? 'Nenhum canal corresponde aos critérios da busca.'
-              : 'Conecte o seu primeiro número de WhatsApp para iniciar os fluxos de automação e captação de leads.'}
-          </p>
-          {!search && canCreate && (
-            <Button onClick={handleNewConnection} size="lg" className="rounded-[12px]">
+        <div className="flex items-center gap-2">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" size="sm">
+                <LayoutGrid className="h-4 w-4 mr-2" />
+                Colunas
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuCheckboxItem
+                checked={visibleCols.status_padrao}
+                onCheckedChange={(v) => setVisibleCols((c) => ({ ...c, status_padrao: !!v }))}
+              >
+                Status Padrão
+              </DropdownMenuCheckboxItem>
+              <DropdownMenuCheckboxItem
+                checked={visibleCols.departamento}
+                onCheckedChange={(v) => setVisibleCols((c) => ({ ...c, departamento: !!v }))}
+              >
+                Departamento
+              </DropdownMenuCheckboxItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+          {canCreate && (
+            <Button onClick={handleNewConnection}>
               <Plus className="h-4 w-4 mr-2" />
-              Adicionar Primeiro Canal
+              Nova Conexão
             </Button>
           )}
         </div>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filtered.map((conexao) => {
-            const cfg = STATUS_CONFIG[conexao.status] || STATUS_CONFIG['disconnected']!;
-            const bgAvatar = conexao.avatar_url ? `url(${conexao.avatar_url})` : getAvatarHex(conexao.nome || 'W');
-            
-            return (
-              <div
-                key={conexao.id}
-                className="group relative bg-background border border-border/10 rounded-[24px] p-6 hover:shadow-2xl hover:shadow-primary/5 transition-all duration-300 hover:-translate-y-1 overflow-hidden"
-              >
-                {/* Glow effect matching status */}
-                <div className={`absolute -top-10 -right-10 w-32 h-32 blur-[60px] opacity-20 pointer-events-none ${cfg.bg.replace('/10', '')}`} />
+      </div>
 
-                <div className="flex items-start justify-between mb-6">
-                  <div className="flex items-center gap-4">
-                    <div 
-                      className="w-14 h-14 rounded-full flex items-center justify-center text-white text-xl font-bold border-2 border-background shadow-lg"
-                      style={{ background: conexao.avatar_url ? 'transparent' : bgAvatar, backgroundImage: conexao.avatar_url ? `url(${conexao.avatar_url})` : 'none', backgroundSize: 'cover' }}
-                    >
-                      {!conexao.avatar_url && getInitials(conexao.nome || 'WP')}
-                    </div>
-                    <div>
-                      <h3 className="font-bold text-lg text-foreground leading-tight">
-                        {conexao.nome || 'WhatsApp'}
-                      </h3>
-                      <p className="text-sm text-muted-foreground mt-0.5">
-                        {conexao.telefone || 'Sem número'}
-                      </p>
-                    </div>
-                  </div>
-
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-foreground">
-                        <MoreHorizontal className="h-5 w-5" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end" className="w-48 rounded-[12px]">
-                      <DropdownMenuItem onClick={() => handleOpenDetails(conexao)} className="rounded-[8px] cursor-pointer">
-                        <Activity className="h-4 w-4 mr-2" />
-                        Diagnóstico & Logs
-                      </DropdownMenuItem>
-                      {conexao.status === 'disconnected' && (
-                        <DropdownMenuItem onClick={() => { void handleReconnect(conexao); }} className="rounded-[8px] cursor-pointer">
-                          <RefreshCw className="h-4 w-4 mr-2" />
-                          Forçar Reconexão
-                        </DropdownMenuItem>
-                      )}
-                      {canDelete && (
-                        <DropdownMenuItem
-                          className="text-destructive focus:text-destructive rounded-[8px] cursor-pointer"
-                          onClick={() => { void handleDelete(conexao); }}
-                        >
-                          <Trash2 className="h-4 w-4 mr-2" />
-                          Remover Canal
-                        </DropdownMenuItem>
-                      )}
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                </div>
-
-                <div className="space-y-4">
-                  {/* Status row */}
-                  <div className="flex items-center justify-between">
-                    <span className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground">Estado</span>
-                    <div className={`flex items-center gap-2 px-2.5 py-1 rounded-full ${cfg.bg} ${cfg.text} text-xs font-semibold`}>
-                      <div className={`w-1.5 h-1.5 rounded-full ${cfg.dot}`} />
-                      {cfg.label}
-                    </div>
-                  </div>
-
-                  {/* Engine row */}
-                  <div className="flex items-center justify-between">
-                    <span className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground">Motor</span>
-                    <Badge variant="outline" className="text-[10px] font-mono border-border/10">
-                      {conexao.tipo === 'evolution' ? 'API Não Oficial' : conexao.tipo === 'oficial' ? 'Cloud API Oficial' : 'Desconhecido'}
-                    </Badge>
-                  </div>
-
-                  {/* Sync row */}
-                  <div className="flex items-center justify-between border-t border-border/5 pt-4">
-                    <span className="text-[11px] w-full text-center text-muted-foreground">
-                      Última sincronia: <b className="font-medium text-foreground">{formatDate(conexao.last_sync)}</b>
-                    </span>
-                  </div>
-                </div>
-
-                <Button 
-                  onClick={() => handleOpenDetails(conexao)}
-                  className="w-full mt-4 bg-muted/40 hover:bg-muted/80 text-foreground border border-border/5 rounded-[12px]" 
-                  variant="secondary"
-                >
-                  <Eye className="w-4 h-4 mr-2 text-muted-foreground" />
-                  Visualizar Painel de Controle
-                </Button>
-              </div>
-            );
-          })}
+      {/* Table */}
+      {isLoading ? (
+        <div className="space-y-3">
+          {Array.from({ length: 3 }).map((_, i) => (
+            <Skeleton key={`skel-${i}`} className="h-16 w-full rounded-lg" />
+          ))}
         </div>
+      ) : filtered.length === 0 ? (
+        <div className="flex flex-col items-center justify-center py-16 text-center">
+          {search ? (
+            <>
+              <div className="w-16 h-16 rounded-full bg-muted/50 flex items-center justify-center mb-4">
+                <Search className="h-7 w-7 text-muted-foreground/40" />
+              </div>
+              <h3 className="text-lg font-semibold mb-2">Nenhuma conexão encontrada</h3>
+              <p className="text-sm text-muted-foreground max-w-md">
+                Nenhum canal corresponde aos critérios da busca.
+              </p>
+            </>
+          ) : (
+            <>
+              <h3 className="text-lg font-semibold mb-2">Nenhuma conexão configurada</h3>
+              <p className="text-sm text-muted-foreground mb-8 max-w-md">
+                Conecte seu primeiro número de WhatsApp para iniciar.
+              </p>
+
+              {canCreate && (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 w-full max-w-2xl">
+                  {/* Card API Não Oficial */}
+                  <button
+                    type="button"
+                    onClick={() => { setNewConnStep('wizard'); setNewConnOpen(true); }}
+                    className="group text-left border rounded-xl p-6 hover:border-green-500/50 hover:bg-green-500/5 transition-all duration-200 cursor-pointer"
+                  >
+                    <div className="flex items-center gap-3 mb-4">
+                      <div className="w-12 h-12 rounded-full bg-green-500/10 flex items-center justify-center flex-shrink-0">
+                        <svg className="h-6 w-6 text-green-500" viewBox="0 0 24 24" fill="currentColor">
+                          <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z" />
+                        </svg>
+                      </div>
+                      <div>
+                        <h4 className="font-semibold text-foreground">API Não Oficial</h4>
+                        <p className="text-xs text-muted-foreground">Conexão rápida via QR Code ou Pair Code</p>
+                      </div>
+                    </div>
+                    <ul className="space-y-1.5">
+                      {['Conexão rápida', 'Sem aprovação de templates', 'Sem janela de conversação'].map((item) => (
+                        <li key={item} className="flex items-center gap-2 text-sm text-muted-foreground">
+                          <svg className="h-3.5 w-3.5 text-green-500 flex-shrink-0" viewBox="0 0 20 20" fill="currentColor">
+                            <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                          </svg>
+                          {item}
+                        </li>
+                      ))}
+                    </ul>
+                  </button>
+
+                  {/* Card API Oficial */}
+                  <button
+                    type="button"
+                    onClick={() => { setNewConnStep('choose'); setNewConnOpen(true); }}
+                    className="group text-left border rounded-xl p-6 hover:border-green-500/50 hover:bg-green-500/5 transition-all duration-200 cursor-pointer"
+                  >
+                    <div className="flex items-center gap-3 mb-4">
+                      <div className="w-12 h-12 rounded-full bg-green-500/10 flex items-center justify-center flex-shrink-0">
+                        <svg className="h-6 w-6 text-green-500" viewBox="0 0 24 24" fill="currentColor">
+                          <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z" />
+                        </svg>
+                      </div>
+                      <div>
+                        <h4 className="font-semibold text-foreground">API Oficial</h4>
+                        <p className="text-xs text-muted-foreground">API oficial WhatsApp Business da Meta</p>
+                      </div>
+                    </div>
+                    <ul className="space-y-1.5">
+                      {['Selo verde verificado oficial', 'Envio de campanhas em massa', 'Maior confiabilidade empresarial'].map((item) => (
+                        <li key={item} className="flex items-center gap-2 text-sm text-muted-foreground">
+                          <svg className="h-3.5 w-3.5 text-green-500 flex-shrink-0" viewBox="0 0 20 20" fill="currentColor">
+                            <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                          </svg>
+                          {item}
+                        </li>
+                      ))}
+                    </ul>
+                  </button>
+                </div>
+              )}
+            </>
+          )}
+        </div>
+      ) : (
+        <>
+          <div className="rounded-lg border">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="w-10" />
+                  <TableHead>CONEXÃO</TableHead>
+                  {visibleCols.status_padrao && <TableHead>STATUS PADRÃO</TableHead>}
+                  {visibleCols.departamento && <TableHead>DEPARTAMENTO</TableHead>}
+                  <TableHead className="w-10" />
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {filtered.map((conexao) => (
+                  <TableRow
+                    key={conexao.id}
+                    className="cursor-pointer hover:bg-muted/50"
+                    onClick={() => handleOpenDetails(conexao)}
+                  >
+                    <TableCell>
+                      <GripVertical className="h-4 w-4 text-muted-foreground/40" />
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-3">
+                        <Avatar className="h-10 w-10">
+                          {conexao.avatar_url && <AvatarImage src={conexao.avatar_url} />}
+                          <AvatarFallback className="text-sm font-semibold">
+                            {getInitials(conexao.nome || 'WP')}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div>
+                          <p className="font-medium">{conexao.nome || 'WhatsApp'}</p>
+                          <p className="text-sm text-muted-foreground">{conexao.telefone || 'Sem número'}</p>
+                        </div>
+                      </div>
+                    </TableCell>
+                    {visibleCols.status_padrao && (
+                      <TableCell className="text-muted-foreground">
+                        {conexao.status_padrao || '—'}
+                      </TableCell>
+                    )}
+                    {visibleCols.departamento && (
+                      <TableCell className="text-muted-foreground">
+                        {conexao.departamento?.nome || '—'}
+                      </TableCell>
+                    )}
+                    <TableCell>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
+                          <Button variant="ghost" size="icon" className="h-8 w-8">
+                            <MoreHorizontal className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleOpenDetails(conexao); }}>
+                            <Activity className="h-4 w-4 mr-2" />
+                            Diagnóstico
+                          </DropdownMenuItem>
+                          {conexao.status === 'disconnected' && (
+                            <DropdownMenuItem onClick={(e) => { e.stopPropagation(); void handleReconnect(conexao); }}>
+                              <RefreshCw className="h-4 w-4 mr-2" />
+                              Forçar Reconexão
+                            </DropdownMenuItem>
+                          )}
+                          {canDelete && (
+                            <DropdownMenuItem
+                              className="text-destructive focus:text-destructive"
+                              onClick={(e) => { e.stopPropagation(); void handleDelete(conexao); }}
+                            >
+                              <Trash2 className="h-4 w-4 mr-2" />
+                              Remover Canal
+                            </DropdownMenuItem>
+                          )}
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+          <p className="text-sm text-muted-foreground">
+            {filtered.length} conexão{filtered.length !== 1 ? 'ões' : ''}
+          </p>
+        </>
       )}
 
-      {/* New Connection Sheet */}
+      {/* New Connection Sheet (side drawer) */}
       <Sheet open={newConnOpen} onOpenChange={setNewConnOpen}>
-        <SheetContent side="right" className="sm:max-w-lg md:max-w-xl p-0 overflow-y-auto bg-background/95 backdrop-blur-xl border-l border-border/10 shadow-2xl">
-          {newConnStep === 'choose' ? (
-            <ConnectionTypeChooser onSelect={handleTypeSelected} />
-          ) : (
-            <QRCodeWizard
-              onBack={() => setNewConnStep('choose')}
-              onConnected={handleConnected}
-            />
-          )}
+        <SheetContent side="right" className="w-[500px] sm:max-w-[500px] overflow-y-auto">
+          <SheetHeader>
+            <SheetTitle>Escolha o tipo de conexão WhatsApp</SheetTitle>
+            <SheetDescription>
+              Selecione como deseja conectar sua conta WhatsApp à plataforma
+            </SheetDescription>
+          </SheetHeader>
+          <div className="mt-6">
+            {newConnStep === 'choose' ? (
+              <ConnectionTypeChooser onSelect={handleTypeSelected} />
+            ) : (
+              <QRCodeWizard
+                onBack={() => setNewConnStep('choose')}
+                onConnected={handleConnected}
+              />
+            )}
+          </div>
         </SheetContent>
       </Sheet>
 

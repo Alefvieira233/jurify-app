@@ -15,7 +15,7 @@ export interface HealthStatus {
     supabase: ServiceStatus;
     database: ServiceStatus;
     openai: ServiceStatus;
-    whatsapp_evolution: ServiceStatus;
+    whatsapp_kapso: ServiceStatus;
     stripe: ServiceStatus;
     zapsign: ServiceStatus;
   };
@@ -33,7 +33,7 @@ const DEFAULT_HEALTH: HealthStatus = {
     supabase: 'unknown',
     database: 'unknown',
     openai: 'unknown',
-    whatsapp_evolution: 'unknown',
+    whatsapp_kapso: 'unknown',
     stripe: 'unknown',
     zapsign: 'unknown',
   },

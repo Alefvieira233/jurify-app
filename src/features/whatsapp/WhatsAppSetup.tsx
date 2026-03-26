@@ -1,11 +1,11 @@
 /**
- * WhatsApp Setup - Direct QR Code connection via Evolution API
+ * WhatsApp Setup - Direct QR Code connection via Kapso API
  */
 
 import { lazy, Suspense } from 'react';
 import { Loader2 } from 'lucide-react';
 
-const WhatsAppEvolutionSetup = lazy(() => import('./WhatsAppEvolutionSetup'));
+const WhatsAppKapsoSetup = lazy(() => import('./WhatsAppKapsoSetup'));
 
 interface WhatsAppSetupProps {
   onConnectionSuccess?: () => void;
@@ -20,7 +20,7 @@ export default function WhatsAppSetup({ onConnectionSuccess }: WhatsAppSetupProp
         </div>
       }
     >
-      <WhatsAppEvolutionSetup onConnectionSuccess={onConnectionSuccess} />
+      <WhatsAppKapsoSetup onConnectionSuccess={onConnectionSuccess} />
     </Suspense>
   );
 }

@@ -150,10 +150,10 @@ jobs:
           supabase functions deploy zapsign-webhook --no-verify-jwt
           # Functions que requerem JWT (deploy padrão — com auth)
           for fn in assistant chat-completion send-email create-checkout-session \
-                    customer-portal evolution-manager generate-embedding \
+                    customer-portal kapso-manager generate-embedding \
                     ingest-document vector-search google-calendar \
                     create-drive-folder cleanup-agent-memory ai-agent-processor \
-                    zapsign-integration; do
+                    zapsign-integration agent-orchestrator media-processor; do
             supabase functions deploy "$fn" 2>/dev/null || echo "⚠️ $fn: não encontrada, pulando"
           done
           echo "✅ Edge functions deployed"
@@ -168,8 +168,9 @@ jobs:
           [ -n "$OPENAI_API_KEY" ]          && SECRETS="$SECRETS OPENAI_API_KEY=$OPENAI_API_KEY"
           [ -n "$STRIPE_SECRET_KEY" ]        && SECRETS="$SECRETS STRIPE_SECRET_KEY=$STRIPE_SECRET_KEY"
           [ -n "$STRIPE_WEBHOOK_SECRET" ]    && SECRETS="$SECRETS STRIPE_WEBHOOK_SECRET=$STRIPE_WEBHOOK_SECRET"
-          [ -n "$EVOLUTION_API_URL" ]        && SECRETS="$SECRETS EVOLUTION_API_URL=$EVOLUTION_API_URL"
-          [ -n "$EVOLUTION_API_KEY" ]        && SECRETS="$SECRETS EVOLUTION_API_KEY=$EVOLUTION_API_KEY"
+          [ -n "$KAPSO_API_KEY" ]             && SECRETS="$SECRETS KAPSO_API_KEY=$KAPSO_API_KEY"
+          [ -n "$KAPSO_PHONE_NUMBER_ID" ]    && SECRETS="$SECRETS KAPSO_PHONE_NUMBER_ID=$KAPSO_PHONE_NUMBER_ID"
+          [ -n "$KAPSO_WEBHOOK_SECRET" ]     && SECRETS="$SECRETS KAPSO_WEBHOOK_SECRET=$KAPSO_WEBHOOK_SECRET"
           [ -n "$ZAPSIGN_API_TOKEN" ]        && SECRETS="$SECRETS ZAPSIGN_API_TOKEN=$ZAPSIGN_API_TOKEN"
           [ -n "$GOOGLE_CLIENT_SECRET" ]     && SECRETS="$SECRETS GOOGLE_CLIENT_SECRET=$GOOGLE_CLIENT_SECRET"
           [ -n "$SECRETS" ] && supabase secrets set $SECRETS --project-ref ${{ secrets.SUPABASE_PROJECT_REF }} || echo "⚠️ No new secrets to set"
@@ -179,8 +180,9 @@ jobs:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
           STRIPE_SECRET_KEY: ${{ secrets.STRIPE_SECRET_KEY }}
           STRIPE_WEBHOOK_SECRET: ${{ secrets.STRIPE_WEBHOOK_SECRET }}
-          EVOLUTION_API_URL: ${{ secrets.EVOLUTION_API_URL }}
-          EVOLUTION_API_KEY: ${{ secrets.EVOLUTION_API_KEY }}
+          KAPSO_API_KEY: ${{ secrets.KAPSO_API_KEY }}
+          KAPSO_PHONE_NUMBER_ID: ${{ secrets.KAPSO_PHONE_NUMBER_ID }}
+          KAPSO_WEBHOOK_SECRET: ${{ secrets.KAPSO_WEBHOOK_SECRET }}
           ZAPSIGN_API_TOKEN: ${{ secrets.ZAPSIGN_API_TOKEN }}
           GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
 

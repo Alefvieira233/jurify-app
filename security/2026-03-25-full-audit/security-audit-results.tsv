@@ -1,0 +1,17 @@
+iteration	vector	severity	owasp	stride	confidence	location	description
+0	baseline	-	-	-	-	-	npm audit: 3 high (tar via @capacitor/cli), 1 high (replace via @trapezedev)
+1	secrets-in-docs	Critical	A02	InfoDisclosure	Confirmed	docs/superpowers/plans/2026-03-16-multimodal-agent-pipeline.md	Supabase PAT (sbp_REDACTED...) hardcoded in 3 documentation files — grants full project access
+2	no-auth-edge-fn	Critical	A01	EoP	Confirmed	supabase/functions/agent-orchestrator/index.ts:24	No authentication check — any unauthenticated request can invoke OpenAI calls, consuming API credits and accessing tenant data
+3	no-auth-edge-fn	Critical	A01	EoP	Confirmed	supabase/functions/media-processor/index.ts	No authentication check — accepts any POST with mediaUrl/tenantId, processes media via OpenAI without auth
+4	webhook-secret-comparison	Medium	A02	Spoofing	Confirmed	supabase/functions/whatsapp-webhook/index.ts:481	Webhook secret comparison uses === (string equality) instead of timing-safe comparison — vulnerable to timing attacks
+5	cors-regex	Low	A05	Spoofing	Possible	supabase/functions/_shared/cors.ts:14	CORS regex /^https:\/\/jurify[-a-z0-9]*\.vercel\.app$/ could match jurify-evil-attacker.vercel.app if attacker creates Vercel project
+6	rbac-client-only	Medium	A01	EoP	Confirmed	src/components/ProtectedRoute.tsx:27	RBAC enforcement is client-side only — role check reads from profile state, not verified server-side on data access
+7	rate-limit-memory	Medium	A05	DoS	Confirmed	supabase/functions/_shared/rate-limiter.ts:85	In-memory rate limiter resets on each edge function cold start — effectively no rate limiting in production
+8	encryption-key-in-memory	Low	A02	InfoDisclosure	Possible	MEMORY.md	ENCRYPTION_KEY hex value stored in plaintext in project memory file (accessible in repo)
+9	health-token-in-memory	Low	A02	InfoDisclosure	Possible	MEMORY.md	HEALTH_CHECK_TOKEN stored in plaintext in project memory file
+10	kapso-creds-in-memory	High	A02	InfoDisclosure	Confirmed	MEMORY.md	KAPSO_API_KEY (full 64-char hex) stored in MEMORY.md — committed to git
+11	supabase-pat-in-memory	Critical	A02	InfoDisclosure	Confirmed	MEMORY.md	Supabase Personal Access Token (sbp_REDACTED...) stored in MEMORY.md — grants full project admin access
+12	security-headers-good	Info	A05	-	Confirmed	vercel.json	CSP, HSTS, X-Frame-Options, X-Content-Type-Options, COOP, CORP all configured correctly
+13	dangerouslySetInnerHTML	Info	A03	Tampering	NotVulnerable	src/components/ui/chart.tsx:79	Only used for CSS theme injection from internal config — no user input, safe
+14	no-eval	Info	A03	Tampering	NotVulnerable	-	No eval() or new Function() found in codebase — good
+15	stripe-webhook-verified	Info	A08	Tampering	NotVulnerable	supabase/functions/stripe-webhook/index.ts:67	Stripe webhook properly verifies signature with constructEventAsync — good

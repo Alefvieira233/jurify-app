@@ -1,9 +1,7 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2";
 import { getCorsHeaders } from "../_shared/cors.ts";
-
-const EVOLUTION_API_URL = Deno.env.get("EVOLUTION_API_URL") ?? "";
-const EVOLUTION_API_KEY = Deno.env.get("EVOLUTION_API_KEY") ?? "";
+import { sendTextMessage } from "../_shared/kapso-client.ts";
 
 Deno.serve(async (req) => {
   const origin = req.headers.get("origin") ?? undefined;
@@ -45,18 +43,18 @@ Deno.serve(async (req) => {
     return new Response(JSON.stringify({ error: error.message }), { status: 500 });
   }
 
-  // Batch query: fetch WhatsApp instance config for all tenants at once (avoid N+1)
+  // Batch query: fetch active Kapso config for all tenants at once (avoid N+1)
   const tenantIds = [...new Set((prazos ?? []).map((p) => p.tenant_id as string))];
-  const instanceByTenant = new Map<string, string>();
+  const activeTenants = new Set<string>();
   if (tenantIds.length > 0) {
     const { data: cfgs } = await supabase
       .from("configuracoes_integracoes")
-      .select("tenant_id, observacoes")
+      .select("tenant_id")
       .in("tenant_id", tenantIds)
-      .eq("nome_integracao", "evolution_whatsapp");
+      .eq("nome_integracao", "whatsapp_kapso")
+      .eq("status", "ativa");
     for (const cfg of cfgs ?? []) {
-      const match = (cfg.observacoes as string | null)?.match(/instance:\s*([^\s;]+)/);
-      if (match?.[1]) instanceByTenant.set(cfg.tenant_id as string, match[1]);
+      activeTenants.add(cfg.tenant_id as string);
     }
   }
 
@@ -79,8 +77,7 @@ Deno.serve(async (req) => {
     const responsavel = prazo.responsavel as { telefone: string | null; nome_completo: string | null } | null;
     if (!responsavel?.telefone) continue;
 
-    const instanceName = instanceByTenant.get(prazo.tenant_id as string);
-    if (!instanceName) continue;
+    if (!activeTenants.has(prazo.tenant_id as string)) continue;
 
     const phone = responsavel.telefone.replace(/\D/g, "");
     const numeroProcesso =
@@ -101,11 +98,7 @@ Deno.serve(async (req) => {
     });
 
     try {
-      await fetch(`${EVOLUTION_API_URL}/message/sendText/${instanceName}`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json", "apikey": EVOLUTION_API_KEY },
-        body: JSON.stringify({ number: phone, text: message }),
-      });
+      await sendTextMessage(phone, message);
 
       // Mark alert as sent to prevent re-sending within 24h
       void supabase

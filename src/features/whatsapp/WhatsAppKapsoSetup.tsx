@@ -1,7 +1,7 @@
 /**
- * WhatsApp Evolution Setup - QR Code connection flow
+ * WhatsApp Kapso Setup - QR Code connection flow
  *
- * Component to connect WhatsApp via Evolution API (self-hosted).
+ * Component to connect WhatsApp via Kapso API (managed Cloud API proxy).
  * Supports QR Code scanning, status monitoring, and disconnect.
  */
 
@@ -26,9 +26,9 @@ import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
 import { createLogger } from '@/lib/logger';
 
-const log = createLogger('WhatsAppEvolutionSetup');
+const log = createLogger('WhatsAppKapsoSetup');
 
-interface WhatsAppEvolutionSetupProps {
+interface WhatsAppKapsoSetupProps {
   onConnectionSuccess?: () => void;
 }
 
@@ -41,11 +41,11 @@ interface InstanceInfo {
   error: string | null;
 }
 
-export default function WhatsAppEvolutionSetup({ onConnectionSuccess }: WhatsAppEvolutionSetupProps) {
+export default function WhatsAppKapsoSetup({ onConnectionSuccess }: WhatsAppKapsoSetupProps) {
   const [instance, setInstanceState] = useState<InstanceInfo>(() => {
     // Carregar do localStorage se existir
     try {
-      const saved = sessionStorage.getItem('whatsapp_evolution_instance');
+      const saved = sessionStorage.getItem('whatsapp_kapso_instance');
       if (saved) {
         const parsed = JSON.parse(saved);
         // Só restaura se não for mais antigo que 2 horas
@@ -69,7 +69,7 @@ export default function WhatsAppEvolutionSetup({ onConnectionSuccess }: WhatsApp
     setInstanceState((prev) => {
       const newState = typeof update === 'function' ? update(prev) : update;
       try {
-        sessionStorage.setItem('whatsapp_evolution_instance', JSON.stringify({
+        sessionStorage.setItem('whatsapp_kapso_instance', JSON.stringify({
           data: newState,
           timestamp: Date.now(),
         }));
@@ -87,8 +87,8 @@ export default function WhatsAppEvolutionSetup({ onConnectionSuccess }: WhatsApp
 
   const tenantId = profile?.tenant_id ?? null;
 
-  // Chamada à Edge Function evolution-manager com timeout
-  const callEvolutionManager = useCallback(
+  // Chamada à Edge Function kapso-manager com timeout
+  const callKapsoManager = useCallback(
     async (action: string, instanceName?: string) => {
       const session = (await supabase.auth.getSession()).data.session;
       if (!session?.access_token) throw new Error('Not authenticated');
@@ -97,9 +97,9 @@ export default function WhatsAppEvolutionSetup({ onConnectionSuccess }: WhatsApp
       const timeoutId = setTimeout(() => controller.abort(), 30000);
 
       try {
-        console.log(`[WhatsApp] Calling evolution-manager: action=${action}, instance=${instanceName ?? 'auto'}`);
+        console.log(`[WhatsApp] Calling kapso-manager: action=${action}, instance=${instanceName ?? 'auto'}`);
 
-        const { data, error } = await supabase.functions.invoke('evolution-manager', {
+        const { data, error } = await supabase.functions.invoke('kapso-manager', {
           body: { action, instanceName },
           headers: { Authorization: `Bearer ${session.access_token}` },
         });
@@ -119,7 +119,7 @@ export default function WhatsAppEvolutionSetup({ onConnectionSuccess }: WhatsApp
         clearTimeout(timeoutId);
         if (controller.signal.aborted) {
           console.error('[WhatsApp] Request timed out after 30s');
-          throw new Error('Tempo esgotado (30s). A Evolution API não respondeu.');
+          throw new Error('Tempo esgotado (30s). A Kapso API não respondeu.');
         }
         throw err;
       }
@@ -136,7 +136,7 @@ export default function WhatsAppEvolutionSetup({ onConnectionSuccess }: WhatsApp
         const { data, error } = await supabase
           .from('configuracoes_integracoes')
           .select('id, status, observacoes')
-          .eq('nome_integracao', 'whatsapp_evolution')
+          .eq('nome_integracao', 'whatsapp_kapso')
           .maybeSingle();
 
         if (error) throw error;
@@ -207,7 +207,7 @@ export default function WhatsAppEvolutionSetup({ onConnectionSuccess }: WhatsApp
     pollIntervalRef.current = setInterval(() => void (async () => {
       attempts++;
       try {
-        const result = await callEvolutionManager('status', instanceRef.current.instanceName);
+        const result = await callKapsoManager('status', instanceRef.current.instanceName);
 
         if (result?.connected) {
           if (pollIntervalRef.current) {
@@ -221,9 +221,9 @@ export default function WhatsAppEvolutionSetup({ onConnectionSuccess }: WhatsApp
           return;
         }
 
-        // QR Code expira ~60s na Evolution API, auto-refresh a cada 50s
+        // QR Code expira ~60s na Kapso API, auto-refresh a cada 50s
         if (attempts % 10 === 0 && instanceRef.current.instanceName) {
-          const qrResult = await callEvolutionManager('qrcode', instanceRef.current.instanceName);
+          const qrResult = await callKapsoManager('qrcode', instanceRef.current.instanceName);
           if (qrResult?.qrcode) {
             setInstance((prev) => ({ ...prev, qrCode: qrResult.qrcode }));
           }
@@ -255,7 +255,7 @@ export default function WhatsAppEvolutionSetup({ onConnectionSuccess }: WhatsApp
       setPolling(false);
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [instance.state, instance.instanceName, callEvolutionManager, toast]);
+  }, [instance.state, instance.instanceName, callKapsoManager, toast]);
 
   // Countdown timer: reset when entering qr_ready, decrement every second
   useEffect(() => {
@@ -302,8 +302,8 @@ export default function WhatsAppEvolutionSetup({ onConnectionSuccess }: WhatsApp
     setInstance((prev) => ({ ...prev, state: 'creating', error: null }));
 
     try {
-      log.debug('Chamando Edge Function evolution-manager');
-      const result = await callEvolutionManager('create');
+      log.debug('Chamando Edge Function kapso-manager');
+      const result = await callKapsoManager('create');
       log.debug('Resposta da Edge Function', { success: result?.success });
 
       if (!result?.success) {
@@ -337,7 +337,7 @@ export default function WhatsAppEvolutionSetup({ onConnectionSuccess }: WhatsApp
       if (!qr && result.instanceName) {
         log.debug('Buscando QR Code separadamente');
         try {
-          const qrResult = await callEvolutionManager('qrcode', result.instanceName);
+          const qrResult = await callKapsoManager('qrcode', result.instanceName);
           log.debug('Resposta do QR Code', { hasQR: !!qrResult?.qrcode });
           if (qrResult?.qrcode) {
             setInstance((prev) => ({
@@ -350,7 +350,7 @@ export default function WhatsAppEvolutionSetup({ onConnectionSuccess }: WhatsApp
             setInstance((prev) => ({
               ...prev,
               state: 'error',
-              error: 'QR Code não disponível. A Evolution API pode estar offline. Tente novamente.',
+              error: 'QR Code não disponível. A Kapso API pode estar offline. Tente novamente.',
             }));
           }
         } catch (qrErr) {
@@ -386,7 +386,7 @@ export default function WhatsAppEvolutionSetup({ onConnectionSuccess }: WhatsApp
     setLoading(true);
 
     try {
-      const result = await callEvolutionManager('qrcode', instance.instanceName);
+      const result = await callKapsoManager('qrcode', instance.instanceName);
       if (result?.qrcode) {
         setInstance((prev) => ({ ...prev, qrCode: result.qrcode }));
       }
@@ -407,7 +407,7 @@ export default function WhatsAppEvolutionSetup({ onConnectionSuccess }: WhatsApp
     setLoading(true);
 
     try {
-      await callEvolutionManager('disconnect', instance.instanceName);
+      await callKapsoManager('disconnect', instance.instanceName);
       setInstance((prev) => ({ ...prev, state: 'disconnected', qrCode: null }));
       toast({ title: 'WhatsApp desconectado' });
     } catch (err: unknown) {
@@ -427,8 +427,8 @@ export default function WhatsAppEvolutionSetup({ onConnectionSuccess }: WhatsApp
     setLoading(true);
 
     try {
-      await callEvolutionManager('delete', instance.instanceName);
-      try { sessionStorage.removeItem('whatsapp_evolution_instance'); } catch { /* ignore */ }
+      await callKapsoManager('delete', instance.instanceName);
+      try { sessionStorage.removeItem('whatsapp_kapso_instance'); } catch { /* ignore */ }
       setInstance({ instanceName: '', state: 'idle', qrCode: null, error: null });
       toast({ title: 'Instancia removida' });
     } catch (err: unknown) {
@@ -501,7 +501,7 @@ export default function WhatsAppEvolutionSetup({ onConnectionSuccess }: WhatsApp
         <div>
           <h1 className="text-2xl font-bold text-[hsl(var(--foreground))] flex items-center gap-2">
             <Smartphone className="h-7 w-7 text-emerald-400" />
-            WhatsApp Evolution API
+            WhatsApp Kapso API
           </h1>
           <p className="text-[hsl(var(--muted-foreground))] mt-1">
             Conecte seu WhatsApp escaneando o QR Code. Sem custos por mensagem.
@@ -514,7 +514,7 @@ export default function WhatsAppEvolutionSetup({ onConnectionSuccess }: WhatsApp
       <Alert className="border-emerald-500/30 bg-emerald-500/10">
         <Wifi className="h-4 w-4 text-emerald-400" />
         <AlertDescription className="text-[hsl(var(--foreground))]">
-          A Evolution API permite conectar seu WhatsApp pessoal ou empresarial sem custos adicionais.
+          A Kapso API permite conectar seu WhatsApp pessoal ou empresarial sem custos adicionais.
           Basta escanear o QR Code abaixo com o aplicativo do WhatsApp.
         </AlertDescription>
       </Alert>

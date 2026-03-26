@@ -12,7 +12,7 @@ export interface ConexaoWhatsApp {
   tenant_id: string;
   nome: string;
   telefone: string | null;
-  tipo: 'evolution' | 'oficial' | 'cloud_api';
+  tipo: 'kapso' | 'oficial' | 'cloud_api';
   provider: string;
   instance_name: string | null;
   status: string;
@@ -89,8 +89,8 @@ export function useConexoes() {
           tenant_id: item.tenant_id as string,
           nome: (item.observacoes as string)?.replace('Instance: ', '') || 'WhatsApp',
           telefone: item.phone_number_id as string | null,
-          tipo: ((item.nome_integracao as string) === 'whatsapp_oficial' ? 'oficial' : 'evolution') as 'evolution' | 'oficial' | 'cloud_api',
-          provider: (item.nome_integracao as string) === 'whatsapp_oficial' ? 'meta_api' : 'evolution_api',
+          tipo: ((item.nome_integracao as string) === 'whatsapp_oficial' ? 'oficial' : 'kapso') as 'kapso' | 'oficial' | 'cloud_api',
+          provider: (item.nome_integracao as string) === 'whatsapp_oficial' ? 'meta_api' : 'kapso_api',
           instance_name: (item.observacoes as string)?.replace('Instance: ', '') || null,
           status: (item.status as string) === 'ativa' ? 'connected' : 'disconnected',
           status_padrao: null,

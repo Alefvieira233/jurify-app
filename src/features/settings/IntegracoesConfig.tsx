@@ -386,7 +386,7 @@ const IntegracoesConfig = () => {
                 </div>
               </div>
               <p className="text-xs text-muted-foreground mb-3">
-                Automação de mensagens via Evolution API
+                Automação de mensagens via Kapso API
               </p>
               <Button variant="outline" size="sm" className="w-full text-xs" asChild>
                 <a href="/configuracoes?tab=integracoes">Configurar</a>

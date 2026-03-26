@@ -57,7 +57,7 @@ export function useRealtimeNotifications() {
     }
 
     const channel = supabase
-      .channel(`notifications-${tenantId}`)
+      .channel(`notifications-${tenantId}-${Date.now()}`)
       .on(
         'postgres_changes',
         {
@@ -123,17 +123,21 @@ export function useRealtimeNotifications() {
             setUnreadCount((prev) => Math.max(0, prev - 1));
           }
         }
-      )
-      .subscribe((status) => {
+      );
+
+    try {
+      channel.subscribe((status) => {
         if ((status as string) === 'SUBSCRIBED') {
           log.debug(`Subscribed to notifications for tenant ${tenantId}`);
         }
         if ((status as string) === 'CHANNEL_ERROR') {
           log.error('Notification channel error');
-          // Fallback: re-fetch count
           void fetchUnreadCount();
         }
       });
+    } catch (err) {
+      log.error('Failed to subscribe to notifications channel', err);
+    }
 
     channelRef.current = channel;
 

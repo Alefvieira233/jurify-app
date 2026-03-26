@@ -2,6 +2,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { getCorsHeaders } from "../_shared/cors.ts";
 import { applyRateLimit } from "../_shared/rate-limiter.ts";
 import { createEdgeLogger } from "../_shared/logger.ts";
+import { checkKapsoHealth } from "../_shared/kapso-client.ts";
 
 const log = createEdgeLogger("health-check");
 
@@ -22,7 +23,7 @@ Deno.serve(async (req) => {
       supabase: "unknown",
       database: "unknown",
       openai: "unknown",
-      whatsapp_evolution: "unknown",
+      whatsapp_kapso: "unknown",
       stripe: "unknown",
       zapsign: "unknown",
     },
@@ -116,24 +117,14 @@ Deno.serve(async (req) => {
       healthStatus.status = "degraded";
     }
 
-    // --- WhatsApp Evolution API Check ---
+    // --- WhatsApp Kapso API Check ---
     try {
-      const evolutionUrl = Deno.env.get("EVOLUTION_API_URL");
-      const evolutionKey = Deno.env.get("EVOLUTION_API_KEY");
-      if (!evolutionUrl || !evolutionKey) {
-        healthStatus.services.whatsapp_evolution = "not_configured";
-      } else {
-        const response = await fetch(`${evolutionUrl}/instance/fetchInstances`, {
-          method: "GET",
-          headers: { apikey: evolutionKey },
-          signal: AbortSignal.timeout(5000),
-        });
-        healthStatus.services.whatsapp_evolution = response.ok ? "connected" : "error";
-        if (!response.ok) healthStatus.status = "degraded";
-      }
+      const kapsoResult = await checkKapsoHealth();
+      healthStatus.services.whatsapp_kapso = kapsoResult.status;
+      if (kapsoResult.status === "error") healthStatus.status = "degraded";
     } catch (error) {
-      log.error("Evolution API check failed", error);
-      healthStatus.services.whatsapp_evolution = "error";
+      log.error("Kapso API check failed", error);
+      healthStatus.services.whatsapp_kapso = "error";
       healthStatus.status = "degraded";
     }
 

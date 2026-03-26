@@ -42,7 +42,7 @@ vi.mock('@/lib/logger', () => ({
   createLogger: () => ({ debug: vi.fn(), info: vi.fn(), warn: vi.fn(), error: vi.fn() }),
 }));
 
-import WhatsAppEvolutionSetup from '../WhatsAppEvolutionSetup';
+import WhatsAppKapsoSetup from '../WhatsAppKapsoSetup';
 
 function createWrapper() {
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
@@ -53,7 +53,7 @@ function createWrapper() {
     );
 }
 
-describe('WhatsAppEvolutionSetup', () => {
+describe('WhatsAppKapsoSetup', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     localStorage.clear();
@@ -62,46 +62,46 @@ describe('WhatsAppEvolutionSetup', () => {
   });
 
   it('renders header with title', () => {
-    render(<WhatsAppEvolutionSetup />, { wrapper: createWrapper() });
-    expect(screen.getByText('WhatsApp Evolution API')).toBeInTheDocument();
+    render(<WhatsAppKapsoSetup />, { wrapper: createWrapper() });
+    expect(screen.getByText('WhatsApp Kapso API')).toBeInTheDocument();
   });
 
   it('renders subtitle text', () => {
-    render(<WhatsAppEvolutionSetup />, { wrapper: createWrapper() });
+    render(<WhatsAppKapsoSetup />, { wrapper: createWrapper() });
     expect(screen.getByText(/conecte seu whatsapp escaneando/i)).toBeInTheDocument();
   });
 
-  it('renders info alert about Evolution API', () => {
-    render(<WhatsAppEvolutionSetup />, { wrapper: createWrapper() });
-    expect(screen.getByText(/evolution api permite conectar/i)).toBeInTheDocument();
+  it('renders info alert about Kapso API', () => {
+    render(<WhatsAppKapsoSetup />, { wrapper: createWrapper() });
+    expect(screen.getByText(/kapso api permite conectar/i)).toBeInTheDocument();
   });
 
   it('renders Conexão WhatsApp card title', () => {
-    render(<WhatsAppEvolutionSetup />, { wrapper: createWrapper() });
+    render(<WhatsAppKapsoSetup />, { wrapper: createWrapper() });
     expect(screen.getByText('Conexão WhatsApp')).toBeInTheDocument();
   });
 
   it('renders Conectar WhatsApp button in idle state', () => {
-    render(<WhatsAppEvolutionSetup />, { wrapper: createWrapper() });
+    render(<WhatsAppKapsoSetup />, { wrapper: createWrapper() });
     expect(screen.getByText('Conectar WhatsApp')).toBeInTheDocument();
   });
 
   it('renders status badge', () => {
-    render(<WhatsAppEvolutionSetup />, { wrapper: createWrapper() });
+    render(<WhatsAppKapsoSetup />, { wrapper: createWrapper() });
     expect(screen.getByText('Nao configurado')).toBeInTheDocument();
   });
 
-  it('calls evolution-manager on connect click', async () => {
+  it('calls kapso-manager on connect click', async () => {
     mockInvoke.mockResolvedValue({
       data: { success: true, instanceName: 'test_inst', qrcode: 'base64qr' },
       error: null,
     });
 
-    render(<WhatsAppEvolutionSetup />, { wrapper: createWrapper() });
+    render(<WhatsAppKapsoSetup />, { wrapper: createWrapper() });
     fireEvent.click(screen.getByText('Conectar WhatsApp'));
 
     await waitFor(() => {
-      expect(mockInvoke).toHaveBeenCalledWith('evolution-manager', expect.objectContaining({
+      expect(mockInvoke).toHaveBeenCalledWith('kapso-manager', expect.objectContaining({
         body: { action: 'create', instanceName: undefined },
       }));
     });
@@ -113,7 +113,7 @@ describe('WhatsAppEvolutionSetup', () => {
       error: null,
     });
 
-    render(<WhatsAppEvolutionSetup />, { wrapper: createWrapper() });
+    render(<WhatsAppKapsoSetup />, { wrapper: createWrapper() });
     fireEvent.click(screen.getByText('Conectar WhatsApp'));
 
     await waitFor(() => {
@@ -122,13 +122,13 @@ describe('WhatsAppEvolutionSetup', () => {
   });
 
   it('shows error state when create fails', async () => {
-    mockInvoke.mockRejectedValue(new Error('Evolution API not configured'));
+    mockInvoke.mockRejectedValue(new Error('Kapso API not configured'));
 
-    render(<WhatsAppEvolutionSetup />, { wrapper: createWrapper() });
+    render(<WhatsAppKapsoSetup />, { wrapper: createWrapper() });
     fireEvent.click(screen.getByText('Conectar WhatsApp'));
 
     await waitFor(() => {
-      expect(screen.getByText(/evolution api not configured/i)).toBeInTheDocument();
+      expect(screen.getByText(/kapso api not configured/i)).toBeInTheDocument();
     });
   });
 
@@ -138,7 +138,7 @@ describe('WhatsAppEvolutionSetup', () => {
       error: null,
     });
 
-    render(<WhatsAppEvolutionSetup />, { wrapper: createWrapper() });
+    render(<WhatsAppKapsoSetup />, { wrapper: createWrapper() });
 
     await waitFor(() => {
       expect(screen.getByText('Conectado')).toBeInTheDocument();
@@ -151,7 +151,7 @@ describe('WhatsAppEvolutionSetup', () => {
       error: null,
     });
 
-    render(<WhatsAppEvolutionSetup />, { wrapper: createWrapper() });
+    render(<WhatsAppKapsoSetup />, { wrapper: createWrapper() });
 
     await waitFor(() => {
       expect(screen.getByText('Desconectar')).toBeInTheDocument();

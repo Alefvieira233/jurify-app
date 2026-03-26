@@ -752,7 +752,7 @@ const req=https.request({
   path:'/v1/projects/yfxgncbopvnsltjqetxw/database/query',
   method:'POST',
   headers:{
-    'Authorization':'Bearer sbp_fd22d435fa88ce2f367f8dae263c5b29b8442da6',
+    'Authorization':'Bearer ' + process.env.SUPABASE_ACCESS_TOKEN,
     'Content-Type':'application/json',
     'Content-Length':Buffer.byteLength(body)
   }

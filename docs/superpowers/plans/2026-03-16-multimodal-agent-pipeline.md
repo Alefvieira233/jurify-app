@@ -1060,19 +1060,19 @@ git commit -m "refactor: replace inline AI with 3-stage pipeline (media → orch
 - [ ] **Step 1: Deploy media-processor**
 
 ```bash
-SUPABASE_ACCESS_TOKEN=sbp_fd22d435fa88ce2f367f8dae263c5b29b8442da6 supabase functions deploy media-processor --no-verify-jwt --project-ref yfxgncbopvnsltjqetxw
+SUPABASE_ACCESS_TOKEN=$SUPABASE_ACCESS_TOKEN supabase functions deploy media-processor --project-ref yfxgncbopvnsltjqetxw
 ```
 
 - [ ] **Step 2: Deploy agent-orchestrator**
 
 ```bash
-SUPABASE_ACCESS_TOKEN=sbp_fd22d435fa88ce2f367f8dae263c5b29b8442da6 supabase functions deploy agent-orchestrator --no-verify-jwt --project-ref yfxgncbopvnsltjqetxw
+SUPABASE_ACCESS_TOKEN=$SUPABASE_ACCESS_TOKEN supabase functions deploy agent-orchestrator --project-ref yfxgncbopvnsltjqetxw
 ```
 
 - [ ] **Step 3: Deploy updated whatsapp-webhook**
 
 ```bash
-SUPABASE_ACCESS_TOKEN=sbp_fd22d435fa88ce2f367f8dae263c5b29b8442da6 supabase functions deploy whatsapp-webhook --no-verify-jwt --project-ref yfxgncbopvnsltjqetxw
+SUPABASE_ACCESS_TOKEN=$SUPABASE_ACCESS_TOKEN supabase functions deploy whatsapp-webhook --no-verify-jwt --project-ref yfxgncbopvnsltjqetxw
 ```
 
 - [ ] **Step 4: Smoke test each function**

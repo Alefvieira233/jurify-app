@@ -71,7 +71,7 @@ CREATE INDEX IF NOT EXISTS idx_whatsapp_messages_send_status
 
 ```bash
 curl -X POST "https://api.supabase.com/v1/projects/yfxgncbopvnsltjqetxw/database/query" \
-  -H "Authorization: Bearer sbp_fd22d435fa88ce2f367f8dae263c5b29b8442da6" \
+  -H "Authorization: Bearer $SUPABASE_ACCESS_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{"query": "<SQL from step 1>"}'
 ```

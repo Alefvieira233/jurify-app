@@ -1,4 +1,5 @@
 import { encode as base64Encode } from "https://deno.land/std@0.208.0/encoding/base64.ts";
+import { kapsoFetch, getKapsoConfig } from "./kapso-client.ts";
 
 export interface DownloadedMedia {
   base64: string;
@@ -10,20 +11,35 @@ export interface DownloadedMedia {
 const MAX_MEDIA_SIZE = 10 * 1024 * 1024; // 10MB
 
 /**
- * Downloads media from Evolution API.
- * Evolution stores media and exposes it via the message's mediaUrl field.
- * The URL is a direct download link that requires the API key.
+ * Downloads media from Kapso/Meta WhatsApp API.
+ * Kapso proxies Meta's media API. Media IDs from webhooks need to be
+ * resolved to URLs first, then downloaded with auth.
  */
-export async function downloadEvolutionMedia(
-  mediaUrl: string,
+export async function downloadKapsoMedia(
+  mediaIdOrUrl: string,
 ): Promise<DownloadedMedia> {
-  const evolutionApiKey = Deno.env.get("EVOLUTION_API_KEY");
+  let downloadUrl = mediaIdOrUrl;
 
+  // If it's a media ID (not a URL), resolve it via Kapso API
+  if (!mediaIdOrUrl.startsWith("http")) {
+    const urlResp = await kapsoFetch(`/meta/whatsapp/v24.0/${mediaIdOrUrl}`);
+    if (!urlResp.ok) {
+      throw new Error(`Failed to resolve media URL: HTTP ${urlResp.status}`);
+    }
+    const urlData = await urlResp.json();
+    downloadUrl = urlData.url;
+    if (!downloadUrl) {
+      throw new Error("No media URL in Kapso response");
+    }
+  }
+
+  // Download the actual media file
+  const config = getKapsoConfig();
   const headers: Record<string, string> = {};
-  // If the URL is from the Evolution API server, add auth
-  const evolutionApiUrl = Deno.env.get("EVOLUTION_API_URL") || "";
-  if (evolutionApiUrl && mediaUrl.startsWith(evolutionApiUrl)) {
-    headers["apikey"] = evolutionApiKey || "";
+
+  // Add Kapso auth for Meta CDN URLs
+  if (downloadUrl.includes("lookaside.fbsbx.com") || downloadUrl.includes("whatsapp")) {
+    headers["Authorization"] = `Bearer ${config.apiKey}`;
   }
 
   const controller = new AbortController();
@@ -31,7 +47,7 @@ export async function downloadEvolutionMedia(
 
   let response: Response;
   try {
-    response = await fetch(mediaUrl, { headers, signal: controller.signal });
+    response = await fetch(downloadUrl, { headers, signal: controller.signal });
   } finally {
     clearTimeout(timeoutId);
   }

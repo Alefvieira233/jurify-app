@@ -6,7 +6,7 @@ import { applyRateLimit } from "../_shared/rate-limiter.ts";
 import { buildLegalContext } from "../_shared/legal-context.ts";
 import { DEFAULT_OPENAI_MODEL } from "../_shared/ai-model.ts";
 
-// whatsapp-webhook: Evolution API + Meta compatible
+// whatsapp-webhook: Kapso API + Meta compatible
 
 /**
  * Calls a Supabase Edge Function via HTTP fetch.
@@ -141,6 +141,7 @@ function analyzeQualification(
 
 // --- Typed webhook payloads ---
 
+// Legacy Evolution types (kept for backward compatibility during migration)
 interface EvolutionMessageKey {
   remoteJid?: string;
   fromMe?: boolean;
@@ -195,15 +196,26 @@ interface MetaWebhookPayload {
 type WebhookPayload = EvolutionWebhookPayload & MetaWebhookPayload & Record<string, unknown>;
 
 const WHATSAPP_VERIFY_TOKEN = Deno.env.get("WHATSAPP_VERIFY_TOKEN");
-const EVOLUTION_API_URL = Deno.env.get("EVOLUTION_API_URL");
-const EVOLUTION_API_KEY = Deno.env.get("EVOLUTION_API_KEY");
-const EVOLUTION_WEBHOOK_SECRET = Deno.env.get("EVOLUTION_WEBHOOK_SECRET");
+const KAPSO_WEBHOOK_SECRET = Deno.env.get("KAPSO_WEBHOOK_SECRET");
 
-const INTEGRATION_NAME_EVOLUTION = "whatsapp_evolution";
+/** Timing-safe string comparison to prevent timing attacks on webhook secrets */
+function timingSafeCompare(a: string, b: string): boolean {
+  const encoder = new TextEncoder();
+  const bufA = encoder.encode(a);
+  const bufB = encoder.encode(b);
+  if (bufA.length !== bufB.length) {
+    // Compare against self to keep constant time, then return false
+    crypto.subtle.timingSafeEqual(bufA, bufA);
+    return false;
+  }
+  return crypto.subtle.timingSafeEqual(bufA, bufB);
+}
+
+const INTEGRATION_NAME_KAPSO = "whatsapp_kapso";
 const INTEGRATION_NAME_META = "whatsapp_oficial";
 
 // ============================================
-// 🔍 DETECTA ORIGEM DO WEBHOOK (Evolution vs Meta)
+// 🔍 DETECTA ORIGEM DO WEBHOOK (Kapso/Evolution vs Meta)
 // ============================================
 interface NormalizedMessage {
   from: string;
@@ -212,18 +224,22 @@ interface NormalizedMessage {
   messageType: string;
   mediaUrl: string | null;
   instanceName: string | null;
-  provider: "evolution" | "meta";
+  provider: "kapso" | "meta";
 }
 
-function isEvolutionPayload(payload: WebhookPayload): boolean {
+// Kapso sends structured events starting with "whatsapp."
+function isKapsoPayload(payload: WebhookPayload): boolean {
+  const event = (payload as Record<string, unknown>)?.event;
+  if (typeof event === "string" && event.startsWith("whatsapp.")) return true;
+  // Legacy Evolution format (backward compat during migration)
   return !!(payload?.event || payload?.instance || payload?.data?.key);
 }
 
-function normalizeEvolutionMessage(payload: WebhookPayload): NormalizedMessage | null {
+function normalizeKapsoMessage(payload: WebhookPayload): NormalizedMessage | null {
   const event = payload.event;
 
-  // Só processa mensagens recebidas (não enviadas pelo bot)
-  if (event !== "messages.upsert") return null;
+  // Kapso uses "whatsapp.message.received" or legacy "messages.upsert"
+  if (event !== "messages.upsert" && event !== "whatsapp.message.received") return null;
 
   const data = payload.data;
   if (!data) return null;
@@ -281,7 +297,7 @@ function normalizeEvolutionMessage(payload: WebhookPayload): NormalizedMessage |
     messageType: messageType === "conversation" ? "text" : messageType,
     mediaUrl,
     instanceName: payload.instance || null,
-    provider: "evolution",
+    provider: "kapso",
   };
 }
 
@@ -378,8 +394,8 @@ async function isDuplicate(
   return !data;
 }
 
-function getMessageId(payload: WebhookPayload, provider: "evolution" | "meta"): string | null {
-  if (provider === "evolution") {
+function getMessageId(payload: WebhookPayload, provider: "kapso" | "meta"): string | null {
+  if (provider === "kapso") {
     return payload?.data?.key?.id || null;
   }
   for (const entry of payload?.entry || []) {
@@ -405,7 +421,7 @@ Deno.serve(async (req) => {
   try {
     const url = new URL(req.url);
 
-    // GET = Meta webhook verification (Evolution não usa GET)
+    // GET = Meta webhook verification
     if (req.method === "GET") {
       const mode = url.searchParams.get("hub.mode");
       const token = url.searchParams.get("hub.verify_token");
@@ -465,25 +481,25 @@ Deno.serve(async (req) => {
       const payload = await req.json();
 
       // ============================================
-      // 🔀 ROTEAMENTO: Evolution ou Meta?
+      // 🔀 ROTEAMENTO: Kapso ou Meta?
       // ============================================
-      if (isEvolutionPayload(payload)) {
-        // Verify Evolution webhook signature if secret is configured
-        const webhookSecret = req.headers.get("x-webhook-secret");
+      if (isKapsoPayload(payload)) {
+        // Verify Kapso webhook signature if secret is configured
+        const webhookSecret = req.headers.get("x-webhook-secret") || req.headers.get("x-kapso-signature");
 
-        if (!EVOLUTION_WEBHOOK_SECRET) {
-          console.error("[webhook:evolution] CRITICAL: EVOLUTION_WEBHOOK_SECRET not configured — rejecting");
+        if (!KAPSO_WEBHOOK_SECRET) {
+          console.error("[webhook:kapso] CRITICAL: KAPSO_WEBHOOK_SECRET not configured — rejecting");
           return new Response("Service misconfigured", { status: 503, headers: corsHeaders });
         }
-        if (webhookSecret !== EVOLUTION_WEBHOOK_SECRET) {
-          console.error("[webhook:evolution] SECURITY: Invalid webhook secret — rejecting");
+        if (!webhookSecret || !timingSafeCompare(webhookSecret, KAPSO_WEBHOOK_SECRET)) {
+          console.error("[webhook:kapso] SECURITY: Invalid webhook secret — rejecting");
           return new Response("Unauthorized", { status: 401, headers: corsHeaders });
         }
 
-        // --- EVOLUTION API ---
+        // --- KAPSO API ---
         const event = payload.event;
         const instanceName = payload.instance;
-        console.log(`[webhook:evolution] Event: ${event} | Instance: ${instanceName}`);
+        console.log(`[webhook:kapso] Event: ${event} | Instance: ${instanceName}`);
 
         // Eventos de conexão (QR Code, status)
         if (event === "connection.update") {
@@ -497,12 +513,11 @@ Deno.serve(async (req) => {
             const { count } = await supabase
               .from("configuracoes_integracoes")
               .update({ status: dbStatus })
-              .eq("nome_integracao", INTEGRATION_NAME_EVOLUTION)
+              .eq("nome_integracao", INTEGRATION_NAME_KAPSO)
               .ilike("observacoes", `%${escapeLike(instanceName)}%`);
 
             // Se não atualizou nenhum registro, cria um novo (auto-repair)
             if ((count ?? 0) === 0 && state === "open") {
-              // Extrai tenant_id do nome da instância (formato: jurify_XXXXXXXX)
               const tenantPrefix = instanceName.replace("jurify_", "");
               if (tenantPrefix) {
                 const { data: profile } = await supabase
@@ -516,10 +531,10 @@ Deno.serve(async (req) => {
                   const { error: insertErr } = await supabase
                     .from("configuracoes_integracoes")
                     .insert({
-                      nome_integracao: INTEGRATION_NAME_EVOLUTION,
+                      nome_integracao: INTEGRATION_NAME_KAPSO,
                       status: "ativa",
-                      api_key: "evolution_managed",
-                      endpoint_url: EVOLUTION_API_URL || "evolution",
+                      api_key: "kapso_managed",
+                      endpoint_url: Deno.env.get("KAPSO_API_URL") || "https://api.kapso.ai",
                       observacoes: `Instance: ${instanceName}`,
                       tenant_id: profile.tenant_id,
                     });
@@ -548,33 +563,33 @@ Deno.serve(async (req) => {
                 status: "inativa",
                 observacoes: `Instance: ${instanceName} | QR: pending`,
               })
-              .eq("nome_integracao", INTEGRATION_NAME_EVOLUTION)
+              .eq("nome_integracao", INTEGRATION_NAME_KAPSO)
               .ilike("observacoes", `%${escapeLike(instanceName)}%`);
           }
 
           return new Response("OK", { status: 200, headers: corsHeaders });
         }
 
-        // Mensagem recebida
-        if (event === "messages.upsert") {
-          const msgId = getMessageId(payload, "evolution");
-          console.log(`[webhook:evolution] Message ID: ${msgId} | fromMe: ${payload.data?.key?.fromMe}`);
+        // Mensagem recebida (Kapso: whatsapp.message.received | Legacy: messages.upsert)
+        if (event === "messages.upsert" || event === "whatsapp.message.received") {
+          const msgId = getMessageId(payload, "kapso");
+          console.log(`[webhook:kapso] Message ID: ${msgId} | fromMe: ${payload.data?.key?.fromMe}`);
           if (msgId && await isDuplicate(msgId, supabase)) {
-            console.log(`[webhook:evolution] Duplicate message ${msgId}, skipping`);
+            console.log(`[webhook:kapso] Duplicate message ${msgId}, skipping`);
             return new Response("OK", { status: 200, headers: corsHeaders });
           }
-          const normalized = normalizeEvolutionMessage(payload);
+          const normalized = normalizeKapsoMessage(payload);
           if (normalized) {
-            console.log(`[webhook:evolution] Processing message from ${normalized.from}: "${normalized.text.substring(0, 50)}"`);
+            console.log(`[webhook:kapso] Processing message from ${normalized.from}: "${normalized.text.substring(0, 50)}"`);
             await processNormalizedMessage(supabase, normalized);
           } else {
-            console.warn(`[webhook:evolution] Could not normalize message (fromMe or empty)`);
+            console.warn(`[webhook:kapso] Could not normalize message (fromMe or empty)`);
           }
           return new Response("OK", { status: 200, headers: corsHeaders });
         }
 
         // Outros eventos
-        console.log(`[webhook:evolution] Ignoring event: ${event}`);
+        console.log(`[webhook:kapso] Ignoring event: ${event}`);
         return new Response("OK", { status: 200, headers: corsHeaders });
 
       } else {
@@ -679,7 +694,7 @@ async function processNormalizedMessage(supabase: ReturnType<typeof createClient
       const { data: config } = await supabase
         .from("configuracoes_integracoes")
         .select("tenant_id")
-        .eq("nome_integracao", INTEGRATION_NAME_EVOLUTION)
+        .eq("nome_integracao", INTEGRATION_NAME_KAPSO)
         .ilike("observacoes", `%${escapeLike(instanceName)}%`)
         .not("tenant_id", "is", null)
         .maybeSingle();
@@ -722,10 +737,10 @@ async function processNormalizedMessage(supabase: ReturnType<typeof createClient
 
           // Auto-repair: cria o registro faltante em configuracoes_integracoes
           void supabase.from("configuracoes_integracoes").insert({
-            nome_integracao: INTEGRATION_NAME_EVOLUTION,
+            nome_integracao: INTEGRATION_NAME_KAPSO,
             status: "ativa",
-            api_key: "evolution_managed",
-            endpoint_url: EVOLUTION_API_URL || "evolution",
+            api_key: "kapso_managed",
+            endpoint_url: Deno.env.get("KAPSO_API_URL") || "https://api.kapso.ai",
             observacoes: `Instance: ${instanceName}`,
             tenant_id: tenantId,
           }).then(({ error }) => {
@@ -1231,8 +1246,8 @@ async function processNormalizedMessage(supabase: ReturnType<typeof createClient
     // --- SEND REPLY FIRST, THEN SAVE ---
     console.log(`[processMsg:${provider}] Sending reply via ${provider} to ${from}`);
     let sendResult: SendResult;
-    if (provider === "evolution" && instanceName) {
-      sendResult = await sendViaEvolution(instanceName, from, aiText);
+    if (provider === "kapso") {
+      sendResult = await sendViaKapso(from, aiText);
     } else {
       sendResult = await sendViaMeta(from, aiText, tenantId, supabase);
     }
@@ -1298,7 +1313,7 @@ async function processNormalizedMessage(supabase: ReturnType<typeof createClient
 }
 
 // ============================================
-// 📤 ENVIO VIA EVOLUTION API (com retry exponencial)
+// 📤 ENVIO VIA KAPSO API (com retry exponencial)
 // ============================================
 interface SendResult {
   success: boolean;
@@ -1306,63 +1321,32 @@ interface SendResult {
   error: string | null;
 }
 
-async function sendViaEvolution(instanceName: string, to: string, text: string): Promise<SendResult> {
-  const apiUrl = EVOLUTION_API_URL;
-  const apiKey = EVOLUTION_API_KEY;
-
-  if (!apiUrl || !apiKey) {
-    console.error("[webhook:evolution] EVOLUTION_API_URL or EVOLUTION_API_KEY not configured");
-    return { success: false, messageId: null, error: "Evolution API not configured" };
-  }
-
-  const MAX_RETRIES = 2;
-  for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 10_000);
-    try {
-      const response = await fetch(`${apiUrl}/message/sendText/${instanceName}`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          apikey: apiKey,
-        },
-        body: JSON.stringify({ number: to, text }),
-        signal: controller.signal,
-      });
-
-      const data = await response.json().catch(() => ({}));
-
-      if (!response.ok) {
-        // Retry on server errors (5xx), not client errors (4xx)
-        if (response.status >= 500 && attempt < MAX_RETRIES) {
+async function sendViaKapso(to: string, text: string): Promise<SendResult> {
+  try {
+    const { sendTextMessage } = await import("../_shared/kapso-client.ts");
+    const MAX_RETRIES = 2;
+    for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+      try {
+        const result = await sendTextMessage(to, text);
+        return { success: true, messageId: result.messageId, error: null };
+      } catch (error) {
+        if (attempt < MAX_RETRIES) {
           const delay = Math.pow(2, attempt) * 1000;
-          console.warn(`[webhook:evolution] HTTP ${response.status}, retry in ${delay}ms (attempt ${attempt + 1})`);
+          console.warn(`[webhook:kapso] Send error, retry in ${delay}ms (attempt ${attempt + 1}):`, error);
           await new Promise((r) => setTimeout(r, delay));
-          continue;
+        } else {
+          const errorMsg = error instanceof Error ? error.message : "Send failed after retries";
+          console.error("[webhook:kapso] Send failed after retries:", error);
+          return { success: false, messageId: null, error: errorMsg };
         }
-        const errorMsg = typeof data?.message === "string" ? data.message : `HTTP ${response.status}`;
-        console.error("[webhook:evolution] Error sending message:", data);
-        return { success: false, messageId: null, error: errorMsg };
       }
-
-      // Extract messageId from Evolution response
-      const messageId = data?.key?.id || data?.messageId || null;
-      return { success: true, messageId, error: null };
-    } catch (error) {
-      if (attempt < MAX_RETRIES) {
-        const delay = Math.pow(2, attempt) * 1000;
-        console.warn(`[webhook:evolution] Network error, retry in ${delay}ms (attempt ${attempt + 1}):`, error);
-        await new Promise((r) => setTimeout(r, delay));
-      } else {
-        const errorMsg = error instanceof Error ? error.message : "Network error after retries";
-        console.error("[webhook:evolution] Network error after retries:", error);
-        return { success: false, messageId: null, error: errorMsg };
-      }
-    } finally {
-      clearTimeout(timeoutId);
     }
+    return { success: false, messageId: null, error: "Max retries exceeded" };
+  } catch (error) {
+    const errorMsg = error instanceof Error ? error.message : "Kapso API not configured";
+    console.error("[webhook:kapso] Kapso import/config error:", error);
+    return { success: false, messageId: null, error: errorMsg };
   }
-  return { success: false, messageId: null, error: "Max retries exceeded" };
 }
 
 // ============================================

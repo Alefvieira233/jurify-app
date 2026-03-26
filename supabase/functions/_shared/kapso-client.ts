@@ -132,13 +132,24 @@ export async function checkKapsoHealth(): Promise<HealthResult> {
   }
 
   try {
-    const response = await kapsoFetch("/meta/whatsapp/health", {
+    // Use the phone number endpoint to verify connectivity and auth
+    const response = await kapsoFetch(`/meta/whatsapp/v24.0/${phoneNumberId}`, {
       method: "GET",
-      signal: AbortSignal.timeout(5000),
+      signal: AbortSignal.timeout(8000),
     });
 
     if (response.ok) {
       return { status: "connected" };
+    }
+
+    // 401/403 = bad API key, but API is reachable
+    if (response.status === 401 || response.status === 403) {
+      return { status: "error", detail: "Invalid API key" };
+    }
+
+    // 404 on phone number = bad phone ID but API works
+    if (response.status === 404) {
+      return { status: "error", detail: "Phone number ID not found" };
     }
 
     return { status: "error", detail: `HTTP ${response.status}` };

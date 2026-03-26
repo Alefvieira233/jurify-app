@@ -57,7 +57,7 @@ interface DiagnosticoResult {
   ultimoHeartbeat: string | null;
   reconexoes: number;
   ultimoErro: string | null;
-  evolutionReachable: boolean | null;
+  kapsoReachable: boolean | null;
 }
 
 function formatRelativeTime(dateStr: string): string {
@@ -112,7 +112,7 @@ const ConnectionDetailsDrawer = ({ conexao, open, onOpenChange }: ConnectionDeta
     try {
       // Run status check and health-check in parallel
       const [statusRes, healthRes] = await Promise.all([
-        supabase.functions.invoke('evolution-manager', {
+        supabase.functions.invoke('kapso-manager', {
           body: { action: 'status', instanceName: conexao.instance_name },
         }),
         supabase.functions.invoke('health-check', {
@@ -123,15 +123,15 @@ const ConnectionDetailsDrawer = ({ conexao, open, onOpenChange }: ConnectionDeta
       const statusData = statusRes.data;
       const healthData = healthRes.data;
       const connected = statusData?.connected || statusData?.state === 'open';
-      const evolutionOk = healthData?.services?.evolution?.status === 'connected'
-        || healthData?.services?.evolution === 'connected';
+      const kapsoOk = healthData?.services?.whatsapp_kapso?.status === 'connected'
+        || healthData?.services?.whatsapp_kapso === 'connected';
 
       setDiagResult({
         sessaoConectada: connected ?? false,
         ultimoHeartbeat: conexao.last_heartbeat,
         reconexoes: conexao.reconnect_attempts,
         ultimoErro: conexao.last_error,
-        evolutionReachable: statusRes.error ? false : (evolutionOk ?? !healthRes.error),
+        kapsoReachable: statusRes.error ? false : (kapsoOk ?? !healthRes.error),
       });
     } catch {
       setDiagResult({
@@ -139,7 +139,7 @@ const ConnectionDetailsDrawer = ({ conexao, open, onOpenChange }: ConnectionDeta
         ultimoHeartbeat: conexao.last_heartbeat,
         reconexoes: conexao.reconnect_attempts,
         ultimoErro: conexao.last_error,
-        evolutionReachable: false,
+        kapsoReachable: false,
       });
       toast({ title: 'Erro ao executar diagnóstico', variant: 'destructive' });
     } finally {
@@ -171,7 +171,7 @@ const ConnectionDetailsDrawer = ({ conexao, open, onOpenChange }: ConnectionDeta
     if (!conexao.instance_name) return;
     setIsReconnecting(true);
     try {
-      const { error } = await supabase.functions.invoke('evolution-manager', {
+      const { error } = await supabase.functions.invoke('kapso-manager', {
         body: { action: 'restart', instanceName: conexao.instance_name },
       });
       if (error) throw error;
@@ -186,7 +186,7 @@ const ConnectionDetailsDrawer = ({ conexao, open, onOpenChange }: ConnectionDeta
   const handleDisconnect = async () => {
     if (!conexao.instance_name) return;
     try {
-      await supabase.functions.invoke('evolution-manager', {
+      await supabase.functions.invoke('kapso-manager', {
         body: { action: 'logout', instanceName: conexao.instance_name },
       });
       toast({ title: 'Sessão desconectada' });
@@ -199,7 +199,7 @@ const ConnectionDetailsDrawer = ({ conexao, open, onOpenChange }: ConnectionDeta
     if (!conexao.instance_name) return;
     setIsTesting(true);
     try {
-      const { data, error } = await supabase.functions.invoke('evolution-manager', {
+      const { data, error } = await supabase.functions.invoke('kapso-manager', {
         body: { action: 'status', instanceName: conexao.instance_name },
       });
       if (error) throw error;
@@ -219,7 +219,7 @@ const ConnectionDetailsDrawer = ({ conexao, open, onOpenChange }: ConnectionDeta
   const handleDelete = async () => {
     try {
       if (conexao.instance_name) {
-        await supabase.functions.invoke('evolution-manager', {
+        await supabase.functions.invoke('kapso-manager', {
           body: { action: 'delete', instanceName: conexao.instance_name },
         });
       }
@@ -250,7 +250,7 @@ const ConnectionDetailsDrawer = ({ conexao, open, onOpenChange }: ConnectionDeta
   };
 
   const getOverallHealth = (result: DiagnosticoResult): { label: string; color: string } => {
-    const hasError = !result.sessaoConectada || !result.evolutionReachable || result.sessaoConectada === null;
+    const hasError = !result.sessaoConectada || !result.kapsoReachable || result.sessaoConectada === null;
     const hasWarning = result.reconexoes > 3 || !!result.ultimoErro;
     if (hasError) return { label: 'Crítico', color: 'text-red-600 bg-red-50 dark:bg-red-900/30' };
     if (hasWarning) return { label: 'Atenção', color: 'text-amber-600 bg-amber-50 dark:bg-amber-900/30' };
@@ -308,7 +308,7 @@ const ConnectionDetailsDrawer = ({ conexao, open, onOpenChange }: ConnectionDeta
             {/* Tab: Geral */}
             <TabsContent value="geral" className="flex-1 overflow-y-auto px-6 pb-6 mt-4 space-y-5">
               <div className="grid grid-cols-2 gap-4">
-                <InfoItem label="Tipo" value={conexao.tipo === 'evolution' ? 'API Não Oficial' : conexao.tipo === 'oficial' ? 'API Oficial' : 'Cloud API'} />
+                <InfoItem label="Tipo" value={conexao.tipo === 'kapso' ? 'API Não Oficial (Kapso)' : conexao.tipo === 'oficial' ? 'API Oficial' : 'Cloud API'} />
                 <InfoItem label="Provider" value={conexao.provider || '—'} />
                 <InfoItem label="Instância" value={conexao.instance_name || '—'} copyable onCopy={() => copyToClipboard(conexao.instance_name || '')} />
                 <InfoItem label="Última sincronização" value={formatDate(conexao.last_sync)} />
@@ -383,7 +383,7 @@ const ConnectionDetailsDrawer = ({ conexao, open, onOpenChange }: ConnectionDeta
                 <div>
                   <Label className="text-xs text-muted-foreground">Tipo de conexão</Label>
                   <p className="text-sm font-medium">
-                    {conexao.tipo === 'evolution' ? 'API Não Oficial (Evolution)' : conexao.tipo === 'oficial' ? 'API Oficial (Meta)' : 'Cloud API'}
+                    {conexao.tipo === 'kapso' ? 'API Não Oficial (Kapso)' : conexao.tipo === 'oficial' ? 'API Oficial (Meta)' : 'Cloud API'}
                   </p>
                 </div>
                 <div>
@@ -581,9 +581,9 @@ const ConnectionDetailsDrawer = ({ conexao, open, onOpenChange }: ConnectionDeta
                     </div>
 
                     <DiagnosticoItem
-                      label="Evolution API"
-                      ok={diagResult.evolutionReachable === true}
-                      unknown={diagResult.evolutionReachable === null}
+                      label="Kapso API"
+                      ok={diagResult.kapsoReachable === true}
+                      unknown={diagResult.kapsoReachable === null}
                       valueOk="Acessível"
                       valueFail="Inacessível"
                     />

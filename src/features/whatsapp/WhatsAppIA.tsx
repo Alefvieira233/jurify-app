@@ -712,7 +712,7 @@ const WhatsAppIA = () => {
   const [isWhatsAppConnected, setIsWhatsAppConnected] = useState(() => {
     // Restaura do sessionStorage se disponível
     try {
-      const saved = sessionStorage.getItem('whatsapp_evolution_instance');
+      const saved = sessionStorage.getItem('whatsapp_kapso_instance');
       if (saved) {
         const parsed = JSON.parse(saved);
         if (parsed.timestamp && Date.now() - parsed.timestamp < 2 * 60 * 60 * 1000) {
@@ -734,7 +734,7 @@ const WhatsAppIA = () => {
       const { data } = await supabase
         .from('configuracoes_integracoes')
         .select('status')
-        .eq('nome_integracao', 'whatsapp_evolution')
+        .eq('nome_integracao', 'whatsapp_kapso')
         .maybeSingle();
       if (data?.status === 'ativa') {
         setIsWhatsAppConnected(true);

@@ -43,7 +43,7 @@ const QRCodeWizard = ({ onBack, onConnected }: QRCodeWizardProps) => {
 
   const checkStatus = useCallback(async (name: string) => {
     try {
-      const { data, error: fnError } = await supabase.functions.invoke('evolution-manager', {
+      const { data, error: fnError } = await supabase.functions.invoke('kapso-manager', {
         body: { action: 'status', instanceName: name },
       });
       if (fnError) return;
@@ -94,7 +94,7 @@ const QRCodeWizard = ({ onBack, onConnected }: QRCodeWizardProps) => {
     cleanup();
 
     try {
-      const { data, error: fnError } = await supabase.functions.invoke('evolution-manager', {
+      const { data, error: fnError } = await supabase.functions.invoke('kapso-manager', {
         body: { action: 'create' },
       });
 
@@ -112,7 +112,7 @@ const QRCodeWizard = ({ onBack, onConnected }: QRCodeWizardProps) => {
         startPolling(name);
       } else {
         // Instance may already be connected
-        const statusRes = await supabase.functions.invoke('evolution-manager', {
+        const statusRes = await supabase.functions.invoke('kapso-manager', {
           body: { action: 'status', instanceName: name },
         });
         if (statusRes.data?.connected) {
@@ -121,7 +121,7 @@ const QRCodeWizard = ({ onBack, onConnected }: QRCodeWizardProps) => {
           return;
         }
         // Try fetching QR
-        const qrRes = await supabase.functions.invoke('evolution-manager', {
+        const qrRes = await supabase.functions.invoke('kapso-manager', {
           body: { action: 'qrcode', instanceName: name },
         });
         if (qrRes.data?.qrcode) {
@@ -148,7 +148,7 @@ const QRCodeWizard = ({ onBack, onConnected }: QRCodeWizardProps) => {
     setState('creating');
 
     try {
-      const { data, error: fnError } = await supabase.functions.invoke('evolution-manager', {
+      const { data, error: fnError } = await supabase.functions.invoke('kapso-manager', {
         body: { action: 'qrcode', instanceName },
       });
       if (fnError || !data?.qrcode) throw new Error('Erro ao atualizar QR Code');

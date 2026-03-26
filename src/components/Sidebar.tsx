@@ -57,8 +57,8 @@ type NavEntry = (MenuLeaf & { kind: 'leaf' }) | (MenuSection & { kind: 'section'
    Main  → flat items + expandable sections (Atendimento, Automações)
 ───────────────────────────────────────────────────────────────────────── */
 const MAIN_NAV: NavEntry[] = [
-  { kind: 'leaf', id: 'home',       label: 'Home',          icon: Home,            resource: 'dashboard',     action: 'read' },
-  { kind: 'leaf', id: 'dashboard',  label: 'Dashboard',     icon: LayoutDashboard, resource: 'dashboard',     action: 'read' },
+  { kind: 'leaf', id: 'home',       label: 'Home',          icon: Home,            resource: 'leads',         action: 'read' },
+  { kind: 'leaf', id: 'dashboard',  label: 'Dashboard',     icon: LayoutDashboard, resource: 'leads',         action: 'read' },
   { kind: 'leaf', id: 'conexoes',   label: 'Conexões',      icon: Link2,           resource: 'conexoes',      action: 'read' },
   {
     kind: 'section',
@@ -82,8 +82,8 @@ const MAIN_NAV: NavEntry[] = [
     ],
   },
   { kind: 'leaf', id: 'agendamentos',  label: 'Tarefas',        icon: CheckSquare, resource: 'agendamentos', action: 'read' },
-  { kind: 'leaf', id: 'configuracoes', label: 'Configurações',  icon: Settings,    resource: 'configuracoes', action: 'read' },
-  { kind: 'leaf', id: 'suporte',       label: 'Suporte',        icon: HelpCircle,  resource: 'dashboard',     action: 'read' },
+  { kind: 'leaf', id: 'configuracoes', label: 'Configurações',  icon: Settings,    resource: 'leads',         action: 'read' },
+  { kind: 'leaf', id: 'suporte',       label: 'Suporte',        icon: HelpCircle,  resource: 'leads',         action: 'read' },
 ];
 
 /** All leaf items flattened (for RBAC filtering) */
