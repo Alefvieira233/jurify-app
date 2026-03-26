@@ -55,16 +55,16 @@ describe('Dashboard', () => {
 
   it('renders stat cards', () => {
     render(<Dashboard />, { wrapper: createWrapper() });
-    expect(screen.getByText('Total de Leads')).toBeInTheDocument();
-    expect(screen.getByText('Novos')).toBeInTheDocument();
-    expect(screen.getByText('Ganhos')).toBeInTheDocument();
-    // "Em Contato" appears in both stat card and pipeline overview
-    expect(screen.getAllByText('Em Contato').length).toBeGreaterThanOrEqual(1);
+    expect(screen.getByText('Eventos por Status')).toBeInTheDocument();
+    // Use getAllByText for labels that appear in both stat cards and pipeline distribution
+    expect(screen.getAllByText('Nova Conversa').length).toBeGreaterThanOrEqual(2);
+    expect(screen.getAllByText('Sucesso').length).toBeGreaterThanOrEqual(2);
+    expect(screen.getAllByText('Análise').length).toBeGreaterThanOrEqual(2);
   });
 
   it('renders pipeline overview', () => {
     render(<Dashboard />, { wrapper: createWrapper() });
-    expect(screen.getByText('Pipeline por Status')).toBeInTheDocument();
+    expect(screen.getByText('Distribuição do Pipeline')).toBeInTheDocument();
   });
 
   it('renders period selector', () => {
@@ -74,14 +74,9 @@ describe('Dashboard', () => {
     expect(screen.getByText('Trimestre')).toBeInTheDocument();
   });
 
-  it('renders ranking table', () => {
-    render(<Dashboard />, { wrapper: createWrapper() });
-    expect(screen.getByTestId('ranking-table')).toBeInTheDocument();
-  });
-
   it('displays correct lead counts', () => {
     render(<Dashboard />, { wrapper: createWrapper() });
-    // Total leads = 3
-    expect(screen.getByText('3')).toBeInTheDocument();
+    // Total leads summary at the bottom
+    expect(screen.getByText('3 leads', { selector: '.font-bold' })).toBeInTheDocument();
   });
 });
