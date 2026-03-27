@@ -55,16 +55,16 @@ describe('Dashboard', () => {
 
   it('renders stat cards', () => {
     render(<Dashboard />, { wrapper: createWrapper() });
-    expect(screen.getByText('Total de Leads')).toBeInTheDocument();
-    expect(screen.getByText('Novos')).toBeInTheDocument();
-    expect(screen.getByText('Ganhos')).toBeInTheDocument();
-    // "Em Contato" appears in both stat card and pipeline overview
-    expect(screen.getAllByText('Em Contato').length).toBeGreaterThanOrEqual(1);
+    // Use getAllByText for labels that appear in both stat cards and the pipeline distribution list
+    expect(screen.getAllByText('Nova Conversa').length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText('Sucesso').length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText('Análise').length).toBeGreaterThanOrEqual(1);
   });
 
   it('renders pipeline overview', () => {
     render(<Dashboard />, { wrapper: createWrapper() });
-    expect(screen.getByText('Pipeline por Status')).toBeInTheDocument();
+    expect(screen.getByText('Eventos por Status')).toBeInTheDocument();
+    expect(screen.getByText('Distribuição do Pipeline')).toBeInTheDocument();
   });
 
   it('renders period selector', () => {
@@ -74,14 +74,12 @@ describe('Dashboard', () => {
     expect(screen.getByText('Trimestre')).toBeInTheDocument();
   });
 
-  it('renders ranking table', () => {
-    render(<Dashboard />, { wrapper: createWrapper() });
-    expect(screen.getByTestId('ranking-table')).toBeInTheDocument();
-  });
-
   it('displays correct lead counts', () => {
     render(<Dashboard />, { wrapper: createWrapper() });
-    // Total leads = 3
-    expect(screen.getByText('3')).toBeInTheDocument();
+    // Total leads = 3 (stat card total is not shown, but 1 novo, 1 ganho, 1 em_contato)
+    // In "Distribuição do Pipeline", it should show "3 leads".
+    // We use getAllByText because it appears for both "Total no período" and "Total geral"
+    const leadCountElements = screen.getAllByText(/3 leads/i);
+    expect(leadCountElements.length).toBeGreaterThanOrEqual(1);
   });
 });

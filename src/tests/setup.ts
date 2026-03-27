@@ -153,3 +153,10 @@ vi.mock('@aparajita/capacitor-biometric-auth', () => ({
     checkBiometry: vi.fn().mockResolvedValue({ isAvailable: true, biometryType: 2 }),
   },
 }));
+
+// Fallback for Supabase env vars in tests
+if (!import.meta.env) {
+  (import.meta as any).env = {};
+}
+import.meta.env.VITE_SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || 'https://dummy.supabase.co';
+import.meta.env.VITE_SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY || 'dummy-key';
