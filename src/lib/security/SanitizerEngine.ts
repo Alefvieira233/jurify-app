@@ -73,6 +73,7 @@ function generateTokenId(): string {
     return Array.from(array, (byte) => byte.toString(16).padStart(2, '0')).join('');
   }
 
+  /* v8 ignore start */
   // Fallback for extremely restricted environments (unlikely in modern Edge/Browser)
   const hex = '0123456789abcdef';
   let id = '';
@@ -80,6 +81,7 @@ function generateTokenId(): string {
     id += hex[Math.floor(Math.random() * 16)];
   }
   return id;
+  /* v8 ignore stop */
 }
 
 // ─── Core Types ─────────────────────────────────────────────────────────────

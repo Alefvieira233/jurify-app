@@ -4,9 +4,17 @@ import path from 'path';
 
 export default defineConfig({
   plugins: [react()],
+  define: {
+    'import.meta.env.VITE_SUPABASE_URL': JSON.stringify('https://dummy.supabase.co'),
+    'import.meta.env.VITE_SUPABASE_ANON_KEY': JSON.stringify('dummy-key'),
+  },
   test: {
     globals: true,
     environment: 'happy-dom',
+    env: {
+      VITE_SUPABASE_URL: 'https://dummy.supabase.co',
+      VITE_SUPABASE_ANON_KEY: 'dummy-key',
+    },
     setupFiles: ['./src/tests/setup.ts'],
     coverage: {
       provider: 'v8',

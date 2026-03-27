@@ -39,6 +39,7 @@
     "db:seed": "supabase seed run",
     "db:backup": "node scripts/backup-database.cjs",
     "preview": "vite preview --port 4173 --https",
+    "preview:e2e": "vite preview --port 8081",
     "deploy:staging": "npm run build:staging && node scripts/deploy-staging.cjs",
     "deploy:production": "node scripts/production-deploy.cjs",
     "pre-deploy": "npm run lint && npm run type-check && npm run test && npm run test:security",
