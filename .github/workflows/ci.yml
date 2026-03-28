@@ -180,6 +180,8 @@ jobs:
         uses: trufflesecurity/trufflehog@v3.88.0
         with:
           path: ./
+          # NOTE: --fail is already included in the action by default.
+          # Providing it again in extra_args causes a CLI error.
           extra_args: --only-verified --exclude-paths=.trufflehog-ignore
         continue-on-error: true
 
