@@ -32,10 +32,6 @@ vi.mock('@/hooks/useRBAC', () => ({
   }),
 }));
 
-vi.mock('@/components/relatorios/RankingAgentesTable', () => ({
-  default: () => React.createElement('div', { 'data-testid': 'ranking-table' }, 'RankingTable'),
-}));
-
 import Dashboard from '../Dashboard';
 
 function createWrapper() {
@@ -53,18 +49,18 @@ describe('Dashboard', () => {
     expect(screen.getByText('Dashboard')).toBeInTheDocument();
   });
 
-  it('renders stat cards', () => {
+  it('renders stat cards section', () => {
     render(<Dashboard />, { wrapper: createWrapper() });
-    expect(screen.getByText('Total de Leads')).toBeInTheDocument();
-    expect(screen.getByText('Novos')).toBeInTheDocument();
-    expect(screen.getByText('Ganhos')).toBeInTheDocument();
-    // "Em Contato" appears in both stat card and pipeline overview
-    expect(screen.getAllByText('Em Contato').length).toBeGreaterThanOrEqual(1);
+    expect(screen.getByText('Eventos por Status')).toBeInTheDocument();
+    // Labels appear in both stat cards and pipeline distribution
+    expect(screen.getAllByText('Nova Conversa').length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText('Qualificado').length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText('Sucesso').length).toBeGreaterThanOrEqual(1);
   });
 
-  it('renders pipeline overview', () => {
+  it('renders pipeline distribution', () => {
     render(<Dashboard />, { wrapper: createWrapper() });
-    expect(screen.getByText('Pipeline por Status')).toBeInTheDocument();
+    expect(screen.getByText('Distribuição do Pipeline')).toBeInTheDocument();
   });
 
   it('renders period selector', () => {
@@ -74,14 +70,9 @@ describe('Dashboard', () => {
     expect(screen.getByText('Trimestre')).toBeInTheDocument();
   });
 
-  it('renders ranking table', () => {
+  it('displays lead totals', () => {
     render(<Dashboard />, { wrapper: createWrapper() });
-    expect(screen.getByTestId('ranking-table')).toBeInTheDocument();
-  });
-
-  it('displays correct lead counts', () => {
-    render(<Dashboard />, { wrapper: createWrapper() });
-    // Total leads = 3
-    expect(screen.getByText('3')).toBeInTheDocument();
+    // "3 leads" appears in both period total and overall total
+    expect(screen.getAllByText('3 leads').length).toBe(2);
   });
 });

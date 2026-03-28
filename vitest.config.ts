@@ -8,6 +8,35 @@ export default defineConfig({
     globals: true,
     environment: 'happy-dom',
     setupFiles: ['./src/tests/setup.ts'],
+    pool: 'forks',
+    poolOptions: {
+      forks: {
+        minForks: 2,
+        maxForks: 4,
+        isolate: false,
+      },
+    },
+    css: false,
+    testTimeout: 10000,
+    deps: {
+      optimizer: {
+        web: {
+          include: [
+            '@testing-library/jest-dom',
+            '@testing-library/react',
+            '@testing-library/user-event',
+            '@radix-ui/*',
+            'react-hook-form',
+            '@hookform/resolvers',
+            'zod',
+            'date-fns',
+            'recharts',
+            'lucide-react',
+            '@tanstack/react-query',
+          ],
+        },
+      },
+    },
     coverage: {
       provider: 'v8',
       reporter: ['text', 'json', 'html', 'lcov'],

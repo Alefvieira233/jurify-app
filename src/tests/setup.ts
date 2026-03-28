@@ -74,8 +74,6 @@ Object.defineProperty(global, 'crypto', {
   },
 });
 
-console.log('✅ Vitest test environment configured');
-
 // ─── Capacitor Mocks ───────────────────────────────────────────────────────
 
 vi.mock('@capacitor/core', () => ({
