@@ -1,0 +1,5 @@
+# Supabase anon key is public by design (RLS enforces security)
+.env.example
+.env.production.example
+# Supabase auto-generated types contain the project URL (not a secret)
+src/integrations/supabase/client.ts

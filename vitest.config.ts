@@ -9,13 +9,8 @@ export default defineConfig({
     environment: 'happy-dom',
     setupFiles: ['./src/tests/setup.ts'],
     pool: 'forks',
-    poolOptions: {
-      forks: {
-        minForks: 2,
-        maxForks: 4,
-        isolate: false,
-      },
-    },
+    minForks: 2,
+    maxForks: 4,
     css: false,
     testTimeout: 10000,
     deps: {
