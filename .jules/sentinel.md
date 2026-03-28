@@ -1,0 +1,4 @@
+## 2026-03-24 - PII Redaction in AI Logs and Secure ID Generation
+**Vulnerability:** Sensitive PII (CPF, CNPJ, OAB, Emails, Phones) was being stored in plain text in the `agent_ai_logs` table. Additionally, security-critical identifiers were being generated using `Math.random()`, which is not cryptographically secure.
+**Learning:** Even if the frontend sanitizes PII before LLM calls, the Edge Functions might still receive or generate sensitive data that ends up in persistent internal logs. Relying on `Math.random()` for execution or token IDs is a common pattern that fails cryptographic strength requirements.
+**Prevention:** Always wrap internal AI log fields in a redaction utility like `redactPII`. Ensure that PII detection patterns are synchronized between frontend and backend. Use `crypto.getRandomValues()` for any identifier that requires uniqueness and non-predictability.
