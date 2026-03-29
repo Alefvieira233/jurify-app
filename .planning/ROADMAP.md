@@ -26,12 +26,18 @@
 Source: `.planning/codebase/` audit reports (Quality, UI, Integrations, Architecture)
 
 ## Phase 8: Security Hardening
-**Status:** Ready to plan
+**Status:** Planned
 **Goal:** Close all critical and high-severity security findings from the integrations and architecture audits
 **Scope:** Open redirect fix, input sanitization, rate limiting for 8+ Edge Functions, RBAC route restrictions, email template fix, admin-gate debug component
 **Files:** 12+ Edge Functions, App.tsx, SistemaSection.tsx, send-email
 **Depends on:** Nothing
 **Requirements:** [SEC-01, SEC-02, SEC-03, SEC-04, SEC-05, SEC-06, SEC-07, SEC-08, SEC-09, SEC-10, SEC-11]
+**Plans:** 3 plans
+
+Plans:
+- [ ] 08-01-PLAN.md — Input sanitization: open redirect, prompt injection, LIKE escaping, email XSS, charge-refunded template
+- [ ] 08-02-PLAN.md — Rate limiting for 8 unprotected Edge Functions
+- [ ] 08-03-PLAN.md — RBAC route restrictions + admin-gate TesteRealAgenteIA
 
 **Success Criteria:**
 1. `create-portal-session` rejects return URLs not matching allowed origins
