@@ -49,7 +49,7 @@ Plans:
 **Estimated tasks:** 2-3 atomic plans
 
 ## Phase 5: Kapso Backend Migration
-**Status:** Planning Complete
+**Status:** Complete
 **Goal:** Remove all Evolution API legacy code, rename types to Kapso, fix media upload path, update tests and DB constraint to finalize Kapso-only backend
 **Scope:** Clean Evolution remnants from send-whatsapp-message, whatsapp-webhook; update integration tests; final DB migration; full verification sweep
 **Files:** 6 Edge Functions + shared modules + DB migration + integration tests
@@ -62,16 +62,22 @@ Plans:
 - [x] 05-02-PLAN.md — Update integration tests to Kapso naming, final DB migration
 - [x] 05-03-PLAN.md — Verification sweep + full test suite validation
 
-## Phase 6: Kapso Frontend + Conexões Redesign
-**Status:** Not Started
-**Scope:** ConexoesManager redesign, WhatsAppKapsoSetup, update hooks/types, CI/CD secrets migration
-**Files:** ConexoesManager.tsx, ConnectionTypeChooser.tsx, QRCodeWizard.tsx, useConexoes.ts, CI workflows
+## Phase 6: Kapso Frontend + Conexoes Redesign
+**Status:** Planning Complete
+**Goal:** Remove legacy configuracoes_integracoes fallbacks from frontend, make hooks/components Kapso-native against conexoes_whatsapp table, add Kapso branding, and add test coverage for Conexoes feature
+**Scope:** useConexoes cleanup, WhatsAppKapsoSetup migration, ConexoesManager polish, ConnectionTypeChooser branding, test coverage
+**Files:** useConexoes.ts, WhatsAppKapsoSetup.tsx, ConexoesManager.tsx, ConnectionTypeChooser.tsx, ConnectionDetailsDrawer.tsx
 **Depends on:** Phase 5 (backend must be migrated first)
-**Estimated tasks:** 2-3 atomic plans
+**Requirements:** [FR-17, FR-18, FR-20, NFR-1, NFR-2]
+**Plans:** 2 plans
+
+Plans:
+- [ ] 06-01-PLAN.md — Remove legacy fallbacks, Kapso-only hooks/components, status badges, Kapso branding
+- [ ] 06-02-PLAN.md — Test coverage for ConexoesManager, ConnectionDetailsDrawer; update WhatsAppKapsoSetup tests
 
 ## Phase 7: LíderHub Routes + Final Integration
 **Status:** Not Started
-**Scope:** Wire all new routes in App.tsx, final sidebar nav, Conexões + Automações pages, testing + cleanup
+**Scope:** Wire all new routes in App.tsx, final sidebar nav, Conexoes + Automacoes pages, testing + cleanup
 **Files:** App.tsx, Sidebar.tsx, tests
 **Depends on:** Phases 1-6
 **Estimated tasks:** 2 atomic plans
@@ -79,5 +85,5 @@ Plans:
 ---
 
 ## Parallelism Strategy
-- **Phases 1-4** (UI) and **Phases 5-6** (Kapso) can run in parallel — they're independent
+- **Phases 1-4** (UI) and **Phases 5-6** (Kapso) can run in parallel -- they're independent
 - Phase 7 is the integration phase that ties everything together
