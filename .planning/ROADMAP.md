@@ -83,11 +83,17 @@ Plans:
 - [x] 06-02-PLAN.md — Test coverage for ConexoesManager, ConnectionDetailsDrawer; update WhatsAppKapsoSetup tests
 
 ## Phase 7: LíderHub Routes + Final Integration
-**Status:** Not Started
-**Scope:** Wire all new routes in App.tsx, final sidebar nav, Conexoes + Automacoes pages, testing + cleanup
-**Files:** App.tsx, Sidebar.tsx, tests
+**Status:** Planning Complete
+**Goal:** Wire all new sidebar nav sections (Jurídico, Relatórios), fix Tarefas route, add missing deep link paths, E2E smoke tests for all LíderHub routes, production build validation
+**Scope:** Sidebar nav sections, App.tsx deep link set, E2E smoke spec, build gate
+**Files:** App.tsx, Sidebar.tsx, e2e/liderhub-smoke.spec.ts
 **Depends on:** Phases 1-6
-**Estimated tasks:** 2 atomic plans
+**Requirements:** [FR-1, FR-2, FR-3, FR-4, FR-5, FR-6, FR-7, FR-8, FR-9, FR-10, FR-11, FR-12, NFR-1, NFR-2, NFR-3, NFR-4]
+**Plans:** 2 plans
+
+Plans:
+- [ ] 07-01-PLAN.md — Sidebar: add Jurídico + Relatórios sections, fix Tarefas leaf
+- [ ] 07-02-PLAN.md — App.tsx deep links, E2E smoke spec, production build validation
 
 ---
 
