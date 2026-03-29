@@ -11,6 +11,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { getCorsHeaders } from "../_shared/cors.ts";
 import { getCache, setCache, CACHE_TTL } from "../_shared/cache.ts";
 import { rateLimit, sanitizeInput, redactPII, auditLog } from "../_shared/security.ts";
+import { generateSecureUint32 } from "../_shared/crypto.ts";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -430,9 +431,7 @@ async function callOpenAIWithRetry(
 
     // Retry on 429 (rate limit) and 5xx
     if ((res.status === 429 || res.status >= 500) && attempt < maxRetries) {
-      const array = new Uint32Array(1);
-      crypto.getRandomValues(array);
-      const jitter = (array[0]! % 500);
+      const jitter = (generateSecureUint32() % 500);
       const delay = Math.pow(2, attempt) * 1000 + jitter;
       console.warn(`[assistant] OpenAI ${res.status}, retrying in ${Math.round(delay)}ms (attempt ${attempt + 1})`);
       await new Promise((r) => setTimeout(r, delay));

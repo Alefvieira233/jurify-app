@@ -6,6 +6,7 @@ import { applyRateLimit } from "../_shared/rate-limiter.ts";
 import { buildLegalContext } from "../_shared/legal-context.ts";
 import { DEFAULT_OPENAI_MODEL } from "../_shared/ai-model.ts";
 import { redactPII } from "../_shared/security.ts";
+import { generateSecureId } from "../_shared/crypto.ts";
 
 // whatsapp-webhook: Kapso API + Meta compatible
 
@@ -1048,9 +1049,8 @@ async function processNormalizedMessage(supabase: ReturnType<typeof createClient
     let aiResponse: { result: string; usage?: { prompt_tokens: number; completion_tokens: number; total_tokens: number }; model: string } | null = null;
     let aiError: Error | null = null;
 
-    const array = new Uint32Array(1);
-    crypto.getRandomValues(array);
-    const executionId = `exec_${Date.now()}_${array[0]!.toString(36)}`;
+    const randomId = generateSecureId(4);
+    const executionId = `exec_${Date.now()}_${randomId}`;
     const aiStartTime = Date.now();
     let executionRowId: string | null = null;
 

@@ -8,6 +8,7 @@
  */
 
 import { ExecutionStore } from './ExecutionStore';
+import { generateSecureId } from '@/utils/crypto';
 import type {
   ExecutionStatus,
   ExecutionResult,
@@ -72,18 +73,7 @@ export class ExecutionTracker {
     userId?: string,
     config?: ExecutionTrackerConfig
   ): Promise<ExecutionTracker> {
-    const array = new Uint32Array(1);
-    const cryptoObj = typeof globalThis !== 'undefined' && globalThis.crypto
-      ? globalThis.crypto
-      : (typeof window !== 'undefined' ? window.crypto : null);
-
-    if (cryptoObj && cryptoObj.getRandomValues) {
-      cryptoObj.getRandomValues(array);
-    } else {
-      array[0] = Math.floor(Math.random() * 0xFFFFFFFF);
-    }
-
-    const executionId = `exec_${Date.now()}_${array[0]!.toString(36)}`;
+    const executionId = `exec_${Date.now()}_${generateSecureId(4)}`;
 
     // Persiste no banco
     await ExecutionStore.createExecution(executionId, leadId, tenantId, userId);

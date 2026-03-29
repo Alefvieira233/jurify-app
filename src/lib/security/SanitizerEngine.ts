@@ -46,47 +46,27 @@ const PII_PATTERNS: PIIPattern[] = [
   },
   {
     name: 'OAB',
-    regex: /\b(?:AC|AL|AP|AM|BA|CE|DF|ES|GO|MA|MT|MS|MG|PA|PB|PR|PE|PI|RJ|RN|RS|RO|RR|SC|SP|SE|TO)\s?\d{4,6}\b/gi,
+    regex: /\b(?:AC|AL|AP|AM|BA|CE|DF|ES|GO|MA|MT|MS|MG|PA|PB|PR|PE|PI|RJ|RN|RS|RO|RR|SC|SP|SE|TO)\s?\d{4,6}\b/g,
     prefix: 'OAB',
   },
   {
     name: 'PHONE_BR',
-    regex: /(?:\+55\s?)?(?:\(\d{2}\)|\d{2})\s?\d{4,5}[-\s]?\d{4}/g,
+    regex: /(?:\+55\s?)?(?:\(\d{2}\)|\d{2})\s?\d{4,5}[-\s]?\d{4}\b/g,
     prefix: 'TEL',
   },
   {
     name: 'EMAIL',
-    regex: /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g,
+    regex: /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}\b/g,
     prefix: 'EMAIL',
   },
 ];
 
+import { generateSecureId } from '@/utils/crypto';
+
 // ─── UUID Generator ─────────────────────────────────────────────────────────
 
 function generateTokenId(): string {
-  // Use crypto.getRandomValues for cryptographically strong random values
-  const hex = '0123456789abcdef';
-  const array = new Uint8Array(8);
-
-  // Environment-aware crypto check
-  const cryptoObj = typeof globalThis !== 'undefined' && globalThis.crypto
-    ? globalThis.crypto
-    : (typeof window !== 'undefined' ? window.crypto : null);
-
-  if (cryptoObj && cryptoObj.getRandomValues) {
-    cryptoObj.getRandomValues(array);
-  } else {
-    // Fallback for legacy environments (though unlikely in Deno/Modern Browser)
-    for (let i = 0; i < 8; i++) {
-      array[i] = Math.floor(Math.random() * 256);
-    }
-  }
-
-  let id = '';
-  for (let i = 0; i < 8; i++) {
-    id += hex[array[i]! % 16];
-  }
-  return id;
+  return generateSecureId(4); // 8 hex chars
 }
 
 // ─── Core Types ─────────────────────────────────────────────────────────────

@@ -16,6 +16,7 @@ import { getCorsHeaders } from "../_shared/cors.ts";
 import { initSentry, captureError } from "../_shared/sentry.ts";
 import { DEFAULT_OPENAI_MODEL } from "../_shared/ai-model.ts";
 import { redactPII } from "../_shared/security.ts";
+import { generateSecureId } from "../_shared/crypto.ts";
 
 // 🚀 INIT SENTRY
 initSentry();
@@ -172,9 +173,7 @@ async function processAIRequest(
 // ðŸ†” Gera execution_id Ãºnico
 function generateExecutionId(): string {
   const timestamp = Date.now();
-  const array = new Uint32Array(1);
-  crypto.getRandomValues(array);
-  const random = array[0]!.toString(36);
+  const random = generateSecureId(4);
   return `exec_${timestamp}_${random}`;
 }
 
