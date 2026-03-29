@@ -48,12 +48,12 @@ Plans:
 **Files:** 6 Edge Functions + shared modules + DB migration + integration tests
 **Depends on:** Nothing (independent of UI phases)
 **Requirements:** [FR-13, FR-14, FR-15, FR-16, FR-19, FR-20, NFR-1, NFR-2, NFR-6]
-**Plans:** 2/3 plans executed
+**Plans:** 3/3 plans complete
 
 Plans:
 - [x] 05-01-PLAN.md — Clean Evolution legacy from webhook + sender, fix media upload
 - [x] 05-02-PLAN.md — Update integration tests to Kapso naming, final DB migration
-- [ ] 05-03-PLAN.md — Verification sweep + full test suite validation
+- [x] 05-03-PLAN.md — Verification sweep + full test suite validation
 
 ## Phase 6: Kapso Frontend + Conexões Redesign
 **Status:** Not Started
