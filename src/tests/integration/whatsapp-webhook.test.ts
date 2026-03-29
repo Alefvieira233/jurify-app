@@ -2,19 +2,19 @@
  * 🧪 TESTES DE INTEGRAÇÃO — WHATSAPP WEBHOOK
  *
  * Valida o fluxo completo do webhook WhatsApp:
- * - Normalização de payloads Evolution API e Meta Official
+ * - Normalização de payloads Kapso API e Meta Official
  * - Deduplicação de mensagens
  * - Resolução de tenant via admin profile
  * - Criação/atualização de leads e conversas
  * - Invocação do agente IA (Coordenador)
- * - Envio de resposta via Evolution ou Meta
+ * - Envio de resposta via Kapso ou Meta
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 // ─── Mock Data ───────────────────────────────────────────────
 
-const MOCK_EVOLUTION_MESSAGE_UPSERT = {
+const MOCK_KAPSO_MESSAGE_UPSERT = {
   event: 'messages.upsert',
   instance: 'jurify-prod',
   data: {
@@ -31,19 +31,19 @@ const MOCK_EVOLUTION_MESSAGE_UPSERT = {
   },
 };
 
-const MOCK_EVOLUTION_CONNECTION_UPDATE = {
+const MOCK_KAPSO_CONNECTION_UPDATE = {
   event: 'connection.update',
   instance: 'jurify-prod',
   data: { state: 'open' },
 };
 
-const MOCK_EVOLUTION_QRCODE = {
+const MOCK_KAPSO_QRCODE = {
   event: 'qrcode.updated',
   instance: 'jurify-prod',
   data: { qrcode: { base64: 'data:image/png;base64,abc123' } },
 };
 
-const MOCK_EVOLUTION_FROM_ME = {
+const MOCK_KAPSO_FROM_ME = {
   event: 'messages.upsert',
   instance: 'jurify-prod',
   data: {
@@ -146,16 +146,16 @@ interface NormalizedMessage {
   messageType: string;
   mediaUrl: string | null;
   instanceName: string | null;
-  provider: 'evolution' | 'meta';
+  provider: 'kapso' | 'meta';
 }
 
 type WebhookPayload = Record<string, unknown>;
 
-function isEvolutionPayload(payload: WebhookPayload): boolean {
+function isKapsoPayload(payload: WebhookPayload): boolean {
   return !!(payload?.event || payload?.instance || (payload?.data as Record<string, unknown>)?.key);
 }
 
-function normalizeEvolutionMessage(payload: WebhookPayload): NormalizedMessage | null {
+function normalizeKapsoMessage(payload: WebhookPayload): NormalizedMessage | null {
   const event = payload.event as string;
   if (event !== 'messages.upsert') return null;
 
@@ -201,7 +201,7 @@ function normalizeEvolutionMessage(payload: WebhookPayload): NormalizedMessage |
     messageType: messageType === 'conversation' ? 'text' : messageType,
     mediaUrl,
     instanceName: (payload.instance as string) || null,
-    provider: 'evolution',
+    provider: 'kapso',
   };
 }
 
@@ -281,8 +281,8 @@ function createDeduplicator() {
   };
 }
 
-function getMessageId(payload: WebhookPayload, provider: 'evolution' | 'meta'): string | null {
-  if (provider === 'evolution') {
+function getMessageId(payload: WebhookPayload, provider: 'kapso' | 'meta'): string | null {
+  if (provider === 'kapso') {
     const data = payload.data as Record<string, unknown> | undefined;
     const key = data?.key as Record<string, unknown> | undefined;
     return (key?.id as string) || null;
@@ -304,49 +304,49 @@ function getMessageId(payload: WebhookPayload, provider: 'evolution' | 'meta'): 
 // ─── Tests ───────────────────────────────────────────────────
 
 describe('WhatsApp Webhook — Payload Detection', () => {
-  it('detects Evolution API payload', () => {
-    expect(isEvolutionPayload(MOCK_EVOLUTION_MESSAGE_UPSERT as WebhookPayload)).toBe(true);
-    expect(isEvolutionPayload(MOCK_EVOLUTION_CONNECTION_UPDATE as WebhookPayload)).toBe(true);
-    expect(isEvolutionPayload(MOCK_EVOLUTION_QRCODE as WebhookPayload)).toBe(true);
+  it('detects Kapso API payload', () => {
+    expect(isKapsoPayload(MOCK_KAPSO_MESSAGE_UPSERT as WebhookPayload)).toBe(true);
+    expect(isKapsoPayload(MOCK_KAPSO_CONNECTION_UPDATE as WebhookPayload)).toBe(true);
+    expect(isKapsoPayload(MOCK_KAPSO_QRCODE as WebhookPayload)).toBe(true);
   });
 
   it('detects Meta Official API payload', () => {
-    expect(isEvolutionPayload(MOCK_META_WEBHOOK as WebhookPayload)).toBe(false);
-    expect(isEvolutionPayload(MOCK_META_STATUS_UPDATE as WebhookPayload)).toBe(false);
+    expect(isKapsoPayload(MOCK_META_WEBHOOK as WebhookPayload)).toBe(false);
+    expect(isKapsoPayload(MOCK_META_STATUS_UPDATE as WebhookPayload)).toBe(false);
   });
 
   it('handles empty/null payloads gracefully', () => {
-    expect(isEvolutionPayload({} as WebhookPayload)).toBe(false);
-    expect(isEvolutionPayload({ random: 'data' } as WebhookPayload)).toBe(false);
+    expect(isKapsoPayload({} as WebhookPayload)).toBe(false);
+    expect(isKapsoPayload({ random: 'data' } as WebhookPayload)).toBe(false);
   });
 });
 
-describe('WhatsApp Webhook — Evolution API Normalization', () => {
+describe('WhatsApp Webhook — Kapso API Normalization', () => {
   it('normalizes a text message correctly', () => {
-    const result = normalizeEvolutionMessage(MOCK_EVOLUTION_MESSAGE_UPSERT as WebhookPayload);
+    const result = normalizeKapsoMessage(MOCK_KAPSO_MESSAGE_UPSERT as WebhookPayload);
     expect(result).not.toBeNull();
     expect(result!.from).toBe('5511999888777');
     expect(result!.name).toBe('João Silva');
     expect(result!.text).toBe('Olá, preciso de ajuda com direito trabalhista.');
     expect(result!.messageType).toBe('text');
-    expect(result!.provider).toBe('evolution');
+    expect(result!.provider).toBe('kapso');
     expect(result!.instanceName).toBe('jurify-prod');
     expect(result!.mediaUrl).toBeNull();
   });
 
   it('ignores fromMe messages (bot replies)', () => {
-    const result = normalizeEvolutionMessage(MOCK_EVOLUTION_FROM_ME as WebhookPayload);
+    const result = normalizeKapsoMessage(MOCK_KAPSO_FROM_ME as WebhookPayload);
     expect(result).toBeNull();
   });
 
   it('ignores non-message events', () => {
-    expect(normalizeEvolutionMessage(MOCK_EVOLUTION_CONNECTION_UPDATE as WebhookPayload)).toBeNull();
-    expect(normalizeEvolutionMessage(MOCK_EVOLUTION_QRCODE as WebhookPayload)).toBeNull();
+    expect(normalizeKapsoMessage(MOCK_KAPSO_CONNECTION_UPDATE as WebhookPayload)).toBeNull();
+    expect(normalizeKapsoMessage(MOCK_KAPSO_QRCODE as WebhookPayload)).toBeNull();
   });
 
   it('handles missing data gracefully', () => {
-    expect(normalizeEvolutionMessage({ event: 'messages.upsert' } as WebhookPayload)).toBeNull();
-    expect(normalizeEvolutionMessage({ event: 'messages.upsert', data: {} } as WebhookPayload)).toBeNull();
+    expect(normalizeKapsoMessage({ event: 'messages.upsert' } as WebhookPayload)).toBeNull();
+    expect(normalizeKapsoMessage({ event: 'messages.upsert', data: {} } as WebhookPayload)).toBeNull();
   });
 });
 
@@ -402,8 +402,8 @@ describe('WhatsApp Webhook — Deduplication', () => {
     expect(dedup.isDuplicate('msg_002')).toBe(false);
   });
 
-  it('extracts Evolution message ID', () => {
-    const id = getMessageId(MOCK_EVOLUTION_MESSAGE_UPSERT as WebhookPayload, 'evolution');
+  it('extracts Kapso message ID', () => {
+    const id = getMessageId(MOCK_KAPSO_MESSAGE_UPSERT as WebhookPayload, 'kapso');
     expect(id).toBe('evo_msg_001');
   });
 
@@ -413,13 +413,13 @@ describe('WhatsApp Webhook — Deduplication', () => {
   });
 
   it('returns null for missing message ID', () => {
-    expect(getMessageId({} as WebhookPayload, 'evolution')).toBeNull();
+    expect(getMessageId({} as WebhookPayload, 'kapso')).toBeNull();
     expect(getMessageId({} as WebhookPayload, 'meta')).toBeNull();
   });
 });
 
 describe('WhatsApp Webhook — Edge Cases', () => {
-  it('handles Evolution extended text message', () => {
+  it('handles Kapso extended text message', () => {
     const payload = {
       event: 'messages.upsert',
       instance: 'test',
@@ -430,12 +430,12 @@ describe('WhatsApp Webhook — Edge Cases', () => {
         message: { extendedTextMessage: { text: 'Mensagem com link https://example.com' } },
       },
     };
-    const result = normalizeEvolutionMessage(payload as WebhookPayload);
+    const result = normalizeKapsoMessage(payload as WebhookPayload);
     expect(result).not.toBeNull();
     expect(result!.text).toBe('Mensagem com link https://example.com');
   });
 
-  it('handles Evolution image message', () => {
+  it('handles Kapso image message', () => {
     const payload = {
       event: 'messages.upsert',
       instance: 'test',
@@ -446,13 +446,13 @@ describe('WhatsApp Webhook — Edge Cases', () => {
         message: { imageMessage: { caption: 'Documento importante', url: 'https://cdn.example.com/img.jpg' } },
       },
     };
-    const result = normalizeEvolutionMessage(payload as WebhookPayload);
+    const result = normalizeKapsoMessage(payload as WebhookPayload);
     expect(result).not.toBeNull();
     expect(result!.text).toBe('Documento importante');
     expect(result!.mediaUrl).toBe('https://cdn.example.com/img.jpg');
   });
 
-  it('handles Evolution audio message', () => {
+  it('handles Kapso audio message', () => {
     const payload = {
       event: 'messages.upsert',
       instance: 'test',
@@ -463,7 +463,7 @@ describe('WhatsApp Webhook — Edge Cases', () => {
         message: { audioMessage: { url: 'https://cdn.example.com/audio.ogg' } },
       },
     };
-    const result = normalizeEvolutionMessage(payload as WebhookPayload);
+    const result = normalizeKapsoMessage(payload as WebhookPayload);
     expect(result).not.toBeNull();
     expect(result!.text).toBe('[Audio recebido]');
     expect(result!.mediaUrl).toBe('https://cdn.example.com/audio.ogg');
@@ -480,7 +480,7 @@ describe('WhatsApp Webhook — Edge Cases', () => {
         message: { conversation: 'Mensagem no grupo' },
       },
     };
-    const result = normalizeEvolutionMessage(payload as WebhookPayload);
+    const result = normalizeKapsoMessage(payload as WebhookPayload);
     expect(result).not.toBeNull();
     expect(result!.from).toBe('120363123456789');
   });
