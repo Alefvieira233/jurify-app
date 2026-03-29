@@ -48,7 +48,7 @@ Plans:
 **Files:** 6 Edge Functions + shared modules + DB migration + integration tests
 **Depends on:** Nothing (independent of UI phases)
 **Requirements:** [FR-13, FR-14, FR-15, FR-16, FR-19, FR-20, NFR-1, NFR-2, NFR-6]
-**Plans:** 1/3 plans executed
+**Plans:** 2/3 plans executed
 
 Plans:
 - [x] 05-01-PLAN.md — Clean Evolution legacy from webhook + sender, fix media upload

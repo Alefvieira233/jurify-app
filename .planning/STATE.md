@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: Executing Phase 05
-stopped_at: Completed 05-kapso-backend-migration/05-01-PLAN.md
-last_updated: "2026-03-29T17:44:58.592Z"
+stopped_at: Completed 05-kapso-backend-migration/05-02-PLAN.md
+last_updated: "2026-03-29T17:48:21.065Z"
 progress:
   total_phases: 7
   completed_phases: 1
   total_plans: 7
-  completed_plans: 3
+  completed_plans: 4
 ---
 
 # Jurify — Project State
@@ -20,8 +20,8 @@ progress:
 
 Phase 1 (LíderHub Visual Foundation) — Complete (both plans done)
 
-**Last session:** 2026-03-29T17:44:58.588Z
-**Stopped at:** Completed 05-kapso-backend-migration/05-01-PLAN.md
+**Last session:** 2026-03-29T17:48:21.061Z
+**Stopped at:** Completed 05-kapso-backend-migration/05-02-PLAN.md
 
 ## Progress
 
@@ -46,6 +46,7 @@ Phase 1 (LíderHub Visual Foundation) — Complete (both plans done)
 - [Phase 05-kapso-backend-migration]: Evolution references completely removed from integration test file; DB constraint finalized to only allow kapso/oficial/cloud_api
 - [Phase 02-liderhub-dashboard-home]: SankeyChart simulates lead flow from current stage counts (no transition history); loss distribution uses 40/30/20/remainder ratio
 - [Phase 05-kapso-backend-migration]: Kapso is the sole primary WhatsApp provider; media uploads use Supabase Storage to get public URL before Kapso API call
+- [Phase 05-kapso-backend-migration]: Evolution references completely removed from integration test file; DB constraint finalized to only allow kapso/oficial/cloud_api
 
 ## Blockers
 
