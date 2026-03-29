@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: Ready to plan
-stopped_at: Completed 03-liderhub-atendimento/03-03-PLAN.md
-last_updated: "2026-03-29T21:22:01.034Z"
+stopped_at: Completed 06-kapso-frontend-conexoes-redesign/06-01-PLAN.md
+last_updated: "2026-03-29T21:32:07.350Z"
 progress:
   total_phases: 8
   completed_phases: 4
   total_plans: 15
-  completed_plans: 10
+  completed_plans: 11
 ---
 
 # Jurify — Project State
@@ -20,8 +20,8 @@ progress:
 
 Phase 1 (LíderHub Visual Foundation) — Complete (both plans done)
 
-**Last session:** 2026-03-29T21:21:57.304Z
-**Stopped at:** Completed 03-liderhub-atendimento/03-03-PLAN.md
+**Last session:** 2026-03-29T21:32:07.345Z
+**Stopped at:** Completed 06-kapso-frontend-conexoes-redesign/06-01-PLAN.md
 
 ## Progress
 
@@ -53,6 +53,8 @@ Phase 1 (LíderHub Visual Foundation) — Complete (both plans done)
 - [Phase 05-kapso-backend-migration]: Phase 05 migration complete: zero Evolution references across entire codebase; all 6 Edge Functions confirmed Kapso-native
 - [Phase 03-liderhub-atendimento]: ContatosTable keeps useLeads() internal for maximum reusability as standalone component
 - [Phase 03-liderhub-atendimento]: KanbanColumn header uses bg-card token; drop zone max-h uses --topbar-h CSS var with 280px fallback
+- [Phase 06-kapso-frontend-conexoes-redesign]: WhatsAppKapsoSetup now reads conexoes_whatsapp with status values connected/disconnected; extractInstanceName helper removed
+- [Phase 06-kapso-frontend-conexoes-redesign]: STATUS_BADGE column added to ConexoesManager; Kapso QR/Oficial branding applied in empty state and ConnectionTypeChooser
 
 ## Blockers
 
