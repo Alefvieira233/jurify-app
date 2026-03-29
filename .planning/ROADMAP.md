@@ -48,12 +48,12 @@ Plans:
 **Files:** TarefasPage.tsx, EditTarefaDialog.tsx, SuportePage.tsx, TicketDetailDialog.tsx, StatusManager.tsx, StatusFormDialog.tsx, useStatusManager.ts, useTicketsSuporte.ts
 **Depends on:** Phase 1 (design tokens)
 **Requirements:** [FR-9, FR-10, FR-11, NFR-1, NFR-2]
-**Plans:** 3 plans
+**Plans:** 3/3 plans complete
 
 Plans:
-- [ ] 04-01-PLAN.md — Tarefas: edit dialog, delete confirmation, priority filter, tests
-- [ ] 04-02-PLAN.md — Suporte: ticket detail dialog, status update, rating, type filter, tests
-- [ ] 04-03-PLAN.md — Classes/Status: useStatusManager hook, StatusFormDialog, DB-backed StatusManager, tests
+- [x] 04-01-PLAN.md — Tarefas: edit dialog, delete confirmation, priority filter, tests
+- [x] 04-02-PLAN.md — Suporte: ticket detail dialog, status update, rating, type filter, tests
+- [x] 04-03-PLAN.md — Classes/Status: useStatusManager hook, StatusFormDialog, DB-backed StatusManager, tests
 
 ## Phase 5: Kapso Backend Migration
 **Status:** Complete
