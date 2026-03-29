@@ -49,9 +49,37 @@ Deno.serve(async (req) => {
 
         const { returnUrl } = await req.json().catch(() => ({ returnUrl: undefined }));
 
+        // SEC-01: Validate returnUrl against allowed origins to prevent open redirect
+        const origin = req.headers.get('origin') || '';
+        const allowedOrigins = [
+          origin,
+          'https://jurify.vercel.app',
+          'https://jurify-app.vercel.app',
+          'https://jurify.com.br',
+        ].filter(Boolean);
+
+        const isValidReturnUrl = (url: string): boolean => {
+          try {
+            const parsed = new URL(url);
+            return allowedOrigins.some(o => parsed.origin === o);
+          } catch {
+            return false;
+          }
+        };
+
+        if (returnUrl && !isValidReturnUrl(returnUrl)) {
+            return new Response(
+                JSON.stringify({ error: 'Invalid returnUrl' }),
+                {
+                    headers: { ...corsHeaders, "Content-Type": "application/json" },
+                    status: 400,
+                }
+            );
+        }
+
         const session = await stripe.billingPortal.sessions.create({
             customer: profile.stripe_customer_id,
-            return_url: returnUrl || `${req.headers.get("origin")}/billing`,
+            return_url: returnUrl || `${origin}/billing`,
         });
 
         return new Response(

@@ -12,6 +12,11 @@ import { getCorsHeaders } from "../_shared/cors.ts";
 import { getCache, setCache, CACHE_TTL } from "../_shared/cache.ts";
 import { rateLimit, sanitizeInput, redactPII, auditLog } from "../_shared/security.ts";
 
+// SEC-03: Escape LIKE wildcards in user-derived query values
+function escapeLike(value: string): string {
+  return value.replace(/[%_\\]/g, (ch) => '\\' + ch);
+}
+
 // ---------------------------------------------------------------------------
 // Types
 // ---------------------------------------------------------------------------
@@ -473,8 +478,8 @@ async function executeTool(
         .eq("tenant_id", tenantId);
 
       if (args.status) q = q.eq("status", args.status);
-      if (args.legal_area) q = q.ilike("area_juridica", `%${args.legal_area}%`);
-      if (args.query) q = q.or(`nome.ilike.%${args.query}%,email.ilike.%${args.query}%,telefone.ilike.%${args.query}%`);
+      if (args.legal_area) q = q.ilike("area_juridica", `%${escapeLike(args.legal_area)}%`);
+      if (args.query) q = q.or(`nome.ilike.%${escapeLike(args.query)}%,email.ilike.%${escapeLike(args.query)}%,telefone.ilike.%${escapeLike(args.query)}%`);
 
       const { data } = await q.order("created_at", { ascending: false }).limit(args.limit ?? 10);
       return data ?? [];
@@ -515,7 +520,7 @@ async function executeTool(
         .select("id, cliente_nome, status, valor, data_assinatura, created_at")
         .eq("tenant_id", tenantId);
 
-      if (args.query) q = q.ilike("cliente_nome", `%${args.query}%`);
+      if (args.query) q = q.ilike("cliente_nome", `%${escapeLike(args.query)}%`);
       if (args.status) q = q.eq("status", args.status);
       if (args.min_value) q = q.gte("valor", args.min_value);
       if (args.date_range) {

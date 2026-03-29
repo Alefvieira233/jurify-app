@@ -12,6 +12,11 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { getCorsHeaders } from "../_shared/cors.ts";
 import { kapsoFetch, checkKapsoHealth } from "../_shared/kapso-client.ts";
 
+// SEC-04: Escape LIKE wildcards in user-derived query values
+function escapeLike(value: string): string {
+  return value.replace(/[%_\\]/g, (ch) => '\\' + ch);
+}
+
 // ---------------------------------------------------------------------------
 // Helpers — Logging & Alerting for conexoes tables
 // ---------------------------------------------------------------------------
@@ -202,7 +207,7 @@ async function disconnectConnection(
     .from("configuracoes_integracoes")
     .update({ status: "inativa" })
     .eq("nome_integracao", "whatsapp_kapso")
-    .ilike("observacoes", `%${instanceName}%`)
+    .ilike("observacoes", `%${escapeLike(instanceName)}%`)
     .eq("tenant_id", profile.tenant_id);
 
   return {
@@ -222,7 +227,7 @@ async function deleteConnection(
     .from("configuracoes_integracoes")
     .delete()
     .eq("nome_integracao", "whatsapp_kapso")
-    .ilike("observacoes", `%${instanceName}%`)
+    .ilike("observacoes", `%${escapeLike(instanceName)}%`)
     .eq("tenant_id", profile.tenant_id);
 
   return {
@@ -398,7 +403,7 @@ Deno.serve(async (req) => {
             .from("configuracoes_integracoes")
             .update({ status: dbStatus })
             .eq("nome_integracao", "whatsapp_kapso")
-            .ilike("observacoes", `%${resolvedInstanceName}%`)
+            .ilike("observacoes", `%${escapeLike(resolvedInstanceName)}%`)
             .eq("tenant_id", profile.tenant_id);
         }
         (async () => {

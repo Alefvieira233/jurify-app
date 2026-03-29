@@ -5,6 +5,7 @@ import { OpenAI } from "https://deno.land/x/openai@v4.24.0/mod.ts";
 import { getCorsHeaders } from "../_shared/cors.ts";
 import { applyRateLimit } from "../_shared/rate-limiter.ts";
 import { DEFAULT_OPENAI_MODEL } from "../_shared/ai-model.ts";
+import { sanitizeInput } from "../_shared/security.ts";
 
 Deno.serve(async (req) => {
   const corsHeaders = getCorsHeaders(req.headers.get("origin") || undefined);
@@ -63,6 +64,18 @@ Deno.serve(async (req) => {
     const { messages, model: requestedModel = DEFAULT_OPENAI_MODEL, temperature = 0.7, stream = false } =
       await req.json();
 
+    // SEC-02: Sanitize user-role messages to prevent prompt injection
+    const sanitizedMessages = messages.map((msg: { role: string; content: string }) => {
+      if (msg.role === 'user' && typeof msg.content === 'string') {
+        const result = sanitizeInput(msg.content, 4000);
+        if (!result.safe) {
+          throw new Error('Message rejected: potential prompt injection');
+        }
+        return { ...msg, content: result.text };
+      }
+      return msg;
+    });
+
     // SECURITY: Whitelist de modelos permitidos para evitar custos excessivos
     const ALLOWED_MODELS = ['gpt-4o-mini', 'gpt-4o', 'gpt-3.5-turbo', 'gpt-4-turbo', DEFAULT_OPENAI_MODEL];
     const model = ALLOWED_MODELS.includes(requestedModel) ? requestedModel : DEFAULT_OPENAI_MODEL;
@@ -81,7 +94,7 @@ Deno.serve(async (req) => {
       const encoder = new TextEncoder();
       const streamResponse = await openai.chat.completions.create({
         model,
-        messages,
+        messages: sanitizedMessages,
         temperature,
         stream: true,
       });
@@ -122,7 +135,7 @@ Deno.serve(async (req) => {
 
     const completion = await openai.chat.completions.create({
       model,
-      messages,
+      messages: sanitizedMessages,
       temperature,
     });
 
