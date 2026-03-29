@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: Ready to plan
-stopped_at: Completed 04-liderhub-new-features/04-02-PLAN.md
-last_updated: "2026-03-29T22:00:08.773Z"
+stopped_at: Completed 04-liderhub-new-features/04-01-PLAN.md
+last_updated: "2026-03-29T22:00:56.941Z"
 progress:
   total_phases: 8
-  completed_phases: 5
+  completed_phases: 6
   total_plans: 15
-  completed_plans: 13
+  completed_plans: 15
 ---
 
 # Jurify — Project State
@@ -20,8 +20,8 @@ progress:
 
 Phase 1 (LíderHub Visual Foundation) — Complete (both plans done)
 
-**Last session:** 2026-03-29T22:00:08.767Z
-**Stopped at:** Completed 04-liderhub-new-features/04-02-PLAN.md
+**Last session:** 2026-03-29T22:00:51.058Z
+**Stopped at:** Completed 04-liderhub-new-features/04-01-PLAN.md
 
 ## Progress
 
@@ -58,6 +58,8 @@ Phase 1 (LíderHub Visual Foundation) — Complete (both plans done)
 - [Phase 06-kapso-frontend-conexoes-redesign]: Mock child components in ConexoesManager tests to avoid deep rendering complexity
 - [Phase 04-liderhub-new-features]: TicketDetailDialog calls useTicketsSuporte internally to avoid prop-drilling mutation result
 - [Phase 04-liderhub-new-features]: Rating buttons use native button element for minimal styling overhead on star icons
+- [Phase 04-liderhub-new-features]: Used two separate React Query keys for stages and lead-counts to keep cache granular; lead-count query depends on stages.length>0
+- [Phase 04-liderhub-new-features]: setupMock helper removed from TarefasPage tests; vi.fn() module-level mock used to avoid await in non-async function
 
 ## Blockers
 
