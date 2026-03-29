@@ -8,11 +8,11 @@
 **Scope:** Design tokens, Tailwind config, TopBar, Breadcrumbs, Sidebar restructure
 **Files:** index.css, tailwind.config.ts, Sidebar.tsx, Layout.tsx, TopBar.tsx, Breadcrumbs.tsx, index.html
 **Depends on:** Nothing
-**Plans:** 2 plans
+**Plans:** 1/2 plans executed
 
 Plans:
 - [ ] 01-01-PLAN.md — Design tokens (accent neutral gray), Inter font, Sidebar polish, Breadcrumbs
-- [ ] 01-02-PLAN.md — TopBar workspace selector dropdown, avatar dropdown, accessibility
+- [x] 01-02-PLAN.md — TopBar workspace selector dropdown, avatar dropdown, accessibility
 
 ## Phase 2: LíderHub Dashboard + Home
 **Status:** Not Started (HomePage partially exists)
