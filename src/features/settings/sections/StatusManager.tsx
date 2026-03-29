@@ -1,37 +1,58 @@
+import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Plus, MoreHorizontal, Search, Users, Columns3 } from 'lucide-react';
+import { Plus, MoreHorizontal, Search, Users, Columns3, Loader2 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
-import { useState } from 'react';
-
-const STATUSES = [
-  { name: 'Recepção', color: 'bg-blue-500', description: 'Status de recepção', contacts: 21 },
-  { name: 'Análise', color: 'bg-blue-600', description: 'Este lead está sendo avaliado pelo escritório', contacts: 4 },
-  { name: 'Desqualificado', color: 'bg-red-500', description: 'Este lead não tem um caso que justifique atendimento', contacts: 26 },
-  { name: 'Qualificado', color: 'bg-green-500', description: 'Este lead tem um caso que justifica atendimento', contacts: 3 },
-  { name: 'Proposta Recusada', color: 'bg-purple-500', description: 'Este lead recebeu a proposta, mas recusou', contacts: 0 },
-  { name: 'Proposta Aceita', color: 'bg-green-500', description: 'Este lead aceitou a proposta enviada', contacts: 0 },
-  { name: 'Assinatura Pendente', color: 'bg-teal-500', description: 'Contrato enviado, aguardando assinatura', contacts: 0 },
-  { name: 'Contrato Assinado', color: 'bg-green-600', description: 'Quando o contrato já foi assinado', contacts: 0 },
-  { name: 'Reunião', color: 'bg-emerald-500', description: 'Quando o Lead deve receber uma reunião', contacts: 0 },
-  { name: 'Desistência', color: 'bg-indigo-500', description: 'Sem conteúdo', contacts: 0 },
-];
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { Skeleton } from '@/components/ui/skeleton';
+import { useStatusManager, type StatusStage } from '@/hooks/useStatusManager';
+import StatusFormDialog from './StatusFormDialog';
 
 export default function StatusManager() {
   const [search, setSearch] = useState('');
+  const [formOpen, setFormOpen] = useState(false);
+  const [editingStage, setEditingStage] = useState<StatusStage | null>(null);
+  const [formMode, setFormMode] = useState<'create' | 'edit'>('create');
 
-  const filtered = STATUSES.filter(s =>
+  const { stages, leadCounts, isLoading, deleteStage } = useStatusManager();
+
+  const filtered = stages.filter((s) =>
     s.name.toLowerCase().includes(search.toLowerCase())
   );
+
+  const handleCreate = () => {
+    setEditingStage(null);
+    setFormMode('create');
+    setFormOpen(true);
+  };
+
+  const handleEdit = (stage: StatusStage) => {
+    setEditingStage(stage);
+    setFormMode('edit');
+    setFormOpen(true);
+  };
+
+  const handleDelete = (stage: StatusStage) => {
+    if (window.confirm(`Excluir o status "${stage.name}"? Esta ação não pode ser desfeita.`)) {
+      deleteStage.mutate(stage.id);
+    }
+  };
 
   return (
     <div>
       <div className="flex items-center justify-between mb-4">
         <div>
           <h1 className="text-lg font-semibold">Status</h1>
-          <p className="text-sm text-muted-foreground">Gerencie os status dos seus atendimentos e defina fluxos de trabalho.</p>
+          <p className="text-sm text-muted-foreground">
+            Gerencie os status dos seus atendimentos e defina fluxos de trabalho.
+          </p>
         </div>
-        <Button size="sm">
+        <Button size="sm" onClick={handleCreate}>
           <Plus className="h-4 w-4 mr-1" /> Criar Status
         </Button>
       </div>
@@ -42,7 +63,7 @@ export default function StatusManager() {
           <Input
             placeholder="Pesquisar status..."
             value={search}
-            onChange={e => setSearch(e.target.value)}
+            onChange={(e) => setSearch(e.target.value)}
             className="h-8 text-sm pl-8"
           />
         </div>
@@ -55,39 +76,133 @@ export default function StatusManager() {
         <table className="w-full">
           <thead>
             <tr className="border-b bg-muted/30">
-              <th className="text-left px-4 py-2.5 text-xs font-medium text-muted-foreground uppercase tracking-wide">Nome</th>
-              <th className="text-left px-4 py-2.5 text-xs font-medium text-muted-foreground uppercase tracking-wide">Descrição</th>
-              <th className="text-left px-4 py-2.5 text-xs font-medium text-muted-foreground uppercase tracking-wide">Departamento</th>
               <th className="text-left px-4 py-2.5 text-xs font-medium text-muted-foreground uppercase tracking-wide">
-                <span className="flex items-center gap-1"><Users className="h-3 w-3" /> Contatos</span>
+                Nome
               </th>
-              <th className="text-left px-4 py-2.5 text-xs font-medium text-muted-foreground uppercase tracking-wide">Follow-ups</th>
+              <th className="text-left px-4 py-2.5 text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                Slug
+              </th>
+              <th className="text-left px-4 py-2.5 text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                Tipo
+              </th>
+              <th className="text-left px-4 py-2.5 text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                <span className="flex items-center gap-1">
+                  <Users className="h-3 w-3" /> Contatos
+                </span>
+              </th>
+              <th className="text-left px-4 py-2.5 text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                Follow-ups
+              </th>
               <th className="w-10" />
             </tr>
           </thead>
           <tbody className="divide-y">
-            {filtered.map(status => (
-              <tr key={status.name} className="hover:bg-muted/20 cursor-pointer">
-                <td className="px-4 py-2.5">
-                  <Badge className={`${status.color} text-white text-xs font-medium`}>{status.name}</Badge>
-                </td>
-                <td className="px-4 py-2.5 text-sm text-muted-foreground truncate max-w-[250px]">{status.description}</td>
-                <td className="px-4 py-2.5 text-sm text-muted-foreground">-</td>
-                <td className="px-4 py-2.5 text-sm text-muted-foreground">
-                  <span className="flex items-center gap-1"><Users className="h-3 w-3" /> {status.contacts}</span>
-                </td>
-                <td className="px-4 py-2.5 text-sm text-muted-foreground">0</td>
-                <td className="px-4 py-2.5">
-                  <button className="p-1 rounded hover:bg-muted">
-                    <MoreHorizontal className="h-4 w-4 text-muted-foreground" />
-                  </button>
+            {isLoading ? (
+              Array.from({ length: 4 }).map((_, i) => (
+                <tr key={i} className="border-b">
+                  <td className="px-4 py-2.5">
+                    <Skeleton className="h-5 w-28" />
+                  </td>
+                  <td className="px-4 py-2.5">
+                    <Skeleton className="h-4 w-20" />
+                  </td>
+                  <td className="px-4 py-2.5">
+                    <Skeleton className="h-4 w-16" />
+                  </td>
+                  <td className="px-4 py-2.5">
+                    <Skeleton className="h-4 w-8" />
+                  </td>
+                  <td className="px-4 py-2.5">
+                    <Skeleton className="h-4 w-8" />
+                  </td>
+                  <td className="px-4 py-2.5" />
+                </tr>
+              ))
+            ) : filtered.length === 0 ? (
+              <tr>
+                <td
+                  colSpan={6}
+                  className="px-4 py-8 text-center text-sm text-muted-foreground"
+                >
+                  {search
+                    ? 'Nenhum status encontrado para esta pesquisa.'
+                    : 'Nenhum status configurado. Clique em "Criar Status" para começar.'}
                 </td>
               </tr>
-            ))}
+            ) : (
+              filtered.map((stage) => {
+                const stageLeads = leadCounts.get(stage.id) ?? 0;
+                const stageType = stage.is_won
+                  ? 'Ganho'
+                  : stage.is_lost
+                  ? 'Perdido'
+                  : '-';
+
+                return (
+                  <tr key={stage.id} className="hover:bg-muted/20 cursor-pointer">
+                    <td className="px-4 py-2.5">
+                      <Badge
+                        style={{ backgroundColor: stage.color }}
+                        className="text-white text-xs font-medium"
+                      >
+                        {stage.name}
+                      </Badge>
+                    </td>
+                    <td className="px-4 py-2.5 text-sm text-muted-foreground">
+                      {stage.slug}
+                    </td>
+                    <td className="px-4 py-2.5 text-sm text-muted-foreground">
+                      {stageType}
+                    </td>
+                    <td className="px-4 py-2.5 text-sm text-muted-foreground">
+                      <span className="flex items-center gap-1">
+                        <Users className="h-3 w-3" /> {stageLeads}
+                      </span>
+                    </td>
+                    <td className="px-4 py-2.5 text-sm text-muted-foreground">
+                      {stage.auto_followup_days ?? 0}
+                    </td>
+                    <td className="px-4 py-2.5">
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <button className="p-1 rounded hover:bg-muted">
+                            {deleteStage.isPending && deleteStage.variables === stage.id ? (
+                              <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                            ) : (
+                              <MoreHorizontal className="h-4 w-4 text-muted-foreground" />
+                            )}
+                          </button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem onClick={() => handleEdit(stage)}>
+                            Editar
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            onClick={() => handleDelete(stage)}
+                            className="text-destructive focus:text-destructive"
+                          >
+                            Excluir
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </td>
+                  </tr>
+                );
+              })
+            )}
           </tbody>
         </table>
       </div>
-      <p className="text-xs text-muted-foreground mt-2">{filtered.length} status</p>
+      <p className="text-xs text-muted-foreground mt-2">
+        {isLoading ? '' : `${filtered.length} status`}
+      </p>
+
+      <StatusFormDialog
+        stage={editingStage}
+        open={formOpen}
+        onOpenChange={setFormOpen}
+        mode={formMode}
+      />
     </div>
   );
 }
