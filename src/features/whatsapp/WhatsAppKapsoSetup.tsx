@@ -24,6 +24,10 @@ import {
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
+
+// Tables not yet in generated types — use untyped client for new tables
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const supabaseUntyped = supabase as any;
 import { createLogger } from '@/lib/logger';
 
 const log = createLogger('WhatsAppKapsoSetup');
@@ -133,31 +137,24 @@ export default function WhatsAppKapsoSetup({ onConnectionSuccess }: WhatsAppKaps
 
     const loadExisting = async () => {
       try {
-        const { data, error } = await supabase
-          .from('configuracoes_integracoes')
-          .select('id, status, observacoes')
-          .eq('nome_integracao', 'whatsapp_kapso')
+        const { data, error } = await supabaseUntyped
+          .from('conexoes_whatsapp')
+          .select('id, status, nome, instance_name')
+          .eq('tenant_id', tenantId)
+          .eq('tipo', 'kapso')
           .maybeSingle();
 
         if (error) throw error;
         if (!data) return;
 
-        // Extrai instanceName do campo observacoes (formato: "Instance: nome")
-        const extractInstanceName = (obs: string | null): string => {
-          if (!obs) return '';
-          const match = obs.match(/Instance:\s*(.+)/);
-          return match?.[1]?.trim() ?? '';
-        };
-
         const stateMap: Record<string, ConnectionState> = {
-          ativa: 'connected',
-          inativa: 'disconnected',
-          erro: 'error',
+          connected: 'connected',
+          disconnected: 'disconnected',
         };
 
         setInstance({
-          instanceName: extractInstanceName(data.observacoes),
-          state: stateMap[data.status] || 'idle',
+          instanceName: (data.instance_name as string | null) ?? '',
+          state: stateMap[data.status as string] ?? 'idle',
           qrCode: null,
           error: null,
         });

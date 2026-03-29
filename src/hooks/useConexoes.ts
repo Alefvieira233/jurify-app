@@ -65,47 +65,13 @@ export function useConexoes() {
   const conexoesQuery = useQuery({
     queryKey: ['conexoes_whatsapp', tenantId],
     queryFn: async (): Promise<ConexaoWhatsApp[]> => {
-      // Try new table first
       const { data, error } = await supabaseUntyped
         .from('conexoes_whatsapp')
         .select('*')
         .eq('tenant_id', tenantId!)
         .order('created_at', { ascending: false });
 
-      if (error) {
-        // Fallback to configuracoes_integracoes if new table doesn't exist yet
-        console.warn('[useConexoes] conexoes_whatsapp not available, using fallback:', error.message);
-        const { data: legacyData, error: legacyError } = await supabase
-          .from('configuracoes_integracoes')
-          .select('*')
-          .eq('tenant_id', tenantId!)
-          .like('nome_integracao', 'whatsapp%');
-
-        if (legacyError) throw legacyError;
-
-        // Map legacy format to new format
-        return (legacyData ?? []).map((item: Record<string, unknown>) => ({
-          id: item.id as string,
-          tenant_id: item.tenant_id as string,
-          nome: (item.observacoes as string)?.replace('Instance: ', '') || 'WhatsApp',
-          telefone: item.phone_number_id as string | null,
-          tipo: ((item.nome_integracao as string) === 'whatsapp_oficial' ? 'oficial' : 'kapso') as 'kapso' | 'oficial' | 'cloud_api',
-          provider: (item.nome_integracao as string) === 'whatsapp_oficial' ? 'meta_api' : 'kapso_api',
-          instance_name: (item.observacoes as string)?.replace('Instance: ', '') || null,
-          status: (item.status as string) === 'ativa' ? 'connected' : 'disconnected',
-          status_padrao: null,
-          departamento_id: null,
-          responsavel_id: null,
-          avatar_url: null,
-          last_heartbeat: null,
-          last_sync: item.atualizado_em as string | null,
-          last_error: null,
-          reconnect_attempts: 0,
-          config: {},
-          created_at: item.created_at as string,
-          updated_at: (item.atualizado_em as string) || (item.created_at as string),
-        }));
-      }
+      if (error) throw error;
 
       return (data ?? []) as unknown as ConexaoWhatsApp[];
     },
