@@ -11,6 +11,7 @@
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { getCorsHeaders } from '../_shared/cors.ts'
+import { applyRateLimit } from '../_shared/rate-limiter.ts'
 
 Deno.serve(async (req) => {
   const corsHeaders = getCorsHeaders(req.headers.get('origin') || undefined)
@@ -32,6 +33,16 @@ Deno.serve(async (req) => {
 
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) throw new Error('Unauthorized')
+
+    const rateLimitCheck = await applyRateLimit(req, {
+        maxRequests: 10,
+        windowSeconds: 60,
+        namespace: "create-drive-folder",
+    }, { user, corsHeaders });
+
+    if (!rateLimitCheck.allowed) {
+        return rateLimitCheck.response;
+    }
 
     const { name, lead_id, agendamento_id } = await req.json()
 

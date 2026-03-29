@@ -3,6 +3,7 @@ import { createClient } from "jsr:@supabase/supabase-js@2";
 // Usar build minimal sem dependência de canvas
 import * as pdfjsLib from "https://esm.sh/pdfjs-dist@3.11.174/build/pdf.min.js";
 import { getCorsHeaders } from "../_shared/cors.ts";
+import { applyRateLimit } from "../_shared/rate-limiter.ts";
 import { initSentry, captureError } from "../_shared/sentry.ts";
 
 initSentry();
@@ -163,6 +164,17 @@ Deno.serve(async (req) => {
         status: 401,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
+    }
+
+    const user = userData.user;
+    const rateLimitCheck = await applyRateLimit(req, {
+        maxRequests: 10,
+        windowSeconds: 60,
+        namespace: "extract-document-text",
+    }, { user, corsHeaders });
+
+    if (!rateLimitCheck.allowed) {
+        return rateLimitCheck.response;
     }
 
     const { file_url, base64, filename, content_type, tenant_id, doc_id }: ExtractRequest =

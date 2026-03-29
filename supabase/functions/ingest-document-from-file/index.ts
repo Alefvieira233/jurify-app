@@ -1,6 +1,7 @@
 ﻿import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2";
 import { getCorsHeaders } from "../_shared/cors.ts";
+import { applyRateLimit } from "../_shared/rate-limiter.ts";
 import { initSentry, captureError } from "../_shared/sentry.ts";
 
 initSentry();
@@ -49,6 +50,17 @@ Deno.serve(async (req) => {
         status: 401,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
+    }
+
+    const user = userData.user;
+    const rateLimitCheck = await applyRateLimit(req, {
+        maxRequests: 10,
+        windowSeconds: 60,
+        namespace: "ingest-document-from-file",
+    }, { user, corsHeaders });
+
+    if (!rateLimitCheck.allowed) {
+        return rateLimitCheck.response;
     }
 
     const {

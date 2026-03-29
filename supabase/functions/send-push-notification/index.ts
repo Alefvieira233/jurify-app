@@ -11,6 +11,7 @@
  */
 
 import { getCorsHeaders } from "../_shared/cors.ts";
+import { applyRateLimit } from "../_shared/rate-limiter.ts";
 
 const FCM_URL = "https://fcm.googleapis.com/fcm/send";
 const FCM_SERVER_KEY = Deno.env.get("FCM_SERVER_KEY") ?? "";
@@ -46,6 +47,16 @@ Deno.serve(async (req) => {
       status: 401,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
+  }
+
+  const rateLimitCheck = await applyRateLimit(req, {
+      maxRequests: 20,
+      windowSeconds: 60,
+      namespace: "send-push-notification",
+  }, { user: { id: "service-role" }, corsHeaders });
+
+  if (!rateLimitCheck.allowed) {
+      return rateLimitCheck.response;
   }
 
   if (!FCM_SERVER_KEY) {

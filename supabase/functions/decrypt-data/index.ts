@@ -1,5 +1,6 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { getCorsHeaders } from "../_shared/cors.ts";
+import { applyRateLimit } from "../_shared/rate-limiter.ts";
 
 /**
  * 🔓 DECRYPT DATA — Server-Side Decryption Edge Function
@@ -42,6 +43,16 @@ Deno.serve(async (req) => {
         status: 401,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
+    }
+
+    const rateLimitCheck = await applyRateLimit(req, {
+        maxRequests: 30,
+        windowSeconds: 60,
+        namespace: "decrypt-data",
+    }, { user, corsHeaders });
+
+    if (!rateLimitCheck.allowed) {
+        return rateLimitCheck.response;
     }
 
     const ENCRYPTION_KEY = Deno.env.get("ENCRYPTION_KEY");
