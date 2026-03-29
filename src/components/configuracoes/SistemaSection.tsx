@@ -1,5 +1,6 @@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Activity, Lock, Brain, Database, Server, Shield } from 'lucide-react';
+import { useRBAC } from '@/hooks/useRBAC';
 import BackupRestore from '../BackupRestore';
 import SystemStatus from '../SystemStatus';
 import PerformanceDashboard from '../PerformanceDashboard';
@@ -10,6 +11,8 @@ import SecurityDashboard from '../SecurityDashboard';
 import TesteRealAgenteIA from '../TesteRealAgenteIA';
 
 const SistemaSection = () => {
+  const { isAdmin } = useRBAC();
+
   return (
     <div className="space-y-6">
       {/* System Health Check */}
@@ -26,10 +29,12 @@ const SistemaSection = () => {
             <Lock className="h-3.5 w-3.5" />
             Segurança
           </TabsTrigger>
-          <TabsTrigger value="teste-agente" className="flex items-center gap-1.5 text-xs shrink-0">
-            <Brain className="h-3.5 w-3.5" />
-            Teste Agente
-          </TabsTrigger>
+          {isAdmin && (
+            <TabsTrigger value="teste-agente" className="flex items-center gap-1.5 text-xs shrink-0">
+              <Brain className="h-3.5 w-3.5" />
+              Teste Agente
+            </TabsTrigger>
+          )}
           <TabsTrigger value="backup" className="flex items-center gap-1.5 text-xs shrink-0">
             <Database className="h-3.5 w-3.5" />
             Backup
@@ -56,9 +61,11 @@ const SistemaSection = () => {
           <SecurityDashboard />
         </TabsContent>
 
-        <TabsContent value="teste-agente">
-          <TesteRealAgenteIA />
-        </TabsContent>
+        {isAdmin && (
+          <TabsContent value="teste-agente">
+            <TesteRealAgenteIA />
+          </TabsContent>
+        )}
 
         <TabsContent value="backup">
           <BackupRestore />
