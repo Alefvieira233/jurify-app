@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Plus, MoreHorizontal, Search, Users, Columns3, Loader2 } from 'lucide-react';
+import { Plus, MoreHorizontal, Search, Users, Columns3, Loader2, ArrowUp, ArrowDown } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import {
   DropdownMenu,
@@ -19,7 +19,21 @@ export default function StatusManager() {
   const [editingStage, setEditingStage] = useState<StatusStage | null>(null);
   const [formMode, setFormMode] = useState<'create' | 'edit'>('create');
 
-  const { stages, leadCounts, isLoading, deleteStage } = useStatusManager();
+  const { stages, leadCounts, isLoading, deleteStage, reorderStages } = useStatusManager();
+
+  const handleMoveUp = (index: number) => {
+    if (index === 0) return;
+    const reordered = [...stages];
+    [reordered[index - 1], reordered[index]] = [reordered[index], reordered[index - 1]];
+    reorderStages.mutate(reordered.map((s, i) => ({ id: s.id, position: i })));
+  };
+
+  const handleMoveDown = (index: number) => {
+    if (index === stages.length - 1) return;
+    const reordered = [...stages];
+    [reordered[index], reordered[index + 1]] = [reordered[index + 1], reordered[index]];
+    reorderStages.mutate(reordered.map((s, i) => ({ id: s.id, position: i })));
+  };
 
   const filtered = stages.filter((s) =>
     s.name.toLowerCase().includes(search.toLowerCase())
@@ -93,6 +107,9 @@ export default function StatusManager() {
               <th className="text-left px-4 py-2.5 text-xs font-medium text-muted-foreground uppercase tracking-wide">
                 Follow-ups
               </th>
+              <th className="text-left px-4 py-2.5 text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                Ordem
+              </th>
               <th className="w-10" />
             </tr>
           </thead>
@@ -121,7 +138,7 @@ export default function StatusManager() {
             ) : filtered.length === 0 ? (
               <tr>
                 <td
-                  colSpan={6}
+                  colSpan={7}
                   className="px-4 py-8 text-center text-sm text-muted-foreground"
                 >
                   {search
@@ -130,7 +147,7 @@ export default function StatusManager() {
                 </td>
               </tr>
             ) : (
-              filtered.map((stage) => {
+              filtered.map((stage, idx) => {
                 const stageLeads = leadCounts.get(stage.id) ?? 0;
                 const stageType = stage.is_won
                   ? 'Ganho'
@@ -161,6 +178,26 @@ export default function StatusManager() {
                     </td>
                     <td className="px-4 py-2.5 text-sm text-muted-foreground">
                       {stage.auto_followup_days ?? 0}
+                    </td>
+                    <td className="px-4 py-1.5">
+                      <div className="flex items-center gap-0.5">
+                        <button
+                          onClick={() => handleMoveUp(idx)}
+                          disabled={idx === 0}
+                          className="p-1 rounded hover:bg-muted disabled:opacity-30"
+                          aria-label="Mover para cima"
+                        >
+                          <ArrowUp className="h-3.5 w-3.5 text-muted-foreground" />
+                        </button>
+                        <button
+                          onClick={() => handleMoveDown(idx)}
+                          disabled={idx === filtered.length - 1}
+                          className="p-1 rounded hover:bg-muted disabled:opacity-30"
+                          aria-label="Mover para baixo"
+                        >
+                          <ArrowDown className="h-3.5 w-3.5 text-muted-foreground" />
+                        </button>
+                      </div>
                     </td>
                     <td className="px-4 py-2.5">
                       <DropdownMenu>
