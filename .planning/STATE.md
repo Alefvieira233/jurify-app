@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: Ready to plan
-stopped_at: Completed 07-liderhub-routes-final-integration/07-01-PLAN.md
-last_updated: "2026-03-29T22:11:51.461Z"
+stopped_at: Completed 07-liderhub-routes-final-integration/07-02-PLAN.md
+last_updated: "2026-03-29T22:17:46.889Z"
 progress:
   total_phases: 9
-  completed_phases: 6
+  completed_phases: 7
   total_plans: 17
-  completed_plans: 16
+  completed_plans: 17
 ---
 
 # Jurify — Project State
@@ -20,8 +20,8 @@ progress:
 
 Phase 1 (LíderHub Visual Foundation) — Complete (both plans done)
 
-**Last session:** 2026-03-29T22:11:51.456Z
-**Stopped at:** Completed 07-liderhub-routes-final-integration/07-01-PLAN.md
+**Last session:** 2026-03-29T22:17:46.884Z
+**Stopped at:** Completed 07-liderhub-routes-final-integration/07-02-PLAN.md
 
 ## Progress
 
@@ -61,6 +61,8 @@ Phase 1 (LíderHub Visual Foundation) — Complete (both plans done)
 - [Phase 04-liderhub-new-features]: Used two separate React Query keys for stages and lead-counts to keep cache granular; lead-count query depends on stages.length>0
 - [Phase 04-liderhub-new-features]: setupMock helper removed from TarefasPage tests; vi.fn() module-level mock used to avoid await in non-async function
 - [Phase 07-liderhub-routes-final-integration]: Tarefas leaf id changed from agendamentos to tarefas; honorarios uses adminOnly+managerOk to mirror App.tsx RBAC
+- [Phase 07-liderhub-routes-final-integration]: ALLOWED_DEEP_LINK_PATHS extended with /tarefas, /crm, /auditoria — all had registered routes but missing from Set
+- [Phase 07-liderhub-routes-final-integration]: Production build JS ~3.6MB under 4MB limit; no vite.config.ts changes needed
 
 ## Blockers
 
