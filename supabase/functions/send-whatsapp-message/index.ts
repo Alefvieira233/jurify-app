@@ -2,7 +2,7 @@
  * 🚀 SEND WHATSAPP MESSAGE - EDGE FUNCTION (SECURE)
  *
  * Edge Function segura para envio de mensagens WhatsApp.
- * Suporta Evolution API (self-hosted) e Meta Official API.
+ * Envia mensagens WhatsApp via Kapso Cloud API (primary) ou Meta Official API (fallback).
  * Detecta automaticamente o provider do tenant.
  *
  * @version 2.0.0
@@ -94,6 +94,7 @@ async function sendViaKapso(
 
 // 📤 Envia mídia via Kapso API
 async function sendMediaViaKapso(
+  supabase: ReturnType<typeof createClient>,
   to: string,
   mediaType: "image" | "audio" | "document",
   mediaBase64: string,
@@ -102,12 +103,31 @@ async function sendMediaViaKapso(
   caption?: string,
 ): Promise<{ success: boolean; messageId?: string; error?: string }> {
   try {
-    // Kapso expects a URL, not base64. Upload to Supabase Storage first or use data URI.
-    const dataUri = `data:${mimeType || "application/octet-stream"};base64,${mediaBase64}`;
-    const result = await kapsoSendMedia(to, mediaType, dataUri, caption, fileName);
+    // Upload to Supabase Storage to get a public URL
+    const ext = (mimeType || "application/octet-stream").split("/").pop() || "bin";
+    const storagePath = `whatsapp-media/${crypto.randomUUID()}.${ext}`;
+    const binaryData = Uint8Array.from(atob(mediaBase64), (c) => c.charCodeAt(0));
+
+    const { error: uploadError } = await supabase.storage
+      .from("media")
+      .upload(storagePath, binaryData, {
+        contentType: mimeType || "application/octet-stream",
+        upsert: false,
+      });
+
+    if (uploadError) {
+      throw new Error(`Storage upload failed: ${uploadError.message}`);
+    }
+
+    const { data: urlData } = supabase.storage
+      .from("media")
+      .getPublicUrl(storagePath);
+
+    const publicUrl = urlData.publicUrl;
+    const result = await kapsoSendMedia(to, mediaType, publicUrl, caption, fileName);
     return { success: true, messageId: result.messageId };
   } catch (error) {
-    console.error("❌ Kapso Media Error:", error);
+    console.error("Kapso Media Error:", error);
     return {
       success: false,
       error: error instanceof Error ? error.message : "Kapso media error",
@@ -377,6 +397,7 @@ Deno.serve(async (req) => {
     if (credentials.provider === "kapso") {
       if (isMedia) {
         result = await sendMediaViaKapso(
+          supabase,
           messageRequest.to,
           messageRequest.mediaType!,
           messageRequest.mediaBase64!,
