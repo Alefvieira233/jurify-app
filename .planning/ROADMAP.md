@@ -42,11 +42,18 @@ Plans:
 - [ ] 03-03-PLAN.md — KanbanCard + KanbanColumn visual polish (design tokens)
 
 ## Phase 4: LíderHub New Features (Tarefas, Classes, Suporte)
-**Status:** Partially Done (TarefasPage, SuportePage exist)
-**Scope:** DB migrations, hooks, schemas, enhance existing pages, Classes system
-**Files:** tarefas migration, useTarefas.ts, TarefasPage.tsx, SuportePage.tsx, StatusManager.tsx
+**Status:** Ready to execute
+**Goal:** Enhance existing Tarefas and Suporte pages with full CRUD operations, and replace hardcoded StatusManager with DB-backed Classes system
+**Scope:** TarefasPage edit/delete/filter, SuportePage detail/status/rating, StatusManager CRUD via crm_pipeline_stages
+**Files:** TarefasPage.tsx, EditTarefaDialog.tsx, SuportePage.tsx, TicketDetailDialog.tsx, StatusManager.tsx, StatusFormDialog.tsx, useStatusManager.ts, useTicketsSuporte.ts
 **Depends on:** Phase 1 (design tokens)
-**Estimated tasks:** 2-3 atomic plans
+**Requirements:** [FR-9, FR-10, FR-11, NFR-1, NFR-2]
+**Plans:** 3 plans
+
+Plans:
+- [ ] 04-01-PLAN.md — Tarefas: edit dialog, delete confirmation, priority filter, tests
+- [ ] 04-02-PLAN.md — Suporte: ticket detail dialog, status update, rating, type filter, tests
+- [ ] 04-03-PLAN.md — Classes/Status: useStatusManager hook, StatusFormDialog, DB-backed StatusManager, tests
 
 ## Phase 5: Kapso Backend Migration
 **Status:** Complete
