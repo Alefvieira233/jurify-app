@@ -53,5 +53,21 @@ export function useTicketsSuporte() {
     },
   });
 
-  return { tickets: tickets ?? [], isLoading, createTicket };
+  const updateTicket = useMutation({
+    mutationFn: async ({ id, ...values }: { id: string; status?: string; avaliacao?: number }) => {
+      const { error } = await supabase
+        .from('tickets_suporte')
+        .update({ ...values, updated_at: new Date().toISOString() })
+        .eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ['tickets-suporte'] });
+    },
+    onError: () => {
+      toast({ title: 'Erro ao atualizar ticket', variant: 'destructive' });
+    },
+  });
+
+  return { tickets: tickets ?? [], isLoading, createTicket, updateTicket };
 }

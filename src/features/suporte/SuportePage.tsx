@@ -5,7 +5,7 @@ import { usePageTitle } from '@/hooks/usePageTitle';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { useTicketsSuporte } from '@/hooks/useTicketsSuporte';
+import { useTicketsSuporte, type TicketSuporte } from '@/hooks/useTicketsSuporte';
 import { fmtDateTime } from '@/utils/formatting';
 import { truncate } from '@/utils/formatting';
 import {
@@ -16,6 +16,7 @@ import {
 } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import TicketDetailDialog from './TicketDetailDialog';
 
 const TIPO_LABELS: Record<string, string> = {
   duvida: 'Dúvida',
@@ -47,13 +48,17 @@ export default function SuportePage() {
   usePageTitle('Suporte');
   const { tickets, isLoading, createTicket } = useTicketsSuporte();
   const [search, setSearch] = useState('');
+  const [tipoFilter, setTipoFilter] = useState('');
   const [formOpen, setFormOpen] = useState(false);
   const [novoTipo, setNovoTipo] = useState('duvida');
   const [novoConteudo, setNovoConteudo] = useState('');
+  const [selectedTicket, setSelectedTicket] = useState<TicketSuporte | null>(null);
+  const [detailOpen, setDetailOpen] = useState(false);
 
   const filtered = tickets.filter(t => {
-    if (!search) return true;
-    return t.conteudo.toLowerCase().includes(search.toLowerCase());
+    if (search && !t.conteudo.toLowerCase().includes(search.toLowerCase())) return false;
+    if (tipoFilter && t.tipo !== tipoFilter) return false;
+    return true;
   });
 
   const handleCreate = () => {
@@ -70,6 +75,11 @@ export default function SuportePage() {
     );
   };
 
+  const handleRowClick = (ticket: TicketSuporte) => {
+    setSelectedTicket(ticket);
+    setDetailOpen(true);
+  };
+
   return (
     <div className="p-6 space-y-4">
       {/* Header */}
@@ -83,15 +93,29 @@ export default function SuportePage() {
         </Button>
       </div>
 
-      {/* Search */}
-      <div className="relative max-w-sm">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-        <Input
-          placeholder="Buscar tickets..."
-          value={search}
-          onChange={e => setSearch(e.target.value)}
-          className="pl-9 h-9"
-        />
+      {/* Filters */}
+      <div className="flex items-center gap-3 flex-wrap">
+        <div className="relative max-w-sm">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder="Buscar tickets..."
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            className="pl-9 h-9"
+          />
+        </div>
+        <select
+          aria-label="Filtrar por tipo"
+          value={tipoFilter}
+          onChange={e => setTipoFilter(e.target.value)}
+          className="flex h-9 rounded-md border border-input bg-background px-3 py-1 text-sm"
+        >
+          <option value="">Todos</option>
+          <option value="duvida">Dúvida</option>
+          <option value="bug">Bug</option>
+          <option value="sugestao">Sugestão</option>
+          <option value="outro">Outro</option>
+        </select>
       </div>
 
       {/* Table */}
@@ -103,24 +127,29 @@ export default function SuportePage() {
               <TableHead className="text-xs uppercase tracking-wider">Conteúdo</TableHead>
               <TableHead className="text-xs uppercase tracking-wider">Tipo</TableHead>
               <TableHead className="text-xs uppercase tracking-wider">Status</TableHead>
+              <TableHead className="text-xs uppercase tracking-wider">Avaliação</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {isLoading ? (
               <TableRow>
-                <TableCell colSpan={4} className="text-center py-12 text-muted-foreground">
+                <TableCell colSpan={5} className="text-center py-12 text-muted-foreground">
                   Carregando...
                 </TableCell>
               </TableRow>
             ) : filtered.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={4} className="text-center py-12 text-muted-foreground">
+                <TableCell colSpan={5} className="text-center py-12 text-muted-foreground">
                   Nenhum ticket encontrado
                 </TableCell>
               </TableRow>
             ) : (
               filtered.map(ticket => (
-                <TableRow key={ticket.id} className="hover:bg-accent/50 transition-colors">
+                <TableRow
+                  key={ticket.id}
+                  className="hover:bg-accent/50 transition-colors cursor-pointer"
+                  onClick={() => handleRowClick(ticket)}
+                >
                   <TableCell className="text-sm text-muted-foreground">
                     {fmtDateTime(ticket.created_at)}
                   </TableCell>
@@ -136,6 +165,9 @@ export default function SuportePage() {
                     <Badge variant="secondary" className={`text-[11px] ${STATUS_COLORS[ticket.status] ?? ''}`}>
                       {STATUS_LABELS[ticket.status] ?? ticket.status}
                     </Badge>
+                  </TableCell>
+                  <TableCell className="text-sm text-muted-foreground">
+                    {ticket.avaliacao !== null ? `${'★'.repeat(ticket.avaliacao)}` : '—'}
                   </TableCell>
                 </TableRow>
               ))
@@ -184,6 +216,13 @@ export default function SuportePage() {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Ticket Detail Dialog */}
+      <TicketDetailDialog
+        ticket={selectedTicket}
+        open={detailOpen}
+        onOpenChange={setDetailOpen}
+      />
     </div>
   );
 }
