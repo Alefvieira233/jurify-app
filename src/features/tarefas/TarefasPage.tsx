@@ -6,9 +6,16 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Search, Plus, CheckCircle, Clock, AlertTriangle } from 'lucide-react';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { Search, Plus, CheckCircle, Clock, AlertTriangle, MoreHorizontal } from 'lucide-react';
 import { fmtDate } from '@/utils/formatting';
 import NovaTarefaForm from './NovaTarefaForm';
+import EditTarefaDialog from './EditTarefaDialog';
 
 const STATUS_CONFIG: Record<string, { label: string; color: string; icon: typeof CheckCircle }> = {
   pendente: { label: 'Pendente', color: 'bg-amber-100 text-amber-700', icon: Clock },
@@ -26,11 +33,14 @@ const PRIORIDADE_COLORS: Record<string, string> = {
 
 export default function TarefasPage() {
   usePageTitle('Tarefas');
-  const { tarefas, isLoading, updateTarefa } = useTarefas();
+  const { tarefas, isLoading, updateTarefa, deleteTarefa } = useTarefas();
   const { members } = useTeamMembers();
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
+  const [prioridadeFilter, setPrioridadeFilter] = useState('');
   const [formOpen, setFormOpen] = useState(false);
+  const [editingTarefa, setEditingTarefa] = useState<Tarefa | null>(null);
+  const [editOpen, setEditOpen] = useState(false);
 
   const memberMap = useMemo(
     () => new Map((members ?? []).map(m => [m.id, m.nome_completo || m.email])),
@@ -40,13 +50,14 @@ export default function TarefasPage() {
   const filtered = useMemo(() => {
     return tarefas.filter(t => {
       if (statusFilter && t.status !== statusFilter) return false;
+      if (prioridadeFilter && t.prioridade !== prioridadeFilter) return false;
       if (search) {
         const term = search.toLowerCase();
         if (!t.titulo.toLowerCase().includes(term)) return false;
       }
       return true;
     });
-  }, [tarefas, search, statusFilter]);
+  }, [tarefas, search, statusFilter, prioridadeFilter]);
 
   const toggleStatus = (tarefa: Tarefa) => {
     const next = tarefa.status === 'pendente' ? 'em_andamento'
@@ -54,6 +65,17 @@ export default function TarefasPage() {
       : tarefa.status === 'concluida' ? 'pendente'
       : 'pendente';
     updateTarefa.mutate({ id: tarefa.id, status: next });
+  };
+
+  const handleEdit = (tarefa: Tarefa) => {
+    setEditingTarefa(tarefa);
+    setEditOpen(true);
+  };
+
+  const handleDelete = (tarefa: Tarefa) => {
+    if (window.confirm('Excluir tarefa?')) {
+      deleteTarefa.mutate(tarefa.id);
+    }
   };
 
   if (isLoading) {
@@ -81,7 +103,7 @@ export default function TarefasPage() {
       </div>
 
       {/* Filters */}
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-3 flex-wrap">
         <div className="relative max-w-sm flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
@@ -102,6 +124,17 @@ export default function TarefasPage() {
           <option value="concluida">Concluída</option>
           <option value="cancelada">Cancelada</option>
         </select>
+        <select
+          value={prioridadeFilter}
+          onChange={e => setPrioridadeFilter(e.target.value)}
+          className="h-9 rounded-md border border-input bg-background px-3 text-sm"
+        >
+          <option value="">Todas as prioridades</option>
+          <option value="baixa">Baixa</option>
+          <option value="media">Média</option>
+          <option value="alta">Alta</option>
+          <option value="urgente">Urgente</option>
+        </select>
       </div>
 
       {/* Table */}
@@ -116,13 +149,14 @@ export default function TarefasPage() {
               <TableHead className="text-xs uppercase tracking-wider">Responsável</TableHead>
               <TableHead className="text-xs uppercase tracking-wider">Status</TableHead>
               <TableHead className="text-xs uppercase tracking-wider">Prioridade</TableHead>
+              <TableHead className="text-xs uppercase tracking-wider w-10" />
             </TableRow>
           </TableHeader>
           <TableBody>
             {filtered.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={7} className="text-center py-12 text-muted-foreground">
-                  {search || statusFilter ? 'Nenhuma tarefa encontrada' : 'Nenhuma tarefa criada ainda'}
+                <TableCell colSpan={8} className="text-center py-12 text-muted-foreground">
+                  {search || statusFilter || prioridadeFilter ? 'Nenhuma tarefa encontrada' : 'Nenhuma tarefa criada ainda'}
                 </TableCell>
               </TableRow>
             ) : (
@@ -166,6 +200,27 @@ export default function TarefasPage() {
                         {tarefa.prioridade.charAt(0).toUpperCase() + tarefa.prioridade.slice(1)}
                       </Badge>
                     </TableCell>
+                    <TableCell>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="icon" className="h-7 w-7">
+                            <MoreHorizontal className="h-4 w-4" />
+                            <span className="sr-only">Ações</span>
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem onClick={() => handleEdit(tarefa)}>
+                            Editar
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            onClick={() => handleDelete(tarefa)}
+                            className="text-destructive focus:text-destructive"
+                          >
+                            Excluir
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </TableCell>
                   </TableRow>
                 );
               })
@@ -175,6 +230,7 @@ export default function TarefasPage() {
       </div>
 
       <NovaTarefaForm open={formOpen} onOpenChange={setFormOpen} />
+      <EditTarefaDialog tarefa={editingTarefa} open={editOpen} onOpenChange={setEditOpen} />
     </div>
   );
 }
