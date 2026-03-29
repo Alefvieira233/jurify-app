@@ -1,8 +1,16 @@
-import { Search, Bell, Menu } from 'lucide-react';
+import { Search, Bell, Menu, Check, ChevronDown } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRealtimeNotifications } from '@/hooks/useRealtimeNotifications';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { getInitials, getAvatarHex } from '@/utils/formatting';
 import ThemeToggle from '@/components/ThemeToggle';
 import { useNavigate } from 'react-router-dom';
@@ -12,7 +20,7 @@ interface TopBarProps {
 }
 
 export default function TopBar({ onMenuToggle }: TopBarProps) {
-  const { profile } = useAuth();
+  const { profile, signOut } = useAuth();
   const { unreadCount } = useRealtimeNotifications();
   const navigate = useNavigate();
 
@@ -23,10 +31,26 @@ export default function TopBar({ onMenuToggle }: TopBarProps) {
         <Menu className="h-5 w-5" />
       </Button>
 
-      {/* Logo + workspace */}
-      <div className="flex items-center gap-2">
-        <span className="text-lg font-bold text-primary">Jurify</span>
-      </div>
+      {/* Logo + workspace selector */}
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button variant="ghost" aria-label="Selecionar workspace" className="flex items-center gap-1 px-2">
+            <span className="text-lg font-bold text-primary">Jurify</span>
+            <ChevronDown className="h-3 w-3 ml-1 text-muted-foreground" />
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="start" className="w-52">
+          <DropdownMenuItem className="font-semibold">
+            <Check className="h-4 w-4 mr-2" />
+            Jurify
+          </DropdownMenuItem>
+          <DropdownMenuSeparator />
+          <DropdownMenuItem disabled>
+            Mais workspaces
+            <span className="text-xs text-muted-foreground ml-auto">Em breve</span>
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
 
       <div className="flex-1" />
 
@@ -49,7 +73,8 @@ export default function TopBar({ onMenuToggle }: TopBarProps) {
       <Button
         variant="ghost"
         size="icon"
-        className="relative"
+        className="relative h-11 w-11"
+        aria-label="Notificações"
         onClick={() => navigate('/notificacoes')}
       >
         <Bell className="h-[18px] w-[18px]" />
@@ -60,15 +85,38 @@ export default function TopBar({ onMenuToggle }: TopBarProps) {
         )}
       </Button>
 
-      {/* Avatar */}
-      <Avatar className="h-8 w-8 cursor-pointer">
-        <AvatarFallback
-          style={{ backgroundColor: getAvatarHex(profile?.nome_completo || 'U') }}
-          className="text-white text-xs font-medium"
-        >
-          {getInitials(profile?.nome_completo ?? null)}
-        </AvatarFallback>
-      </Avatar>
+      {/* Avatar dropdown */}
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button variant="ghost" size="icon" className="h-11 w-11 rounded-full" aria-label="Menu do usuário">
+            <Avatar className="h-8 w-8">
+              <AvatarFallback
+                style={{ backgroundColor: getAvatarHex(profile?.nome_completo || 'U') }}
+                className="text-white text-xs font-medium"
+              >
+                {getInitials(profile?.nome_completo ?? null)}
+              </AvatarFallback>
+            </Avatar>
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end" className="w-48">
+          <DropdownMenuLabel>
+            {profile?.nome_completo || 'Usuário'}
+            <p className="text-xs text-muted-foreground">{profile?.role}</p>
+          </DropdownMenuLabel>
+          <DropdownMenuSeparator />
+          <DropdownMenuItem onClick={() => navigate('/configuracoes?tab=perfil')}>
+            Minha Conta
+          </DropdownMenuItem>
+          <DropdownMenuSeparator />
+          <DropdownMenuItem
+            className="text-destructive focus:text-destructive"
+            onClick={() => { void signOut(); }}
+          >
+            Sair
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
     </header>
   );
 }
