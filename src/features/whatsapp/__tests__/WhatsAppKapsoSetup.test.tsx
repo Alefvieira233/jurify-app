@@ -13,16 +13,17 @@ const { mockInvoke, mockGetSession, mockMaybeSingle } = vi.hoisted(() => ({
   mockMaybeSingle: vi.fn().mockResolvedValue({ data: null, error: null }),
 }));
 
+const makeEqChain = (): Record<string, unknown> => ({
+  eq: () => makeEqChain(),
+  maybeSingle: () => mockMaybeSingle(),
+});
+
 vi.mock('@/integrations/supabase/client', () => ({
   supabase: {
     auth: { getSession: () => mockGetSession() },
     functions: { invoke: mockInvoke },
     from: () => ({
-      select: () => ({
-        eq: () => ({
-          maybeSingle: () => mockMaybeSingle(),
-        }),
-      }),
+      select: () => makeEqChain(),
     }),
   },
 }));
@@ -134,7 +135,7 @@ describe('WhatsAppKapsoSetup', () => {
 
   it('loads existing instance from DB on mount', async () => {
     mockMaybeSingle.mockResolvedValue({
-      data: { id: '1', status: 'ativa', observacoes: 'Instance: jurify_abc' },
+      data: { id: '1', status: 'connected', nome: 'jurify', instance_name: 'jurify_abc' },
       error: null,
     });
 
@@ -147,7 +148,7 @@ describe('WhatsAppKapsoSetup', () => {
 
   it('shows disconnect and remove buttons when connected', async () => {
     mockMaybeSingle.mockResolvedValue({
-      data: { id: '1', status: 'ativa', observacoes: 'Instance: jurify_abc' },
+      data: { id: '1', status: 'connected', nome: 'jurify', instance_name: 'jurify_abc' },
       error: null,
     });
 
