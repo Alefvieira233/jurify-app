@@ -68,7 +68,7 @@ Font family: `Inter, system-ui, -apple-system, sans-serif` (matches tailwind.con
 
 Weights used in Phase 1: **400** (regular) and **600** (semibold) only.
 
-Breadcrumb specifics: 12px, weight 400 for non-active crumbs; 12px, weight 500 (`font-medium`) for the active (last) crumb. Source: Breadcrumbs.tsx existing implementation.
+Breadcrumb specifics: 12px, weight 400 for non-active crumbs; 12px, weight 600 (`font-semibold`) for the active (last) crumb. Source: Breadcrumbs.tsx existing implementation — aligned to 400/600 two-weight contract.
 
 ---
 
@@ -94,6 +94,28 @@ Light mode (`:root`) — primary theme for Phase 1:
 **Dark mode:** `.dark` block is left entirely unchanged (Lex Obsidian theme is complete and approved). Source: RESEARCH.md gap analysis.
 
 Border color: `hsl(220 13% 91%)` (`--border`) — used on TopBar bottom border, sidebar right border, card outlines.
+
+---
+
+## Focal Point
+
+**Primary screen focal point:** The active sidebar navigation item is the visual anchor for every authenticated page. It is the single element rendered with full accent color (blue-500 text + `border-l-2 border-primary` + `bg-primary/5`) while all surrounding nav items remain at muted weight and neutral backgrounds. The eye is drawn left-to-content on every route change.
+
+No competing focal points are introduced in Phase 1. The TopBar is a secondary band; its workspace name and avatar are supporting elements, not anchors.
+
+---
+
+## Accessibility
+
+| Element | Requirement |
+|---------|-------------|
+| Notifications bell icon button | `aria-label="Notificações"` — no visible text label present, screen-reader label is mandatory |
+| Avatar button | `aria-label="Menu do usuário"` — icon-only trigger for DropdownMenu |
+| Workspace selector trigger | `aria-label="Selecionar workspace"` — icon + text trigger; label supplements visible text |
+| Active sidebar nav item | `aria-current="page"` on the active `<a>` or nav item |
+| Sidebar search bar button | `aria-label="Buscar"` — opens GlobalSearch (Ctrl+K) |
+
+All interactive elements meet the 44px minimum touch target height declared in the Spacing Scale exceptions.
 
 ---
 
@@ -164,7 +186,7 @@ Custom components modified in Phase 1:
 - Hidden on `/` and `/home` routes (existing behavior — keep)
 - Separator: `<ChevronRight>` from lucide, 14px, muted-foreground color
 - Non-active crumbs: 12px, weight 400, `text-muted-foreground`, clickable (navigate back)
-- Active (last) crumb: 12px, weight 500, `text-foreground`, not clickable
+- Active (last) crumb: 12px, weight 600 (`font-semibold`), `text-foreground`, not clickable
 
 ---
 
@@ -211,6 +233,7 @@ No third-party registries declared. Registry vetting gate: not applicable.
 | tailwind.config.ts | 3 — Inter font family, dark mode: class, container max: 1400px |
 | src/index.css | 6 — all HSL token values, radius, shadow system |
 | User input | 0 — all contract decisions derived from upstream artifacts |
+| Checker revision (2026-03-29) | 3 — breadcrumb weight 500→600, focal point declaration, notifications bell aria-label |
 
 ---
 
