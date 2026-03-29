@@ -196,8 +196,8 @@ Phase 1 is a visual/structural phase — no new user-facing data flows or empty 
 
 | Element | Copy |
 |---------|------|
-| TopBar workspace selector trigger label | Current workspace name (dynamic) — never hardcoded "Jurify" |
-| Workspace dropdown — current workspace | "{workspace name}" with check indicator |
+| TopBar workspace selector trigger label | "Jurify" (hardcoded placeholder — multi-workspace support deferred to Phase 7) |
+| Workspace dropdown — current workspace | "Jurify" with check indicator |
 | Workspace dropdown — future item | "Em breve" (disabled) |
 | TopBar avatar tooltip | "Minha conta" |
 | Avatar dropdown — account item | "Minha Conta" |
@@ -233,7 +233,7 @@ No third-party registries declared. Registry vetting gate: not applicable.
 | tailwind.config.ts | 3 — Inter font family, dark mode: class, container max: 1400px |
 | src/index.css | 6 — all HSL token values, radius, shadow system |
 | User input | 0 — all contract decisions derived from upstream artifacts |
-| Checker revision (2026-03-29) | 3 — breadcrumb weight 500→600, focal point declaration, notifications bell aria-label |
+| Checker revision (2026-03-29) | 3 — breadcrumb weight 500->600, focal point declaration, notifications bell aria-label |
 
 ---
 
