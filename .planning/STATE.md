@@ -2,14 +2,14 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: Ready to plan
-stopped_at: Completed 01-l-derhub-visual-foundation/01-02-PLAN.md (human-verify approved)
-last_updated: "2026-03-29T17:19:35.756Z"
+status: Executing Phase 05
+stopped_at: Completed 05-kapso-backend-migration/05-01-PLAN.md
+last_updated: "2026-03-29T17:44:58.592Z"
 progress:
   total_phases: 7
   completed_phases: 1
-  total_plans: 2
-  completed_plans: 2
+  total_plans: 7
+  completed_plans: 3
 ---
 
 # Jurify — Project State
@@ -20,15 +20,15 @@ progress:
 
 Phase 1 (LíderHub Visual Foundation) — Complete (both plans done)
 
-**Last session:** 2026-03-29T16:56:34Z
-**Stopped at:** Completed 01-l-derhub-visual-foundation/01-02-PLAN.md (human-verify approved)
+**Last session:** 2026-03-29T17:44:58.588Z
+**Stopped at:** Completed 05-kapso-backend-migration/05-01-PLAN.md
 
 ## Progress
 
 | Phase | Status | Progress |
 |-------|--------|----------|
 | 1. Visual Foundation | 🟢 Complete | 100% (2/2 plans done) |
-| 2. Dashboard + Home | ⬜ Blocked by Phase 1 | 0% |
+| 2. Dashboard + Home | 🟡 In Progress | 50% (1/2 plans done) |
 | 3. Atendimento | ⬜ Blocked by Phase 1 | 0% |
 | 4. New Features | ⬜ Blocked by Phase 1 | ~30% (pages exist) |
 | 5. Kapso Backend | 🟡 Ready to plan | ~20% (client exists) |
@@ -43,6 +43,9 @@ Phase 1 (LíderHub Visual Foundation) — Complete (both plans done)
 - [Phase 01-l-derhub-visual-foundation]: Workspace name 'Jurify' hardcoded placeholder — multi-workspace support deferred to Phase 7 per UI-SPEC
 - [Phase 01-l-derhub-visual-foundation]: Changed --accent from blue-50 tint to neutral gray (220 14% 96%) for clean white hover states
 - [Phase 01-l-derhub-visual-foundation]: Font narrowed from Manrope (wght@300-800) to Inter (wght@400;600); ThemeToggle removed from sidebar, belongs only in TopBar
+- [Phase 05-kapso-backend-migration]: Evolution references completely removed from integration test file; DB constraint finalized to only allow kapso/oficial/cloud_api
+- [Phase 02-liderhub-dashboard-home]: SankeyChart simulates lead flow from current stage counts (no transition history); loss distribution uses 40/30/20/remainder ratio
+- [Phase 05-kapso-backend-migration]: Kapso is the sole primary WhatsApp provider; media uploads use Supabase Storage to get public URL before Kapso API call
 
 ## Blockers
 

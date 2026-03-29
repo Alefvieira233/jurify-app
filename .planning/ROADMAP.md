@@ -15,11 +15,17 @@ Plans:
 - [x] 01-02-PLAN.md — TopBar workspace selector dropdown, avatar dropdown, accessibility
 
 ## Phase 2: LíderHub Dashboard + Home
-**Status:** Not Started (HomePage partially exists)
+**Status:** Planned
+**Goal:** Redesign HomePage with real data from hooks and enhance Dashboard with SankeyChart lead flow visualization
 **Scope:** HomePage redesign, Dashboard with StatCards + SankeyChart, /home route
-**Files:** HomePage.tsx, Dashboard.tsx, StatCard.tsx (new), SankeyChart.tsx (new), App.tsx
+**Files:** HomePage.tsx, Dashboard.tsx, StatCard.tsx, SankeyChart.tsx (new), App.tsx
 **Depends on:** Phase 1 (design tokens)
-**Estimated tasks:** 2-3 atomic plans
+**Requirements:** [FR-5, FR-6, NFR-1, NFR-2]
+**Plans:** 2 plans
+
+Plans:
+- [ ] 02-01-PLAN.md — HomePage redesign with real data (useLeads, useTarefas, useAgendamentos) + StatCard enhancement
+- [x] 02-02-PLAN.md — SankeyChart component + Dashboard integration
 
 ## Phase 3: LíderHub Atendimento
 **Status:** Not Started
@@ -42,11 +48,11 @@ Plans:
 **Files:** 6 Edge Functions + shared modules + DB migration + integration tests
 **Depends on:** Nothing (independent of UI phases)
 **Requirements:** [FR-13, FR-14, FR-15, FR-16, FR-19, FR-20, NFR-1, NFR-2, NFR-6]
-**Plans:** 3 plans
+**Plans:** 1/3 plans executed
 
 Plans:
-- [ ] 05-01-PLAN.md — Clean Evolution legacy from webhook + sender, fix media upload
-- [ ] 05-02-PLAN.md — Update integration tests to Kapso naming, final DB migration
+- [x] 05-01-PLAN.md — Clean Evolution legacy from webhook + sender, fix media upload
+- [x] 05-02-PLAN.md — Update integration tests to Kapso naming, final DB migration
 - [ ] 05-03-PLAN.md — Verification sweep + full test suite validation
 
 ## Phase 6: Kapso Frontend + Conexões Redesign
