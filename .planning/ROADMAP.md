@@ -89,10 +89,10 @@ Plans:
 **Files:** App.tsx, Sidebar.tsx, e2e/liderhub-smoke.spec.ts
 **Depends on:** Phases 1-6
 **Requirements:** [FR-1, FR-2, FR-3, FR-4, FR-5, FR-6, FR-7, FR-8, FR-9, FR-10, FR-11, FR-12, NFR-1, NFR-2, NFR-3, NFR-4]
-**Plans:** 2 plans
+**Plans:** 1/2 plans executed
 
 Plans:
-- [ ] 07-01-PLAN.md — Sidebar: add Jurídico + Relatórios sections, fix Tarefas leaf
+- [x] 07-01-PLAN.md — Sidebar: add Jurídico + Relatórios sections, fix Tarefas leaf
 - [ ] 07-02-PLAN.md — App.tsx deep links, E2E smoke spec, production build validation
 
 ---
