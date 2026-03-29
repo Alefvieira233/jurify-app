@@ -11,7 +11,7 @@
 **Plans:** 1/2 plans executed
 
 Plans:
-- [ ] 01-01-PLAN.md — Design tokens (accent neutral gray), Inter font, Sidebar polish, Breadcrumbs
+- [x] 01-01-PLAN.md — Design tokens (accent neutral gray), Inter font, Sidebar polish, Breadcrumbs
 - [x] 01-02-PLAN.md — TopBar workspace selector dropdown, avatar dropdown, accessibility
 
 ## Phase 2: LíderHub Dashboard + Home
