@@ -1,6 +1,7 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import Stripe from "https://esm.sh/stripe@14.21.0";
 import { getCorsHeaders } from "../_shared/cors.ts";
+import { applyRateLimit } from "../_shared/rate-limiter.ts";
 
 
 Deno.serve(async (req) => {
@@ -31,6 +32,16 @@ Deno.serve(async (req) => {
             Deno.env.get("SUPABASE_URL") ?? "",
             Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
         );
+
+        const rateLimitCheck = await applyRateLimit(req, {
+            maxRequests: 10,
+            windowSeconds: 60,
+            namespace: "create-portal-session",
+        }, { supabase: supabaseAdmin, user, corsHeaders });
+
+        if (!rateLimitCheck.allowed) {
+            return rateLimitCheck.response;
+        }
 
         const { data: profile } = await supabaseAdmin
             .from("profiles")

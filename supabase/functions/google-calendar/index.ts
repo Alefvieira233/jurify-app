@@ -11,6 +11,7 @@
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { getCorsHeaders } from '../_shared/cors.ts'
+import { applyRateLimit } from '../_shared/rate-limiter.ts'
 import { GoogleOAuthService } from './google-oauth.ts'
 
 Deno.serve(async (req) => {
@@ -33,6 +34,16 @@ Deno.serve(async (req) => {
 
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) throw new Error('Unauthorized')
+
+    const rateLimitCheck = await applyRateLimit(req, {
+        maxRequests: 20,
+        windowSeconds: 60,
+        namespace: "google-calendar",
+    }, { user, corsHeaders });
+
+    if (!rateLimitCheck.allowed) {
+        return rateLimitCheck.response;
+    }
 
     const { method, data } = await req.json()
 
