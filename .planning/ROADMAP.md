@@ -15,16 +15,16 @@ Plans:
 - [x] 01-02-PLAN.md — TopBar workspace selector dropdown, avatar dropdown, accessibility
 
 ## Phase 2: LíderHub Dashboard + Home
-**Status:** Planned
+**Status:** In Progress
 **Goal:** Redesign HomePage with real data from hooks and enhance Dashboard with SankeyChart lead flow visualization
 **Scope:** HomePage redesign, Dashboard with StatCards + SankeyChart, /home route
 **Files:** HomePage.tsx, Dashboard.tsx, StatCard.tsx, SankeyChart.tsx (new), App.tsx
 **Depends on:** Phase 1 (design tokens)
 **Requirements:** [FR-5, FR-6, NFR-1, NFR-2]
-**Plans:** 2 plans
+**Plans:** 1/2 plans executed
 
 Plans:
-- [ ] 02-01-PLAN.md — HomePage redesign with real data (useLeads, useTarefas, useAgendamentos) + StatCard enhancement
+- [x] 02-01-PLAN.md — HomePage redesign with real data (useLeads, useTarefas, useAgendamentos) + StatCard enhancement
 - [x] 02-02-PLAN.md — SankeyChart component + Dashboard integration
 
 ## Phase 3: LíderHub Atendimento

@@ -2,14 +2,14 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: Executing Phase 05
-stopped_at: Completed 05-kapso-backend-migration/05-02-PLAN.md
-last_updated: "2026-03-29T17:48:21.065Z"
+status: Executing Phase 02
+stopped_at: Completed 02-liderhub-dashboard-home/02-01-PLAN.md
+last_updated: "2026-03-29T17:53:39Z"
 progress:
   total_phases: 7
   completed_phases: 1
   total_plans: 7
-  completed_plans: 4
+  completed_plans: 5
 ---
 
 # Jurify — Project State
@@ -20,15 +20,15 @@ progress:
 
 Phase 1 (LíderHub Visual Foundation) — Complete (both plans done)
 
-**Last session:** 2026-03-29T17:48:21.061Z
-**Stopped at:** Completed 05-kapso-backend-migration/05-02-PLAN.md
+**Last session:** 2026-03-29T17:53:39Z
+**Stopped at:** Completed 02-liderhub-dashboard-home/02-01-PLAN.md
 
 ## Progress
 
 | Phase | Status | Progress |
 |-------|--------|----------|
 | 1. Visual Foundation | 🟢 Complete | 100% (2/2 plans done) |
-| 2. Dashboard + Home | 🟡 In Progress | 50% (1/2 plans done) |
+| 2. Dashboard + Home | 🟡 In Progress | 50% (1/2 plans done — 02-01 done) |
 | 3. Atendimento | ⬜ Blocked by Phase 1 | 0% |
 | 4. New Features | ⬜ Blocked by Phase 1 | ~30% (pages exist) |
 | 5. Kapso Backend | 🟡 Ready to plan | ~20% (client exists) |
@@ -47,6 +47,8 @@ Phase 1 (LíderHub Visual Foundation) — Complete (both plans done)
 - [Phase 02-liderhub-dashboard-home]: SankeyChart simulates lead flow from current stage counts (no transition history); loss distribution uses 40/30/20/remainder ratio
 - [Phase 05-kapso-backend-migration]: Kapso is the sole primary WhatsApp provider; media uploads use Supabase Storage to get public URL before Kapso API call
 - [Phase 05-kapso-backend-migration]: Evolution references completely removed from integration test file; DB constraint finalized to only allow kapso/oficial/cloud_api
+- [Phase 02-liderhub-dashboard-home]: MiniSparkline kept as internal helper in StatCard; Dashboard.tsx retains its own inline version per Phase 2 scope boundary
+- [Phase 02-liderhub-dashboard-home]: Agendamentos future count uses 24h lookback window to include today's items
 
 ## Blockers
 
