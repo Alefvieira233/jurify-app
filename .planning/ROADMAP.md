@@ -36,11 +36,18 @@ Plans:
 **Estimated tasks:** 2-3 atomic plans
 
 ## Phase 5: Kapso Backend Migration
-**Status:** Not Started (kapso-client.ts + kapso-manager already exist)
-**Scope:** Replace Evolution API in send-whatsapp-message, whatsapp-webhook, health-check, process-prazos-alerts, media-processor
-**Files:** 6 Edge Functions + shared modules + DB migration
+**Status:** Planning Complete
+**Goal:** Remove all Evolution API legacy code, rename types to Kapso, fix media upload path, update tests and DB constraint to finalize Kapso-only backend
+**Scope:** Clean Evolution remnants from send-whatsapp-message, whatsapp-webhook; update integration tests; final DB migration; full verification sweep
+**Files:** 6 Edge Functions + shared modules + DB migration + integration tests
 **Depends on:** Nothing (independent of UI phases)
-**Estimated tasks:** 3-4 atomic plans
+**Requirements:** [FR-13, FR-14, FR-15, FR-16, FR-19, FR-20, NFR-1, NFR-2, NFR-6]
+**Plans:** 3 plans
+
+Plans:
+- [ ] 05-01-PLAN.md — Clean Evolution legacy from webhook + sender, fix media upload
+- [ ] 05-02-PLAN.md — Update integration tests to Kapso naming, final DB migration
+- [ ] 05-03-PLAN.md — Verification sweep + full test suite validation
 
 ## Phase 6: Kapso Frontend + Conexões Redesign
 **Status:** Not Started
