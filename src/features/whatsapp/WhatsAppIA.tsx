@@ -32,13 +32,12 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { usePageTitle } from '@/hooks/usePageTitle';
+import { ConversationFilters } from './ConversationFilters';
+import type { ConversationFilterState } from './ConversationFilters';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
-
-type ConversationFilter = 'todos' | 'ia' | 'ativos' | 'pendentes';
 
 // ── Module-level pure helpers ────────────────────────────────────────────────
 
@@ -128,8 +127,8 @@ interface ConversationListProps {
   showMobileChat: boolean;
   searchQuery: string;
   setSearchQuery: (q: string) => void;
-  activeFilter: ConversationFilter;
-  setActiveFilter: (f: ConversationFilter) => void;
+  convFilter: ConversationFilterState;
+  onFilterChange: (next: ConversationFilterState) => void;
   filteredConversations: WhatsAppConversation[];
   selectedConversation: WhatsAppConversation | null;
   stats: { total: number; active: number; pending: number; qualified: number };
@@ -143,8 +142,8 @@ const ConversationList = ({
   showMobileChat,
   searchQuery,
   setSearchQuery,
-  activeFilter,
-  setActiveFilter,
+  convFilter,
+  onFilterChange,
   filteredConversations,
   selectedConversation,
   stats,
@@ -182,35 +181,9 @@ const ConversationList = ({
         />
       </div>
 
-      {/* Filters */}
-      <Tabs value={activeFilter} onValueChange={(v) => setActiveFilter(v as ConversationFilter)}>
-        <TabsList className="w-full grid grid-cols-4 h-8">
-          <TabsTrigger value="todos" className="text-xs">Todos</TabsTrigger>
-          <TabsTrigger value="ia" className="text-xs">IA</TabsTrigger>
-          <TabsTrigger value="ativos" className="text-xs">Ativos</TabsTrigger>
-          <TabsTrigger value="pendentes" className="text-xs">Pendentes</TabsTrigger>
-        </TabsList>
-      </Tabs>
     </div>
 
-    {/* Filter bar */}
-    <div className="flex items-center gap-2 px-3 py-2 border-b border-border">
-      <select
-        className="text-xs border border-border rounded px-2 py-1 bg-background text-foreground"
-        defaultValue=""
-      >
-        <option value="">Responsável</option>
-      </select>
-      <select
-        className="text-xs border border-border rounded px-2 py-1 bg-background text-foreground"
-        defaultValue=""
-      >
-        <option value="">Status</option>
-        <option value="ativo">Ativo</option>
-        <option value="pendente">Pendente</option>
-        <option value="finalizado">Finalizado</option>
-      </select>
-    </div>
+    <ConversationFilters value={convFilter} onChange={onFilterChange} stats={stats} />
 
     {/* Conversation Items */}
     <ScrollArea className="flex-1">
@@ -707,7 +680,7 @@ const WhatsAppIA = () => {
   const [newMessage, setNewMessage] = useState('');
   const [showSetup, setShowSetup] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-  const [activeFilter, setActiveFilter] = useState<ConversationFilter>('todos');
+  const [convFilter, setConvFilter] = useState<ConversationFilterState>({ tab: 'todos', status: '' });
   const [showMobileChat, setShowMobileChat] = useState(false);
   const [isWhatsAppConnected, setIsWhatsAppConnected] = useState(() => {
     // Restaura do sessionStorage se disponível
@@ -773,24 +746,25 @@ const WhatsAppIA = () => {
   }), [conversations]);
 
   const filteredConversations = useMemo(() => {
-    let filtered = conversations;
-    if (searchQuery.trim()) {
-      const q = searchQuery.toLowerCase();
-      filtered = filtered.filter(c =>
-        (c.contact_name?.toLowerCase().includes(q)) ||
-        c.phone_number.includes(q) ||
-        (c.last_message?.toLowerCase().includes(q))
-      );
-    }
-    if (activeFilter === 'ia') {
-      filtered = filtered.filter(c => (c as WhatsAppConversation & { respondido_por_ia?: boolean }).respondido_por_ia === true || (c.status as string) === 'ia');
-    } else if (activeFilter === 'ativos') {
-      filtered = filtered.filter(c => c.status === 'ativo' || (c.status as string) === 'Ativo');
-    } else if (activeFilter === 'pendentes') {
-      filtered = filtered.filter(c => c.status === 'aguardando' || (c.status as string) === 'pendente' || (c.status as string) === 'Aguardando');
-    }
-    return filtered;
-  }, [conversations, searchQuery, activeFilter]);
+    return conversations.filter(conv => {
+      // Tab filter
+      const tabMatch = (() => {
+        switch (convFilter.tab) {
+          case 'ia': return conv.agent_status === 'processing' || conv.agent_status === 'waiting_human';
+          case 'ativos': return conv.status === 'ativo';
+          case 'pendentes': return conv.status === 'aguardando';
+          default: return true;
+        }
+      })();
+      // Status filter
+      const statusMatch = !convFilter.status || conv.status === convFilter.status;
+      // Search filter
+      const searchMatch = !searchQuery.trim() ||
+        (conv.contact_name ?? '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+        conv.phone_number.includes(searchQuery);
+      return tabMatch && statusMatch && searchMatch;
+    });
+  }, [conversations, convFilter, searchQuery]);
 
   const handleSendMessage = () => {
     if (!newMessage.trim() || !selectedConversation) return;
@@ -907,8 +881,8 @@ const WhatsAppIA = () => {
         showMobileChat={showMobileChat}
         searchQuery={searchQuery}
         setSearchQuery={setSearchQuery}
-        activeFilter={activeFilter}
-        setActiveFilter={setActiveFilter}
+        convFilter={convFilter}
+        onFilterChange={setConvFilter}
         filteredConversations={filteredConversations}
         selectedConversation={selectedConversation}
         stats={stats}
