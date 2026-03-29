@@ -22,11 +22,11 @@ interface SankeyLinkItem {
 }
 
 function buildSankeyData(leads: SankeyChartProps['leads']) {
-  let novo = 0, em_contato = 0, qualificado = 0, proposta = 0, ganho = 0, perdido = 0;
+  let _novo = 0, em_contato = 0, qualificado = 0, proposta = 0, ganho = 0, perdido = 0;
 
   for (const lead of leads) {
     switch (lead.status) {
-      case 'novo':        novo++;        break;
+      case 'novo':        _novo++;        break;
       case 'em_contato':  em_contato++;  break;
       case 'qualificado': qualificado++; break;
       case 'proposta':    proposta++;    break;
