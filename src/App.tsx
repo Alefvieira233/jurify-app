@@ -107,6 +107,7 @@ const ALLOWED_DEEP_LINK_PATHS = new Set([
   '/usuarios', '/logs', '/integracoes', '/billing', '/conexoes',
   '/departamentos', '/tags', '/suporte', '/base-conhecimento',
   '/fluxos', '/regras', '/equipe', '/arquivados', '/metricas',
+  '/tarefas', '/crm', '/auditoria',
 ]);
 
 function DeepLinkHandler() {
