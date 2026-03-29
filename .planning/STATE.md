@@ -4,7 +4,7 @@ milestone: v1.0
 milestone_name: milestone
 status: Ready to plan
 stopped_at: Completed 03-liderhub-atendimento/03-03-PLAN.md
-last_updated: "2026-03-29T21:21:57.392Z"
+last_updated: "2026-03-29T21:22:01.034Z"
 progress:
   total_phases: 8
   completed_phases: 4
@@ -52,6 +52,7 @@ Phase 1 (LíderHub Visual Foundation) — Complete (both plans done)
 - [Phase 02-liderhub-dashboard-home]: SankeyChart simulates lead flow from current stage counts (no transition history); loss distribution uses 40/30/20/remainder ratio
 - [Phase 05-kapso-backend-migration]: Phase 05 migration complete: zero Evolution references across entire codebase; all 6 Edge Functions confirmed Kapso-native
 - [Phase 03-liderhub-atendimento]: ContatosTable keeps useLeads() internal for maximum reusability as standalone component
+- [Phase 03-liderhub-atendimento]: KanbanColumn header uses bg-card token; drop zone max-h uses --topbar-h CSS var with 280px fallback
 
 ## Blockers
 

@@ -34,12 +34,12 @@ Plans:
 **Files:** WhatsAppIA.tsx, ConversationFilters.tsx (new), ContatosTable.tsx (new), KanbanCard.tsx, KanbanColumn.tsx
 **Depends on:** Phase 1 (design tokens)
 **Requirements:** [FR-7, FR-8, NFR-1, NFR-2]
-**Plans:** 2/3 plans executed
+**Plans:** 3/3 plans complete
 
 Plans:
 - [x] 03-01-PLAN.md — ConversationFilters component + wire WhatsAppIA filter state
 - [x] 03-02-PLAN.md — ContatosTable standalone component
-- [ ] 03-03-PLAN.md — KanbanCard + KanbanColumn visual polish (design tokens)
+- [x] 03-03-PLAN.md — KanbanCard + KanbanColumn visual polish (design tokens)
 
 ## Phase 4: LíderHub New Features (Tarefas, Classes, Suporte)
 **Status:** Ready to execute
