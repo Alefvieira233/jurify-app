@@ -23,7 +23,6 @@ import { cn } from '@/lib/utils';
 import { useAuth } from '@/contexts/AuthContext';
 import { Badge } from '@/components/ui/badge';
 import { useRealtimeNotifications } from '@/hooks/useRealtimeNotifications';
-import ThemeToggle from '@/components/ThemeToggle';
 import KeyboardShortcutsHelp from '@/components/KeyboardShortcutsHelp';
 
 interface SidebarProps {
@@ -303,7 +302,7 @@ const Sidebar = ({ activeSection, onSectionChange }: SidebarProps) => {
   return (
     <nav
       aria-label="Menu principal"
-      className="w-[220px] bg-background text-sidebar-foreground h-full flex flex-col border-r border-border"
+      className="w-[220px] bg-sidebar text-sidebar-foreground h-full flex flex-col border-r border-border"
     >
       {/* ── Logo ── */}
       <div className="h-20 flex items-center gap-3 px-6 shadow-sm flex-shrink-0">
@@ -314,25 +313,23 @@ const Sidebar = ({ activeSection, onSectionChange }: SidebarProps) => {
           <span className="text-lg font-bold text-sidebar-foreground tracking-tight leading-none font-sans">Jurify</span>
           <span className="text-[10px] font-bold tracking-widest text-sidebar-foreground/50 uppercase mt-1">Enterprise</span>
         </div>
-        <div className="opacity-50 hover:opacity-100 transition-opacity">
-          <ThemeToggle />
-        </div>
       </div>
 
       {/* ── Search ── */}
       <div className="px-4 py-4 flex-shrink-0">
         <button
           type="button"
+          aria-label="Buscar"
           onClick={() =>
             document.dispatchEvent(
               new KeyboardEvent('keydown', { key: 'k', ctrlKey: true, bubbles: true })
             )
           }
-          className="w-full flex items-center gap-3 px-3 py-2.5 rounded-[12px] bg-black/20 hover:bg-black/40 border border-sidebar-border/20 text-sidebar-foreground/50 hover:text-sidebar-foreground transition-all duration-300 shadow-inner"
+          className="w-full flex items-center gap-3 px-3 py-2.5 rounded-[12px] bg-muted hover:bg-muted/80 border border-border text-muted-foreground hover:text-foreground transition-colors duration-150"
         >
           <Search className="h-4 w-4 flex-shrink-0" />
-          <span className="flex-1 text-left text-xs font-medium">Pesquisar...</span>
-          <kbd className="hidden sm:inline text-[9px] font-mono px-1.5 py-0.5 rounded bg-white/5 text-sidebar-foreground/40 border border-white/10">
+          <span className="flex-1 text-left text-xs font-medium">Buscar...</span>
+          <kbd className="hidden sm:inline text-[9px] font-mono px-1.5 py-0.5 rounded bg-muted text-muted-foreground border border-border">
             ⌘K
           </kbd>
         </button>

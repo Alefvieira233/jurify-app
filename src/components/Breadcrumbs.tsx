@@ -47,7 +47,7 @@ export default function Breadcrumbs() {
       {crumbs.map((crumb, i) => (
         <span key={`${crumb}-${i}`} className="flex items-center gap-1">
           {i > 0 && <ChevronRight className="h-3 w-3 text-muted-foreground/40" />}
-          <span className={i === crumbs.length - 1 ? 'text-foreground font-medium' : ''}>
+          <span className={i === crumbs.length - 1 ? 'text-foreground font-semibold' : ''}>
             {crumb}
           </span>
         </span>
