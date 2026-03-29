@@ -430,7 +430,10 @@ async function callOpenAIWithRetry(
 
     // Retry on 429 (rate limit) and 5xx
     if ((res.status === 429 || res.status >= 500) && attempt < maxRetries) {
-      const delay = Math.pow(2, attempt) * 1000 + Math.random() * 500;
+      const array = new Uint32Array(1);
+      crypto.getRandomValues(array);
+      const jitter = (array[0]! % 500);
+      const delay = Math.pow(2, attempt) * 1000 + jitter;
       console.warn(`[assistant] OpenAI ${res.status}, retrying in ${Math.round(delay)}ms (attempt ${attempt + 1})`);
       await new Promise((r) => setTimeout(r, delay));
       continue;

@@ -26,17 +26,17 @@ interface PIIPattern {
 const PII_PATTERNS: PIIPattern[] = [
   {
     name: 'PROCESSO_CNJ',
-    regex: /\d{7}-\d{2}\.\d{4}\.\d\.\d{2}\.\d{4}/g,
+    regex: /\b\d{7}-\d{2}\.\d{4}\.\d\.\d{2}\.\d{4}\b/g,
     prefix: 'CNJ',
   },
   {
     name: 'CNPJ',
-    regex: /\d{2}\.\d{3}\.\d{3}\/\d{4}-\d{2}/g,
+    regex: /\b\d{2}\.\d{3}\.\d{3}\/\d{4}-\d{2}\b/g,
     prefix: 'CNPJ',
   },
   {
     name: 'CPF_FORMATTED',
-    regex: /\d{3}\.\d{3}\.\d{3}-\d{2}/g,
+    regex: /\b\d{3}\.\d{3}\.\d{3}-\d{2}\b/g,
     prefix: 'CPF',
   },
   {
@@ -46,7 +46,7 @@ const PII_PATTERNS: PIIPattern[] = [
   },
   {
     name: 'OAB',
-    regex: /\b(?:AC|AL|AP|AM|BA|CE|DF|ES|GO|MA|MT|MS|MG|PA|PB|PR|PE|PI|RJ|RN|RS|RO|RR|SC|SP|SE|TO)\s?\d{4,6}\b/g,
+    regex: /\b(?:AC|AL|AP|AM|BA|CE|DF|ES|GO|MA|MT|MS|MG|PA|PB|PR|PE|PI|RJ|RN|RS|RO|RR|SC|SP|SE|TO)\s?\d{4,6}\b/gi,
     prefix: 'OAB',
   },
   {
@@ -61,14 +61,30 @@ const PII_PATTERNS: PIIPattern[] = [
   },
 ];
 
-// ─── UUID Generator (no crypto dependency needed) ───────────────────────────
+// ─── UUID Generator ─────────────────────────────────────────────────────────
 
 function generateTokenId(): string {
-  // Simple UUID v4-like generator that works in all environments
+  // Use crypto.getRandomValues for cryptographically strong random values
   const hex = '0123456789abcdef';
+  const array = new Uint8Array(8);
+
+  // Environment-aware crypto check
+  const cryptoObj = typeof globalThis !== 'undefined' && globalThis.crypto
+    ? globalThis.crypto
+    : (typeof window !== 'undefined' ? window.crypto : null);
+
+  if (cryptoObj && cryptoObj.getRandomValues) {
+    cryptoObj.getRandomValues(array);
+  } else {
+    // Fallback for legacy environments (though unlikely in Deno/Modern Browser)
+    for (let i = 0; i < 8; i++) {
+      array[i] = Math.floor(Math.random() * 256);
+    }
+  }
+
   let id = '';
   for (let i = 0; i < 8; i++) {
-    id += hex[Math.floor(Math.random() * 16)];
+    id += hex[array[i]! % 16];
   }
   return id;
 }
