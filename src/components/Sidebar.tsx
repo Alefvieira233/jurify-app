@@ -18,6 +18,11 @@ import {
   Gift,
   KanbanSquare,
   CheckSquare,
+  Briefcase,
+  Calendar,
+  FileText,
+  BarChart2,
+  Activity,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/contexts/AuthContext';
@@ -80,7 +85,29 @@ const MAIN_NAV: NavEntry[] = [
       { id: 'base-conhecimento', label: 'Base de Conhecimento', icon: BookOpen, resource: 'agentes_ia', action: 'read' },
     ],
   },
-  { kind: 'leaf', id: 'agendamentos',  label: 'Tarefas',        icon: CheckSquare, resource: 'agendamentos', action: 'read' },
+  {
+    kind: 'section',
+    id: 'juridico',
+    label: 'Jurídico',
+    icon: Briefcase,
+    children: [
+      { id: 'processos',  label: 'Processos',  icon: Scale,     resource: 'leads', action: 'read' },
+      { id: 'prazos',     label: 'Prazos',     icon: Calendar,  resource: 'leads', action: 'read' },
+      { id: 'honorarios', label: 'Honorários', icon: BarChart2, resource: 'leads', action: 'read', adminOnly: true, managerOk: true },
+      { id: 'documentos', label: 'Documentos', icon: FileText,  resource: 'leads', action: 'read' },
+    ],
+  },
+  {
+    kind: 'section',
+    id: 'relatorios-group',
+    label: 'Relatórios',
+    icon: BarChart2,
+    children: [
+      { id: 'relatorios', label: 'Relatórios', icon: BarChart2, resource: 'leads', action: 'read' },
+      { id: 'metricas',   label: 'Métricas',   icon: Activity,  resource: 'leads', action: 'read' },
+    ],
+  },
+  { kind: 'leaf', id: 'tarefas',       label: 'Tarefas',        icon: CheckSquare, resource: 'leads',         action: 'read' },
   { kind: 'leaf', id: 'configuracoes', label: 'Configurações',  icon: Settings,    resource: 'leads',         action: 'read' },
   { kind: 'leaf', id: 'suporte',       label: 'Suporte',        icon: HelpCircle,  resource: 'leads',         action: 'read' },
 ];
