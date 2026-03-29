@@ -28,11 +28,18 @@ Plans:
 - [x] 02-02-PLAN.md — SankeyChart component + Dashboard integration
 
 ## Phase 3: LíderHub Atendimento
-**Status:** Not Started
+**Status:** Ready to execute
+**Goal:** Wire WhatsAppIA advanced filters into real state, extract ContatosTable as standalone component, apply LíderHub token polish to Kanban
 **Scope:** WhatsAppIA tabs + filters, Contatos table, Kanban visual polish
 **Files:** WhatsAppIA.tsx, ConversationFilters.tsx (new), ContatosTable.tsx (new), KanbanCard.tsx, KanbanColumn.tsx
 **Depends on:** Phase 1 (design tokens)
-**Estimated tasks:** 3 atomic plans
+**Requirements:** [FR-7, FR-8, NFR-1, NFR-2]
+**Plans:** 3 plans
+
+Plans:
+- [ ] 03-01-PLAN.md — ConversationFilters component + wire WhatsAppIA filter state
+- [ ] 03-02-PLAN.md — ContatosTable standalone component
+- [ ] 03-03-PLAN.md — KanbanCard + KanbanColumn visual polish (design tokens)
 
 ## Phase 4: LíderHub New Features (Tarefas, Classes, Suporte)
 **Status:** Partially Done (TarefasPage, SuportePage exist)
