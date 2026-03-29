@@ -16,6 +16,17 @@ import { applyRateLimit } from "../_shared/rate-limiter.ts";
 
 const POSTMARK_API = "https://api.postmarkapp.com/email";
 
+// SEC-05: HTML-escape all template data to prevent XSS in email clients
+function escapeHtml(str: string | undefined | null): string {
+  if (!str) return '';
+  return str
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
 const POSTMARK_TOKEN = Deno.env.get("POSTMARK_SERVER_TOKEN") ?? "";
 const FROM_EMAIL = Deno.env.get("POSTMARK_FROM_EMAIL") ?? "noreply@jurify.com.br";
 const FROM_NAME = Deno.env.get("POSTMARK_FROM_NAME") ?? "Jurify";
@@ -30,7 +41,8 @@ type EmailTemplate =
   | "billing-confirmation"
   | "subscription-cancelled"
   | "payment-failed"
-  | "agent-alert";
+  | "agent-alert"
+  | "charge-refunded";
 
 interface TemplateData {
   name?: string;
@@ -41,6 +53,8 @@ interface TemplateData {
   invoice_url?: string;
   alert_message?: string;
   tenant_id?: string;
+  refund_amount?: string;
+  charge_id?: string;
 }
 
 function buildEmailContent(
@@ -57,7 +71,7 @@ function buildEmailContent(
     <h1 style="color:#1e3a8a;font-size:28px;margin:0">Jurify</h1>
     <p style="color:#6b7280;font-size:14px;margin:4px 0 0">Premium Legal Suite</p>
   </div>
-  <h2 style="font-size:22px;margin-bottom:8px">Olá, ${data.name ?? "Advogado(a)"}! 👋</h2>
+  <h2 style="font-size:22px;margin-bottom:8px">Olá, ${escapeHtml(data.name ?? "Advogado(a)")}! 👋</h2>
   <p style="color:#374151;line-height:1.6">Sua conta Jurify foi criada com sucesso. Você agora tem acesso à plataforma jurídica mais avançada do Brasil.</p>
   <div style="background:#f0f4ff;border-left:4px solid #1e3a8a;padding:16px;margin:24px 0;border-radius:4px">
     <p style="margin:0;font-weight:600;color:#1e3a8a">O que você pode fazer agora:</p>
@@ -107,13 +121,13 @@ function buildEmailContent(
     <h1 style="color:#1e3a8a;font-size:28px;margin:0">Jurify</h1>
   </div>
   <h2 style="font-size:22px">Pagamento confirmado ✅</h2>
-  <p style="color:#374151">Olá, ${data.name ?? ""}! Seu pagamento foi processado com sucesso.</p>
+  <p style="color:#374151">Olá, ${escapeHtml(data.name ?? "")}! Seu pagamento foi processado com sucesso.</p>
   <div style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:8px;padding:20px;margin:24px 0">
     <p style="margin:0 0 8px;font-weight:600">Resumo do pagamento</p>
     <table style="width:100%;border-collapse:collapse;font-size:14px;color:#374151">
-      <tr><td style="padding:6px 0">Plano</td><td style="text-align:right;font-weight:600">${data.plan_name}</td></tr>
-      <tr><td style="padding:6px 0">Valor</td><td style="text-align:right;font-weight:600">${data.amount}</td></tr>
-      <tr><td style="padding:6px 0">Período</td><td style="text-align:right">${data.period}</td></tr>
+      <tr><td style="padding:6px 0">Plano</td><td style="text-align:right;font-weight:600">${escapeHtml(data.plan_name)}</td></tr>
+      <tr><td style="padding:6px 0">Valor</td><td style="text-align:right;font-weight:600">${escapeHtml(data.amount)}</td></tr>
+      <tr><td style="padding:6px 0">Período</td><td style="text-align:right">${escapeHtml(data.period)}</td></tr>
     </table>
   </div>
   ${data.invoice_url ? `<div style="text-align:center;margin:24px 0"><a href="${data.invoice_url}" style="color:#1e3a8a;text-decoration:underline;font-size:14px">Ver fatura completa</a></div>` : ""}
@@ -135,7 +149,7 @@ function buildEmailContent(
     <h1 style="color:#1e3a8a;font-size:28px;margin:0">Jurify</h1>
   </div>
   <h2 style="font-size:22px">Assinatura cancelada</h2>
-  <p style="color:#374151;line-height:1.6">Olá, ${data.name ?? ""}. Sua assinatura do plano <strong>${data.plan_name}</strong> foi cancelada. Você continuará tendo acesso até o final do período pago.</p>
+  <p style="color:#374151;line-height:1.6">Olá, ${escapeHtml(data.name ?? "")}. Sua assinatura do plano <strong>${escapeHtml(data.plan_name)}</strong> foi cancelada. Você continuará tendo acesso até o final do período pago.</p>
   <p style="color:#374151">Se mudou de ideia, você pode reativar sua assinatura a qualquer momento.</p>
   <div style="text-align:center;margin:32px 0">
     <a href="https://jurify-app.vercel.app/planos" style="background:#1e3a8a;color:white;padding:14px 32px;border-radius:8px;text-decoration:none;font-weight:600">
@@ -157,7 +171,7 @@ function buildEmailContent(
   <div style="background:#fef2f2;border-left:4px solid #ef4444;padding:16px;border-radius:4px;margin-bottom:24px">
     <p style="margin:0;font-weight:600;color:#dc2626">⚠️ Falha no pagamento</p>
   </div>
-  <p style="color:#374151;line-height:1.6">Olá, ${data.name ?? ""}. Não conseguimos processar o pagamento do seu plano <strong>${data.plan_name ?? ""}</strong>.</p>
+  <p style="color:#374151;line-height:1.6">Olá, ${escapeHtml(data.name ?? "")}. Não conseguimos processar o pagamento do seu plano <strong>${escapeHtml(data.plan_name ?? "")}</strong>.</p>
   <p style="color:#374151;line-height:1.6">Por favor, verifique seus dados de pagamento para evitar a suspensão do serviço.</p>
   <div style="text-align:center;margin:32px 0">
     <a href="https://jurify-app.vercel.app/configuracoes?tab=assinatura" style="background:#1e3a8a;color:white;padding:14px 32px;border-radius:8px;text-decoration:none;font-weight:600;font-size:16px">
@@ -179,11 +193,34 @@ function buildEmailContent(
   </div>
   <div style="background:#fef2f2;border-left:4px solid #ef4444;padding:16px;border-radius:4px;margin-bottom:24px">
     <p style="margin:0;font-weight:600;color:#dc2626">⚠️ Alerta do sistema de agentes</p>
-    <p style="margin:8px 0 0;color:#374151">${data.alert_message}</p>
+    <p style="margin:8px 0 0;color:#374151">${escapeHtml(data.alert_message)}</p>
   </div>
-  <p style="color:#6b7280;font-size:13px">Tenant ID: ${data.tenant_id ?? "N/A"}</p>
+  <p style="color:#6b7280;font-size:13px">Tenant ID: ${escapeHtml(data.tenant_id ?? "N/A")}</p>
 </div>`,
         textBody: `Alerta de Agente IA:\n${data.alert_message}\nTenant: ${data.tenant_id ?? "N/A"}`,
+      };
+
+    case "charge-refunded":
+      return {
+        subject: "Reembolso processado — Jurify",
+        htmlBody: `
+<div style="font-family:Inter,Arial,sans-serif;max-width:600px;margin:0 auto;padding:40px 20px;color:#111827">
+  <div style="text-align:center;margin-bottom:32px">
+    <h1 style="color:#1e3a8a;font-size:28px;margin:0">Jurify</h1>
+  </div>
+  <h2 style="font-size:22px">Reembolso processado</h2>
+  <p style="color:#374151;line-height:1.6">Ol\u00e1, ${escapeHtml(data.name)}. Um reembolso foi processado na sua conta.</p>
+  <div style="background:#f0fdf4;border-left:4px solid #22c55e;padding:16px;border-radius:4px;margin:24px 0">
+    <p style="margin:0;font-weight:600;color:#166534">Valor reembolsado: ${escapeHtml(data.refund_amount ?? data.amount)}</p>
+  </div>
+  <p style="color:#6b7280;font-size:13px">O valor ser\u00e1 creditado na sua forma de pagamento original em at\u00e9 10 dias \u00fateis.</p>
+  <div style="text-align:center;margin:32px 0">
+    <a href="https://jurify-app.vercel.app/configuracoes/plano" style="background:#1e3a8a;color:white;padding:14px 32px;border-radius:8px;text-decoration:none;font-weight:600">
+      Ver Assinatura
+    </a>
+  </div>
+</div>`,
+        textBody: `Reembolso processado.\nValor: ${data.refund_amount ?? data.amount}\nO valor sera creditado em ate 10 dias uteis.`,
       };
   }
 }
