@@ -5,6 +5,7 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem,
@@ -26,6 +27,19 @@ import QRCodeWizard from './QRCodeWizard';
 import ConnectionDetailsDrawer from './ConnectionDetailsDrawer';
 
 type NewConnectionStep = 'choose' | 'wizard';
+
+const STATUS_BADGE: Record<string, { label: string; variant: 'default' | 'secondary' | 'destructive' }> = {
+  connected:    { label: 'Conectado',    variant: 'default' },
+  disconnected: { label: 'Desconectado', variant: 'destructive' },
+  connecting:   { label: 'Conectando',   variant: 'secondary' },
+  error:        { label: 'Erro',         variant: 'destructive' },
+};
+
+const TIPO_LABEL: Record<string, string> = {
+  kapso:     'Kapso QR',
+  oficial:   'Kapso Oficial',
+  cloud_api: 'Cloud API',
+};
 
 const ConexoesManager = () => {
   usePageTitle('Conexões');
@@ -182,7 +196,7 @@ const ConexoesManager = () => {
               </p>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 w-full max-w-2xl">
-                  {/* Card API Não Oficial */}
+                  {/* Card Kapso QR */}
                   <button
                     type="button"
                     onClick={() => { setNewConnStep('wizard'); setNewConnOpen(true); }}
@@ -195,7 +209,7 @@ const ConexoesManager = () => {
                         </svg>
                       </div>
                       <div>
-                        <h4 className="font-semibold text-foreground">API Não Oficial</h4>
+                        <h4 className="font-semibold text-foreground">Kapso QR</h4>
                         <p className="text-xs text-muted-foreground">Conexão rápida via QR Code ou Pair Code</p>
                       </div>
                     </div>
@@ -211,7 +225,7 @@ const ConexoesManager = () => {
                     </ul>
                   </button>
 
-                  {/* Card API Oficial */}
+                  {/* Card Kapso Oficial */}
                   <button
                     type="button"
                     onClick={() => { setNewConnStep('choose'); setNewConnOpen(true); }}
@@ -224,7 +238,7 @@ const ConexoesManager = () => {
                         </svg>
                       </div>
                       <div>
-                        <h4 className="font-semibold text-foreground">API Oficial</h4>
+                        <h4 className="font-semibold text-foreground">Kapso Oficial</h4>
                         <p className="text-xs text-muted-foreground">API oficial WhatsApp Business da Meta</p>
                       </div>
                     </div>
@@ -251,6 +265,7 @@ const ConexoesManager = () => {
                 <TableRow>
                   <TableHead className="w-10" />
                   <TableHead>CONEXÃO</TableHead>
+                  <TableHead>STATUS</TableHead>
                   {visibleCols.status_padrao && <TableHead>STATUS PADRÃO</TableHead>}
                   {visibleCols.departamento && <TableHead>DEPARTAMENTO</TableHead>}
                   <TableHead className="w-10" />
@@ -276,9 +291,18 @@ const ConexoesManager = () => {
                         </Avatar>
                         <div>
                           <p className="font-medium">{conexao.nome || 'WhatsApp'}</p>
-                          <p className="text-sm text-muted-foreground">{conexao.telefone || 'Sem número'}</p>
+                          <p className="text-sm text-muted-foreground">
+                            {TIPO_LABEL[conexao.tipo] ?? conexao.tipo}
+                            {conexao.telefone ? ` | ${conexao.telefone}` : ''}
+                          </p>
                         </div>
                       </div>
+                    </TableCell>
+                    <TableCell>
+                      {(() => {
+                        const cfg = STATUS_BADGE[conexao.status] ?? STATUS_BADGE.disconnected!;
+                        return <Badge variant={cfg.variant}>{cfg.label}</Badge>;
+                      })()}
                     </TableCell>
                     {visibleCols.status_padrao && (
                       <TableCell className="text-muted-foreground">

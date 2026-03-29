@@ -7,7 +7,7 @@ interface ConnectionTypeChooserProps {
 const ConnectionTypeChooser = ({ onSelect }: ConnectionTypeChooserProps) => {
   return (
     <div className="space-y-4">
-      {/* API Não Oficial (QR Code) */}
+      {/* Kapso QR (QR Code) */}
       <button
         type="button"
         onClick={() => onSelect('kapso_qr')}
@@ -20,7 +20,7 @@ const ConnectionTypeChooser = ({ onSelect }: ConnectionTypeChooserProps) => {
             </svg>
           </div>
           <div>
-            <h3 className="font-semibold text-foreground">API Não Oficial</h3>
+            <h3 className="font-semibold text-foreground">Kapso QR</h3>
             <p className="text-xs text-muted-foreground">Conexão instantânea via QR Code</p>
           </div>
         </div>
@@ -52,7 +52,7 @@ const ConnectionTypeChooser = ({ onSelect }: ConnectionTypeChooserProps) => {
             </svg>
           </div>
           <div>
-            <h3 className="font-semibold text-foreground">API Oficial (Cloud API)</h3>
+            <h3 className="font-semibold text-foreground">Kapso Oficial (Cloud API)</h3>
             <p className="text-xs text-muted-foreground">Via Kapso — proxy gerenciado da Meta</p>
           </div>
         </div>
