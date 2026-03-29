@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: Executing Phase 02
-stopped_at: Completed 02-liderhub-dashboard-home/02-01-PLAN.md
-last_updated: "2026-03-29T17:53:39Z"
+stopped_at: Completed 02-liderhub-dashboard-home/02-02-PLAN.md
+last_updated: "2026-03-29T17:59:49.561Z"
 progress:
   total_phases: 7
-  completed_phases: 1
+  completed_phases: 2
   total_plans: 7
-  completed_plans: 5
+  completed_plans: 6
 ---
 
 # Jurify — Project State
@@ -20,8 +20,8 @@ progress:
 
 Phase 1 (LíderHub Visual Foundation) — Complete (both plans done)
 
-**Last session:** 2026-03-29T17:53:39Z
-**Stopped at:** Completed 02-liderhub-dashboard-home/02-01-PLAN.md
+**Last session:** 2026-03-29T17:59:49.557Z
+**Stopped at:** Completed 02-liderhub-dashboard-home/02-02-PLAN.md
 
 ## Progress
 
@@ -49,6 +49,7 @@ Phase 1 (LíderHub Visual Foundation) — Complete (both plans done)
 - [Phase 05-kapso-backend-migration]: Evolution references completely removed from integration test file; DB constraint finalized to only allow kapso/oficial/cloud_api
 - [Phase 02-liderhub-dashboard-home]: MiniSparkline kept as internal helper in StatCard; Dashboard.tsx retains its own inline version per Phase 2 scope boundary
 - [Phase 02-liderhub-dashboard-home]: Agendamentos future count uses 24h lookback window to include today's items
+- [Phase 02-liderhub-dashboard-home]: SankeyChart simulates lead flow from current stage counts (no transition history); loss distribution uses 40/30/20/remainder ratio
 
 ## Blockers
 

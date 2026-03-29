@@ -21,7 +21,7 @@ Plans:
 **Files:** HomePage.tsx, Dashboard.tsx, StatCard.tsx, SankeyChart.tsx (new), App.tsx
 **Depends on:** Phase 1 (design tokens)
 **Requirements:** [FR-5, FR-6, NFR-1, NFR-2]
-**Plans:** 1/2 plans executed
+**Plans:** 2/2 plans complete
 
 Plans:
 - [x] 02-01-PLAN.md — HomePage redesign with real data (useLeads, useTarefas, useAgendamentos) + StatCard enhancement
