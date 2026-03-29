@@ -26,17 +26,17 @@ interface PIIPattern {
 const PII_PATTERNS: PIIPattern[] = [
   {
     name: 'PROCESSO_CNJ',
-    regex: /\d{7}-\d{2}\.\d{4}\.\d\.\d{2}\.\d{4}/g,
+    regex: /\b\d{7}-\d{2}\.\d{4}\.\d\.\d{2}\.\d{4}\b/g,
     prefix: 'CNJ',
   },
   {
     name: 'CNPJ',
-    regex: /\d{2}\.\d{3}\.\d{3}\/\d{4}-\d{2}/g,
+    regex: /\b\d{2}\.\d{3}\.\d{3}\/\d{4}-\d{2}\b/g,
     prefix: 'CNPJ',
   },
   {
     name: 'CPF_FORMATTED',
-    regex: /\d{3}\.\d{3}\.\d{3}-\d{2}/g,
+    regex: /\b\d{3}\.\d{3}\.\d{3}-\d{2}\b/g,
     prefix: 'CPF',
   },
   {
@@ -61,16 +61,12 @@ const PII_PATTERNS: PIIPattern[] = [
   },
 ];
 
-// ─── UUID Generator (no crypto dependency needed) ───────────────────────────
+import { generateSecureId } from '@/utils/crypto';
+
+// ─── UUID Generator ─────────────────────────────────────────────────────────
 
 function generateTokenId(): string {
-  // Simple UUID v4-like generator that works in all environments
-  const hex = '0123456789abcdef';
-  let id = '';
-  for (let i = 0; i < 8; i++) {
-    id += hex[Math.floor(Math.random() * 16)];
-  }
-  return id;
+  return generateSecureId(4); // 8 hex chars
 }
 
 // ─── Core Types ─────────────────────────────────────────────────────────────

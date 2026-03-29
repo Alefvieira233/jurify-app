@@ -14,6 +14,7 @@ import { ExecutionTracker } from './ExecutionTracker';
 import { agentMemory } from './AgentMemory';
 import { createLogger } from '@/lib/logger';
 import { SanitizerEngine } from '@/lib/security/SanitizerEngine';
+import { generateSecureId } from '@/utils/crypto';
 import {
   Priority,
   MessageType,
@@ -84,7 +85,7 @@ export abstract class BaseAgent implements IAgent {
     priority: MessagePriority = Priority.MEDIUM
   ): Promise<void> {
     const message: AgentMessage = {
-      id: `msg_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`,
+      id: `msg_${Date.now()}_${generateSecureId(4)}`,
       from: this.name,
       to,
       type,

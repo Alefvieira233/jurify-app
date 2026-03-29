@@ -181,7 +181,6 @@ jobs:
         with:
           path: ./
           extra_args: --only-verified --fail --exclude-paths=.trufflehog-ignore
-        continue-on-error: true
 
       - name: 🛡️ Run npm audit
         working-directory: ${{ env.WORKING_DIR }}

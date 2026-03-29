@@ -8,6 +8,7 @@
  */
 
 import { ExecutionStore } from './ExecutionStore';
+import { generateSecureId } from '@/utils/crypto';
 import type {
   ExecutionStatus,
   ExecutionResult,
@@ -72,7 +73,7 @@ export class ExecutionTracker {
     userId?: string,
     config?: ExecutionTrackerConfig
   ): Promise<ExecutionTracker> {
-    const executionId = `exec_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
+    const executionId = `exec_${Date.now()}_${generateSecureId(4)}`;
 
     // Persiste no banco
     await ExecutionStore.createExecution(executionId, leadId, tenantId, userId);

@@ -3,3 +3,5 @@
 .env.production.example
 # Supabase auto-generated types contain the project URL (not a secret)
 src/integrations/supabase/client.ts
+# Supabase migration with public anon key for internal scheduler
+supabase/migrations/20260307000007_prazos_alerts_scheduler.sql
