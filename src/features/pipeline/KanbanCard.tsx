@@ -77,7 +77,7 @@ export const KanbanCard = memo(({ lead, onClick, provided, tags, conexaoNome }: 
       role="button"
       tabIndex={0}
       onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') onClick(lead); }}
-      className="p-3 rounded-lg border border-border bg-card hover:shadow-sm transition-shadow cursor-pointer select-none group"
+      className="p-3 rounded-lg border border-border bg-card hover:shadow-[0_2px_8px_hsl(var(--accent)/0.15)] hover:ring-1 hover:ring-border/30 transition-all cursor-pointer select-none group"
     >
       {/* Top: avatar + name + priority */}
       <div className="flex items-start gap-2 mb-1.5">
