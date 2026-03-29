@@ -6,7 +6,7 @@ import { applyRateLimit } from "../_shared/rate-limiter.ts";
 import { buildLegalContext } from "../_shared/legal-context.ts";
 import { DEFAULT_OPENAI_MODEL } from "../_shared/ai-model.ts";
 
-// whatsapp-webhook: Kapso API + Meta compatible
+// whatsapp-webhook: Kapso Cloud API + Meta Official API webhook handler
 
 /**
  * Calls a Supabase Edge Function via HTTP fetch.
@@ -141,24 +141,23 @@ function analyzeQualification(
 
 // --- Typed webhook payloads ---
 
-// Legacy Evolution types (kept for backward compatibility during migration)
-interface EvolutionMessageKey {
+interface KapsoMessageKey {
   remoteJid?: string;
   fromMe?: boolean;
   id?: string;
 }
 
-interface EvolutionMessageData {
-  key?: EvolutionMessageKey;
+interface KapsoMessageData {
+  key?: KapsoMessageKey;
   pushName?: string;
   messageType?: string;
   message?: Record<string, unknown>;
 }
 
-interface EvolutionWebhookPayload {
+interface KapsoWebhookPayload {
   event?: string;
   instance?: string;
-  data?: EvolutionMessageData & Record<string, unknown>;
+  data?: KapsoMessageData & Record<string, unknown>;
 }
 
 interface MetaWebhookMessage {
@@ -193,7 +192,7 @@ interface MetaWebhookPayload {
   entry?: MetaWebhookEntry[];
 }
 
-type WebhookPayload = EvolutionWebhookPayload & MetaWebhookPayload & Record<string, unknown>;
+type WebhookPayload = KapsoWebhookPayload & MetaWebhookPayload & Record<string, unknown>;
 
 const WHATSAPP_VERIFY_TOKEN = Deno.env.get("WHATSAPP_VERIFY_TOKEN");
 const KAPSO_WEBHOOK_SECRET = Deno.env.get("KAPSO_WEBHOOK_SECRET");
@@ -215,7 +214,7 @@ const INTEGRATION_NAME_KAPSO = "whatsapp_kapso";
 const INTEGRATION_NAME_META = "whatsapp_oficial";
 
 // ============================================
-// 🔍 DETECTA ORIGEM DO WEBHOOK (Kapso/Evolution vs Meta)
+// 🔍 DETECTA ORIGEM DO WEBHOOK (Kapso vs Meta)
 // ============================================
 interface NormalizedMessage {
   from: string;
@@ -231,7 +230,7 @@ interface NormalizedMessage {
 function isKapsoPayload(payload: WebhookPayload): boolean {
   const event = (payload as Record<string, unknown>)?.event;
   if (typeof event === "string" && event.startsWith("whatsapp.")) return true;
-  // Legacy Evolution format (backward compat during migration)
+  // Kapso legacy format (messages.upsert event)
   return !!(payload?.event || payload?.instance || payload?.data?.key);
 }
 
