@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: Ready to plan
-stopped_at: Completed 03-liderhub-atendimento/03-01-PLAN.md
-last_updated: "2026-03-29T21:21:20.243Z"
+stopped_at: Completed 03-liderhub-atendimento/03-03-PLAN.md
+last_updated: "2026-03-29T21:21:57.392Z"
 progress:
   total_phases: 8
-  completed_phases: 3
+  completed_phases: 4
   total_plans: 15
-  completed_plans: 8
+  completed_plans: 10
 ---
 
 # Jurify — Project State
@@ -20,8 +20,8 @@ progress:
 
 Phase 1 (LíderHub Visual Foundation) — Complete (both plans done)
 
-**Last session:** 2026-03-29T21:21:20.238Z
-**Stopped at:** Completed 03-liderhub-atendimento/03-01-PLAN.md
+**Last session:** 2026-03-29T21:21:57.304Z
+**Stopped at:** Completed 03-liderhub-atendimento/03-03-PLAN.md
 
 ## Progress
 
@@ -51,6 +51,7 @@ Phase 1 (LíderHub Visual Foundation) — Complete (both plans done)
 - [Phase 02-liderhub-dashboard-home]: Agendamentos future count uses 24h lookback window to include today's items
 - [Phase 02-liderhub-dashboard-home]: SankeyChart simulates lead flow from current stage counts (no transition history); loss distribution uses 40/30/20/remainder ratio
 - [Phase 05-kapso-backend-migration]: Phase 05 migration complete: zero Evolution references across entire codebase; all 6 Edge Functions confirmed Kapso-native
+- [Phase 03-liderhub-atendimento]: ContatosTable keeps useLeads() internal for maximum reusability as standalone component
 
 ## Blockers
 
