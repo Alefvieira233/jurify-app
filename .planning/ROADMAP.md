@@ -76,11 +76,11 @@ Plans:
 **Files:** useConexoes.ts, WhatsAppKapsoSetup.tsx, ConexoesManager.tsx, ConnectionTypeChooser.tsx, ConnectionDetailsDrawer.tsx
 **Depends on:** Phase 5 (backend must be migrated first)
 **Requirements:** [FR-17, FR-18, FR-20, NFR-1, NFR-2]
-**Plans:** 1/2 plans executed
+**Plans:** 2/2 plans complete
 
 Plans:
 - [x] 06-01-PLAN.md — Remove legacy fallbacks, Kapso-only hooks/components, status badges, Kapso branding
-- [ ] 06-02-PLAN.md — Test coverage for ConexoesManager, ConnectionDetailsDrawer; update WhatsAppKapsoSetup tests
+- [x] 06-02-PLAN.md — Test coverage for ConexoesManager, ConnectionDetailsDrawer; update WhatsAppKapsoSetup tests
 
 ## Phase 7: LíderHub Routes + Final Integration
 **Status:** Not Started
