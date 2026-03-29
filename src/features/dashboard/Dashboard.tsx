@@ -1,4 +1,5 @@
 import { useState, useMemo } from 'react';
+import SankeyChart from './components/SankeyChart';
 import {
   MessageSquare, Search, CheckCircle, FileText, Trophy, XCircle,
   TrendingUp, Calendar, HelpCircle,
@@ -263,6 +264,9 @@ const Dashboard = () => {
           </div>
         )}
       </div>
+
+      {/* ── Fluxo do Pipeline — Sankey diagram ── */}
+      <SankeyChart leads={filteredLeads} />
 
       {/* ── Pipeline Overview — horizontal bar summary ── */}
       <div className="border border-border rounded-lg p-5 bg-card">

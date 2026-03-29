@@ -3,6 +3,16 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 
+vi.mock('recharts', async () => {
+  const actual = await vi.importActual<typeof import('recharts')>('recharts');
+  return {
+    ...actual,
+    ResponsiveContainer: ({ children }: { children: React.ReactNode }) =>
+      React.createElement('div', { 'data-testid': 'responsive-container' }, children),
+    Sankey: () => React.createElement('div', { 'data-testid': 'sankey-chart' }),
+  };
+});
+
 vi.mock('@/hooks/usePageTitle', () => ({
   usePageTitle: vi.fn(),
 }));
@@ -74,5 +84,10 @@ describe('Dashboard', () => {
     render(<Dashboard />, { wrapper: createWrapper() });
     // "3 leads" appears in both period total and overall total
     expect(screen.getAllByText('3 leads').length).toBe(2);
+  });
+
+  it('renders sankey chart section', () => {
+    render(<Dashboard />, { wrapper: createWrapper() });
+    expect(screen.getByText('Fluxo do Pipeline')).toBeInTheDocument();
   });
 });
