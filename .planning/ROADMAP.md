@@ -2,101 +2,111 @@
 
 > Auto-generated | 2026-03-29
 
-## Phase 1: LíderHub Visual Foundation
-**Status:** Complete
-**Goal:** Establish the visual foundation (design tokens, font, sidebar polish, TopBar dropdowns) that all subsequent UI phases build upon
-**Scope:** Design tokens, Tailwind config, TopBar, Breadcrumbs, Sidebar restructure
-**Files:** index.css, tailwind.config.ts, Sidebar.tsx, Layout.tsx, TopBar.tsx, Breadcrumbs.tsx, index.html
+---
+
+## Milestone v1.0: LíderHub Redesign + Kapso Migration (COMPLETE)
+
+<details>
+<summary>Phases 1-7 (all complete)</summary>
+
+### Phase 1: LíderHub Visual Foundation -- COMPLETE
+### Phase 2: LíderHub Dashboard + Home -- COMPLETE
+### Phase 3: LíderHub Atendimento -- COMPLETE
+### Phase 4: LíderHub New Features -- COMPLETE
+### Phase 5: Kapso Backend Migration -- COMPLETE
+### Phase 6: Kapso Frontend + Conexoes Redesign -- COMPLETE
+### Phase 7: LíderHub Routes + Final Integration -- COMPLETE
+
+</details>
+
+---
+
+## Milestone v1.1: Tech Debt Remediation
+
+Source: `.planning/codebase/` audit reports (Quality, UI, Integrations, Architecture)
+
+## Phase 8: Security Hardening
+**Status:** Ready to plan
+**Goal:** Close all critical and high-severity security findings from the integrations and architecture audits
+**Scope:** Open redirect fix, input sanitization, rate limiting for 8+ Edge Functions, RBAC route restrictions, email template fix, admin-gate debug component
+**Files:** 12+ Edge Functions, App.tsx, SistemaSection.tsx, send-email
 **Depends on:** Nothing
-**Plans:** 2/2 plans executed
+**Requirements:** [SEC-01, SEC-02, SEC-03, SEC-04, SEC-05, SEC-06, SEC-07, SEC-08, SEC-09, SEC-10, SEC-11]
 
-Plans:
-- [x] 01-01-PLAN.md — Design tokens (accent neutral gray), Inter font, Sidebar polish, Breadcrumbs
-- [x] 01-02-PLAN.md — TopBar workspace selector dropdown, avatar dropdown, accessibility
+**Success Criteria:**
+1. `create-portal-session` rejects return URLs not matching allowed origins
+2. `chat-completion` applies `sanitizeInput()` to all user messages
+3. All `ilike()` calls in `assistant` and `kapso-manager` use `escapeLike()`
+4. `send-email` HTML-escapes template data; `charge-refunded` template exists
+5. 8+ previously unprotected Edge Functions have rate limiting
+6. `/conexoes`, `/fluxos`, `/regras`, `/agentes`, `/base-conhecimento`, `/departamentos` have RBAC restrictions
+7. `TesteRealAgenteIA` only accessible to admin role
+8. All 1227+ tests still pass, 0 TS errors
 
-## Phase 2: LíderHub Dashboard + Home
-**Status:** In Progress
-**Goal:** Redesign HomePage with real data from hooks and enhance Dashboard with SankeyChart lead flow visualization
-**Scope:** HomePage redesign, Dashboard with StatCards + SankeyChart, /home route
-**Files:** HomePage.tsx, Dashboard.tsx, StatCard.tsx, SankeyChart.tsx (new), App.tsx
-**Depends on:** Phase 1 (design tokens)
-**Requirements:** [FR-5, FR-6, NFR-1, NFR-2]
-**Plans:** 2/2 plans complete
+## Phase 9: Financial Controls (AI Spending Caps)
+**Status:** Blocked by Phase 8
+**Goal:** Prevent unbounded OpenAI costs by adding per-tenant daily AI budget tracking and enforcement
+**Scope:** New DB table for token tracking, budget check in AI Edge Functions, admin usage dashboard, alert system
+**Files:** New migration, assistant, chat-completion, whatsapp-webhook, ai-agent-processor, new admin component
+**Depends on:** Phase 8 (rate limiting patterns established)
+**Requirements:** [FIN-01, FIN-02, FIN-03, FIN-04]
 
-Plans:
-- [x] 02-01-PLAN.md — HomePage redesign with real data (useLeads, useTarefas, useAgendamentos) + StatCard enhancement
-- [x] 02-02-PLAN.md — SankeyChart component + Dashboard integration
+**Success Criteria:**
+1. `ai_usage` table tracks tokens per tenant per day
+2. AI Edge Functions reject requests when daily budget exceeded (with friendly error)
+3. Admin can view per-tenant AI usage in settings
+4. Notification fires when tenant reaches 80% of daily budget
+5. All existing tests pass
 
-## Phase 3: LíderHub Atendimento
-**Status:** Ready to execute
-**Goal:** Wire WhatsAppIA advanced filters into real state, extract ContatosTable as standalone component, apply LíderHub token polish to Kanban
-**Scope:** WhatsAppIA tabs + filters, Contatos table, Kanban visual polish
-**Files:** WhatsAppIA.tsx, ConversationFilters.tsx (new), ContatosTable.tsx (new), KanbanCard.tsx, KanbanColumn.tsx
-**Depends on:** Phase 1 (design tokens)
-**Requirements:** [FR-7, FR-8, NFR-1, NFR-2]
-**Plans:** 3/3 plans complete
+## Phase 10: Code Quality
+**Status:** Ready to plan (independent of Phase 8-9)
+**Goal:** Eliminate type safety gaps, remove dead code, standardize data fetching patterns
+**Scope:** Regenerate Supabase types, remove `as any` casts, migrate 14 hooks to React Query, clean dead code, fix error handling
+**Files:** types.ts, 12 hooks with local casts, 14 hooks to migrate, package.json, utils/logger.ts, utils/monitoring.ts
+**Depends on:** Nothing (can run in parallel with Phase 9)
+**Requirements:** [QUAL-01, QUAL-02, QUAL-03, QUAL-04, QUAL-05, QUAL-06, QUAL-07, QUAL-08, QUAL-09]
 
-Plans:
-- [x] 03-01-PLAN.md — ConversationFilters component + wire WhatsAppIA filter state
-- [x] 03-02-PLAN.md — ContatosTable standalone component
-- [x] 03-03-PLAN.md — KanbanCard + KanbanColumn visual polish (design tokens)
+**Success Criteria:**
+1. `supabase gen types typescript` regenerates types.ts with all current tables
+2. Zero `supabase as any` casts remain in the codebase
+3. `src/utils/logger.ts` and `src/utils/monitoring.ts` deleted/consolidated
+4. `rrule` removed from package.json
+5. All 14 hooks use `useQuery`/`useMutation` instead of manual state
+6. Edge Function error returns are surfaced via toast in all callsites
+7. All tests pass, 0 TS errors
 
-## Phase 4: LíderHub New Features (Tarefas, Classes, Suporte)
-**Status:** Ready to execute
-**Goal:** Enhance existing Tarefas and Suporte pages with full CRUD operations, and replace hardcoded StatusManager with DB-backed Classes system
-**Scope:** TarefasPage edit/delete/filter, SuportePage detail/status/rating, StatusManager CRUD via crm_pipeline_stages
-**Files:** TarefasPage.tsx, EditTarefaDialog.tsx, SuportePage.tsx, TicketDetailDialog.tsx, StatusManager.tsx, StatusFormDialog.tsx, useStatusManager.ts, useTicketsSuporte.ts
-**Depends on:** Phase 1 (design tokens)
-**Requirements:** [FR-9, FR-10, FR-11, NFR-1, NFR-2]
-**Plans:** 3/3 plans complete
+## Phase 11: UX Consistency
+**Status:** Ready to plan (independent of Phase 8-9)
+**Goal:** Fix all cross-cutting UI inconsistencies found in the UI audit
+**Scope:** Replace native selects with shadcn, fix h-screen layouts, replace window.confirm with ConfirmDialog, fix touch accessibility, remove inline fonts
+**Files:** 17+ files with native select, 20+ files with h-screen, 3 files with window.confirm, FluxosManager, RegrasManager, ContratosManager, FlowEditor, BaseConhecimento, EnhancedAIChat
+**Depends on:** Nothing (can run in parallel with Phase 9-10)
+**Requirements:** [UX-01, UX-02, UX-03, UX-04, UX-05, UX-06, UX-07, UX-08, UX-09, UX-10]
 
-Plans:
-- [x] 04-01-PLAN.md — Tarefas: edit dialog, delete confirmation, priority filter, tests
-- [x] 04-02-PLAN.md — Suporte: ticket detail dialog, status update, rating, type filter, tests
-- [x] 04-03-PLAN.md — Classes/Status: useStatusManager hook, StatusFormDialog, DB-backed StatusManager, tests
-
-## Phase 5: Kapso Backend Migration
-**Status:** Complete
-**Goal:** Remove all Evolution API legacy code, rename types to Kapso, fix media upload path, update tests and DB constraint to finalize Kapso-only backend
-**Scope:** Clean Evolution remnants from send-whatsapp-message, whatsapp-webhook; update integration tests; final DB migration; full verification sweep
-**Files:** 6 Edge Functions + shared modules + DB migration + integration tests
-**Depends on:** Nothing (independent of UI phases)
-**Requirements:** [FR-13, FR-14, FR-15, FR-16, FR-19, FR-20, NFR-1, NFR-2, NFR-6]
-**Plans:** 3/3 plans complete
-
-Plans:
-- [x] 05-01-PLAN.md — Clean Evolution legacy from webhook + sender, fix media upload
-- [x] 05-02-PLAN.md — Update integration tests to Kapso naming, final DB migration
-- [x] 05-03-PLAN.md — Verification sweep + full test suite validation
-
-## Phase 6: Kapso Frontend + Conexoes Redesign
-**Status:** Planning Complete
-**Goal:** Remove legacy configuracoes_integracoes fallbacks from frontend, make hooks/components Kapso-native against conexoes_whatsapp table, add Kapso branding, and add test coverage for Conexoes feature
-**Scope:** useConexoes cleanup, WhatsAppKapsoSetup migration, ConexoesManager polish, ConnectionTypeChooser branding, test coverage
-**Files:** useConexoes.ts, WhatsAppKapsoSetup.tsx, ConexoesManager.tsx, ConnectionTypeChooser.tsx, ConnectionDetailsDrawer.tsx
-**Depends on:** Phase 5 (backend must be migrated first)
-**Requirements:** [FR-17, FR-18, FR-20, NFR-1, NFR-2]
-**Plans:** 2/2 plans complete
-
-Plans:
-- [x] 06-01-PLAN.md — Remove legacy fallbacks, Kapso-only hooks/components, status badges, Kapso branding
-- [x] 06-02-PLAN.md — Test coverage for ConexoesManager, ConnectionDetailsDrawer; update WhatsAppKapsoSetup tests
-
-## Phase 7: LíderHub Routes + Final Integration
-**Status:** Planning Complete
-**Goal:** Wire all new sidebar nav sections (Jurídico, Relatórios), fix Tarefas route, add missing deep link paths, E2E smoke tests for all LíderHub routes, production build validation
-**Scope:** Sidebar nav sections, App.tsx deep link set, E2E smoke spec, build gate
-**Files:** App.tsx, Sidebar.tsx, e2e/liderhub-smoke.spec.ts
-**Depends on:** Phases 1-6
-**Requirements:** [FR-1, FR-2, FR-3, FR-4, FR-5, FR-6, FR-7, FR-8, FR-9, FR-10, FR-11, FR-12, NFR-1, NFR-2, NFR-3, NFR-4]
-**Plans:** 2/2 plans complete
-
-Plans:
-- [x] 07-01-PLAN.md — Sidebar: add Jurídico + Relatórios sections, fix Tarefas leaf
-- [x] 07-02-PLAN.md — App.tsx deep links, E2E smoke spec, production build validation
+**Success Criteria:**
+1. Zero native `<select>` elements in feature code (all use shadcn `<Select>`)
+2. Zero `window.confirm()` calls (all use `<ConfirmDialog>`)
+3. Zero `h-screen` in nested layout components (all use flex or calc)
+4. `FluxosManager` and `RegrasManager` action buttons visible without hover
+5. `ContratosManager` uses design token fonts only
+6. `FlowEditor` respects system color mode
+7. `BaseConhecimento` shows functional state (not dead stub)
+8. All tests pass, 0 TS errors
 
 ---
 
 ## Parallelism Strategy
-- **Phases 1-4** (UI) and **Phases 5-6** (Kapso) can run in parallel -- they're independent
-- Phase 7 is the integration phase that ties everything together
+
+```
+Phase 8 (Security) ────────┐
+                            ├── Phase 9 (Financial) ──┐
+Phase 10 (Quality) ────────┤                          ├── Done
+Phase 11 (UX) ─────────────┘                          │
+                                                       │
+Phase 10 + 11 can start immediately ──────────────────┘
+```
+
+- **Phase 8** is the top priority — start here
+- **Phase 9** depends on Phase 8 (reuses rate limiting patterns)
+- **Phases 10 and 11** are independent — can run in parallel with each other and with Phase 9
+- All phases must maintain: 1227+ tests passing, 0 TS errors, 0 lint warnings, build < 4MB
