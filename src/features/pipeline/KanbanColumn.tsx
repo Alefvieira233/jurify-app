@@ -15,7 +15,7 @@ export const KanbanColumnComponent = memo(({ column, children, provided }: Kanba
     <div className="flex flex-col min-w-[280px] w-[300px] bg-muted/10 rounded-lg border border-border shrink-0">
       {/* Header */}
       <div
-        className="flex items-center gap-2 px-3 py-2 bg-white dark:bg-card rounded-t-lg border-b border-border border-l-4"
+        className="flex items-center gap-2 px-3 py-2 bg-card rounded-t-lg border-b border-border border-l-4"
         style={{ borderLeftColor: column.color }}
       >
         <h3 className="text-xs font-semibold text-foreground truncate flex-1">
@@ -34,7 +34,7 @@ export const KanbanColumnComponent = memo(({ column, children, provided }: Kanba
       <div
         ref={provided.innerRef}
         {...provided.droppableProps}
-        className="flex-1 p-2 space-y-2 overflow-y-auto max-h-[calc(100vh-280px)] min-h-[200px]"
+        className="flex-1 p-2 space-y-2 overflow-y-auto max-h-[calc(100vh-var(--topbar-h,280px))] min-h-[200px]"
       >
         {column.leads.length === 0 && (
           <div className="flex flex-col items-center justify-center py-10 select-none">
