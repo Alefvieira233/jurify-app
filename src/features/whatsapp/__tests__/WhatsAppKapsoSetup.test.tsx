@@ -18,6 +18,7 @@ const makeEqChain = (): Record<string, unknown> => ({
   maybeSingle: () => mockMaybeSingle(),
 });
 
+// Mocks the conexoes_whatsapp table query used by WhatsAppKapsoSetup
 vi.mock('@/integrations/supabase/client', () => ({
   supabase: {
     auth: { getSession: () => mockGetSession() },
