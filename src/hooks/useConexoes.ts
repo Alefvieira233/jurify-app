@@ -102,6 +102,7 @@ export function useConexoes() {
         .from('conexoes_whatsapp')
         .update(updates)
         .eq('id', id)
+        .eq('tenant_id', tenantId!)
         .select()
         .single();
       if (error) throw error;
@@ -120,7 +121,8 @@ export function useConexoes() {
       const { error } = await supabaseUntyped
         .from('conexoes_whatsapp')
         .delete()
-        .eq('id', id);
+        .eq('id', id)
+        .eq('tenant_id', tenantId!);
       if (error) throw error;
     },
     onSuccess: () => {

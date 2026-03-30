@@ -162,7 +162,7 @@ const App = () => (
                   <Route path="dashboard" element={<ErrorBoundary><Dashboard /></ErrorBoundary>} />
                   {/* /leads absorvido por Pipeline — redirect para evitar rotas fantasma */}
                   <Route path="leads" element={<Navigate to="/pipeline" replace />} />
-                  <Route path="conexoes" element={<ProtectedRoute requiredRoles={['admin', 'manager']}><ErrorBoundary><ConexoesManager /></ErrorBoundary></ProtectedRoute>} />
+                  <Route path="conexoes" element={<ProtectedRoute><ErrorBoundary><ConexoesManager /></ErrorBoundary></ProtectedRoute>} />
                   <Route path="pipeline" element={<ErrorBoundary><KanbanOperacional /></ErrorBoundary>} />
                   <Route path="pipeline/classico" element={<ErrorBoundary><PipelineJuridico /></ErrorBoundary>} />
                   <Route path="agendamentos" element={<ErrorBoundary><AgendamentosManager /></ErrorBoundary>} />
