@@ -70,7 +70,7 @@ export const useLogsExecucao = () => {
 
       return ((data || []) as LogExecucao[]).map(log => ({
         ...log,
-        status: log.status as 'success' | 'error' | 'processing'
+        status: log.status
       }));
     },
     enabled: !!tenantId,

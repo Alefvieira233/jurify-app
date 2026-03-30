@@ -155,41 +155,33 @@ const Sidebar = ({ activeSection, onSectionChange }: SidebarProps) => {
 
   /* ── RBAC filter ── */
   useEffect(() => {
-    const filter = async () => {
-      if (!user) { setVisibleIds(new Set()); return; }
+    if (!user) { setVisibleIds(new Set()); return; }
 
-      const ids = new Set<string>();
+    const ids = new Set<string>();
 
-      if (!profile) {
-        // Fallback: show non-admin, non-manager items
-        for (const item of ALL_LEAVES) {
-          if (!item.adminOnly && !item.managerOk) ids.add(item.id);
-        }
-        setVisibleIds(ids);
-        return;
-      }
-
+    if (!profile) {
       for (const item of ALL_LEAVES) {
-        if (item.disabled) { ids.add(item.id); continue; } // always show disabled items
-        if (profile.role === 'admin') { ids.add(item.id); continue; }
-        if (item.adminOnly) continue;
-        if (item.managerOk && profile.role !== 'manager') continue;
-        try {
-          if (await hasPermission(item.resource, item.action)) ids.add(item.id);
-        } catch {
-          ids.add(item.id);
-        }
+        if (!item.adminOnly && !item.managerOk) ids.add(item.id);
       }
-
-      if (ids.size === 0) {
-        for (const item of ALL_LEAVES) {
-          if (!item.adminOnly && !item.managerOk) ids.add(item.id);
-        }
-      }
-
       setVisibleIds(ids);
-    };
-    void filter();
+      return;
+    }
+
+    for (const item of ALL_LEAVES) {
+      if (item.disabled) { ids.add(item.id); continue; }
+      if (profile.role === 'admin') { ids.add(item.id); continue; }
+      if (item.adminOnly) continue;
+      if (item.managerOk && profile.role !== 'manager') continue;
+      if (hasPermission(item.resource, item.action)) ids.add(item.id);
+    }
+
+    if (ids.size === 0) {
+      for (const item of ALL_LEAVES) {
+        if (!item.adminOnly && !item.managerOk) ids.add(item.id);
+      }
+    }
+
+    setVisibleIds(ids);
   }, [user, profile, hasPermission]);
 
   /* ── Auto-expand sections if active route is inside ── */

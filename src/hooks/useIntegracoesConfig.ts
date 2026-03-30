@@ -113,7 +113,7 @@ export const useIntegracoesConfig = () => {
     },
   });
 
-  const fetchIntegracoes = useCallback(async () => {
+  const fetchIntegracoes = useCallback(() => {
     invalidate();
   }, [invalidate]);
 

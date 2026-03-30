@@ -26,14 +26,18 @@ export default function StatusManager() {
   const handleMoveUp = (index: number) => {
     if (index === 0) return;
     const reordered = [...stages];
-    [reordered[index - 1], reordered[index]] = [reordered[index], reordered[index - 1]];
+    const temp = reordered[index - 1]!;
+    reordered[index - 1] = reordered[index]!;
+    reordered[index] = temp;
     reorderStages.mutate(reordered.map((s, i) => ({ id: s.id, position: i })));
   };
 
   const handleMoveDown = (index: number) => {
     if (index === stages.length - 1) return;
     const reordered = [...stages];
-    [reordered[index], reordered[index + 1]] = [reordered[index + 1], reordered[index]];
+    const temp = reordered[index]!;
+    reordered[index] = reordered[index + 1]!;
+    reordered[index + 1] = temp;
     reorderStages.mutate(reordered.map((s, i) => ({ id: s.id, position: i })));
   };
 

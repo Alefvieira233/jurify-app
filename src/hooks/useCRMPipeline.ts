@@ -142,7 +142,7 @@ export const useCRMPipeline = () => {
     },
   });
 
-  const fetchStages = useCallback(async () => {
+  const fetchStages = useCallback(() => {
     invalidate();
   }, [invalidate]);
 

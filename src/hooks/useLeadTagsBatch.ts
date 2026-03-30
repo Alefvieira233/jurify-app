@@ -28,7 +28,7 @@ export function useLeadTagsBatch() {
       if (error) throw error;
 
       const map = new Map<string, Tag[]>();
-      for (const row of (data ?? []) as LeadTagRow[]) {
+      for (const row of (data ?? []) as unknown as LeadTagRow[]) {
         if (!row.tag || !row.tag.ativo) continue;
         const existing = map.get(row.lead_id);
         if (existing) {
