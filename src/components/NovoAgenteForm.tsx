@@ -69,6 +69,23 @@ const NovoAgenteForm: React.FC<NovoAgenteFormProps> = ({ agente, defaultType, op
     }
   });
 
+  // Reset form when dialog closes (user cancelled/escaped)
+  const defaultFormData = {
+    nome: '', area_juridica: '', objetivo: '', script_saudacao: '',
+    perguntas_qualificacao: [''], keywords_acao: [''], delay_resposta: 3,
+    status: 'ativo' as string, descricao_funcao: '', prompt_base: '',
+    tipo_agente: (defaultType as string) || 'chat_interno',
+    parametros_avancados: { temperatura: 0.7, top_p: 0.9, frequency_penalty: 0, presence_penalty: 0 },
+  };
+
+  useEffect(() => {
+    if (!open && !agente) {
+      // Dialog was closed for "create new" mode — reset to blank
+      setFormData(defaultFormData);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open]);
+
   useEffect(() => {
     if (agente) {
       const parametros = (agente.parametros_avancados ?? {}) as Record<string, unknown>;
