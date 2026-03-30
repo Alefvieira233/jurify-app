@@ -48,7 +48,7 @@ const WhatsAppWizard = ({ onClose, onConnected }: WhatsAppWizardProps) => {
   useEffect(() => {
     if (step !== 'connecting') return;
 
-    const handleFocus = () => {
+    const checkStatus = () => {
       void (async () => {
         try {
           const { data } = await supabase.functions.invoke('kapso-manager', {
@@ -64,13 +64,16 @@ const WhatsAppWizard = ({ onClose, onConnected }: WhatsAppWizardProps) => {
       })();
     };
 
-    window.addEventListener('focus', handleFocus);
-    document.addEventListener('visibilitychange', () => {
-      if (document.visibilityState === 'visible') handleFocus();
-    });
+    const handleVisibility = () => {
+      if (document.visibilityState === 'visible') checkStatus();
+    };
+
+    window.addEventListener('focus', checkStatus);
+    document.addEventListener('visibilitychange', handleVisibility);
 
     return () => {
-      window.removeEventListener('focus', handleFocus);
+      window.removeEventListener('focus', checkStatus);
+      document.removeEventListener('visibilitychange', handleVisibility);
     };
   }, [step, cleanup]);
 

@@ -75,7 +75,9 @@ export function useConexoes() {
     enabled: !!tenantId,
     refetchInterval: 30_000,
     refetchIntervalInBackground: false,
-    refetchOnWindowFocus: true, // immediate refetch when user returns from external tab
+    // refetchOnWindowFocus inherits global false — the 30s interval is sufficient.
+    // Setting true here caused parent rerenders on every tab-return, disrupting
+    // open modals/drawers/wizards across the conexoes page.
   });
 
   const createMutation = useMutation({
