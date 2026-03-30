@@ -19,15 +19,16 @@ const makeEqChain = (): Record<string, unknown> => ({
 });
 
 // Mocks the conexoes_whatsapp table query used by WhatsAppKapsoSetup
-vi.mock('@/integrations/supabase/client', () => ({
-  supabase: {
+vi.mock('@/integrations/supabase/client', () => {
+  const client = {
     auth: { getSession: () => mockGetSession() },
     functions: { invoke: mockInvoke },
     from: () => ({
       select: () => makeEqChain(),
     }),
-  },
-}));
+  };
+  return { supabase: client, supabaseUntyped: client };
+});
 
 vi.mock('@/contexts/AuthContext', () => ({
   useAuth: () => ({
