@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef, useMemo, type DragEvent } from 'react';
+import { useState, useCallback, useRef, useMemo, useSyncExternalStore, type DragEvent } from 'react';
 import {
   ReactFlow,
   Background,
@@ -139,9 +139,22 @@ const nodeTypes = {
   delay: DelayNode,
 };
 
+// ─── Dark mode detection ────────────────────────────────────────────────────
+
+function subscribeToClassList(callback: () => void) {
+  const observer = new MutationObserver(callback);
+  observer.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
+  return () => observer.disconnect();
+}
+
+function getIsDark() {
+  return document.documentElement.classList.contains('dark');
+}
+
 // ─── Component ───────────────────────────────────────────────────────────────
 
 export function FlowEditor({ initialData, onSave, onBack, saving }: FlowEditorProps) {
+  const isDark = useSyncExternalStore(subscribeToClassList, getIsDark);
   const reactFlowWrapper = useRef<HTMLDivElement>(null);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [reactFlowInstance, setReactFlowInstance] = useState<Record<string, any> | null>(null);
@@ -384,7 +397,7 @@ export function FlowEditor({ initialData, onSave, onBack, saving }: FlowEditorPr
             onDrop={onDrop}
             onDragOver={onDragOver}
             nodeTypes={nodeTypes}
-            colorMode="dark"
+            colorMode={isDark ? 'dark' : 'light'}
             fitView
             snapToGrid
             snapGrid={[16, 16]}
