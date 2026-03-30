@@ -318,12 +318,12 @@ const AgentesIAManager = () => {
       </Tabs>
 
       {/* Modais */}
-      {showNovoAgente && (
-        <NovoAgenteForm
-          agente={selectedAgente}
-          onClose={handleCloseModal}
-        />
-      )}
+      <NovoAgenteForm
+        agente={selectedAgente}
+        open={showNovoAgente}
+        onOpenChange={setShowNovoAgente}
+        onClose={handleCloseModal}
+      />
 
       {showDetalhes && selectedAgente && (
         <DetalhesAgente

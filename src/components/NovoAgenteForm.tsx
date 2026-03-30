@@ -7,10 +7,13 @@
  */
 
 import React, { useState, useEffect } from 'react';
-import { X, Bot } from 'lucide-react';
+import { Bot } from 'lucide-react';
 import { supabaseUntyped as supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
+import {
+  Dialog, DialogContent, DialogHeader, DialogTitle,
+} from '@/components/ui/dialog';
 import { validateAgenteIA } from '@/schemas/agenteSchema';
 import { sanitizeText } from '@/utils/validation';
 import { AgentType } from '@/lib/multiagents/types';
@@ -32,10 +35,12 @@ const log = createLogger('NovoAgenteForm');
 interface NovoAgenteFormProps {
   agente?: AgenteIA | null;
   defaultType?: AgentType;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
   onClose: () => void;
 }
 
-const NovoAgenteForm: React.FC<NovoAgenteFormProps> = ({ agente, defaultType, onClose }) => {
+const NovoAgenteForm: React.FC<NovoAgenteFormProps> = ({ agente, defaultType, open, onOpenChange, onClose }) => {
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
   const { profile } = useAuth();
@@ -213,46 +218,39 @@ const NovoAgenteForm: React.FC<NovoAgenteFormProps> = ({ agente, defaultType, on
     }
   };
 
+  const handleClose = () => {
+    clearDraft();
+    onClose();
+  };
+
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-      <div className="bg-white rounded-lg shadow-xl max-w-6xl w-full max-h-[90vh] overflow-y-auto">
-        {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b border-border">
+    <Dialog open={open} onOpenChange={(v) => { if (!v) handleClose(); onOpenChange(v); }}>
+      <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto p-0">
+        <DialogHeader className="p-6 pb-0">
           <div className="flex items-center space-x-3">
             <Bot className="h-6 w-6 text-blue-600" />
-            <h2 className="text-xl font-semibold text-foreground">
+            <DialogTitle className="text-xl">
               {agente ? 'Editar Agente IA' : 'Novo Agente IA'}
-            </h2>
+            </DialogTitle>
           </div>
-          <button
-            onClick={() => { clearDraft(); onClose(); }}
-            className="text-muted-foreground hover:text-muted-foreground"
-          >
-            <X className="h-5 w-5" />
-          </button>
-        </div>
+        </DialogHeader>
 
-        {/* Form */}
         <form onSubmit={(event) => { void handleSubmit(event); }} className="p-6 space-y-6">
-          {/* Informações Básicas */}
           <BasicInfoSection
             formData={formData}
             onInputChange={handleFieldChange}
           />
 
-          {/* Configuração de IA */}
           <AIConfigSection
             formData={formData}
             onInputChange={handleFieldChange}
           />
 
-          {/* Parâmetros Avançados */}
           <AdvancedParamsSection
             parametros={formData.parametros_avancados}
             onParametroChange={handleParametroChange}
           />
 
-          {/* Configurações de Interação */}
           <InteractionConfigSection
             formData={formData}
             onInputChange={(field, value) => handleFieldChange(field, value)}
@@ -261,12 +259,11 @@ const NovoAgenteForm: React.FC<NovoAgenteFormProps> = ({ agente, defaultType, on
             onRemoveArrayItem={removeArrayItem}
           />
 
-          {/* Actions */}
           <div className="flex justify-end space-x-3 pt-6 border-t border-border">
             <Button
               type="button"
               variant="outline"
-              onClick={() => { clearDraft(); onClose(); }}
+              onClick={handleClose}
               disabled={loading}
             >
               Cancelar
@@ -280,8 +277,8 @@ const NovoAgenteForm: React.FC<NovoAgenteFormProps> = ({ agente, defaultType, on
             </Button>
           </div>
         </form>
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 };
 
