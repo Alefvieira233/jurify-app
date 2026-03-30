@@ -9,7 +9,7 @@ export default function BaseConhecimento() {
   const [search, setSearch] = useState('');
 
   return (
-    <div className="flex flex-col h-screen bg-background">
+    <div className="flex flex-col h-[calc(100vh-var(--topbar-h,4rem))] bg-background">
       <header className="flex-shrink-0 px-5 py-3 border-b border-border">
         <div className="flex items-center justify-between">
           <div>

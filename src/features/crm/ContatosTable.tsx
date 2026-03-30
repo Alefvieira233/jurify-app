@@ -29,7 +29,7 @@ export const ContatosTable = () => {
   }, [leads, clientSearch]);
 
   return (
-    <div className="flex flex-col h-screen bg-background">
+    <div className="flex flex-col h-[calc(100vh-var(--topbar-h,4rem))] bg-background">
 
       {/* Header */}
       <header className="flex-shrink-0 px-5 py-3 border-b border-border bg-background">

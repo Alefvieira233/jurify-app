@@ -35,7 +35,7 @@ const ConfiguracoesGerais = () => {
 
   if (!can('configuracoes', 'read')) {
     return (
-      <div className="flex flex-col h-screen bg-background">
+      <div className="flex flex-col h-[calc(100vh-var(--topbar-h,4rem))] bg-background">
         <header className="flex-shrink-0 px-8 py-6 pb-4 border-b border-border/5 bg-background">
           <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
             <div>
@@ -67,7 +67,7 @@ const ConfiguracoesGerais = () => {
   }
 
   return (
-    <div className="flex flex-col h-screen bg-background">
+    <div className="flex flex-col h-[calc(100vh-var(--topbar-h,4rem))] bg-background">
 
       {/* Header Lex Obsidian */}
       <header className="flex-shrink-0 px-8 py-6 pb-4 border-b border-border/5 bg-background fade-in">

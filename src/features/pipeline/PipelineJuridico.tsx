@@ -70,7 +70,7 @@ const PipelineJuridico = () => {
   /* ── Loading skeleton ── */
   if (loading) {
     return (
-      <div className="flex flex-col h-screen">
+      <div className="flex flex-col h-[calc(100vh-var(--topbar-h,4rem))]">
         <div className="px-6 py-3.5 border-b border-border flex items-center justify-between gap-4">
           <div className="flex items-center gap-3">
             <Skeleton className="w-8 h-8 rounded-lg" />

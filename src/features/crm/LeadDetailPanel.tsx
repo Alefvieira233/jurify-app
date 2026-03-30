@@ -110,7 +110,7 @@ const LeadDetailPanel = () => {
   /* ── Loading ── */
   if (loading) {
     return (
-      <div className="flex flex-col h-screen">
+      <div className="flex flex-col h-[calc(100vh-var(--topbar-h,4rem))]">
         <div className="px-5 py-3 border-b border-border">
           <Skeleton className="h-7 w-24" />
         </div>
@@ -125,7 +125,7 @@ const LeadDetailPanel = () => {
   /* ── Not found ── */
   if (!lead) {
     return (
-      <div className="flex flex-col h-screen">
+      <div className="flex flex-col h-[calc(100vh-var(--topbar-h,4rem))]">
         <div className="px-5 py-3 border-b border-border">
           <Button variant="ghost" size="sm" onClick={() => navigate(-1)} className="h-8 text-xs gap-1.5">
             <ArrowLeft className="h-3.5 w-3.5" /> Voltar
@@ -144,7 +144,7 @@ const LeadDetailPanel = () => {
   }
 
   return (
-    <div className="flex flex-col h-screen bg-background">
+    <div className="flex flex-col h-[calc(100vh-var(--topbar-h,4rem))] bg-background">
 
       {/* ── Back bar ── */}
       <div className="flex-shrink-0 px-5 py-3 border-b border-border bg-background flex items-center justify-between gap-4">

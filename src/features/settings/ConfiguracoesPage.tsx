@@ -195,7 +195,7 @@ const ConfiguracoesPage = () => {
   };
 
   return (
-    <div className="flex h-screen bg-background">
+    <div className="flex h-[calc(100vh-var(--topbar-h,4rem))] bg-background">
       {/* Settings sidebar */}
       <aside className="w-56 border-r border-border bg-background overflow-y-auto flex-shrink-0 hidden md:block">
         <nav className="py-4">

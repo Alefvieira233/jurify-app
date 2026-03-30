@@ -91,7 +91,7 @@ const CRMDashboard = () => {
   /* ── Loading ── */
   if (loading) {
     return (
-      <div className="flex flex-col h-screen">
+      <div className="flex flex-col h-[calc(100vh-var(--topbar-h,4rem))]">
         <div className="px-5 py-3 border-b border-border flex items-center justify-between gap-4">
           <div className="flex items-center gap-2.5">
             <Skeleton className="w-8 h-8 rounded-lg" />
@@ -117,7 +117,7 @@ const CRMDashboard = () => {
   }
 
   return (
-    <div className="flex flex-col h-screen bg-background">
+    <div className="flex flex-col h-[calc(100vh-var(--topbar-h,4rem))] bg-background">
 
       {/* ── Header ── */}
       <header className="flex-shrink-0 px-5 py-3 border-b border-border bg-background">

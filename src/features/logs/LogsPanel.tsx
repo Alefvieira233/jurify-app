@@ -44,7 +44,7 @@ const LogsPanel = () => {
   // Loading
   if (loading) {
     return (
-      <div className="flex flex-col h-screen">
+      <div className="flex flex-col h-[calc(100vh-var(--topbar-h,4rem))]">
         <div className="flex-shrink-0 px-5 py-3 border-b border-border bg-background">
           <div className="flex items-center gap-2.5">
             <div className="w-8 h-8 rounded-lg bg-purple-500/10 flex items-center justify-center flex-shrink-0">
@@ -73,7 +73,7 @@ const LogsPanel = () => {
   }
 
   return (
-    <div className="flex flex-col h-screen">
+    <div className="flex flex-col h-[calc(100vh-var(--topbar-h,4rem))]">
       {/* Header */}
       <div className="flex-shrink-0 px-5 py-3 border-b border-border bg-background">
         <div className="flex items-center justify-between gap-4">
