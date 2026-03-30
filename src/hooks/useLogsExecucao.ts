@@ -68,7 +68,7 @@ export const useLogsExecucao = () => {
 
       if (error) throw error;
 
-      return ((data || []) as LogExecucao[]).map(log => ({
+      return (data || []).map(log => ({
         ...log,
         status: log.status as 'success' | 'error' | 'processing'
       }));

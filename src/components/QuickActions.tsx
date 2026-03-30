@@ -38,11 +38,11 @@ const QuickActions = ({
         whatsappIa,
         usuarios,
       ] = await Promise.all([
-        hasPermission('leads', 'write'),
-        hasPermission('agendamentos', 'write'),
-        hasPermission('contratos', 'write'),
-        hasPermission('whatsapp_ia', 'write'),
-        hasPermission('usuarios', 'write'),
+        Promise.resolve(hasPermission('leads', 'write')),
+        Promise.resolve(hasPermission('agendamentos', 'write')),
+        Promise.resolve(hasPermission('contratos', 'write')),
+        Promise.resolve(hasPermission('whatsapp_ia', 'write')),
+        Promise.resolve(hasPermission('usuarios', 'write')),
       ]);
 
       setPermissions({

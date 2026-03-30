@@ -36,10 +36,24 @@ import {
   SelectValue 
 } from '@/components/ui/select';
 
+interface LogExecucao {
+  agente_id: string;
+  input_recebido: string;
+  resposta_ia: string | null;
+  status: 'success' | 'error' | 'processing';
+  tempo_execucao: number | null;
+  erro_detalhes: string | null;
+  api_key_usado: string | null;
+  created_at: string;
+  agentes_ia?: {
+    nome: string;
+    tipo_agente: string;
+  };
+}
+
 const LogsMonitoramento = () => {
   const { logs, loading, stats, limparLogs, refetch } = useLogsExecucao();
-  type LogEntry = (typeof logs)[number];
-  const [selectedLog, setSelectedLog] = useState<LogEntry | null>(null);
+  const [selectedLog, setSelectedLog] = useState<LogExecucao | null>(null);
   const [statusFilter, setStatusFilter] = useState<string>('todos');
 
   const filteredLogs = logs.filter(log => {

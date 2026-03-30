@@ -119,7 +119,7 @@ export const useGoogleCalendar = () => {
     }
   }, [user?.id, tenantId, settings, updateSettingsMutation]);
 
-  const loadSettings = useCallback(async () => {
+  const loadSettings = useCallback(() => {
     void queryClient.invalidateQueries({ queryKey: ['google-calendar-settings', tenantId, user?.id] });
   }, [queryClient, tenantId, user?.id]);
 

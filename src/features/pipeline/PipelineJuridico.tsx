@@ -1,6 +1,6 @@
 
 import { useState, useMemo } from 'react';
-import { Search, Plus, RefreshCw, Filter, User, TrendingUp } from 'lucide-react';
+import { Search, Plus, RefreshCw, User, TrendingUp } from 'lucide-react';
 import { DragDropContext, DropResult } from '@hello-pangea/dnd';
 import { useToast } from '@/hooks/use-toast';
 import { useLeads, type Lead } from '@/hooks/useLeads';
