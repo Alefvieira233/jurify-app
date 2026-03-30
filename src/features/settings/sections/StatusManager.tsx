@@ -26,14 +26,22 @@ export default function StatusManager() {
   const handleMoveUp = (index: number) => {
     if (index === 0) return;
     const reordered = [...stages];
-    [reordered[index - 1], reordered[index]] = [reordered[index], reordered[index - 1]];
+    const item1 = reordered[index - 1];
+    const item2 = reordered[index];
+    if (!item1 || !item2) return;
+    reordered[index - 1] = item2;
+    reordered[index] = item1;
     reorderStages.mutate(reordered.map((s, i) => ({ id: s.id, position: i })));
   };
 
   const handleMoveDown = (index: number) => {
     if (index === stages.length - 1) return;
     const reordered = [...stages];
-    [reordered[index], reordered[index + 1]] = [reordered[index + 1], reordered[index]];
+    const item1 = reordered[index];
+    const item2 = reordered[index + 1];
+    if (!item1 || !item2) return;
+    reordered[index] = item2;
+    reordered[index + 1] = item1;
     reorderStages.mutate(reordered.map((s, i) => ({ id: s.id, position: i })));
   };
 

@@ -24,7 +24,6 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { cn } from '@/lib/utils';
 import { AgendaIntelligenceDashboard } from './AgendaIntelligenceDashboard';
 import { createLogger } from '@/lib/logger';
-import { useToast } from '@/hooks/use-toast';
 import { QuickAddModal } from './QuickAddModal';
 import { supabaseUntyped as supabase } from '@/integrations/supabase/client';
 
@@ -183,7 +182,6 @@ interface CalendarPanelProps {
 
 const CalendarPanel = ({ onNewAgendamento }: CalendarPanelProps) => {
   const calendarRef = useRef<FullCalendar>(null);
-  const { toast } = useToast();
   const {
     events,
     loadingGoogle,
@@ -237,6 +235,7 @@ const CalendarPanel = ({ onNewAgendamento }: CalendarPanelProps) => {
   }, [onNewAgendamento]);
 
   const handleEventDrop = useCallback(async (info: EventDropArg) => {
+    const { toast: currentToast } = await import('@/hooks/use-toast');
     const fcEvent = info.event;
     const newStart = fcEvent.start;
     const newEnd = fcEvent.end;
@@ -284,12 +283,12 @@ const CalendarPanel = ({ onNewAgendamento }: CalendarPanelProps) => {
         });
         if (fnError) {
           log.error('Error updating Google event', fnError);
-          toast({ title: 'Erro ao atualizar evento Google', description: fnError.message, variant: 'destructive' });
+          currentToast({ title: 'Erro ao atualizar evento Google', description: fnError.message, variant: 'destructive' });
           info.revert();
         }
       } catch (error) {
         log.error('Error updating Google event', error);
-        toast({ title: 'Erro ao atualizar evento Google', variant: 'destructive' });
+        currentToast({ title: 'Erro ao atualizar evento Google', variant: 'destructive' });
         info.revert();
       }
     }

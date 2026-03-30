@@ -367,7 +367,7 @@ export const useAgentTraining = () => {
     }
   }, [tenantId, toast, updateDocStatus, updateLocalDoc, queryClient]);
 
-  const fetchDocuments = useCallback(async () => {
+  const fetchDocuments = useCallback(() => {
     invalidate();
   }, [invalidate]);
 
