@@ -2,9 +2,17 @@
  * Tests for Google Calendar OAuth - CSRF Protection
  */
 
+import React from 'react';
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useGoogleCalendar } from '../useGoogleCalendar';
+
+const createWrapper = () => {
+  const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  return ({ children }: { children: React.ReactNode }) =>
+    React.createElement(QueryClientProvider, { client: qc }, children);
+};
 
 // Mock AuthContext
 vi.mock('@/contexts/AuthContext', () => ({
@@ -138,7 +146,7 @@ describe('OAuth State Security (CSRF Protection)', () => {
 
   describe('Cryptographic State Generation', () => {
     it('should generate cryptographic state (not user.id)', async () => {
-      const { result } = renderHook(() => useGoogleCalendar());
+      const { result } = renderHook(() => useGoogleCalendar(), { wrapper: createWrapper() });
       await waitForLoadSettings();
 
       act(() => {
@@ -151,7 +159,7 @@ describe('OAuth State Security (CSRF Protection)', () => {
     });
 
     it('state should be exactly 64 hex characters (32 bytes)', async () => {
-      const { result } = renderHook(() => useGoogleCalendar());
+      const { result } = renderHook(() => useGoogleCalendar(), { wrapper: createWrapper() });
       await waitForLoadSettings();
 
       act(() => {
@@ -165,7 +173,7 @@ describe('OAuth State Security (CSRF Protection)', () => {
     });
 
     it('each call should generate unique state', async () => {
-      const { result } = renderHook(() => useGoogleCalendar());
+      const { result } = renderHook(() => useGoogleCalendar(), { wrapper: createWrapper() });
       await waitForLoadSettings();
 
       const states = new Set<string>();
@@ -185,7 +193,7 @@ describe('OAuth State Security (CSRF Protection)', () => {
     });
 
     it('state should have high entropy', async () => {
-      const { result } = renderHook(() => useGoogleCalendar());
+      const { result } = renderHook(() => useGoogleCalendar(), { wrapper: createWrapper() });
       await waitForLoadSettings();
 
       const states: string[] = [];
@@ -212,7 +220,7 @@ describe('OAuth State Security (CSRF Protection)', () => {
     });
 
     it('state should not be sequential or timestamp-based', async () => {
-      const { result } = renderHook(() => useGoogleCalendar());
+      const { result } = renderHook(() => useGoogleCalendar(), { wrapper: createWrapper() });
       await waitForLoadSettings();
 
       act(() => {
@@ -232,7 +240,7 @@ describe('OAuth State Security (CSRF Protection)', () => {
 
   describe('State Validation', () => {
     it('should store state in localStorage for later validation', async () => {
-      const { result } = renderHook(() => useGoogleCalendar());
+      const { result } = renderHook(() => useGoogleCalendar(), { wrapper: createWrapper() });
       await waitForLoadSettings();
 
       act(() => {
@@ -261,7 +269,7 @@ describe('OAuth State Security (CSRF Protection)', () => {
   describe('crypto.getRandomValues Usage', () => {
     it('should use crypto.getRandomValues', async () => {
       const getRandomValuesSpy = vi.spyOn(crypto, 'getRandomValues');
-      const { result } = renderHook(() => useGoogleCalendar());
+      const { result } = renderHook(() => useGoogleCalendar(), { wrapper: createWrapper() });
       await waitForLoadSettings();
 
       act(() => {
@@ -277,7 +285,7 @@ describe('OAuth State Security (CSRF Protection)', () => {
     });
 
     it('state should be valid hex conversion of random bytes', async () => {
-      const { result } = renderHook(() => useGoogleCalendar());
+      const { result } = renderHook(() => useGoogleCalendar(), { wrapper: createWrapper() });
       await waitForLoadSettings();
 
       act(() => {
@@ -300,7 +308,7 @@ describe('OAuth State Security (CSRF Protection)', () => {
   describe('GoogleOAuthService Integration', () => {
     it('getAuthUrl should receive cryptographic state', async () => {
       const { GoogleOAuthService } = await import('@/lib/google/GoogleOAuthService');
-      const { result } = renderHook(() => useGoogleCalendar());
+      const { result } = renderHook(() => useGoogleCalendar(), { wrapper: createWrapper() });
       await waitForLoadSettings();
 
       act(() => {
@@ -319,7 +327,7 @@ describe('OAuth State Security (CSRF Protection)', () => {
 
     it('getAuthUrl should not receive userId as parameter', async () => {
       const { GoogleOAuthService } = await import('@/lib/google/GoogleOAuthService');
-      const { result } = renderHook(() => useGoogleCalendar());
+      const { result } = renderHook(() => useGoogleCalendar(), { wrapper: createWrapper() });
       await waitForLoadSettings();
 
       act(() => {

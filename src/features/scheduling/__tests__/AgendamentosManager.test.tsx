@@ -137,7 +137,8 @@ describe('AgendamentosManager', () => {
 
   it('renders status filter select', () => {
     render(<AgendamentosManager />, { wrapper: createWrapper() });
-    const selects = document.querySelectorAll('select');
-    expect(selects.length).toBeGreaterThanOrEqual(1);
+    // shadcn Select uses button[role=combobox] instead of native <select>
+    const selectTriggers = document.querySelectorAll('button[role="combobox"]');
+    expect(selectTriggers.length).toBeGreaterThanOrEqual(1);
   });
 });
