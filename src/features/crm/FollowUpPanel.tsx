@@ -7,6 +7,7 @@ import {
 import { Skeleton } from '@/components/ui/skeleton';
 import { useFollowUps, type FollowUp, type FollowUpStatus } from '@/hooks/useFollowUps';
 import { useDebounce } from '@/hooks/useDebounce';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 /* ── Status config ── */
 const STATUS_CFG: Record<FollowUpStatus, {
@@ -215,33 +216,41 @@ const FollowUpPanel = () => {
             />
           </div>
 
-          <div className="relative">
-            <Filter className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3 w-3 text-muted-foreground pointer-events-none" />
-            <select
-              value={filterStatus}
-              onChange={e => setFilterStatus(e.target.value)}
-              className="h-8 bg-muted/50 border border-border rounded-md pl-7 pr-5 text-xs text-foreground/70 focus:outline-none focus:ring-1 focus:ring-ring cursor-pointer appearance-none"
+          <div className="relative flex items-center gap-1">
+            <Filter className="h-3 w-3 text-muted-foreground flex-shrink-0" />
+            <Select
+              value={filterStatus === 'all' ? '__all__' : filterStatus}
+              onValueChange={(v) => setFilterStatus(v === '__all__' ? 'all' : v)}
             >
-              <option value="all">Todos os status</option>
-              <option value="pending">Pendentes</option>
-              <option value="overdue">Atrasados</option>
-              <option value="snoozed">Adiados</option>
-              <option value="completed">Concluídos</option>
-              <option value="cancelled">Cancelados</option>
-            </select>
+              <SelectTrigger className="h-8 bg-muted/50 border border-border text-xs text-foreground/70 w-auto min-w-[140px]">
+                <SelectValue placeholder="Todos os status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="__all__">Todos os status</SelectItem>
+                <SelectItem value="pending">Pendentes</SelectItem>
+                <SelectItem value="overdue">Atrasados</SelectItem>
+                <SelectItem value="snoozed">Adiados</SelectItem>
+                <SelectItem value="completed">Concluídos</SelectItem>
+                <SelectItem value="cancelled">Cancelados</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
 
-          <select
-            value={filterPriority}
-            onChange={e => setFilterPriority(e.target.value)}
-            className="h-8 bg-muted/50 border border-border rounded-md px-2.5 text-xs text-foreground/70 focus:outline-none focus:ring-1 focus:ring-ring cursor-pointer"
+          <Select
+            value={filterPriority === 'all' ? '__all__' : filterPriority}
+            onValueChange={(v) => setFilterPriority(v === '__all__' ? 'all' : v)}
           >
-            <option value="all">Todas as prioridades</option>
-            <option value="urgent">Urgente</option>
-            <option value="high">Alta</option>
-            <option value="medium">Média</option>
-            <option value="low">Baixa</option>
-          </select>
+            <SelectTrigger className="h-8 bg-muted/50 border border-border text-xs text-foreground/70 w-auto min-w-[150px]">
+              <SelectValue placeholder="Todas as prioridades" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="__all__">Todas as prioridades</SelectItem>
+              <SelectItem value="urgent">Urgente</SelectItem>
+              <SelectItem value="high">Alta</SelectItem>
+              <SelectItem value="medium">Média</SelectItem>
+              <SelectItem value="low">Baixa</SelectItem>
+            </SelectContent>
+          </Select>
 
           {hasFilter && (
             <button

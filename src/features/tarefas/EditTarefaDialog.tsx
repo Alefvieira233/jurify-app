@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import {
   Dialog,
   DialogContent,
@@ -29,11 +30,17 @@ export default function EditTarefaDialog({ tarefa, open, onOpenChange }: EditTar
     register,
     handleSubmit,
     reset,
+    setValue,
+    watch,
     formState: { errors, isSubmitting },
   } = useForm<TarefaFormData>({
     resolver: zodResolver(tarefaSchema),
     defaultValues: { prioridade: 'media' },
   });
+
+  const pontosValue = watch('pontos');
+  const responsavelValue = watch('responsavel_id');
+  const prioridadeValue = watch('prioridade');
 
   useEffect(() => {
     if (tarefa) {
@@ -93,45 +100,57 @@ export default function EditTarefaDialog({ tarefa, open, onOpenChange }: EditTar
             </div>
             <div>
               <Label htmlFor="edit-pontos">Pontos (Fibonacci)</Label>
-              <select
-                id="edit-pontos"
-                {...register('pontos')}
-                className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm"
+              <Select
+                value={pontosValue != null ? String(pontosValue) : '__none__'}
+                onValueChange={(v) => setValue('pontos', v === '__none__' ? undefined : Number(v), { shouldValidate: true })}
               >
-                <option value="">—</option>
-                {FIBONACCI_POINTS.map(p => (
-                  <option key={p} value={p}>{p}</option>
-                ))}
-              </select>
+                <SelectTrigger className="h-9 w-full">
+                  <SelectValue placeholder="—" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__none__">—</SelectItem>
+                  {FIBONACCI_POINTS.map(p => (
+                    <SelectItem key={p} value={String(p)}>{p}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
           </div>
 
           <div className="grid grid-cols-2 gap-4">
             <div>
               <Label htmlFor="edit-responsavel_id">Responsável</Label>
-              <select
-                id="edit-responsavel_id"
-                {...register('responsavel_id')}
-                className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm"
+              <Select
+                value={responsavelValue || '__none__'}
+                onValueChange={(v) => setValue('responsavel_id', v === '__none__' ? '' : v, { shouldValidate: true })}
               >
-                <option value="">Sem responsável</option>
-                {(members ?? []).map(m => (
-                  <option key={m.id} value={m.id}>{m.nome_completo || m.email}</option>
-                ))}
-              </select>
+                <SelectTrigger className="h-9 w-full">
+                  <SelectValue placeholder="Sem responsável" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__none__">Sem responsável</SelectItem>
+                  {(members ?? []).map(m => (
+                    <SelectItem key={m.id} value={m.id}>{m.nome_completo || m.email}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
             <div>
               <Label htmlFor="edit-prioridade">Prioridade</Label>
-              <select
-                id="edit-prioridade"
-                {...register('prioridade')}
-                className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm"
+              <Select
+                value={prioridadeValue || 'media'}
+                onValueChange={(v) => setValue('prioridade', v as TarefaFormData['prioridade'], { shouldValidate: true })}
               >
-                <option value="baixa">Baixa</option>
-                <option value="media">Média</option>
-                <option value="alta">Alta</option>
-                <option value="urgente">Urgente</option>
-              </select>
+                <SelectTrigger className="h-9 w-full">
+                  <SelectValue placeholder="Prioridade" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="baixa">Baixa</SelectItem>
+                  <SelectItem value="media">Média</SelectItem>
+                  <SelectItem value="alta">Alta</SelectItem>
+                  <SelectItem value="urgente">Urgente</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
           </div>
 

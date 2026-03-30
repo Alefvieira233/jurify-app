@@ -4,6 +4,7 @@ import { supabaseUntyped as supabase } from '@/integrations/supabase/client';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
 import type { PrazoProcessual } from '@/hooks/usePrazosProcessuais';
 
@@ -141,14 +142,18 @@ export function PrazosCalendario({ tenantId }: Props) {
           <Button variant="outline" size="sm" onClick={nextMonth}>&#8594;</Button>
           <Button variant="ghost" size="sm" onClick={goToday}>Hoje</Button>
         </div>
-        <select
-          className="border rounded px-2 py-1 text-sm bg-background"
+        <Select
           value={filterStatus}
-          onChange={e => setFilterStatus(e.target.value as 'todos' | 'pendente')}
+          onValueChange={(v) => setFilterStatus(v as 'todos' | 'pendente')}
         >
-          <option value="todos">Todos</option>
-          <option value="pendente">Pendentes</option>
-        </select>
+          <SelectTrigger className="h-8 border rounded text-sm bg-background w-auto min-w-[120px]">
+            <SelectValue placeholder="Todos" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="todos">Todos</SelectItem>
+            <SelectItem value="pendente">Pendentes</SelectItem>
+          </SelectContent>
+        </Select>
       </div>
 
       {/* Calendar Grid - hidden on mobile */}
