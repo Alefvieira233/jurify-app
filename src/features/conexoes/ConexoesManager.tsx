@@ -21,6 +21,7 @@ import { useRBAC } from '@/hooks/useRBAC';
 import { usePageTitle } from '@/hooks/usePageTitle';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import ConfirmDialog from '@/components/ConfirmDialog';
 import { getInitials } from '@/utils/formatting';
 import ConnectionTypeChooser from './ConnectionTypeChooser';
 import QRCodeWizard from './QRCodeWizard';
@@ -52,6 +53,8 @@ const ConexoesManager = () => {
   const [newConnStep, setNewConnStep] = useState<NewConnectionStep>('choose');
   const [selectedConexao, setSelectedConexao] = useState<ConexaoWhatsApp | null>(null);
   const [detailsOpen, setDetailsOpen] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<ConexaoWhatsApp | null>(null);
+  const [deleteLoading, setDeleteLoading] = useState(false);
   const [visibleCols, setVisibleCols] = useState({ status_padrao: true, departamento: true });
 
   const canCreate = can('conexoes', 'create');
@@ -103,16 +106,24 @@ const ConexoesManager = () => {
     }
   };
 
-  const handleDelete = async (conexao: ConexaoWhatsApp) => {
+  const handleDeleteConfirmed = async () => {
+    if (!deleteTarget) return;
+    setDeleteLoading(true);
     try {
-      if (conexao.instance_name) {
-        await supabase.functions.invoke('kapso-manager', {
-          body: { action: 'delete', instanceName: conexao.instance_name },
+      if (deleteTarget.instance_name) {
+        const { error } = await supabase.functions.invoke('kapso-manager', {
+          body: { action: 'delete', instanceName: deleteTarget.instance_name },
         });
+        if (error) {
+          toast({ title: 'Erro ao remover instancia', description: error.message ?? 'Falha na chamada ao kapso-manager.', variant: 'destructive' });
+        }
       }
-      await deleteConexao(conexao.id);
+      await deleteConexao(deleteTarget.id);
     } catch {
-      toast({ title: 'Erro ao excluir conexão', variant: 'destructive' });
+      toast({ title: 'Erro ao excluir conexao', variant: 'destructive' });
+    } finally {
+      setDeleteLoading(false);
+      setDeleteTarget(null);
     }
   };
 
@@ -335,7 +346,7 @@ const ConexoesManager = () => {
                           {canDelete && (
                             <DropdownMenuItem
                               className="text-destructive focus:text-destructive"
-                              onClick={(e) => { e.stopPropagation(); void handleDelete(conexao); }}
+                              onClick={(e) => { e.stopPropagation(); setDeleteTarget(conexao); }}
                             >
                               <Trash2 className="h-4 w-4 mr-2" />
                               Remover Canal
@@ -382,6 +393,16 @@ const ConexoesManager = () => {
         conexao={selectedConexao}
         open={detailsOpen}
         onOpenChange={setDetailsOpen}
+      />
+
+      <ConfirmDialog
+        open={!!deleteTarget}
+        onOpenChange={(v) => { if (!v) setDeleteTarget(null); }}
+        title="Remover conexao?"
+        description={`A conexao "${deleteTarget?.nome || deleteTarget?.instance_name || 'WhatsApp'}" sera removida permanentemente. Esta acao nao pode ser desfeita.`}
+        onConfirm={() => { void handleDeleteConfirmed(); }}
+        loading={deleteLoading}
+        destructive
       />
     </div>
   );

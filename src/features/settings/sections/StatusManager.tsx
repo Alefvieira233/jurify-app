@@ -10,6 +10,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Skeleton } from '@/components/ui/skeleton';
+import ConfirmDialog from '@/components/ConfirmDialog';
 import { useStatusManager, type StatusStage } from '@/hooks/useStatusManager';
 import StatusFormDialog from './StatusFormDialog';
 
@@ -18,6 +19,7 @@ export default function StatusManager() {
   const [formOpen, setFormOpen] = useState(false);
   const [editingStage, setEditingStage] = useState<StatusStage | null>(null);
   const [formMode, setFormMode] = useState<'create' | 'edit'>('create');
+  const [confirmDeleteStage, setConfirmDeleteStage] = useState<StatusStage | null>(null);
 
   const { stages, leadCounts, isLoading, deleteStage, reorderStages } = useStatusManager();
 
@@ -52,9 +54,7 @@ export default function StatusManager() {
   };
 
   const handleDelete = (stage: StatusStage) => {
-    if (window.confirm(`Excluir o status "${stage.name}"? Esta ação não pode ser desfeita.`)) {
-      deleteStage.mutate(stage.id);
-    }
+    setConfirmDeleteStage(stage);
   };
 
   return (
@@ -239,6 +239,18 @@ export default function StatusManager() {
         open={formOpen}
         onOpenChange={setFormOpen}
         mode={formMode}
+      />
+
+      <ConfirmDialog
+        open={!!confirmDeleteStage}
+        onOpenChange={(v) => { if (!v) setConfirmDeleteStage(null); }}
+        title="Excluir status?"
+        description={`O status "${confirmDeleteStage?.name ?? ''}" sera removido permanentemente. Esta acao nao pode ser desfeita.`}
+        onConfirm={() => {
+          if (confirmDeleteStage) deleteStage.mutate(confirmDeleteStage.id);
+          setConfirmDeleteStage(null);
+        }}
+        destructive
       />
     </div>
   );

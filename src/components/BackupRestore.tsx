@@ -8,12 +8,14 @@ import { useToast } from '@/hooks/use-toast';
 import { supabaseUntyped as supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { createLogger } from '@/lib/logger';
+import ConfirmDialog from '@/components/ConfirmDialog';
 
 const log = createLogger('BackupRestore');
 
 const BackupRestore = () => {
   const [loading, setLoading] = useState(false);
   const [backupData, setBackupData] = useState('');
+  const [confirmImport, setConfirmImport] = useState(false);
   const { toast } = useToast();
   const { user, profile } = useAuth();
   const tenantId = profile?.tenant_id || null;
@@ -112,11 +114,11 @@ const BackupRestore = () => {
     }
   };
 
-  const importConfigurations = async () => {
+  const requestImport = () => {
     if (!user || !tenantId) {
       toast({
         title: 'Acesso negado',
-        description: 'Você precisa estar logado para importar configurações.',
+        description: 'Voce precisa estar logado para importar configuracoes.',
         variant: 'destructive'
       });
       return;
@@ -124,28 +126,24 @@ const BackupRestore = () => {
 
     if (!backupData.trim()) {
       toast({
-        title: 'Dados inválidos',
+        title: 'Dados invalidos',
         description: 'Por favor, cole o JSON de backup.',
         variant: 'destructive'
       });
       return;
     }
 
+    setConfirmImport(true);
+  };
+
+  const executeImport = async () => {
+    setConfirmImport(false);
     setLoading(true);
     try {
       const parsedData = JSON.parse(backupData) as { data?: Record<string, BackupRecord[]> };
 
       if (!parsedData.data) {
-        throw new Error('Formato de backup inválido');
-      }
-
-      const confirmed = window.confirm(
-        'ATENÇÃO: Esta ação vai sobrescrever as configurações atuais. Tem certeza?'
-      );
-
-      if (!confirmed) {
-        setLoading(false);
-        return;
+        throw new Error('Formato de backup invalido');
       }
 
       for (const table of BACKUP_TABLES) {
@@ -175,16 +173,16 @@ const BackupRestore = () => {
       }
 
       toast({
-        title: 'Importação concluída',
-        description: 'Configurações restauradas com sucesso.'
+        title: 'Importacao concluida',
+        description: 'Configuracoes restauradas com sucesso.'
       });
 
       setBackupData('');
     } catch (error) {
       log.error('Erro na importacao', error);
       toast({
-        title: 'Erro na importação',
-        description: 'Falha ao importar configurações. Verifique o JSON.',
+        title: 'Erro na importacao',
+        description: 'Falha ao importar configuracoes. Verifique o JSON.',
         variant: 'destructive'
       });
     } finally {
@@ -235,7 +233,7 @@ const BackupRestore = () => {
           </div>
 
           <Button
-            onClick={() => void importConfigurations()}
+            onClick={requestImport}
             disabled={loading}
             className="w-full bg-[hsl(var(--accent))] hover:bg-[hsl(var(--accent-hover))] text-[hsl(var(--accent-foreground))]"
           >
@@ -243,6 +241,15 @@ const BackupRestore = () => {
           </Button>
         </CardContent>
       </Card>
+
+      <ConfirmDialog
+        open={confirmImport}
+        onOpenChange={setConfirmImport}
+        title="Restaurar backup?"
+        description="ATENCAO: Esta acao vai sobrescrever as configuracoes atuais. Tem certeza que deseja continuar?"
+        onConfirm={() => { void executeImport(); }}
+        destructive
+      />
     </div>
   );
 };
