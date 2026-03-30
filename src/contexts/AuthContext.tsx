@@ -25,7 +25,7 @@ interface AuthContextType {
   signOut: () => Promise<void>;
   loading: boolean;
   hasRole: (role: string) => boolean;
-  hasPermission: (module: string, permission: string) => Promise<boolean>;
+  hasPermission: (module: string, permission: string) => boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -205,16 +205,16 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   useInactivityLogout(() => void signOut(), 30 * 60 * 1000, !!user);
 
   const hasRole = (role: string) => profile?.role === role;
-  const hasPermission = (module: string, permission: string) => {
-    if (!user || !profile?.role) return Promise.resolve(false);
+  const hasPermission = (module: string, permission: string): boolean => {
+    if (!user || !profile?.role) return false;
     const role = profile.role as UserRole;
     const permissions = ROLE_PERMISSIONS[role];
-    if (!permissions) return Promise.resolve(false);
+    if (!permissions) return false;
 
     const resource = module as Resource;
     const action = permission as Action;
     const resourcePermission = permissions.find((p) => p.resource === resource);
-    return Promise.resolve(resourcePermission?.actions.includes(action) ?? false);
+    return resourcePermission?.actions.includes(action) ?? false;
   };
 
   return (

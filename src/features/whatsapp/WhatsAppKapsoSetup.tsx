@@ -99,7 +99,7 @@ export default function WhatsAppKapsoSetup({ onConnectionSuccess }: WhatsAppKaps
       const timeoutId = setTimeout(() => controller.abort(), 30000);
 
       try {
-        console.log(`[WhatsApp] Calling kapso-manager: action=${action}, instance=${instanceName ?? 'auto'}`);
+        log.debug(`Calling kapso-manager: action=${action}, instance=${instanceName ?? 'auto'}`);
 
         const { data, error } = await supabase.functions.invoke('kapso-manager', {
           body: { action, instanceName },
@@ -108,7 +108,7 @@ export default function WhatsAppKapsoSetup({ onConnectionSuccess }: WhatsAppKaps
 
         clearTimeout(timeoutId);
 
-        console.log(`[WhatsApp] Response for action=${action}:`, { data, error });
+        log.debug(`Response for action=${action}:`, { data, error });
 
         // SDK-level error (network, auth 401, etc.)
         if (error) {
@@ -120,7 +120,7 @@ export default function WhatsAppKapsoSetup({ onConnectionSuccess }: WhatsAppKaps
       } catch (err) {
         clearTimeout(timeoutId);
         if (controller.signal.aborted) {
-          console.error('[WhatsApp] Request timed out after 30s');
+          log.error('Request timed out after 30s');
           throw new Error('Tempo esgotado (30s). A Kapso API não respondeu.');
         }
         throw err;
@@ -171,7 +171,7 @@ export default function WhatsAppKapsoSetup({ onConnectionSuccess }: WhatsAppKaps
     const safetyTimer = setTimeout(() => {
       setInstance((prev) => {
         if (prev.state !== 'creating') return prev;
-        console.warn('[WhatsApp] Creating state stuck for 15s, transitioning to error');
+        log.warn('Creating state stuck for 15s, transitioning to error');
         return {
           ...prev,
           state: 'error',

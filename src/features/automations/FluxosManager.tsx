@@ -14,7 +14,10 @@ import { supabaseUntyped as supabase } from '@/integrations/supabase/client';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import EmptyState from '@/components/EmptyState';
 import { FlowEditor, type FlowData } from './FlowEditor';
+import { createLogger } from '@/lib/logger';
 import type { Node, Edge } from '@xyflow/react';
+
+const logger = createLogger('FluxosManager');
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -295,7 +298,7 @@ export function FluxosManager() {
         setEditorMode('list');
         setEditingFlowId(null);
       } catch (err) {
-        console.error('Erro ao salvar fluxo:', err);
+        logger.error('Erro ao salvar fluxo:', err);
         toast({ title: 'Erro ao salvar fluxo', variant: 'destructive' });
       } finally {
         setSaving(false);
