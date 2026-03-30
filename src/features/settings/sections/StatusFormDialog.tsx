@@ -25,7 +25,7 @@ const schema = z.object({
 type FormValues = z.infer<typeof schema>;
 
 interface StatusFormDialogProps {
-  stage: StatusStage | null;
+  stage: StatusStage | null | undefined;
   open: boolean;
   onOpenChange: (open: boolean) => void;
   mode: 'create' | 'edit';

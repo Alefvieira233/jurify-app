@@ -176,7 +176,8 @@ const LogsPanel = () => {
             {filtered.map(log => {
               const key       = `${log.agente_id}-${log.created_at}`;
               const isExpanded = expandedKey === key;
-              const cfg        = STATUS_CFG[log.status] ?? STATUS_CFG.success;
+              const status = log.status as keyof typeof STATUS_CFG;
+              const cfg        = STATUS_CFG[status] ?? STATUS_CFG.success;
               const Icon       = cfg.icon;
               const agentName  = log.agentes_ia?.nome ?? 'Agente Desconhecido';
               const agentType  = log.agentes_ia?.tipo_agente;
