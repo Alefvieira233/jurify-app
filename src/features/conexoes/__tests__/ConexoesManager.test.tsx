@@ -74,13 +74,8 @@ vi.mock('@/integrations/supabase/client', () => ({
   },
 }));
 
-// Mock child components to avoid deep rendering
-vi.mock('../ConnectionTypeChooser', () => ({
-  default: () => React.createElement('div', { 'data-testid': 'connection-type-chooser' }, 'ConnectionTypeChooser'),
-}));
-
-vi.mock('../QRCodeWizard', () => ({
-  default: () => React.createElement('div', { 'data-testid': 'qr-code-wizard' }, 'QRCodeWizard'),
+vi.mock('../WhatsAppWizard', () => ({
+  default: () => React.createElement('div', { 'data-testid': 'whatsapp-wizard' }, 'WhatsAppWizard'),
 }));
 
 vi.mock('../ConnectionDetailsDrawer', () => ({
@@ -110,28 +105,28 @@ describe('ConexoesManager', () => {
     expect(screen.getByText('Conexões')).toBeInTheDocument();
   });
 
-  it('renders "Nova Conexao" button when user has create permission', () => {
+  it('renders "Conectar WhatsApp" button in empty state', () => {
     render(<ConexoesManager />, { wrapper: createWrapper() });
-    expect(screen.getByText('Nova Conexão')).toBeInTheDocument();
+    expect(screen.getByText('Conectar WhatsApp')).toBeInTheDocument();
   });
 
-  it('renders connection table with connection data', () => {
+  it('renders connection card with connection data', () => {
     mockConexoes.current = [makeMockConexao({ nome: 'Principal', telefone: '+5511999999999' })];
     render(<ConexoesManager />, { wrapper: createWrapper() });
     expect(screen.getByText('Principal')).toBeInTheDocument();
-    expect(screen.getByText(/\+5511999999999/)).toBeInTheDocument();
   });
 
-  it('renders status badge in table for connected connection', () => {
+  it('renders status badge for connected connection', () => {
     mockConexoes.current = [makeMockConexao({ status: 'connected' })];
     render(<ConexoesManager />, { wrapper: createWrapper() });
     expect(screen.getByText('Conectado')).toBeInTheDocument();
   });
 
-  it('renders empty state when no connections exist', () => {
+  it('renders empty state with benefits when no connections', () => {
     mockConexoes.current = [];
     render(<ConexoesManager />, { wrapper: createWrapper() });
-    expect(screen.getByText('Nenhuma conexão configurada')).toBeInTheDocument();
+    expect(screen.getByText('Conecte seu WhatsApp ao Jurify')).toBeInTheDocument();
+    expect(screen.getByText('Atendimento automático 24h')).toBeInTheDocument();
   });
 
   it('filters connections by search term', () => {
@@ -141,11 +136,9 @@ describe('ConexoesManager', () => {
     ];
     render(<ConexoesManager />, { wrapper: createWrapper() });
 
-    // Both connections are visible initially
     expect(screen.getByText('Principal')).toBeInTheDocument();
     expect(screen.getByText('Secundario')).toBeInTheDocument();
 
-    // Search for "Secundario"
     fireEvent.change(screen.getByPlaceholderText('Pesquisar conexões...'), {
       target: { value: 'Secundario' },
     });
@@ -154,9 +147,10 @@ describe('ConexoesManager', () => {
     expect(screen.getByText('Secundario')).toBeInTheDocument();
   });
 
-  it('shows Kapso QR branding in empty state', () => {
+  it('does not show Kapso branding anywhere', () => {
     mockConexoes.current = [];
     render(<ConexoesManager />, { wrapper: createWrapper() });
-    expect(screen.getByText('Kapso QR')).toBeInTheDocument();
+    expect(screen.queryByText(/kapso/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/API/)).not.toBeInTheDocument();
   });
 });
