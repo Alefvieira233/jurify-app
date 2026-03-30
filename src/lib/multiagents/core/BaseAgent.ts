@@ -449,6 +449,25 @@ export abstract class BaseAgent implements IAgent {
     if (config.maxTokens) this.maxTokens = config.maxTokens;
   }
 
+  /**
+   * Applies database-driven parametros_avancados from the agentes_ia table.
+   * Values from the DB override the hardcoded defaults set by configureAI.
+   * Call this after construction when you have the agent's DB record.
+   */
+  public applyParametrosAvancados(parametros: Record<string, unknown> | null | undefined): void {
+    if (!parametros || typeof parametros !== 'object') return;
+
+    if (typeof parametros.modelo === 'string' && parametros.modelo.length > 0) {
+      this.model = parametros.modelo;
+    }
+    if (typeof parametros.max_tokens === 'number' && parametros.max_tokens >= 100) {
+      this.maxTokens = parametros.max_tokens;
+    }
+    if (typeof parametros.temperatura === 'number') {
+      this.temperature = parametros.temperatura;
+    }
+  }
+
   // =========================================================================
   // 🎯 EXECUTION TRACKER INTEGRATION
   // =========================================================================

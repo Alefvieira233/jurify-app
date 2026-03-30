@@ -65,7 +65,9 @@ const NovoAgenteForm: React.FC<NovoAgenteFormProps> = ({ agente, defaultType, op
       temperatura: 0.7,
       top_p: 0.9,
       frequency_penalty: 0,
-      presence_penalty: 0
+      presence_penalty: 0,
+      modelo: 'gpt-4o-mini',
+      max_tokens: 1500
     }
   });
 
@@ -75,7 +77,7 @@ const NovoAgenteForm: React.FC<NovoAgenteFormProps> = ({ agente, defaultType, op
     perguntas_qualificacao: [''], keywords_acao: [''], delay_resposta: 3,
     status: 'ativo' as string, descricao_funcao: '', prompt_base: '',
     tipo_agente: (defaultType as string) || 'chat_interno',
-    parametros_avancados: { temperatura: 0.7, top_p: 0.9, frequency_penalty: 0, presence_penalty: 0 },
+    parametros_avancados: { temperatura: 0.7, top_p: 0.9, frequency_penalty: 0, presence_penalty: 0, modelo: 'gpt-4o-mini', max_tokens: 1500 },
   };
 
   useEffect(() => {
@@ -91,6 +93,8 @@ const NovoAgenteForm: React.FC<NovoAgenteFormProps> = ({ agente, defaultType, op
       const parametros = (agente.parametros_avancados ?? {}) as Record<string, unknown>;
       const getNumber = (value: unknown, fallback: number) =>
         typeof value === 'number' ? value : fallback;
+      const getString = (value: unknown, fallback: string) =>
+        typeof value === 'string' ? value : fallback;
 
       setFormData({
         nome: agente.nome ?? '',
@@ -113,6 +117,8 @@ const NovoAgenteForm: React.FC<NovoAgenteFormProps> = ({ agente, defaultType, op
           top_p: getNumber(parametros.top_p, 0.9),
           frequency_penalty: getNumber(parametros.frequency_penalty, 0),
           presence_penalty: getNumber(parametros.presence_penalty, 0),
+          modelo: getString(parametros.modelo, 'gpt-4o-mini'),
+          max_tokens: getNumber(parametros.max_tokens, 1500),
         }
       });
     }
@@ -123,7 +129,7 @@ const NovoAgenteForm: React.FC<NovoAgenteFormProps> = ({ agente, defaultType, op
     setFormData(prev => ({ ...prev, [field]: value }));
   };
 
-  const handleParametroChange = (field: keyof typeof formData.parametros_avancados, value: number) => {
+  const handleParametroChange = (field: keyof typeof formData.parametros_avancados, value: number | string) => {
     setFormData(prev => ({
       ...prev,
       parametros_avancados: {

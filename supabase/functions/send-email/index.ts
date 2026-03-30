@@ -260,6 +260,7 @@ Deno.serve(async (req) => {
   const token = authHeader.replace("Bearer ", "");
   const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
   let isServiceRole = false;
+  let authenticatedUserId: string | null = null;
   if (token !== serviceRoleKey) {
     const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
     const anonKey = Deno.env.get("SUPABASE_ANON_KEY") ?? "";
@@ -273,6 +274,7 @@ Deno.serve(async (req) => {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
+    authenticatedUserId = user.id;
 
     // Rate limit user JWT requests (skip for service-role)
     const supabaseServiceForRL = createClient(supabaseUrl, serviceRoleKey);
@@ -314,6 +316,56 @@ Deno.serve(async (req) => {
       status: 400,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
+  }
+
+  // Tenant isolation: user JWT requests can only send to emails within their tenant
+  if (!isServiceRole && authenticatedUserId) {
+    const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
+    const supabaseAdmin = createClient(supabaseUrl, serviceRoleKey);
+
+    // Get the user's tenant_id from their profile
+    const { data: profile, error: profileErr } = await supabaseAdmin
+      .from("profiles")
+      .select("tenant_id")
+      .eq("id", authenticatedUserId)
+      .single();
+
+    if (profileErr || !profile?.tenant_id) {
+      console.error("[send-email] Could not resolve tenant for user", authenticatedUserId);
+      return new Response(JSON.stringify({ error: "Could not resolve tenant" }), {
+        status: 403,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    const tenantId = profile.tenant_id;
+
+    // Check if recipient email belongs to a lead in the user's tenant
+    const { data: leadMatch } = await supabaseAdmin
+      .from("leads")
+      .select("id")
+      .eq("tenant_id", tenantId)
+      .eq("email", to)
+      .limit(1);
+
+    // Check if recipient email belongs to a profile (internal user) in the user's tenant
+    const { data: profileMatch } = await supabaseAdmin
+      .from("profiles")
+      .select("id")
+      .eq("tenant_id", tenantId)
+      .eq("email", to)
+      .limit(1);
+
+    const isLeadInTenant = leadMatch && leadMatch.length > 0;
+    const isProfileInTenant = profileMatch && profileMatch.length > 0;
+
+    if (!isLeadInTenant && !isProfileInTenant) {
+      console.warn(`[send-email] Tenant isolation: user ${authenticatedUserId} tried to email ${to} outside tenant ${tenantId}`);
+      return new Response(
+        JSON.stringify({ error: "Destinatário não pertence ao seu escritório" }),
+        { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
   }
 
   const { subject, htmlBody, textBody } = buildEmailContent(template, data);

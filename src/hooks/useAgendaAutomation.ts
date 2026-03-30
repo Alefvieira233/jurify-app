@@ -10,6 +10,7 @@
  */
 
 import { useCallback } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/contexts/AuthContext';
 import { useGoogleCalendar } from '@/hooks/useGoogleCalendar';
 import { supabaseUntyped as supabase } from '@/integrations/supabase/client';
@@ -192,6 +193,7 @@ async function createDriveFolder(agendamento: Agendamento) {
 
 export function useAgendaAutomation() {
   const { user } = useAuth();
+  const queryClient = useQueryClient();
   const { createCalendarEvent } = useGoogleCalendar();
   const { toast } = useToast();
   const { captureError, trackMetric, trackAction } = useMonitoring();
@@ -424,8 +426,12 @@ export function useAgendaAutomation() {
       });
     }
 
+    // Invalidate related caches so UI reflects automation side-effects
+    void queryClient.invalidateQueries({ queryKey: ['agendamentos'] });
+    void queryClient.invalidateQueries({ queryKey: ['crm-followups'] });
+
     return { successful, failed, results };
-  }, [user?.id, createCalendarEvent, toast, captureError, trackAction, trackMetric]);
+  }, [user?.id, queryClient, createCalendarEvent, toast, captureError, trackAction, trackMetric]);
 
   const getAutomationStatus = useCallback(async (agendamentoId: string) => {
     const { data, error } = await supabase

@@ -9,12 +9,20 @@ import { Settings } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
+import { ALLOWED_MODELS } from '@/schemas/agenteSchema';
 
 interface AdvancedParamsSectionProps {
   parametros: {
@@ -22,8 +30,10 @@ interface AdvancedParamsSectionProps {
     top_p: number;
     frequency_penalty: number;
     presence_penalty: number;
+    modelo: string;
+    max_tokens: number;
   };
-  onParametroChange: (field: keyof AdvancedParamsSectionProps['parametros'], value: number) => void;
+  onParametroChange: (field: keyof AdvancedParamsSectionProps['parametros'], value: number | string) => void;
 }
 
 export const AdvancedParamsSection: React.FC<AdvancedParamsSectionProps> = ({
@@ -42,6 +52,44 @@ export const AdvancedParamsSection: React.FC<AdvancedParamsSectionProps> = ({
         </CardDescription>
       </CardHeader>
       <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div>
+          <Label htmlFor="modelo">Modelo</Label>
+          <Select
+            value={parametros.modelo}
+            onValueChange={(value) => onParametroChange('modelo', value)}
+          >
+            <SelectTrigger id="modelo">
+              <SelectValue placeholder="Selecione o modelo" />
+            </SelectTrigger>
+            <SelectContent>
+              {ALLOWED_MODELS.map((model) => (
+                <SelectItem key={model} value={model}>
+                  {model}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <div className="text-xs text-muted-foreground mt-1">
+            Modelo de IA utilizado pelo agente
+          </div>
+        </div>
+
+        <div>
+          <Label htmlFor="max_tokens">Max Tokens (100 - 8000)</Label>
+          <Input
+            id="max_tokens"
+            type="number"
+            min="100"
+            max="8000"
+            step="100"
+            value={parametros.max_tokens}
+            onChange={(e) => onParametroChange('max_tokens', parseInt(e.target.value, 10))}
+          />
+          <div className="text-xs text-muted-foreground mt-1">
+            Limite de tokens na resposta gerada
+          </div>
+        </div>
+
         <div>
           <Label htmlFor="temperatura">Temperatura (0.0 - 1.0)</Label>
           <Input

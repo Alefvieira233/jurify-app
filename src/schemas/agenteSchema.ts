@@ -1,6 +1,8 @@
 import { z } from 'zod';
 
 // 🚀 SCHEMA ZOD PARA VALIDAÇÃO RIGOROSA DE AGENTES IA
+export const ALLOWED_MODELS = ['gpt-4o-mini', 'gpt-4o', 'gpt-4-turbo'] as const;
+
 export const parametrosAvancadosSchema = z.object({
   temperatura: z.number()
     .min(0, 'Temperatura deve ser no mínimo 0')
@@ -18,6 +20,14 @@ export const parametrosAvancadosSchema = z.object({
     .min(0, 'Presence Penalty deve ser no mínimo 0')
     .max(2, 'Presence Penalty deve ser no máximo 2')
     .default(0),
+  modelo: z.enum(ALLOWED_MODELS, {
+    errorMap: () => ({ message: 'Modelo deve ser gpt-4o-mini, gpt-4o ou gpt-4-turbo' })
+  }).default('gpt-4o-mini'),
+  max_tokens: z.number()
+    .int('Max tokens deve ser um número inteiro')
+    .min(100, 'Max tokens deve ser no mínimo 100')
+    .max(8000, 'Max tokens deve ser no máximo 8000')
+    .default(1500),
 });
 
 export const agenteIASchema = z.object({
@@ -90,7 +100,9 @@ export const agenteIASchema = z.object({
     temperatura: 0.7,
     top_p: 0.9,
     frequency_penalty: 0,
-    presence_penalty: 0
+    presence_penalty: 0,
+    modelo: 'gpt-4o-mini',
+    max_tokens: 1500
   })
 });
 

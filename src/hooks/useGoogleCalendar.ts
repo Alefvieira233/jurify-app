@@ -286,6 +286,9 @@ export const useGoogleCalendar = () => {
         sync_data: calendarEvent,
       }]);
 
+      // Invalidate agendamentos cache so UI reflects sync status
+      void queryClient.invalidateQueries({ queryKey: ['agendamentos'] });
+
       return googleEvent.id;
     } catch (error: unknown) {
       await supabase.from('google_calendar_sync_logs').insert([{
@@ -305,7 +308,7 @@ export const useGoogleCalendar = () => {
 
       return null;
     }
-  }, [user?.id, tenantId, settings?.calendar_id, toast]);
+  }, [user?.id, tenantId, settings?.calendar_id, queryClient, toast]);
 
   const updateCalendarEvent = useCallback(async (googleEventId: string, eventData: Partial<AgendamentoEventData>, agendamentoId: string) => {
     if (!user?.id || !settings?.calendar_id || !tenantId) {
@@ -339,6 +342,9 @@ export const useGoogleCalendar = () => {
         sync_data: calendarEvent,
       }]);
 
+      // Invalidate agendamentos cache so UI reflects sync status
+      void queryClient.invalidateQueries({ queryKey: ['agendamentos'] });
+
       return true;
     } catch (error: unknown) {
       await supabase.from('google_calendar_sync_logs').insert([{
@@ -353,7 +359,7 @@ export const useGoogleCalendar = () => {
 
       return false;
     }
-  }, [user?.id, tenantId, settings?.calendar_id]);
+  }, [user?.id, tenantId, settings?.calendar_id, queryClient]);
 
   const deleteCalendarEvent = useCallback(async (googleEventId: string, agendamentoId: string) => {
     if (!user?.id || !settings?.calendar_id || !tenantId) {
