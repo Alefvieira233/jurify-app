@@ -4,6 +4,7 @@ import {
   MessageSquare, Search, CheckCircle, FileText, Trophy, XCircle,
   TrendingUp, Calendar, HelpCircle,
 } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 import { usePageTitle } from '@/hooks/usePageTitle';
 import { useLeads } from '@/hooks/useLeads';
 import {
@@ -85,7 +86,7 @@ function MiniSparkline({ data, color }: { data: number[]; color: string }) {
 /* ── Dashboard ── */
 const Dashboard = () => {
   usePageTitle('Dashboard');
-  const { leads } = useLeads();
+  const { leads, error: leadsError } = useLeads();
   const [periodo, setPeriodo] = useState('semana');
 
   const range = useMemo(() => getDateRange(periodo), [periodo]);
@@ -128,6 +129,20 @@ const Dashboard = () => {
 
   // Time series for area chart
   const timeSeries = useMemo(() => buildTimeSeries(filteredLeads, range), [filteredLeads, range]);
+
+  if (leadsError) {
+    return (
+      <div className="h-[calc(100vh-var(--topbar-h,4rem))] flex items-center justify-center p-6">
+        <div className="text-center">
+          <p className="text-destructive font-medium">Erro ao carregar dados</p>
+          <p className="text-sm text-muted-foreground mt-1">Tente recarregar a pagina</p>
+          <Button variant="outline" size="sm" className="mt-4" onClick={() => window.location.reload()}>
+            Recarregar
+          </Button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="p-6 space-y-6 max-w-[1400px] mx-auto">

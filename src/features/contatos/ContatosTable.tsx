@@ -26,7 +26,7 @@ const PAGE_SIZE = 15;
 
 export default function ContatosTable() {
   usePageTitle('Contatos');
-  const { leads, loading } = useLeads();
+  const { leads, loading, error: leadsError } = useLeads();
   const { activeDepartamentos } = useDepartamentos();
   const { members } = useTeamMembers();
   const [search, setSearch] = useState('');
@@ -71,6 +71,20 @@ export default function ContatosTable() {
         <div className="animate-pulse space-y-4">
           <div className="h-8 w-64 bg-muted rounded" />
           <div className="h-[400px] bg-muted rounded" />
+        </div>
+      </div>
+    );
+  }
+
+  if (leadsError) {
+    return (
+      <div className="h-[calc(100vh-var(--topbar-h,4rem))] flex items-center justify-center p-6">
+        <div className="text-center">
+          <p className="text-destructive font-medium">Erro ao carregar dados</p>
+          <p className="text-sm text-muted-foreground mt-1">Tente recarregar a pagina</p>
+          <Button variant="outline" size="sm" className="mt-4" onClick={() => window.location.reload()}>
+            Recarregar
+          </Button>
         </div>
       </div>
     );

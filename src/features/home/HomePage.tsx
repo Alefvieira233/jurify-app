@@ -13,12 +13,13 @@ import PrazosUrgentesWidget from '@/features/dashboard/components/PrazosUrgentes
 export default function HomePage() {
   usePageTitle('Home');
   const { profile } = useAuth();
-  const { leads, loading: leadsLoading } = useLeads();
+  const { leads, loading: leadsLoading, error: leadsError } = useLeads();
   const { tarefas, isLoading: tarefasLoading } = useTarefas();
-  const { agendamentos, loading: agendamentosLoading } = useAgendamentos();
+  const { agendamentos, loading: agendamentosLoading, error: agendamentosError } = useAgendamentos();
   const navigate = useNavigate();
 
   const isLoading = leadsLoading || tarefasLoading || agendamentosLoading;
+  const isError = !!(leadsError || agendamentosError);
 
   const greeting = () => {
     const h = new Date().getHours();
@@ -38,6 +39,20 @@ export default function HomePage() {
     const dataHora = new Date(a.data_hora).getTime();
     return dataHora >= Date.now() - 24 * 60 * 60 * 1000;
   }).length ?? 0;
+
+  if (isError) {
+    return (
+      <div className="h-[calc(100vh-var(--topbar-h,4rem))] flex items-center justify-center p-6">
+        <div className="text-center">
+          <p className="text-destructive font-medium">Erro ao carregar dados</p>
+          <p className="text-sm text-muted-foreground mt-1">Tente recarregar a pagina</p>
+          <Button variant="outline" size="sm" className="mt-4" onClick={() => window.location.reload()}>
+            Recarregar
+          </Button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="p-6 max-w-5xl mx-auto space-y-8">
