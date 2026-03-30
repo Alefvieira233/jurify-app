@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabaseUntyped } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
+import { toUserMessage } from '@/lib/errorMessages';
 
 export interface TeamMember {
   id: string;
@@ -67,8 +68,8 @@ export function useTeamMembers() {
       void queryClient.invalidateQueries({ queryKey: ['usuarios'] });
       toast({ title: 'Membro atualizado', description: 'Dados salvos com sucesso.' });
     },
-    onError: (err: Error) => {
-      toast({ title: 'Erro ao atualizar membro', description: err.message, variant: 'destructive' });
+    onError: (err: unknown) => {
+      toast({ title: 'Erro ao atualizar membro', description: toUserMessage(err), variant: 'destructive' });
     },
   });
 

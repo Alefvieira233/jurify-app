@@ -12,6 +12,7 @@ import PasswordStrength from '@/components/ui/password-strength';
 import { validatePasswordStrength } from '@/components/ui/password-strength';
 import ForgotPasswordDialog from '@/components/ForgotPasswordDialog';
 import { useBiometrics } from '@/hooks/useBiometrics';
+import { toUserMessage } from '@/lib/errorMessages';
 
 const Auth = () => {
   const [isLogin, setIsLogin] = useState(true);
@@ -88,7 +89,7 @@ const Auth = () => {
         if (error) {
           toast({
             title: "Erro no cadastro",
-            description: error.message,
+            description: toUserMessage(error),
             variant: "destructive",
           });
         } else {

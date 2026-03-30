@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabaseUntyped as supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
+import { toUserMessage } from '@/lib/errorMessages';
 import { createLogger } from '@/lib/logger';
 
 const log = createLogger('FollowUpSequences');
@@ -111,7 +112,7 @@ export function useFollowUpSequences() {
     },
     onError: (err: unknown) => {
       log.error('Erro ao criar sequência', err);
-      toast({ title: 'Erro', description: err instanceof Error ? err.message : 'Não foi possível criar a sequência.', variant: 'destructive' });
+      toast({ title: 'Erro', description: toUserMessage(err), variant: 'destructive' });
     },
   });
 
@@ -146,7 +147,7 @@ export function useFollowUpSequences() {
     },
     onError: (err: unknown) => {
       log.error('Erro ao atualizar sequência', err);
-      toast({ title: 'Erro', description: err instanceof Error ? err.message : 'Não foi possível atualizar.', variant: 'destructive' });
+      toast({ title: 'Erro', description: toUserMessage(err), variant: 'destructive' });
     },
   });
 
@@ -172,7 +173,7 @@ export function useFollowUpSequences() {
     },
     onError: (err: unknown) => {
       log.error('Erro ao excluir sequência', err);
-      toast({ title: 'Erro', description: err instanceof Error ? err.message : 'Não foi possível excluir.', variant: 'destructive' });
+      toast({ title: 'Erro', description: toUserMessage(err), variant: 'destructive' });
     },
   });
 

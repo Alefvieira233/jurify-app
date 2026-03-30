@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabaseUntyped } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
+import { toUserMessage } from '@/lib/errorMessages';
 import type { Tag, LeadTag } from '@/types/crm-operacional';
 
 
@@ -39,8 +40,8 @@ export function useTags() {
       void queryClient.invalidateQueries({ queryKey: ['tags'] });
       toast({ title: 'Tag criada' });
     },
-    onError: (err: Error) => {
-      toast({ title: 'Erro ao criar tag', description: err.message, variant: 'destructive' });
+    onError: (err: unknown) => {
+      toast({ title: 'Erro ao criar tag', description: toUserMessage(err), variant: 'destructive' });
     },
   });
 
@@ -58,8 +59,8 @@ export function useTags() {
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ['tags'] });
     },
-    onError: (err: Error) => {
-      toast({ title: 'Erro ao atualizar tag', description: err.message, variant: 'destructive' });
+    onError: (err: unknown) => {
+      toast({ title: 'Erro ao atualizar tag', description: toUserMessage(err), variant: 'destructive' });
     },
   });
 
@@ -72,8 +73,8 @@ export function useTags() {
       void queryClient.invalidateQueries({ queryKey: ['tags'] });
       toast({ title: 'Tag removida' });
     },
-    onError: (err: Error) => {
-      toast({ title: 'Erro ao remover tag', description: err.message, variant: 'destructive' });
+    onError: (err: unknown) => {
+      toast({ title: 'Erro ao remover tag', description: toUserMessage(err), variant: 'destructive' });
     },
   });
 
@@ -118,8 +119,8 @@ export function useLeadTags(leadId: string | null) {
     onSuccess: (_: unknown, vars: { leadId: string; tagId: string; userId?: string }) => {
       void queryClient.invalidateQueries({ queryKey: ['lead_tags', vars.leadId] });
     },
-    onError: (err: Error) => {
-      toast({ title: 'Erro ao adicionar tag', description: err.message, variant: 'destructive' });
+    onError: (err: unknown) => {
+      toast({ title: 'Erro ao adicionar tag', description: toUserMessage(err), variant: 'destructive' });
     },
   });
 
@@ -135,8 +136,8 @@ export function useLeadTags(leadId: string | null) {
     onSuccess: (_: unknown, vars: { leadId: string; tagId: string }) => {
       void queryClient.invalidateQueries({ queryKey: ['lead_tags', vars.leadId] });
     },
-    onError: (err: Error) => {
-      toast({ title: 'Erro ao remover tag', description: err.message, variant: 'destructive' });
+    onError: (err: unknown) => {
+      toast({ title: 'Erro ao remover tag', description: toUserMessage(err), variant: 'destructive' });
     },
   });
 

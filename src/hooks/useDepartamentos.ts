@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabaseUntyped } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
+import { toUserMessage } from '@/lib/errorMessages';
 import type { Departamento, DepartamentoMembro } from '@/types/crm-operacional';
 
 
@@ -39,8 +40,8 @@ export function useDepartamentos() {
       void queryClient.invalidateQueries({ queryKey: ['departamentos'] });
       toast({ title: 'Departamento criado' });
     },
-    onError: (err: Error) => {
-      toast({ title: 'Erro ao criar departamento', description: err.message, variant: 'destructive' });
+    onError: (err: unknown) => {
+      toast({ title: 'Erro ao criar departamento', description: toUserMessage(err), variant: 'destructive' });
     },
   });
 
@@ -58,8 +59,8 @@ export function useDepartamentos() {
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ['departamentos'] });
     },
-    onError: (err: Error) => {
-      toast({ title: 'Erro ao atualizar departamento', description: err.message, variant: 'destructive' });
+    onError: (err: unknown) => {
+      toast({ title: 'Erro ao atualizar departamento', description: toUserMessage(err), variant: 'destructive' });
     },
   });
 
@@ -72,8 +73,8 @@ export function useDepartamentos() {
       void queryClient.invalidateQueries({ queryKey: ['departamentos'] });
       toast({ title: 'Departamento removido' });
     },
-    onError: (err: Error) => {
-      toast({ title: 'Erro ao remover departamento', description: err.message, variant: 'destructive' });
+    onError: (err: unknown) => {
+      toast({ title: 'Erro ao remover departamento', description: toUserMessage(err), variant: 'destructive' });
     },
   });
 
@@ -120,8 +121,8 @@ export function useDepartamentoMembros(departamentoId: string | null) {
       void queryClient.invalidateQueries({ queryKey: ['departamento_membros', vars.departamentoId] });
       toast({ title: 'Membro adicionado' });
     },
-    onError: (err: Error) => {
-      toast({ title: 'Erro ao adicionar membro', description: err.message, variant: 'destructive' });
+    onError: (err: unknown) => {
+      toast({ title: 'Erro ao adicionar membro', description: toUserMessage(err), variant: 'destructive' });
     },
   });
 
@@ -134,8 +135,8 @@ export function useDepartamentoMembros(departamentoId: string | null) {
       void queryClient.invalidateQueries({ queryKey: ['departamento_membros', departamentoId] });
       toast({ title: 'Membro removido' });
     },
-    onError: (err: Error) => {
-      toast({ title: 'Erro ao remover membro', description: err.message, variant: 'destructive' });
+    onError: (err: unknown) => {
+      toast({ title: 'Erro ao remover membro', description: toUserMessage(err), variant: 'destructive' });
     },
   });
 
@@ -153,8 +154,8 @@ export function useDepartamentoMembros(departamentoId: string | null) {
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ['departamento_membros', departamentoId] });
     },
-    onError: (err: Error) => {
-      toast({ title: 'Erro ao atualizar permissões', description: err.message, variant: 'destructive' });
+    onError: (err: unknown) => {
+      toast({ title: 'Erro ao atualizar permissões', description: toUserMessage(err), variant: 'destructive' });
     },
   });
 

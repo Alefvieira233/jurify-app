@@ -20,6 +20,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { createLogger } from '@/lib/logger';
 import { addSentryBreadcrumb } from '@/lib/sentry';
+import { toUserMessage } from '@/lib/errorMessages';
 
 // ─── Configuration ──────────────────────────────────────────────────────────
 
@@ -227,7 +228,7 @@ export function useEntityCRUD<
       log.error(`Erro ao criar ${displayName.toLowerCase()}`, err);
       toast({
         title: 'Erro',
-        description: err instanceof Error ? err.message : `Falha ao criar ${displayName.toLowerCase()}.`,
+        description: toUserMessage(err),
         variant: 'destructive',
       });
     },
@@ -265,7 +266,7 @@ export function useEntityCRUD<
       log.error(`Erro ao atualizar ${displayName.toLowerCase()}`, err);
       toast({
         title: 'Erro',
-        description: err instanceof Error ? err.message : 'Falha ao atualizar.',
+        description: toUserMessage(err),
         variant: 'destructive',
       });
     },
@@ -299,7 +300,7 @@ export function useEntityCRUD<
       log.error(`Erro ao deletar ${displayName.toLowerCase()}`, err);
       toast({
         title: 'Erro',
-        description: err instanceof Error ? err.message : 'Falha ao remover.',
+        description: toUserMessage(err),
         variant: 'destructive',
       });
     },

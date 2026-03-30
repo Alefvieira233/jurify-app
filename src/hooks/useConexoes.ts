@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabaseUntyped } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
+import { toUserMessage } from '@/lib/errorMessages';
 
 export interface ConexaoWhatsApp {
   id: string;
@@ -90,8 +91,8 @@ export function useConexoes() {
       void queryClient.invalidateQueries({ queryKey: ['conexoes_whatsapp'] });
       toast({ title: 'Conexão criada com sucesso' });
     },
-    onError: (err: Error) => {
-      toast({ title: 'Erro ao criar conexão', description: err.message, variant: 'destructive' });
+    onError: (err: unknown) => {
+      toast({ title: 'Erro ao criar conexão', description: toUserMessage(err), variant: 'destructive' });
     },
   });
 
@@ -109,8 +110,8 @@ export function useConexoes() {
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ['conexoes_whatsapp'] });
     },
-    onError: (err: Error) => {
-      toast({ title: 'Erro ao atualizar conexão', description: err.message, variant: 'destructive' });
+    onError: (err: unknown) => {
+      toast({ title: 'Erro ao atualizar conexão', description: toUserMessage(err), variant: 'destructive' });
     },
   });
 
@@ -126,8 +127,8 @@ export function useConexoes() {
       void queryClient.invalidateQueries({ queryKey: ['conexoes_whatsapp'] });
       toast({ title: 'Conexão removida' });
     },
-    onError: (err: Error) => {
-      toast({ title: 'Erro ao remover conexão', description: err.message, variant: 'destructive' });
+    onError: (err: unknown) => {
+      toast({ title: 'Erro ao remover conexão', description: toUserMessage(err), variant: 'destructive' });
     },
   });
 

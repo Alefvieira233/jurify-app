@@ -9,6 +9,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { createLogger } from '@/lib/logger';
 import { addSentryBreadcrumb } from '@/lib/sentry';
+import { toUserMessage } from '@/lib/errorMessages';
 
 const log = createLogger('Processos');
 
@@ -163,7 +164,7 @@ export const useProcessos = (options?: {
       log.error('Erro ao criar processo', err);
       toast({
         title: 'Erro',
-        description: err instanceof Error ? err.message : 'Falha ao criar processo.',
+        description: toUserMessage(err),
         variant: 'destructive',
       });
     },
@@ -193,7 +194,7 @@ export const useProcessos = (options?: {
       log.error('Erro ao atualizar processo', err);
       toast({
         title: 'Erro',
-        description: err instanceof Error ? err.message : 'Falha ao atualizar.',
+        description: toUserMessage(err),
         variant: 'destructive',
       });
     },
@@ -222,7 +223,7 @@ export const useProcessos = (options?: {
       log.error('Erro ao deletar processo', err);
       toast({
         title: 'Erro',
-        description: err instanceof Error ? err.message : 'Falha ao remover.',
+        description: toUserMessage(err),
         variant: 'destructive',
       });
     },

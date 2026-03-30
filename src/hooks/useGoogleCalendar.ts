@@ -8,6 +8,7 @@ import { supabaseUntyped as supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { GoogleOAuthService, type CalendarEvent } from '@/lib/google/GoogleOAuthService';
+import { toUserMessage } from '@/lib/errorMessages';
 
 export type GoogleCalendarSettings = {
   id?: string;
@@ -153,7 +154,7 @@ export const useGoogleCalendar = () => {
     } catch (error: unknown) {
       toast({
         title: 'Erro',
-        description: error instanceof Error ? error.message : 'Erro ao iniciar autenticacao',
+        description: toUserMessage(error),
         variant: 'destructive',
       });
     }
@@ -193,7 +194,7 @@ export const useGoogleCalendar = () => {
     } catch (error: unknown) {
       toast({
         title: 'Erro',
-        description: error instanceof Error ? error.message : 'Erro ao conectar Google Calendar',
+        description: toUserMessage(error),
         variant: 'destructive',
       });
       return false;

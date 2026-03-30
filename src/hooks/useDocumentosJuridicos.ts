@@ -9,6 +9,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { createLogger } from '@/lib/logger';
 import { addSentryBreadcrumb } from '@/lib/sentry';
+import { toUserMessage } from '@/lib/errorMessages';
 
 const log = createLogger('Documentos');
 
@@ -127,7 +128,7 @@ export const useDocumentosJuridicos = (options?: { processoId?: string; leadId?:
       log.error('Erro ao criar documento', err);
       toast({
         title: 'Erro',
-        description: err instanceof Error ? err.message : 'Falha ao salvar documento.',
+        description: toUserMessage(err),
         variant: 'destructive',
       });
     },
@@ -161,7 +162,7 @@ export const useDocumentosJuridicos = (options?: { processoId?: string; leadId?:
       log.error('Erro ao deletar documento', err);
       toast({
         title: 'Erro',
-        description: err instanceof Error ? err.message : 'Falha ao remover.',
+        description: toUserMessage(err),
         variant: 'destructive',
       });
     },
@@ -213,7 +214,7 @@ export const useDocumentosJuridicos = (options?: { processoId?: string; leadId?:
       log.error('Erro ao fazer upload', err);
       toast({
         title: 'Erro no upload',
-        description: err instanceof Error ? err.message : 'Falha ao enviar o arquivo.',
+        description: toUserMessage(err),
         variant: 'destructive',
       });
       return false;

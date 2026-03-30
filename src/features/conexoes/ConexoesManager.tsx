@@ -21,6 +21,7 @@ import { useRBAC } from '@/hooks/useRBAC';
 import { usePageTitle } from '@/hooks/usePageTitle';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { toUserMessage } from '@/lib/errorMessages';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import { getInitials } from '@/utils/formatting';
 import ConnectionTypeChooser from './ConnectionTypeChooser';
@@ -115,7 +116,7 @@ const ConexoesManager = () => {
           body: { action: 'delete', instanceName: deleteTarget.instance_name },
         });
         if (error) {
-          toast({ title: 'Erro ao remover instancia', description: error.message ?? 'Falha na chamada ao kapso-manager.', variant: 'destructive' });
+          toast({ title: 'Erro ao remover instancia', description: toUserMessage(error), variant: 'destructive' });
         }
       }
       await deleteConexao(deleteTarget.id);

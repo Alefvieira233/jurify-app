@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabaseUntyped } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
+import { toUserMessage } from '@/lib/errorMessages';
 import type { LeadNota } from '@/types/crm-operacional';
 
 
@@ -47,8 +48,8 @@ export function useLeadNotas(leadId: string | null) {
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ['lead_notas', leadId] });
     },
-    onError: (err: Error) => {
-      toast({ title: 'Erro ao criar nota', description: err.message, variant: 'destructive' });
+    onError: (err: unknown) => {
+      toast({ title: 'Erro ao criar nota', description: toUserMessage(err), variant: 'destructive' });
     },
   });
 
@@ -66,8 +67,8 @@ export function useLeadNotas(leadId: string | null) {
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ['lead_notas', leadId] });
     },
-    onError: (err: Error) => {
-      toast({ title: 'Erro ao atualizar nota', description: err.message, variant: 'destructive' });
+    onError: (err: unknown) => {
+      toast({ title: 'Erro ao atualizar nota', description: toUserMessage(err), variant: 'destructive' });
     },
   });
 
@@ -79,8 +80,8 @@ export function useLeadNotas(leadId: string | null) {
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ['lead_notas', leadId] });
     },
-    onError: (err: Error) => {
-      toast({ title: 'Erro ao remover nota', description: err.message, variant: 'destructive' });
+    onError: (err: unknown) => {
+      toast({ title: 'Erro ao remover nota', description: toUserMessage(err), variant: 'destructive' });
     },
   });
 

@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabaseUntyped as supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
+import { toUserMessage } from '@/lib/errorMessages';
 
 type AgendamentoRow = {
   id: string;
@@ -115,7 +116,7 @@ export const useAgendamentos = () => {
       }
     },
     onError: (err: unknown) => {
-      toast({ title: 'Erro', description: err instanceof Error ? err.message : 'Não foi possível criar o agendamento.', variant: 'destructive' });
+      toast({ title: 'Erro', description: toUserMessage(err), variant: 'destructive' });
     },
   });
 
@@ -139,7 +140,7 @@ export const useAgendamentos = () => {
       toast({ title: 'Sucesso', description: 'Agendamento atualizado com sucesso!' });
     },
     onError: (err: unknown) => {
-      toast({ title: 'Erro', description: err instanceof Error ? err.message : 'Não foi possível atualizar o agendamento.', variant: 'destructive' });
+      toast({ title: 'Erro', description: toUserMessage(err), variant: 'destructive' });
     },
   });
 
@@ -155,7 +156,7 @@ export const useAgendamentos = () => {
       toast({ title: 'Sucesso', description: 'Agendamento deletado com sucesso!' });
     },
     onError: (err: unknown) => {
-      toast({ title: 'Erro', description: err instanceof Error ? err.message : 'Não foi possível deletar o agendamento.', variant: 'destructive' });
+      toast({ title: 'Erro', description: toUserMessage(err), variant: 'destructive' });
     },
   });
 

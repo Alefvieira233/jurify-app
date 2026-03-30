@@ -16,6 +16,7 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
+import { toUserMessage } from '@/lib/errorMessages';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabaseUntyped as supabase } from '@/integrations/supabase/client';
 import { STATUS_LEAD, LEAD_STATUS_LABELS } from '@/schemas/leadSchema';
@@ -340,10 +341,10 @@ const RuleEditor = ({ open, rule, onClose, onSaved }: RuleEditorProps) => {
       toast({ title: isEditing ? 'Regra atualizada com sucesso' : 'Regra criada com sucesso' });
       onSaved();
     },
-    onError: (err: Error) => {
+    onError: (err: unknown) => {
       toast({
         title: 'Erro ao salvar regra',
-        description: err.message,
+        description: toUserMessage(err),
         variant: 'destructive',
       });
     },

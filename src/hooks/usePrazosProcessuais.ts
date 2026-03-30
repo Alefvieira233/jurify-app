@@ -9,6 +9,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { createLogger } from '@/lib/logger';
 import { addSentryBreadcrumb } from '@/lib/sentry';
+import { toUserMessage } from '@/lib/errorMessages';
 
 const log = createLogger('Prazos');
 
@@ -128,7 +129,7 @@ export const usePrazosProcessuais = (options?: {
       log.error('Erro ao criar prazo', err);
       toast({
         title: 'Erro',
-        description: err instanceof Error ? err.message : 'Falha ao criar prazo.',
+        description: toUserMessage(err),
         variant: 'destructive',
       });
     },
@@ -158,7 +159,7 @@ export const usePrazosProcessuais = (options?: {
       log.error('Erro ao atualizar prazo', err);
       toast({
         title: 'Erro',
-        description: err instanceof Error ? err.message : 'Falha ao atualizar.',
+        description: toUserMessage(err),
         variant: 'destructive',
       });
     },
@@ -186,7 +187,7 @@ export const usePrazosProcessuais = (options?: {
       log.error('Erro ao deletar prazo', err);
       toast({
         title: 'Erro',
-        description: err instanceof Error ? err.message : 'Falha ao remover.',
+        description: toUserMessage(err),
         variant: 'destructive',
       });
     },

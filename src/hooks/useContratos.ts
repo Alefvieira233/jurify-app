@@ -4,6 +4,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabaseUntyped as supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
+import { toUserMessage } from '@/lib/errorMessages';
 import { createLogger } from '@/lib/logger';
 import { addSentryBreadcrumb } from '@/lib/sentry';
 import { usePlanLimits } from '@/hooks/usePlanLimits';
@@ -97,7 +98,7 @@ export const useContratos = () => {
     onError: (err: unknown) => {
       addSentryBreadcrumb('Erro ao criar contrato', 'contratos', 'error');
       log.error('Erro ao criar contrato', err);
-      toast({ title: 'Erro', description: err instanceof Error ? err.message : 'Não foi possível criar o contrato.', variant: 'destructive' });
+      toast({ title: 'Erro', description: toUserMessage(err), variant: 'destructive' });
     },
   });
 
@@ -133,7 +134,7 @@ export const useContratos = () => {
     onError: (err: unknown) => {
       addSentryBreadcrumb('Erro ao atualizar contrato', 'contratos', 'error');
       log.error('Erro ao atualizar contrato', err);
-      toast({ title: 'Erro', description: err instanceof Error ? err.message : 'Não foi possível atualizar o contrato.', variant: 'destructive' });
+      toast({ title: 'Erro', description: toUserMessage(err), variant: 'destructive' });
     },
   });
 

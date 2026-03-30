@@ -9,6 +9,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { createLogger } from '@/lib/logger';
 import { addSentryBreadcrumb } from '@/lib/sentry';
+import { toUserMessage } from '@/lib/errorMessages';
 
 const log = createLogger('Honorarios');
 
@@ -122,7 +123,7 @@ export const useHonorarios = (options?: { processoId?: string; page?: number }) 
       log.error('Erro ao criar honorário', err);
       toast({
         title: 'Erro',
-        description: err instanceof Error ? err.message : 'Falha ao criar honorário.',
+        description: toUserMessage(err),
         variant: 'destructive',
       });
     },
@@ -152,7 +153,7 @@ export const useHonorarios = (options?: { processoId?: string; page?: number }) 
       log.error('Erro ao atualizar honorário', err);
       toast({
         title: 'Erro',
-        description: err instanceof Error ? err.message : 'Falha ao atualizar.',
+        description: toUserMessage(err),
         variant: 'destructive',
       });
     },
@@ -180,7 +181,7 @@ export const useHonorarios = (options?: { processoId?: string; page?: number }) 
       log.error('Erro ao deletar honorário', err);
       toast({
         title: 'Erro',
-        description: err instanceof Error ? err.message : 'Falha ao remover.',
+        description: toUserMessage(err),
         variant: 'destructive',
       });
     },

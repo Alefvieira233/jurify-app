@@ -14,6 +14,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
 import { supabase, supabaseUntyped } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { toUserMessage } from '@/lib/errorMessages';
 import { useQueryClient } from '@tanstack/react-query';
 import { useRBAC } from '@/hooks/useRBAC';
 import { useConexoes, useConexaoLogs, useConexaoAlertas, type ConexaoWhatsApp, type ConexaoLog, type ConexaoAlerta } from '@/hooks/useConexoes';
@@ -187,7 +188,7 @@ const ConnectionDetailsDrawer = ({ conexao, open, onOpenChange }: ConnectionDeta
       const { error } = await supabase.functions.invoke('kapso-manager', {
         body: { action: 'logout', instanceName: conexao.instance_name },
       });
-      if (error) { toast({ title: 'Erro ao desconectar', description: error.message, variant: 'destructive' }); return; }
+      if (error) { toast({ title: 'Erro ao desconectar', description: toUserMessage(error), variant: 'destructive' }); return; }
       toast({ title: 'Sessão desconectada' });
     } catch {
       toast({ title: 'Erro ao desconectar', variant: 'destructive' });
@@ -221,7 +222,7 @@ const ConnectionDetailsDrawer = ({ conexao, open, onOpenChange }: ConnectionDeta
         const { error } = await supabase.functions.invoke('kapso-manager', {
           body: { action: 'delete', instanceName: conexao.instance_name },
         });
-        if (error) { toast({ title: 'Erro ao excluir', description: error.message, variant: 'destructive' }); return; }
+        if (error) { toast({ title: 'Erro ao excluir', description: toUserMessage(error), variant: 'destructive' }); return; }
       }
       await deleteConexao(conexao.id);
       onOpenChange(false);

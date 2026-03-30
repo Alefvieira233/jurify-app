@@ -18,6 +18,7 @@ import { supabaseUntyped as supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRBAC } from '@/hooks/useRBAC';
 import { useToast } from '@/hooks/use-toast';
+import { toUserMessage } from '@/lib/errorMessages';
 import { createLogger } from '@/lib/logger';
 import { addSentryBreadcrumb } from '@/lib/sentry';
 import { usePlanLimits } from '@/hooks/usePlanLimits';
@@ -275,7 +276,7 @@ export const useLeads = (options?: { enablePagination?: boolean; pageSize?: numb
       log.error('Erro ao criar lead', err);
       toast({
         title: 'Erro',
-        description: err instanceof Error ? err.message : 'Não foi possível criar o lead.',
+        description: toUserMessage(err),
         variant: 'destructive',
       });
     },
@@ -306,7 +307,7 @@ export const useLeads = (options?: { enablePagination?: boolean; pageSize?: numb
       log.error('Erro ao atualizar lead', err);
       toast({
         title: 'Erro',
-        description: err instanceof Error ? err.message : 'Não foi possível atualizar o lead.',
+        description: toUserMessage(err),
         variant: 'destructive',
       });
     },
@@ -336,7 +337,7 @@ export const useLeads = (options?: { enablePagination?: boolean; pageSize?: numb
       log.error('Erro ao deletar lead', err);
       toast({
         title: 'Erro',
-        description: err instanceof Error ? err.message : 'Não foi possível remover o lead.',
+        description: toUserMessage(err),
         variant: 'destructive',
       });
     },
@@ -376,7 +377,7 @@ export const useLeads = (options?: { enablePagination?: boolean; pageSize?: numb
       toast({ title: 'Lead arquivado com sucesso' });
     },
     onError: (err: unknown) => {
-      toast({ title: 'Erro ao arquivar', description: err instanceof Error ? err.message : 'Erro desconhecido', variant: 'destructive' });
+      toast({ title: 'Erro ao arquivar', description: toUserMessage(err), variant: 'destructive' });
     },
   });
 
@@ -406,7 +407,7 @@ export const useLeads = (options?: { enablePagination?: boolean; pageSize?: numb
       toast({ title: 'Lead reativado com sucesso' });
     },
     onError: (err: unknown) => {
-      toast({ title: 'Erro ao reativar', description: err instanceof Error ? err.message : 'Erro desconhecido', variant: 'destructive' });
+      toast({ title: 'Erro ao reativar', description: toUserMessage(err), variant: 'destructive' });
     },
   });
 

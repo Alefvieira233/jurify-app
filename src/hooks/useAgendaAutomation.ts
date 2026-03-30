@@ -15,6 +15,7 @@ import { useGoogleCalendar } from '@/hooks/useGoogleCalendar';
 import { supabaseUntyped as supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useMonitoring } from '@/lib/monitoring';
+import { toUserMessage } from '@/lib/errorMessages';
 import type { Agendamento } from '@/hooks/useAgendamentos';
 
 // ---------------------------------------------------------------------------
@@ -534,7 +535,7 @@ export function useAgendaAutomation() {
 
       toast({
         title: 'Falha na reexecução',
-        description: error instanceof Error ? error.message : 'Erro desconhecido',
+        description: toUserMessage(error),
         variant: 'destructive',
       });
     }
