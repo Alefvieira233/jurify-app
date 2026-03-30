@@ -1,6 +1,6 @@
 import { useState, useMemo, useCallback } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
+import { supabaseUntyped } from '@/integrations/supabase/client';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -15,8 +15,6 @@ import { useAuth } from '@/contexts/AuthContext';
 import { usePageTitle } from '@/hooks/usePageTitle';
 import { getAvatarHex, getInitials } from '@/utils/formatting';
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const db = supabase as any;
 
 interface DepartmentMembership {
   departamento_id: string;
@@ -72,7 +70,7 @@ const EquipeManager = () => {
   const { data: allMemberships = [] } = useQuery({
     queryKey: ['all_department_memberships', tenantId],
     queryFn: async (): Promise<DepartmentMembership[]> => {
-      const { data, error } = await db
+      const { data, error } = await supabaseUntyped
         .from('departamento_membros')
         .select('departamento_id, profile_id, role_no_depto, receber_notificacoes')
         .in('profile_id', members.map((m: TeamMember) => m.id));

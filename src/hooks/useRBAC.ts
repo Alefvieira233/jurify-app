@@ -1,11 +1,8 @@
 import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '@/contexts/AuthContext';
 import { UserRole, Resource, Action, ROLE_PERMISSIONS } from '@/types/rbac';
-import { supabase } from '@/integrations/supabase/client';
+import { supabaseUntyped } from '@/integrations/supabase/client';
 import type { DepartamentoMembro } from '@/types/crm-operacional';
-
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const supabaseUntyped = supabase as any;
 
 type DepartmentAction = 'ver_todos' | 'atribuir' | 'mover' | 'editar' | 'arquivar' | 'metricas' | 'gerenciar';
 

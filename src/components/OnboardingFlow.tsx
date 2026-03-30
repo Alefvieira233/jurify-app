@@ -6,11 +6,9 @@ import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { CheckCircle2, ArrowRight, X, Sparkles, PartyPopper } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
-import { supabase } from '@/integrations/supabase/client';
+import { supabaseUntyped } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const db = supabase as any;
 
 interface OnboardingStep {
   id: string;
@@ -116,7 +114,7 @@ const OnboardingFlow = () => {
 
     try {
       // Check if already completed
-      const { data: completedSetting } = await db
+      const { data: completedSetting } = await supabaseUntyped
         .from('system_settings')
         .select('value')
         .eq('tenant_id', tenantId)
@@ -130,7 +128,7 @@ const OnboardingFlow = () => {
       }
 
       // Check if dismissed within the last 24h
-      const { data: dismissedSetting } = await db
+      const { data: dismissedSetting } = await supabaseUntyped
         .from('system_settings')
         .select('value, updated_at')
         .eq('tenant_id', tenantId)
@@ -156,13 +154,13 @@ const OnboardingFlow = () => {
         { data: userRoles },
         { data: departamentos },
       ] = await Promise.all([
-        db.from('profiles').select('nome_completo').eq('id', user.id).single(),
-        db.from('tenants').select('nome').eq('id', tenantId).single(),
-        db.from('conexoes_whatsapp').select('id').eq('tenant_id', tenantId).eq('status', 'connected').limit(1),
-        db.from('leads').select('id').eq('tenant_id', tenantId).limit(1),
-        db.from('agentes_ia').select('id').eq('tenant_id', tenantId).limit(1),
-        db.from('user_roles').select('id').eq('tenant_id', tenantId),
-        db.from('departamentos').select('id').eq('tenant_id', tenantId).limit(1),
+        supabaseUntyped.from('profiles').select('nome_completo').eq('id', user.id).single(),
+        supabaseUntyped.from('tenants').select('nome').eq('id', tenantId).single(),
+        supabaseUntyped.from('conexoes_whatsapp').select('id').eq('tenant_id', tenantId).eq('status', 'connected').limit(1),
+        supabaseUntyped.from('leads').select('id').eq('tenant_id', tenantId).limit(1),
+        supabaseUntyped.from('agentes_ia').select('id').eq('tenant_id', tenantId).limit(1),
+        supabaseUntyped.from('user_roles').select('id').eq('tenant_id', tenantId),
+        supabaseUntyped.from('departamentos').select('id').eq('tenant_id', tenantId).limit(1),
       ]);
 
       const map: Record<string, boolean> = {
@@ -205,7 +203,7 @@ const OnboardingFlow = () => {
 
     if (!tenantId) return;
     try {
-      await db.from('system_settings').upsert({
+      await supabaseUntyped.from('system_settings').upsert({
         tenant_id: tenantId,
         key: 'onboarding_dismissed',
         value: 'true',
@@ -221,7 +219,7 @@ const OnboardingFlow = () => {
     if (!tenantId) return;
 
     try {
-      await db.from('system_settings').upsert({
+      await supabaseUntyped.from('system_settings').upsert({
         tenant_id: tenantId,
         key: 'onboarding_completed',
         value: 'true',

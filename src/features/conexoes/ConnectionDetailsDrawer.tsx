@@ -12,15 +12,13 @@ import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
-import { supabase } from '@/integrations/supabase/client';
+import { supabase, supabaseUntyped } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useQueryClient } from '@tanstack/react-query';
 import { useRBAC } from '@/hooks/useRBAC';
 import { useConexoes, useConexaoLogs, useConexaoAlertas, type ConexaoWhatsApp, type ConexaoLog, type ConexaoAlerta } from '@/hooks/useConexoes';
 import ConfirmDialog from '@/components/ConfirmDialog';
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const supabaseUntyped = supabase as any;
 
 interface ConnectionDetailsDrawerProps {
   conexao: ConexaoWhatsApp | null;

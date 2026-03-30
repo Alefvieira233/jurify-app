@@ -1,11 +1,9 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
+import { supabaseUntyped } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import type { Tag, LeadTag } from '@/types/crm-operacional';
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const db = supabase as any;
 
 export function useTags() {
   const { profile } = useAuth();
@@ -16,7 +14,7 @@ export function useTags() {
   const tagsQuery = useQuery({
     queryKey: ['tags', tenantId],
     queryFn: async (): Promise<Tag[]> => {
-      const { data, error } = await db
+      const { data, error } = await supabaseUntyped
         .from('tags')
         .select('*')
         .eq('tenant_id', tenantId!)
@@ -29,7 +27,7 @@ export function useTags() {
 
   const createTag = useMutation({
     mutationFn: async (input: Partial<Tag>) => {
-      const { data, error } = await db
+      const { data, error } = await supabaseUntyped
         .from('tags')
         .insert({ ...input, tenant_id: tenantId! })
         .select()
@@ -48,7 +46,7 @@ export function useTags() {
 
   const updateTag = useMutation({
     mutationFn: async ({ id, ...updates }: Partial<Tag> & { id: string }) => {
-      const { data, error } = await db
+      const { data, error } = await supabaseUntyped
         .from('tags')
         .update(updates)
         .eq('id', id)
@@ -67,7 +65,7 @@ export function useTags() {
 
   const deleteTag = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await db.from('tags').delete().eq('id', id);
+      const { error } = await supabaseUntyped.from('tags').delete().eq('id', id);
       if (error) throw error;
     },
     onSuccess: () => {
@@ -97,7 +95,7 @@ export function useLeadTags(leadId: string | null) {
   const leadTagsQuery = useQuery({
     queryKey: ['lead_tags', leadId],
     queryFn: async (): Promise<LeadTag[]> => {
-      const { data, error } = await db
+      const { data, error } = await supabaseUntyped
         .from('lead_tags')
         .select('*, tag:tag_id(*)')
         .eq('lead_id', leadId!);
@@ -109,7 +107,7 @@ export function useLeadTags(leadId: string | null) {
 
   const addTag = useMutation({
     mutationFn: async ({ leadId: lid, tagId, userId }: { leadId: string; tagId: string; userId?: string }) => {
-      const { data, error } = await db
+      const { data, error } = await supabaseUntyped
         .from('lead_tags')
         .insert({ lead_id: lid, tag_id: tagId, created_by: userId ?? null })
         .select('*, tag:tag_id(*)')
@@ -127,7 +125,7 @@ export function useLeadTags(leadId: string | null) {
 
   const removeTag = useMutation({
     mutationFn: async ({ leadId: lid, tagId }: { leadId: string; tagId: string }) => {
-      const { error } = await db
+      const { error } = await supabaseUntyped
         .from('lead_tags')
         .delete()
         .eq('lead_id', lid)

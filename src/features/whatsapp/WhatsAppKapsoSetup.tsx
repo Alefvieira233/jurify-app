@@ -21,13 +21,11 @@ import {
   Smartphone,
   AlertTriangle,
 } from 'lucide-react';
-import { supabase } from '@/integrations/supabase/client';
+import { supabase, supabaseUntyped } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
 
 // Tables not yet in generated types — use untyped client for new tables
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const supabaseUntyped = supabase as any;
 import { createLogger } from '@/lib/logger';
 
 const log = createLogger('WhatsAppKapsoSetup');

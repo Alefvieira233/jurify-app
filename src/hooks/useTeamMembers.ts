@@ -1,10 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
+import { supabaseUntyped } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
-
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const db = supabase as any;
 
 export interface TeamMember {
   id: string;
@@ -33,7 +30,7 @@ export function useTeamMembers() {
   const query = useQuery({
     queryKey: ['team_members', tenantId],
     queryFn: async (): Promise<TeamMember[]> => {
-      const { data, error } = await db
+      const { data, error } = await supabaseUntyped
         .from('profiles')
         .select('id, nome_completo, email, avatar_url, ativo, cargo, telefone, role, departamento')
         .eq('tenant_id', tenantId!)
@@ -55,7 +52,7 @@ export function useTeamMembers() {
   const updateMember = useMutation({
     mutationFn: async ({ id, ...updates }: UpdateTeamMemberInput) => {
       if (!tenantId) throw new Error('Tenant não encontrado');
-      const { data, error } = await db
+      const { data, error } = await supabaseUntyped
         .from('profiles')
         .update(updates)
         .eq('id', id)

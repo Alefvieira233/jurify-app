@@ -1,11 +1,9 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
+import { supabaseUntyped } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import type { LeadNota } from '@/types/crm-operacional';
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const db = supabase as any;
 
 export function useLeadNotas(leadId: string | null) {
   const { user, profile } = useAuth();
@@ -16,7 +14,7 @@ export function useLeadNotas(leadId: string | null) {
   const notasQuery = useQuery({
     queryKey: ['lead_notas', leadId],
     queryFn: async (): Promise<LeadNota[]> => {
-      const { data, error } = await db
+      const { data, error } = await supabaseUntyped
         .from('lead_notas')
         .select('*')
         .eq('lead_id', leadId!)
@@ -31,7 +29,7 @@ export function useLeadNotas(leadId: string | null) {
   const createNota = useMutation({
     mutationFn: async ({ conteudo, fixada }: { conteudo: string; fixada?: boolean }) => {
       if (!leadId || !tenantId || !user) throw new Error('Contexto de autenticação não disponível');
-      const { data, error } = await db
+      const { data, error } = await supabaseUntyped
         .from('lead_notas')
         .insert({
           lead_id: leadId,
@@ -56,7 +54,7 @@ export function useLeadNotas(leadId: string | null) {
 
   const updateNota = useMutation({
     mutationFn: async ({ id, ...updates }: Partial<LeadNota> & { id: string }) => {
-      const { data, error } = await db
+      const { data, error } = await supabaseUntyped
         .from('lead_notas')
         .update({ ...updates, updated_at: new Date().toISOString() })
         .eq('id', id)
@@ -75,7 +73,7 @@ export function useLeadNotas(leadId: string | null) {
 
   const deleteNota = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await db.from('lead_notas').delete().eq('id', id);
+      const { error } = await supabaseUntyped.from('lead_notas').delete().eq('id', id);
       if (error) throw error;
     },
     onSuccess: () => {

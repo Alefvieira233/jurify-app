@@ -1,11 +1,9 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
+import { supabaseUntyped } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import type { Departamento, DepartamentoMembro } from '@/types/crm-operacional';
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const db = supabase as any;
 
 export function useDepartamentos() {
   const { profile } = useAuth();
@@ -16,7 +14,7 @@ export function useDepartamentos() {
   const deptosQuery = useQuery({
     queryKey: ['departamentos', tenantId],
     queryFn: async (): Promise<Departamento[]> => {
-      const { data, error } = await db
+      const { data, error } = await supabaseUntyped
         .from('departamentos')
         .select('*')
         .eq('tenant_id', tenantId!)
@@ -29,7 +27,7 @@ export function useDepartamentos() {
 
   const createDepto = useMutation({
     mutationFn: async (input: Partial<Departamento>) => {
-      const { data, error } = await db
+      const { data, error } = await supabaseUntyped
         .from('departamentos')
         .insert({ ...input, tenant_id: tenantId! })
         .select()
@@ -48,7 +46,7 @@ export function useDepartamentos() {
 
   const updateDepto = useMutation({
     mutationFn: async ({ id, ...updates }: Partial<Departamento> & { id: string }) => {
-      const { data, error } = await db
+      const { data, error } = await supabaseUntyped
         .from('departamentos')
         .update({ ...updates, updated_at: new Date().toISOString() })
         .eq('id', id)
@@ -67,7 +65,7 @@ export function useDepartamentos() {
 
   const deleteDepto = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await db.from('departamentos').delete().eq('id', id);
+      const { error } = await supabaseUntyped.from('departamentos').delete().eq('id', id);
       if (error) throw error;
     },
     onSuccess: () => {
@@ -98,7 +96,7 @@ export function useDepartamentoMembros(departamentoId: string | null) {
   const membrosQuery = useQuery({
     queryKey: ['departamento_membros', departamentoId],
     queryFn: async (): Promise<DepartamentoMembro[]> => {
-      const { data, error } = await db
+      const { data, error } = await supabaseUntyped
         .from('departamento_membros')
         .select('*, profile:profile_id(id, nome_completo, email, avatar_url)')
         .eq('departamento_id', departamentoId!);
@@ -110,7 +108,7 @@ export function useDepartamentoMembros(departamentoId: string | null) {
 
   const addMembro = useMutation({
     mutationFn: async ({ departamentoId: dId, profileId, roleNoDepto }: { departamentoId: string; profileId: string; roleNoDepto?: string }) => {
-      const { data, error } = await db
+      const { data, error } = await supabaseUntyped
         .from('departamento_membros')
         .insert({ departamento_id: dId, profile_id: profileId, role_no_depto: roleNoDepto ?? 'membro' })
         .select('*, profile:profile_id(id, nome_completo, email, avatar_url)')
@@ -129,7 +127,7 @@ export function useDepartamentoMembros(departamentoId: string | null) {
 
   const removeMembro = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await db.from('departamento_membros').delete().eq('id', id);
+      const { error } = await supabaseUntyped.from('departamento_membros').delete().eq('id', id);
       if (error) throw error;
     },
     onSuccess: () => {
@@ -143,7 +141,7 @@ export function useDepartamentoMembros(departamentoId: string | null) {
 
   const updateMembro = useMutation({
     mutationFn: async ({ id, ...updates }: Partial<DepartamentoMembro> & { id: string }) => {
-      const { data, error } = await db
+      const { data, error } = await supabaseUntyped
         .from('departamento_membros')
         .update(updates)
         .eq('id', id)
