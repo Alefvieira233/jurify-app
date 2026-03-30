@@ -90,9 +90,9 @@ const WhatsAppWizard = ({ onClose, onConnected }: WhatsAppWizardProps) => {
       } else {
         throw new Error('Não foi possível gerar o QR code.');
       }
-    } catch (err) {
+    } catch {
       setQrState('error');
-      setErrorMsg(err instanceof Error ? err.message : 'Não foi possível iniciar a conexão.');
+      setErrorMsg('Não foi possível gerar o QR code. Tente novamente.');
     }
   }, [onConnected]);
 
@@ -155,9 +155,9 @@ const WhatsAppWizard = ({ onClose, onConnected }: WhatsAppWizardProps) => {
       const src = data.qrcode.startsWith('data:') ? data.qrcode : `data:image/png;base64,${data.qrcode}`;
       setQrCode(src);
       setQrState('ready');
-    } catch (err) {
+    } catch {
       setQrState('error');
-      setErrorMsg(err instanceof Error ? err.message : 'Erro ao gerar QR code.');
+      setErrorMsg('Não foi possível gerar o QR code. Tente novamente.');
     }
   }, [instanceName, cleanup]);
 
