@@ -184,9 +184,10 @@ const ConnectionDetailsDrawer = ({ conexao, open, onOpenChange }: ConnectionDeta
   const handleDisconnect = async () => {
     if (!conexao.instance_name) return;
     try {
-      await supabase.functions.invoke('kapso-manager', {
+      const { error } = await supabase.functions.invoke('kapso-manager', {
         body: { action: 'logout', instanceName: conexao.instance_name },
       });
+      if (error) { toast({ title: 'Erro ao desconectar', description: error.message, variant: 'destructive' }); return; }
       toast({ title: 'Sessão desconectada' });
     } catch {
       toast({ title: 'Erro ao desconectar', variant: 'destructive' });
@@ -217,9 +218,10 @@ const ConnectionDetailsDrawer = ({ conexao, open, onOpenChange }: ConnectionDeta
   const handleDelete = async () => {
     try {
       if (conexao.instance_name) {
-        await supabase.functions.invoke('kapso-manager', {
+        const { error } = await supabase.functions.invoke('kapso-manager', {
           body: { action: 'delete', instanceName: conexao.instance_name },
         });
+        if (error) { toast({ title: 'Erro ao excluir', description: error.message, variant: 'destructive' }); return; }
       }
       await deleteConexao(conexao.id);
       onOpenChange(false);

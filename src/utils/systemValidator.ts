@@ -157,8 +157,8 @@ export class SystemValidator {
       };
 
       try {
-        const healthResponse = await supabase.functions.invoke('health-check');
-        integrations.healthCheck = healthResponse.data?.status === 'ok';
+        const { data, error } = await supabase.functions.invoke('health-check');
+        integrations.healthCheck = !error && data?.status === 'ok';
       } catch {
         integrations.healthCheck = false;
       }

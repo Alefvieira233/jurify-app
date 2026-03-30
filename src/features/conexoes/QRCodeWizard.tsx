@@ -112,22 +112,24 @@ const QRCodeWizard = ({ onBack, onConnected }: QRCodeWizardProps) => {
         startPolling(name);
       } else {
         // Instance may already be connected
-        const statusRes = await supabase.functions.invoke('kapso-manager', {
+        const { data: statusData, error: statusError } = await supabase.functions.invoke('kapso-manager', {
           body: { action: 'status', instanceName: name },
         });
-        if (statusRes.data?.connected) {
+        if (statusError) throw new Error(statusError.message || 'Erro ao verificar status');
+        if (statusData?.connected) {
           setState('connected');
           onConnected(name);
           return;
         }
         // Try fetching QR
-        const qrRes = await supabase.functions.invoke('kapso-manager', {
+        const { data: qrData, error: qrError } = await supabase.functions.invoke('kapso-manager', {
           body: { action: 'qrcode', instanceName: name },
         });
-        if (qrRes.data?.qrcode) {
-          const qrSrc = qrRes.data.qrcode.startsWith('data:') ? qrRes.data.qrcode : `data:image/png;base64,${qrRes.data.qrcode}`;
+        if (qrError) throw new Error(qrError.message || 'Erro ao obter QR Code');
+        if (qrData?.qrcode) {
+          const qrSrc = qrData.qrcode.startsWith('data:') ? qrData.qrcode : `data:image/png;base64,${qrData.qrcode}`;
           setQrCode(qrSrc);
-          if (qrRes.data.pairingCode) setPairingCode(qrRes.data.pairingCode);
+          if (qrData.pairingCode) setPairingCode(qrData.pairingCode);
           setState('qr_ready');
           startPolling(name);
         } else {

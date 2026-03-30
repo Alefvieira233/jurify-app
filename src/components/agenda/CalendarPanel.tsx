@@ -24,6 +24,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { cn } from '@/lib/utils';
 import { AgendaIntelligenceDashboard } from './AgendaIntelligenceDashboard';
 import { createLogger } from '@/lib/logger';
+import { useToast } from '@/hooks/use-toast';
 import { QuickAddModal } from './QuickAddModal';
 import { supabaseUntyped as supabase } from '@/integrations/supabase/client';
 
@@ -182,6 +183,7 @@ interface CalendarPanelProps {
 
 const CalendarPanel = ({ onNewAgendamento }: CalendarPanelProps) => {
   const calendarRef = useRef<FullCalendar>(null);
+  const { toast } = useToast();
   const {
     events,
     loadingGoogle,
@@ -267,7 +269,7 @@ const CalendarPanel = ({ onNewAgendamento }: CalendarPanelProps) => {
     } else if (event.extendedProps.source === 'google') {
       // Update Google Calendar event
       try {
-        await supabase.functions.invoke('google-calendar', {
+        const { error: fnError } = await supabase.functions.invoke('google-calendar', {
           body: {
             method: 'updateEvent',
             data: {
@@ -280,8 +282,14 @@ const CalendarPanel = ({ onNewAgendamento }: CalendarPanelProps) => {
             },
           },
         });
+        if (fnError) {
+          log.error('Error updating Google event', fnError);
+          toast({ title: 'Erro ao atualizar evento Google', description: fnError.message, variant: 'destructive' });
+          info.revert();
+        }
       } catch (error) {
         log.error('Error updating Google event', error);
+        toast({ title: 'Erro ao atualizar evento Google', variant: 'destructive' });
         info.revert();
       }
     }
