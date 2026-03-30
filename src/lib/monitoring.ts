@@ -162,5 +162,10 @@ export function withErrorTracking<T extends (...args: unknown[]) => unknown>(
   }) as T;
 }
 
+// Backward-compatible export used by AgentesIAManager
+export function trackUserAction(action: string, module: string, _userId?: string, _tenantId?: string, metadata?: Record<string, unknown>) {
+  monitoring.trackAction(`${module}.${action}`, metadata);
+}
+
 // Export default para facilitar uso
 export default monitoring;

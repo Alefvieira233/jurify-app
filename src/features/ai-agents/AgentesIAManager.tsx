@@ -27,7 +27,7 @@ import LogsMonitoramento from '@/components/LogsMonitoramento';
 import KnowledgeBaseSection from './KnowledgeBaseSection';
 
 // Monitoring
-import { trackUserAction } from '@/utils/monitoring';
+import { trackUserAction } from '@/lib/monitoring';
 import { useAuth } from '@/contexts/AuthContext';
 import { createLogger } from '@/lib/logger';
 import { usePageTitle } from '@/hooks/usePageTitle';
