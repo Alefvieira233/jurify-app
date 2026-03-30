@@ -1,4 +1,5 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useCallback } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabaseUntyped as supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
@@ -27,12 +28,45 @@ export interface FiltrosLog {
 }
 
 export const useActivityLogs = () => {
-  const [logs, setLogs] = useState<LogAtividade[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [totalCount, setTotalCount] = useState(0);
   const { user, profile } = useAuth();
   const tenantId = profile?.tenant_id || null;
   const { toast } = useToast();
+  const queryClient = useQueryClient();
+
+  const fetchLogsRpc = useCallback(async (
+    limite = 50,
+    offset = 0,
+    filtros: FiltrosLog = {}
+  ) => {
+    if (!user || !tenantId) return { logs: [] as LogAtividade[], totalCount: 0 };
+
+    const { data, error } = await supabase.rpc('buscar_logs_atividades', {
+      _limite: limite,
+      _offset: offset,
+      _usuario_id: filtros.usuario_id || null,
+      _tipo_acao: (filtros.tipo_acao as 'criacao' | 'edicao' | 'exclusao' | 'login' | 'logout' | 'erro' | 'outro') || null,
+      _modulo: filtros.modulo || null,
+      _data_inicio: filtros.data_inicio ? new Date(filtros.data_inicio).toISOString() : null,
+      _data_fim: filtros.data_fim ? new Date(filtros.data_fim).toISOString() : null
+    });
+
+    if (error) throw error;
+
+    if (data && data.length > 0) {
+      return { logs: data as LogAtividade[], totalCount: data[0]?.total_count || 0 };
+    }
+    return { logs: [] as LogAtividade[], totalCount: 0 };
+  }, [user, tenantId]);
+
+  const { data: queryData, isLoading: loading } = useQuery({
+    queryKey: ['activity-logs', tenantId],
+    queryFn: () => fetchLogsRpc(),
+    enabled: !!user && !!tenantId,
+    staleTime: 5 * 60 * 1000,
+  });
+
+  const logs = queryData?.logs ?? [];
+  const totalCount = queryData?.totalCount ?? 0;
 
   const fetchLogs = useCallback(async (
     limite = 50,
@@ -41,27 +75,9 @@ export const useActivityLogs = () => {
   ) => {
     if (!user || !tenantId) return;
 
-    setLoading(true);
     try {
-      const { data, error } = await supabase.rpc('buscar_logs_atividades', {
-        _limite: limite,
-        _offset: offset,
-        _usuario_id: filtros.usuario_id || null,
-        _tipo_acao: (filtros.tipo_acao as 'criacao' | 'edicao' | 'exclusao' | 'login' | 'logout' | 'erro' | 'outro') || null,
-        _modulo: filtros.modulo || null,
-        _data_inicio: filtros.data_inicio ? new Date(filtros.data_inicio).toISOString() : null,
-        _data_fim: filtros.data_fim ? new Date(filtros.data_fim).toISOString() : null
-      });
-
-      if (error) throw error;
-
-      if (data && data.length > 0) {
-        setLogs(data);
-        setTotalCount(data[0]?.total_count || 0);
-      } else {
-        setLogs([]);
-        setTotalCount(0);
-      }
+      const result = await fetchLogsRpc(limite, offset, filtros);
+      queryClient.setQueryData(['activity-logs', tenantId], result);
     } catch (error) {
       log.error('Erro ao buscar logs', error);
       toast({
@@ -69,10 +85,8 @@ export const useActivityLogs = () => {
         description: 'Nao foi possivel carregar os logs de atividade.',
         variant: 'destructive',
       });
-    } finally {
-      setLoading(false);
     }
-  }, [user, tenantId, toast]);
+  }, [user, tenantId, fetchLogsRpc, queryClient, toast]);
 
   const logActivity = async (
     tipo_acao: 'criacao' | 'edicao' | 'exclusao' | 'login' | 'logout' | 'erro' | 'outro',
@@ -119,7 +133,7 @@ export const useActivityLogs = () => {
         description: `Logs antigos (${diasAntigos} dias) removidos com sucesso.`,
       });
 
-      await fetchLogs();
+      await queryClient.invalidateQueries({ queryKey: ['activity-logs', tenantId] });
       return true;
     } catch (error) {
       log.error('Erro ao limpar logs', error);
@@ -187,12 +201,6 @@ export const useActivityLogs = () => {
       });
     }
   };
-
-  useEffect(() => {
-    if (user) {
-      void fetchLogs();
-    }
-  }, [fetchLogs, user]);
 
   return {
     logs,

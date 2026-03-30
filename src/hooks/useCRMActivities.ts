@@ -1,4 +1,5 @@
 import { useCallback, useState } from 'react';
+import { useMutation } from '@tanstack/react-query';
 import { supabaseUntyped as supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
@@ -34,6 +35,8 @@ export type CreateActivity = {
 export const useCRMActivities = () => {
   const { user, profile } = useAuth();
   const { toast } = useToast();
+  // activities are fetched imperatively by leadId, so we keep local state
+  // but use React Query for the mutation
   const [activities, setActivities] = useState<Activity[]>([]);
   const [loading, setLoading] = useState(false);
 
@@ -65,9 +68,10 @@ export const useCRMActivities = () => {
     }
   }, [user]);
 
-  const logActivity = useCallback(async (data: CreateActivity): Promise<boolean> => {
-    if (!user || !tenantId) return false;
-    try {
+  const logActivityMutation = useMutation({
+    mutationFn: async (data: CreateActivity) => {
+      if (!user || !tenantId) throw new Error('Not authenticated');
+
       const { error } = await supabase
         .from('crm_activities')
         .insert({
@@ -89,13 +93,22 @@ export const useCRMActivities = () => {
         .eq('id', data.lead_id);
 
       log.info('Activity logged', { type: data.activity_type, leadId: data.lead_id });
-      return true;
-    } catch (error) {
+    },
+    onError: (error) => {
       log.error('Failed to log activity', error);
       toast({ title: 'Erro', description: 'Não foi possível registrar a atividade.', variant: 'destructive' });
+    },
+  });
+
+  const logActivity = useCallback(async (data: CreateActivity): Promise<boolean> => {
+    if (!user || !tenantId) return false;
+    try {
+      await logActivityMutation.mutateAsync(data);
+      return true;
+    } catch {
       return false;
     }
-  }, [user, tenantId, toast]);
+  }, [user, tenantId, logActivityMutation]);
 
   return { activities, loading, fetchActivities, logActivity };
 };

@@ -1,4 +1,5 @@
-import { useCallback, useState, useEffect } from 'react';
+import { useCallback } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabaseUntyped as supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
@@ -24,19 +25,17 @@ export type PipelineStage = {
 export const useCRMPipeline = () => {
   const { user, profile } = useAuth();
   const { toast } = useToast();
-  const [stages, setStages] = useState<PipelineStage[]>([]);
-  const [loading, setLoading] = useState(false);
+  const queryClient = useQueryClient();
 
   const tenantId = profile?.tenant_id || (user?.user_metadata as Record<string, unknown>)?.tenant_id as string | undefined;
 
-  const fetchStages = useCallback(async () => {
-    if (!user || !tenantId) return;
-    try {
-      setLoading(true);
+  const { data: stages = [], isLoading: loading } = useQuery({
+    queryKey: ['crm-pipeline-stages', tenantId],
+    queryFn: async () => {
       const { data, error } = await supabase
         .from('crm_pipeline_stages')
         .select('*')
-        .eq('tenant_id', tenantId)
+        .eq('tenant_id', tenantId!)
         .order('position', { ascending: true });
 
       if (error) throw error;
@@ -51,7 +50,7 @@ export const useCRMPipeline = () => {
             .in('pipeline_stage_id', stageIds)
         : { data: [] };
 
-      // Aggregate in memory — O(n) instead of 2*N queries
+      // Aggregate in memory
       const countMap = new Map<string, number>();
       const valueMap = new Map<string, number>();
       for (const lead of (allLeads || []) as Array<{ pipeline_stage_id: string | null; expected_value: number | null }>) {
@@ -63,28 +62,24 @@ export const useCRMPipeline = () => {
         }
       }
 
-      const stagesWithCounts = (data || []).map((stage: PipelineStage) => ({
+      return (data || []).map((stage: PipelineStage) => ({
         ...stage,
         lead_count: countMap.get(stage.id) || 0,
         total_value: valueMap.get(stage.id) || 0,
       }));
+    },
+    enabled: !!user && !!tenantId,
+    staleTime: 5 * 60 * 1000,
+  });
 
-      setStages(stagesWithCounts);
-    } catch (error) {
-      log.error('Failed to fetch stages', error);
-    } finally {
-      setLoading(false);
-    }
-  }, [user, tenantId]);
+  const invalidate = useCallback(() => {
+    void queryClient.invalidateQueries({ queryKey: ['crm-pipeline-stages', tenantId] });
+  }, [queryClient, tenantId]);
 
-  useEffect(() => {
-    if (user) void fetchStages();
-  }, [user, fetchStages]);
-
-  const createStage = useCallback(async (data: Partial<PipelineStage>): Promise<boolean> => {
-    if (!tenantId) return false;
-    try {
-      const maxPosition = stages.length > 0 ? Math.max(...stages.map(s => s.position)) + 1 : 0;
+  const createMutation = useMutation({
+    mutationFn: async (data: Partial<PipelineStage>) => {
+      const currentStages = queryClient.getQueryData<PipelineStage[]>(['crm-pipeline-stages', tenantId]) || [];
+      const maxPosition = currentStages.length > 0 ? Math.max(...currentStages.map(s => s.position)) + 1 : 0;
       const { error } = await supabase
         .from('crm_pipeline_stages')
         .insert({
@@ -98,53 +93,88 @@ export const useCRMPipeline = () => {
           auto_followup_days: data.auto_followup_days || null,
         });
       if (error) throw error;
+    },
+    onSuccess: () => {
+      invalidate();
       toast({ title: 'Sucesso', description: 'Etapa criada com sucesso!' });
-      void fetchStages();
-      return true;
-    } catch (error) {
+    },
+    onError: (error) => {
       log.error('Failed to create stage', error);
       toast({ title: 'Erro', description: 'Não foi possível criar a etapa.', variant: 'destructive' });
-      return false;
-    }
-  }, [tenantId, stages, fetchStages, toast]);
+    },
+  });
 
-  const updateStage = useCallback(async (id: string, data: Partial<PipelineStage>): Promise<boolean> => {
-    if (!tenantId) return false;
-    try {
+  const updateMutation = useMutation({
+    mutationFn: async ({ id, data }: { id: string; data: Partial<PipelineStage> }) => {
       const { error } = await supabase
         .from('crm_pipeline_stages')
         .update(data)
         .eq('id', id)
-        .eq('tenant_id', tenantId);
+        .eq('tenant_id', tenantId!);
       if (error) throw error;
+    },
+    onSuccess: () => {
+      invalidate();
       toast({ title: 'Sucesso', description: 'Etapa atualizada!' });
-      void fetchStages();
-      return true;
-    } catch (error) {
+    },
+    onError: (error) => {
       log.error('Failed to update stage', error);
       toast({ title: 'Erro', description: 'Não foi possível atualizar a etapa.', variant: 'destructive' });
-      return false;
-    }
-  }, [tenantId, fetchStages, toast]);
+    },
+  });
 
-  const deleteStage = useCallback(async (id: string): Promise<boolean> => {
-    if (!tenantId) return false;
-    try {
+  const deleteMutation = useMutation({
+    mutationFn: async (id: string) => {
       const { error } = await supabase
         .from('crm_pipeline_stages')
         .delete()
         .eq('id', id)
-        .eq('tenant_id', tenantId);
+        .eq('tenant_id', tenantId!);
       if (error) throw error;
+    },
+    onSuccess: () => {
+      invalidate();
       toast({ title: 'Sucesso', description: 'Etapa removida!' });
-      void fetchStages();
-      return true;
-    } catch (error) {
+    },
+    onError: (error) => {
       log.error('Failed to delete stage', error);
       toast({ title: 'Erro', description: 'Não foi possível remover a etapa.', variant: 'destructive' });
+    },
+  });
+
+  const fetchStages = useCallback(async () => {
+    invalidate();
+  }, [invalidate]);
+
+  const createStage = useCallback(async (data: Partial<PipelineStage>): Promise<boolean> => {
+    if (!tenantId) return false;
+    try {
+      await createMutation.mutateAsync(data);
+      return true;
+    } catch {
       return false;
     }
-  }, [tenantId, fetchStages, toast]);
+  }, [tenantId, createMutation]);
+
+  const updateStage = useCallback(async (id: string, data: Partial<PipelineStage>): Promise<boolean> => {
+    if (!tenantId) return false;
+    try {
+      await updateMutation.mutateAsync({ id, data });
+      return true;
+    } catch {
+      return false;
+    }
+  }, [tenantId, updateMutation]);
+
+  const deleteStage = useCallback(async (id: string): Promise<boolean> => {
+    if (!tenantId) return false;
+    try {
+      await deleteMutation.mutateAsync(id);
+      return true;
+    } catch {
+      return false;
+    }
+  }, [tenantId, deleteMutation]);
 
   const reorderStages = useCallback(async (stageIds: string[]): Promise<boolean> => {
     try {
@@ -152,13 +182,13 @@ export const useCRMPipeline = () => {
         supabase.from('crm_pipeline_stages').update({ position: index }).eq('id', id).eq('tenant_id', tenantId)
       );
       await Promise.all(updates);
-      void fetchStages();
+      invalidate();
       return true;
     } catch (error) {
       log.error('Failed to reorder stages', error);
       return false;
     }
-  }, [tenantId, fetchStages]);
+  }, [tenantId, invalidate]);
 
   return { stages, loading, fetchStages, createStage, updateStage, deleteStage, reorderStages };
 };

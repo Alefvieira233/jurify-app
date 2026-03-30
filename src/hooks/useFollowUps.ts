@@ -1,4 +1,5 @@
-import { useCallback, useState, useEffect } from 'react';
+import { useCallback } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabaseUntyped as supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
@@ -52,31 +53,22 @@ export type CreateFollowUp = {
 export const useFollowUps = () => {
   const { user, profile } = useAuth();
   const { toast } = useToast();
-  const [followUps, setFollowUps] = useState<FollowUp[]>([]);
-  const [overdueCount, setOverdueCount] = useState(0);
-  const [loading, setLoading] = useState(false);
+  const queryClient = useQueryClient();
 
   const tenantId = profile?.tenant_id || (user?.user_metadata as Record<string, unknown>)?.tenant_id as string | undefined;
 
-  const fetchFollowUps = useCallback(async (options?: { leadId?: string; status?: string; assignedTo?: string }) => {
-    if (!user || !tenantId) return;
-    try {
-      setLoading(true);
-      let query = supabase
+  const { data: followUps = [], isLoading: loading } = useQuery({
+    queryKey: ['crm-followups', tenantId],
+    queryFn: async () => {
+      const { data, error } = await supabase
         .from('crm_followups')
         .select('*, leads:lead_id(id, nome, telefone, status)')
-        .eq('tenant_id', tenantId)
+        .eq('tenant_id', tenantId!)
         .order('scheduled_at', { ascending: true });
 
-      if (options?.leadId) query = query.eq('lead_id', options.leadId);
-      if (options?.status) query = query.eq('status', options.status);
-      if (options?.assignedTo) query = query.eq('assigned_to', options.assignedTo);
-
-      const { data, error } = await query;
       if (error) throw error;
 
-      // Enrich with embedded lead data (single query via join)
-      const enriched = (data || []).map((f: FollowUp & { leads?: { nome?: string; telefone?: string; status?: string } | null }) => {
+      return (data || []).map((f: FollowUp & { leads?: { nome?: string; telefone?: string; status?: string } | null }) => {
         const lead = f.leads;
         return {
           ...f,
@@ -85,39 +77,35 @@ export const useFollowUps = () => {
           lead_status: lead?.status || '',
         };
       });
+    },
+    enabled: !!user && !!tenantId,
+    staleTime: 5 * 60 * 1000,
+  });
 
-      setFollowUps(enriched);
-    } catch (error) {
-      log.error('Failed to fetch follow-ups', error);
-    } finally {
-      setLoading(false);
-    }
-  }, [user, tenantId]);
-
-  const getOverdueCount = useCallback(async () => {
-    if (!tenantId) return;
-    try {
+  const { data: overdueCount = 0 } = useQuery({
+    queryKey: ['crm-followups-overdue', tenantId],
+    queryFn: async () => {
       const { count, error } = await supabase
         .from('crm_followups')
         .select('*', { count: 'exact', head: true })
-        .eq('tenant_id', tenantId)
+        .eq('tenant_id', tenantId!)
         .eq('status', 'overdue');
-      if (!error) setOverdueCount(count || 0);
-    } catch (error) {
-      log.error('Failed to get overdue count', error);
-    }
-  }, [tenantId]);
+      if (error) throw error;
+      return count || 0;
+    },
+    enabled: !!tenantId,
+    staleTime: 5 * 60 * 1000,
+  });
 
-  useEffect(() => {
-    if (user) {
-      void fetchFollowUps();
-      void getOverdueCount();
-    }
-  }, [user, fetchFollowUps, getOverdueCount]);
+  const invalidateAll = useCallback(() => {
+    void queryClient.invalidateQueries({ queryKey: ['crm-followups', tenantId] });
+    void queryClient.invalidateQueries({ queryKey: ['crm-followups-overdue', tenantId] });
+  }, [queryClient, tenantId]);
 
-  const createFollowUp = useCallback(async (data: CreateFollowUp): Promise<boolean> => {
-    if (!user || !tenantId) return false;
-    try {
+  const createMutation = useMutation({
+    mutationFn: async (data: CreateFollowUp) => {
+      if (!user || !tenantId) throw new Error('Not authenticated');
+
       const { error } = await supabase
         .from('crm_followups')
         .insert({
@@ -145,21 +133,20 @@ export const useFollowUps = () => {
           updated_at: new Date().toISOString(),
         })
         .eq('id', data.lead_id);
-
+    },
+    onSuccess: () => {
+      invalidateAll();
       toast({ title: 'Sucesso', description: 'Follow-up agendado com sucesso!' });
-      void fetchFollowUps();
-      void getOverdueCount();
-      return true;
-    } catch (error) {
+    },
+    onError: (error) => {
       log.error('Failed to create follow-up', error);
       toast({ title: 'Erro', description: 'Não foi possível agendar o follow-up.', variant: 'destructive' });
-      return false;
-    }
-  }, [user, tenantId, fetchFollowUps, getOverdueCount, toast]);
+    },
+  });
 
-  const completeFollowUp = useCallback(async (id: string, notes?: string): Promise<boolean> => {
-    if (!user) return false;
-    try {
+  const completeMutation = useMutation({
+    mutationFn: async ({ id, notes }: { id: string; notes?: string }) => {
+      if (!user || !tenantId) throw new Error('Not authenticated');
       const now = new Date().toISOString();
 
       // Read existing metadata so we merge instead of overwriting
@@ -196,72 +183,161 @@ export const useFollowUps = () => {
           metadata: { followup_id: id, followup_type: followUp.followup_type },
         });
       }
-
+    },
+    onSuccess: () => {
+      invalidateAll();
       toast({ title: 'Sucesso', description: 'Follow-up concluído!' });
-      void fetchFollowUps();
-      void getOverdueCount();
-      return true;
-    } catch (error) {
+    },
+    onError: (error) => {
       log.error('Failed to complete follow-up', error);
       toast({ title: 'Erro', description: 'Não foi possível concluir o follow-up.', variant: 'destructive' });
-      return false;
-    }
-  }, [user, tenantId, fetchFollowUps, getOverdueCount, toast]);
+    },
+  });
 
-  const cancelFollowUp = useCallback(async (id: string): Promise<boolean> => {
-    try {
-      if (!tenantId) return false;
+  const cancelMutation = useMutation({
+    mutationFn: async (id: string) => {
+      if (!tenantId) throw new Error('No tenant');
       const { error } = await supabase
         .from('crm_followups')
         .update({ status: 'cancelled', updated_at: new Date().toISOString() })
         .eq('id', id)
         .eq('tenant_id', tenantId);
       if (error) throw error;
+    },
+    onSuccess: () => {
+      invalidateAll();
       toast({ title: 'Sucesso', description: 'Follow-up cancelado.' });
-      void fetchFollowUps();
-      void getOverdueCount();
-      return true;
-    } catch (error) {
+    },
+    onError: (error) => {
       log.error('Failed to cancel follow-up', error);
-      return false;
-    }
-  }, [fetchFollowUps, getOverdueCount, toast, tenantId]);
+    },
+  });
 
-  const snoozeFollowUp = useCallback(async (id: string, until: string): Promise<boolean> => {
-    try {
-      if (!tenantId) return false;
+  const snoozeMutation = useMutation({
+    mutationFn: async ({ id, until }: { id: string; until: string }) => {
+      if (!tenantId) throw new Error('No tenant');
       const { error } = await supabase
         .from('crm_followups')
         .update({ status: 'snoozed', snoozed_until: until, updated_at: new Date().toISOString() })
         .eq('id', id)
         .eq('tenant_id', tenantId);
       if (error) throw error;
+    },
+    onSuccess: () => {
+      invalidateAll();
       toast({ title: 'Sucesso', description: 'Follow-up adiado.' });
-      void fetchFollowUps();
-      return true;
-    } catch (error) {
+    },
+    onError: (error) => {
       log.error('Failed to snooze follow-up', error);
-      return false;
-    }
-  }, [fetchFollowUps, toast, tenantId]);
+    },
+  });
 
-  const rescheduleFollowUp = useCallback(async (id: string, newDate: string): Promise<boolean> => {
-    try {
-      if (!tenantId) return false;
+  const rescheduleMutation = useMutation({
+    mutationFn: async ({ id, newDate }: { id: string; newDate: string }) => {
+      if (!tenantId) throw new Error('No tenant');
       const { error } = await supabase
         .from('crm_followups')
         .update({ scheduled_at: newDate, status: 'pending', snoozed_until: null, updated_at: new Date().toISOString() })
         .eq('id', id)
         .eq('tenant_id', tenantId);
       if (error) throw error;
+    },
+    onSuccess: () => {
+      invalidateAll();
       toast({ title: 'Sucesso', description: 'Follow-up reagendado!' });
-      void fetchFollowUps();
-      return true;
-    } catch (error) {
+    },
+    onError: (error) => {
       log.error('Failed to reschedule follow-up', error);
+    },
+  });
+
+  const fetchFollowUps = useCallback(async (options?: { leadId?: string; status?: string; assignedTo?: string }) => {
+    if (!user || !tenantId) return;
+    // If options are provided, do a filtered fetch and set query data directly
+    if (options?.leadId || options?.status || options?.assignedTo) {
+      try {
+        let query = supabase
+          .from('crm_followups')
+          .select('*, leads:lead_id(id, nome, telefone, status)')
+          .eq('tenant_id', tenantId)
+          .order('scheduled_at', { ascending: true });
+
+        if (options.leadId) query = query.eq('lead_id', options.leadId);
+        if (options.status) query = query.eq('status', options.status);
+        if (options.assignedTo) query = query.eq('assigned_to', options.assignedTo);
+
+        const { data, error } = await query;
+        if (error) throw error;
+
+        const enriched = (data || []).map((f: FollowUp & { leads?: { nome?: string; telefone?: string; status?: string } | null }) => {
+          const lead = f.leads;
+          return {
+            ...f,
+            lead_name: lead?.nome || 'Lead desconhecido',
+            lead_phone: lead?.telefone || '',
+            lead_status: lead?.status || '',
+          };
+        });
+
+        queryClient.setQueryData(['crm-followups', tenantId], enriched);
+      } catch (error) {
+        log.error('Failed to fetch follow-ups', error);
+      }
+    } else {
+      invalidateAll();
+    }
+  }, [user, tenantId, queryClient, invalidateAll]);
+
+  const createFollowUp = useCallback(async (data: CreateFollowUp): Promise<boolean> => {
+    if (!user || !tenantId) return false;
+    try {
+      await createMutation.mutateAsync(data);
+      return true;
+    } catch {
       return false;
     }
-  }, [fetchFollowUps, toast, tenantId]);
+  }, [user, tenantId, createMutation]);
+
+  const completeFollowUp = useCallback(async (id: string, notes?: string): Promise<boolean> => {
+    if (!user) return false;
+    try {
+      await completeMutation.mutateAsync({ id, notes });
+      return true;
+    } catch {
+      return false;
+    }
+  }, [user, completeMutation]);
+
+  const cancelFollowUp = useCallback(async (id: string): Promise<boolean> => {
+    try {
+      await cancelMutation.mutateAsync(id);
+      return true;
+    } catch {
+      return false;
+    }
+  }, [cancelMutation]);
+
+  const snoozeFollowUp = useCallback(async (id: string, until: string): Promise<boolean> => {
+    try {
+      await snoozeMutation.mutateAsync({ id, until });
+      return true;
+    } catch {
+      return false;
+    }
+  }, [snoozeMutation]);
+
+  const rescheduleFollowUp = useCallback(async (id: string, newDate: string): Promise<boolean> => {
+    try {
+      await rescheduleMutation.mutateAsync({ id, newDate });
+      return true;
+    } catch {
+      return false;
+    }
+  }, [rescheduleMutation]);
+
+  const getOverdueCount = useCallback(async () => {
+    void queryClient.invalidateQueries({ queryKey: ['crm-followups-overdue', tenantId] });
+  }, [queryClient, tenantId]);
 
   return {
     followUps, overdueCount, loading,

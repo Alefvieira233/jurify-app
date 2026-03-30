@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabaseUntyped as supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
@@ -18,43 +18,32 @@ interface ApiKey {
 }
 
 export const useApiKeys = () => {
-  const [apiKeys, setApiKeys] = useState<ApiKey[]>([]);
-  const [loading, setLoading] = useState(true);
   const { toast } = useToast();
   const { user, profile } = useAuth();
+  const queryClient = useQueryClient();
 
   const tenantId = profile?.tenant_id ?? null;
 
-  const fetchApiKeys = useCallback(async () => {
-    if (!tenantId) return;
-
-    try {
+  const { data: apiKeys = [], isLoading: loading } = useQuery({
+    queryKey: ['api-keys', tenantId],
+    queryFn: async () => {
       const { data, error } = await supabase
         .from('api_keys')
         .select('*')
-        .eq('tenant_id', tenantId)
+        .eq('tenant_id', tenantId!)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      setApiKeys(data || []);
-    } catch (error) {
-      log.error('Failed to load API keys', error);
-      toast({
-        title: 'Erro',
-        description: 'Nao foi possivel carregar as API keys.',
-        variant: 'destructive',
-      });
-    } finally {
-      setLoading(false);
-    }
-  }, [tenantId, toast]);
+      return (data || []) as ApiKey[];
+    },
+    enabled: !!tenantId,
+    staleTime: 5 * 60 * 1000,
+  });
 
-  const criarApiKey = async (nome: string) => {
-    if (!tenantId) {
-      throw new Error('Tenant não encontrado');
-    }
+  const createMutation = useMutation({
+    mutationFn: async (nome: string) => {
+      if (!tenantId) throw new Error('Tenant não encontrado');
 
-    try {
       const bytes = new Uint8Array(24);
       crypto.getRandomValues(bytes);
       const keyValue = 'jf_' + Array.from(bytes).map(b => b.toString(16).padStart(2, '0')).join('');
@@ -72,82 +61,71 @@ export const useApiKeys = () => {
         .single();
 
       if (error) throw error;
-
-      await fetchApiKeys();
-      toast({
-        title: 'Sucesso',
-        description: 'API key criada com sucesso.',
-      });
-
       return data;
-    } catch (error) {
+    },
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ['api-keys', tenantId] });
+      toast({ title: 'Sucesso', description: 'API key criada com sucesso.' });
+    },
+    onError: (error) => {
       log.error('Failed to create API key', error);
-      toast({
-        title: 'Erro',
-        description: 'Nao foi possivel criar a API key.',
-        variant: 'destructive',
-      });
-      throw error;
-    }
-  };
+      toast({ title: 'Erro', description: 'Nao foi possivel criar a API key.', variant: 'destructive' });
+    },
+  });
 
-  const toggleApiKey = async (id: string, ativo: boolean) => {
-    if (!tenantId) return;
-
-    try {
+  const toggleMutation = useMutation({
+    mutationFn: async ({ id, ativo }: { id: string; ativo: boolean }) => {
       const { error } = await supabase
         .from('api_keys')
         .update({ ativo: !ativo })
         .eq('id', id)
-        .eq('tenant_id', tenantId);
+        .eq('tenant_id', tenantId!);
 
       if (error) throw error;
-
-      await fetchApiKeys();
-      toast({
-        title: 'Sucesso',
-        description: `API key ${!ativo ? 'ativada' : 'desativada'} com sucesso.`,
-      });
-    } catch (error) {
+    },
+    onSuccess: (_data, variables) => {
+      void queryClient.invalidateQueries({ queryKey: ['api-keys', tenantId] });
+      toast({ title: 'Sucesso', description: `API key ${!variables.ativo ? 'ativada' : 'desativada'} com sucesso.` });
+    },
+    onError: (error) => {
       log.error('Failed to toggle API key', error);
-      toast({
-        title: 'Erro',
-        description: 'Nao foi possivel alterar o status da API key.',
-        variant: 'destructive',
-      });
-    }
-  };
+      toast({ title: 'Erro', description: 'Nao foi possivel alterar o status da API key.', variant: 'destructive' });
+    },
+  });
 
-  const deletarApiKey = async (id: string) => {
-    if (!tenantId) return;
-
-    try {
+  const deleteMutation = useMutation({
+    mutationFn: async (id: string) => {
       const { error } = await supabase
         .from('api_keys')
         .delete()
         .eq('id', id)
-        .eq('tenant_id', tenantId);
+        .eq('tenant_id', tenantId!);
 
       if (error) throw error;
-
-      await fetchApiKeys();
-      toast({
-        title: 'Sucesso',
-        description: 'API key excluida com sucesso.',
-      });
-    } catch (error) {
+    },
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ['api-keys', tenantId] });
+      toast({ title: 'Sucesso', description: 'API key excluida com sucesso.' });
+    },
+    onError: (error) => {
       log.error('Failed to delete API key', error);
-      toast({
-        title: 'Erro',
-        description: 'Nao foi possivel excluir a API key.',
-        variant: 'destructive',
-      });
-    }
+      toast({ title: 'Erro', description: 'Nao foi possivel excluir a API key.', variant: 'destructive' });
+    },
+  });
+
+  const criarApiKey = async (nome: string) => {
+    return createMutation.mutateAsync(nome);
   };
 
-  useEffect(() => {
-    void fetchApiKeys();
-  }, [fetchApiKeys]);
+  const toggleApiKey = async (id: string, ativo: boolean) => {
+    if (!tenantId) return;
+    await toggleMutation.mutateAsync({ id, ativo });
+  };
+
+  const deletarApiKey = async (id: string) => {
+    if (!tenantId) return;
+    await deleteMutation.mutateAsync(id);
+  };
 
   return {
     apiKeys,
@@ -155,6 +133,6 @@ export const useApiKeys = () => {
     criarApiKey,
     toggleApiKey,
     deletarApiKey,
-    refetch: fetchApiKeys,
+    refetch: () => queryClient.invalidateQueries({ queryKey: ['api-keys', tenantId] }),
   };
 };
