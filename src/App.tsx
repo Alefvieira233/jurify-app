@@ -174,9 +174,9 @@ const App = () => (
                       <WhatsAppIA />
                     </WhatsAppErrorBoundary>
                   } />
-                  <Route path="agentes" element={<ProtectedRoute requiredRoles={['admin', 'manager']}><ErrorBoundary><AgentesIAManager /></ErrorBoundary></ProtectedRoute>} />
-                  <Route path="fluxos" element={<ProtectedRoute requiredRoles={['admin', 'manager']}><ErrorBoundary><FluxosManager /></ErrorBoundary></ProtectedRoute>} />
-                  <Route path="regras" element={<ProtectedRoute requiredRoles={['admin', 'manager']}><ErrorBoundary><RegrasManager /></ErrorBoundary></ProtectedRoute>} />
+                  <Route path="agentes" element={<ProtectedRoute><ErrorBoundary><AgentesIAManager /></ErrorBoundary></ProtectedRoute>} />
+                  <Route path="fluxos" element={<ProtectedRoute><ErrorBoundary><FluxosManager /></ErrorBoundary></ProtectedRoute>} />
+                  <Route path="regras" element={<ProtectedRoute><ErrorBoundary><RegrasManager /></ErrorBoundary></ProtectedRoute>} />
                   <Route path="usuarios" element={<ProtectedRoute requiredRoles={['admin', 'manager']}><ErrorBoundary><UsuariosManager /></ErrorBoundary></ProtectedRoute>} />
                   <Route path="logs" element={<ProtectedRoute requiredRoles={['admin', 'manager']}><ErrorBoundary><LogsPanel /></ErrorBoundary></ProtectedRoute>} />
                   <Route path="integracoes" element={<ProtectedRoute><ErrorBoundary><IntegracoesConfig /></ErrorBoundary></ProtectedRoute>} />
@@ -206,13 +206,13 @@ const App = () => (
                     </ProtectedRoute>
                   } />
                   <Route path="documentos" element={<ErrorBoundary><DocumentosManager /></ErrorBoundary>} />
-                  <Route path="departamentos" element={<ProtectedRoute requiredRoles={['admin', 'manager']}><ErrorBoundary><DepartamentosManager /></ErrorBoundary></ProtectedRoute>} />
+                  <Route path="departamentos" element={<ProtectedRoute><ErrorBoundary><DepartamentosManager /></ErrorBoundary></ProtectedRoute>} />
                   <Route path="tags" element={<ErrorBoundary><TagsManager /></ErrorBoundary>} />
                   <Route path="equipe" element={<ProtectedRoute requiredRoles={['admin', 'manager']}><ErrorBoundary><EquipeManager /></ErrorBoundary></ProtectedRoute>} />
                   <Route path="arquivados" element={<ErrorBoundary><ArquivadosView /></ErrorBoundary>} />
                   <Route path="metricas" element={<ErrorBoundary><MetricasOperacionais /></ErrorBoundary>} />
                   <Route path="suporte" element={<ErrorBoundary><SuportePage /></ErrorBoundary>} />
-                  <Route path="base-conhecimento" element={<ProtectedRoute requiredRoles={['admin', 'manager']}><ErrorBoundary><BaseConhecimento /></ErrorBoundary></ProtectedRoute>} />
+                  <Route path="base-conhecimento" element={<ProtectedRoute><ErrorBoundary><BaseConhecimento /></ErrorBoundary></ProtectedRoute>} />
                   {/* Redirects for old SISTEMA paths → new locations */}
                   <Route path="billing" element={<Navigate to="/configuracoes/plano" replace />} />
                   <Route path="administracao" element={<Navigate to="/configuracoes" replace />} />
