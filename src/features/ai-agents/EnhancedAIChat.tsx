@@ -133,7 +133,7 @@ const EnhancedAIChat: React.FC<EnhancedAIChatProps> = ({
         }
     };
 
-    const handleKeyPress = (e: React.KeyboardEvent) => {
+    const handleKeyDown = (e: React.KeyboardEvent) => {
         if (e.key === 'Enter' && !e.shiftKey) {
             e.preventDefault();
             void sendMessage();
@@ -251,7 +251,7 @@ const EnhancedAIChat: React.FC<EnhancedAIChatProps> = ({
                     <Textarea
                         value={input}
                         onChange={(e) => setInput(e.target.value)}
-                        onKeyPress={handleKeyPress}
+                        onKeyDown={handleKeyDown}
                         placeholder="Digite sua mensagem... (Enter para enviar)"
                         className="flex-1 min-h-[60px] max-h-[120px] resize-none focus:ring-2 focus:ring-blue-500 transition-all"
                         disabled={isLoading}
