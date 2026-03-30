@@ -1,27 +1,26 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  ArrowLeft, Loader2, RefreshCw, AlertTriangle,
-  CheckCircle2, Smartphone, MessageSquare, Clock,
+  ArrowLeft, Loader2, AlertTriangle, ExternalLink,
+  CheckCircle2, MessageSquare, Shield,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
 import { cn } from '@/lib/utils';
 
-type WizardStep = 'prepare' | 'scan' | 'syncing' | 'connected';
-type QrState = 'loading' | 'ready' | 'expired' | 'error';
+type WizardStep = 'prepare' | 'connecting' | 'syncing' | 'connected';
+type SetupState = 'idle' | 'loading' | 'ready' | 'error';
 
 interface WhatsAppWizardProps {
   onClose: () => void;
   onConnected: () => void;
 }
 
-const QR_TIMEOUT_SECONDS = 45;
-const POLL_INTERVAL_MS = 2000;
+const POLL_INTERVAL_MS = 5000;
 
 const SYNC_STEPS = [
-  'QR code escaneado',
-  'Autenticação confirmada',
+  'Conta verificada',
+  'Número confirmado',
   'Configurando atendimento automático',
   'Pronto!',
 ] as const;
@@ -30,92 +29,67 @@ const WhatsAppWizard = ({ onClose, onConnected }: WhatsAppWizardProps) => {
   const navigate = useNavigate();
 
   const [step, setStep] = useState<WizardStep>('prepare');
-  const [qrState, setQrState] = useState<QrState>('loading');
-  const [qrCode, setQrCode] = useState<string | null>(null);
-  const [instanceName, setInstanceName] = useState<string | null>(null);
-  const [phoneNumber, setPhoneNumber] = useState<string | null>(null);
-  const [countdown, setCountdown] = useState(QR_TIMEOUT_SECONDS);
+  const [setupState, setSetupState] = useState<SetupState>('idle');
+  const [setupUrl, setSetupUrl] = useState<string | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [syncStep, setSyncStep] = useState(0);
+  const [popupOpen, setPopupOpen] = useState(false);
 
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const countdownRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const cleanup = useCallback(() => {
     if (pollRef.current) clearInterval(pollRef.current);
-    if (countdownRef.current) clearInterval(countdownRef.current);
     pollRef.current = null;
-    countdownRef.current = null;
   }, []);
 
   useEffect(() => cleanup, [cleanup]);
 
-  // --- Preload QR on mount (while user reads Step 1) ---
-  const preloadQR = useCallback(async () => {
-    setQrState('loading');
+  // --- Generate setup link on mount ---
+  const generateSetupLink = useCallback(async () => {
+    setSetupState('loading');
     setErrorMsg(null);
 
     try {
       const { data, error } = await supabase.functions.invoke('kapso-manager', {
-        body: { action: 'create' },
+        body: { action: 'setup' },
       });
 
-      if (error || !data?.success) {
-        throw new Error(data?.error || 'Não foi possível iniciar a conexão.');
+      if (error || !data?.success || !data?.setupUrl) {
+        throw new Error('Não foi possível preparar a conexão.');
       }
 
-      const name = data.instanceName as string;
-      setInstanceName(name);
-
-      if (data.qrcode) {
-        const src = data.qrcode.startsWith('data:') ? data.qrcode : `data:image/png;base64,${data.qrcode}`;
-        setQrCode(src);
-        setQrState('ready');
-        return;
-      }
-
-      // Instance created but no QR — try fetching separately
-      const { data: qrData } = await supabase.functions.invoke('kapso-manager', {
-        body: { action: 'qrcode', instanceName: name },
-      });
-
-      if (qrData?.qrcode) {
-        const src = qrData.qrcode.startsWith('data:') ? qrData.qrcode : `data:image/png;base64,${qrData.qrcode}`;
-        setQrCode(src);
-        setQrState('ready');
-      } else if (data.connected || qrData?.connected) {
-        // Already connected
-        setStep('connected');
-        onConnected();
-      } else {
-        throw new Error('Não foi possível gerar o QR code.');
-      }
+      setSetupUrl(data.setupUrl as string);
+      setSetupState('ready');
     } catch {
-      setQrState('error');
-      setErrorMsg('Não foi possível gerar o QR code. Tente novamente.');
+      setSetupState('error');
+      setErrorMsg('Não foi possível preparar a conexão. Tente novamente.');
     }
-  }, [onConnected]);
+  }, []);
 
   useEffect(() => {
-    void preloadQR();
-  }, [preloadQR]);
+    void generateSetupLink();
+  }, [generateSetupLink]);
 
-  // --- Polling for scan detection ---
-  const startPolling = useCallback(() => {
-    if (!instanceName) return;
-    cleanup();
+  // --- Open setup link + start polling ---
+  const handleConnect = () => {
+    if (!setupUrl) return;
 
-    setCountdown(QR_TIMEOUT_SECONDS);
+    // Open in new tab
+    window.open(setupUrl, '_blank', 'noopener');
+    setPopupOpen(true);
+    setStep('connecting');
 
+    // Start polling for connection status
     pollRef.current = setInterval(() => {
       void (async () => {
         try {
           const { data } = await supabase.functions.invoke('kapso-manager', {
-            body: { action: 'status', instanceName },
+            body: { action: 'status' },
           });
-          if (data?.connected || data?.state === 'open') {
+          // Check if customer now has phone numbers connected
+          const customer = data?.customer;
+          if (customer?.phone_numbers?.length > 0 || customer?.status === 'active') {
             cleanup();
-            setPhoneNumber(data.phoneNumber || data.phone || null);
             setStep('syncing');
           }
         } catch {
@@ -123,59 +97,18 @@ const WhatsAppWizard = ({ onClose, onConnected }: WhatsAppWizardProps) => {
         }
       })();
     }, POLL_INTERVAL_MS);
-
-    countdownRef.current = setInterval(() => {
-      setCountdown((prev) => {
-        if (prev <= 1) {
-          cleanup();
-          setQrState('expired');
-          return 0;
-        }
-        return prev - 1;
-      });
-    }, 1000);
-  }, [instanceName, cleanup]);
-
-  // --- Regenerate QR ---
-  const regenerateQR = useCallback(async () => {
-    if (!instanceName) return;
-    cleanup();
-    setQrState('loading');
-    setErrorMsg(null);
-
-    try {
-      const { data, error } = await supabase.functions.invoke('kapso-manager', {
-        body: { action: 'qrcode', instanceName },
-      });
-
-      if (error || !data?.qrcode) {
-        throw new Error('Não foi possível gerar o QR code. Tente novamente.');
-      }
-
-      const src = data.qrcode.startsWith('data:') ? data.qrcode : `data:image/png;base64,${data.qrcode}`;
-      setQrCode(src);
-      setQrState('ready');
-    } catch {
-      setQrState('error');
-      setErrorMsg('Não foi possível gerar o QR code. Tente novamente.');
-    }
-  }, [instanceName, cleanup]);
-
-  // --- Start polling when entering scan step ---
-  const handleReady = () => {
-    setStep('scan');
-    if (qrState === 'ready') startPolling();
   };
 
-  useEffect(() => {
-    if (step === 'scan' && qrState === 'ready' && !pollRef.current) {
-      startPolling();
-    }
-  }, [step, qrState, startPolling]);
+  // --- Manual "I finished" button ---
+  const handleFinished = () => {
+    setPopupOpen(false);
+    setStep('syncing');
+  };
 
   // --- Trust animation ---
   useEffect(() => {
     if (step !== 'syncing') return;
+    cleanup();
     setSyncStep(0);
     const timers = SYNC_STEPS.map((_, i) =>
       setTimeout(() => {
@@ -189,13 +122,11 @@ const WhatsAppWizard = ({ onClose, onConnected }: WhatsAppWizardProps) => {
       }, (i + 1) * 800),
     );
     return () => timers.forEach(clearTimeout);
-  }, [step, onConnected]);
+  }, [step, onConnected, cleanup]);
 
   // --- Progress indicator ---
-  const stepIndex = step === 'prepare' ? 0 : step === 'scan' ? 1 : 2;
-  const steps = ['Preparar', 'Escanear', 'Pronto'] as const;
-
-  const countdownPct = (countdown / QR_TIMEOUT_SECONDS) * 100;
+  const stepIndex = step === 'prepare' ? 0 : step === 'connecting' ? 1 : 2;
+  const steps = ['Preparar', 'Conectar', 'Pronto'] as const;
 
   return (
     <div className="flex flex-col h-full">
@@ -242,19 +173,21 @@ const WhatsAppWizard = ({ onClose, onConnected }: WhatsAppWizardProps) => {
       {step === 'prepare' && (
         <div className="flex-1 flex flex-col items-center text-center">
           <div className="w-20 h-20 rounded-2xl bg-green-500/10 flex items-center justify-center mb-6">
-            <Smartphone className="h-10 w-10 text-green-600" />
+            <svg className="h-10 w-10 text-green-600" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z" />
+            </svg>
           </div>
 
-          <h2 className="text-xl font-semibold mb-2">Pegue seu celular</h2>
+          <h2 className="text-xl font-semibold mb-2">Conectar WhatsApp</h2>
           <p className="text-sm text-muted-foreground mb-8 max-w-sm">
-            Vamos conectar seu WhatsApp em 3 passos simples.
+            Conecte seu número WhatsApp Business ao Jurify em poucos cliques.
           </p>
 
           <div className="w-full max-w-sm text-left space-y-3 mb-8">
             {[
-              'Abra o WhatsApp no celular',
-              'Toque em ⋮ → Aparelhos conectados',
-              'Toque em Conectar dispositivo',
+              'Você será direcionado para autenticar com o WhatsApp',
+              'Selecione o número que deseja conectar',
+              'Confirme e pronto — o Jurify faz o resto',
             ].map((text, i) => (
               <div key={text} className="flex items-start gap-3">
                 <div className="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0 mt-0.5">
@@ -265,106 +198,110 @@ const WhatsAppWizard = ({ onClose, onConnected }: WhatsAppWizardProps) => {
             ))}
           </div>
 
-          <div className="p-3 rounded-lg bg-muted/50 border text-xs text-muted-foreground max-w-sm mb-8">
-            Funciona igual ao WhatsApp Web. Suas conversas pessoais continuam privadas.
+          <div className="flex items-center gap-2 p-3 rounded-lg bg-muted/50 border text-xs text-muted-foreground max-w-sm mb-8">
+            <Shield className="h-4 w-4 text-green-600 flex-shrink-0" />
+            <span>Conexão segura e criptografada. Apenas seu escritório tem acesso.</span>
           </div>
+
+          {setupState === 'error' && (
+            <div className="w-full max-w-sm mb-4 p-3 rounded-lg bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800">
+              <div className="flex items-center gap-2">
+                <AlertTriangle className="h-4 w-4 text-red-500 flex-shrink-0" />
+                <p className="text-sm text-red-600">{errorMsg}</p>
+              </div>
+            </div>
+          )}
 
           <Button
             size="lg"
             className="w-full max-w-sm bg-green-600 hover:bg-green-700"
-            onClick={handleReady}
-            disabled={qrState === 'loading'}
+            onClick={handleConnect}
+            disabled={setupState === 'loading' || setupState === 'error'}
           >
-            {qrState === 'loading' ? (
+            {setupState === 'loading' ? (
               <>
                 <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                 Preparando...
               </>
+            ) : setupState === 'error' ? (
+              'Conexão indisponível'
             ) : (
-              'Estou pronto'
+              <>
+                <ExternalLink className="h-4 w-4 mr-2" />
+                Conectar WhatsApp
+              </>
             )}
           </Button>
 
-          <p className="text-xs text-muted-foreground mt-3">
-            Usa WhatsApp Business? Também funciona.
+          {setupState === 'error' && (
+            <Button
+              variant="ghost"
+              size="sm"
+              className="mt-2"
+              onClick={() => { void generateSetupLink(); }}
+            >
+              Tentar novamente
+            </Button>
+          )}
+
+          <p className="text-xs text-muted-foreground mt-4 max-w-sm">
+            Uma nova janela será aberta para autenticação. Ao finalizar, volte aqui para confirmar.
           </p>
         </div>
       )}
 
-      {/* ===== STEP: SCAN ===== */}
-      {step === 'scan' && (
-        <div className="flex-1 flex flex-col items-center text-center">
-          <h2 className="text-xl font-semibold mb-2">Escaneie o QR code</h2>
-          <p className="text-sm text-muted-foreground mb-6">
-            Aponte a câmera do celular para o código abaixo.
-          </p>
-
-          <div className="w-72 h-72 rounded-2xl border-2 bg-white flex items-center justify-center relative overflow-hidden">
-            {qrState === 'loading' && (
-              <div className="text-center">
-                <Loader2 className="h-8 w-8 animate-spin text-primary mx-auto mb-2" />
-                <p className="text-sm text-muted-foreground">Gerando QR code...</p>
-              </div>
-            )}
-
-            {qrState === 'ready' && qrCode && (
-              <img src={qrCode} alt="QR Code WhatsApp" className="w-64 h-64 object-contain" />
-            )}
-
-            {qrState === 'expired' && (
-              <div className="text-center p-4">
-                <Clock className="h-10 w-10 text-amber-500 mx-auto mb-3" />
-                <p className="text-sm font-medium text-foreground mb-1">QR expirou</p>
-                <p className="text-xs text-muted-foreground mb-4">Gere um novo para continuar.</p>
-                <Button size="sm" onClick={() => { void regenerateQR(); }}>
-                  <RefreshCw className="h-3.5 w-3.5 mr-1.5" />
-                  Gerar novo QR
-                </Button>
-              </div>
-            )}
-
-            {qrState === 'error' && (
-              <div className="text-center p-4">
-                <AlertTriangle className="h-10 w-10 text-red-500 mx-auto mb-3" />
-                <p className="text-sm text-red-600 mb-1">
-                  {errorMsg || 'Não foi possível gerar o QR code.'}
-                </p>
-                <p className="text-xs text-muted-foreground mb-4">Isso é temporário.</p>
-                <Button size="sm" variant="outline" onClick={() => { void regenerateQR(); }}>
-                  Tentar novamente
-                </Button>
-              </div>
-            )}
+      {/* ===== STEP: CONNECTING (waiting for user to finish in external tab) ===== */}
+      {step === 'connecting' && (
+        <div className="flex-1 flex flex-col items-center justify-center text-center">
+          <div className="w-20 h-20 rounded-2xl bg-amber-500/10 flex items-center justify-center mb-6">
+            <ExternalLink className="h-10 w-10 text-amber-600" />
           </div>
 
-          {/* Countdown bar */}
-          {qrState === 'ready' && (
-            <div className="w-72 mt-3 space-y-1.5">
-              <div className="w-full h-1.5 bg-muted rounded-full overflow-hidden">
-                <div
-                  className={cn(
-                    'h-full rounded-full transition-all duration-1000',
-                    countdownPct > 30 ? 'bg-green-500' : countdownPct > 15 ? 'bg-amber-500' : 'bg-red-500',
-                  )}
-                  style={{ width: `${countdownPct}%` }}
-                />
-              </div>
-              <p className="text-xs text-muted-foreground">
-                QR válido por {countdown}s
-              </p>
+          <h2 className="text-xl font-semibold mb-2">Aguardando conexão...</h2>
+          <p className="text-sm text-muted-foreground mb-8 max-w-sm">
+            Complete a autenticação na janela que foi aberta.
+            Quando terminar, volte aqui.
+          </p>
+
+          {popupOpen && (
+            <div className="flex items-center gap-2 mb-6">
+              <Loader2 className="h-4 w-4 animate-spin text-primary" />
+              <span className="text-sm text-muted-foreground">Verificando conexão automaticamente...</span>
             </div>
           )}
 
-          {/* Back to step 1 */}
-          <Button
-            variant="ghost"
-            size="sm"
-            className="mt-6"
-            onClick={() => { cleanup(); setStep('prepare'); }}
-          >
-            <ArrowLeft className="h-3.5 w-3.5 mr-1.5" />
-            Voltar
-          </Button>
+          <div className="w-full max-w-sm space-y-2">
+            <Button
+              size="lg"
+              className="w-full bg-green-600 hover:bg-green-700"
+              onClick={handleFinished}
+            >
+              <CheckCircle2 className="h-4 w-4 mr-2" />
+              Já finalizei a conexão
+            </Button>
+
+            <Button
+              variant="outline"
+              size="lg"
+              className="w-full"
+              onClick={() => {
+                if (setupUrl) window.open(setupUrl, '_blank', 'noopener');
+              }}
+            >
+              <ExternalLink className="h-4 w-4 mr-2" />
+              Abrir novamente
+            </Button>
+
+            <Button
+              variant="ghost"
+              size="sm"
+              className="w-full mt-2"
+              onClick={() => { cleanup(); setStep('prepare'); }}
+            >
+              <ArrowLeft className="h-3.5 w-3.5 mr-1.5" />
+              Voltar
+            </Button>
+          </div>
         </div>
       )}
 
@@ -405,13 +342,9 @@ const WhatsAppWizard = ({ onClose, onConnected }: WhatsAppWizardProps) => {
           </div>
 
           <h2 className="text-xl font-semibold mb-2">WhatsApp conectado!</h2>
-
-          {phoneNumber && (
-            <div className="px-4 py-2 rounded-lg bg-muted/50 border mb-6">
-              <p className="text-sm font-medium">📱 {phoneNumber}</p>
-              <p className="text-xs text-green-600">● Conectado agora</p>
-            </div>
-          )}
+          <p className="text-sm text-muted-foreground mb-6">
+            Seu número está pronto para receber mensagens.
+          </p>
 
           <div className="w-full max-w-sm text-left space-y-2 mb-8 p-4 rounded-lg bg-muted/30 border">
             <p className="text-sm font-medium mb-3">O que acontece agora:</p>

@@ -98,3 +98,5 @@ vdeps.json
 /ios/App/Pods/
 /android/.gradle/
 /android/app/build/
+.gstack/
+qa-screenshots/
