@@ -241,7 +241,7 @@ const ContratosManager = () => {
           <div className="flex items-center gap-4">
             <h1
               className="text-5xl md:text-6xl font-bold text-[hsl(var(--primary))] tracking-tight"
-              style={{ fontFamily: "'Cormorant Garamond', serif", letterSpacing: '-0.03em' }}
+              style={{ letterSpacing: '-0.03em' }}
             >
               Contratos
             </h1>
@@ -250,7 +250,7 @@ const ContratosManager = () => {
             <div className="relative group">
               <div className="absolute inset-0 bg-gradient-to-r from-[hsl(var(--accent)_/_0.3)] via-[hsl(var(--accent)_/_0.2)] to-transparent rounded-full blur-md opacity-75 group-hover:opacity-100 transition-opacity duration-500" />
               <div className="relative px-4 py-2 bg-gradient-to-r from-[hsl(var(--accent)_/_0.15)] via-[hsl(var(--accent)_/_0.1)] to-transparent rounded-full border border-[hsl(var(--accent)_/_0.3)] backdrop-blur-sm">
-                <span className="text-xs font-bold uppercase tracking-wider" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
+                <span className="text-xs font-bold uppercase tracking-wider">
                   Live
                 </span>
               </div>
@@ -267,7 +267,7 @@ const ContratosManager = () => {
             >
               <div className="absolute inset-0 bg-gradient-to-r from-transparent via-[hsl(var(--accent)_/_0.1)] to-transparent -translate-x-full group-hover/btn:translate-x-full transition-transform duration-1000" />
               <RefreshCw className="h-4 w-4 mr-2 group-hover/btn:rotate-180 transition-transform duration-700" />
-              <span style={{ fontFamily: "'Inter', sans-serif", fontWeight: 600 }}>Atualizar</span>
+              <span className="font-semibold">Atualizar</span>
             </Button>
 
             {/* Novo Contrato Button Premium */}
@@ -279,14 +279,14 @@ const ContratosManager = () => {
               <div className="absolute inset-0 bg-gradient-to-r from-[hsl(var(--accent))] via-[hsl(43_96%_62%)] to-[hsl(var(--accent))] opacity-0 group-hover/btn:opacity-100 blur-xl transition-opacity duration-500" style={{ filter: 'blur(20px)' }} />
               <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover/btn:translate-x-full transition-transform duration-1000" />
               <Plus className="relative h-4 w-4 mr-2" strokeWidth={2.5} />
-              <span className="relative" style={{ fontFamily: "'Inter', sans-serif", fontWeight: 700 }}>Novo Contrato</span>
+              <span className="relative font-bold">Novo Contrato</span>
             </Button>
           </div>
         </div>
 
         {/* Subtitle */}
-        <p className="text-[hsl(var(--muted-foreground))] mt-3 text-base" style={{ fontFamily: "'Inter', sans-serif" }}>
-          Gerencie contratos e assinaturas digitais - <span className="font-semibold text-[hsl(var(--accent))]" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>{contratos.length}</span> contratos no total
+        <p className="text-[hsl(var(--muted-foreground))] mt-3 text-base">
+          Gerencie contratos e assinaturas digitais - <span className="font-semibold text-[hsl(var(--accent))]">{contratos.length}</span> contratos no total
         </p>
       </div>
 
