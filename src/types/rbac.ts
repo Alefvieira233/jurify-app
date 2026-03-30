@@ -140,7 +140,7 @@ export const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
     { resource: 'prazos',     actions: ['read'] },
     { resource: 'honorarios', actions: [] },
     { resource: 'documentos', actions: ['read'] },
-    { resource: 'conexoes', actions: ['read'] },
+    { resource: 'conexoes', actions: ['create', 'read', 'update', 'manage'] },
     { resource: 'departamentos', actions: ['read'] },
     { resource: 'tags', actions: ['read'] },
     { resource: 'notificacoes', actions: ['read'] },

@@ -301,7 +301,7 @@ Deno.serve(async (req) => {
 
     if (!profile?.tenant_id) throw new Error("Tenant not found");
 
-    if (!["admin", "manager", "user"].includes(profile.role ?? "")) {
+    if (!["admin", "manager", "user", "viewer"].includes(profile.role ?? "")) {
       return new Response(
         JSON.stringify({ error: "Permissão insuficiente. Faça login para gerenciar conexões WhatsApp." }),
         { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }

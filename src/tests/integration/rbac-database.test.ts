@@ -94,7 +94,7 @@ function hasPermissionSQL(role: string | null, resource: string, action: string)
       processos: ['read'],
       prazos: ['read'],
       documentos: ['read'],
-      conexoes: ['read'],
+      conexoes: ['create', 'read', 'update', 'manage'],
       departamentos: ['read'],
       tags: ['read'],
       fluxos: ['read'],
