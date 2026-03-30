@@ -73,8 +73,9 @@ export function useConexoes() {
       return (data ?? []) as unknown as ConexaoWhatsApp[];
     },
     enabled: !!tenantId,
-    refetchInterval: 30_000, // poll every 30 seconds
-    refetchIntervalInBackground: false, // only when tab is focused
+    refetchInterval: 30_000,
+    refetchIntervalInBackground: false,
+    refetchOnWindowFocus: true, // immediate refetch when user returns from external tab
   });
 
   const createMutation = useMutation({

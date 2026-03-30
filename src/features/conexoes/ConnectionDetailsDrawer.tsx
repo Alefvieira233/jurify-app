@@ -14,7 +14,6 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
 import { supabase, supabaseUntyped } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { toUserMessage } from '@/lib/errorMessages';
 import { useQueryClient } from '@tanstack/react-query';
 import { useRBAC } from '@/hooks/useRBAC';
 import { useConexoes, useConexaoLogs, useConexaoAlertas, type ConexaoWhatsApp, type ConexaoLog, type ConexaoAlerta } from '@/hooks/useConexoes';
@@ -106,53 +105,47 @@ const ConnectionDetailsDrawer = ({ conexao, open, onOpenChange }: ConnectionDeta
   }, [open]);
 
   const runDiagnostico = useCallback(async () => {
-    if (!conexao?.instance_name) return;
     setDiagLoading(true);
     try {
-      // Run status check and health-check in parallel
       const [statusRes, healthRes] = await Promise.all([
-        supabase.functions.invoke('kapso-manager', {
-          body: { action: 'status', instanceName: conexao.instance_name },
-        }),
-        supabase.functions.invoke('health-check', {
-          body: {},
-        }),
+        supabase.functions.invoke('kapso-manager', { body: { action: 'status' } }),
+        supabase.functions.invoke('health-check', { body: {} }),
       ]);
 
       const statusData = statusRes.data;
       const healthData = healthRes.data;
-      const connected = statusData?.connected || statusData?.state === 'open';
+      const connected = statusData?.connected ?? false;
       const kapsoOk = healthData?.services?.whatsapp_kapso?.status === 'connected'
         || healthData?.services?.whatsapp_kapso === 'connected';
 
       setDiagResult({
-        sessaoConectada: connected ?? false,
-        ultimoHeartbeat: conexao.last_heartbeat,
-        reconexoes: conexao.reconnect_attempts,
-        ultimoErro: conexao.last_error,
+        sessaoConectada: connected,
+        ultimoHeartbeat: conexao?.last_heartbeat ?? null,
+        reconexoes: conexao?.reconnect_attempts ?? 0,
+        ultimoErro: conexao?.last_error ?? null,
         kapsoReachable: statusRes.error ? false : (kapsoOk ?? !healthRes.error),
       });
     } catch {
       setDiagResult({
         sessaoConectada: null,
-        ultimoHeartbeat: conexao.last_heartbeat,
-        reconexoes: conexao.reconnect_attempts,
-        ultimoErro: conexao.last_error,
+        ultimoHeartbeat: conexao?.last_heartbeat ?? null,
+        reconexoes: conexao?.reconnect_attempts ?? 0,
+        ultimoErro: conexao?.last_error ?? null,
         kapsoReachable: false,
       });
       toast({ title: 'Erro ao executar diagnóstico', variant: 'destructive' });
     } finally {
       setDiagLoading(false);
     }
-  }, [conexao?.instance_name, conexao?.last_heartbeat, conexao?.reconnect_attempts, conexao?.last_error, toast]);
+  }, [conexao?.last_heartbeat, conexao?.reconnect_attempts, conexao?.last_error, toast]);
 
   // Auto-run diagnostic when tab opens
   useEffect(() => {
-    if (activeTab === 'diagnostico' && !diagRanOnce && conexao?.instance_name) {
+    if (activeTab === 'diagnostico' && !diagRanOnce && open) {
       setDiagRanOnce(true);
       void runDiagnostico();
     }
-  }, [activeTab, diagRanOnce, conexao?.instance_name, runDiagnostico]);
+  }, [activeTab, diagRanOnce, open, runDiagnostico]);
 
   if (!conexao) return null;
 
@@ -167,14 +160,16 @@ const ConnectionDetailsDrawer = ({ conexao, open, onOpenChange }: ConnectionDeta
   };
 
   const handleReconnect = async () => {
-    if (!conexao.instance_name) return;
     setIsReconnecting(true);
     try {
-      const { error } = await supabase.functions.invoke('kapso-manager', {
-        body: { action: 'restart', instanceName: conexao.instance_name },
+      const { data, error } = await supabase.functions.invoke('kapso-manager', {
+        body: { action: 'setup-link' },
       });
       if (error) throw error;
-      toast({ title: 'Reconexão iniciada' });
+      if (data?.setupUrl) {
+        window.open(data.setupUrl as string, '_blank', 'noopener');
+        toast({ title: 'Reconexão iniciada', description: 'Complete a autenticação na janela que foi aberta.' });
+      }
     } catch {
       toast({ title: 'Erro ao reconectar', variant: 'destructive' });
     } finally {
@@ -183,30 +178,26 @@ const ConnectionDetailsDrawer = ({ conexao, open, onOpenChange }: ConnectionDeta
   };
 
   const handleDisconnect = async () => {
-    if (!conexao.instance_name) return;
     try {
-      const { error } = await supabase.functions.invoke('kapso-manager', {
-        body: { action: 'logout', instanceName: conexao.instance_name },
-      });
-      if (error) { toast({ title: 'Erro ao desconectar', description: toUserMessage(error), variant: 'destructive' }); return; }
-      toast({ title: 'Sessão desconectada' });
+      await deleteConexao(conexao.id);
+      toast({ title: 'Conexão desconectada' });
+      onOpenChange(false);
     } catch {
       toast({ title: 'Erro ao desconectar', variant: 'destructive' });
     }
   };
 
   const handleTestConnection = async () => {
-    if (!conexao.instance_name) return;
     setIsTesting(true);
     try {
       const { data, error } = await supabase.functions.invoke('kapso-manager', {
-        body: { action: 'status', instanceName: conexao.instance_name },
+        body: { action: 'status' },
       });
       if (error) throw error;
-      const connected = data?.connected || data?.state === 'open';
+      const connected = data?.connected ?? false;
       toast({
         title: connected ? 'Conexão ativa' : 'Conexão inativa',
-        description: connected ? 'WhatsApp respondendo normalmente.' : 'A instância não está conectada.',
+        description: connected ? 'WhatsApp respondendo normalmente.' : 'A conexão não está ativa.',
         variant: connected ? 'default' : 'destructive',
       });
     } catch {
@@ -218,12 +209,6 @@ const ConnectionDetailsDrawer = ({ conexao, open, onOpenChange }: ConnectionDeta
 
   const handleDelete = async () => {
     try {
-      if (conexao.instance_name) {
-        const { error } = await supabase.functions.invoke('kapso-manager', {
-          body: { action: 'delete', instanceName: conexao.instance_name },
-        });
-        if (error) { toast({ title: 'Erro ao excluir', description: toUserMessage(error), variant: 'destructive' }); return; }
-      }
       await deleteConexao(conexao.id);
       onOpenChange(false);
     } catch {

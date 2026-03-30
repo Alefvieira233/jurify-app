@@ -135,7 +135,7 @@ EDGE_FUNCTIONS=(
     "create-checkout-session"
     "health-check"
     "send-whatsapp-message"
-    "evolution-manager"
+    "kapso-manager"
     "ai-agent-processor"
 )
 

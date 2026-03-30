@@ -134,7 +134,7 @@ const criticalFiles = [
   'supabase/functions/health-check/index.ts',
   'supabase/functions/_shared/logger.ts',
   'supabase/functions/send-whatsapp-message/index.ts',
-  'supabase/functions/evolution-manager/index.ts',
+  'supabase/functions/kapso-manager/index.ts',
 ];
 const missing = criticalFiles.filter(f => !fs.existsSync(path.join(ROOT, f)));
 checks.push({

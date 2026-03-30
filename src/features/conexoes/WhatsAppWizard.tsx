@@ -44,6 +44,36 @@ const WhatsAppWizard = ({ onClose, onConnected }: WhatsAppWizardProps) => {
 
   useEffect(() => cleanup, [cleanup]);
 
+  // --- Check status on window refocus (user returns from external tab) ---
+  useEffect(() => {
+    if (step !== 'connecting') return;
+
+    const handleFocus = () => {
+      void (async () => {
+        try {
+          const { data } = await supabase.functions.invoke('kapso-manager', {
+            body: { action: 'status' },
+          });
+          if (data?.connected) {
+            cleanup();
+            setStep('syncing');
+          }
+        } catch {
+          // Silent — polling continues
+        }
+      })();
+    };
+
+    window.addEventListener('focus', handleFocus);
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible') handleFocus();
+    });
+
+    return () => {
+      window.removeEventListener('focus', handleFocus);
+    };
+  }, [step, cleanup]);
+
   // --- Generate setup link on mount ---
   const generateSetupLink = useCallback(async () => {
     setSetupState('loading');

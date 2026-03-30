@@ -15,7 +15,6 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { useConexoes, type ConexaoWhatsApp } from '@/hooks/useConexoes';
 import { useRBAC } from '@/hooks/useRBAC';
 import { usePageTitle } from '@/hooks/usePageTitle';
-import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { toUserMessage } from '@/lib/errorMessages';
 import ConfirmDialog from '@/components/ConfirmDialog';
@@ -75,11 +74,6 @@ const ConexoesManager = () => {
     if (!deleteTarget) return;
     setDeleteLoading(true);
     try {
-      if (deleteTarget.instance_name) {
-        await supabase.functions.invoke('kapso-manager', {
-          body: { action: 'delete', instanceName: deleteTarget.instance_name },
-        });
-      }
       await deleteConexao(deleteTarget.id);
       toast({ title: 'Conexão removida' });
     } catch (err) {
@@ -90,16 +84,9 @@ const ConexoesManager = () => {
     }
   };
 
-  const handleReconnect = async (conexao: ConexaoWhatsApp) => {
-    if (!conexao.instance_name) return;
-    try {
-      await supabase.functions.invoke('kapso-manager', {
-        body: { action: 'qrcode', instanceName: conexao.instance_name },
-      });
-      toast({ title: 'Reconexão iniciada', description: 'Abra o WhatsApp no celular para escanear o QR.' });
-    } catch {
-      toast({ title: 'Erro ao reconectar', description: 'Tente novamente em alguns instantes.', variant: 'destructive' });
-    }
+  const handleReconnect = () => {
+    // Open the wizard to generate a new setup link
+    setWizardOpen(true);
   };
 
   return (
@@ -245,7 +232,7 @@ const ConexoesManager = () => {
                             Detalhes
                           </DropdownMenuItem>
                           {conexao.status === 'disconnected' && (
-                            <DropdownMenuItem onClick={(e) => { e.stopPropagation(); void handleReconnect(conexao); }}>
+                            <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleReconnect(); }}>
                               <RefreshCw className="h-4 w-4 mr-2" />
                               Reconectar
                             </DropdownMenuItem>

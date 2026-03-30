@@ -12,7 +12,7 @@ if (!projectRef) {
   console.log('Set SUPABASE_PROJECT_REF env var to fetch live logs.');
   console.log('Usage: SUPABASE_PROJECT_REF=xxx node scripts/fetch-logs.js [function-name]\n');
   console.log('Available functions:');
-  console.log('  ai-agent-processor, chat-completion, evolution-manager,');
+  console.log('  ai-agent-processor, chat-completion, kapso-manager,');
   console.log('  send-whatsapp-message, whatsapp-webhook, health-check,');
   console.log('  stripe-webhook, create-checkout-session, zapsign-integration,');
   console.log('  generate-embedding, vector-search, admin-create-user');
