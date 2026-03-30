@@ -11,6 +11,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { getCorsHeaders } from "../_shared/cors.ts";
 import { getCache, setCache, CACHE_TTL } from "../_shared/cache.ts";
 import { rateLimit, sanitizeInput, redactPII, auditLog } from "../_shared/security.ts";
+import { checkBudgetBeforeCall, recordTokenUsage } from "../_shared/ai-budget.ts";
 
 // SEC-03: Escape LIKE wildcards in user-derived query values
 function escapeLike(value: string): string {
@@ -203,6 +204,18 @@ Deno.serve(async (req) => {
   const { tenant_id: tenantId, nome_completo: userName } = profile;
 
   try {
+    // ── 0. Budget check ──
+    const budgetCheck = await checkBudgetBeforeCall(tenantId);
+    if (!budgetCheck.allowed) {
+      return new Response(
+        JSON.stringify({
+          error: "Limite diário de IA atingido",
+          message: `Uso: ${budgetCheck.tokensUsed.toLocaleString()}/${budgetCheck.budgetLimit.toLocaleString()} tokens. Tente novamente amanhã.`,
+        }),
+        { status: 429, headers: jsonHeaders }
+      );
+    }
+
     // ── 1. Fetch context (cached) ──
     const context = await fetchContextCached(supabase, tenantId);
 
@@ -245,6 +258,10 @@ Deno.serve(async (req) => {
 
     // ── 5. PII redaction ──
     finalText = redactPII(finalText);
+
+    // ── 5b. Record token usage ──
+    const tokensUsed = firstResult?.usage?.total_tokens ?? 0;
+    await recordTokenUsage(tenantId, tokensUsed);
 
     const responseTimeMs = Date.now() - startTime;
 

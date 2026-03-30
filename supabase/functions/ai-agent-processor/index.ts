@@ -13,6 +13,7 @@ import { createClient } from "jsr:@supabase/supabase-js@2";
 import { OpenAI } from "https://deno.land/x/openai@v4.24.0/mod.ts";
 import { applyRateLimit } from "../_shared/rate-limiter.ts";
 import { getCorsHeaders } from "../_shared/cors.ts";
+import { checkBudgetBeforeCall, recordTokenUsage } from "../_shared/ai-budget.ts";
 import { initSentry, captureError } from "../_shared/sentry.ts";
 import { DEFAULT_OPENAI_MODEL } from "../_shared/ai-model.ts";
 
@@ -466,6 +467,19 @@ Deno.serve(async (req) => {
       }
     }
 
+    // Daily budget check
+    const budgetCheck = await checkBudgetBeforeCall(resolvedTenantId);
+    if (!budgetCheck.allowed) {
+      return new Response(
+        JSON.stringify({
+          error: "Limite diário de IA atingido",
+          message: `Uso: ${budgetCheck.tokensUsed.toLocaleString()}/${budgetCheck.budgetLimit.toLocaleString()} tokens.`,
+          code: "DAILY_BUDGET_EXCEEDED",
+        }),
+        { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
     // Verifica API Key da OpenAI
     const openaiApiKey = Deno.env.get("OPENAI_API_KEY");
     if (!openaiApiKey) {
@@ -493,6 +507,9 @@ Deno.serve(async (req) => {
       // âœ… Atualiza execuÃ§Ã£o com sucesso
       const tokensUsed = aiResponse.usage?.total_tokens || 0;
       await completeExecution(supabase, executionId, startTime, tokensUsed, aiRequest.tenantId);
+
+      // Record daily token usage
+      await recordTokenUsage(resolvedTenantId, tokensUsed);
 
       // ðŸ“Š Salva log (nÃ£o-bloqueante)
       logAIProcessing(

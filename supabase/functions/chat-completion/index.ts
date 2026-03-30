@@ -6,6 +6,7 @@ import { getCorsHeaders } from "../_shared/cors.ts";
 import { applyRateLimit } from "../_shared/rate-limiter.ts";
 import { DEFAULT_OPENAI_MODEL } from "../_shared/ai-model.ts";
 import { sanitizeInput } from "../_shared/security.ts";
+import { checkBudgetBeforeCall, recordTokenUsage } from "../_shared/ai-budget.ts";
 
 Deno.serve(async (req) => {
   const corsHeaders = getCorsHeaders(req.headers.get("origin") || undefined);
@@ -59,6 +60,27 @@ Deno.serve(async (req) => {
 
     if (!rateLimitCheck.allowed) {
       return rateLimitCheck.response;
+    }
+
+    // Get tenant_id for budget check
+    const supabaseService = createClient(
+      supabaseUrl,
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
+    );
+    const { data: profile } = await supabaseService.from("profiles").select("tenant_id").eq("id", user.id).single();
+    const tenantId = profile?.tenant_id;
+
+    if (tenantId) {
+      const budgetCheck = await checkBudgetBeforeCall(tenantId);
+      if (!budgetCheck.allowed) {
+        return new Response(
+          JSON.stringify({
+            error: "Limite diário de IA atingido",
+            message: `Uso: ${budgetCheck.tokensUsed.toLocaleString()}/${budgetCheck.budgetLimit.toLocaleString()} tokens.`,
+          }),
+          { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
     }
 
     const { messages, model: requestedModel = DEFAULT_OPENAI_MODEL, temperature = 0.7, stream = false } =
@@ -140,6 +162,12 @@ Deno.serve(async (req) => {
     });
 
     const reply = completion.choices[0]?.message?.content;
+
+    // Record token usage
+    if (tenantId) {
+      const tokensUsed = completion.usage?.total_tokens ?? 0;
+      await recordTokenUsage(tenantId, tokensUsed);
+    }
 
     return new Response(JSON.stringify({ reply }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },

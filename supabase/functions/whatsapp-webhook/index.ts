@@ -5,6 +5,7 @@ import { getCorsHeaders } from "../_shared/cors.ts";
 import { applyRateLimit } from "../_shared/rate-limiter.ts";
 import { buildLegalContext } from "../_shared/legal-context.ts";
 import { DEFAULT_OPENAI_MODEL } from "../_shared/ai-model.ts";
+import { checkBudgetBeforeCall, recordTokenUsage } from "../_shared/ai-budget.ts";
 
 // whatsapp-webhook: Kapso Cloud API + Meta Official API webhook handler
 
@@ -1067,7 +1068,17 @@ async function processNormalizedMessage(supabase: ReturnType<typeof createClient
       executionRowId = execData?.id ?? null;
     } catch { /* non-critical */ }
 
-    try {
+    // Budget check — skip AI if over daily limit (webhook, so no 429)
+    let budgetExceeded = false;
+    if (tenantId) {
+      const budgetCheck = await checkBudgetBeforeCall(tenantId);
+      if (!budgetCheck.allowed) {
+        console.warn(`[whatsapp-webhook] AI budget exceeded for tenant ${tenantId}, skipping AI response`);
+        budgetExceeded = true;
+      }
+    }
+
+    if (!budgetExceeded) try {
       const openaiApiKey = Deno.env.get("OPENAI_API_KEY");
       if (!openaiApiKey) throw new Error("OPENAI_API_KEY not configured");
 
@@ -1108,6 +1119,11 @@ async function processNormalizedMessage(supabase: ReturnType<typeof createClient
           : undefined,
         model: completion.model,
       };
+
+      // Record daily token usage
+      if (tenantId && aiResponse.usage?.total_tokens) {
+        await recordTokenUsage(tenantId, aiResponse.usage.total_tokens);
+      }
 
       // Mark execution completed
       const duration = Date.now() - aiStartTime;
