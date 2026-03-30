@@ -25,6 +25,7 @@ import {
 } from '@/components/agente-form';
 import { createLogger } from '@/lib/logger';
 import { useAuth } from '@/contexts/AuthContext';
+import { useDraftPersistence } from '@/hooks/useDraftPersistence';
 
 const log = createLogger('NovoAgenteForm');
 
@@ -40,7 +41,10 @@ const NovoAgenteForm: React.FC<NovoAgenteFormProps> = ({ agente, defaultType, on
   const { profile } = useAuth();
   const tenantId = profile?.tenant_id || null;
 
-  const [formData, setFormData] = useState({
+  // Draft key: different for create vs edit to avoid cross-contamination
+  const draftKey = agente ? `edit-agente-${agente.id}` : 'novo-agente';
+
+  const [formData, setFormData, clearDraft] = useDraftPersistence(draftKey, {
     nome: '',
     area_juridica: '',
     objetivo: '',
@@ -195,6 +199,7 @@ const NovoAgenteForm: React.FC<NovoAgenteFormProps> = ({ agente, defaultType, on
         });
       }
 
+      clearDraft();
       onClose();
     } catch (error) {
       log.error('Erro ao salvar agente', error);
@@ -220,7 +225,7 @@ const NovoAgenteForm: React.FC<NovoAgenteFormProps> = ({ agente, defaultType, on
             </h2>
           </div>
           <button
-            onClick={onClose}
+            onClick={() => { clearDraft(); onClose(); }}
             className="text-muted-foreground hover:text-muted-foreground"
           >
             <X className="h-5 w-5" />
@@ -261,7 +266,7 @@ const NovoAgenteForm: React.FC<NovoAgenteFormProps> = ({ agente, defaultType, on
             <Button
               type="button"
               variant="outline"
-              onClick={onClose}
+              onClick={() => { clearDraft(); onClose(); }}
               disabled={loading}
             >
               Cancelar
