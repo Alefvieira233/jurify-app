@@ -464,7 +464,7 @@ export function FluxosManager() {
                 </div>
 
                 {/* Action buttons (visible on hover) */}
-                <div className="absolute top-3 right-3 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                <div className="absolute top-3 right-3 flex items-center gap-1 opacity-70 hover:opacity-100 transition-opacity">
                   <Button
                     variant="ghost"
                     size="icon"
