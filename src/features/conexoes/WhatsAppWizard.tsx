@@ -86,9 +86,7 @@ const WhatsAppWizard = ({ onClose, onConnected }: WhatsAppWizardProps) => {
           const { data } = await supabase.functions.invoke('kapso-manager', {
             body: { action: 'status' },
           });
-          // Check if customer now has phone numbers connected
-          const customer = data?.customer;
-          if (customer?.phone_numbers?.length > 0 || customer?.status === 'active') {
+          if (data?.connected) {
             cleanup();
             setStep('syncing');
           }
@@ -102,7 +100,17 @@ const WhatsAppWizard = ({ onClose, onConnected }: WhatsAppWizardProps) => {
   // --- Manual "I finished" button ---
   const handleFinished = () => {
     setPopupOpen(false);
-    setStep('syncing');
+    // Call finalize to persist the connection record, then animate
+    void (async () => {
+      try {
+        await supabase.functions.invoke('kapso-manager', {
+          body: { action: 'finalize' },
+        });
+      } catch {
+        // Best-effort — the status poll auto-finalizes too
+      }
+      setStep('syncing');
+    })();
   };
 
   // --- Trust animation ---

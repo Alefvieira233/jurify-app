@@ -176,12 +176,69 @@ async function getCustomerDetail(customerId: string) {
   return { success: true, customer: data?.data || data };
 }
 
+/**
+ * Persist the connection into conexoes_whatsapp after successful Kapso setup.
+ * This bridges Kapso's customer model with Jurify's connection display layer.
+ */
+async function finalizeConnection(
+  supabase: ReturnType<typeof createClient>,
+  tenantId: string,
+  kapsoCustomerId: string,
+  customer: Record<string, unknown>,
+) {
+  // Extract phone info from Kapso customer data
+  const phones = customer?.phone_numbers as Array<{ display_phone_number?: string; phone_number_id?: string }> | undefined;
+  const phone = phones?.[0];
+  const phoneDisplay = phone?.display_phone_number || null;
+  const phoneNumberId = phone?.phone_number_id || null;
+
+  // Check if a conexoes_whatsapp record already exists for this tenant
+  const { data: existing } = await supabase
+    .from('conexoes_whatsapp')
+    .select('id')
+    .eq('tenant_id', tenantId)
+    .limit(1)
+    .maybeSingle();
+
+  const record = {
+    tenant_id: tenantId,
+    nome: 'WhatsApp Business',
+    telefone: phoneDisplay,
+    tipo: 'cloud_api' as const,
+    provider: 'kapso',
+    instance_name: kapsoCustomerId,
+    status: 'connected' as const,
+    config: {
+      kapso_customer_id: kapsoCustomerId,
+      phone_number_id: phoneNumberId,
+    },
+    updated_at: new Date().toISOString(),
+  };
+
+  if (existing) {
+    const { error } = await supabase
+      .from('conexoes_whatsapp')
+      .update(record)
+      .eq('id', existing.id);
+    if (error) console.error('[kapso-manager] finalize update error:', error.message);
+    return { conexaoId: existing.id, updated: true };
+  } else {
+    const { data: inserted, error } = await supabase
+      .from('conexoes_whatsapp')
+      .insert(record)
+      .select('id')
+      .single();
+    if (error) console.error('[kapso-manager] finalize insert error:', error.message);
+    return { conexaoId: inserted?.id, created: true };
+  }
+}
+
 // ---------------------------------------------------------------------------
 // Request interface
 // ---------------------------------------------------------------------------
 
 interface KapsoRequest {
-  action: 'setup' | 'setup-link' | 'status' | 'health';
+  action: 'setup' | 'setup-link' | 'status' | 'finalize' | 'health';
 }
 
 // ---------------------------------------------------------------------------
@@ -269,7 +326,57 @@ Deno.serve(async (req) => {
         // Check customer status on Kapso
         const { customerId } = await ensureKapsoCustomer(profile.tenant_id, supabase);
         const detail = await getCustomerDetail(customerId);
-        result = { ...detail, customerId };
+
+        // Auto-finalize if phone numbers are connected but no conexoes_whatsapp record exists
+        const customer = detail.customer as Record<string, unknown> | undefined;
+        const phoneNumbers = customer?.phone_numbers as unknown[] | undefined;
+        if (detail.success && phoneNumbers && phoneNumbers.length > 0) {
+          const { data: existingConn } = await supabase
+            .from('conexoes_whatsapp')
+            .select('id')
+            .eq('tenant_id', profile.tenant_id)
+            .eq('status', 'connected')
+            .limit(1)
+            .maybeSingle();
+
+          if (!existingConn) {
+            await finalizeConnection(supabase, profile.tenant_id, customerId, customer ?? {});
+            console.log(`[kapso-manager] auto-finalized connection for tenant ${profile.tenant_id}`);
+          }
+        }
+
+        result = {
+          ...detail,
+          customerId,
+          connected: !!(phoneNumbers && phoneNumbers.length > 0),
+        };
+        break;
+      }
+
+      case 'finalize': {
+        // Explicitly persist the connection after user confirms setup is done
+        const { customerId: fcId } = await ensureKapsoCustomer(profile.tenant_id, supabase);
+        const fDetail = await getCustomerDetail(fcId);
+        const fCustomer = fDetail.customer as Record<string, unknown> | undefined;
+
+        if (!fDetail.success) {
+          result = { success: false, error: 'Não foi possível verificar o status da conexão.' };
+          break;
+        }
+
+        const { conexaoId, created, updated } = await finalizeConnection(
+          supabase, profile.tenant_id, fcId, fCustomer ?? {},
+        );
+
+        result = {
+          success: true,
+          conexaoId,
+          created: created ?? false,
+          updated: updated ?? false,
+          customerId: fcId,
+        };
+
+        console.log(`[kapso-manager] finalized connection for tenant ${profile.tenant_id} (${created ? 'created' : 'updated'})`);
         break;
       }
 
