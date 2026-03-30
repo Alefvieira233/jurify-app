@@ -1,4 +1,5 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useCallback } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabaseUntyped as supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
@@ -23,46 +24,39 @@ export interface TrainingDocument {
 }
 
 export const useAgentTraining = () => {
-  const [documents, setDocuments] = useState<TrainingDocument[]>([]);
-  const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
   const { user, profile } = useAuth();
   const { toast } = useToast();
   const tenantId = profile?.tenant_id;
+  const queryClient = useQueryClient();
 
-  // Fetch training documents
-  const fetchDocuments = useCallback(async () => {
-    if (!user || !tenantId) {
-      setDocuments([]);
-      setLoading(false);
-      return;
-    }
-
-    try {
-      setLoading(true);
+  const { data: documents = [], isLoading: loading } = useQuery({
+    queryKey: ['agent-training-documents', tenantId],
+    queryFn: async () => {
       const { data, error } = await supabase
         .from('agent_training_documents')
         .select('*')
-        .eq('tenant_id', tenantId)
+        .eq('tenant_id', tenantId!)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      setDocuments((data || []) as TrainingDocument[]);
-    } catch (err) {
-      log.error('Erro ao carregar documentos de treinamento', err);
-    } finally {
-      setLoading(false);
-    }
-  }, [user, tenantId]);
+      return (data || []) as TrainingDocument[];
+    },
+    enabled: !!user && !!tenantId,
+    staleTime: 5 * 60 * 1000,
+  });
 
-  useEffect(() => {
-    void fetchDocuments();
-  }, [fetchDocuments]);
+  const invalidate = useCallback(() => {
+    void queryClient.invalidateQueries({ queryKey: ['agent-training-documents', tenantId] });
+  }, [queryClient, tenantId]);
 
-  // Helpers — stable references (declared before consumers)
+  // Helpers -- stable references
   const updateLocalDoc = useCallback((docId: string, updates: Partial<TrainingDocument>) => {
-    setDocuments(prev => prev.map(d => d.id === docId ? { ...d, ...updates } : d));
-  }, []);
+    queryClient.setQueryData<TrainingDocument[]>(
+      ['agent-training-documents', tenantId],
+      (prev) => (prev || []).map(d => d.id === docId ? { ...d, ...updates } : d)
+    );
+  }, [queryClient, tenantId]);
 
   const updateDocStatus = useCallback(async (docId: string, status: string, errorMessage: string | null) => {
     await supabase
@@ -123,7 +117,10 @@ export const useAgentTraining = () => {
       const docId = (docRecord as TrainingDocument).id;
 
       // Add to local state immediately (optimistic)
-      setDocuments(prev => [docRecord as TrainingDocument, ...prev]);
+      queryClient.setQueryData<TrainingDocument[]>(
+        ['agent-training-documents', tenantId],
+        (prev) => [docRecord as TrainingDocument, ...(prev || [])]
+      );
 
       // 2. Upload to Supabase Storage
       const storagePath = `training/${tenantId}/${docId}/${file.name}`;
@@ -231,14 +228,15 @@ export const useAgentTraining = () => {
     } finally {
       setUploading(false);
     }
-  }, [user, tenantId, toast, updateDocStatus, updateLocalDoc]);
+  }, [user, tenantId, toast, updateDocStatus, updateLocalDoc, queryClient]);
 
   // Delete a training document and its embeddings
-  const deleteDocument = useCallback(async (docId: string): Promise<boolean> => {
-    if (!user || !tenantId) return false;
+  const deleteMutation = useMutation({
+    mutationFn: async (docId: string) => {
+      if (!user || !tenantId) throw new Error('Not authenticated');
 
-    try {
-      const doc = documents.find(d => d.id === docId);
+      const currentDocs = queryClient.getQueryData<TrainingDocument[]>(['agent-training-documents', tenantId]) || [];
+      const doc = currentDocs.find(d => d.id === docId);
 
       // 1. Delete embeddings from documents table (via doc_id in metadata)
       const { error: embeddingError } = await supabase
@@ -265,29 +263,39 @@ export const useAgentTraining = () => {
 
       if (deleteError) throw deleteError;
 
-      setDocuments(prev => prev.filter(d => d.id !== docId));
-
+      return doc;
+    },
+    onSuccess: (doc, docId) => {
+      queryClient.setQueryData<TrainingDocument[]>(
+        ['agent-training-documents', tenantId],
+        (prev) => (prev || []).filter(d => d.id !== docId)
+      );
       toast({
         title: 'Documento removido',
         description: `"${doc?.file_name || 'Documento'}" e seus embeddings foram removidos da base de conhecimento.`,
       });
-
-      return true;
-    } catch (err) {
+    },
+    onError: (err) => {
       const message = err instanceof Error ? err.message : 'Erro ao remover documento';
       log.error('Erro ao deletar documento de treinamento', err);
-      toast({
-        title: 'Erro ao remover',
-        description: message,
-        variant: 'destructive',
-      });
+      toast({ title: 'Erro ao remover', description: message, variant: 'destructive' });
+    },
+  });
+
+  const deleteDocument = useCallback(async (docId: string): Promise<boolean> => {
+    if (!user || !tenantId) return false;
+    try {
+      await deleteMutation.mutateAsync(docId);
+      return true;
+    } catch {
       return false;
     }
-  }, [user, tenantId, documents, toast]);
+  }, [user, tenantId, deleteMutation]);
 
   // Retry a failed document
   const retryDocument = useCallback(async (docId: string): Promise<boolean> => {
-    const doc = documents.find(d => d.id === docId);
+    const currentDocs = queryClient.getQueryData<TrainingDocument[]>(['agent-training-documents', tenantId]) || [];
+    const doc = currentDocs.find(d => d.id === docId);
     if (!doc?.storage_path || !tenantId) return false;
 
     try {
@@ -357,7 +365,11 @@ export const useAgentTraining = () => {
       log.error('Erro ao reprocessar documento', err);
       return false;
     }
-  }, [documents, tenantId, toast, updateDocStatus, updateLocalDoc]);
+  }, [tenantId, toast, updateDocStatus, updateLocalDoc, queryClient]);
+
+  const fetchDocuments = useCallback(async () => {
+    invalidate();
+  }, [invalidate]);
 
   const stats = {
     total: documents.length,

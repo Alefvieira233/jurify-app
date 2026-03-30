@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabaseUntyped as supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
@@ -60,26 +61,18 @@ interface UseWhatsAppConversationsReturn {
 }
 
 export const useWhatsAppConversations = (): UseWhatsAppConversationsReturn => {
-  const [conversations, setConversations] = useState<WhatsAppConversation[]>([]);
   const [messages, setMessages] = useState<WhatsAppMessage[]>([]);
-  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedConversation, setSelectedConversation] = useState<WhatsAppConversation | null>(null);
   const [hasMoreMessages, setHasMoreMessages] = useState(false);
   const { user, profile } = useAuth();
   const { toast } = useToast();
+  const queryClient = useQueryClient();
 
-  // Fetch conversas
-  const fetchConversations = useCallback(async () => {
-    if (!user) {
-      setConversations([]);
-      setLoading(false);
-      return;
-    }
-
-    try {
+  const { data: conversations = [], isLoading: loading } = useQuery({
+    queryKey: ['whatsapp-conversations', profile?.tenant_id],
+    queryFn: async () => {
       log.debug('Carregando conversas');
-      setLoading(true);
       setError(null);
 
       let query = supabase
@@ -95,25 +88,22 @@ export const useWhatsAppConversations = (): UseWhatsAppConversationsReturn => {
 
       if (fetchError) throw fetchError;
 
-      setConversations(data || []);
       log.debug(`${data?.length || 0} conversas carregadas`);
-    } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : 'Erro ao carregar conversas';
-      log.error('Erro ao carregar conversas', err);
-      setError(message);
-      toast({
-        title: 'Erro ao carregar conversas',
-        description: message,
-        variant: 'destructive',
-      });
-    } finally {
-      setLoading(false);
-    }
-  }, [user, profile?.tenant_id, toast]);
+      return (data || []) as WhatsAppConversation[];
+    },
+    enabled: !!user,
+    staleTime: 5 * 60 * 1000,
+    meta: {
+      onError: (err: unknown) => {
+        const message = err instanceof Error ? err.message : 'Erro ao carregar conversas';
+        setError(message);
+      },
+    },
+  });
 
   const MESSAGE_PAGE_SIZE = 50;
 
-  // Fetch mensagens de uma conversa específica (paginado)
+  // Fetch mensagens de uma conversa especifica (paginado)
   const fetchMessages = useCallback(async (conversationId: string) => {
     try {
       log.debug(`Carregando mensagens da conversa ${conversationId}`);
@@ -165,7 +155,7 @@ export const useWhatsAppConversations = (): UseWhatsAppConversationsReturn => {
     _sender: 'agent'
   ): Promise<boolean> => {
     try {
-      // 1. Busca informações da conversa para obter o número do lead
+      // 1. Busca informacoes da conversa para obter o numero do lead
       const { data: conversation, error: convError } = await supabase
         .from('whatsapp_conversations')
         .select('phone_number, lead_id, tenant_id')
@@ -202,8 +192,7 @@ export const useWhatsAppConversations = (): UseWhatsAppConversationsReturn => {
 
       log.info('Mensagem enviada via WhatsApp', { messageId: sendResult.messageId });
 
-      // 3. A Edge Function já salva a mensagem no banco, mas vamos garantir que a UI atualize
-      // Atualizar última mensagem da conversa (caso a Edge Function não tenha feito)
+      // 3. A Edge Function ja salva a mensagem no banco, mas vamos garantir que a UI atualize
       await supabase
         .from('whatsapp_conversations')
         .update({
@@ -231,7 +220,7 @@ export const useWhatsAppConversations = (): UseWhatsAppConversationsReturn => {
     }
   }, [toast]);
 
-  // Enviar mídia (imagem, áudio, documento)
+  // Enviar midia (imagem, audio, documento)
   const sendMedia = useCallback(async (
     conversationId: string,
     file: File,
@@ -331,9 +320,10 @@ export const useWhatsAppConversations = (): UseWhatsAppConversationsReturn => {
 
       await readQuery;
 
-      // Atualizar estado local
-      setConversations(prev =>
-        prev.map(conv =>
+      // Optimistic update in cache
+      queryClient.setQueryData<WhatsAppConversation[]>(
+        ['whatsapp-conversations', profile.tenant_id],
+        (prev) => (prev || []).map(conv =>
           conv.id === conversationId
             ? { ...conv, unread_count: 0 }
             : conv
@@ -347,7 +337,7 @@ export const useWhatsAppConversations = (): UseWhatsAppConversationsReturn => {
         variant: 'destructive',
       });
     }
-  }, [toast, profile?.tenant_id]);
+  }, [toast, profile?.tenant_id, queryClient]);
 
   // Toggle IA on/off for a conversation
   const toggleIA = useCallback(async (conversationId: string) => {
@@ -364,9 +354,10 @@ export const useWhatsAppConversations = (): UseWhatsAppConversationsReturn => {
         .eq('id', conversationId)
         .eq('tenant_id', profile.tenant_id);
 
-      // Update local state
-      setConversations(prev =>
-        prev.map(c =>
+      // Optimistic update in cache
+      queryClient.setQueryData<WhatsAppConversation[]>(
+        ['whatsapp-conversations', profile.tenant_id],
+        (prev) => (prev || []).map(c =>
           c.id === conversationId ? { ...c, ia_active: newValue } : c
         )
       );
@@ -389,9 +380,9 @@ export const useWhatsAppConversations = (): UseWhatsAppConversationsReturn => {
         variant: 'destructive',
       });
     }
-  }, [conversations, selectedConversation?.id, toast, profile?.tenant_id]);
+  }, [conversations, selectedConversation?.id, toast, profile?.tenant_id, queryClient]);
 
-  // Channel de conversas — não depende de selectedConversation, não é recriado ao trocar de conversa
+  // Channel de conversas -- nao depende de selectedConversation, nao e recriado ao trocar de conversa
   useEffect(() => {
     if (!user) return undefined;
 
@@ -406,17 +397,22 @@ export const useWhatsAppConversations = (): UseWhatsAppConversationsReturn => {
         { event: '*', schema: 'public', table: 'whatsapp_conversations', ...(tenantFilter ? { filter: tenantFilter } : {}) },
         (payload) => {
           log.debug('Mudança em conversa', { event: payload.eventType });
-          if (payload.eventType === 'INSERT') {
-            setConversations(prev => [payload.new as WhatsAppConversation, ...prev]);
-          } else if (payload.eventType === 'UPDATE') {
-            setConversations(prev =>
-              prev.map(conv =>
-                conv.id === payload.new.id ? (payload.new as WhatsAppConversation) : conv
-              )
-            );
-          } else if (payload.eventType === 'DELETE') {
-            setConversations(prev => prev.filter(conv => conv.id !== payload.old.id));
-          }
+          queryClient.setQueryData<WhatsAppConversation[]>(
+            ['whatsapp-conversations', profile?.tenant_id],
+            (prev) => {
+              if (!prev) return prev;
+              if (payload.eventType === 'INSERT') {
+                return [payload.new as WhatsAppConversation, ...prev];
+              } else if (payload.eventType === 'UPDATE') {
+                return prev.map(conv =>
+                  conv.id === payload.new.id ? (payload.new as WhatsAppConversation) : conv
+                );
+              } else if (payload.eventType === 'DELETE') {
+                return prev.filter(conv => conv.id !== payload.old.id);
+              }
+              return prev;
+            }
+          );
         }
       )
       .subscribe();
@@ -424,9 +420,9 @@ export const useWhatsAppConversations = (): UseWhatsAppConversationsReturn => {
     return () => {
       void supabase.removeChannel(conversationsChannel);
     };
-  }, [user, profile?.tenant_id]);
+  }, [user, profile?.tenant_id, queryClient]);
 
-  // Channel de mensagens — recriado apenas quando a conversa selecionada muda
+  // Channel de mensagens -- recriado apenas quando a conversa selecionada muda
   useEffect(() => {
     if (!user || !selectedConversation) return undefined;
 
@@ -455,11 +451,6 @@ export const useWhatsAppConversations = (): UseWhatsAppConversationsReturn => {
   // eslint-disable-next-line react-hooks/exhaustive-deps -- selectedConversation?.id is intentional: re-run only when ID changes, not when other props update
   }, [user, selectedConversation?.id]);
 
-  // Initial load
-  useEffect(() => {
-    void fetchConversations();
-  }, [fetchConversations]);
-
   // Auto-select first conversation (evitar race condition)
   const hasAutoSelectedRef = useRef(false);
   useEffect(() => {
@@ -469,6 +460,21 @@ export const useWhatsAppConversations = (): UseWhatsAppConversationsReturn => {
       hasAutoSelectedRef.current = true;
     }
   }, [conversations, selectedConversation, selectConversation]);
+
+  const fetchConversations = useCallback(async () => {
+    try {
+      await queryClient.invalidateQueries({ queryKey: ['whatsapp-conversations', profile?.tenant_id] });
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Erro ao carregar conversas';
+      log.error('Erro ao carregar conversas', err);
+      setError(message);
+      toast({
+        title: 'Erro ao carregar conversas',
+        description: message,
+        variant: 'destructive',
+      });
+    }
+  }, [queryClient, profile?.tenant_id, toast]);
 
   const isEmpty = conversations.length === 0;
 

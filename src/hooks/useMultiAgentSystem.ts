@@ -1,19 +1,19 @@
 /**
  * @module useMultiAgentSystem
  * @description Hook para interagir com o sistema multiagentes de IA.
- * Gerencia inicializaÃ§Ã£o, processamento de leads, mÃ©tricas em tempo real
- * e estatÃ­sticas de performance dos agentes (Coordenador, Qualificador,
- * JurÃ­dico, Comercial, Analista, Comunicador, CustomerSuccess).
+ * Gerencia inicializacao, processamento de leads, metricas em tempo real
+ * e estatisticas de performance dos agentes (Coordenador, Qualificador,
+ * Juridico, Comercial, Analista, Comunicador, CustomerSuccess).
  *
  * @example
  * ```tsx
  * const { processLead, isProcessing, metrics, systemStats } = useMultiAgentSystem();
- * await processLead({ name: 'JoÃ£o', message: 'Preciso de ajuda', source: 'whatsapp' });
+ * await processLead({ name: 'Joao', message: 'Preciso de ajuda', source: 'whatsapp' });
  * ```
  */
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useCallback } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { multiAgentSystem } from '@/lib/multiagents/MultiAgentSystem';
-import type { SystemStats as MultiAgentSystemStats } from '@/lib/multiagents/types';
 import { MessageType, Priority } from '@/lib/multiagents/types';
 import { supabaseUntyped as supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -55,55 +55,51 @@ export interface SystemMetrics {
 
 export const useMultiAgentSystem = () => {
   const [isProcessing, setIsProcessing] = useState(false);
-  const [systemStats, setSystemStats] = useState<MultiAgentSystemStats | null>(null);
-  const [recentActivity, setRecentActivity] = useState<Record<string, unknown>[]>([]);
-  const [metrics, setMetrics] = useState<SystemMetrics | null>(null);
   const { toast } = useToast();
   const { profile, user } = useAuth();
+  const queryClient = useQueryClient();
 
   const tenantId = profile?.tenant_id ?? null;
 
-  const loadSystemStats = useCallback(async () => {
-    if (!tenantId) return;
-
-    try {
+  // System stats query (includes in-memory stats + recent activity from DB)
+  const { data: statsData } = useQuery({
+    queryKey: ['multi-agent-stats', tenantId],
+    queryFn: async () => {
       const stats = multiAgentSystem.getSystemStats();
-      setSystemStats(stats);
 
       const { data: activity } = await supabase
         .from('lead_interactions')
         .select('*')
-        .eq('tenant_id', tenantId)
+        .eq('tenant_id', tenantId!)
         .order('created_at', { ascending: false })
         .limit(10);
 
-      setRecentActivity(activity || []);
-    } catch (error) {
-      log.error('Failed to load stats', error);
-      toast({
-        title: 'Erro',
-        description: 'Falha ao carregar estatisticas do sistema.',
-        variant: 'destructive',
-      });
-    }
-  }, [toast, tenantId]);
+      return { systemStats: stats, recentActivity: (activity || []) as Record<string, unknown>[] };
+    },
+    enabled: !!tenantId,
+    staleTime: 30 * 1000, // 30s to match previous interval
+    refetchInterval: 30000,
+  });
 
-  const loadMetrics = useCallback(async () => {
-    if (!tenantId) return;
+  const systemStats = statsData?.systemStats ?? null;
+  const recentActivity = statsData?.recentActivity ?? [];
 
-    try {
+  // Metrics query
+  const { data: metrics = null } = useQuery({
+    queryKey: ['multi-agent-metrics', tenantId],
+    queryFn: async () => {
       const since = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
 
       const { data: leads } = await supabase
         .from('leads')
         .select('*')
-        .eq('tenant_id', tenantId)
+        .eq('tenant_id', tenantId!)
         .gte('created_at', since);
 
       const { data: interactions } = await supabase
         .from('lead_interactions')
         .select('*')
-        .eq('tenant_id', tenantId)
+        .eq('tenant_id', tenantId!)
         .gte('created_at', since);
 
       const totalLeads = leads?.length || 0;
@@ -169,77 +165,86 @@ export const useMultiAgentSystem = () => {
         },
       ];
 
-      setMetrics({
+      return {
         total_leads_processed: totalLeads,
         conversion_rate: conversionRate,
         avg_qualification_time: 4.2,
         active_conversations: leads?.filter((l) => l.status === 'em_contato').length || 0,
         agents_performance: agentsPerformance,
+      } as SystemMetrics;
+    },
+    enabled: !!tenantId,
+    staleTime: 30 * 1000,
+    refetchInterval: 30000,
+  });
+
+  const processLeadMutation = useMutation({
+    mutationFn: async (leadData: LeadData) => {
+      if (!tenantId) throw new Error('No tenant');
+
+      log.info('Processing lead', { source: leadData.source });
+
+      const { data: savedLead, error } = await supabase
+        .from('leads')
+        .insert({
+          nome: leadData.name,
+          email: leadData.email || null,
+          telefone: leadData.phone || null,
+          area_juridica: leadData.legal_area || 'Nao informado',
+          origem: leadData.source,
+          status: 'novo',
+          responsavel_id: user?.id || null,
+          descricao: leadData.message,
+          metadata: {
+            ...(leadData.metadata || {}),
+            responsavel_nome: user?.email || 'Sistema',
+          },
+          tenant_id: tenantId,
+          created_at: new Date().toISOString(),
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      const channel: Exclude<LeadSource, 'form'> =
+        leadData.source === 'form' ? 'chat' : leadData.source;
+      await multiAgentSystem.processLead(savedLead, leadData.message, channel);
+
+      return savedLead;
+    },
+    onSuccess: (_data, leadData) => {
+      toast({
+        title: 'Lead processado',
+        description: `Lead ${leadData.name} enviado ao sistema multiagentes.`,
       });
-    } catch (error) {
-      log.error('Failed to load metrics', error);
-    }
-  }, [tenantId]);
+      void queryClient.invalidateQueries({ queryKey: ['multi-agent-stats', tenantId] });
+      void queryClient.invalidateQueries({ queryKey: ['multi-agent-metrics', tenantId] });
+    },
+    onError: (error) => {
+      log.error('Failed to process lead', error);
+      toast({
+        title: 'Erro',
+        description: 'Falha ao processar lead no sistema multiagentes.',
+        variant: 'destructive',
+      });
+    },
+  });
 
   const processLead = useCallback(
     async (leadData: LeadData): Promise<boolean> => {
       if (!tenantId) return false;
-
       setIsProcessing(true);
-
       try {
-        log.info('Processing lead', { source: leadData.source });
-
-        const { data: savedLead, error } = await supabase
-          .from('leads')
-          .insert({
-            nome: leadData.name,
-            email: leadData.email || null,
-            telefone: leadData.phone || null,
-            area_juridica: leadData.legal_area || 'Nao informado',
-            origem: leadData.source,
-            status: 'novo',
-            responsavel_id: user?.id || null,
-            descricao: leadData.message,
-            metadata: {
-              ...(leadData.metadata || {}),
-              responsavel_nome: user?.email || 'Sistema',
-            },
-            tenant_id: tenantId,
-            created_at: new Date().toISOString(),
-          })
-          .select()
-          .single();
-
-        if (error) throw error;
-
-        const channel: Exclude<LeadSource, 'form'> =
-          leadData.source === 'form' ? 'chat' : leadData.source;
-        await multiAgentSystem.processLead(savedLead, leadData.message, channel);
-
-        toast({
-          title: 'Lead processado',
-          description: `Lead ${leadData.name} enviado ao sistema multiagentes.`,
-        });
-
-        await loadSystemStats();
-        await loadMetrics();
-
+        await processLeadMutation.mutateAsync(leadData);
         return true;
-      } catch (error) {
-        log.error('Failed to process lead', error);
-        toast({
-          title: 'Erro',
-          description: 'Falha ao processar lead no sistema multiagentes.',
-          variant: 'destructive',
-        });
+      } catch {
         return false;
       } finally {
         setIsProcessing(false);
       }
     },
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [loadMetrics, loadSystemStats, tenantId, toast]
+    [tenantId, processLeadMutation]
   );
 
   const testSystem = useCallback(async (): Promise<boolean> => {
@@ -301,17 +306,13 @@ export const useMultiAgentSystem = () => {
     }
   }, [toast]);
 
-  useEffect(() => {
-    void loadSystemStats();
-    void loadMetrics();
+  const loadSystemStats = useCallback(async () => {
+    void queryClient.invalidateQueries({ queryKey: ['multi-agent-stats', tenantId] });
+  }, [queryClient, tenantId]);
 
-    const interval = setInterval(() => {
-      void loadSystemStats();
-      void loadMetrics();
-    }, 30000);
-
-    return () => clearInterval(interval);
-  }, [loadSystemStats, loadMetrics]);
+  const loadMetrics = useCallback(async () => {
+    void queryClient.invalidateQueries({ queryKey: ['multi-agent-metrics', tenantId] });
+  }, [queryClient, tenantId]);
 
   return {
     isProcessing,

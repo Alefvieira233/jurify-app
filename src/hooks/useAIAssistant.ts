@@ -1,11 +1,15 @@
 /**
- * useAIAssistant Hook — v2
+ * useAIAssistant Hook -- v2
  *
  * Manages assistant state, API calls, and analytics tracking.
  * Used by AIAssistantChat component and can be reused elsewhere.
+ *
+ * Note: Messages are local UI state (chat history), not server state,
+ * so they remain in useState. Only the sendMessage call uses useMutation.
  */
 
 import { useState, useCallback } from 'react';
+import { useMutation } from '@tanstack/react-query';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabaseUntyped as supabase } from '@/integrations/supabase/client';
 import { trackQuery, trackError, getAnalyticsSummary } from '@/lib/assistantAnalytics';
@@ -30,30 +34,19 @@ interface UseAIAssistantReturn {
 export function useAIAssistant(): UseAIAssistantReturn {
   const { user } = useAuth();
   const [messages, setMessages] = useState<AssistantMessage[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
 
-  const sendMessage = useCallback(async (message: string) => {
-    if (!message.trim() || !user || isLoading) return;
-
-    const userMsg: AssistantMessage = {
-      id: `u-${Date.now()}`,
-      role: 'user',
-      content: message.trim(),
-      timestamp: new Date(),
-    };
-
-    setMessages(prev => [...prev, userMsg]);
-    setIsLoading(true);
-
-    try {
+  const sendMutation = useMutation({
+    mutationFn: async (userContent: string) => {
       const session = await supabase.auth.getSession();
       const { data, error } = await supabase.functions.invoke('assistant', {
-        body: { message: userMsg.content, userId: user.id },
+        body: { message: userContent, userId: user!.id },
         headers: { Authorization: `Bearer ${session.data.session?.access_token}` },
       });
 
       if (error) throw error;
-
+      return data as { response?: string; response_time_ms?: number; tools_used?: string[] };
+    },
+    onSuccess: (data, userContent) => {
       const responseTimeMs = data?.response_time_ms ?? 0;
       const toolsUsed = data?.tools_used ?? [];
 
@@ -67,10 +60,11 @@ export function useAIAssistant(): UseAIAssistantReturn {
       };
 
       setMessages(prev => [...prev, assistantMsg]);
-      trackQuery(userMsg.content, responseTimeMs, toolsUsed, true);
-    } catch (err) {
+      trackQuery(userContent, responseTimeMs, toolsUsed, true);
+    },
+    onError: (err, userContent) => {
       const errorMsg = err instanceof Error ? err.message : String(err);
-      trackQuery(userMsg.content, 0, [], false);
+      trackQuery(userContent, 0, [], false);
       trackError('invoke_failed', { error: errorMsg });
 
       setMessages(prev => [...prev, {
@@ -79,10 +73,22 @@ export function useAIAssistant(): UseAIAssistantReturn {
         content: 'Desculpe, ocorreu um erro ao processar sua mensagem. Tente novamente.',
         timestamp: new Date(),
       }]);
-    } finally {
-      setIsLoading(false);
-    }
-  }, [user, isLoading]);
+    },
+  });
+
+  const sendMessage = useCallback(async (message: string) => {
+    if (!message.trim() || !user || sendMutation.isPending) return;
+
+    const userMsg: AssistantMessage = {
+      id: `u-${Date.now()}`,
+      role: 'user',
+      content: message.trim(),
+      timestamp: new Date(),
+    };
+
+    setMessages(prev => [...prev, userMsg]);
+    await sendMutation.mutateAsync(message.trim());
+  }, [user, sendMutation]);
 
   const clearHistory = useCallback(() => {
     setMessages([]);
@@ -90,7 +96,7 @@ export function useAIAssistant(): UseAIAssistantReturn {
 
   return {
     messages,
-    isLoading,
+    isLoading: sendMutation.isPending,
     sendMessage,
     clearHistory,
     analytics: getAnalyticsSummary(),

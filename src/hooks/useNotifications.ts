@@ -1,7 +1,7 @@
 /**
  * @module useNotifications
- * @description Hook para gerenciamento de notificações do sistema.
- * Carrega, cria, marca como lida e conta notificações não lidas
+ * @description Hook para gerenciamento de notificacoes do sistema.
+ * Carrega, cria, marca como lida e conta notificacoes nao lidas
  * por tenant, com suporte a tipos (info, alerta, sucesso, erro).
  *
  * @example
@@ -9,7 +9,8 @@
  * const { notifications, unreadCount, markAsRead, createNotification } = useNotifications();
  * ```
  */
-import { useState, useEffect, useCallback } from 'react';
+import { useCallback } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
@@ -36,40 +37,34 @@ type Notification = {
 export const useNotifications = () => {
   const { user, profile } = useAuth();
   const { toast } = useToast();
-  const [notifications, setNotifications] = useState<Notification[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [unreadCount, setUnreadCount] = useState(0);
+  const queryClient = useQueryClient();
 
   const tenantId = profile?.tenant_id ?? null;
 
-  const fetchNotifications = useCallback(async () => {
-    if (!user?.id || !tenantId) return;
-
-    try {
-      setLoading(true);
+  const { data: notifications = [], isLoading: loading } = useQuery({
+    queryKey: ['notifications', tenantId, user?.id],
+    queryFn: async () => {
       const { data, error } = await supabase
         .from('notificacoes')
         .select('*')
         .eq('ativo', true)
-        .eq('tenant_id', tenantId)
+        .eq('tenant_id', tenantId!)
         .order('data_criacao', { ascending: false });
 
       if (error) throw error;
-      setNotifications(data || []);
+      return (data || []) as Notification[];
+    },
+    enabled: !!user?.id && !!tenantId,
+    staleTime: 5 * 60 * 1000,
+  });
 
-      const unread = (data || []).filter((n) => !n.lido_por?.includes(user.id)).length;
-      setUnreadCount(unread);
-    } catch (error) {
-      log.error('Failed to load notifications', error);
-      toast({
-        title: 'Erro',
-        description: 'Nao foi possivel carregar as notificacoes.',
-        variant: 'destructive',
-      });
-    } finally {
-      setLoading(false);
-    }
-  }, [user?.id, tenantId, toast]);
+  const unreadCount = user?.id
+    ? notifications.filter((n) => !n.lido_por?.includes(user.id)).length
+    : 0;
+
+  const fetchNotifications = useCallback(async () => {
+    void queryClient.invalidateQueries({ queryKey: ['notifications', tenantId, user?.id] });
+  }, [queryClient, tenantId, user?.id]);
 
   const markAsRead = async (notificationId: string) => {
     if (!user?.id) return;
@@ -83,14 +78,15 @@ export const useNotifications = () => {
       if (error) throw error;
 
       if (data) {
-        setNotifications((prev) =>
-          prev.map((n) =>
+        // Optimistic update in cache
+        queryClient.setQueryData<Notification[]>(
+          ['notifications', tenantId, user.id],
+          (prev) => (prev || []).map((n) =>
             n.id === notificationId
               ? { ...n, lido_por: [...(n.lido_por || []), user.id] }
               : n
           )
         );
-        setUnreadCount((prev) => Math.max(0, prev - 1));
       }
     } catch (error) {
       log.error('Failed to mark as read', error);
@@ -105,13 +101,14 @@ export const useNotifications = () => {
 
       if (error) throw error;
 
-      setNotifications((prev) =>
-        prev.map((n) => ({
+      // Optimistic update in cache
+      queryClient.setQueryData<Notification[]>(
+        ['notifications', tenantId, user.id],
+        (prev) => (prev || []).map((n) => ({
           ...n,
           lido_por: [...(n.lido_por || []), user.id],
         }))
       );
-      setUnreadCount(0);
 
       toast({
         title: 'Sucesso',
@@ -127,14 +124,10 @@ export const useNotifications = () => {
     }
   };
 
-  const createNotification = async (
-    titulo: string,
-    mensagem: string,
-    tipo: NotificationType = 'info'
-  ) => {
-    if (!user?.id || !tenantId) return;
+  const createMutation = useMutation({
+    mutationFn: async ({ titulo, mensagem, tipo }: { titulo: string; mensagem: string; tipo: NotificationType }) => {
+      if (!user?.id || !tenantId) throw new Error('Not authenticated');
 
-    try {
       const { error } = await supabase
         .from('notificacoes')
         .insert({
@@ -146,31 +139,29 @@ export const useNotifications = () => {
         });
 
       if (error) throw error;
-
-      toast({
-        title: 'Notificacao criada',
-        description: 'A notificacao foi criada com sucesso.',
-      });
-
-      await fetchNotifications();
-    } catch (error) {
+    },
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ['notifications', tenantId, user?.id] });
+      toast({ title: 'Notificacao criada', description: 'A notificacao foi criada com sucesso.' });
+    },
+    onError: (error) => {
       log.error('Failed to create notification', error);
-      toast({
-        title: 'Erro',
-        description: 'Nao foi possivel criar a notificacao.',
-        variant: 'destructive',
-      });
-    }
+      toast({ title: 'Erro', description: 'Nao foi possivel criar a notificacao.', variant: 'destructive' });
+    },
+  });
+
+  const createNotification = async (
+    titulo: string,
+    mensagem: string,
+    tipo: NotificationType = 'info'
+  ) => {
+    if (!user?.id || !tenantId) return;
+    await createMutation.mutateAsync({ titulo, mensagem, tipo });
   };
 
   const isRead = (notification: Notification): boolean => {
     return user?.id ? notification.lido_por?.includes(user.id) || false : false;
   };
-
-  useEffect(() => {
-    void fetchNotifications();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user?.id, tenantId]);
 
   return {
     notifications,

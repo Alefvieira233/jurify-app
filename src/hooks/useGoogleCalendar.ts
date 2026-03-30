@@ -2,7 +2,8 @@
  * Hook: Google Calendar integration.
  */
 
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabaseUntyped as supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
@@ -25,12 +26,11 @@ export const useGoogleCalendar = () => {
   const { user, profile } = useAuth();
   const tenantId = profile?.tenant_id || null;
   const { toast } = useToast();
+  const queryClient = useQueryClient();
   // Cast needed: google_calendar_settings table may not be in generated types yet
   const supabaseAny = supabase as unknown as {
     from: (table: string) => ReturnType<typeof supabase.from>;
   };
-  const [loading, setLoading] = useState(false);
-  const [settings, setSettings] = useState<GoogleCalendarSettings | null>(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   interface GoogleCalendar {
     id: string;
@@ -41,29 +41,26 @@ export const useGoogleCalendar = () => {
 
   const isOAuthConfigured = GoogleOAuthService.isConfigured();
 
-  const loadSettings = useCallback(async () => {
-    if (!user?.id || !tenantId) return;
-
-    try {
-      setLoading(true);
-
+  const { data: settings = null, isLoading: loading } = useQuery({
+    queryKey: ['google-calendar-settings', tenantId, user?.id],
+    queryFn: async () => {
       const { data, error } = await supabaseAny
         .from('google_calendar_settings')
         .select('*')
-        .eq('tenant_id', tenantId)
-        .eq('user_id', user.id)
+        .eq('tenant_id', tenantId!)
+        .eq('user_id', user!.id)
         .single();
 
       if (error && error.code !== 'PGRST116') {
         throw error;
       }
 
-      if (data) {
-        setSettings(data);
-      } else {
+      let settingsResult = data;
+
+      if (!settingsResult) {
         const defaultSettings = {
-          tenant_id: tenantId,
-          user_id: user.id,
+          tenant_id: tenantId!,
+          user_id: user!.id,
           calendar_enabled: false,
           auto_sync: true,
           sync_direction: 'jurify_to_google' as const,
@@ -77,60 +74,54 @@ export const useGoogleCalendar = () => {
           .single();
 
         if (createError) throw createError;
-
-        setSettings(newSettings);
+        settingsResult = newSettings;
       }
 
-      const token = await GoogleOAuthService.loadTokens(user.id);
+      // Check auth tokens
+      const token = await GoogleOAuthService.loadTokens(user!.id);
       setIsAuthenticated(!!token);
-    } catch (_error: unknown) {
-      toast({
-        title: 'Erro',
-        description: 'Nao foi possivel carregar as configuracoes do Google Calendar.',
-        variant: 'destructive',
-      });
-    } finally {
-      setLoading(false);
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user?.id, tenantId, toast]);
 
-  const updateSettings = useCallback(async (updates: Partial<GoogleCalendarSettings>) => {
-    if (!user?.id || !settings || !tenantId) return false;
+      return settingsResult as GoogleCalendarSettings;
+    },
+    enabled: !!user?.id && !!tenantId,
+    staleTime: 5 * 60 * 1000,
+  });
 
-    try {
-      setLoading(true);
-
+  const updateSettingsMutation = useMutation({
+    mutationFn: async (updates: Partial<GoogleCalendarSettings>) => {
       const { data, error } = await supabaseAny
         .from('google_calendar_settings')
         .update({ ...updates, updated_at: new Date().toISOString() })
-        .eq('tenant_id', tenantId)
-        .eq('user_id', user.id)
+        .eq('tenant_id', tenantId!)
+        .eq('user_id', user!.id)
         .select()
         .single();
 
       if (error) throw error;
+      return data as GoogleCalendarSettings;
+    },
+    onSuccess: (data) => {
+      queryClient.setQueryData(['google-calendar-settings', tenantId, user?.id], data);
+      toast({ title: 'Sucesso', description: 'Configuracoes do Google Calendar atualizadas!' });
+    },
+    onError: () => {
+      toast({ title: 'Erro', description: 'Nao foi possivel atualizar as configuracoes.', variant: 'destructive' });
+    },
+  });
 
-      setSettings(data);
-
-      toast({
-        title: 'Sucesso',
-        description: 'Configuracoes do Google Calendar atualizadas!',
-      });
-
+  const updateSettings = useCallback(async (updates: Partial<GoogleCalendarSettings>) => {
+    if (!user?.id || !settings || !tenantId) return false;
+    try {
+      await updateSettingsMutation.mutateAsync(updates);
       return true;
-    } catch (_error: unknown) {
-      toast({
-        title: 'Erro',
-        description: 'Nao foi possivel atualizar as configuracoes.',
-        variant: 'destructive',
-      });
+    } catch {
       return false;
-    } finally {
-      setLoading(false);
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user?.id, tenantId, settings, toast]);
+  }, [user?.id, tenantId, settings, updateSettingsMutation]);
+
+  const loadSettings = useCallback(async () => {
+    void queryClient.invalidateQueries({ queryKey: ['google-calendar-settings', tenantId, user?.id] });
+  }, [queryClient, tenantId, user?.id]);
 
   const initializeGoogleAuth = useCallback(() => {
     if (!user?.id) {
@@ -172,8 +163,6 @@ export const useGoogleCalendar = () => {
     if (!user?.id) return false;
 
     try {
-      setLoading(true);
-
       const savedState = localStorage.getItem('google_oauth_state');
       if (state !== savedState) {
         throw new Error('State invalido. Possivel ataque CSRF.');
@@ -208,8 +197,6 @@ export const useGoogleCalendar = () => {
         variant: 'destructive',
       });
       return false;
-    } finally {
-      setLoading(false);
     }
   }, [user?.id, updateSettings, toast]);
 
@@ -217,8 +204,6 @@ export const useGoogleCalendar = () => {
     if (!user?.id) return false;
 
     try {
-      setLoading(true);
-
       await GoogleOAuthService.revokeTokens(user.id);
       await updateSettings({
         calendar_enabled: false,
@@ -241,8 +226,6 @@ export const useGoogleCalendar = () => {
         variant: 'destructive',
       });
       return false;
-    } finally {
-      setLoading(false);
     }
   }, [user?.id, toast, updateSettings]);
 
@@ -412,21 +395,12 @@ export const useGoogleCalendar = () => {
     if (!user?.id || !isAuthenticated) return;
 
     try {
-      setLoading(true);
       const userCalendars = await GoogleOAuthService.listCalendars(user.id) as unknown as GoogleCalendar[];
       setCalendars(userCalendars);
     } catch (_error: unknown) {
       // Error handled silently
-    } finally {
-      setLoading(false);
     }
   }, [user?.id, isAuthenticated]);
-
-  useEffect(() => {
-    if (user?.id) {
-      void loadSettings();
-    }
-  }, [user?.id, loadSettings]);
 
   return {
     loading,
