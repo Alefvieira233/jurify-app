@@ -460,6 +460,8 @@ Deno.serve(async (req) => {
         result = await listConnections();
         break;
 
+      // test-platform action removed — was temporary API probe
+
       default:
         throw new Error(`Unknown action: ${action}`);
     }
