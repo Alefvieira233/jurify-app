@@ -5,6 +5,7 @@ import { nativeShare } from '@/hooks/useNativeShare';
 import { useDebounce } from '@/hooks/useDebounce';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -29,7 +30,7 @@ const ContratosManager = () => {
   usePageTitle('Contratos');
   const [searchTerm, setSearchTerm] = useState('');
   const debouncedSearchTerm = useDebounce(searchTerm, 300);
-  const [filterStatus, setFilterStatus] = useState('');
+  const [filterStatus, setFilterStatus] = useState('all');
   const [isNovoContratoOpen, setIsNovoContratoOpen] = useState(false);
   const [isDetalhesOpen, setIsDetalhesOpen] = useState(false);
   const [selectedContrato, setSelectedContrato] = useState<Contrato | null>(null);
@@ -42,7 +43,7 @@ const ContratosManager = () => {
 
   const filteredContratos = useMemo(() => contratos.filter(contrato => {
     const matchesSearch = contrato.nome_cliente?.toLowerCase().includes(debouncedSearchTerm.toLowerCase()) || false;
-    const matchesStatus = filterStatus === '' || contrato.status === filterStatus;
+    const matchesStatus = !filterStatus || filterStatus === 'all' || contrato.status === filterStatus;
     return matchesSearch && matchesStatus;
   }), [contratos, debouncedSearchTerm, filterStatus]);
 
@@ -310,17 +311,18 @@ const ContratosManager = () => {
                     className="pl-10 bg-background/50 border border-border/30 rounded-md text-[hsl(var(--foreground))] focus:ring-1 focus:ring-[hsl(var(--accent))] transition-all"
                   />
                 </div>
-                <select
-                  value={filterStatus}
-                  onChange={(e) => setFilterStatus(e.target.value)}
-                  className="px-4 py-2 bg-background/50 border border-border/30 rounded-md text-[hsl(var(--foreground))] focus:ring-1 focus:ring-[hsl(var(--accent))] transition-all"
-                >
-                  <option value="">Todos os Status</option>
-                  <option value="rascunho">Rascunho</option>
-                  <option value="enviado">Enviado</option>
-                  <option value="assinado">Assinado</option>
-                  <option value="cancelado">Cancelado</option>
-                </select>
+                <Select value={filterStatus} onValueChange={setFilterStatus}>
+                  <SelectTrigger className="w-[180px] h-9">
+                    <SelectValue placeholder="Todos os Status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todos os Status</SelectItem>
+                    <SelectItem value="rascunho">Rascunho</SelectItem>
+                    <SelectItem value="enviado">Enviado</SelectItem>
+                    <SelectItem value="assinado">Assinado</SelectItem>
+                    <SelectItem value="cancelado">Cancelado</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
             </CardContent>
           </Card>

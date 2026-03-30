@@ -5,6 +5,7 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Skeleton } from '@/components/ui/skeleton';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { useLeads, type Lead } from '@/hooks/useLeads';
@@ -32,7 +33,7 @@ const fmtCurrency = (v: number) =>
 const LeadsPanel = () => {
   usePageTitle('Contatos (CRM)');
   const [searchTerm, setSearchTerm]     = useState('');
-  const [filterStatus, setFilterStatus] = useState('');
+  const [filterStatus, setFilterStatus] = useState('all');
   const [selectedLead, setSelectedLead] = useState<string | null>(null);
   const [showTimeline, setShowTimeline] = useState(false);
   const [showFormModal, setShowFormModal] = useState(false);
@@ -44,12 +45,12 @@ const LeadsPanel = () => {
 
   const filteredLeads = useMemo(() => leads.filter(l => {
     const matchSearch = l.nome_completo?.toLowerCase().includes(debouncedSearch.toLowerCase()) ?? false;
-    const matchStatus = filterStatus === '' || l.status === filterStatus;
+    const matchStatus = !filterStatus || filterStatus === 'all' || l.status === filterStatus;
     return matchSearch && matchStatus;
   }), [leads, debouncedSearch, filterStatus]);
 
   const totalValue = useMemo(() => filteredLeads.reduce((s, l) => s + (Number(l.valor_causa) || 0), 0), [filteredLeads]);
-  const hasFilter = searchTerm || filterStatus;
+  const hasFilter = searchTerm || (filterStatus && filterStatus !== 'all');
 
   if (loading) {
     return (
@@ -116,16 +117,17 @@ const LeadsPanel = () => {
             className="pl-9 h-11 bg-background/50 border-border/20 rounded-[12px]"
           />
         </div>
-        <select
-          value={filterStatus}
-          onChange={e => setFilterStatus(e.target.value)}
-          className="h-11 bg-background/50 border border-border/20 rounded-[12px] px-4 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-primary cursor-pointer w-full sm:w-auto min-w-[180px]"
-        >
-          <option value="">Filtro: Todos os fluxos</option>
-          {Object.entries(STATUS_MAP).map(([k, cfg]) => (
-            <option key={k} value={k}>{cfg.label}</option>
-          ))}
-        </select>
+        <Select value={filterStatus} onValueChange={setFilterStatus}>
+          <SelectTrigger className="w-[200px] h-9">
+            <SelectValue placeholder="Filtro: Todos os fluxos" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Filtro: Todos os fluxos</SelectItem>
+            {Object.entries(STATUS_MAP).map(([k, cfg]) => (
+              <SelectItem key={k} value={k}>{cfg.label}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
         <div className="flex items-center gap-6 px-4">
           <div className="text-center">
             <p className="text-[10px] uppercase font-bold text-muted-foreground">Volume</p>
@@ -159,7 +161,7 @@ const LeadsPanel = () => {
           <Search className="h-12 w-12 text-muted-foreground/30 mb-4" />
           <h3 className="text-xl font-bold text-foreground">Sem resultados</h3>
           <p className="text-muted-foreground">O filtro selecionado não encontrou leads correspondentes.</p>
-          <Button variant="link" onClick={() => { setSearchTerm(''); setFilterStatus(''); }} className="mt-4 text-primary">
+          <Button variant="link" onClick={() => { setSearchTerm(''); setFilterStatus('all'); }} className="mt-4 text-primary">
             Limpar filtros
           </Button>
         </div>

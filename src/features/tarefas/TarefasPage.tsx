@@ -12,8 +12,10 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Search, Plus, CheckCircle, Clock, AlertTriangle, MoreHorizontal } from 'lucide-react';
 import { fmtDate } from '@/utils/formatting';
+import ConfirmDialog from '@/components/ConfirmDialog';
 import NovaTarefaForm from './NovaTarefaForm';
 import EditTarefaDialog from './EditTarefaDialog';
 
@@ -36,11 +38,12 @@ export default function TarefasPage() {
   const { tarefas, isLoading, updateTarefa, deleteTarefa } = useTarefas();
   const { members } = useTeamMembers();
   const [search, setSearch] = useState('');
-  const [statusFilter, setStatusFilter] = useState('');
-  const [prioridadeFilter, setPrioridadeFilter] = useState('');
+  const [statusFilter, setStatusFilter] = useState('all');
+  const [prioridadeFilter, setPrioridadeFilter] = useState('all');
   const [formOpen, setFormOpen] = useState(false);
   const [editingTarefa, setEditingTarefa] = useState<Tarefa | null>(null);
   const [editOpen, setEditOpen] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
 
   const memberMap = useMemo(
     () => new Map((members ?? []).map(m => [m.id, m.nome_completo || m.email])),
@@ -49,8 +52,8 @@ export default function TarefasPage() {
 
   const filtered = useMemo(() => {
     return tarefas.filter(t => {
-      if (statusFilter && t.status !== statusFilter) return false;
-      if (prioridadeFilter && t.prioridade !== prioridadeFilter) return false;
+      if (statusFilter && statusFilter !== 'all' && t.status !== statusFilter) return false;
+      if (prioridadeFilter && prioridadeFilter !== 'all' && t.prioridade !== prioridadeFilter) return false;
       if (search) {
         const term = search.toLowerCase();
         if (!t.titulo.toLowerCase().includes(term)) return false;
@@ -73,9 +76,7 @@ export default function TarefasPage() {
   };
 
   const handleDelete = (tarefa: Tarefa) => {
-    if (window.confirm('Excluir tarefa?')) {
-      deleteTarefa.mutate(tarefa.id);
-    }
+    setConfirmDelete(tarefa.id);
   };
 
   if (isLoading) {
@@ -113,28 +114,30 @@ export default function TarefasPage() {
             className="pl-9 h-9"
           />
         </div>
-        <select
-          value={statusFilter}
-          onChange={e => setStatusFilter(e.target.value)}
-          className="h-9 rounded-md border border-input bg-background px-3 text-sm"
-        >
-          <option value="">Todos os status</option>
-          <option value="pendente">Pendente</option>
-          <option value="em_andamento">Em Andamento</option>
-          <option value="concluida">Concluída</option>
-          <option value="cancelada">Cancelada</option>
-        </select>
-        <select
-          value={prioridadeFilter}
-          onChange={e => setPrioridadeFilter(e.target.value)}
-          className="h-9 rounded-md border border-input bg-background px-3 text-sm"
-        >
-          <option value="">Todas as prioridades</option>
-          <option value="baixa">Baixa</option>
-          <option value="media">Média</option>
-          <option value="alta">Alta</option>
-          <option value="urgente">Urgente</option>
-        </select>
+        <Select value={statusFilter} onValueChange={setStatusFilter}>
+          <SelectTrigger className="w-[180px] h-9">
+            <SelectValue placeholder="Todos os status" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Todos os status</SelectItem>
+            <SelectItem value="pendente">Pendente</SelectItem>
+            <SelectItem value="em_andamento">Em Andamento</SelectItem>
+            <SelectItem value="concluida">Concluida</SelectItem>
+            <SelectItem value="cancelada">Cancelada</SelectItem>
+          </SelectContent>
+        </Select>
+        <Select value={prioridadeFilter} onValueChange={setPrioridadeFilter}>
+          <SelectTrigger className="w-[180px] h-9">
+            <SelectValue placeholder="Todas as prioridades" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Todas as prioridades</SelectItem>
+            <SelectItem value="baixa">Baixa</SelectItem>
+            <SelectItem value="media">Media</SelectItem>
+            <SelectItem value="alta">Alta</SelectItem>
+            <SelectItem value="urgente">Urgente</SelectItem>
+          </SelectContent>
+        </Select>
       </div>
 
       {/* Table */}
@@ -156,7 +159,7 @@ export default function TarefasPage() {
             {filtered.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={8} className="text-center py-12 text-muted-foreground">
-                  {search || statusFilter || prioridadeFilter ? 'Nenhuma tarefa encontrada' : 'Nenhuma tarefa criada ainda'}
+                  {search || (statusFilter && statusFilter !== 'all') || (prioridadeFilter && prioridadeFilter !== 'all') ? 'Nenhuma tarefa encontrada' : 'Nenhuma tarefa criada ainda'}
                 </TableCell>
               </TableRow>
             ) : (
@@ -231,6 +234,18 @@ export default function TarefasPage() {
 
       <NovaTarefaForm open={formOpen} onOpenChange={setFormOpen} />
       <EditTarefaDialog tarefa={editingTarefa} open={editOpen} onOpenChange={setEditOpen} />
+
+      <ConfirmDialog
+        open={!!confirmDelete}
+        onOpenChange={(v) => { if (!v) setConfirmDelete(null); }}
+        title="Excluir tarefa?"
+        description="Esta tarefa sera removida permanentemente. Esta acao nao pode ser desfeita."
+        onConfirm={() => {
+          if (confirmDelete) deleteTarefa.mutate(confirmDelete);
+          setConfirmDelete(null);
+        }}
+        destructive
+      />
     </div>
   );
 }

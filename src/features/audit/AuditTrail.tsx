@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useActivityLogs, type FiltrosLog } from '@/hooks/useActivityLogs';
 import { useAuth } from '@/contexts/AuthContext';
 import { usePageTitle } from '@/hooks/usePageTitle';
@@ -20,7 +21,7 @@ const TIPO_CONFIG: Record<string, { label: string; className: string } | undefin
   outro:    { label: 'Outro',    className: 'bg-muted text-muted-foreground' },
 };
 
-const TIPO_OPTIONS = ['', 'criacao', 'edicao', 'exclusao', 'login', 'logout', 'erro', 'outro'] as const;
+const TIPO_OPTIONS = ['all', 'criacao', 'edicao', 'exclusao', 'login', 'logout', 'erro', 'outro'] as const;
 
 const AuditTrail = () => {
   usePageTitle('Trilha de Auditoria');
@@ -30,7 +31,7 @@ const AuditTrail = () => {
   const [filtros, setFiltros] = useState<FiltrosLog>({});
   const [dataInicio, setDataInicio] = useState('');
   const [dataFim, setDataFim] = useState('');
-  const [tipoAcao, setTipoAcao] = useState('');
+  const [tipoAcao, setTipoAcao] = useState('all');
   const [modulo, setModulo] = useState('');
   const [confirmClear, setConfirmClear] = useState(false);
   const [clearLoading, setClearLoading] = useState(false);
@@ -39,7 +40,7 @@ const AuditTrail = () => {
 
   const applyFilters = useCallback(() => {
     const f: FiltrosLog = {};
-    if (tipoAcao) f.tipo_acao = tipoAcao;
+    if (tipoAcao && tipoAcao !== 'all') f.tipo_acao = tipoAcao;
     if (modulo.trim()) f.modulo = modulo.trim();
     if (dataInicio) f.data_inicio = dataInicio;
     if (dataFim) f.data_fim = dataFim;
@@ -48,7 +49,7 @@ const AuditTrail = () => {
   }, [tipoAcao, modulo, dataInicio, dataFim, fetchLogs]);
 
   const clearFilters = useCallback(() => {
-    setTipoAcao('');
+    setTipoAcao('all');
     setModulo('');
     setDataInicio('');
     setDataFim('');
@@ -63,7 +64,7 @@ const AuditTrail = () => {
     setConfirmClear(false);
   };
 
-  const hasFilters = !!(tipoAcao || modulo || dataInicio || dataFim);
+  const hasFilters = !!((tipoAcao && tipoAcao !== 'all') || modulo || dataInicio || dataFim);
 
   return (
     <div className="p-6 space-y-5">
@@ -98,15 +99,16 @@ const AuditTrail = () => {
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
             <div>
               <label className="text-xs font-medium text-muted-foreground mb-1 block">Tipo de ação</label>
-              <select
-                value={tipoAcao}
-                onChange={e => setTipoAcao(e.target.value)}
-                className="w-full h-9 rounded-md border border-input bg-background px-3 text-sm focus:outline-none focus:ring-1 focus:ring-ring"
-              >
-                {TIPO_OPTIONS.map(t => (
-                  <option key={t} value={t}>{t ? (TIPO_CONFIG[t]?.label ?? t) : 'Todos'}</option>
-                ))}
-              </select>
+              <Select value={tipoAcao} onValueChange={setTipoAcao}>
+                <SelectTrigger className="w-[180px] h-9">
+                  <SelectValue placeholder="Todos" />
+                </SelectTrigger>
+                <SelectContent>
+                  {TIPO_OPTIONS.map(t => (
+                    <SelectItem key={t} value={t}>{t === 'all' ? 'Todos' : (TIPO_CONFIG[t]?.label ?? t)}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
             <div>
               <label className="text-xs font-medium text-muted-foreground mb-1 block">Módulo</label>

@@ -4,6 +4,7 @@ import { useDebounce } from '@/hooks/useDebounce';
 import { useQuery } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -53,8 +54,8 @@ const ProcessosManager = () => {
   usePageTitle('Processos');
   const [searchTerm, setSearchTerm] = useState('');
   const debouncedSearch = useDebounce(searchTerm, 300);
-  const [filterStatus, setFilterStatus] = useState('');
-  const [filterTipo, setFilterTipo] = useState('');
+  const [filterStatus, setFilterStatus] = useState('all');
+  const [filterTipo, setFilterTipo] = useState('all');
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [isDetalhesOpen, setIsDetalhesOpen] = useState(false);
   const [selectedProcesso, setSelectedProcesso] = useState<Processo | null>(null);
@@ -72,8 +73,8 @@ const ProcessosManager = () => {
     currentPage, totalPages, totalCount, hasPrevPage, hasNextPage, prevPage, nextPage,
   } = useProcessos({
     enablePagination: true,
-    filterStatus: filterStatus || undefined,
-    filterTipo: filterTipo || undefined,
+    filterStatus: filterStatus && filterStatus !== 'all' ? filterStatus : undefined,
+    filterTipo: filterTipo && filterTipo !== 'all' ? filterTipo : undefined,
     search: debouncedSearch || undefined,
   });
   const { toast } = useToast();
@@ -308,26 +309,28 @@ const ProcessosManager = () => {
                 className="pl-9"
               />
             </div>
-            <select
-              value={filterStatus}
-              onChange={e => setFilterStatus(e.target.value)}
-              className="px-3 py-2 border border-border rounded-md text-sm bg-background"
-            >
-              <option value="">Todos os status</option>
-              {Object.entries(PROCESSO_STATUS_LABELS).map(([v, l]) => (
-                <option key={v} value={v}>{l}</option>
-              ))}
-            </select>
-            <select
-              value={filterTipo}
-              onChange={e => setFilterTipo(e.target.value)}
-              className="px-3 py-2 border border-border rounded-md text-sm bg-background"
-            >
-              <option value="">Todos os tipos</option>
-              {Object.entries(TIPO_LABELS).map(([v, l]) => (
-                <option key={v} value={v}>{l}</option>
-              ))}
-            </select>
+            <Select value={filterStatus} onValueChange={setFilterStatus}>
+              <SelectTrigger className="w-[180px] h-9">
+                <SelectValue placeholder="Todos os status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos os status</SelectItem>
+                {Object.entries(PROCESSO_STATUS_LABELS).map(([v, l]) => (
+                  <SelectItem key={v} value={v}>{l}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Select value={filterTipo} onValueChange={setFilterTipo}>
+              <SelectTrigger className="w-[180px] h-9">
+                <SelectValue placeholder="Todos os tipos" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos os tipos</SelectItem>
+                {Object.entries(TIPO_LABELS).map(([v, l]) => (
+                  <SelectItem key={v} value={v}>{l}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
         </CardContent>
       </Card>
@@ -429,7 +432,7 @@ const ProcessosManager = () => {
         <Card>
           <CardContent className="p-8 text-center">
             <p className="text-muted-foreground">Nenhum processo encontrado para os filtros aplicados.</p>
-            <Button variant="ghost" className="mt-2" onClick={() => { setSearchTerm(''); setFilterStatus(''); setFilterTipo(''); }}>
+            <Button variant="ghost" className="mt-2" onClick={() => { setSearchTerm(''); setFilterStatus('all'); setFilterTipo('all'); }}>
               Limpar filtros
             </Button>
           </CardContent>

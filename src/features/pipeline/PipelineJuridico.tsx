@@ -6,6 +6,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useLeads, type Lead } from '@/hooks/useLeads';
 import { useDebounce } from '@/hooks/useDebounce';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
 import NovoLeadForm from '@/components/forms/NovoLeadForm';
 import PipelineColumn from './PipelineColumn';
@@ -19,8 +20,8 @@ const fmt = (val: number) =>
 const PipelineJuridico = () => {
   usePageTitle('Pipeline');
   const [searchTerm, setSearchTerm]               = useState('');
-  const [filterArea, setFilterArea]               = useState('');
-  const [filterResponsavel, setFilterResponsavel] = useState('');
+  const [filterArea, setFilterArea]               = useState('all');
+  const [filterResponsavel, setFilterResponsavel] = useState('all');
   const [showFormModal, setShowFormModal]         = useState(false);
   const { toast } = useToast();
 
@@ -31,8 +32,8 @@ const PipelineJuridico = () => {
     if (!leads) return [];
     return leads.filter(lead => {
       const matchSearch    = lead.nome_completo?.toLowerCase().includes(debouncedSearch.toLowerCase()) ?? false;
-      const matchArea      = filterArea === '' || lead.area_juridica === filterArea;
-      const matchResp      = filterResponsavel === '' || lead.responsavel_id === filterResponsavel;
+      const matchArea      = !filterArea || filterArea === 'all' || lead.area_juridica === filterArea;
+      const matchResp      = !filterResponsavel || filterResponsavel === 'all' || lead.responsavel_id === filterResponsavel;
       return matchSearch && matchArea && matchResp;
     });
   }, [leads, debouncedSearch, filterArea, filterResponsavel]);
@@ -47,7 +48,7 @@ const PipelineJuridico = () => {
   const areasJuridicas = useMemo(() => [...new Set(leads?.map(l => l.area_juridica).filter(Boolean) ?? [])], [leads]);
   const responsaveis   = useMemo(() => [...new Set(leads?.map(l => l.responsavel_id).filter(Boolean) ?? [])], [leads]);
   const totalPipeline  = useMemo(() => filteredLeads.reduce((s, l) => s + (Number(l.valor_causa) || 0), 0), [filteredLeads]);
-  const hasFilter      = searchTerm || filterArea || filterResponsavel;
+  const hasFilter      = searchTerm || (filterArea && filterArea !== 'all') || (filterResponsavel && filterResponsavel !== 'all');
 
   const handleDragEnd = (result: DropResult) => {
     const { destination, source, draggableId } = result;
@@ -169,36 +170,32 @@ const PipelineJuridico = () => {
           </div>
 
           {/* Area filter */}
-          <div className="relative">
-            <Filter className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3 w-3 text-muted-foreground pointer-events-none" />
-            <select
-              value={filterArea}
-              onChange={e => setFilterArea(e.target.value)}
-              className="h-8 bg-muted/50 border border-border rounded-md pl-7 pr-5 text-xs text-foreground/70 focus:outline-none focus:ring-1 focus:ring-ring cursor-pointer appearance-none"
-            >
-              <option value="">Todas as áreas</option>
-              {areasJuridicas.map(a => <option key={a} value={a ?? ''}>{a}</option>)}
-            </select>
-          </div>
+          <Select value={filterArea} onValueChange={setFilterArea}>
+            <SelectTrigger className="w-[180px] h-8 text-xs">
+              <SelectValue placeholder="Todas as areas" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todas as areas</SelectItem>
+              {areasJuridicas.map(a => <SelectItem key={a} value={a ?? 'unknown'}>{a}</SelectItem>)}
+            </SelectContent>
+          </Select>
 
-          {/* Responsável filter */}
-          <div className="relative">
-            <User className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3 w-3 text-muted-foreground pointer-events-none" />
-            <select
-              value={filterResponsavel}
-              onChange={e => setFilterResponsavel(e.target.value)}
-              className="h-8 bg-muted/50 border border-border rounded-md pl-7 pr-5 text-xs text-foreground/70 focus:outline-none focus:ring-1 focus:ring-ring cursor-pointer appearance-none"
-            >
-              <option value="">Todos responsáveis</option>
-              {responsaveis.map(r => <option key={r} value={r ?? ''}>{r}</option>)}
-            </select>
-          </div>
+          {/* Responsavel filter */}
+          <Select value={filterResponsavel} onValueChange={setFilterResponsavel}>
+            <SelectTrigger className="w-[180px] h-8 text-xs">
+              <SelectValue placeholder="Todos responsaveis" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todos responsaveis</SelectItem>
+              {responsaveis.map(r => <SelectItem key={r} value={r ?? 'unknown'}>{r}</SelectItem>)}
+            </SelectContent>
+          </Select>
 
           {/* Clear filters */}
           {hasFilter && (
             <button
               type="button"
-              onClick={() => { setSearchTerm(''); setFilterArea(''); setFilterResponsavel(''); }}
+              onClick={() => { setSearchTerm(''); setFilterArea('all'); setFilterResponsavel('all'); }}
               className="h-8 px-2.5 text-xs text-muted-foreground hover:text-foreground border border-border rounded-md hover:border-foreground/30 transition-colors"
             >
               Limpar
@@ -226,7 +223,7 @@ const PipelineJuridico = () => {
             <Button
               variant="outline"
               size="sm"
-              onClick={() => { setSearchTerm(''); setFilterArea(''); setFilterResponsavel(''); }}
+              onClick={() => { setSearchTerm(''); setFilterArea('all'); setFilterResponsavel('all'); }}
               className="text-xs"
             >
               Limpar filtros

@@ -4,6 +4,7 @@ import {
   RefreshCw, ChevronDown, ChevronUp, Trash2,
 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useLogsExecucao } from '@/hooks/useLogsExecucao';
 import { useDebounce } from '@/hooks/useDebounce';
@@ -11,7 +12,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { cn } from '@/lib/utils';
 import { usePageTitle } from '@/hooks/usePageTitle';
 
-type StatusFilter = '' | 'success' | 'error' | 'processing';
+type StatusFilter = 'all' | 'success' | 'error' | 'processing';
 
 const STATUS_CFG = {
   success:    { label: 'Sucesso',      hex: '#059669', bgClass: 'bg-emerald-500/10', textClass: 'text-emerald-600 dark:text-emerald-400', icon: CheckCircle },
@@ -26,7 +27,7 @@ const LogsPanel = () => {
   const { logs, loading, stats, refetch, limparLogs } = useLogsExecucao();
   const { profile } = useAuth();
   const [searchTerm, setSearchTerm]       = useState('');
-  const [filterStatus, setFilterStatus]   = useState<StatusFilter>('');
+  const [filterStatus, setFilterStatus]   = useState<StatusFilter>('all');
   const [expandedKey, setExpandedKey]     = useState<string | null>(null);
   const debouncedSearch = useDebounce(searchTerm, 300);
 
@@ -37,7 +38,7 @@ const LogsPanel = () => {
     const matchSearch = !debouncedSearch
       || name.toLowerCase().includes(debouncedSearch.toLowerCase())
       || log.input_recebido.toLowerCase().includes(debouncedSearch.toLowerCase());
-    const matchStatus = !filterStatus || log.status === filterStatus;
+    const matchStatus = !filterStatus || filterStatus === 'all' || log.status === filterStatus;
     return matchSearch && matchStatus;
   }), [logs, debouncedSearch, filterStatus]);
 
@@ -142,16 +143,17 @@ const LogsPanel = () => {
               className="pl-7 h-7 text-xs bg-muted/40 border-border/50 focus-visible:ring-1"
             />
           </div>
-          <select
-            value={filterStatus}
-            onChange={e => setFilterStatus(e.target.value as StatusFilter)}
-            className="h-7 px-2 text-xs rounded-md border border-border/50 bg-muted/40 text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
-          >
-            <option value="">Todos</option>
-            <option value="success">Sucesso</option>
-            <option value="error">Erro</option>
-            <option value="processing">Processando</option>
-          </select>
+          <Select value={filterStatus} onValueChange={(v) => setFilterStatus(v as StatusFilter)}>
+            <SelectTrigger className="w-[130px] h-7 text-xs">
+              <SelectValue placeholder="Todos" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todos</SelectItem>
+              <SelectItem value="success">Sucesso</SelectItem>
+              <SelectItem value="error">Erro</SelectItem>
+              <SelectItem value="processing">Processando</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
       </div>
 

@@ -3,6 +3,7 @@ import { Search, FolderOpen, AlertCircle, RefreshCw, Download, Trash2, FileText,
 import { useDebounce } from '@/hooks/useDebounce';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -44,7 +45,7 @@ const DocumentosManager = () => {
   usePageTitle('Documentos Jurídicos');
   const [searchTerm, setSearchTerm] = useState('');
   const debouncedSearch = useDebounce(searchTerm, 300);
-  const [filterTipo, setFilterTipo] = useState('');
+  const [filterTipo, setFilterTipo] = useState('all');
   const [isUploadOpen, setIsUploadOpen] = useState(false);
   const [uploadLoading, setUploadLoading] = useState(false);
   const [previewDoc, setPreviewDoc] = useState<DocumentoWithSignedUrl | null>(null);
@@ -61,7 +62,7 @@ const DocumentosManager = () => {
     const matchSearch = !debouncedSearch ||
       d.nome_original.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
       d.descricao?.toLowerCase().includes(debouncedSearch.toLowerCase());
-    const matchTipo = filterTipo === '' || d.tipo_documento === filterTipo;
+    const matchTipo = !filterTipo || filterTipo === 'all' || d.tipo_documento === filterTipo;
     return matchSearch && matchTipo;
   }), [documentos, debouncedSearch, filterTipo]);
 
@@ -178,16 +179,17 @@ const DocumentosManager = () => {
                 className="pl-9"
               />
             </div>
-            <select
-              value={filterTipo}
-              onChange={e => setFilterTipo(e.target.value)}
-              className="px-3 py-2 border border-border rounded-md text-sm bg-background"
-            >
-              <option value="">Todos os tipos</option>
-              {Object.entries(TIPO_LABELS).map(([v, l]) => (
-                <option key={v} value={v}>{l}</option>
-              ))}
-            </select>
+            <Select value={filterTipo} onValueChange={setFilterTipo}>
+              <SelectTrigger className="w-[180px] h-9">
+                <SelectValue placeholder="Todos os tipos" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos os tipos</SelectItem>
+                {Object.entries(TIPO_LABELS).map(([v, l]) => (
+                  <SelectItem key={v} value={v}>{l}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
         </CardContent>
       </Card>

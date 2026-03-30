@@ -3,6 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Plus, Search } from 'lucide-react';
 import { usePageTitle } from '@/hooks/usePageTitle';
 import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { useTicketsSuporte, type TicketSuporte } from '@/hooks/useTicketsSuporte';
@@ -48,7 +49,7 @@ export default function SuportePage() {
   usePageTitle('Suporte');
   const { tickets, isLoading, createTicket } = useTicketsSuporte();
   const [search, setSearch] = useState('');
-  const [tipoFilter, setTipoFilter] = useState('');
+  const [tipoFilter, setTipoFilter] = useState('all');
   const [formOpen, setFormOpen] = useState(false);
   const [novoTipo, setNovoTipo] = useState('duvida');
   const [novoConteudo, setNovoConteudo] = useState('');
@@ -57,7 +58,7 @@ export default function SuportePage() {
 
   const filtered = tickets.filter(t => {
     if (search && !t.conteudo.toLowerCase().includes(search.toLowerCase())) return false;
-    if (tipoFilter && t.tipo !== tipoFilter) return false;
+    if (tipoFilter && tipoFilter !== 'all' && t.tipo !== tipoFilter) return false;
     return true;
   });
 
@@ -104,18 +105,18 @@ export default function SuportePage() {
             className="pl-9 h-9"
           />
         </div>
-        <select
-          aria-label="Filtrar por tipo"
-          value={tipoFilter}
-          onChange={e => setTipoFilter(e.target.value)}
-          className="flex h-9 rounded-md border border-input bg-background px-3 py-1 text-sm"
-        >
-          <option value="">Todos</option>
-          <option value="duvida">Dúvida</option>
-          <option value="bug">Bug</option>
-          <option value="sugestao">Sugestão</option>
-          <option value="outro">Outro</option>
-        </select>
+        <Select value={tipoFilter} onValueChange={setTipoFilter}>
+          <SelectTrigger className="w-[180px] h-9" aria-label="Filtrar por tipo">
+            <SelectValue placeholder="Todos" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Todos</SelectItem>
+            <SelectItem value="duvida">Duvida</SelectItem>
+            <SelectItem value="bug">Bug</SelectItem>
+            <SelectItem value="sugestao">Sugestao</SelectItem>
+            <SelectItem value="outro">Outro</SelectItem>
+          </SelectContent>
+        </Select>
       </div>
 
       {/* Table */}
@@ -185,17 +186,17 @@ export default function SuportePage() {
           <div className="space-y-4">
             <div>
               <Label htmlFor="tipo">Tipo</Label>
-              <select
-                id="tipo"
-                value={novoTipo}
-                onChange={e => setNovoTipo(e.target.value)}
-                className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm"
-              >
-                <option value="duvida">Dúvida</option>
-                <option value="bug">Bug</option>
-                <option value="sugestao">Sugestão</option>
-                <option value="outro">Outro</option>
-              </select>
+              <Select value={novoTipo} onValueChange={setNovoTipo}>
+                <SelectTrigger className="w-full h-9">
+                  <SelectValue placeholder="Selecione o tipo" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="duvida">Duvida</SelectItem>
+                  <SelectItem value="bug">Bug</SelectItem>
+                  <SelectItem value="sugestao">Sugestao</SelectItem>
+                  <SelectItem value="outro">Outro</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
             <div>
               <Label htmlFor="conteudo">Descrição</Label>

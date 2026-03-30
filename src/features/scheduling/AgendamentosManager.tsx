@@ -4,6 +4,7 @@ import { Plus, Search, Calendar, AlertCircle, RefreshCw, Eye, Edit, Trash2, Layo
 import { useDebounce } from '@/hooks/useDebounce';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useAgendamentos } from '@/hooks/useAgendamentos';
 import type { Agendamento } from '@/hooks/useAgendamentos';
@@ -26,7 +27,7 @@ const AgendamentosManager = () => {
   usePageTitle('Agenda');
   const [searchTerm, setSearchTerm] = useState('');
   const debouncedSearchTerm = useDebounce(searchTerm, 300);
-  const [filterStatus, setFilterStatus] = useState('');
+  const [filterStatus, setFilterStatus] = useState('all');
   const [viewMode, setViewMode] = useState<ViewMode>('list');
   const [isNovoAgendamentoOpen, setIsNovoAgendamentoOpen] = useState(false);
   const [isDetalhesOpen, setIsDetalhesOpen] = useState(false);
@@ -36,7 +37,7 @@ const AgendamentosManager = () => {
 
   const filteredAgendamentos = useMemo(() => agendamentos.filter(agendamento => {
     const matchesSearch = agendamento.responsavel?.toLowerCase().includes(debouncedSearchTerm.toLowerCase()) || false;
-    const matchesStatus = filterStatus === '' || agendamento.status === filterStatus;
+    const matchesStatus = !filterStatus || filterStatus === 'all' || agendamento.status === filterStatus;
     return matchesSearch && matchesStatus;
   }), [agendamentos, debouncedSearchTerm, filterStatus]);
 
@@ -277,18 +278,19 @@ const AgendamentosManager = () => {
               className="pl-9 h-11 bg-background/50 border-border/20 rounded-[12px] focus-visible:ring-1 focus-visible:ring-primary shadow-sm"
             />
           </div>
-          <select
-            value={filterStatus}
-            onChange={(e) => setFilterStatus(e.target.value)}
-            className="h-11 px-4 text-sm font-medium border border-border/20 rounded-[12px] bg-background/50 text-foreground focus:outline-none focus:ring-1 focus:ring-primary shadow-sm hover:border-border/30 transition-all w-full sm:w-[220px] cursor-pointer"
-          >
-            <option value="">Filtro: Todos os Status</option>
-            <option value="agendado">Agendado</option>
-            <option value="confirmado">Confirmado</option>
-            <option value="reagendado">Reagendado</option>
-            <option value="realizado">Realizado</option>
-            <option value="cancelado">Cancelado</option>
-          </select>
+          <Select value={filterStatus} onValueChange={setFilterStatus}>
+            <SelectTrigger className="w-[220px] h-9">
+              <SelectValue placeholder="Filtro: Todos os Status" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Filtro: Todos os Status</SelectItem>
+              <SelectItem value="agendado">Agendado</SelectItem>
+              <SelectItem value="confirmado">Confirmado</SelectItem>
+              <SelectItem value="reagendado">Reagendado</SelectItem>
+              <SelectItem value="realizado">Realizado</SelectItem>
+              <SelectItem value="cancelado">Cancelado</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
       </div>
 

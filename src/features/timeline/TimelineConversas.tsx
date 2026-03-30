@@ -4,6 +4,7 @@ import { useDebounce } from '@/hooks/useDebounce';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useAuth } from '@/contexts/AuthContext';
@@ -45,7 +46,7 @@ const TimelineConversas: React.FC<TimelineConversasProps> = ({ leadId, className
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const debouncedSearchTerm = useDebounce(searchTerm, 300);
-  const [filterTipo, setFilterTipo] = useState<string>('');
+  const [filterTipo, setFilterTipo] = useState<string>('all');
   const [expandedCards, setExpandedCards] = useState<Set<string>>(new Set());
   const [isAutoRefresh, setIsAutoRefresh] = useState(true);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
@@ -122,7 +123,7 @@ const TimelineConversas: React.FC<TimelineConversasProps> = ({ leadId, className
       conversa.agente_ia_nome?.toLowerCase().includes(debouncedSearchTerm.toLowerCase()) ||
       conversa.usuario_nome?.toLowerCase().includes(debouncedSearchTerm.toLowerCase());
 
-    const matchesFilter = filterTipo === '' || conversa.tipo === filterTipo;
+    const matchesFilter = !filterTipo || filterTipo === 'all' || conversa.tipo === filterTipo;
 
     return matchesSearch && matchesFilter;
   }), [conversas, debouncedSearchTerm, filterTipo]);
@@ -264,17 +265,18 @@ const TimelineConversas: React.FC<TimelineConversasProps> = ({ leadId, className
                 className="pl-10"
               />
             </div>
-            <select
-              value={filterTipo}
-              onChange={(e) => setFilterTipo(e.target.value)}
-              className="px-3 py-2 border border-border rounded-lg text-sm focus:ring-2 focus:ring-blue-500"
-            >
-              <option value="">Todos os tipos</option>
-              <option value="whatsapp">WhatsApp</option>
-              <option value="email">Email</option>
-              <option value="telefone">Telefone</option>
-              <option value="agente_ia">Agente IA</option>
-            </select>
+            <Select value={filterTipo} onValueChange={setFilterTipo}>
+              <SelectTrigger className="w-[180px] h-9">
+                <SelectValue placeholder="Todos os tipos" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos os tipos</SelectItem>
+                <SelectItem value="whatsapp">WhatsApp</SelectItem>
+                <SelectItem value="email">Email</SelectItem>
+                <SelectItem value="telefone">Telefone</SelectItem>
+                <SelectItem value="agente_ia">Agente IA</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
 
           {/* Timeline */}

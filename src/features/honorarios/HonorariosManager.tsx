@@ -3,6 +3,7 @@ import { Plus, Search, DollarSign, AlertCircle, RefreshCw, Edit, Trash2, Trendin
 import { useDebounce } from '@/hooks/useDebounce';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -48,7 +49,7 @@ const HonorariosManager = () => {
   usePageTitle('Honorários');
   const [searchTerm, setSearchTerm] = useState('');
   const debouncedSearch = useDebounce(searchTerm, 300);
-  const [filterStatus, setFilterStatus] = useState('');
+  const [filterStatus, setFilterStatus] = useState('all');
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [selectedHonorario, setSelectedHonorario] = useState<HonorarioWithOverdue | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<{ open: boolean; id: string }>({ open: false, id: '' });
@@ -80,7 +81,7 @@ const HonorariosManager = () => {
     const matchSearch = !debouncedSearch ||
       TIPO_LABELS[h.tipo]?.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
       h.observacoes?.toLowerCase().includes(debouncedSearch.toLowerCase());
-    const matchStatus = filterStatus === '' || h.status === filterStatus;
+    const matchStatus = !filterStatus || filterStatus === 'all' || h.status === filterStatus;
     return matchSearch && matchStatus;
   }), [honorarios, debouncedSearch, filterStatus]);
 
@@ -239,16 +240,17 @@ const HonorariosManager = () => {
                 className="pl-9"
               />
             </div>
-            <select
-              value={filterStatus}
-              onChange={e => setFilterStatus(e.target.value)}
-              className="px-3 py-2 border border-border rounded-md text-sm bg-background"
-            >
-              <option value="">Todos os status</option>
-              {Object.entries(HONORARIO_STATUS_LABELS).map(([v, l]) => (
-                <option key={v} value={v}>{l}</option>
-              ))}
-            </select>
+            <Select value={filterStatus} onValueChange={setFilterStatus}>
+              <SelectTrigger className="w-[180px] h-9">
+                <SelectValue placeholder="Todos os status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos os status</SelectItem>
+                {Object.entries(HONORARIO_STATUS_LABELS).map(([v, l]) => (
+                  <SelectItem key={v} value={v}>{l}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
         </CardContent>
       </Card>

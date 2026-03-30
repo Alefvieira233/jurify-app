@@ -4,6 +4,7 @@ import { useSearchParams } from 'react-router-dom';
 import { useDebounce } from '@/hooks/useDebounce';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -54,7 +55,7 @@ const PrazosManager = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const debouncedSearch = useDebounce(searchTerm, 300);
   const [filterStatus, setFilterStatus] = useState('pendente');
-  const [filterTipo, setFilterTipo] = useState('');
+  const [filterTipo, setFilterTipo] = useState('all');
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [selectedPrazo, setSelectedPrazo] = useState<PrazoProcessual | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<{ open: boolean; id: string; label: string }>({
@@ -68,8 +69,8 @@ const PrazosManager = () => {
     currentPage, totalPages, totalCount, hasPrevPage, hasNextPage, prevPage, nextPage,
   } = usePrazosProcessuais({
     enablePagination: true,
-    filterStatus: filterStatus || undefined,
-    filterTipo: filterTipo || undefined,
+    filterStatus: filterStatus && filterStatus !== 'all' ? filterStatus : undefined,
+    filterTipo: filterTipo && filterTipo !== 'all' ? filterTipo : undefined,
     search: debouncedSearch || undefined,
   });
   const { toast } = useToast();
@@ -263,27 +264,29 @@ const PrazosManager = () => {
                 className="pl-9"
               />
             </div>
-            <select
-              value={filterStatus}
-              onChange={e => setFilterStatus(e.target.value)}
-              className="px-3 py-2 border border-border rounded-md text-sm bg-background"
-            >
-              <option value="">Todos os status</option>
-              <option value="pendente">Pendente</option>
-              <option value="cumprido">Cumprido</option>
-              <option value="perdido">Perdido</option>
-              <option value="cancelado">Cancelado</option>
-            </select>
-            <select
-              value={filterTipo}
-              onChange={e => setFilterTipo(e.target.value)}
-              className="px-3 py-2 border border-border rounded-md text-sm bg-background"
-            >
-              <option value="">Todos os tipos</option>
-              {Object.entries(TIPO_LABELS).map(([v, l]) => (
-                <option key={v} value={v}>{l}</option>
-              ))}
-            </select>
+            <Select value={filterStatus} onValueChange={setFilterStatus}>
+              <SelectTrigger className="w-[180px] h-9">
+                <SelectValue placeholder="Todos os status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos os status</SelectItem>
+                <SelectItem value="pendente">Pendente</SelectItem>
+                <SelectItem value="cumprido">Cumprido</SelectItem>
+                <SelectItem value="perdido">Perdido</SelectItem>
+                <SelectItem value="cancelado">Cancelado</SelectItem>
+              </SelectContent>
+            </Select>
+            <Select value={filterTipo} onValueChange={setFilterTipo}>
+              <SelectTrigger className="w-[180px] h-9">
+                <SelectValue placeholder="Todos os tipos" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos os tipos</SelectItem>
+                {Object.entries(TIPO_LABELS).map(([v, l]) => (
+                  <SelectItem key={v} value={v}>{l}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
         </CardContent>
       </Card>
