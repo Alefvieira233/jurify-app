@@ -127,7 +127,13 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     let profileChannel: ReturnType<typeof supabase.channel> | null = null;
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, s) => {
-      setLoading(true);
+      // Only show loading spinner for real auth transitions (sign-in/sign-out).
+      // TOKEN_REFRESHED and USER_UPDATED must NOT set loading=true because that
+      // unmounts ProtectedRoute children (Layout + all forms), destroying user input.
+      const isAuthTransition = event === 'SIGNED_IN' || event === 'SIGNED_OUT' || event === 'INITIAL_SESSION';
+      if (isAuthTransition) {
+        setLoading(true);
+      }
       setUser(s?.user ?? null);
       setSession(s);
       if (s?.user) {
@@ -135,7 +141,9 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         if (event === 'SIGNED_IN') {
           addSentryBreadcrumb('User signed in', 'auth', 'info');
         }
-        void fetchProfile(s.user.id).finally(() => setLoading(false));
+        void fetchProfile(s.user.id).finally(() => {
+          if (isAuthTransition) setLoading(false);
+        });
 
         // Subscribe to realtime profile updates (e.g. subscription_tier changed by Stripe webhook)
         if (profileChannel) void supabase.removeChannel(profileChannel);
@@ -152,7 +160,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           .subscribe();
       } else {
         setProfile(null);
-        setLoading(false);
+        if (isAuthTransition) setLoading(false);
         if (profileChannel) {
           void supabase.removeChannel(profileChannel);
           profileChannel = null;
