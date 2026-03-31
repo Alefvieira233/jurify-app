@@ -6,7 +6,7 @@ import { toUserMessage } from '@/lib/errorMessages';
 
 export interface TeamMember {
   id: string;
-  nome_completo: string;
+  nome_completo: string | null;
   email: string;
   avatar_url: string | null;
   ativo: boolean;

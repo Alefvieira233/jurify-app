@@ -30,7 +30,7 @@ const ConversationFilters = ({ value, onChange, stats, members, areasJuridicas }
   const [popoverOpen, setPopoverOpen] = useState(false);
 
   // Count active "more filters"
-  const moreFiltersCount = (value.areaJuridica ? 1 : 0);
+  const moreFiltersCount = [value.areaJuridica].filter(Boolean).length;
 
   return (
     <>
