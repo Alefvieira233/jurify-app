@@ -118,7 +118,7 @@ const AgentesIAManager = () => {
   };
 
   const handleRetry = () => {
-    fetchAgentes();
+    void fetchAgentes();
     trackUserAction('retry_load_agents', 'agentes_ia', user?.id, profile?.tenant_id);
   };
 

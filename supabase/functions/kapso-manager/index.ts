@@ -19,6 +19,7 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { getCorsHeaders } from "../_shared/cors.ts";
 import { kapsoFetch, checkKapsoHealth } from "../_shared/kapso-client.ts";
+import { applyRateLimit } from "../_shared/rate-limiter.ts";
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -285,6 +286,17 @@ Deno.serve(async (req) => {
         JSON.stringify({ error: 'Permissão insuficiente.' }),
         { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
       );
+    }
+
+    // Rate limit: 20 req/min (admin-facing function)
+    const rateLimitCheck = await applyRateLimit(req, {
+      maxRequests: 20,
+      windowSeconds: 60,
+      namespace: "kapso-manager",
+    }, { supabase, user, corsHeaders });
+
+    if (!rateLimitCheck.allowed) {
+      return rateLimitCheck.response;
     }
 
     const { action }: KapsoRequest = await req.json();

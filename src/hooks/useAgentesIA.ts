@@ -1,8 +1,8 @@
 /**
  * @module useAgentesIA
  * @description Hook para gerenciar agentes de IA do sistema Jurify.
- * Fornece CRUD completo (criar, ler, atualizar, deletar) e execuÃ§Ã£o
- * de agentes de IA com cache otimizado via {@link useSupabaseQuery}.
+ * Fornece CRUD completo (criar, ler, atualizar, deletar) e execucao
+ * de agentes de IA com cache otimizado via TanStack React Query.
  *
  * @example
  * ```tsx
@@ -10,10 +10,10 @@
  * ```
  */
 import { useCallback } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabaseUntyped as supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
-import { useSupabaseQuery } from './useSupabaseQuery';
 import { createLogger } from '@/lib/logger';
 
 const log = createLogger('AgentesIA');
@@ -90,43 +90,44 @@ export const useAgentesIA = () => {
     };
   }, []);
 
-  const fetchAgentesQuery = useCallback(async () => {
-    try {
-      let query = supabase
-        .from('agentes_ia')
-        .select('*')
-        .order('created_at', { ascending: false });
+  const queryClient = useQueryClient();
+  const qKey = ['agentes_ia', tenantId] as const;
 
-      if (tenantId) {
-        query = query.eq('tenant_id', tenantId);
-      }
+  const fetchAgentes = useCallback(async (): Promise<AgenteIA[]> => {
+    let query = supabase
+      .from('agentes_ia')
+      .select('*')
+      .order('created_at', { ascending: false });
 
-      const { data, error } = await query;
-
-      if (error) {
-        log.error('erro ao buscar agentes', error);
-        throw error;
-      }
-
-      return { data: (data || []).map(normalizeAgente), error: null };
-    } catch (error) {
-      log.error('erro na consulta', error);
-      return { data: null, error };
+    if (tenantId) {
+      query = query.eq('tenant_id', tenantId);
     }
+
+    const { data, error } = await query;
+
+    if (error) {
+      log.error('erro ao buscar agentes', error);
+      throw error;
+    }
+
+    return (data || []).map(normalizeAgente);
   }, [tenantId, normalizeAgente]);
 
   const {
-    data: agentes,
-    loading,
-    error,
-    refetch: fetchAgentes,
-    mutate: setAgentes,
-    isEmpty,
-    isStale
-  } = useSupabaseQuery<AgenteIA>('agentes_ia', fetchAgentesQuery, {
+    data: agentes = [],
+    isLoading: loading,
+    error: queryError,
+    refetch,
+    isStale,
+  } = useQuery({
+    queryKey: qKey,
+    queryFn: fetchAgentes,
     enabled: !!user,
-    staleTime: 15000
+    staleTime: 2 * 60 * 1000,
   });
+
+  const error = queryError ? (queryError instanceof Error ? queryError.message : 'Erro ao carregar agentes') : null;
+  const isEmpty = !loading && !error && agentes.length === 0;
 
   const createAgente = useCallback(async (data: CreateAgenteData): Promise<boolean> => {
     if (!user || !tenantId) {
@@ -148,7 +149,7 @@ export const useAgentesIA = () => {
 
       if (error) throw error;
 
-      setAgentes(prev => [normalizeAgente(newAgente), ...prev]);
+      queryClient.setQueryData<AgenteIA[]>(qKey, prev => [normalizeAgente(newAgente), ...(prev ?? [])]);
 
       toast({
         title: 'Sucesso',
@@ -167,7 +168,7 @@ export const useAgentesIA = () => {
       return false;
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user, tenantId, toast, setAgentes]);
+  }, [user, tenantId, toast, queryClient]);
 
   const updateAgente = useCallback(async (id: string, updateData: Partial<AgenteIA>): Promise<boolean> => {
     if (!user || !tenantId) return false;
@@ -186,9 +187,11 @@ export const useAgentesIA = () => {
 
       if (error) throw error;
 
-      setAgentes(prev => prev.map(agente =>
-        agente.id === id ? { ...agente, ...normalizeAgente(updatedAgente) } : agente
-      ));
+      queryClient.setQueryData<AgenteIA[]>(qKey, prev =>
+        (prev ?? []).map(agente =>
+          agente.id === id ? { ...agente, ...normalizeAgente(updatedAgente) } : agente
+        )
+      );
 
       toast({
         title: 'Sucesso',
@@ -207,7 +210,7 @@ export const useAgentesIA = () => {
       return false;
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user, tenantId, toast, setAgentes]);
+  }, [user, tenantId, toast, queryClient]);
 
   const deleteAgente = useCallback(async (id: string): Promise<boolean> => {
     if (!user || !tenantId) return false;
@@ -221,7 +224,7 @@ export const useAgentesIA = () => {
 
       if (error) throw error;
 
-      setAgentes(prev => prev.filter(agente => agente.id !== id));
+      queryClient.setQueryData<AgenteIA[]>(qKey, prev => (prev ?? []).filter(agente => agente.id !== id));
 
       toast({
         title: 'Sucesso',
@@ -239,7 +242,7 @@ export const useAgentesIA = () => {
       });
       return false;
     }
-  }, [user, tenantId, toast, setAgentes]);
+  }, [user, tenantId, toast, queryClient]);
 
   const executeAgente = useCallback(async (agenteId: string, input: string) => {
     if (!user || !tenantId) return null;
@@ -302,7 +305,7 @@ export const useAgentesIA = () => {
     error,
     isEmpty,
     isStale,
-    fetchAgentes,
+    fetchAgentes: refetch,
     createAgente,
     updateAgente,
     deleteAgente,
