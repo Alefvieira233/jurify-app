@@ -20,24 +20,8 @@ import {
 import type { GroupBy, ProfileLike, ConexaoLike } from './useKanbanGrouping';
 import { PIPELINE_STAGES } from './pipelineConfig';
 import { PRIORIDADES } from '@/types/crm-operacional';
-
-// ── Filter types ──
-
-export interface KanbanFilters {
-  responsavelId: string; // '' = all, '__none__' = unassigned, uuid = specific
-  status: string;        // '' = all, or pipeline status id
-  origem: string;        // '' = all, or origem string
-  prioridade: string;    // '' = all, or prioridade value
-  conexaoId: string;     // '' = all, or conexao uuid
-}
-
-export const EMPTY_FILTERS: KanbanFilters = {
-  responsavelId: '',
-  status: '',
-  origem: '',
-  prioridade: '',
-  conexaoId: '',
-};
+import type { KanbanFilters } from './kanbanFilters';
+import { EMPTY_FILTERS, countExtraFilters, hasActiveFilters } from './kanbanFilters';
 
 // ── Constants ──
 
@@ -75,20 +59,6 @@ const fromSelect = (v: string): string => (v === ALL ? '' : v);
 
 /** Convert filter value to select value ('' → ALL) */
 const toSelect = (v: string): string => (v === '' ? ALL : v);
-
-/** Count how many "extra" filters (inside Mais Filtros popover) are active */
-function countExtraFilters(f: KanbanFilters): number {
-  let n = 0;
-  if (f.origem) n++;
-  if (f.prioridade) n++;
-  if (f.conexaoId) n++;
-  return n;
-}
-
-/** Are ANY filters active? */
-function hasActiveFilters(f: KanbanFilters): boolean {
-  return !!(f.responsavelId || f.status || f.origem || f.prioridade || f.conexaoId);
-}
 
 // ── Component ──
 
@@ -128,6 +98,7 @@ export function KanbanToolbar({
       <Select
         value={toSelect(filters.responsavelId)}
         onValueChange={(v) => patch({ responsavelId: fromSelect(v) })}
+        disabled={groupBy === 'responsavel'}
       >
         <SelectTrigger className="w-[170px] h-8 text-xs">
           <SelectValue placeholder="Responsável" />
@@ -147,6 +118,7 @@ export function KanbanToolbar({
       <Select
         value={toSelect(filters.status)}
         onValueChange={(v) => patch({ status: fromSelect(v) })}
+        disabled={groupBy === 'status'}
       >
         <SelectTrigger className="w-[140px] h-8 text-xs">
           <SelectValue placeholder="Status" />

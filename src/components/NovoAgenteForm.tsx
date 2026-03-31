@@ -122,7 +122,7 @@ const NovoAgenteForm: React.FC<NovoAgenteFormProps> = ({ agente, defaultType, op
         }
       });
     }
-  }, [agente]);
+  }, [agente, setFormData]);
 
 
   const handleFieldChange = (field: string, value: string | number) => {

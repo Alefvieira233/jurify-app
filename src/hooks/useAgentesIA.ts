@@ -9,7 +9,7 @@
  * const { agentes, createAgente, updateAgente, deleteAgente, executeAgente } = useAgentesIA();
  * ```
  */
-import { useCallback } from 'react';
+import { useCallback, useMemo } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabaseUntyped as supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -91,7 +91,7 @@ export const useAgentesIA = () => {
   }, []);
 
   const queryClient = useQueryClient();
-  const qKey = ['agentes_ia', tenantId] as const;
+  const qKey = useMemo(() => ['agentes_ia', tenantId] as const, [tenantId]);
 
   const fetchAgentes = useCallback(async (): Promise<AgenteIA[]> => {
     let query = supabase
@@ -242,7 +242,7 @@ export const useAgentesIA = () => {
       });
       return false;
     }
-  }, [user, tenantId, toast, queryClient]);
+  }, [user, tenantId, toast, queryClient, qKey]);
 
   const executeAgente = useCallback(async (agenteId: string, input: string) => {
     if (!user || !tenantId) return null;

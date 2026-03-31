@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useMemo, useCallback, useEffect } from 'react';
 import { DragDropContext, Droppable, Draggable, type DropResult } from '@hello-pangea/dnd';
 import { useLeads, type Lead } from '@/hooks/useLeads';
 import { useConexoes } from '@/hooks/useConexoes';
@@ -11,7 +11,8 @@ import { useDebounce } from '@/hooks/useDebounce';
 import { useToast } from '@/hooks/use-toast';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useKanbanGrouping, type GroupBy } from './useKanbanGrouping';
-import { KanbanToolbar, type KanbanFilters, EMPTY_FILTERS } from './KanbanToolbar';
+import { KanbanToolbar } from './KanbanToolbar';
+import { type KanbanFilters, EMPTY_FILTERS } from './kanbanFilters';
 import { KanbanColumnComponent } from './KanbanColumn';
 import { KanbanCard } from './KanbanCard';
 import LeadDrawer from '@/features/leads/LeadDrawer';
@@ -44,6 +45,16 @@ const KanbanOperacional = () => {
   const { leadTagsMap } = useLeadTagsBatch();
   const { can, canInDepartment, isAdmin, isManager } = useRBAC();
   const debouncedSearch = useDebounce(search, 300);
+
+  // Clear conflicting filters when groupBy changes
+  useEffect(() => {
+    setFilters(prev => {
+      const next = { ...prev };
+      if (groupBy === 'status') next.status = '';
+      if (groupBy === 'responsavel') next.responsavelId = '';
+      return next;
+    });
+  }, [groupBy]);
 
   // Build lookup maps
   const conexaoMap = useMemo(
