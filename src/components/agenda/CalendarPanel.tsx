@@ -293,7 +293,7 @@ const CalendarPanel = ({ onNewAgendamento }: CalendarPanelProps) => {
         info.revert();
       }
     }
-  }, [events, selectedEvent]);
+  }, [events, selectedEvent, toast]);
 
   // Navigation helpers
   const goToday = () => calendarRef.current?.getApi()?.today();

@@ -6,7 +6,7 @@ import type { Tag } from '@/types/crm-operacional';
 
 interface LeadTagRow {
   lead_id: string;
-  tag: Tag;
+  tag: Tag | Tag[];
 }
 
 /**
@@ -28,13 +28,17 @@ export function useLeadTagsBatch() {
       if (error) throw error;
 
       const map = new Map<string, Tag[]>();
-      for (const row of (data ?? []) as LeadTagRow[]) {
-        if (!row.tag || !row.tag.ativo) continue;
+      const rows = (data ?? []) as unknown as LeadTagRow[];
+
+      for (const row of rows) {
+        const tag = Array.isArray(row.tag) ? row.tag[0] : row.tag;
+        if (!tag || !tag.ativo) continue;
+
         const existing = map.get(row.lead_id);
         if (existing) {
-          existing.push(row.tag);
+          existing.push(tag as Tag);
         } else {
-          map.set(row.lead_id, [row.tag]);
+          map.set(row.lead_id, [tag as Tag]);
         }
       }
       return map;

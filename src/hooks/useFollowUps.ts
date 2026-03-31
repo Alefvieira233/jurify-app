@@ -335,7 +335,7 @@ export const useFollowUps = () => {
     }
   }, [rescheduleMutation]);
 
-  const getOverdueCount = useCallback(async () => {
+  const getOverdueCount = useCallback(() => {
     void queryClient.invalidateQueries({ queryKey: ['crm-followups-overdue', tenantId] });
   }, [queryClient, tenantId]);
 

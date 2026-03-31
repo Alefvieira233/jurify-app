@@ -62,7 +62,7 @@ export const useNotifications = () => {
     ? notifications.filter((n) => !n.lido_por?.includes(user.id)).length
     : 0;
 
-  const fetchNotifications = useCallback(async () => {
+  const fetchNotifications = useCallback(() => {
     void queryClient.invalidateQueries({ queryKey: ['notifications', tenantId, user?.id] });
   }, [queryClient, tenantId, user?.id]);
 
