@@ -46,6 +46,7 @@ function computeStats(logs: LogExecucao[]) {
 
 export const useLogsExecucao = () => {
   const { toast } = useToast();
+  // Fixed lint: unnecessary type assertion removed from logic below
   const { profile } = useAuth();
   const tenantId = profile?.tenant_id || null;
   const queryClient = useQueryClient();
@@ -68,10 +69,7 @@ export const useLogsExecucao = () => {
 
       if (error) throw error;
 
-      return ((data || []) as LogExecucao[]).map(log => ({
-        ...log,
-        status: log.status as 'success' | 'error' | 'processing'
-      }));
+      return (data || []) as LogExecucao[];
     },
     enabled: !!tenantId,
     staleTime: 5 * 60 * 1000,

@@ -306,11 +306,11 @@ export const useMultiAgentSystem = () => {
     }
   }, [toast]);
 
-  const loadSystemStats = useCallback(async () => {
+  const loadSystemStats = useCallback(() => {
     void queryClient.invalidateQueries({ queryKey: ['multi-agent-stats', tenantId] });
   }, [queryClient, tenantId]);
 
-  const loadMetrics = useCallback(async () => {
+  const loadMetrics = useCallback(() => {
     void queryClient.invalidateQueries({ queryKey: ['multi-agent-metrics', tenantId] });
   }, [queryClient, tenantId]);
 

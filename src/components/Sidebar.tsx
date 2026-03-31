@@ -155,7 +155,7 @@ const Sidebar = ({ activeSection, onSectionChange }: SidebarProps) => {
 
   /* ── RBAC filter ── */
   useEffect(() => {
-    const filter = async () => {
+    const filter = () => {
       if (!user) { setVisibleIds(new Set()); return; }
 
       const ids = new Set<string>();
@@ -175,7 +175,7 @@ const Sidebar = ({ activeSection, onSectionChange }: SidebarProps) => {
         if (item.adminOnly) continue;
         if (item.managerOk && profile.role !== 'manager') continue;
         try {
-          if (await hasPermission(item.resource, item.action)) ids.add(item.id);
+          if (hasPermission(item.resource, item.action)) ids.add(item.id);
         } catch {
           ids.add(item.id);
         }

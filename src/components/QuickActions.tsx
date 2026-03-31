@@ -30,20 +30,12 @@ const QuickActions = ({
   const [permissions, setPermissions] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
-    const loadPermissions = async () => {
-      const [
-        leads,
-        agendamentos,
-        contratos,
-        whatsappIa,
-        usuarios,
-      ] = await Promise.all([
-        hasPermission('leads', 'write'),
-        hasPermission('agendamentos', 'write'),
-        hasPermission('contratos', 'write'),
-        hasPermission('whatsapp_ia', 'write'),
-        hasPermission('usuarios', 'write'),
-      ]);
+    const loadPermissions = () => {
+      const leads = hasPermission('leads', 'write');
+      const agendamentos = hasPermission('agendamentos', 'write');
+      const contratos = hasPermission('contratos', 'write');
+      const whatsappIa = hasPermission('whatsapp_ia', 'write');
+      const usuarios = hasPermission('usuarios', 'write');
 
       setPermissions({
         leads,
