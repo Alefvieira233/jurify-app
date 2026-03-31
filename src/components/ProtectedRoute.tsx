@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useRef } from 'react';
 import { Navigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import type { UserRole } from '@/types/rbac';
@@ -12,9 +12,21 @@ interface ProtectedRouteProps {
 const ProtectedRoute = ({ children, requiredRoles }: ProtectedRouteProps) => {
   const { user, loading, profile } = useAuth();
 
-  // Show loading while checking auth
-  if (loading) {
+  // Track whether user was ever authenticated in this session.
+  // Once true, we NEVER unmount children for loading states — this prevents
+  // form data loss during token refresh, tab switch, or window minimize.
+  const wasAuthed = useRef(false);
+  if (user) wasAuthed.current = true;
+
+  // Initial load (user never authenticated yet): show spinner safely
+  if (loading && !wasAuthed.current) {
     return <LoadingSpinner fullScreen text="Verificando autenticação..." />;
+  }
+
+  // Re-auth / token refresh: keep children mounted, skip spinner entirely.
+  // This is the critical fix — unmounting children destroys all form state.
+  if (loading && wasAuthed.current) {
+    return <>{children}</>;
   }
 
   // If no user authenticated, redirect to login

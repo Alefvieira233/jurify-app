@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Outlet, useLocation, useNavigate } from "react-router-dom";
 import Sidebar from "@/components/Sidebar";
 import { useAuth } from "@/contexts/AuthContext";
@@ -23,6 +23,11 @@ const Layout = () => {
     const location = useLocation();
     const navigate = useNavigate();
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
+    // Once layout has rendered with a user, never unmount for loading states.
+    // This prevents form data loss during token refresh / tab switch.
+    const hasRendered = useRef(false);
+    if (user && !loading) hasRendered.current = true;
 
     // Realtime sync — all core tables auto-invalidate React Query cache
     useRealtimeSync();
@@ -89,8 +94,10 @@ const Layout = () => {
         return () => { document.body.style.overflow = ''; };
     }, [mobileMenuOpen]);
 
-    if (loading) return <LoadingSpinner fullScreen text="Carregando aplicação..." />;
-    if (!user)   return <LoadingSpinner fullScreen text="Redirecionando para login..." />;
+    // Only show loading spinner on first render (before layout ever appeared).
+    // After that, keep Layout mounted to preserve form state in child routes.
+    if (loading && !hasRendered.current) return <LoadingSpinner fullScreen text="Carregando aplicação..." />;
+    if (!user && !hasRendered.current)   return <LoadingSpinner fullScreen text="Redirecionando para login..." />;
 
     return (
         <div className="min-h-screen bg-background flex flex-col">
