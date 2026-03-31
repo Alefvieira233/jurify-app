@@ -9,8 +9,8 @@ import type { WhatsAppConversation } from '@/hooks/useWhatsAppConversations';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { ConversationFilters } from './ConversationFilters';
-import type { ConversationFilterState } from './ConversationFilters';
+import ConversationFilters from './ConversationFilters';
+import type { ConversationFilterState } from './conversationFilterTypes';
 import { getAvatarColor, getConvInitials, getStatusBadge } from './whatsapp-helpers';
 
 export interface ConversationListProps {
@@ -26,6 +26,8 @@ export interface ConversationListProps {
   onSelectConversation: (id: string) => void;
   onRefresh: () => void;
   onSetup: () => void;
+  members: { id: string; nome_completo: string | null }[];
+  areasJuridicas: string[];
 }
 
 const ConversationList = ({
@@ -41,6 +43,8 @@ const ConversationList = ({
   onSelectConversation,
   onRefresh,
   onSetup,
+  members,
+  areasJuridicas,
 }: ConversationListProps) => (
   <div
     className={`flex flex-col h-full border-r border-[hsl(var(--border))] bg-[hsl(var(--card))] ${showMobileChat ? 'hidden lg:flex' : 'flex'}`}
@@ -73,7 +77,7 @@ const ConversationList = ({
 
     </div>
 
-    <ConversationFilters value={convFilter} onChange={onFilterChange} stats={stats} />
+    <ConversationFilters value={convFilter} onChange={onFilterChange} stats={stats} members={members} areasJuridicas={areasJuridicas} />
 
     {/* Conversation Items */}
     <ScrollArea className="flex-1">

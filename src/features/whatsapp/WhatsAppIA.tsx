@@ -17,7 +17,9 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { usePageTitle } from '@/hooks/usePageTitle';
-import type { ConversationFilterState } from './ConversationFilters';
+import type { ConversationFilterState } from './conversationFilterTypes';
+import { EMPTY_CONV_FILTERS } from './conversationFilterTypes';
+import { useTeamMembers } from '@/hooks/useTeamMembers';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -151,7 +153,7 @@ const WhatsAppIA = () => {
   const [newMessage, setNewMessage] = useState('');
   const [showSetup, setShowSetup] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-  const [convFilter, setConvFilter] = useState<ConversationFilterState>({ tab: 'todos', status: '' });
+  const [convFilter, setConvFilter] = useState<ConversationFilterState>(EMPTY_CONV_FILTERS);
   const [showMobileChat, setShowMobileChat] = useState(false);
   const [isWhatsAppConnected, setIsWhatsAppConnected] = useState(() => {
     // Restaura do sessionStorage se disponível
@@ -166,6 +168,7 @@ const WhatsAppIA = () => {
     } catch { /* ignore */ }
     return false;
   });
+  const { members } = useTeamMembers();
   const connectedManuallyRef = useRef(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { profile } = useAuth();
@@ -209,6 +212,14 @@ const WhatsAppIA = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }
 
+  const uniqueAreas = useMemo(() => {
+    const areas = new Set<string>();
+    for (const c of conversations) {
+      if (c.area_juridica) areas.add(c.area_juridica);
+    }
+    return Array.from(areas).sort();
+  }, [conversations]);
+
   const stats = useMemo(() => ({
     active: conversations.filter(c => c.status === 'ativo').length,
     qualified: conversations.filter(c => c.status === 'qualificado').length,
@@ -229,11 +240,19 @@ const WhatsAppIA = () => {
       })();
       // Status filter
       const statusMatch = !convFilter.status || conv.status === convFilter.status;
+      // Responsavel filter
+      const respMatch = (() => {
+        if (!convFilter.responsavelId) return true;
+        if (convFilter.responsavelId === '__none__') return !conv.responsavel_id;
+        return conv.responsavel_id === convFilter.responsavelId;
+      })();
+      // Area juridica filter
+      const areaMatch = !convFilter.areaJuridica || conv.area_juridica === convFilter.areaJuridica;
       // Search filter
       const searchMatch = !searchQuery.trim() ||
         (conv.contact_name ?? '').toLowerCase().includes(searchQuery.toLowerCase()) ||
         conv.phone_number.includes(searchQuery);
-      return tabMatch && statusMatch && searchMatch;
+      return tabMatch && statusMatch && searchMatch && respMatch && areaMatch;
     });
   }, [conversations, convFilter, searchQuery]);
 
@@ -361,6 +380,8 @@ const WhatsAppIA = () => {
         onSelectConversation={handleSelectConversation}
         onRefresh={() => void fetchConversations()}
         onSetup={() => setShowSetup(true)}
+        members={members}
+        areasJuridicas={uniqueAreas}
       />
       <ChatPanel
         selectedConversation={selectedConversation}

@@ -12,6 +12,7 @@ export interface WhatsAppConversation {
   lead_id: string | null;
   tenant_id: string;
   user_id: string | null;
+  responsavel_id: string | null;
   phone_number: string;
   contact_name: string | null;
   status: 'ativo' | 'aguardando' | 'qualificado' | 'finalizado';
