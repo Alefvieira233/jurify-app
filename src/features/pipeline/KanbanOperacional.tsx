@@ -11,7 +11,7 @@ import { useDebounce } from '@/hooks/useDebounce';
 import { useToast } from '@/hooks/use-toast';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useKanbanGrouping, type GroupBy } from './useKanbanGrouping';
-import { KanbanToolbar } from './KanbanToolbar';
+import { KanbanToolbar, type KanbanFilters, EMPTY_FILTERS } from './KanbanToolbar';
 import { KanbanColumnComponent } from './KanbanColumn';
 import { KanbanCard } from './KanbanCard';
 import LeadDrawer from '@/features/leads/LeadDrawer';
@@ -32,6 +32,7 @@ const KanbanOperacional = () => {
   const [groupBy, setGroupBy] = useState<GroupBy>('status');
   const [search, setSearch] = useState('');
   const [showArchived, setShowArchived] = useState(false);
+  const [filters, setFilters] = useState<KanbanFilters>(EMPTY_FILTERS);
   const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
 
@@ -50,6 +51,16 @@ const KanbanOperacional = () => {
     [conexoes],
   );
 
+  // Extract unique origens for filter dropdown
+  const uniqueOrigens = useMemo(() => {
+    if (!leads) return [];
+    const set = new Set<string>();
+    for (const l of leads) {
+      if (l.origem) set.add(l.origem);
+    }
+    return [...set].sort();
+  }, [leads]);
+
   // Filter leads
   const filteredLeads = useMemo(() => {
     if (!leads) return [];
@@ -67,9 +78,30 @@ const KanbanOperacional = () => {
         if (!matchNome && !matchTel && !matchEmail) return false;
       }
 
+      // Responsavel filter
+      if (filters.responsavelId) {
+        if (filters.responsavelId === '__none__') {
+          if (lead.responsavel_id) return false;
+        } else {
+          if (lead.responsavel_id !== filters.responsavelId) return false;
+        }
+      }
+
+      // Status filter
+      if (filters.status && lead.status !== filters.status) return false;
+
+      // Origem filter
+      if (filters.origem && (lead.origem ?? '') !== filters.origem) return false;
+
+      // Prioridade filter
+      if (filters.prioridade && lead.prioridade !== filters.prioridade) return false;
+
+      // Conexao filter
+      if (filters.conexaoId && lead.conexao_id !== filters.conexaoId) return false;
+
       return true;
     });
-  }, [leads, debouncedSearch, showArchived]);
+  }, [leads, debouncedSearch, showArchived, filters]);
 
   // Group into columns — pass real departamentos and profiles
   const { columns } = useKanbanGrouping(
@@ -181,6 +213,11 @@ const KanbanOperacional = () => {
         onSearchChange={setSearch}
         showArchived={showArchived}
         onShowArchivedChange={setShowArchived}
+        filters={filters}
+        onFiltersChange={setFilters}
+        members={members ?? []}
+        origens={uniqueOrigens}
+        conexoes={conexoes ?? []}
       />
 
       <DragDropContext onDragEnd={handleDragEnd}>
