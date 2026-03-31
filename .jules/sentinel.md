@@ -1,0 +1,4 @@
+## 2026-03-04 - Log Data Redaction & Secure Randomness
+**Vulnerability:** Personally Identifiable Information (PII) leakage in persistent AI interaction logs and weak randomness in execution identifiers.
+**Learning:** AI logs often store prompts and results for debugging, which frequently contain sensitive data (CPF, CNPJ, OAB, etc.). If these are truncated *before* redaction, partial tokens can leak. Additionally, using `Math.random()` for execution IDs in Edge Functions is not cryptographically secure and can lead to predictability in high-volume environments.
+**Prevention:** Centralize PII redaction patterns and apply them to all persistent logs *before* any truncation or storage. Switch to `crypto.getRandomValues()` for all security-sensitive identifiers and tokens across both frontend and backend environments.

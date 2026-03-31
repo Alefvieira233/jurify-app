@@ -3,6 +3,7 @@ import { createClient } from "jsr:@supabase/supabase-js@2";
 import { OpenAI } from "https://deno.land/x/openai@v4.24.0/mod.ts";
 import { getCorsHeaders } from "../_shared/cors.ts";
 import { applyRateLimit } from "../_shared/rate-limiter.ts";
+import { redactPII } from "../_shared/security.ts";
 import { buildLegalContext } from "../_shared/legal-context.ts";
 import { DEFAULT_OPENAI_MODEL } from "../_shared/ai-model.ts";
 import { checkBudgetBeforeCall, recordTokenUsage } from "../_shared/ai-budget.ts";
@@ -1047,7 +1048,9 @@ async function processNormalizedMessage(supabase: ReturnType<typeof createClient
     let aiResponse: { result: string; usage?: { prompt_tokens: number; completion_tokens: number; total_tokens: number }; model: string } | null = null;
     let aiError: Error | null = null;
 
-    const executionId = `exec_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
+    const array = new Uint32Array(1);
+    crypto.getRandomValues(array);
+    const executionId = `exec_${Date.now()}_${array[0]!.toString(36).padStart(9, '0')}`;
     const aiStartTime = Date.now();
     let executionRowId: string | null = null;
 
@@ -1141,6 +1144,10 @@ async function processNormalizedMessage(supabase: ReturnType<typeof createClient
 
       // Log AI processing (non-blocking)
       if (executionRowId) {
+        const redactedResult = redactPII(resultText);
+        const redactedSystem = redactPII(finalSystemPrompt);
+        const redactedUser = redactPII(commandIntent ?? processedText);
+
         void supabase.from("agent_ai_logs").insert({
           execution_id: executionRowId,
           agent_name: agentName,
@@ -1150,10 +1157,10 @@ async function processNormalizedMessage(supabase: ReturnType<typeof createClient
           prompt_tokens: aiResponse.usage?.prompt_tokens || 0,
           completion_tokens: aiResponse.usage?.completion_tokens || 0,
           total_tokens: aiResponse.usage?.total_tokens || 0,
-          result_preview: resultText.substring(0, 200),
-          system_prompt: finalSystemPrompt.substring(0, 500),
-          user_prompt: (commandIntent ?? processedText).substring(0, 500),
-          full_result: resultText.substring(0, 2000),
+          result_preview: redactedResult.substring(0, 200),
+          system_prompt: redactedSystem.substring(0, 500),
+          user_prompt: redactedUser.substring(0, 500),
+          full_result: redactedResult.substring(0, 2000),
           context: { mediaCategory, agent: agentName, hasLegalContext: legalCtx.has_context },
           created_at: new Date().toISOString(),
         }).then(({ error }) => { if (error) console.error("[webhook] ai_log insert error:", error.message); });

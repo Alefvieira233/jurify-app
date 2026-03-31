@@ -13,6 +13,7 @@ import { createClient } from "jsr:@supabase/supabase-js@2";
 import { OpenAI } from "https://deno.land/x/openai@v4.24.0/mod.ts";
 import { applyRateLimit } from "../_shared/rate-limiter.ts";
 import { getCorsHeaders } from "../_shared/cors.ts";
+import { redactPII } from "../_shared/security.ts";
 import { checkBudgetBeforeCall, recordTokenUsage } from "../_shared/ai-budget.ts";
 import { initSentry, captureError } from "../_shared/sentry.ts";
 import { DEFAULT_OPENAI_MODEL } from "../_shared/ai-model.ts";
@@ -172,7 +173,9 @@ async function processAIRequest(
 // ðŸ†” Gera execution_id Ãºnico
 function generateExecutionId(): string {
   const timestamp = Date.now();
-  const random = Math.random().toString(36).substring(2, 11);
+  const array = new Uint32Array(1);
+  crypto.getRandomValues(array);
+  const random = array[0]!.toString(36).padStart(9, '0');
   return `exec_${timestamp}_${random}`;
 }
 
@@ -276,6 +279,11 @@ async function logAIProcessing(
       return;
     }
 
+    // Apply PII redaction once to the entire set of logs
+    const redactedResult = redactPII(response.result);
+    const redactedSystem = redactPII(request.systemPrompt);
+    const redactedUser = redactPII(request.userPrompt);
+
     await supabase.from("agent_ai_logs").insert({
       execution_id: executionRowId,
       agent_name: request.agentName,
@@ -286,11 +294,11 @@ async function logAIProcessing(
       prompt_tokens: response.usage?.prompt_tokens || 0,
       completion_tokens: response.usage?.completion_tokens || 0,
       total_tokens: response.usage?.total_tokens || 0,
-      result_preview: response.result.substring(0, 200),
+      result_preview: redactedResult.substring(0, 200),
       // Advanced Logging (LangSmith Style) — truncated to reduce PII surface
-      system_prompt: request.systemPrompt.substring(0, 500),
-      user_prompt: request.userPrompt.substring(0, 500),
-      full_result: response.result.substring(0, 2000),
+      system_prompt: redactedSystem.substring(0, 500),
+      user_prompt: redactedUser.substring(0, 500),
+      full_result: redactedResult.substring(0, 2000),
       context: request.context || null,
       created_at: new Date().toISOString(),
     });
