@@ -27,8 +27,8 @@ export function useDraftPersistence<T>(
         initialized.current = true;
         return parsed;
       }
-    } catch {
-      // Corrupt data — ignore
+    } catch (err) {
+      console.warn('[useDraftPersistence] restoring draft failed:', err);
     }
     return initialValue;
   });
@@ -41,8 +41,8 @@ export function useDraftPersistence<T>(
     }
     try {
       sessionStorage.setItem(storageKey, JSON.stringify(state));
-    } catch {
-      // Storage full or unavailable — silent
+    } catch (err) {
+      console.warn('[useDraftPersistence] persisting draft failed:', err);
     }
   }, [state, storageKey]);
 
@@ -52,8 +52,8 @@ export function useDraftPersistence<T>(
         const next = typeof update === 'function' ? (update as (prev: T) => T)(prev) : update;
         try {
           sessionStorage.setItem(storageKey, JSON.stringify(next));
-        } catch {
-          // silent
+        } catch (err) {
+          console.warn('[useDraftPersistence] setDraft persist failed:', err);
         }
         return next;
       });
@@ -64,8 +64,8 @@ export function useDraftPersistence<T>(
   const clearDraft = useCallback(() => {
     try {
       sessionStorage.removeItem(storageKey);
-    } catch {
-      // silent
+    } catch (err) {
+      console.warn('[useDraftPersistence] clearDraft failed:', err);
     }
   }, [storageKey]);
 

@@ -14,7 +14,8 @@ export async function nativeShare(options: ShareOptions): Promise<boolean> {
       try {
         await navigator.share({ title: options.title, text: options.text, url: options.url });
         return true;
-      } catch {
+      } catch (err) {
+        console.warn('[nativeShare] navigator.share failed:', err);
         return false;
       }
     }
@@ -28,7 +29,8 @@ export async function nativeShare(options: ShareOptions): Promise<boolean> {
       dialogTitle: options.dialogTitle ?? 'Compartilhar via',
     });
     return true;
-  } catch {
+  } catch (err) {
+    console.warn('[nativeShare] Share.share failed:', err);
     return false;
   }
 }

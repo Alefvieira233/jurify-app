@@ -25,14 +25,16 @@ const SystemStatus = () => {
       const query = supabase.from('profiles').select('id').limit(1);
       const { error } = tenantId ? await query.eq('tenant_id', tenantId) : await query;
       setStatus(prev => ({ ...prev, database: error ? 'offline' : 'online' }));
-    } catch {
+    } catch (err) {
+      console.error('[SystemStatus] database check failed:', err);
       setStatus(prev => ({ ...prev, database: 'offline' }));
     }
 
     try {
       await supabase.auth.getSession();
       setStatus(prev => ({ ...prev, auth: 'online' }));
-    } catch {
+    } catch (err) {
+      console.error('[SystemStatus] auth check failed:', err);
       setStatus(prev => ({ ...prev, auth: 'offline' }));
     }
 

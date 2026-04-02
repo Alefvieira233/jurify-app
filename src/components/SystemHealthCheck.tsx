@@ -57,7 +57,8 @@ const SystemHealthCheck = () => {
         } else {
           throw error;
         }
-      } catch {
+      } catch (err) {
+        console.error('[SystemHealthCheck] database check failed:', err);
         checks.push({
           id: 'database',
           name: 'Conexão com Banco de Dados',
@@ -88,7 +89,8 @@ const SystemHealthCheck = () => {
           });
           score += 10;
         }
-      } catch {
+      } catch (err) {
+        console.error('[SystemHealthCheck] auth check failed:', err);
         checks.push({
           id: 'auth',
           name: 'Sistema de Autenticação',
@@ -118,7 +120,8 @@ const SystemHealthCheck = () => {
         } else {
           throw error;
         }
-      } catch {
+      } catch (err) {
+        console.warn('[SystemHealthCheck] RLS check failed:', err);
         checks.push({
           id: 'rls',
           name: 'Row Level Security (RLS)',
@@ -156,7 +159,8 @@ const SystemHealthCheck = () => {
           });
           score += 5;
         }
-      } catch {
+      } catch (err) {
+        console.error('[SystemHealthCheck] N8N check failed:', err);
         checks.push({
           id: 'n8n',
           name: 'Integração N8N',
@@ -185,7 +189,8 @@ const SystemHealthCheck = () => {
         } else {
           throw error;
         }
-      } catch {
+      } catch (err) {
+        console.error('[SystemHealthCheck] logs check failed:', err);
         checks.push({
           id: 'logs',
           name: 'Sistema de Logs',

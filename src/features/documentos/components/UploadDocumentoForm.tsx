@@ -50,8 +50,8 @@ const UploadDocumentoForm = ({ onSubmit, onCancel, loading, processoId }: Upload
       const fileName = `documento_${Date.now()}.jpg`;
       const file = new File([blob], fileName, { type: 'image/jpeg' });
       handleFileSelect(file);
-    } catch {
-      // User cancelled — ignore
+    } catch (err) {
+      console.warn('[UploadDocumentoForm] camera capture cancelled or failed:', err);
     }
   };
 

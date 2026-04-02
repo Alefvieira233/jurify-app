@@ -88,7 +88,8 @@ const ChatInput = ({
       recordingIntervalRef.current = setInterval(() => {
         setRecordingTime(t => t + 1);
       }, 1000);
-    } catch {
+    } catch (err) {
+      console.error('[ChatInput] microphone access failed:', err);
       alert('Não foi possível acessar o microfone. Verifique as permissões do navegador.');
     }
   };

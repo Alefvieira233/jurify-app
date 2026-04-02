@@ -125,7 +125,8 @@ export class SystemValidator {
             .limit(1);
 
           rlsStatus[table] = !error;
-        } catch {
+        } catch (err) {
+          console.warn('[systemValidator] RLS check failed for table:', table, err);
           rlsStatus[table] = false;
         }
       }
@@ -159,7 +160,8 @@ export class SystemValidator {
       try {
         const { data, error } = await supabase.functions.invoke('health-check');
         integrations.healthCheck = !error && data?.status === 'ok';
-      } catch {
+      } catch (err) {
+        console.warn('[systemValidator] health-check invocation failed:', err);
         integrations.healthCheck = false;
       }
 

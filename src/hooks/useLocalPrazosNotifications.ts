@@ -56,8 +56,8 @@ export function useLocalPrazosNotifications() {
         });
 
         await LocalNotifications.schedule({ notifications });
-      } catch {
-        // LocalNotifications não disponível
+      } catch (err) {
+        console.warn('[useLocalPrazosNotifications] schedule failed:', err);
       }
     })();
   }, [user, prazos]);

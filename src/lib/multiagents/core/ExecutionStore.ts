@@ -74,7 +74,7 @@ export class ExecutionStore {
 
       return data?.id ?? null;
     } catch (_error) {
-      // Error handled silently
+      console.warn('[ExecutionStore] createExecution failed:', _error);
       return null;
     }
   }
@@ -104,10 +104,10 @@ export class ExecutionStore {
         .eq('execution_id', executionId);
 
       if (error) {
-        // Error handled silently
+        console.warn('[ExecutionStore] updateStatus DB error:', error);
       }
     } catch (_error) {
-      // Error handled silently
+      console.warn('[ExecutionStore] updateStatus failed:', _error);
     }
   }
 
@@ -151,10 +151,10 @@ export class ExecutionStore {
         .eq('execution_id', executionId);
 
       if (error) {
-        // Error handled silently
+        console.warn('[ExecutionStore] recordStageResult DB error:', error);
       }
     } catch (_error) {
-      // Error handled silently
+      console.warn('[ExecutionStore] recordStageResult failed:', _error);
     }
   }
 
@@ -193,10 +193,10 @@ export class ExecutionStore {
         .eq('execution_id', executionId);
 
       if (error) {
-        // Error handled silently
+        console.warn('[ExecutionStore] completeExecution DB error:', error);
       }
     } catch (_error) {
-      // Error handled silently
+      console.warn('[ExecutionStore] completeExecution failed:', _error);
     }
   }
 
@@ -218,10 +218,10 @@ export class ExecutionStore {
         .eq('execution_id', executionId);
 
       if (error) {
-        // Error handled silently
+        console.warn('[ExecutionStore] failExecution DB error:', error);
       }
     } catch (_error) {
-      // Error handled silently
+      console.warn('[ExecutionStore] failExecution failed:', _error);
     }
   }
 
@@ -242,7 +242,7 @@ export class ExecutionStore {
 
       return data as ExecutionRecord;
     } catch (_error) {
-      // Error handled silently
+      console.warn('[ExecutionStore] getExecution failed:', _error);
       return null;
     }
   }

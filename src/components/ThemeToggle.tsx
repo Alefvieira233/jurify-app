@@ -10,7 +10,7 @@ export const ThemeToggle = () => {
     let savedTheme: 'light' | 'dark' | null = null;
     try {
       savedTheme = localStorage.getItem('theme') as 'light' | 'dark' | null;
-    } catch { /* private browsing or storage full */ }
+    } catch (err) { console.warn('[ThemeToggle] reading theme from storage failed:', err); }
     const systemPrefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
 
     const initialTheme = savedTheme || (systemPrefersDark ? 'dark' : 'light');
@@ -31,7 +31,7 @@ export const ThemeToggle = () => {
     const newTheme = theme === 'light' ? 'dark' : 'light';
     setTheme(newTheme);
     applyTheme(newTheme);
-    try { localStorage.setItem('theme', newTheme); } catch { /* ignore */ }
+    try { localStorage.setItem('theme', newTheme); } catch (err) { console.warn('[ThemeToggle] saving theme to storage failed:', err); }
   };
 
   return (

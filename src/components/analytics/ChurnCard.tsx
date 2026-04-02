@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { memo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { UserMinus, Heart, TrendingDown, ArrowDownRight } from 'lucide-react';
@@ -11,7 +11,7 @@ interface ChurnCardProps {
   netNewMRR: number;
 }
 
-export const ChurnCard: React.FC<ChurnCardProps> = ({
+export const ChurnCard: React.FC<ChurnCardProps> = memo(({
   churnRate,
   ltv,
   canceledThisMonth,
@@ -101,6 +101,8 @@ export const ChurnCard: React.FC<ChurnCardProps> = ({
       </CardContent>
     </Card>
   );
-};
+});
+
+ChurnCard.displayName = 'ChurnCard';
 
 export default ChurnCard;

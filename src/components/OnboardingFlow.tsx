@@ -182,8 +182,8 @@ const OnboardingFlow = () => {
       }
 
       setVisible(true);
-    } catch {
-      // Silently fail — don't block the user
+    } catch (err) {
+      console.warn('[OnboardingFlow] fetchCompletionStatus failed:', err);
       setVisible(false);
     } finally {
       setLoading(false);
@@ -210,8 +210,8 @@ const OnboardingFlow = () => {
         category: 'sistema',
         description: 'Onboarding dispensado pelo administrador',
       });
-    } catch {
-      // Ignore — UI already dismissed
+    } catch (err) {
+      console.warn('[OnboardingFlow] handleDismiss failed:', err);
     }
   }, [tenantId]);
 
@@ -233,7 +233,8 @@ const OnboardingFlow = () => {
         title: 'Configuração concluída!',
         description: 'Parabéns! Seu escritório Jurify está 100% configurado.',
       });
-    } catch {
+    } catch (err) {
+      console.error('[OnboardingFlow] handleComplete failed:', err);
       toast({
         title: 'Erro ao salvar',
         description: 'Não foi possível salvar o progresso. Tente novamente.',

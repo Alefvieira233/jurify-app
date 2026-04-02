@@ -115,7 +115,8 @@ export const useGoogleCalendar = () => {
     try {
       await updateSettingsMutation.mutateAsync(updates);
       return true;
-    } catch {
+    } catch (err) {
+      console.error('[useGoogleCalendar] updateSettings failed:', err);
       return false;
     }
   }, [user?.id, tenantId, settings, updateSettingsMutation]);

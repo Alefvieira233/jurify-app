@@ -412,11 +412,11 @@ export const useLeads = (options?: { enablePagination?: boolean; pageSize?: numb
   });
 
   const archiveLead = useCallback(async (id: string, motivo: string, observacao?: string, dataReativacao?: string, proximoResponsavelId?: string): Promise<boolean> => {
-    try { await archiveMutation.mutateAsync({ id, motivo, observacao, dataReativacao, proximoResponsavelId }); return true; } catch { return false; }
+    try { await archiveMutation.mutateAsync({ id, motivo, observacao, dataReativacao, proximoResponsavelId }); return true; } catch (err) { console.error('[useLeads] archiveLead failed:', err); return false; }
   }, [archiveMutation]);
 
   const unarchiveLead = useCallback(async (id: string): Promise<boolean> => {
-    try { await unarchiveMutation.mutateAsync(id); return true; } catch { return false; }
+    try { await unarchiveMutation.mutateAsync(id); return true; } catch (err) { console.error('[useLeads] unarchiveLead failed:', err); return false; }
   }, [unarchiveMutation]);
 
   // ── Pagination helpers ─────────────────────────────────────────────────────
@@ -454,7 +454,8 @@ export const useLeads = (options?: { enablePagination?: boolean; pageSize?: numb
       await createMutation.mutateAsync(data);
       void refreshPlanUsage();
       return true;
-    } catch {
+    } catch (err) {
+      console.error('[useLeads] createLead failed:', err);
       return false;
     }
   }, [user, createMutation, toast, canUsePlan, planLimits.leads, refreshPlanUsage]);
@@ -464,7 +465,8 @@ export const useLeads = (options?: { enablePagination?: boolean; pageSize?: numb
     try {
       await updateMutation.mutateAsync({ id, updateData });
       return true;
-    } catch {
+    } catch (err) {
+      console.error('[useLeads] updateLead failed:', err);
       return false;
     }
   }, [user, tenantId, updateMutation]);
@@ -474,7 +476,8 @@ export const useLeads = (options?: { enablePagination?: boolean; pageSize?: numb
     try {
       await deleteMutation.mutateAsync(id);
       return true;
-    } catch {
+    } catch (err) {
+      console.error('[useLeads] deleteLead failed:', err);
       return false;
     }
   }, [user, tenantId, deleteMutation]);

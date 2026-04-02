@@ -223,7 +223,7 @@ export const useDocumentosJuridicos = (options?: { processoId?: string; leadId?:
 
   const deleteDocumento = useCallback(async (id: string, storagePath: string): Promise<boolean> => {
     if (!user || !tenantId) return false;
-    try { await deleteMutation.mutateAsync({ id, storagePath }); return true; } catch { return false; }
+    try { await deleteMutation.mutateAsync({ id, storagePath }); return true; } catch (err) { console.error('[useDocumentosJuridicos] deleteDocumento failed:', err); return false; }
   }, [user, tenantId, deleteMutation]);
 
   const fetchDocumentos = useCallback(() => { void refetch(); }, [refetch]);

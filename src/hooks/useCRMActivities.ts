@@ -105,7 +105,8 @@ export const useCRMActivities = () => {
     try {
       await logActivityMutation.mutateAsync(data);
       return true;
-    } catch {
+    } catch (err) {
+      console.error('[useCRMActivities] logActivity failed:', err);
       return false;
     }
   }, [user, tenantId, logActivityMutation]);

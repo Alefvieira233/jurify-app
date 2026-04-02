@@ -125,8 +125,8 @@ function DeepLinkHandler() {
         if (fullPath && fullPath !== '/' && ALLOWED_DEEP_LINK_PATHS.has(baseRoute)) {
           navigate(fullPath + url.search);
         }
-      } catch {
-        // URL inválida, ignorar silenciosamente
+      } catch (err) {
+        console.warn('[App] deep link URL parse failed:', err);
       }
     });
 

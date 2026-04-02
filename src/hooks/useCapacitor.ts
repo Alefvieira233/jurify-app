@@ -38,7 +38,7 @@ export async function triggerHaptic(
       const impactMap = { light: ImpactStyle.Light, medium: ImpactStyle.Medium, heavy: ImpactStyle.Heavy };
       await Haptics.impact({ style: impactMap[style] });
     }
-  } catch {
-    // Haptics não disponível, ignorar
+  } catch (err) {
+    console.warn('[useCapacitor] haptic feedback unavailable:', err);
   }
 }

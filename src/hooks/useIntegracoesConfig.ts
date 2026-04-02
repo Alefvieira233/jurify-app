@@ -122,7 +122,8 @@ export const useIntegracoesConfig = () => {
     try {
       await createMutation.mutateAsync(data);
       return true;
-    } catch {
+    } catch (err) {
+      console.error('[useIntegracoesConfig] createIntegracao failed:', err);
       return false;
     }
   };
@@ -132,7 +133,8 @@ export const useIntegracoesConfig = () => {
     try {
       await updateMutation.mutateAsync({ id, data });
       return true;
-    } catch {
+    } catch (err) {
+      console.error('[useIntegracoesConfig] updateIntegracao failed:', err);
       return false;
     }
   };
@@ -153,7 +155,8 @@ export const useIntegracoesConfig = () => {
     try {
       await deleteMutation.mutateAsync(id);
       return true;
-    } catch {
+    } catch (err) {
+      console.error('[useIntegracoesConfig] deleteIntegracao failed:', err);
       return false;
     }
   };

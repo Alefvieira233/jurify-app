@@ -202,17 +202,17 @@ export const usePrazosProcessuais = (options?: {
       toast({ title: 'Não autenticado', description: 'Faça login para continuar.', variant: 'destructive' });
       return false;
     }
-    try { await createMutation.mutateAsync(data); return true; } catch { return false; }
+    try { await createMutation.mutateAsync(data); return true; } catch (err) { console.error('[usePrazosProcessuais] createPrazo failed:', err); return false; }
   }, [user, createMutation, toast]);
 
   const updatePrazo = useCallback(async (id: string, updateData: Partial<PrazoInput>): Promise<boolean> => {
     if (!user || !tenantId) return false;
-    try { await updateMutation.mutateAsync({ id, updateData }); return true; } catch { return false; }
+    try { await updateMutation.mutateAsync({ id, updateData }); return true; } catch (err) { console.error('[usePrazosProcessuais] updatePrazo failed:', err); return false; }
   }, [user, tenantId, updateMutation]);
 
   const deletePrazo = useCallback(async (id: string): Promise<boolean> => {
     if (!user || !tenantId) return false;
-    try { await deleteMutation.mutateAsync(id); return true; } catch { return false; }
+    try { await deleteMutation.mutateAsync(id); return true; } catch (err) { console.error('[usePrazosProcessuais] deletePrazo failed:', err); return false; }
   }, [user, tenantId, deleteMutation]);
 
   const fetchPrazos = useCallback(() => { void refetch(); }, [refetch]);

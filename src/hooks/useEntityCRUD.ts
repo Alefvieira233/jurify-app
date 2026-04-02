@@ -338,7 +338,8 @@ export function useEntityCRUD<
       try {
         await createMutation.mutateAsync(input);
         return true;
-      } catch {
+      } catch (err) {
+        console.error('[useEntityCRUD] createEntity failed:', err);
         return false;
       }
     },
@@ -351,7 +352,8 @@ export function useEntityCRUD<
       try {
         await updateMutation.mutateAsync({ id, updateData });
         return true;
-      } catch {
+      } catch (err) {
+        console.error('[useEntityCRUD] updateEntity failed:', err);
         return false;
       }
     },
@@ -364,7 +366,8 @@ export function useEntityCRUD<
       try {
         await deleteMutation.mutateAsync(id);
         return true;
-      } catch {
+      } catch (err) {
+        console.error('[useEntityCRUD] deleteEntity failed:', err);
         return false;
       }
     },

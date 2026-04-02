@@ -42,7 +42,8 @@ export function EncerrarProcessoDialog({ processoId, processoNumero, open, onClo
       void queryClient.invalidateQueries({ queryKey: ['processos'] });
       onSuccess();
       onClose();
-    } catch {
+    } catch (err) {
+      console.error('[EncerrarProcessoDialog] encerrar failed:', err);
       toast({ title: 'Erro', description: 'Não foi possível encerrar o processo.', variant: 'destructive' });
     } finally {
       setLoading(false);

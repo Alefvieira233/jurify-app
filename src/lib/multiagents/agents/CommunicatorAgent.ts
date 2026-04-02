@@ -249,8 +249,8 @@ Tom: executivo e objetivo. Ir direto ao ponto. Valorize: agilidade e objetividad
           const parsed = JSON.parse(jsonMatch[0]);
           messageToSend = parsed.mensagem_formatada || parsed.message || formatted;
         }
-      } catch {
-        // Usa o texto como está
+      } catch (err) {
+        console.warn('[CommunicatorAgent] JSON extraction from formatted message failed:', err);
       }
 
       // Busca telefone do lead para enviar via WhatsApp

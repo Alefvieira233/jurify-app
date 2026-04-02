@@ -59,7 +59,8 @@ const PerfilSection = () => {
 
       if (error) throw error;
       toast({ title: 'Perfil atualizado', description: 'Suas informações foram salvas.' });
-    } catch {
+    } catch (err) {
+      console.error('[PerfilSection] handleSavePerfil failed:', err);
       toast({ title: 'Erro ao salvar', description: 'Não foi possível atualizar o perfil.', variant: 'destructive' });
     } finally {
       setSavingPerfil(false);
@@ -96,7 +97,8 @@ const PerfilSection = () => {
       toast({ title: 'Senha alterada', description: 'Sua senha foi atualizada com sucesso.' });
       senhaForm.reset();
       setNovaSenhaValue('');
-    } catch {
+    } catch (err) {
+      console.error('[PerfilSection] handleSaveSenha failed:', err);
       toast({ title: 'Erro ao alterar senha', description: 'Não foi possível alterar a senha.', variant: 'destructive' });
     } finally {
       setSavingSenha(false);

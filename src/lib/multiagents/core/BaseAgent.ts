@@ -160,8 +160,8 @@ export abstract class BaseAgent implements IAgent {
           if (memoryContext.summary) {
             augmentedPrompt = `${prompt}\n\n${memoryContext.summary}`;
           }
-        } catch {
-          log.warn(`MCP memory recall failed for ${this.name}`);
+        } catch (err) {
+          log.warn(`MCP memory recall failed for ${this.name}`, { error: String(err) });
         }
 
         // RAG: Busca documentos relevantes no banco vetorial
@@ -185,8 +185,8 @@ export abstract class BaseAgent implements IAgent {
               augmentedPrompt = `${augmentedPrompt}\n\nDOCUMENT CONTEXT:\n${contextText}`;
             }
           }
-        } catch {
-          log.warn(`RAG context fetch failed for ${this.name}`);
+        } catch (err) {
+          log.warn(`RAG context fetch failed for ${this.name}`, { error: String(err) });
         }
       }
 
@@ -387,8 +387,8 @@ export abstract class BaseAgent implements IAgent {
             fullText += parsed.delta;
             if (onToken) onToken(parsed.delta);
           }
-        } catch {
-          // Ignore malformed chunks
+        } catch (err) {
+          console.warn('[BaseAgent] malformed stream chunk:', err);
         }
       }
     }
@@ -590,12 +590,12 @@ export abstract class BaseAgent implements IAgent {
     if (jsonMatch) {
       try {
         return JSON.parse(jsonMatch[0]) as T;
-      } catch {
+      } catch (_err1) {
         // Tenta limpar o JSON antes de parsear
         try {
           const cleaned = this.cleanJSONString(jsonMatch[0]);
           return JSON.parse(cleaned) as T;
-        } catch {
+        } catch (_err2) {
           // Continua para próxima estratégia
         }
       }
@@ -604,7 +604,7 @@ export abstract class BaseAgent implements IAgent {
     // Estratégia 2: Tentar parsear o texto inteiro
     try {
       return JSON.parse(text) as T;
-    } catch {
+    } catch (_err) {
       // Continua para próxima estratégia
     }
 
@@ -613,7 +613,7 @@ export abstract class BaseAgent implements IAgent {
     if (codeBlockMatch) {
       try {
         return JSON.parse((codeBlockMatch[1] ?? '').trim()) as T;
-      } catch {
+      } catch (_err) {
         // Continua para próxima estratégia
       }
     }

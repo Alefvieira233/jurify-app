@@ -165,7 +165,7 @@ const WhatsAppIA = () => {
           return parsed.data?.state === 'connected';
         }
       }
-    } catch { /* ignore */ }
+    } catch (err) { console.warn('[WhatsAppIA] session restore failed:', err); }
     return false;
   });
   const { members } = useTeamMembers();

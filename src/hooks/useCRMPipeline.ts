@@ -151,7 +151,8 @@ export const useCRMPipeline = () => {
     try {
       await createMutation.mutateAsync(data);
       return true;
-    } catch {
+    } catch (err) {
+      console.error('[useCRMPipeline] createStage failed:', err);
       return false;
     }
   }, [tenantId, createMutation]);
@@ -161,7 +162,8 @@ export const useCRMPipeline = () => {
     try {
       await updateMutation.mutateAsync({ id, data });
       return true;
-    } catch {
+    } catch (err) {
+      console.error('[useCRMPipeline] updateStage failed:', err);
       return false;
     }
   }, [tenantId, updateMutation]);
@@ -171,7 +173,8 @@ export const useCRMPipeline = () => {
     try {
       await deleteMutation.mutateAsync(id);
       return true;
-    } catch {
+    } catch (err) {
+      console.error('[useCRMPipeline] deleteStage failed:', err);
       return false;
     }
   }, [tenantId, deleteMutation]);

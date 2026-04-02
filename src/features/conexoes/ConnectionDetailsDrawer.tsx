@@ -125,7 +125,8 @@ const ConnectionDetailsDrawer = ({ conexao, open, onOpenChange }: ConnectionDeta
         ultimoErro: conexao?.last_error ?? null,
         kapsoReachable: statusRes.error ? false : (kapsoOk ?? !healthRes.error),
       });
-    } catch {
+    } catch (err) {
+      console.error('[ConnectionDetailsDrawer] runDiagnostico failed:', err);
       setDiagResult({
         sessaoConectada: null,
         ultimoHeartbeat: conexao?.last_heartbeat ?? null,
@@ -170,7 +171,8 @@ const ConnectionDetailsDrawer = ({ conexao, open, onOpenChange }: ConnectionDeta
         window.open(data.setupUrl as string, '_blank', 'noopener');
         toast({ title: 'Reconexão iniciada', description: 'Complete a autenticação na janela que foi aberta.' });
       }
-    } catch {
+    } catch (err) {
+      console.error('[ConnectionDetailsDrawer] handleReconnect failed:', err);
       toast({ title: 'Erro ao reconectar', variant: 'destructive' });
     } finally {
       setIsReconnecting(false);
@@ -182,7 +184,8 @@ const ConnectionDetailsDrawer = ({ conexao, open, onOpenChange }: ConnectionDeta
       await deleteConexao(conexao.id);
       toast({ title: 'Conexão desconectada' });
       onOpenChange(false);
-    } catch {
+    } catch (err) {
+      console.error('[ConnectionDetailsDrawer] handleDisconnect failed:', err);
       toast({ title: 'Erro ao desconectar', variant: 'destructive' });
     }
   };
@@ -200,7 +203,8 @@ const ConnectionDetailsDrawer = ({ conexao, open, onOpenChange }: ConnectionDeta
         description: connected ? 'WhatsApp respondendo normalmente.' : 'A conexão não está ativa.',
         variant: connected ? 'default' : 'destructive',
       });
-    } catch {
+    } catch (err) {
+      console.error('[ConnectionDetailsDrawer] handleTestConnection failed:', err);
       toast({ title: 'Falha no teste', variant: 'destructive' });
     } finally {
       setIsTesting(false);
@@ -211,7 +215,8 @@ const ConnectionDetailsDrawer = ({ conexao, open, onOpenChange }: ConnectionDeta
     try {
       await deleteConexao(conexao.id);
       onOpenChange(false);
-    } catch {
+    } catch (err) {
+      console.error('[ConnectionDetailsDrawer] handleDelete failed:', err);
       toast({ title: 'Erro ao excluir', variant: 'destructive' });
     }
   };
@@ -225,7 +230,8 @@ const ConnectionDetailsDrawer = ({ conexao, open, onOpenChange }: ConnectionDeta
       if (error) throw error;
       toast({ title: 'Alerta marcado como resolvido' });
       void queryClient.invalidateQueries({ queryKey: ['conexoes_alertas', conexao?.id] });
-    } catch {
+    } catch (err) {
+      console.error('[ConnectionDetailsDrawer] handleResolverAlerta failed:', err);
       toast({ title: 'Erro ao resolver alerta', variant: 'destructive' });
     }
   };

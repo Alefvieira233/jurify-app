@@ -79,8 +79,8 @@ export class AgentMemoryService {
         if (!embError && embData?.embedding) {
           embedding = embData.embedding;
         }
-      } catch {
-        log.warn('Failed to generate embedding, storing without vector');
+      } catch (err) {
+        log.warn('Failed to generate embedding, storing without vector', { error: String(err) });
       }
 
       const { data, error } = await supabase
@@ -326,8 +326,8 @@ export class AgentMemoryService {
           .update({ last_accessed_at: new Date().toISOString() })
           .eq('id', id);
       }
-    } catch {
-      // Non-critical, ignore
+    } catch (err) {
+      console.warn('[AgentMemory] touchLastAccessed failed:', err);
     }
   }
 }

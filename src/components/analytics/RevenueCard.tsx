@@ -7,7 +7,7 @@
  * @version 1.0.0
  */
 
-import React from 'react';
+import React, { memo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { DollarSign, TrendingUp, TrendingDown, Target } from 'lucide-react';
@@ -21,7 +21,17 @@ interface RevenueCardProps {
     targetMRR?: number;
 }
 
-export const RevenueCard: React.FC<RevenueCardProps> = ({
+const BG_PATTERN_STYLE: React.CSSProperties = {
+    backgroundImage: `repeating-linear-gradient(
+              45deg,
+              transparent,
+              transparent 10px,
+              hsl(var(--accent)) 10px,
+              hsl(var(--accent)) 11px
+            )`,
+};
+
+export const RevenueCard: React.FC<RevenueCardProps> = memo(({
     currentMRR,
     previousMRR,
     contractsThisMonth,
@@ -43,15 +53,7 @@ export const RevenueCard: React.FC<RevenueCardProps> = ({
 
                 {/* Background Pattern */}
                 <div className="absolute inset-0 opacity-5">
-                    <div className="absolute inset-0" style={{
-                        backgroundImage: `repeating-linear-gradient(
-              45deg,
-              transparent,
-              transparent 10px,
-              hsl(var(--accent)) 10px,
-              hsl(var(--accent)) 11px
-            )`
-                    }} />
+                    <div className="absolute inset-0" style={BG_PATTERN_STYLE} />
                 </div>
 
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -139,6 +141,8 @@ export const RevenueCard: React.FC<RevenueCardProps> = ({
             </Card>
         </div>
     );
-};
+});
+
+RevenueCard.displayName = 'RevenueCard';
 
 export default RevenueCard;

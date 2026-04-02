@@ -147,12 +147,12 @@ export const useContratos = () => {
       toast({ title: 'Limite atingido', description: `Seu plano permite ${planLimits.leads} clientes. Faça upgrade para criar mais contratos.`, variant: 'destructive' });
       return false;
     }
-    try { await createMutation.mutateAsync(data); return true; } catch { return false; }
+    try { await createMutation.mutateAsync(data); return true; } catch (err) { console.error('[useContratos] createContrato failed:', err); return false; }
   }, [user, createMutation, toast, canUsePlan, planLimits.leads]);
 
   const updateContrato = useCallback(async (id: string, updateData: Partial<ContratoInput>): Promise<boolean> => {
     if (!user || !tenantId) return false;
-    try { await updateMutation.mutateAsync({ id, updateData }); return true; } catch { return false; }
+    try { await updateMutation.mutateAsync({ id, updateData }); return true; } catch (err) { console.error('[useContratos] updateContrato failed:', err); return false; }
   }, [user, tenantId, updateMutation]);
 
   const fetchContratos = useCallback(() => { void refetch(); }, [refetch]);

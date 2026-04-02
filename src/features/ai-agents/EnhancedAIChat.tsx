@@ -91,8 +91,8 @@ const EnhancedAIChat: React.FC<EnhancedAIChatProps> = ({
                     try {
                         const body = await ctx.json() as { error?: string };
                         throw new Error(body?.error || functionError.message);
-                    } catch {
-                        // body already consumed or not JSON
+                    } catch (err) {
+                        console.warn('[EnhancedAIChat] error body extraction failed:', err);
                     }
                 }
                 throw new Error(functionError.message);

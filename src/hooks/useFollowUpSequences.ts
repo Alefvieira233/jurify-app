@@ -181,7 +181,7 @@ export function useFollowUpSequences() {
   const toggleActive = useCallback(async (id: string, currentActive: boolean) => {
     try {
       await updateMutation.mutateAsync({ id, data: { is_active: !currentActive } });
-    } catch { /* handled by mutation onError */ }
+    } catch (err) { console.error('[useFollowUpSequences] toggleActive failed:', err); }
   }, [updateMutation]);
 
   // ── Trigger sequence for a lead ────────────────────────────────────────────
@@ -228,15 +228,15 @@ export function useFollowUpSequences() {
   // ── Public API ─────────────────────────────────────────────────────────────
   const createSequence = useCallback(async (input: CreateSequenceInput): Promise<boolean> => {
     if (!user) return false;
-    try { await createMutation.mutateAsync(input); return true; } catch { return false; }
+    try { await createMutation.mutateAsync(input); return true; } catch (err) { console.error('[useFollowUpSequences] createSequence failed:', err); return false; }
   }, [user, createMutation]);
 
   const updateSequence = useCallback(async (id: string, data: UpdateSequenceInput): Promise<boolean> => {
-    try { await updateMutation.mutateAsync({ id, data }); return true; } catch { return false; }
+    try { await updateMutation.mutateAsync({ id, data }); return true; } catch (err) { console.error('[useFollowUpSequences] updateSequence failed:', err); return false; }
   }, [updateMutation]);
 
   const deleteSequence = useCallback(async (id: string): Promise<boolean> => {
-    try { await deleteMutation.mutateAsync(id); return true; } catch { return false; }
+    try { await deleteMutation.mutateAsync(id); return true; } catch (err) { console.error('[useFollowUpSequences] deleteSequence failed:', err); return false; }
   }, [deleteMutation]);
 
   return {

@@ -287,7 +287,8 @@ export const useAgentTraining = () => {
     try {
       await deleteMutation.mutateAsync(docId);
       return true;
-    } catch {
+    } catch (err) {
+      console.error('[useAgentTraining] deleteDocument failed:', err);
       return false;
     }
   }, [user, tenantId, deleteMutation]);

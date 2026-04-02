@@ -94,7 +94,8 @@ export const mockSupabaseClient = {
         try {
           const session = JSON.parse(savedSession);
           return { data: { session }, error: null };
-        } catch {
+        } catch (err) {
+          console.warn('[mock] session parse failed:', err);
           return { data: { session: null }, error: null };
         }
       }
@@ -114,7 +115,8 @@ export const mockSupabaseClient = {
           try {
             const session = JSON.parse(savedSession);
             callback('SIGNED_IN', session);
-          } catch {
+          } catch (err) {
+            console.warn('[mock] auth state restore failed:', err);
             callback('SIGNED_OUT', null);
           }
         } else {

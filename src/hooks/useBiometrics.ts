@@ -21,7 +21,8 @@ export function useBiometrics(): BiometricsResult {
         iosFallbackTitle: 'Usar senha',
       });
       return true;
-    } catch {
+    } catch (err) {
+      console.warn('[useBiometrics] authenticate failed:', err);
       return false;
     }
   }, []);

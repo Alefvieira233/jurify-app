@@ -192,17 +192,17 @@ export const useHonorarios = (options?: { processoId?: string; page?: number }) 
       toast({ title: 'Não autenticado', description: 'Faça login para continuar.', variant: 'destructive' });
       return false;
     }
-    try { await createMutation.mutateAsync(data); return true; } catch { return false; }
+    try { await createMutation.mutateAsync(data); return true; } catch (err) { console.error('[useHonorarios] createHonorario failed:', err); return false; }
   }, [user, createMutation, toast]);
 
   const updateHonorario = useCallback(async (id: string, updateData: Partial<HonorarioInput>): Promise<boolean> => {
     if (!user || !tenantId) return false;
-    try { await updateMutation.mutateAsync({ id, updateData }); return true; } catch { return false; }
+    try { await updateMutation.mutateAsync({ id, updateData }); return true; } catch (err) { console.error('[useHonorarios] updateHonorario failed:', err); return false; }
   }, [user, tenantId, updateMutation]);
 
   const deleteHonorario = useCallback(async (id: string): Promise<boolean> => {
     if (!user || !tenantId) return false;
-    try { await deleteMutation.mutateAsync(id); return true; } catch { return false; }
+    try { await deleteMutation.mutateAsync(id); return true; } catch (err) { console.error('[useHonorarios] deleteHonorario failed:', err); return false; }
   }, [user, tenantId, deleteMutation]);
 
   const fetchHonorarios = useCallback(() => { void refetch(); }, [refetch]);

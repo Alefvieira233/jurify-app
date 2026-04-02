@@ -293,7 +293,8 @@ export const useFollowUps = () => {
     try {
       await createMutation.mutateAsync(data);
       return true;
-    } catch {
+    } catch (err) {
+      console.error('[useFollowUps] createFollowUp failed:', err);
       return false;
     }
   }, [user, tenantId, createMutation]);
@@ -303,7 +304,8 @@ export const useFollowUps = () => {
     try {
       await completeMutation.mutateAsync({ id, notes });
       return true;
-    } catch {
+    } catch (err) {
+      console.error('[useFollowUps] completeFollowUp failed:', err);
       return false;
     }
   }, [user, completeMutation]);
@@ -312,7 +314,8 @@ export const useFollowUps = () => {
     try {
       await cancelMutation.mutateAsync(id);
       return true;
-    } catch {
+    } catch (err) {
+      console.error('[useFollowUps] cancelFollowUp failed:', err);
       return false;
     }
   }, [cancelMutation]);
@@ -321,7 +324,8 @@ export const useFollowUps = () => {
     try {
       await snoozeMutation.mutateAsync({ id, until });
       return true;
-    } catch {
+    } catch (err) {
+      console.error('[useFollowUps] snoozeFollowUp failed:', err);
       return false;
     }
   }, [snoozeMutation]);
@@ -330,7 +334,8 @@ export const useFollowUps = () => {
     try {
       await rescheduleMutation.mutateAsync({ id, newDate });
       return true;
-    } catch {
+    } catch (err) {
+      console.error('[useFollowUps] rescheduleFollowUp failed:', err);
       return false;
     }
   }, [rescheduleMutation]);

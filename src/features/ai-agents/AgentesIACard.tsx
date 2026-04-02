@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { memo } from 'react';
 import { Bot, BarChart, Zap, Edit, Eye, Power, PowerOff, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -19,7 +19,7 @@ const tiposAgente = {
   api_externa: { label: 'API Externa', icon: Zap, color: 'text-purple-200' }
 };
 
-export const AgentesIACard: React.FC<AgentesIACardProps> = ({
+export const AgentesIACard: React.FC<AgentesIACardProps> = memo(({
   agente,
   onEdit,
   onViewDetails,
@@ -130,7 +130,6 @@ export const AgentesIACard: React.FC<AgentesIACardProps> = ({
       </CardContent>
     </Card>
   );
-};
+});
 
-
-
+AgentesIACard.displayName = 'AgentesIACard';

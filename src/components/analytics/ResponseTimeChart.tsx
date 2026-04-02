@@ -7,7 +7,7 @@
  * @version 1.0.0
  */
 
-import React from 'react';
+import React, { memo } from 'react';
 import {
     LineChart,
     Line,
@@ -33,7 +33,18 @@ interface ResponseTimeChartProps {
     targetResponseTime?: number; // in seconds
 }
 
-export const ResponseTimeChart: React.FC<ResponseTimeChartProps> = ({
+const TOOLTIP_STYLE: React.CSSProperties = {
+    backgroundColor: 'hsl(var(--card))',
+    border: '1px solid hsl(var(--border))',
+    borderRadius: '0.25rem',
+    fontFamily: 'Inter, sans-serif',
+};
+
+const DASHED_LEGEND_STYLE: React.CSSProperties = {
+    maskImage: 'repeating-linear-gradient(90deg, transparent, transparent 2px, black 2px, black 4px)',
+};
+
+export const ResponseTimeChart: React.FC<ResponseTimeChartProps> = memo(({
     data,
     targetResponseTime = 3,
 }) => {
@@ -94,12 +105,7 @@ export const ResponseTimeChart: React.FC<ResponseTimeChartProps> = ({
                             tickFormatter={(value) => `${value}s`}
                         />
                         <Tooltip
-                            contentStyle={{
-                                backgroundColor: 'hsl(var(--card))',
-                                border: '1px solid hsl(var(--border))',
-                                borderRadius: '0.25rem',
-                                fontFamily: 'Inter, sans-serif',
-                            }}
+                            contentStyle={TOOLTIP_STYLE}
                             formatter={(value: number, name: string) => [
                                 `${value.toFixed(2)}s`,
                                 name === 'avgTime' ? 'Média' : 'P95'
@@ -151,11 +157,11 @@ export const ResponseTimeChart: React.FC<ResponseTimeChartProps> = ({
                         <span className="text-muted-foreground">Média</span>
                     </div>
                     <div className="flex items-center gap-1.5">
-                        <div className="w-3 h-0.5 bg-destructive rounded" style={{ maskImage: 'repeating-linear-gradient(90deg, transparent, transparent 2px, black 2px, black 4px)' }} />
+                        <div className="w-3 h-0.5 bg-destructive rounded" style={DASHED_LEGEND_STYLE} />
                         <span className="text-muted-foreground">P95</span>
                     </div>
                     <div className="flex items-center gap-1.5">
-                        <div className="w-3 h-0.5 bg-accent rounded" style={{ maskImage: 'repeating-linear-gradient(90deg, transparent, transparent 2px, black 2px, black 4px)' }} />
+                        <div className="w-3 h-0.5 bg-accent rounded" style={DASHED_LEGEND_STYLE} />
                         <span className="text-muted-foreground">Meta</span>
                     </div>
                 </div>
@@ -178,6 +184,8 @@ export const ResponseTimeChart: React.FC<ResponseTimeChartProps> = ({
             </CardContent>
         </Card>
     );
-};
+});
+
+ResponseTimeChart.displayName = 'ResponseTimeChart';
 
 export default ResponseTimeChart;

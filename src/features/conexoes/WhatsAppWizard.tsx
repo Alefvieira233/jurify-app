@@ -58,8 +58,8 @@ const WhatsAppWizard = ({ onClose, onConnected }: WhatsAppWizardProps) => {
             cleanup();
             setStep('syncing');
           }
-        } catch {
-          // Silent — polling continues
+        } catch (err) {
+          console.warn('[WhatsAppWizard] status poll failed:', err);
         }
       })();
     };
@@ -93,7 +93,8 @@ const WhatsAppWizard = ({ onClose, onConnected }: WhatsAppWizardProps) => {
 
       setSetupUrl(data.setupUrl as string);
       setSetupState('ready');
-    } catch {
+    } catch (err) {
+      console.error('[WhatsAppWizard] generateSetupLink failed:', err);
       setSetupState('error');
       setErrorMsg('Não foi possível preparar a conexão. Tente novamente.');
     }
@@ -123,8 +124,8 @@ const WhatsAppWizard = ({ onClose, onConnected }: WhatsAppWizardProps) => {
             cleanup();
             setStep('syncing');
           }
-        } catch {
-          // Silent — next poll will retry
+        } catch (err) {
+          console.warn('[WhatsAppWizard] connection poll failed:', err);
         }
       })();
     }, POLL_INTERVAL_MS);
@@ -139,8 +140,8 @@ const WhatsAppWizard = ({ onClose, onConnected }: WhatsAppWizardProps) => {
         await supabase.functions.invoke('kapso-manager', {
           body: { action: 'finalize' },
         });
-      } catch {
-        // Best-effort — the status poll auto-finalizes too
+      } catch (err) {
+        console.warn('[WhatsAppWizard] finalize failed:', err);
       }
       setStep('syncing');
     })();

@@ -238,7 +238,8 @@ export const useMultiAgentSystem = () => {
       try {
         await processLeadMutation.mutateAsync(leadData);
         return true;
-      } catch {
+      } catch (err) {
+        console.error('[useMultiAgentSystem] processLead failed:', err);
         return false;
       } finally {
         setIsProcessing(false);

@@ -99,8 +99,8 @@ class MonitoringService {
       }).catch(() => {
         // Sentry not available — silent fallback
       });
-    } catch {
-      // Non-blocking
+    } catch (err) {
+      console.warn('[MonitoringService] sendError failed:', err);
     }
   }
 

@@ -47,7 +47,8 @@ function formatDate(dateStr: string | null): string {
       hour: '2-digit',
       minute: '2-digit',
     }).format(new Date(dateStr));
-  } catch {
+  } catch (err) {
+    console.warn('[LeadDrawerOperacional] date format failed:', err);
     return dateStr;
   }
 }

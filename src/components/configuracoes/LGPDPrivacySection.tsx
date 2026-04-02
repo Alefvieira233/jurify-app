@@ -47,7 +47,8 @@ const LGPDPrivacySection = () => {
           if (!error && data) {
             exportData[table] = data;
           }
-        } catch {
+        } catch (err) {
+          console.warn('[LGPDPrivacySection] export table failed:', table, err);
           exportData[table] = { error: 'Não foi possível exportar esta tabela' };
         }
       }
@@ -60,8 +61,8 @@ const LGPDPrivacySection = () => {
           .eq('id', user.id)
           .single();
         if (data) exportData['meu_perfil'] = data;
-      } catch {
-        // ignore
+      } catch (err) {
+        console.warn('[LGPDPrivacySection] export profile failed:', err);
       }
 
       const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });

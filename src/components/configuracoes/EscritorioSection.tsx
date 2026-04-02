@@ -67,8 +67,8 @@ const EscritorioSection = () => {
             setLgpdConfig(data.configuracoes as TenantConfig);
           }
         }
-      } catch {
-        // falha silenciosa — form mantém defaultValues
+      } catch (err) {
+        console.warn('[EscritorioSection] loading tenant data failed:', err);
       }
     })();
   }, [profile?.tenant_id, form]);
@@ -89,7 +89,8 @@ const EscritorioSection = () => {
 
       if (error) throw error;
       toast({ title: 'Escritório atualizado', description: 'Dados do escritório salvos com sucesso.' });
-    } catch {
+    } catch (err) {
+      console.error('[EscritorioSection] handleSaveEscritorio failed:', err);
       toast({ title: 'Erro ao salvar', description: 'Não foi possível atualizar os dados.', variant: 'destructive' });
     } finally {
       setSaving(false);
@@ -107,7 +108,8 @@ const EscritorioSection = () => {
 
       if (error) throw error;
       toast({ title: 'LGPD atualizado', description: 'Configurações de privacidade salvas.' });
-    } catch {
+    } catch (err) {
+      console.error('[EscritorioSection] handleSaveLGPD failed:', err);
       toast({ title: 'Erro ao salvar', description: 'Não foi possível atualizar as configurações.', variant: 'destructive' });
     } finally {
       setSaving(false);

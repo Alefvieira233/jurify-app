@@ -137,8 +137,8 @@ export const SubscriptionManager = () => {
                         storageMbUsed += (f.metadata?.size ?? 0) / (1024 * 1024);
                     }
                 }
-            } catch {
-                // storage query failed, use 0
+            } catch (err) {
+                console.warn('[SubscriptionManager] storage query failed:', err);
                 storageMbUsed = 0;
             }
 

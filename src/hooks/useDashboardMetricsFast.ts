@@ -170,8 +170,8 @@ export function useDashboardMetricsFast() {
       try {
         const metrics = await fetchFromMaterializedView(tenantId);
         return { metrics, fromFallback: false };
-      } catch {
-        log.warn('Materialized view unavailable, using fallback');
+      } catch (err) {
+        log.warn('Materialized view unavailable, using fallback', { error: String(err) });
         return { metrics: DEFAULT_METRICS, fromFallback: true };
       }
     },

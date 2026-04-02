@@ -253,7 +253,7 @@ export const useProcessos = (options?: {
     try {
       await createMutation.mutateAsync(data);
       return true;
-    } catch { return false; }
+    } catch (err) { console.error('[useProcessos] createProcesso failed:', err); return false; }
   }, [user, createMutation, toast]);
 
   const updateProcesso = useCallback(async (id: string, updateData: Partial<ProcessoInput>): Promise<boolean> => {
@@ -261,7 +261,7 @@ export const useProcessos = (options?: {
     try {
       await updateMutation.mutateAsync({ id, updateData });
       return true;
-    } catch { return false; }
+    } catch (err) { console.error('[useProcessos] updateProcesso failed:', err); return false; }
   }, [user, tenantId, updateMutation]);
 
   const deleteProcesso = useCallback(async (id: string): Promise<boolean> => {
@@ -269,7 +269,7 @@ export const useProcessos = (options?: {
     try {
       await deleteMutation.mutateAsync(id);
       return true;
-    } catch { return false; }
+    } catch (err) { console.error('[useProcessos] deleteProcesso failed:', err); return false; }
   }, [user, tenantId, deleteMutation]);
 
   const fetchProcessos = useCallback(() => { void refetch(); }, [refetch]);

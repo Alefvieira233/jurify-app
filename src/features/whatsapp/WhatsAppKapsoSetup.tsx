@@ -55,8 +55,8 @@ export default function WhatsAppKapsoSetup({ onConnectionSuccess }: WhatsAppKaps
           return parsed.data;
         }
       }
-    } catch {
-      // Ignore parse/storage error (private browsing, etc.)
+    } catch (err) {
+      console.warn('[WhatsAppKapsoSetup] restoring session failed:', err);
     }
     return {
       instanceName: '',
@@ -75,7 +75,7 @@ export default function WhatsAppKapsoSetup({ onConnectionSuccess }: WhatsAppKaps
           data: newState,
           timestamp: Date.now(),
         }));
-      } catch { /* storage full or private browsing */ }
+      } catch (err) { console.warn('[WhatsAppKapsoSetup] sessionStorage write failed:', err); }
       return newState;
     });
   }, []);
@@ -156,8 +156,8 @@ export default function WhatsAppKapsoSetup({ onConnectionSuccess }: WhatsAppKaps
           qrCode: null,
           error: null,
         });
-      } catch {
-        // Error handled silently
+      } catch (err) {
+        console.warn('[WhatsAppKapsoSetup] loadExisting failed:', err);
       }
     };
 
@@ -237,8 +237,8 @@ export default function WhatsAppKapsoSetup({ onConnectionSuccess }: WhatsAppKaps
             error: 'Tempo esgotado. Clique em "Conectar WhatsApp" para gerar um novo QR Code.',
           }));
         }
-      } catch {
-        // Silently retry — network hiccups are expected
+      } catch (err) {
+        console.warn('[WhatsAppKapsoSetup] polling retry failed:', err);
       }
     })(), 5000);
 
@@ -423,7 +423,7 @@ export default function WhatsAppKapsoSetup({ onConnectionSuccess }: WhatsAppKaps
 
     try {
       await callKapsoManager('delete', instance.instanceName);
-      try { sessionStorage.removeItem('whatsapp_kapso_instance'); } catch { /* ignore */ }
+      try { sessionStorage.removeItem('whatsapp_kapso_instance'); } catch (err) { console.warn('[WhatsAppKapsoSetup] sessionStorage cleanup failed:', err); }
       setInstance({ instanceName: '', state: 'idle', qrCode: null, error: null });
       toast({ title: 'Instancia removida' });
     } catch (err: unknown) {

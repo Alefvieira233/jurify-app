@@ -1,3 +1,4 @@
+import { memo } from 'react';
 import {
   MessageSquare,
   Settings,
@@ -30,6 +31,65 @@ export interface ConversationListProps {
   areasJuridicas: string[];
 }
 
+/** Style constant for the conversation list container */
+const LIST_CONTAINER_STYLE: React.CSSProperties = { width: '100%', maxWidth: '400px', minWidth: '320px' };
+
+interface ConversationItemProps {
+  conv: WhatsAppConversation;
+  isSelected: boolean;
+  onSelect: (id: string) => void;
+}
+
+const ConversationItem = memo(({ conv, isSelected, onSelect }: ConversationItemProps) => (
+  <div
+    onClick={() => onSelect(conv.id)}
+    className={`flex items-start gap-3 px-4 py-3 cursor-pointer transition-colors border-b border-[hsl(var(--border))]/50 ${
+      isSelected
+        ? 'bg-emerald-50 dark:bg-emerald-950/20 border-l-2 border-l-emerald-500'
+        : 'hover:bg-[hsl(var(--muted))]/50 border-l-2 border-l-transparent'
+    }`}
+  >
+    {/* Avatar */}
+    <div className="relative flex-shrink-0">
+      <div className={`h-11 w-11 rounded-full ${getAvatarColor(conv.id)} flex items-center justify-center text-white text-sm font-semibold`}>
+        {getConvInitials(conv.contact_name, conv.phone_number)}
+      </div>
+      {conv.status === 'ativo' && (
+        <div className="absolute -bottom-0.5 -right-0.5 h-3.5 w-3.5 rounded-full bg-emerald-500 border-2 border-[hsl(var(--card))]" />
+      )}
+    </div>
+
+    {/* Content */}
+    <div className="flex-1 min-w-0">
+      <div className="flex items-center justify-between gap-2">
+        <span className="text-sm font-semibold text-[hsl(var(--foreground))] truncate">
+          {conv.contact_name || conv.phone_number}
+        </span>
+        <span className="text-[10px] text-[hsl(var(--muted-foreground))] flex-shrink-0">
+          {conv.last_message_at ? relativeTime(conv.last_message_at) : ''}
+        </span>
+      </div>
+      <div className="flex items-center gap-1.5 mt-0.5">
+        {getStatusBadge(conv.status)}
+      </div>
+      <p className="text-xs text-[hsl(var(--muted-foreground))] truncate mt-1">
+        {conv.last_message || 'Sem mensagens'}
+      </p>
+    </div>
+
+    {/* Unread Badge */}
+    {conv.unread_count > 0 && (
+      <div className="flex-shrink-0 mt-1">
+        <span className="bg-emerald-500 text-white text-[10px] font-bold rounded-full h-5 min-w-[20px] px-1.5 flex items-center justify-center">
+          {conv.unread_count > 99 ? '99+' : conv.unread_count}
+        </span>
+      </div>
+    )}
+  </div>
+));
+
+ConversationItem.displayName = 'ConversationItem';
+
 const ConversationList = ({
   showMobileChat,
   searchQuery,
@@ -48,7 +108,7 @@ const ConversationList = ({
 }: ConversationListProps) => (
   <div
     className={`flex flex-col h-full border-r border-[hsl(var(--border))] bg-[hsl(var(--card))] ${showMobileChat ? 'hidden lg:flex' : 'flex'}`}
-    style={{ width: '100%', maxWidth: '400px', minWidth: '320px' }}
+    style={LIST_CONTAINER_STYLE}
   >
     {/* Header */}
     <div className="p-4 border-b border-[hsl(var(--border))]">
@@ -89,57 +149,14 @@ const ConversationList = ({
           </p>
         </div>
       ) : (
-        filteredConversations.map((conv) => {
-          const isSelected = selectedConversation?.id === conv.id;
-          return (
-            <div
+        filteredConversations.map((conv) => (
+            <ConversationItem
               key={conv.id}
-              onClick={() => onSelectConversation(conv.id)}
-              className={`flex items-start gap-3 px-4 py-3 cursor-pointer transition-colors border-b border-[hsl(var(--border))]/50 ${
-                isSelected
-                  ? 'bg-emerald-50 dark:bg-emerald-950/20 border-l-2 border-l-emerald-500'
-                  : 'hover:bg-[hsl(var(--muted))]/50 border-l-2 border-l-transparent'
-              }`}
-            >
-              {/* Avatar */}
-              <div className="relative flex-shrink-0">
-                <div className={`h-11 w-11 rounded-full ${getAvatarColor(conv.id)} flex items-center justify-center text-white text-sm font-semibold`}>
-                  {getConvInitials(conv.contact_name, conv.phone_number)}
-                </div>
-                {conv.status === 'ativo' && (
-                  <div className="absolute -bottom-0.5 -right-0.5 h-3.5 w-3.5 rounded-full bg-emerald-500 border-2 border-[hsl(var(--card))]" />
-                )}
-              </div>
-
-              {/* Content */}
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center justify-between gap-2">
-                  <span className="text-sm font-semibold text-[hsl(var(--foreground))] truncate">
-                    {conv.contact_name || conv.phone_number}
-                  </span>
-                  <span className="text-[10px] text-[hsl(var(--muted-foreground))] flex-shrink-0">
-                    {conv.last_message_at ? relativeTime(conv.last_message_at) : ''}
-                  </span>
-                </div>
-                <div className="flex items-center gap-1.5 mt-0.5">
-                  {getStatusBadge(conv.status)}
-                </div>
-                <p className="text-xs text-[hsl(var(--muted-foreground))] truncate mt-1">
-                  {conv.last_message || 'Sem mensagens'}
-                </p>
-              </div>
-
-              {/* Unread Badge */}
-              {conv.unread_count > 0 && (
-                <div className="flex-shrink-0 mt-1">
-                  <span className="bg-emerald-500 text-white text-[10px] font-bold rounded-full h-5 min-w-[20px] px-1.5 flex items-center justify-center">
-                    {conv.unread_count > 99 ? '99+' : conv.unread_count}
-                  </span>
-                </div>
-              )}
-            </div>
-          );
-        })
+              conv={conv}
+              isSelected={selectedConversation?.id === conv.id}
+              onSelect={onSelectConversation}
+            />
+          ))
       )}
     </ScrollArea>
 

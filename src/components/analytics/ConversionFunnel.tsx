@@ -1,5 +1,5 @@
 
-import { useMemo } from 'react';
+import { memo, useMemo } from 'react';
 import { TrendingDown } from 'lucide-react';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 
@@ -32,7 +32,7 @@ const STAGE_ORDER: StageKey[] = [
 function rateHex(r: number)   { return r >= 50 ? '#059669' : r >= 30 ? '#d97706' : '#e11d48'; }
 function rateBg(r: number)    { return r >= 50 ? 'rgba(5,150,105,0.10)' : r >= 30 ? 'rgba(217,119,6,0.10)' : 'rgba(225,29,72,0.10)'; }
 
-export const ConversionFunnel = ({ data }: ConversionFunnelProps) => {
+export const ConversionFunnel = memo(({ data }: ConversionFunnelProps) => {
   const stages = useMemo(() =>
     STAGE_ORDER.map(key => ({
       key,
@@ -197,6 +197,8 @@ export const ConversionFunnel = ({ data }: ConversionFunnelProps) => {
       </CardContent>
     </Card>
   );
-};
+});
+
+ConversionFunnel.displayName = 'ConversionFunnel';
 
 export default ConversionFunnel;

@@ -195,7 +195,7 @@ LEAD NOVO
         reason = parsed.reason || 'Decisão da IA';
       }
     } catch (_e) {
-      // Fallback to default agent
+      console.warn('[CoordinatorAgent] plan parsing failed, using default agent:', _e);
     }
 
     this.updateContext(payload.leadId || '', { stage: 'planned', plan, nextAgent, task });
