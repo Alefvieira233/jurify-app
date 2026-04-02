@@ -1,6 +1,13 @@
 /**
- * Hook para gerenciamento de Documentos Jurídicos.
- * Padrão: useProcessos.ts
+ * Hook para gerenciamento de Documentos Juridicos.
+ *
+ * NOT migrated to useEntityCRUD because:
+ * - Query includes batch signed URL generation from Supabase Storage
+ * - uploadDocumento includes file upload to Storage + SHA-256 hashing
+ * - deleteDocumento removes file from Storage before deleting the DB record
+ * - Custom delete mutation signature: (id, storagePath) instead of (id)
+ *
+ * @see useEntityCRUD — preferred pattern for new entity hooks
  */
 import { useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';

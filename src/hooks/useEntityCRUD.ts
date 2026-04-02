@@ -73,6 +73,18 @@ export interface EntityCRUDOptions {
   filters?: Record<string, string>;
   /** Single-column ilike search */
   search?: { column: string; term: string };
+  /**
+   * Modify the Supabase query builder before execution.
+   * Use for OR-based search, multi-column filters, or any query logic
+   * that doesn't fit the simple `filters`/`search` options.
+   */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  queryModifier?: (query: any) => any;
+  /**
+   * Extra values appended to the React Query cache key.
+   * Ensures the cache is properly scoped when using queryModifier.
+   */
+  extraQueryKey?: readonly unknown[];
 }
 
 export interface EntityCRUDResult<T, TInput> {
@@ -134,6 +146,8 @@ export function useEntityCRUD<
   const pageSize = configPageSize ?? 25;
   const filters = options?.filters;
   const search = options?.search;
+  const queryModifier = options?.queryModifier;
+  const extraQueryKey = options?.extraQueryKey;
   const tenantId = profile?.tenant_id;
 
   // When the caller manages page externally, honour it; otherwise manage internally.
@@ -152,7 +166,8 @@ export function useEntityCRUD<
     enablePagination ? currentPage : 1,
     filters ? JSON.stringify(filters) : '',
     search ? `${search.column}:${search.term}` : '',
-  ] as const;
+    ...(extraQueryKey ?? []),
+  ];
 
   // ── Query ──────────────────────────────────────────────────────────────────
 
@@ -194,6 +209,11 @@ export function useEntityCRUD<
       // ilike search
       if (search?.term) {
         query = query.ilike(search.column, `%${search.term}%`);
+      }
+
+      // Custom query modifier
+      if (queryModifier) {
+        query = queryModifier(query);
       }
 
       // Pagination

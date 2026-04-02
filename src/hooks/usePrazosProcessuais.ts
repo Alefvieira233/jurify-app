@@ -1,17 +1,11 @@
 /**
  * Hook para gerenciamento de Prazos Processuais.
- * Padrão: useProcessos.ts
+ *
+ * Refactored to use {@link useEntityCRUD} for all CRUD boilerplate.
+ * Custom logic: prazosUrgentes derived filter (deadlines within 7 days).
  */
-import { useCallback, useState, useMemo } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { supabaseUntyped as supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/contexts/AuthContext';
-import { useToast } from '@/hooks/use-toast';
-import { createLogger } from '@/lib/logger';
-import { addSentryBreadcrumb } from '@/lib/sentry';
-import { toUserMessage } from '@/lib/errorMessages';
-
-const log = createLogger('Prazos');
+import { useMemo } from 'react';
+import { useEntityCRUD, type EntityCRUDOptions } from '@/hooks/useEntityCRUD';
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -34,14 +28,8 @@ export type PrazoProcessual = {
 
 export type PrazoInput = Partial<Omit<PrazoProcessual, 'id' | 'created_at' | 'updated_at'>>;
 
-const ITEMS_PER_PAGE = 25;
-
 export const prazosQueryKey = (tenantId: string | undefined, page?: number) =>
   ['prazos_processuais', tenantId, page ?? 1] as const;
-
-function normalizePrazo(row: Record<string, unknown>): PrazoProcessual {
-  return { ...(row as PrazoProcessual) };
-}
 
 // ─── Hook ────────────────────────────────────────────────────────────────────
 
@@ -53,187 +41,77 @@ export const usePrazosProcessuais = (options?: {
   filterTipo?: string;
   search?: string;
 }) => {
-  const { user, profile } = useAuth();
-  const { toast } = useToast();
-  const queryClient = useQueryClient();
+  const processoId = options?.processoId;
+  const filterStatus = options?.filterStatus;
+  const filterTipo = options?.filterTipo;
+  const searchTerm = options?.search;
 
-  const enablePagination = options?.enablePagination ?? false;
-  const pageSize = options?.pageSize ?? ITEMS_PER_PAGE;
-  const tenantId = profile?.tenant_id;
-  const [currentPage, setCurrentPage] = useState(1);
-  const qKey = prazosQueryKey(tenantId, enablePagination ? currentPage : undefined);
+  // Build equality filters
+  const filters = useMemo(() => {
+    const f: Record<string, string> = {};
+    if (processoId) f.processo_id = processoId;
+    if (filterStatus) f.status = filterStatus;
+    if (filterTipo) f.tipo = filterTipo;
+    return Object.keys(f).length > 0 ? f : undefined;
+  }, [processoId, filterStatus, filterTipo]);
 
-  const { data: queryData, isLoading: loading, error: queryError, refetch } = useQuery({
-    queryKey: [...qKey, options?.processoId, options?.filterStatus, options?.filterTipo, options?.search],
-    queryFn: async () => {
-      let query = supabase
-        .from('prazos_processuais')
-        .select('*', { count: 'exact' })
-        .order('data_prazo', { ascending: true });
+  // Single-column ilike search on descricao
+  const search = useMemo(() => {
+    if (!searchTerm) return undefined;
+    return { column: 'descricao', term: searchTerm };
+  }, [searchTerm]);
 
-      if (tenantId) query = query.eq('tenant_id', tenantId);
-      if (options?.processoId) query = query.eq('processo_id', options.processoId);
-      if (options?.filterStatus) query = query.eq('status', options.filterStatus);
-      if (options?.filterTipo) query = query.eq('tipo', options.filterTipo);
-      if (options?.search) query = query.ilike('descricao', `%${options.search}%`);
+  const crudOptions: EntityCRUDOptions = {
+    enablePagination: options?.enablePagination,
+    filters,
+    search,
+    extraQueryKey: [processoId ?? '', filterStatus ?? '', filterTipo ?? '', searchTerm ?? ''],
+  };
 
-      if (enablePagination) {
-        const from = (currentPage - 1) * pageSize;
-        query = query.range(from, from + pageSize - 1);
-      }
-
-      const { data, error, count } = await query;
-      if (error) { log.error('Erro ao buscar prazos', error); throw error; }
-
-      return {
-        items: (data || []).map(normalizePrazo),
-        totalCount: count ?? 0,
-      };
+  const crud = useEntityCRUD<PrazoProcessual, PrazoInput>(
+    {
+      table: 'prazos_processuais',
+      queryKeyPrefix: 'prazos_processuais',
+      displayName: 'Prazo',
+      listColumns: '*',
+      defaultSort: { column: 'data_prazo', ascending: true },
+      pageSize: options?.pageSize,
     },
-    enabled: !!user,
-    staleTime: 2 * 60 * 1000,
-    refetchOnWindowFocus: false,
-  });
+    crudOptions,
+  );
 
-  const prazos = useMemo(() => queryData?.items ?? [], [queryData?.items]);
-  const totalCount = queryData?.totalCount ?? 0;
-  const totalPages = enablePagination ? Math.ceil(totalCount / pageSize) : 1;
-  const error = queryError ? queryError.message : null;
+  const prazos = crud.data;
 
-  // Prazos urgentes (vencendo em até 7 dias) — memoized
-  const prazosUrgentes = useMemo(() => prazos.filter(p => {
-    if (p.status !== 'pendente') return false;
-    const dias = Math.ceil((new Date(p.data_prazo).getTime() - Date.now()) / (1000 * 60 * 60 * 24));
-    return dias <= 7 && dias >= 0;
-  }), [prazos]);
-
-  const createMutation = useMutation({
-    mutationFn: async (data: PrazoInput) => {
-      const { data: created, error } = await supabase
-        .from('prazos_processuais')
-        .insert([{ ...data, tenant_id: tenantId ?? null }])
-        .select()
-        .single();
-      if (error) throw error;
-      return normalizePrazo(created as Record<string, unknown>);
-    },
-    onSuccess: (newItem) => {
-      addSentryBreadcrumb(`Prazo criado: ${newItem.id}`, 'prazos', 'info');
-      queryClient.setQueryData(qKey, (prev: typeof queryData) => ({
-        items: [newItem, ...(prev?.items ?? [])],
-        totalCount: (prev?.totalCount ?? 0) + 1,
-      }));
-      toast({ title: 'Prazo criado', description: 'Prazo processual cadastrado com sucesso!' });
-    },
-    onError: (err: unknown) => {
-      log.error('Erro ao criar prazo', err);
-      toast({
-        title: 'Erro',
-        description: toUserMessage(err),
-        variant: 'destructive',
-      });
-    },
-  });
-
-  const updateMutation = useMutation({
-    mutationFn: async ({ id, updateData }: { id: string; updateData: Partial<PrazoInput> }) => {
-      if (!tenantId) throw new Error('Tenant não identificado');
-      const { data: updated, error } = await supabase
-        .from('prazos_processuais')
-        .update({ ...updateData, updated_at: new Date().toISOString() })
-        .eq('id', id)
-        .eq('tenant_id', tenantId)
-        .select()
-        .single();
-      if (error) throw error;
-      return normalizePrazo(updated as Record<string, unknown>);
-    },
-    onSuccess: (updated) => {
-      queryClient.setQueryData(qKey, (prev: typeof queryData) => ({
-        items: (prev?.items ?? []).map(i => i.id === updated.id ? { ...i, ...updated } : i),
-        totalCount: prev?.totalCount ?? 0,
-      }));
-      toast({ title: 'Prazo atualizado', description: 'Alterações salvas com sucesso!' });
-    },
-    onError: (err: unknown) => {
-      log.error('Erro ao atualizar prazo', err);
-      toast({
-        title: 'Erro',
-        description: toUserMessage(err),
-        variant: 'destructive',
-      });
-    },
-  });
-
-  const deleteMutation = useMutation({
-    mutationFn: async (id: string) => {
-      if (!tenantId) throw new Error('Tenant não identificado');
-      const { error } = await supabase
-        .from('prazos_processuais')
-        .delete()
-        .eq('id', id)
-        .eq('tenant_id', tenantId);
-      if (error) throw error;
-      return id;
-    },
-    onSuccess: (deletedId) => {
-      queryClient.setQueryData(qKey, (prev: typeof queryData) => ({
-        items: (prev?.items ?? []).filter(i => i.id !== deletedId),
-        totalCount: Math.max(0, (prev?.totalCount ?? 1) - 1),
-      }));
-      toast({ title: 'Prazo removido', description: 'Prazo excluído com sucesso!' });
-    },
-    onError: (err: unknown) => {
-      log.error('Erro ao deletar prazo', err);
-      toast({
-        title: 'Erro',
-        description: toUserMessage(err),
-        variant: 'destructive',
-      });
-    },
-  });
-
-  const goToPage = useCallback((page: number) => {
-    if (page >= 1 && page <= totalPages) setCurrentPage(page);
-  }, [totalPages]);
-
-  const createPrazo = useCallback(async (data: PrazoInput): Promise<boolean> => {
-    if (!user) {
-      toast({ title: 'Não autenticado', description: 'Faça login para continuar.', variant: 'destructive' });
-      return false;
-    }
-    try { await createMutation.mutateAsync(data); return true; } catch (err) { console.error('[usePrazosProcessuais] createPrazo failed:', err); return false; }
-  }, [user, createMutation, toast]);
-
-  const updatePrazo = useCallback(async (id: string, updateData: Partial<PrazoInput>): Promise<boolean> => {
-    if (!user || !tenantId) return false;
-    try { await updateMutation.mutateAsync({ id, updateData }); return true; } catch (err) { console.error('[usePrazosProcessuais] updatePrazo failed:', err); return false; }
-  }, [user, tenantId, updateMutation]);
-
-  const deletePrazo = useCallback(async (id: string): Promise<boolean> => {
-    if (!user || !tenantId) return false;
-    try { await deleteMutation.mutateAsync(id); return true; } catch (err) { console.error('[usePrazosProcessuais] deletePrazo failed:', err); return false; }
-  }, [user, tenantId, deleteMutation]);
-
-  const fetchPrazos = useCallback(() => { void refetch(); }, [refetch]);
+  // Prazos urgentes (vencendo em ate 7 dias) — memoized
+  const prazosUrgentes = useMemo(
+    () =>
+      prazos.filter(p => {
+        if (p.status !== 'pendente') return false;
+        const dias = Math.ceil(
+          (new Date(p.data_prazo).getTime() - Date.now()) / (1000 * 60 * 60 * 24),
+        );
+        return dias <= 7 && dias >= 0;
+      }),
+    [prazos],
+  );
 
   return {
     prazos,
     prazosUrgentes,
-    loading,
-    error,
-    isEmpty: !loading && !error && prazos.length === 0,
-    fetchPrazos,
-    createPrazo,
-    updatePrazo,
-    deletePrazo,
-    currentPage,
-    totalPages,
-    totalCount,
-    goToPage,
-    nextPage: () => { if (currentPage < totalPages) setCurrentPage(p => p + 1); },
-    prevPage: () => { if (currentPage > 1) setCurrentPage(p => p - 1); },
-    hasNextPage: currentPage < totalPages,
-    hasPrevPage: currentPage > 1,
+    loading: crud.isLoading,
+    error: crud.error,
+    isEmpty: crud.isEmpty,
+    fetchPrazos: crud.refetch,
+    createPrazo: crud.createEntity,
+    updatePrazo: crud.updateEntity,
+    deletePrazo: crud.deleteEntity,
+    currentPage: crud.currentPage,
+    totalPages: crud.totalPages,
+    totalCount: crud.totalCount,
+    goToPage: crud.goToPage,
+    nextPage: crud.nextPage,
+    prevPage: crud.prevPage,
+    hasNextPage: crud.hasNextPage,
+    hasPrevPage: crud.hasPrevPage,
   };
 };

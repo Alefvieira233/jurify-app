@@ -1,21 +1,11 @@
 /**
  * Hook para gerenciamento de Processos Jurídicos.
  *
- * @deprecated For new entity hooks, prefer {@link useEntityCRUD} which extracts the common
- * CRUD pattern into a reusable factory. This hook predates that abstraction.
- *
- * @see useEntityCRUD — preferred pattern for new entity hooks
+ * Refactored to use {@link useEntityCRUD} for all CRUD boilerplate.
+ * Custom logic: multi-column OR search across numero_processo, tribunal, comarca.
  */
-import { useCallback, useState } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { supabaseUntyped as supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/contexts/AuthContext';
-import { useToast } from '@/hooks/use-toast';
-import { createLogger } from '@/lib/logger';
-import { addSentryBreadcrumb } from '@/lib/sentry';
-import { toUserMessage } from '@/lib/errorMessages';
-
-const log = createLogger('Processos');
+import { useMemo } from 'react';
+import { useEntityCRUD, type EntityCRUDOptions } from '@/hooks/useEntityCRUD';
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -48,8 +38,6 @@ export type Processo = {
 
 export type ProcessoInput = Partial<Omit<Processo, 'id' | 'created_at' | 'updated_at'>>;
 
-const ITEMS_PER_PAGE = 25;
-
 // ─── Query key factory ───────────────────────────────────────────────────────
 
 export const processosQueryKey = (
@@ -61,12 +49,6 @@ export const processosQueryKey = (
 ) =>
   ['processos', tenantId, page ?? 1, filterStatus ?? '', filterTipo ?? '', search ?? ''] as const;
 
-// ─── Pure helpers ────────────────────────────────────────────────────────────
-
-function normalizeProcesso(row: Record<string, unknown>): Processo {
-  return { ...(row as Processo) };
-}
-
 // ─── Hook ────────────────────────────────────────────────────────────────────
 
 export const useProcessos = (options?: {
@@ -76,225 +58,64 @@ export const useProcessos = (options?: {
   filterTipo?: string;
   search?: string;
 }) => {
-  const { user, profile } = useAuth();
-  const { toast } = useToast();
-  const queryClient = useQueryClient();
-
-  const enablePagination = options?.enablePagination ?? false;
-  const pageSize = options?.pageSize ?? ITEMS_PER_PAGE;
   const filterStatus = options?.filterStatus;
   const filterTipo = options?.filterTipo;
   const search = options?.search;
-  const tenantId = profile?.tenant_id;
-  const [currentPage, setCurrentPage] = useState(1);
-  const qKey = processosQueryKey(tenantId, enablePagination ? currentPage : undefined, filterStatus, filterTipo, search);
 
-  // ── Query ──────────────────────────────────────────────────────────────────
+  // Build equality filters for useEntityCRUD
+  const filters = useMemo(() => {
+    const f: Record<string, string> = {};
+    if (filterStatus) f.status = filterStatus;
+    if (filterTipo) f.tipo_acao = filterTipo;
+    return Object.keys(f).length > 0 ? f : undefined;
+  }, [filterStatus, filterTipo]);
 
-  const { data: queryData, isLoading: loading, error: queryError, refetch } = useQuery({
-    queryKey: qKey,
-    queryFn: async () => {
-      const effectiveTenantId = tenantId ??
-        (user?.user_metadata as Record<string, unknown>)?.tenant_id as string | undefined;
+  // Multi-column OR search requires a queryModifier since useEntityCRUD
+  // only supports single-column ilike search natively.
+  const queryModifier = useMemo(() => {
+    if (!search) return undefined;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    return (query: any) =>
+      query.or(
+        `numero_processo.ilike.%${search}%,tribunal.ilike.%${search}%,comarca.ilike.%${search}%`,
+      );
+  }, [search]);
 
-      let query = supabase
-        .from('processos')
-        .select('*', { count: 'exact' })
-        .order('created_at', { ascending: false });
+  const crudOptions: EntityCRUDOptions = {
+    enablePagination: options?.enablePagination,
+    filters,
+    queryModifier,
+    extraQueryKey: [filterStatus ?? '', filterTipo ?? '', search ?? ''],
+  };
 
-      if (effectiveTenantId) {
-        query = query.eq('tenant_id', effectiveTenantId);
-      } else {
-        log.warn('Sem tenant_id. RLS deve atuar.');
-      }
-
-      if (filterStatus) {
-        query = query.eq('status', filterStatus);
-      }
-      if (filterTipo) {
-        query = query.eq('tipo_acao', filterTipo);
-      }
-      if (search) {
-        query = query.or(
-          `numero_processo.ilike.%${search}%,tribunal.ilike.%${search}%,comarca.ilike.%${search}%`,
-        );
-      }
-
-      if (enablePagination) {
-        const from = (currentPage - 1) * pageSize;
-        query = query.range(from, from + pageSize - 1);
-      }
-
-      const { data, error, count } = await query;
-      if (error) { log.error('Erro ao buscar processos', error); throw error; }
-
-      return {
-        items: (data || []).map(normalizeProcesso),
-        totalCount: count ?? 0,
-      };
+  const crud = useEntityCRUD<Processo, ProcessoInput>(
+    {
+      table: 'processos',
+      queryKeyPrefix: 'processos',
+      displayName: 'Processo',
+      listColumns: '*',
+      pageSize: options?.pageSize,
     },
-    enabled: !!user,
-    staleTime: 2 * 60 * 1000,
-    refetchOnWindowFocus: false,
-  });
-
-  const processos = queryData?.items ?? [];
-  const totalCount = queryData?.totalCount ?? 0;
-  const totalPages = enablePagination ? Math.ceil(totalCount / pageSize) : 1;
-  const error = queryError ? queryError.message : null;
-
-  // ── Mutations ──────────────────────────────────────────────────────────────
-
-  const createMutation = useMutation({
-    mutationFn: async (data: ProcessoInput) => {
-      const { data: created, error } = await supabase
-        .from('processos')
-        .insert([{ ...data, tenant_id: tenantId ?? null }])
-        .select()
-        .single();
-      if (error) throw error;
-      return normalizeProcesso(created as Record<string, unknown>);
-    },
-    onSuccess: (newItem) => {
-      addSentryBreadcrumb(`Processo criado: ${newItem.id}`, 'processos', 'info');
-      queryClient.setQueryData(qKey, (prev: typeof queryData) => ({
-        items: [newItem, ...(prev?.items ?? [])],
-        totalCount: (prev?.totalCount ?? 0) + 1,
-      }));
-      toast({ title: 'Processo criado', description: 'Processo jurídico cadastrado com sucesso!' });
-    },
-    onError: (err: unknown) => {
-      addSentryBreadcrumb('Erro ao criar processo', 'processos', 'error');
-      log.error('Erro ao criar processo', err);
-      toast({
-        title: 'Erro',
-        description: toUserMessage(err),
-        variant: 'destructive',
-      });
-    },
-  });
-
-  const updateMutation = useMutation({
-    mutationFn: async ({ id, updateData }: { id: string; updateData: Partial<ProcessoInput> }) => {
-      if (!tenantId) throw new Error('Tenant não identificado');
-      const { data: updated, error } = await supabase
-        .from('processos')
-        .update({ ...updateData, updated_at: new Date().toISOString() })
-        .eq('id', id)
-        .eq('tenant_id', tenantId)
-        .select()
-        .single();
-      if (error) throw error;
-      return normalizeProcesso(updated as Record<string, unknown>);
-    },
-    onSuccess: (updated) => {
-      queryClient.setQueryData(qKey, (prev: typeof queryData) => ({
-        items: (prev?.items ?? []).map(i => i.id === updated.id ? { ...i, ...updated } : i),
-        totalCount: prev?.totalCount ?? 0,
-      }));
-      toast({ title: 'Processo atualizado', description: 'Alterações salvas com sucesso!' });
-    },
-    onError: (err: unknown) => {
-      log.error('Erro ao atualizar processo', err);
-      toast({
-        title: 'Erro',
-        description: toUserMessage(err),
-        variant: 'destructive',
-      });
-    },
-  });
-
-  const deleteMutation = useMutation({
-    mutationFn: async (id: string) => {
-      if (!tenantId) throw new Error('Tenant não identificado');
-      const { error } = await supabase
-        .from('processos')
-        .delete()
-        .eq('id', id)
-        .eq('tenant_id', tenantId);
-      if (error) throw error;
-      return id;
-    },
-    onSuccess: (deletedId) => {
-      addSentryBreadcrumb(`Processo deletado: ${deletedId}`, 'processos', 'info');
-      queryClient.setQueryData(qKey, (prev: typeof queryData) => ({
-        items: (prev?.items ?? []).filter(i => i.id !== deletedId),
-        totalCount: Math.max(0, (prev?.totalCount ?? 1) - 1),
-      }));
-      toast({ title: 'Processo removido', description: 'Processo excluído com sucesso!' });
-    },
-    onError: (err: unknown) => {
-      log.error('Erro ao deletar processo', err);
-      toast({
-        title: 'Erro',
-        description: toUserMessage(err),
-        variant: 'destructive',
-      });
-    },
-  });
-
-  // ── Pagination ────────────────────────────────────────────────────────────
-
-  const goToPage = useCallback((page: number) => {
-    if (page >= 1 && page <= totalPages) setCurrentPage(page);
-  }, [totalPages]);
-
-  const nextPage = useCallback(() => {
-    if (currentPage < totalPages) setCurrentPage(p => p + 1);
-  }, [currentPage, totalPages]);
-
-  const prevPage = useCallback(() => {
-    if (currentPage > 1) setCurrentPage(p => p - 1);
-  }, [currentPage]);
-
-  // ── Public API ────────────────────────────────────────────────────────────
-
-  const createProcesso = useCallback(async (data: ProcessoInput): Promise<boolean> => {
-    if (!user) {
-      toast({ title: 'Não autenticado', description: 'Faça login para continuar.', variant: 'destructive' });
-      return false;
-    }
-    try {
-      await createMutation.mutateAsync(data);
-      return true;
-    } catch (err) { console.error('[useProcessos] createProcesso failed:', err); return false; }
-  }, [user, createMutation, toast]);
-
-  const updateProcesso = useCallback(async (id: string, updateData: Partial<ProcessoInput>): Promise<boolean> => {
-    if (!user || !tenantId) return false;
-    try {
-      await updateMutation.mutateAsync({ id, updateData });
-      return true;
-    } catch (err) { console.error('[useProcessos] updateProcesso failed:', err); return false; }
-  }, [user, tenantId, updateMutation]);
-
-  const deleteProcesso = useCallback(async (id: string): Promise<boolean> => {
-    if (!user || !tenantId) return false;
-    try {
-      await deleteMutation.mutateAsync(id);
-      return true;
-    } catch (err) { console.error('[useProcessos] deleteProcesso failed:', err); return false; }
-  }, [user, tenantId, deleteMutation]);
-
-  const fetchProcessos = useCallback(() => { void refetch(); }, [refetch]);
+    crudOptions,
+  );
 
   return {
-    processos,
-    loading,
-    error,
-    isEmpty: !loading && !error && processos.length === 0,
-    fetchProcessos,
-    createProcesso,
-    updateProcesso,
-    deleteProcesso,
-    currentPage,
-    totalPages,
-    totalCount,
-    pageSize,
-    goToPage,
-    nextPage,
-    prevPage,
-    hasNextPage: currentPage < totalPages,
-    hasPrevPage: currentPage > 1,
+    processos: crud.data,
+    loading: crud.isLoading,
+    error: crud.error,
+    isEmpty: crud.isEmpty,
+    fetchProcessos: crud.refetch,
+    createProcesso: crud.createEntity,
+    updateProcesso: crud.updateEntity,
+    deleteProcesso: crud.deleteEntity,
+    currentPage: crud.currentPage,
+    totalPages: crud.totalPages,
+    totalCount: crud.totalCount,
+    pageSize: crud.pageSize,
+    goToPage: crud.goToPage,
+    nextPage: crud.nextPage,
+    prevPage: crud.prevPage,
+    hasNextPage: crud.hasNextPage,
+    hasPrevPage: crud.hasPrevPage,
   };
 };

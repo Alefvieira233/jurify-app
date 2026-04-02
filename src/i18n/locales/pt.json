@@ -1,0 +1,36 @@
+{
+  "common": {
+    "loading": "Carregando...",
+    "save": "Salvar",
+    "cancel": "Cancelar",
+    "delete": "Deletar",
+    "edit": "Editar",
+    "create": "Criar",
+    "search": "Buscar...",
+    "noResults": "Nenhum resultado encontrado",
+    "confirm": "Confirmar",
+    "back": "Voltar",
+    "next": "Proximo",
+    "error": "Erro",
+    "success": "Sucesso",
+    "tryAgain": "Tentar novamente",
+    "close": "Fechar",
+    "yes": "Sim",
+    "no": "Nao",
+    "required": "Campo obrigatorio",
+    "actions": "Acoes"
+  },
+  "auth": {
+    "login": "Entrar",
+    "logout": "Sair",
+    "email": "Email",
+    "password": "Senha",
+    "forgotPassword": "Esqueceu a senha?"
+  },
+  "errors": {
+    "generic": "Ocorreu um erro inesperado. Tente novamente.",
+    "network": "Erro de conexao. Verifique sua internet.",
+    "permission": "Voce nao tem permissao para esta acao.",
+    "notFound": "Registro nao encontrado."
+  }
+}

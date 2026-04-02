@@ -1,21 +1,11 @@
 /**
- * Hook para gerenciamento de Honorários Advocatícios.
+ * Hook para gerenciamento de Honorarios Advocaticios.
  *
- * @deprecated For new entity hooks, prefer {@link useEntityCRUD} which extracts the common
- * CRUD pattern into a reusable factory. This hook predates that abstraction.
- *
- * @see useEntityCRUD — preferred pattern for new entity hooks
+ * Refactored to use {@link useEntityCRUD} for all CRUD boilerplate.
+ * Custom logic: overdue flag computation, totalRecebido/totalAcordado aggregates.
  */
-import { useCallback } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { supabaseUntyped as supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/contexts/AuthContext';
-import { useToast } from '@/hooks/use-toast';
-import { createLogger } from '@/lib/logger';
-import { addSentryBreadcrumb } from '@/lib/sentry';
-import { toUserMessage } from '@/lib/errorMessages';
-
-const log = createLogger('Honorarios');
+import { useMemo } from 'react';
+import { useEntityCRUD, type EntityCRUDOptions } from '@/hooks/useEntityCRUD';
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -44,188 +34,71 @@ export type HonorarioInput = Partial<Omit<Honorario, 'id' | 'created_at' | 'upda
 export const honorariosQueryKey = (tenantId: string | undefined) =>
   ['honorarios', tenantId] as const;
 
-function normalizeHonorario(row: Record<string, unknown>): Honorario {
-  return { ...(row as Honorario) };
-}
+export type HonorarioWithOverdue = Honorario & { overdue: boolean };
 
 // ─── Hook ────────────────────────────────────────────────────────────────────
 
-const PAGE_SIZE = 25;
-
-export type HonorarioWithOverdue = Honorario & { overdue: boolean };
-
 export const useHonorarios = (options?: { processoId?: string; page?: number }) => {
-  const { user, profile } = useAuth();
-  const { toast } = useToast();
-  const queryClient = useQueryClient();
-  const tenantId = profile?.tenant_id;
-  const qKey = honorariosQueryKey(tenantId);
+  const processoId = options?.processoId;
   const page = options?.page ?? 1;
 
-  const { data: queryData, isLoading: loading, error: queryError, refetch } = useQuery({
-    queryKey: [...qKey, options?.processoId, page],
-    queryFn: async () => {
-      let query = supabase
-        .from('honorarios')
-        .select('*', { count: 'exact' })
-        .order('created_at', { ascending: false })
-        .range((page - 1) * PAGE_SIZE, page * PAGE_SIZE - 1);
+  // Build equality filters
+  const filters = useMemo(() => {
+    if (!processoId) return undefined;
+    return { processo_id: processoId };
+  }, [processoId]);
 
-      if (tenantId) query = query.eq('tenant_id', tenantId);
-      if (options?.processoId) query = query.eq('processo_id', options.processoId);
+  const crudOptions: EntityCRUDOptions = {
+    enablePagination: true,
+    page,
+    filters,
+    extraQueryKey: [processoId ?? ''],
+  };
 
-      const { data, error, count } = await query;
-      if (error) { log.error('Erro ao buscar honorários', error); throw error; }
-
-      const today = new Date().toISOString().slice(0, 10);
-      const items: HonorarioWithOverdue[] = (data || []).map(row => {
-        const h = normalizeHonorario(row as Record<string, unknown>);
-        return {
-          ...h,
-          overdue: h.data_vencimento != null && h.data_vencimento < today && h.status === 'vigente',
-        };
-      });
-
-      return {
-        items,
-        totalCount: count ?? 0,
-      };
+  const crud = useEntityCRUD<Honorario, HonorarioInput>(
+    {
+      table: 'honorarios',
+      queryKeyPrefix: 'honorarios',
+      displayName: 'Honorario',
+      listColumns: '*',
     },
-    enabled: !!user,
-    staleTime: 2 * 60 * 1000,
-    refetchOnWindowFocus: false,
-  });
+    crudOptions,
+  );
 
-  const honorarios = queryData?.items ?? [];
-  const totalCount = queryData?.totalCount ?? 0;
-  const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
-  const hasNextPage = page < totalPages;
-  const hasPrevPage = page > 1;
-  const totalRecebido = honorarios.reduce((acc, h) => acc + (h.valor_recebido ?? 0), 0);
-  const totalAcordado = honorarios.reduce((acc, h) => acc + (h.valor_total_acordado ?? 0), 0);
-  const error = queryError ? queryError.message : null;
+  // Compute overdue flag and aggregates on top of base CRUD data
+  const honorarios: HonorarioWithOverdue[] = useMemo(() => {
+    const today = new Date().toISOString().slice(0, 10);
+    return crud.data.map(h => ({
+      ...h,
+      overdue: h.data_vencimento != null && h.data_vencimento < today && h.status === 'vigente',
+    }));
+  }, [crud.data]);
 
-  const createMutation = useMutation({
-    mutationFn: async (data: HonorarioInput) => {
-      const { data: created, error } = await supabase
-        .from('honorarios')
-        .insert([{ ...data, tenant_id: tenantId ?? null }])
-        .select()
-        .single();
-      if (error) throw error;
-      return normalizeHonorario(created as Record<string, unknown>);
-    },
-    onSuccess: (newItem) => {
-      addSentryBreadcrumb(`Honorário criado: ${newItem.id}`, 'honorarios', 'info');
-      queryClient.setQueryData(qKey, (prev: typeof queryData) => ({
-        items: [newItem, ...(prev?.items ?? [])],
-        totalCount: (prev?.totalCount ?? 0) + 1,
-      }));
-      toast({ title: 'Honorário criado', description: 'Honorário cadastrado com sucesso!' });
-    },
-    onError: (err: unknown) => {
-      log.error('Erro ao criar honorário', err);
-      toast({
-        title: 'Erro',
-        description: toUserMessage(err),
-        variant: 'destructive',
-      });
-    },
-  });
+  const totalRecebido = useMemo(
+    () => honorarios.reduce((acc, h) => acc + (h.valor_recebido ?? 0), 0),
+    [honorarios],
+  );
 
-  const updateMutation = useMutation({
-    mutationFn: async ({ id, updateData }: { id: string; updateData: Partial<HonorarioInput> }) => {
-      if (!tenantId) throw new Error('Tenant não identificado');
-      const { data: updated, error } = await supabase
-        .from('honorarios')
-        .update({ ...updateData, updated_at: new Date().toISOString() })
-        .eq('id', id)
-        .eq('tenant_id', tenantId)
-        .select()
-        .single();
-      if (error) throw error;
-      return normalizeHonorario(updated as Record<string, unknown>);
-    },
-    onSuccess: (updated) => {
-      queryClient.setQueryData(qKey, (prev: typeof queryData) => ({
-        items: (prev?.items ?? []).map(i => i.id === updated.id ? { ...i, ...updated } : i),
-        totalCount: prev?.totalCount ?? 0,
-      }));
-      toast({ title: 'Honorário atualizado', description: 'Alterações salvas com sucesso!' });
-    },
-    onError: (err: unknown) => {
-      log.error('Erro ao atualizar honorário', err);
-      toast({
-        title: 'Erro',
-        description: toUserMessage(err),
-        variant: 'destructive',
-      });
-    },
-  });
-
-  const deleteMutation = useMutation({
-    mutationFn: async (id: string) => {
-      if (!tenantId) throw new Error('Tenant não identificado');
-      const { error } = await supabase
-        .from('honorarios')
-        .delete()
-        .eq('id', id)
-        .eq('tenant_id', tenantId);
-      if (error) throw error;
-      return id;
-    },
-    onSuccess: (deletedId) => {
-      queryClient.setQueryData(qKey, (prev: typeof queryData) => ({
-        items: (prev?.items ?? []).filter(i => i.id !== deletedId),
-        totalCount: Math.max(0, (prev?.totalCount ?? 1) - 1),
-      }));
-      toast({ title: 'Honorário removido', description: 'Honorário excluído com sucesso!' });
-    },
-    onError: (err: unknown) => {
-      log.error('Erro ao deletar honorário', err);
-      toast({
-        title: 'Erro',
-        description: toUserMessage(err),
-        variant: 'destructive',
-      });
-    },
-  });
-
-  const createHonorario = useCallback(async (data: HonorarioInput): Promise<boolean> => {
-    if (!user) {
-      toast({ title: 'Não autenticado', description: 'Faça login para continuar.', variant: 'destructive' });
-      return false;
-    }
-    try { await createMutation.mutateAsync(data); return true; } catch (err) { console.error('[useHonorarios] createHonorario failed:', err); return false; }
-  }, [user, createMutation, toast]);
-
-  const updateHonorario = useCallback(async (id: string, updateData: Partial<HonorarioInput>): Promise<boolean> => {
-    if (!user || !tenantId) return false;
-    try { await updateMutation.mutateAsync({ id, updateData }); return true; } catch (err) { console.error('[useHonorarios] updateHonorario failed:', err); return false; }
-  }, [user, tenantId, updateMutation]);
-
-  const deleteHonorario = useCallback(async (id: string): Promise<boolean> => {
-    if (!user || !tenantId) return false;
-    try { await deleteMutation.mutateAsync(id); return true; } catch (err) { console.error('[useHonorarios] deleteHonorario failed:', err); return false; }
-  }, [user, tenantId, deleteMutation]);
-
-  const fetchHonorarios = useCallback(() => { void refetch(); }, [refetch]);
+  const totalAcordado = useMemo(
+    () => honorarios.reduce((acc, h) => acc + (h.valor_total_acordado ?? 0), 0),
+    [honorarios],
+  );
 
   return {
     honorarios,
     totalRecebido,
     totalAcordado,
-    totalCount,
-    totalPages,
-    hasNextPage,
-    hasPrevPage,
+    totalCount: crud.totalCount,
+    totalPages: crud.totalPages,
+    hasNextPage: crud.hasNextPage,
+    hasPrevPage: crud.hasPrevPage,
     page,
-    loading,
-    error,
-    isEmpty: !loading && !error && honorarios.length === 0,
-    fetchHonorarios,
-    createHonorario,
-    updateHonorario,
-    deleteHonorario,
+    loading: crud.isLoading,
+    error: crud.error,
+    isEmpty: crud.isEmpty,
+    fetchHonorarios: crud.refetch,
+    createHonorario: crud.createEntity,
+    updateHonorario: crud.updateEntity,
+    deleteHonorario: crud.deleteEntity,
   };
 };

@@ -1,4 +1,15 @@
-/** CRUD for lead notes with optimistic updates and tenant-scoped queries. */
+/**
+ * CRUD for lead notes with optimistic updates and tenant-scoped queries.
+ *
+ * NOT migrated to useEntityCRUD because:
+ * - Scoped by leadId (not tenant_id) as primary filter
+ * - Custom ordering: fixada DESC, created_at DESC (dual-column sort)
+ * - Create mutation injects autor_id, autor_nome from auth context
+ * - Returns mutateAsync functions directly (consumers await them inline)
+ * - Uses invalidateQueries instead of optimistic cache updates
+ *
+ * @see useEntityCRUD — preferred pattern for new entity hooks
+ */
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabaseUntyped } from '@/integrations/supabase/client';

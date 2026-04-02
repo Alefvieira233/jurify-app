@@ -1,4 +1,14 @@
-/** CRUD operations for tasks (tarefas) with assignment, status tracking, and filtering. */
+/**
+ * CRUD operations for tasks (tarefas) with assignment, status tracking, and filtering.
+ *
+ * NOT migrated to useEntityCRUD because:
+ * - Consumers call mutation objects directly (e.g. createTarefa.mutate(), updateTarefa.isPending)
+ *   instead of the wrapped async functions useEntityCRUD exposes
+ * - Create mutation injects criador_id from profile (not just tenant_id)
+ * - Uses invalidateQueries instead of optimistic cache updates
+ *
+ * @see useEntityCRUD — preferred pattern for new entity hooks
+ */
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabaseUntyped as supabase } from '@/integrations/supabase/client';

@@ -1,4 +1,15 @@
-/** CRUD for support tickets with status tracking and priority management. */
+/**
+ * CRUD for support tickets with status tracking and priority management.
+ *
+ * NOT migrated to useEntityCRUD because:
+ * - Consumers call mutation objects directly (e.g. createTicket.mutate(), createTicket.isPending)
+ *   instead of the wrapped async functions useEntityCRUD exposes
+ * - Create mutation injects criador_id from profile (not just tenant_id)
+ * - Uses invalidateQueries instead of optimistic cache updates
+ * - No delete operation exposed
+ *
+ * @see useEntityCRUD — preferred pattern for new entity hooks
+ */
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabaseUntyped as supabase } from '@/integrations/supabase/client';
