@@ -180,9 +180,15 @@ async function checkRateLimitSupabase(
       limit: data.limit as number,
     };
   } catch (error) {
-    console.error("❌ Error checking rate limit via RPC");
-    // Fallback para memória em caso de erro
-    return checkRateLimitMemory(config);
+    // FALLBACK TRADEOFF: In-memory state is lost on cold starts, so we halve
+    // the allowed requests to be more conservative when the DB is unavailable.
+    // This means legitimate users may hit limits sooner, but it protects
+    // against abuse when we can't verify request history from the database.
+    console.warn("⚠️ Rate limit DB check failed, falling back to in-memory with halved limits:", error);
+    return checkRateLimitMemory({
+      ...config,
+      maxRequests: Math.max(1, Math.floor(config.maxRequests / 2)),
+    });
   }
 }
 

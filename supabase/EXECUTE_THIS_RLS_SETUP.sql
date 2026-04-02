@@ -1,4 +1,13 @@
 -- ========================================
+-- DEPRECATED — see migration 20260402000001_fix_rls_security.sql
+-- ========================================
+-- This file is kept for reference only. DO NOT execute it.
+-- The policies below contain a dangerous "OR tenant_id IS NULL" bypass
+-- that allows any authenticated user to read rows without a tenant_id.
+-- All policies have been replaced by the migration above.
+-- ========================================
+--
+-- ORIGINAL HEADER (kept for history):
 -- 🔒 SCRIPT COMPLETO DE SEGURANÇA RLS - VERSÃO CORRIGIDA
 -- ========================================
 -- Execute este script no Supabase SQL Editor
@@ -138,7 +147,7 @@ DROP POLICY IF EXISTS "secure_leads_select" ON public.leads;
 CREATE POLICY "secure_leads_select" ON public.leads
 FOR SELECT USING (
   auth.uid() IS NOT NULL
-  AND (tenant_id = (SELECT tenant_id FROM profiles WHERE id = auth.uid()) OR tenant_id IS NULL)
+  AND tenant_id = public.get_current_tenant_id() -- FIXED: removed OR tenant_id IS NULL bypass
 );
 
 DROP POLICY IF EXISTS "secure_leads_insert" ON public.leads;
@@ -149,7 +158,7 @@ DROP POLICY IF EXISTS "secure_leads_update" ON public.leads;
 CREATE POLICY "secure_leads_update" ON public.leads
 FOR UPDATE USING (
   auth.uid() IS NOT NULL
-  AND (tenant_id = (SELECT tenant_id FROM profiles WHERE id = auth.uid()) OR tenant_id IS NULL)
+  AND tenant_id = public.get_current_tenant_id() -- FIXED: removed OR tenant_id IS NULL bypass
 );
 
 DROP POLICY IF EXISTS "secure_leads_delete" ON public.leads;
@@ -165,7 +174,7 @@ DROP POLICY IF EXISTS "secure_contratos_select" ON public.contratos;
 CREATE POLICY "secure_contratos_select" ON public.contratos
 FOR SELECT USING (
   auth.uid() IS NOT NULL
-  AND (tenant_id = (SELECT tenant_id FROM profiles WHERE id = auth.uid()) OR tenant_id IS NULL)
+  AND tenant_id = public.get_current_tenant_id() -- FIXED: removed OR tenant_id IS NULL bypass
 );
 
 DROP POLICY IF EXISTS "secure_contratos_insert" ON public.contratos;
@@ -176,7 +185,7 @@ DROP POLICY IF EXISTS "secure_contratos_update" ON public.contratos;
 CREATE POLICY "secure_contratos_update" ON public.contratos
 FOR UPDATE USING (
   auth.uid() IS NOT NULL
-  AND (tenant_id = (SELECT tenant_id FROM profiles WHERE id = auth.uid()) OR tenant_id IS NULL)
+  AND tenant_id = public.get_current_tenant_id() -- FIXED: removed OR tenant_id IS NULL bypass
 );
 
 -- Agendamentos
@@ -185,7 +194,7 @@ DROP POLICY IF EXISTS "secure_agendamentos_select" ON public.agendamentos;
 CREATE POLICY "secure_agendamentos_select" ON public.agendamentos
 FOR SELECT USING (
   auth.uid() IS NOT NULL
-  AND (tenant_id = (SELECT tenant_id FROM profiles WHERE id = auth.uid()) OR tenant_id IS NULL)
+  AND tenant_id = public.get_current_tenant_id() -- FIXED: removed OR tenant_id IS NULL bypass
 );
 
 DROP POLICY IF EXISTS "secure_agendamentos_insert" ON public.agendamentos;
@@ -198,7 +207,7 @@ DROP POLICY IF EXISTS "secure_agentes_select" ON public.agentes_ia;
 CREATE POLICY "secure_agentes_select" ON public.agentes_ia
 FOR SELECT USING (
   auth.uid() IS NOT NULL
-  AND (tenant_id = (SELECT tenant_id FROM profiles WHERE id = auth.uid()) OR tenant_id IS NULL)
+  AND tenant_id = public.get_current_tenant_id() -- FIXED: removed OR tenant_id IS NULL bypass
 );
 
 DROP POLICY IF EXISTS "secure_agentes_insert" ON public.agentes_ia;
@@ -209,7 +218,7 @@ DROP POLICY IF EXISTS "secure_agentes_update" ON public.agentes_ia;
 CREATE POLICY "secure_agentes_update" ON public.agentes_ia
 FOR UPDATE USING (
   auth.uid() IS NOT NULL
-  AND (tenant_id = (SELECT tenant_id FROM profiles WHERE id = auth.uid()) OR tenant_id IS NULL)
+  AND tenant_id = public.get_current_tenant_id() -- FIXED: removed OR tenant_id IS NULL bypass
 );
 
 -- Logs
@@ -218,7 +227,7 @@ DROP POLICY IF EXISTS "secure_logs_select" ON public.logs_execucao_agentes;
 CREATE POLICY "secure_logs_select" ON public.logs_execucao_agentes
 FOR SELECT USING (
   auth.uid() IS NOT NULL
-  AND (tenant_id = (SELECT tenant_id FROM profiles WHERE id = auth.uid()) OR tenant_id IS NULL)
+  AND tenant_id = public.get_current_tenant_id() -- FIXED: removed OR tenant_id IS NULL bypass
 );
 
 DROP POLICY IF EXISTS "secure_logs_insert" ON public.logs_execucao_agentes;
@@ -231,7 +240,7 @@ DROP POLICY IF EXISTS "secure_notificacoes_select" ON public.notificacoes;
 CREATE POLICY "secure_notificacoes_select" ON public.notificacoes
 FOR SELECT USING (
   auth.uid() IS NOT NULL
-  AND (tenant_id = (SELECT tenant_id FROM profiles WHERE id = auth.uid()) OR tenant_id IS NULL)
+  AND tenant_id = public.get_current_tenant_id() -- FIXED: removed OR tenant_id IS NULL bypass
 );
 
 DROP POLICY IF EXISTS "secure_notificacoes_insert" ON public.notificacoes;

@@ -69,7 +69,7 @@ function MetricasOperacionais() {
   const memberMap = useMemo(() => {
     const map = new Map<string, string>();
     for (const m of members) {
-      map.set(m.id, m.nome_completo);
+      map.set(m.id, m.nome_completo ?? 'Sem nome');
     }
     return map;
   }, [members]);

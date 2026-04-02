@@ -207,7 +207,6 @@ jobs:
     timeout-minutes: 20
     needs: build
     if: github.event_name == 'pull_request' || github.ref == 'refs/heads/master' || github.ref == 'refs/heads/main'
-    continue-on-error: true
 
     steps:
       - name: 📥 Checkout code

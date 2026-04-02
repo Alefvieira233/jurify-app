@@ -55,7 +55,6 @@ jobs:
 
       - name: 🛡️ Validate secrets config
         run: node scripts/validate-secrets.cjs --ci
-        continue-on-error: true
 
   # ==========================================
   # JOB 1: DEPLOY FRONTEND
@@ -128,6 +127,18 @@ jobs:
     steps:
       - name: 📥 Checkout code
         uses: actions/checkout@v4
+
+      - name: 🔐 Validate required secrets
+        run: |
+          MISSING=""
+          [ -z "${{ secrets.SUPABASE_ACCESS_TOKEN }}" ] && MISSING="$MISSING SUPABASE_ACCESS_TOKEN"
+          [ -z "${{ secrets.SUPABASE_PROJECT_REF }}" ] && MISSING="$MISSING SUPABASE_PROJECT_REF"
+          [ -z "${{ secrets.OPENAI_API_KEY }}" ] && MISSING="$MISSING OPENAI_API_KEY"
+          if [ -n "$MISSING" ]; then
+            echo "❌ Missing required secrets:$MISSING"
+            exit 1
+          fi
+          echo "✅ All required secrets present"
 
       - name: 🟢 Setup Deno
         uses: denoland/setup-deno@v1
@@ -216,8 +227,10 @@ jobs:
 
       - name: 🗄️ Run migrations
         run: |
-          echo "🗄️ Running pending migrations..."
-          supabase db push || echo "⚠️ No new migrations"
+          echo "🗄️ Checking for pending migrations..."
+          supabase db push --dry-run
+          echo "🗄️ Applying migrations..."
+          supabase db push
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
 

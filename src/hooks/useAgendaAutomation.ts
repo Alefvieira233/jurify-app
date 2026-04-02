@@ -46,14 +46,27 @@ export interface WorkflowConfig {
 // Helper functions
 // ---------------------------------------------------------------------------
 
-async function createEmailInvite(agendamento: Agendamento, config: WorkflowConfig) {
-  const { data: lead } = await supabase
+/** Lead data fetched once at orchestration level for all automation helpers */
+interface LeadData {
+  email: string | null;
+  nome: string | null;
+  whatsapp: string | null;
+  cpf_cnpj: string | null;
+}
+
+async function fetchLeadForAutomation(leadId: string): Promise<LeadData> {
+  const { data: lead, error } = await supabase
     .from('leads')
-    .select('email, nome, whatsapp')
-    .eq('id', agendamento.lead_id)
+    .select('email, nome, whatsapp, cpf_cnpj')
+    .eq('id', leadId)
     .single();
 
-  if (!lead?.email) throw new Error('Lead sem email');
+  if (error || !lead) throw new Error('Lead não encontrado');
+  return lead as LeadData;
+}
+
+async function createEmailInvite(agendamento: Agendamento, config: WorkflowConfig, lead: LeadData) {
+  if (!lead.email) throw new Error('Lead sem email');
 
   const message = config.custom_message || `
 Olá ${lead.nome},
@@ -86,14 +99,8 @@ Escritório Jurídico
   if (error) throw error;
 }
 
-async function createWhatsAppMessage(agendamento: Agendamento, config: WorkflowConfig) {
-  const { data: lead } = await supabase
-    .from('leads')
-    .select('whatsapp, nome')
-    .eq('id', agendamento.lead_id)
-    .single();
-
-  if (!lead?.whatsapp) throw new Error('Lead sem WhatsApp');
+async function createWhatsAppMessage(agendamento: Agendamento, config: WorkflowConfig, lead: LeadData) {
+  if (!lead.whatsapp) throw new Error('Lead sem WhatsApp');
 
   const message = config.custom_message || `
 Olá ${lead.nome}! 👋
@@ -164,15 +171,7 @@ async function createReminders(agendamento: Agendamento, userId: string) {
   if (error) throw error;
 }
 
-async function createDriveFolder(agendamento: Agendamento) {
-  const { data: lead } = await supabase
-    .from('leads')
-    .select('nome, cpf_cnpj')
-    .eq('id', agendamento.lead_id)
-    .single();
-
-  if (!lead) throw new Error('Lead não encontrado');
-
+async function createDriveFolder(agendamento: Agendamento, lead: LeadData) {
   const folderName = `${lead.nome} - ${agendamento.area_juridica} - ${new Date(agendamento.data_hora).toLocaleDateString('pt-BR')}`;
 
   // Chamar Edge Function para criar pasta no Google Drive
@@ -279,6 +278,13 @@ export function useAgendaAutomation() {
       });
     }
 
+    // Fetch lead data ONCE for all tasks that need it
+    const needsLead = config.send_email_invite || config.send_whatsapp || config.create_drive_folder
+      || (trigger === 'create' && !agendamento.google_event_id);
+    const lead = needsLead && agendamento.lead_id
+      ? await fetchLeadForAutomation(agendamento.lead_id)
+      : null;
+
     // Execute tasks in parallel with error handling
     const results = await Promise.allSettled(
       tasks.map(async (task) => {
@@ -292,15 +298,9 @@ export function useAgendaAutomation() {
           switch (task.type) {
             case 'email':
               if (task.id === 'google-sync') {
-                const { data: lead } = await supabase
-                  .from('leads')
-                  .select('email, nome')
-                  .eq('id', agendamento.lead_id)
-                  .single();
-
                 const participantes: string[] = [];
-                if (lead?.email) {
-                  participantes.push(lead.email as string);
+                if (lead?.email != null) {
+                  participantes.push(lead.email);
                 }
 
                 const eventId = await createCalendarEvent(
@@ -322,12 +322,12 @@ export function useAgendaAutomation() {
                   throw new Error('Google Calendar não conectado ou sync falhou');
                 }
               } else {
-                await createEmailInvite(agendamento, config);
+                await createEmailInvite(agendamento, config, lead!);
               }
               break;
 
             case 'whatsapp':
-              await createWhatsAppMessage(agendamento, config);
+              await createWhatsAppMessage(agendamento, config, lead!);
               break;
 
             case 'task':
@@ -339,7 +339,7 @@ export function useAgendaAutomation() {
               break;
 
             case 'drive_folder':
-              await createDriveFolder(agendamento);
+              await createDriveFolder(agendamento, lead!);
               break;
 
             default:
@@ -495,12 +495,18 @@ export function useAgendaAutomation() {
         .update({ status: 'running' })
         .eq('id', taskId);
 
+      // Fetch lead once for retry if needed
+      const needsLeadForRetry = ['email', 'whatsapp', 'drive_folder'].includes(task.type as string);
+      const retryLead = needsLeadForRetry && (agendamento as Agendamento).lead_id
+        ? await fetchLeadForAutomation((agendamento as Agendamento).lead_id as string)
+        : null;
+
       switch (task.type as AutomationTask['type']) {
         case 'email':
-          await createEmailInvite(agendamento as Agendamento, { send_email_invite: true } as WorkflowConfig);
+          await createEmailInvite(agendamento as Agendamento, { send_email_invite: true } as WorkflowConfig, retryLead!);
           break;
         case 'whatsapp':
-          await createWhatsAppMessage(agendamento as Agendamento, { send_whatsapp: true } as WorkflowConfig);
+          await createWhatsAppMessage(agendamento as Agendamento, { send_whatsapp: true } as WorkflowConfig, retryLead!);
           break;
         case 'task':
           await createTask(agendamento as Agendamento, user.id);
@@ -509,7 +515,7 @@ export function useAgendaAutomation() {
           await createReminders(agendamento as Agendamento, user.id);
           break;
         case 'drive_folder':
-          await createDriveFolder(agendamento as Agendamento);
+          await createDriveFolder(agendamento as Agendamento, retryLead!);
           break;
         default:
           throw new Error(`Unknown task type: ${String(task.type)}`);

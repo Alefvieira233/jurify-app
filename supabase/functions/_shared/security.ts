@@ -64,8 +64,26 @@ const INJECTION_PATTERNS = [
   /reveal\s+(your|the)\s+(system|instructions?|prompt)/i,
 ];
 
+// Homoglyph map for common substitution attacks (e.g. "ign0re" → "ignore")
+const HOMOGLYPHS: Record<string, string> = {
+  "0": "o", "1": "l", "3": "e", "4": "a", "5": "s",
+  "@": "a", "$": "s", "!": "i",
+};
+
+/**
+ * Normalize text to defeat Unicode / homoglyph bypass attacks.
+ */
+function normalizeForDetection(text: string): string {
+  // NFKD decomposes look-alike characters (e.g. ﬁ → fi, ℌ → H)
+  let normalized = text.normalize("NFKD");
+  // Replace common homoglyphs used to bypass detection
+  normalized = normalized.replace(/[01345@$!]/g, (ch) => HOMOGLYPHS[ch] || ch);
+  return normalized;
+}
+
 /**
  * Sanitise user input: trim, cap length, strip injection attempts.
+ * Applies Unicode normalization and homoglyph detection for robustness.
  * Returns sanitised string or null if malicious.
  */
 export function sanitizeInput(
@@ -78,9 +96,28 @@ export function sanitizeInput(
 
   const trimmed = text.trim().slice(0, maxLength);
 
+  // Check original + normalized version to catch homoglyph attacks
+  const normalized = normalizeForDetection(trimmed);
+
   for (const pattern of INJECTION_PATTERNS) {
-    if (pattern.test(trimmed)) {
+    if (pattern.test(trimmed) || pattern.test(normalized)) {
       return { safe: false, reason: "Potential prompt injection detected" };
+    }
+  }
+
+  // Detect base64-encoded payloads that might hide injection instructions
+  const base64Match = trimmed.match(/[A-Za-z0-9+/]{40,}={0,2}/);
+  if (base64Match) {
+    try {
+      const decoded = atob(base64Match[0]);
+      const decodedNormalized = normalizeForDetection(decoded);
+      for (const pattern of INJECTION_PATTERNS) {
+        if (pattern.test(decoded) || pattern.test(decodedNormalized)) {
+          return { safe: false, reason: "Potential encoded prompt injection detected" };
+        }
+      }
+    } catch {
+      // Not valid base64 — ignore
     }
   }
 

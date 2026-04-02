@@ -106,7 +106,7 @@ const EquipeManager = () => {
     const term = searchTerm.toLowerCase();
     return members.filter(
       (m: TeamMember) =>
-        m.nome_completo.toLowerCase().includes(term) ||
+        (m.nome_completo ?? '').toLowerCase().includes(term) ||
         m.email.toLowerCase().includes(term) ||
         (m.cargo ?? '').toLowerCase().includes(term) ||
         (m.role ?? '').toLowerCase().includes(term)
@@ -207,8 +207,8 @@ const EquipeManager = () => {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
           {filteredMembers.map((member: TeamMember) => {
-            const avatarColor = getAvatarHex(member.nome_completo);
-            const initials = getInitials(member.nome_completo);
+            const avatarColor = getAvatarHex(member.nome_completo ?? '');
+            const initials = getInitials(member.nome_completo ?? '');
             const deptos = memberDepartments.get(member.id) ?? [];
             const isEditing = editing?.memberId === member.id;
 
@@ -269,9 +269,9 @@ const EquipeManager = () => {
                   <div className="space-y-1">
                     <h3
                       className="font-bold text-foreground text-lg leading-tight truncate"
-                      title={member.nome_completo}
+                      title={member.nome_completo ?? ''}
                     >
-                      {member.nome_completo}
+                      {member.nome_completo ?? 'Sem nome'}
                     </h3>
                     <p
                       className="text-sm font-medium text-muted-foreground truncate"

@@ -163,17 +163,17 @@ export const useAgendamentos = () => {
   // ── Public API ─────────────────────────────────────────────────────────────
   const createAgendamento = useCallback(async (data: AgendamentoInput): Promise<boolean> => {
     if (!user) { toast({ title: 'Erro de autenticação', description: 'Usuário não autenticado', variant: 'destructive' }); return false; }
-    try { await createMutation.mutateAsync(data); return true; } catch { return false; }
+    try { await createMutation.mutateAsync(data); return true; } catch (err) { console.error('[useAgendamentos] createAgendamento failed:', err); return false; }
   }, [user, createMutation, toast]);
 
   const updateAgendamento = useCallback(async (id: string, updateData: Partial<AgendamentoInput>): Promise<boolean> => {
     if (!user || !tenantId) return false;
-    try { await updateMutation.mutateAsync({ id, updateData }); return true; } catch { return false; }
+    try { await updateMutation.mutateAsync({ id, updateData }); return true; } catch (err) { console.error('[useAgendamentos] updateAgendamento failed:', err); return false; }
   }, [user, tenantId, updateMutation]);
 
   const deleteAgendamento = useCallback(async (id: string): Promise<boolean> => {
     if (!user || !tenantId) return false;
-    try { await deleteMutation.mutateAsync(id); return true; } catch { return false; }
+    try { await deleteMutation.mutateAsync(id); return true; } catch (err) { console.error('[useAgendamentos] deleteAgendamento failed:', err); return false; }
   }, [user, tenantId, deleteMutation]);
 
   const fetchAgendamentos = useCallback(() => { void refetch(); }, [refetch]);

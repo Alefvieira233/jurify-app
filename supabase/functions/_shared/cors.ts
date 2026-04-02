@@ -9,9 +9,9 @@ const DEFAULT_ALLOWED_ORIGINS = [
   "https://jurify.com.br",
 ];
 
-// Matches any Jurify Vercel deployment: jurify-<hash>.vercel.app, jurify-app-<x>.vercel.app, etc.
+// Matches only Vercel preview deployments from our project (alef-vieiras-projects)
 function isJurifyVercelOrigin(origin: string): boolean {
-  return /^https:\/\/jurify[-a-z0-9]*\.vercel\.app$/.test(origin);
+  return /^https:\/\/jurify-[a-z0-9]+-alef-vieiras-projects\.vercel\.app$/.test(origin);
 }
 
 function parseAllowedOrigins(): string[] {

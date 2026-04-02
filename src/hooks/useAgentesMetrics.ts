@@ -42,72 +42,58 @@ export const useAgentesMetrics = () => {
       const inicioHoje = new Date(hoje.getFullYear(), hoje.getMonth(), hoje.getDate());
       const inicioMes = new Date(hoje.getFullYear(), hoje.getMonth(), 1);
 
-      // Buscar execucoes de hoje
-      const { data: execucoesHoje, error: errorHoje } = await supabase
-        .from('logs_execucao_agentes')
-        .select('agente_id, status, tempo_execucao, created_at')
-        .eq('tenant_id', profile.tenant_id)
-        .gte('created_at', inicioHoje.toISOString())
-        .eq('status', 'success');
+      // Fetch month data (superset) and last execution in parallel — 2 queries instead of 4
+      // The month query includes today's data, so we derive today's count client-side
+      const [mesResult, ultimaResult] = await Promise.all([
+        supabase
+          .from('logs_execucao_agentes')
+          .select('agente_id, status, tempo_execucao, created_at, agentes_ia:agente_id(nome)')
+          .eq('tenant_id', profile.tenant_id)
+          .gte('created_at', inicioMes.toISOString()),
+        supabase
+          .from('logs_execucao_agentes')
+          .select('created_at')
+          .eq('tenant_id', profile.tenant_id)
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .single(),
+      ]);
 
-      if (errorHoje) throw errorHoje;
-
-      // Buscar execucoes do mes
-      const { data: execucoesMes, error: errorMes } = await supabase
-        .from('logs_execucao_agentes')
-        .select('agente_id, status, tempo_execucao, created_at')
-        .eq('tenant_id', profile.tenant_id)
-        .gte('created_at', inicioMes.toISOString());
-
-      if (errorMes) throw errorMes;
-
-      // Buscar ultima execucao
-      const { data: ultimaExecucao, error: errorUltima } = await supabase
-        .from('logs_execucao_agentes')
-        .select('created_at')
-        .eq('tenant_id', profile.tenant_id)
-        .order('created_at', { ascending: false })
-        .limit(1)
-        .single();
-
-      if (errorUltima && errorUltima.code !== 'PGRST116') {
-        throw errorUltima;
+      if (mesResult.error) throw mesResult.error;
+      if (ultimaResult.error && ultimaResult.error.code !== 'PGRST116') {
+        throw ultimaResult.error;
       }
 
-      // Buscar agente mais ativo
-      const { data: agenteMaisAtivo, error: errorAgente } = await supabase
-        .from('logs_execucao_agentes')
-        .select('agente_id, agentes_ia:agente_id(nome)')
-        .eq('tenant_id', profile.tenant_id)
-        .gte('created_at', inicioMes.toISOString());
+      const allMesRows = mesResult.data || [];
+      const inicioHojeISO = inicioHoje.toISOString();
 
-      if (errorAgente) throw errorAgente;
-
-      // Calcular metricas
-      const execucoesHojeCount = execucoesHoje?.length || 0;
-      const execucoesMesCount = execucoesMes?.length || 0;
+      // Derive today's successful executions from the month data
+      const execucoesHojeCount = allMesRows.filter(
+        (row) => row.created_at >= inicioHojeISO && row.status === 'success'
+      ).length;
+      const execucoesMesCount = allMesRows.length;
 
       // Tempo medio de resposta (em ms)
-      const temposExecucao = execucoesMes?.map(log => log.tempo_execucao).filter(Boolean) || [];
+      const temposExecucao = allMesRows.map(row => row.tempo_execucao).filter(Boolean);
       const tempoMedioResposta = temposExecucao.length > 0
-        ? Math.round(temposExecucao.reduce((a, b) => a + b, 0) / temposExecucao.length)
+        ? Math.round(temposExecucao.reduce((a: number, b: number) => a + b, 0) / temposExecucao.length)
         : 0;
 
       // Taxa de sucesso
-      const execucoesSucesso = execucoesMes?.filter(log => ['success', 'completed'].includes(log.status)).length || 0;
+      const execucoesSucesso = allMesRows.filter(row => ['success', 'completed'].includes(row.status)).length;
       const sucessoRate = execucoesMesCount > 0
         ? Math.round((execucoesSucesso / execucoesMesCount) * 100)
         : 0;
 
-      // Agente mais ativo
+      // Agente mais ativo (derived from the same month data with join)
       type AgenteMaisAtivoRow = {
         agente_id: string | null;
         agentes_ia?: { nome?: string | null } | null;
       };
       const agenteCounts: Record<string, { count: number; nome: string }> = {};
-      (agenteMaisAtivo as AgenteMaisAtivoRow[] | null | undefined)?.forEach(log => {
-        const agentId = log.agente_id;
-        const agentNome = log.agentes_ia?.nome || 'Agente Desconhecido';
+      (allMesRows as AgenteMaisAtivoRow[]).forEach(row => {
+        const agentId = row.agente_id;
+        const agentNome = row.agentes_ia?.nome || 'Agente Desconhecido';
         if (agentId) {
           if (!agenteCounts[agentId]) {
             agenteCounts[agentId] = { count: 0, nome: agentNome };
@@ -122,7 +108,7 @@ export const useAgentesMetrics = () => {
 
       setMetrics({
         execucoesHoje: execucoesHojeCount,
-        ultimaExecucao: ultimaExecucao?.created_at || null,
+        ultimaExecucao: ultimaResult.data?.created_at || null,
         execucoesMes: execucoesMesCount,
         tempoMedioResposta,
         sucessoRate,

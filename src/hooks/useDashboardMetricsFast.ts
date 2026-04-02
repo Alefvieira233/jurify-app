@@ -7,7 +7,7 @@
  * Performance: ~500ms → <50ms
  */
 
-import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabaseUntyped as supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -181,17 +181,25 @@ export function useDashboardMetricsFast() {
     refetchOnWindowFocus: false,
   });
 
-  // Debounced refetch to avoid hammering the DB on rapid changes
-  const debouncedRefetch = useCallback(() => {
-    if (debounceRef.current) clearTimeout(debounceRef.current);
-    debounceRef.current = setTimeout(() => {
-      void queryClient.invalidateQueries({ queryKey: qKey });
-    }, 5_000);
-  }, [queryClient, qKey]);
+  // Use a ref for the invalidation function so the realtime effect doesn't depend on it
+  const invalidateRef = useRef(() => {
+    void queryClient.invalidateQueries({ queryKey: qKey });
+  });
+  invalidateRef.current = () => {
+    void queryClient.invalidateQueries({ queryKey: qKey });
+  };
 
   // Supabase Realtime: subscribe to changes in key tables
   useEffect(() => {
     if (!tenantId) return;
+
+    // Debounced refetch using the ref — avoids dependency on queryClient/qKey
+    const debouncedRefetch = () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+      debounceRef.current = setTimeout(() => {
+        invalidateRef.current();
+      }, 5_000);
+    };
 
     const channel = supabase
       .channel(`dashboard-rt-${tenantId}`)
@@ -214,10 +222,12 @@ export function useDashboardMetricsFast() {
 
     return () => {
       if (debounceRef.current) clearTimeout(debounceRef.current);
-      void supabase.removeChannel(channel);
       setIsLive(false);
+      supabase.removeChannel(channel).catch((err) => {
+        log.warn('Failed to remove realtime channel', err);
+      });
     };
-  }, [tenantId, debouncedRefetch]);
+  }, [tenantId]);
 
   const metrics = data?.metrics ?? DEFAULT_METRICS;
   const isViewFallback = data?.fromFallback ?? false;

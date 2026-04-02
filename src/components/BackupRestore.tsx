@@ -41,6 +41,18 @@ const BackupRestore = () => {
   const isSensitiveSetting = (item: BackupRecord): boolean =>
     (item as { is_sensitive?: boolean }).is_sensitive === true;
 
+  const SENSITIVE_FIELDS = ['api_key', 'api_secret', 'token', 'access_token', 'refresh_token', 'secret', 'password', 'webhook_secret'];
+
+  const stripSensitiveFields = (record: BackupRecord): BackupRecord => {
+    const cleaned = { ...record };
+    for (const field of SENSITIVE_FIELDS) {
+      if (field in cleaned) {
+        (cleaned as Record<string, unknown>)[field] = '***REDACTED***';
+      }
+    }
+    return cleaned;
+  };
+
   const exportConfigurations = async () => {
     if (!user || !tenantId) {
       toast({
@@ -80,6 +92,8 @@ const BackupRestore = () => {
 
         if (table === 'system_settings') {
           backupObj.data[table] = (data as BackupRecord[] | null)?.filter((item) => !isSensitiveSetting(item)) || [];
+        } else if (table === 'configuracoes_integracoes' || table === 'google_calendar_settings') {
+          backupObj.data[table] = (data as BackupRecord[] | null)?.map(stripSensitiveFields) || [];
         } else {
           backupObj.data[table] = (data as BackupRecord[] | null) || [];
         }
@@ -192,6 +206,9 @@ const BackupRestore = () => {
 
   return (
     <div className="space-y-6">
+      <div className="rounded-md border border-yellow-500/50 bg-yellow-50 dark:bg-yellow-950/20 p-4 text-sm text-yellow-800 dark:text-yellow-200">
+        <strong>Aviso de seguranca:</strong> Arquivos de backup podem conter dados confidenciais. Armazene-os em local seguro e nao compartilhe publicamente. Campos sensiveis (API keys, tokens) sao automaticamente removidos ou mascarados.
+      </div>
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
