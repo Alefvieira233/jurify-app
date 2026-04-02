@@ -1,4 +1,4 @@
-import { useRef, useCallback, type RefObject } from 'react';
+import { memo, useRef, useCallback, type CSSProperties, type RefObject } from 'react';
 import {
   Bot,
   User,
@@ -17,8 +17,18 @@ export interface MessageViewProps {
 
 const VIRTUALIZE_THRESHOLD = 50;
 
+/** Background pattern shared across all message view variants */
+const WA_BG_PATTERN: CSSProperties = {
+  backgroundImage: 'url("data:image/svg+xml,%3Csvg width=\'200\' height=\'200\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cdefs%3E%3Cpattern id=\'p\' width=\'40\' height=\'40\' patternUnits=\'userSpaceOnUse\'%3E%3Cpath d=\'M0 20h40M20 0v40\' stroke=\'%23d1d5db15\' fill=\'none\'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width=\'200\' height=\'200\' fill=\'url(%23p)\'/%3E%3C/svg%3E")',
+};
+
+/** Animation delay styles for typing indicator dots */
+const BOUNCE_DELAY_0: CSSProperties = { animationDelay: '0ms' };
+const BOUNCE_DELAY_150: CSSProperties = { animationDelay: '150ms' };
+const BOUNCE_DELAY_300: CSSProperties = { animationDelay: '300ms' };
+
 /** Render a single message row (shared between virtualized and non-virtualized paths) */
-function MessageRow({
+const MessageRow = memo(function MessageRow({
   message,
   messages,
   index,
@@ -93,7 +103,9 @@ function MessageRow({
       </div>
     </div>
   );
-}
+});
+
+MessageRow.displayName = 'MessageRow';
 
 /** Virtualized message list for large conversations (50+ messages) */
 function VirtualizedMessageList({
@@ -116,7 +128,7 @@ function VirtualizedMessageList({
     <div
       ref={parentRef}
       className="flex-1 overflow-auto px-4 py-3 bg-[#efeae2] dark:bg-[#0b141a]"
-      style={{ backgroundImage: 'url("data:image/svg+xml,%3Csvg width=\'200\' height=\'200\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cdefs%3E%3Cpattern id=\'p\' width=\'40\' height=\'40\' patternUnits=\'userSpaceOnUse\'%3E%3Cpath d=\'M0 20h40M20 0v40\' stroke=\'%23d1d5db15\' fill=\'none\'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width=\'200\' height=\'200\' fill=\'url(%23p)\'/%3E%3C/svg%3E")' }}
+      style={WA_BG_PATTERN}
     >
       <div className="max-w-3xl mx-auto">
         <div
@@ -167,7 +179,7 @@ const MessageView = ({
 
   if (messages.length === 0) {
     return (
-      <div className="flex-1 px-4 py-3 bg-[#efeae2] dark:bg-[#0b141a]" style={{ backgroundImage: 'url("data:image/svg+xml,%3Csvg width=\'200\' height=\'200\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cdefs%3E%3Cpattern id=\'p\' width=\'40\' height=\'40\' patternUnits=\'userSpaceOnUse\'%3E%3Cpath d=\'M0 20h40M20 0v40\' stroke=\'%23d1d5db15\' fill=\'none\'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width=\'200\' height=\'200\' fill=\'url(%23p)\'/%3E%3C/svg%3E")' }}>
+      <div className="flex-1 px-4 py-3 bg-[#efeae2] dark:bg-[#0b141a]" style={WA_BG_PATTERN}>
         <div className="flex items-center justify-center py-20">
           <p className="text-sm text-[hsl(var(--muted-foreground))]">Nenhuma mensagem ainda</p>
         </div>
@@ -185,9 +197,9 @@ const MessageView = ({
           <div className="flex justify-start px-4 pb-3 bg-[#efeae2] dark:bg-[#0b141a]">
             <div className="bg-[hsl(var(--card))] border border-[hsl(var(--border))] rounded-2xl rounded-bl-md px-4 py-3 max-w-[75%]">
               <div className="flex items-center gap-1">
-                <span className="h-2 w-2 bg-emerald-500 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
-                <span className="h-2 w-2 bg-emerald-500 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
-                <span className="h-2 w-2 bg-emerald-500 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+                <span className="h-2 w-2 bg-emerald-500 rounded-full animate-bounce" style={BOUNCE_DELAY_0} />
+                <span className="h-2 w-2 bg-emerald-500 rounded-full animate-bounce" style={BOUNCE_DELAY_150} />
+                <span className="h-2 w-2 bg-emerald-500 rounded-full animate-bounce" style={BOUNCE_DELAY_300} />
               </div>
             </div>
           </div>
@@ -198,7 +210,7 @@ const MessageView = ({
 
   // Small list: render normally without virtualization
   return (
-    <div className="flex-1 overflow-auto px-4 py-3 bg-[#efeae2] dark:bg-[#0b141a]" style={{ backgroundImage: 'url("data:image/svg+xml,%3Csvg width=\'200\' height=\'200\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cdefs%3E%3Cpattern id=\'p\' width=\'40\' height=\'40\' patternUnits=\'userSpaceOnUse\'%3E%3Cpath d=\'M0 20h40M20 0v40\' stroke=\'%23d1d5db15\' fill=\'none\'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width=\'200\' height=\'200\' fill=\'url(%23p)\'/%3E%3C/svg%3E")' }}>
+    <div className="flex-1 overflow-auto px-4 py-3 bg-[#efeae2] dark:bg-[#0b141a]" style={WA_BG_PATTERN}>
       <div className="space-y-3 max-w-3xl mx-auto">
         {messages.map((message, index) => (
           <MessageRow key={message.id} message={message} messages={messages} index={index} />
@@ -208,9 +220,9 @@ const MessageView = ({
           <div className="flex justify-start">
             <div className="bg-[hsl(var(--card))] border border-[hsl(var(--border))] rounded-2xl rounded-bl-md px-4 py-3 max-w-[75%]">
               <div className="flex items-center gap-1">
-                <span className="h-2 w-2 bg-emerald-500 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
-                <span className="h-2 w-2 bg-emerald-500 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
-                <span className="h-2 w-2 bg-emerald-500 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+                <span className="h-2 w-2 bg-emerald-500 rounded-full animate-bounce" style={BOUNCE_DELAY_0} />
+                <span className="h-2 w-2 bg-emerald-500 rounded-full animate-bounce" style={BOUNCE_DELAY_150} />
+                <span className="h-2 w-2 bg-emerald-500 rounded-full animate-bounce" style={BOUNCE_DELAY_300} />
               </div>
             </div>
           </div>

@@ -129,6 +129,11 @@ function processInline(text: string): React.ReactNode {
 // Sub-components
 // ---------------------------------------------------------------------------
 
+/** Animation delay styles for typing indicator dots */
+const BOUNCE_DELAY_0: React.CSSProperties = { animationDelay: '0ms' };
+const BOUNCE_DELAY_150: React.CSSProperties = { animationDelay: '150ms' };
+const BOUNCE_DELAY_300: React.CSSProperties = { animationDelay: '300ms' };
+
 const CopyButton: React.FC<{ text: string }> = ({ text }) => {
   const [copied, setCopied] = useState(false);
 
@@ -157,9 +162,9 @@ const TypingIndicator: React.FC = () => (
         <Bot className="h-4 w-4 text-blue-600" />
         <span className="text-xs text-muted-foreground">JurifyBot está pesquisando...</span>
         <div className="flex gap-1 ml-1">
-          <div className="w-1.5 h-1.5 bg-blue-500 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
-          <div className="w-1.5 h-1.5 bg-blue-500 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
-          <div className="w-1.5 h-1.5 bg-blue-500 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+          <div className="w-1.5 h-1.5 bg-blue-500 rounded-full animate-bounce" style={BOUNCE_DELAY_0} />
+          <div className="w-1.5 h-1.5 bg-blue-500 rounded-full animate-bounce" style={BOUNCE_DELAY_150} />
+          <div className="w-1.5 h-1.5 bg-blue-500 rounded-full animate-bounce" style={BOUNCE_DELAY_300} />
         </div>
       </div>
     </div>

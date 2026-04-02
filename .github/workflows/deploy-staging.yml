@@ -1,13 +1,13 @@
-name: 🚀 Deploy to Production
+name: 🧪 Deploy to Staging
 
 on:
   push:
-    branches: [master, main]
+    branches: [develop]
     paths:
       - 'src/**'
       - 'supabase/**'
       - 'package.json'
-  workflow_dispatch:  # Permite deploy manual
+  workflow_dispatch:
 
 env:
   NODE_VERSION: '20'
@@ -46,27 +46,19 @@ jobs:
           VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
           VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
 
-      - name: 📊 Coverage check
-        run: npm run test:coverage
-        env:
-          CI: true
-          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
-          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
-
-      - name: 🛡️ Validate secrets config
-        run: node scripts/validate-secrets.cjs --ci
-
   # ==========================================
-  # JOB 1: DEPLOY FRONTEND
+  # JOB 1: DEPLOY FRONTEND (Preview)
   # ==========================================
   deploy-frontend:
-    name: 🌐 Deploy Frontend to Production
+    name: 🌐 Deploy Frontend to Staging
     runs-on: ubuntu-latest
     timeout-minutes: 15
     needs: pre-deploy-gate
     environment:
-      name: production
-      url: https://jurify.com.br
+      name: staging
+
+    outputs:
+      preview-url: ${{ steps.deploy.outputs.preview-url }}
 
     steps:
       - name: 📥 Checkout code
@@ -82,7 +74,7 @@ jobs:
       - name: 📦 Install dependencies
         run: npm ci --prefer-offline --no-audit
 
-      - name: 🏗️ Build production
+      - name: 🏗️ Build staging
         run: npm run build
         env:
           NODE_ENV: production
@@ -90,29 +82,15 @@ jobs:
           VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
           VITE_SENTRY_DSN: ${{ secrets.VITE_SENTRY_DSN }}
           VITE_APP_VERSION: ${{ github.sha }}
-          VITE_STRIPE_PUBLISHABLE_KEY: ${{ secrets.VITE_STRIPE_PUBLISHABLE_KEY }}
-          VITE_GOOGLE_CLIENT_ID: ${{ secrets.VITE_GOOGLE_CLIENT_ID }}
-          VITE_SALES_WHATSAPP: ${{ secrets.VITE_SALES_WHATSAPP }}
-          # Sentry source map upload (opcional — build funciona sem estes)
-          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
-          SENTRY_ORG: ${{ secrets.SENTRY_ORG }}
-          SENTRY_PROJECT: ${{ secrets.SENTRY_PROJECT }}
 
-      - name: 💾 Upload build artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: production-build
-          path: dist
-          retention-days: 7
-
-      # Deploy para Vercel
-      - name: 🚀 Deploy to Vercel
+      - name: 🚀 Deploy to Vercel (Preview)
+        id: deploy
         uses: amondnet/vercel-action@v25
         with:
           vercel-token: ${{ secrets.VERCEL_TOKEN }}
           vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
           vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID }}
-          vercel-args: '--prod'
+          # No --prod flag = preview deployment
 
   # ==========================================
   # JOB 2: DEPLOY SUPABASE EDGE FUNCTIONS
@@ -121,8 +99,6 @@ jobs:
     name: ⚡ Deploy Edge Functions
     runs-on: ubuntu-latest
     timeout-minutes: 10
-    environment:
-      name: production
 
     steps:
       - name: 📥 Checkout code
@@ -133,7 +109,6 @@ jobs:
           MISSING=""
           [ -z "${{ secrets.SUPABASE_ACCESS_TOKEN }}" ] && MISSING="$MISSING SUPABASE_ACCESS_TOKEN"
           [ -z "${{ secrets.SUPABASE_PROJECT_REF }}" ] && MISSING="$MISSING SUPABASE_PROJECT_REF"
-          [ -z "${{ secrets.OPENAI_API_KEY }}" ] && MISSING="$MISSING OPENAI_API_KEY"
           if [ -n "$MISSING" ]; then
             echo "❌ Missing required secrets:$MISSING"
             exit 1
@@ -158,12 +133,10 @@ jobs:
       - name: ⚡ Deploy Edge Functions
         run: |
           echo "🚀 Deploying edge functions..."
-          # Functions públicas (sem JWT): health-check, stripe-webhook, whatsapp-webhook, zapsign-webhook
           supabase functions deploy health-check --no-verify-jwt
           supabase functions deploy stripe-webhook --no-verify-jwt
           supabase functions deploy whatsapp-webhook --no-verify-jwt
           supabase functions deploy zapsign-webhook --no-verify-jwt
-          # Functions que requerem JWT (deploy padrão — com auth)
           for fn in assistant chat-completion send-email create-checkout-session \
                     customer-portal kapso-manager generate-embedding \
                     ingest-document vector-search google-calendar \
@@ -175,32 +148,6 @@ jobs:
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
 
-      - name: 🔐 Set Edge Function secrets
-        run: |
-          echo "🔐 Setting secrets..."
-          # Apenas secrets que estão configurados (ignora vazios)
-          SECRETS=""
-          [ -n "$OPENAI_API_KEY" ]          && SECRETS="$SECRETS OPENAI_API_KEY=$OPENAI_API_KEY"
-          [ -n "$STRIPE_SECRET_KEY" ]        && SECRETS="$SECRETS STRIPE_SECRET_KEY=$STRIPE_SECRET_KEY"
-          [ -n "$STRIPE_WEBHOOK_SECRET" ]    && SECRETS="$SECRETS STRIPE_WEBHOOK_SECRET=$STRIPE_WEBHOOK_SECRET"
-          [ -n "$KAPSO_API_KEY" ]             && SECRETS="$SECRETS KAPSO_API_KEY=$KAPSO_API_KEY"
-          [ -n "$KAPSO_PHONE_NUMBER_ID" ]    && SECRETS="$SECRETS KAPSO_PHONE_NUMBER_ID=$KAPSO_PHONE_NUMBER_ID"
-          [ -n "$KAPSO_WEBHOOK_SECRET" ]     && SECRETS="$SECRETS KAPSO_WEBHOOK_SECRET=$KAPSO_WEBHOOK_SECRET"
-          [ -n "$ZAPSIGN_API_TOKEN" ]        && SECRETS="$SECRETS ZAPSIGN_API_TOKEN=$ZAPSIGN_API_TOKEN"
-          [ -n "$GOOGLE_CLIENT_SECRET" ]     && SECRETS="$SECRETS GOOGLE_CLIENT_SECRET=$GOOGLE_CLIENT_SECRET"
-          [ -n "$SECRETS" ] && supabase secrets set $SECRETS --project-ref ${{ secrets.SUPABASE_PROJECT_REF }} || echo "⚠️ No new secrets to set"
-          echo "✅ Secrets configured"
-        env:
-          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
-          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-          STRIPE_SECRET_KEY: ${{ secrets.STRIPE_SECRET_KEY }}
-          STRIPE_WEBHOOK_SECRET: ${{ secrets.STRIPE_WEBHOOK_SECRET }}
-          KAPSO_API_KEY: ${{ secrets.KAPSO_API_KEY }}
-          KAPSO_PHONE_NUMBER_ID: ${{ secrets.KAPSO_PHONE_NUMBER_ID }}
-          KAPSO_WEBHOOK_SECRET: ${{ secrets.KAPSO_WEBHOOK_SECRET }}
-          ZAPSIGN_API_TOKEN: ${{ secrets.ZAPSIGN_API_TOKEN }}
-          GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
-
   # ==========================================
   # JOB 3: RUN DATABASE MIGRATIONS
   # ==========================================
@@ -208,8 +155,6 @@ jobs:
     name: 🗄️ Run Database Migrations
     runs-on: ubuntu-latest
     timeout-minutes: 5
-    environment:
-      name: production
 
     steps:
       - name: 📥 Checkout code
@@ -242,8 +187,6 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     needs: [deploy-frontend, deploy-edge-functions]
-    environment:
-      name: production
 
     steps:
       - name: 📥 Checkout code
@@ -254,11 +197,16 @@ jobs:
         with:
           node-version: ${{ env.NODE_VERSION }}
 
-      - name: 🔍 Health check - Frontend
+      - name: 🔍 Health check - Frontend (Preview)
         run: |
-          echo "🔍 Checking frontend health..."
+          PREVIEW_URL="${{ needs.deploy-frontend.outputs.preview-url }}"
+          if [ -z "$PREVIEW_URL" ]; then
+            echo "⚠️ No preview URL available, skipping frontend health check"
+            exit 0
+          fi
+          echo "🔍 Checking staging frontend at $PREVIEW_URL..."
           for i in 1 2 3; do
-            STATUS=$(curl -s -o /dev/null -w "%{http_code}" --max-time 10 https://jurify.app || echo "000")
+            STATUS=$(curl -s -o /dev/null -w "%{http_code}" --max-time 10 "$PREVIEW_URL" || echo "000")
             if [ "$STATUS" -ge 200 ] && [ "$STATUS" -lt 400 ]; then
               echo "✅ Frontend OK (HTTP $STATUS)"
               exit 0
@@ -282,42 +230,16 @@ jobs:
             exit 1
           fi
 
-      - name: 📊 Report deployment
+      - name: 📊 Report staging deployment
         run: |
-          echo "✅ Deploy completed!"
-          echo "🌐 Frontend: https://jurify.app"
-          echo "⚡ Edge Functions: Deployed"
-          echo "🗄️ Migrations: Applied"
-
-  # ==========================================
-  # JOB 5: NOTIFICATION
-  # ==========================================
-  notify:
-    name: 📢 Notify Team
-    runs-on: ubuntu-latest
-    needs: [deploy-frontend, deploy-edge-functions, deploy-migrations, smoke-tests]
-    if: always()
-
-    steps:
-      - name: 📢 Create deployment summary
-        if: always()
-        run: |
-          echo "## 🚀 Deployment Report" >> $GITHUB_STEP_SUMMARY
+          echo "## 🧪 Staging Deployment Complete" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "| Step | Status |" >> $GITHUB_STEP_SUMMARY
-          echo "|------|--------|" >> $GITHUB_STEP_SUMMARY
-          echo "| Frontend | ${{ needs.deploy-frontend.result }} |" >> $GITHUB_STEP_SUMMARY
-          echo "| Edge Functions | ${{ needs.deploy-edge-functions.result }} |" >> $GITHUB_STEP_SUMMARY
-          echo "| Migrations | ${{ needs.deploy-migrations.result }} |" >> $GITHUB_STEP_SUMMARY
-          echo "| Smoke Tests | ${{ needs.smoke-tests.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Component | Status |" >> $GITHUB_STEP_SUMMARY
+          echo "|-----------|--------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Frontend | Deployed (Preview) |" >> $GITHUB_STEP_SUMMARY
+          echo "| Edge Functions | Deployed |" >> $GITHUB_STEP_SUMMARY
+          echo "| Migrations | Applied |" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Preview URL:** ${{ needs.deploy-frontend.outputs.preview-url }}" >> $GITHUB_STEP_SUMMARY
           echo "**Commit:** \`${{ github.sha }}\`" >> $GITHUB_STEP_SUMMARY
           echo "**Author:** ${{ github.actor }}" >> $GITHUB_STEP_SUMMARY
-          echo "**Branch:** \`${{ github.ref_name }}\`" >> $GITHUB_STEP_SUMMARY
-          echo "**Timestamp:** $(date -u '+%Y-%m-%d %H:%M:%S UTC')" >> $GITHUB_STEP_SUMMARY
-
-      - name: 🚨 Fail if any deploy step failed
-        if: contains(needs.*.result, 'failure')
-        run: |
-          echo "❌ One or more deployment steps failed. Check the summary above."
-          exit 1

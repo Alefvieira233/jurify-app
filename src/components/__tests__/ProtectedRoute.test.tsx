@@ -49,8 +49,9 @@ describe('ProtectedRoute', () => {
 
   // --- Auth states ---
 
-  it('shows loading spinner while checking auth', () => {
+  it('shows loading spinner while checking auth (initial load, no user yet)', () => {
     mockAuth.loading = true;
+    mockAuth.user = null as any;
     renderRoute();
     const matches = screen.getAllByText(/verificando autenticação/i);
     expect(matches.length).toBeGreaterThanOrEqual(1);
