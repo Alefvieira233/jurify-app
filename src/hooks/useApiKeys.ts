@@ -1,3 +1,5 @@
+/** CRUD operations for tenant API keys with secure creation and revocation. */
+
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabaseUntyped as supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';

@@ -1,3 +1,5 @@
+/** Tracks CRM activities: calls, emails, meetings, and notes linked to leads. */
+
 import { useCallback, useState } from 'react';
 import { useMutation } from '@tanstack/react-query';
 import { supabaseUntyped as supabase } from '@/integrations/supabase/client';

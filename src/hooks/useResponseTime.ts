@@ -1,3 +1,5 @@
+/** Fetches average response time metrics for WhatsApp conversations. */
+
 import { useQuery } from '@tanstack/react-query';
 import { supabaseUntyped as supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';

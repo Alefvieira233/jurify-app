@@ -149,9 +149,10 @@ describe('ConnectionDetailsDrawer', () => {
       { wrapper: createWrapper() },
     );
     // Geral tab is active by default — check type and instance info labels
-    expect(screen.getByText('Tipo')).toBeInTheDocument();
-    expect(screen.getByText('Provider')).toBeInTheDocument();
-    expect(screen.getByText('Instância')).toBeInTheDocument();
+    // Use getAllByText since labels may appear in multiple contexts (tabs + content)
+    expect(screen.getAllByText('Tipo').length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText(/kapso/i).length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText('test_instance').length).toBeGreaterThanOrEqual(1);
   });
 
   it('shows unresolved alert count badge', () => {

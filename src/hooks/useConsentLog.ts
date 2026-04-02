@@ -1,3 +1,5 @@
+/** Logs LGPD consent events (accept/revoke) for compliance audit trail. */
+
 import { useCallback } from 'react';
 import { supabaseUntyped as supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';

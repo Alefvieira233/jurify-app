@@ -1,3 +1,5 @@
+/** Fetches and computes AI agent execution metrics (today, monthly, top agent). */
+
 import { useState, useEffect, useCallback } from 'react';
 import { supabaseUntyped as supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';

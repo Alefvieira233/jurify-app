@@ -1,3 +1,5 @@
+/** Schedules local push notifications for upcoming legal deadlines (prazos) via Capacitor. */
+
 import { useEffect } from 'react';
 import { Capacitor } from '@capacitor/core';
 import { LocalNotifications } from '@capacitor/local-notifications';

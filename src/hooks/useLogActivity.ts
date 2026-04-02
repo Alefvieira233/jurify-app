@@ -1,3 +1,5 @@
+/** Convenience wrapper around useActivityLogs for logging user actions with context. */
+
 
 import { useCallback } from 'react';
 import { useActivityLogs } from './useActivityLogs';

@@ -1,3 +1,5 @@
+/** Manages CRM pipeline stages: lead movement, stage CRUD, and funnel metrics. */
+
 import { useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabaseUntyped as supabase } from '@/integrations/supabase/client';

@@ -1,3 +1,5 @@
+/** Monitors network connectivity status with online/offline detection via Capacitor. */
+
 import { useState, useEffect, useCallback } from 'react';
 import { Capacitor } from '@capacitor/core';
 import { Network } from '@capacitor/network';

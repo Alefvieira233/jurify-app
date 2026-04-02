@@ -1,3 +1,5 @@
+/** Computes and updates lead qualification scores based on engagement and profile data. */
+
 import { useCallback, useState } from 'react';
 import { supabaseUntyped as supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';

@@ -1,3 +1,5 @@
+/** Provides native share sheet (iOS/Android) via Capacitor Share plugin. */
+
 import { Capacitor } from '@capacitor/core';
 import { Share } from '@capacitor/share';
 

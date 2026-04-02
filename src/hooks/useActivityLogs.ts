@@ -1,3 +1,5 @@
+/** Manages activity log queries and logging for audit trail tracking. */
+
 import { useCallback } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabaseUntyped as supabase } from '@/integrations/supabase/client';

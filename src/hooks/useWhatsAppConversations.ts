@@ -1,3 +1,5 @@
+/** Manages WhatsApp conversations: listing, filtering, real-time updates, and message sending. */
+
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabaseUntyped as supabase } from '@/integrations/supabase/client';

@@ -1,3 +1,5 @@
+/** Provides biometric authentication (fingerprint/face) via Capacitor on native platforms. */
+
 import { useState, useCallback } from 'react';
 import { Capacitor } from '@capacitor/core';
 

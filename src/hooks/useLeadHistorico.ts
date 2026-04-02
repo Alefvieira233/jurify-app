@@ -1,3 +1,5 @@
+/** Fetches chronological history of changes and events for a specific lead. */
+
 import { useQuery } from '@tanstack/react-query';
 import { supabaseUntyped } from '@/integrations/supabase/client';
 import type { LeadHistorico } from '@/types/crm-operacional';

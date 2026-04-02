@@ -1,3 +1,5 @@
+/** Registers push notification tokens and handles incoming notifications via Capacitor. */
+
 import { useEffect, useCallback } from 'react';
 import { Capacitor } from '@capacitor/core';
 import { PushNotifications } from '@capacitor/push-notifications';

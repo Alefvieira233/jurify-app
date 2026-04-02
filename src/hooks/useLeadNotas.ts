@@ -1,3 +1,5 @@
+/** CRUD for lead notes with optimistic updates and tenant-scoped queries. */
+
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabaseUntyped } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';

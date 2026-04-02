@@ -1,3 +1,5 @@
+/** Tracks subscription plan usage limits (leads, agents, storage) and enforcement. */
+
 import { useState, useEffect, useCallback } from 'react';
 import { supabaseUntyped as supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';

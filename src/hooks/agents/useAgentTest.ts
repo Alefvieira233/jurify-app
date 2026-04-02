@@ -1,3 +1,5 @@
+/** Provides test execution for AI agents with mock conversations and response validation. */
+
 import { useCallback } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { multiAgentSystem } from '@/lib/multiagents';

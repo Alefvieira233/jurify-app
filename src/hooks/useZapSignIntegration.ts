@@ -1,4 +1,5 @@
-﻿
+/** Integrates with ZapSign API for digital document signing and signature tracking. */
+
 import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';

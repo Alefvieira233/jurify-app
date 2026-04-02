@@ -1,3 +1,5 @@
+/** CRUD for tags with color support, used for categorizing leads and contacts. */
+
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabaseUntyped } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';

@@ -1,3 +1,5 @@
+/** Manages WhatsApp connection instances: CRUD, reconnection, testing, and status monitoring. */
+
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabaseUntyped } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';

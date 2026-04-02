@@ -1,3 +1,5 @@
+/** CRUD operations for AI agents: create, update, delete, and duplicate with tenant isolation. */
+
 import { useState, useCallback } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { supabaseUntyped as supabase } from '@/integrations/supabase/client';

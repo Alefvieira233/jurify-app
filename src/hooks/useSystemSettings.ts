@@ -1,3 +1,5 @@
+/** CRUD for system-wide settings (admin only) with tenant-scoped configuration. */
+
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabaseUntyped as supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';

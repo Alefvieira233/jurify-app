@@ -1,3 +1,5 @@
+/** Manages CRM follow-ups: scheduling, completion, overdue tracking, and reminders. */
+
 import { useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabaseUntyped as supabase } from '@/integrations/supabase/client';

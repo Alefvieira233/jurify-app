@@ -1,3 +1,5 @@
+/** Manages automated follow-up sequences with step configuration and activation. */
+
 import { useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabaseUntyped as supabase } from '@/integrations/supabase/client';

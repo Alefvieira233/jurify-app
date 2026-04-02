@@ -1,3 +1,5 @@
+/** Detects Capacitor platform capabilities: haptics, status bar, keyboard, and device info. */
+
 import { useState } from 'react';
 import { Capacitor } from '@capacitor/core';
 import { Haptics, ImpactStyle, NotificationType } from '@capacitor/haptics';

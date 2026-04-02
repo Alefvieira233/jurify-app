@@ -1,3 +1,5 @@
+/** Calculates Monthly Recurring Revenue (MRR) from active subscriptions. */
+
 import { useQuery } from '@tanstack/react-query';
 import { supabaseUntyped as supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
