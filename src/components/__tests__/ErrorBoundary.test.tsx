@@ -16,6 +16,20 @@ vi.mock('lucide-react', () => ({
   RefreshCw: () => null,
 }));
 
+vi.mock('react-i18next', () => ({
+  Translation: ({ children }: { children: (t: (key: string) => string) => React.ReactNode }) =>
+    children((key: string) => {
+      const map: Record<string, string> = {
+        'errors.somethingWentWrong': 'Ops! Algo deu errado',
+        'errors.unexpectedError': 'Ocorreu um erro inesperado. Nossa equipe foi notificada automaticamente.',
+        'common.tryAgain': 'Tentar Novamente',
+        'errors.reloadPage': 'Recarregar Página',
+        'errors.errorDetails': 'Detalhes do erro (desenvolvimento)',
+      };
+      return map[key] || key;
+    }),
+}));
+
 import { ErrorBoundary } from '../ErrorBoundary';
 
 // Component that throws an error on demand

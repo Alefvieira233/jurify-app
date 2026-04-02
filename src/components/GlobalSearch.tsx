@@ -6,6 +6,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useRBAC } from '@/hooks/useRBAC';
 import { useToast } from '@/hooks/use-toast';
 import { createLogger } from '@/lib/logger';
+import { useTranslation } from 'react-i18next';
 
 const log = createLogger('GlobalSearch');
 
@@ -44,6 +45,7 @@ export default function GlobalSearch() {
   const { profile } = useAuth();
   const { getLeadVisibilityScope, getUserDepartamentos } = useRBAC();
   const { toast } = useToast();
+  const { t } = useTranslation();
 
   // Ctrl+K to open
   useEffect(() => {
@@ -154,14 +156,14 @@ export default function GlobalSearch() {
     } catch (err) {
       log.error('Search error', err);
       toast({
-        title: 'Erro na busca',
-        description: 'Não foi possível realizar a busca. Tente novamente.',
+        title: t('errors.searchError'),
+        description: t('errors.searchErrorDescription'),
         variant: 'destructive',
       });
     } finally {
       setLoading(false);
     }
-  }, [profile?.tenant_id, profile?.id, toast, getLeadVisibilityScope, getUserDepartamentos]);
+  }, [profile?.tenant_id, profile?.id, toast, getLeadVisibilityScope, getUserDepartamentos, t]);
 
   // Debounced search
   useEffect(() => {
@@ -208,7 +210,7 @@ export default function GlobalSearch() {
           <input
             ref={inputRef}
             type="text"
-            placeholder="Buscar leads, contratos, agendamentos..."
+            placeholder={t('common.searchPlaceholder')}
             value={query}
             onChange={e => setQuery(e.target.value)}
             onKeyDown={handleKeyDown}
@@ -228,13 +230,13 @@ export default function GlobalSearch() {
         <div className="max-h-80 overflow-y-auto p-2">
           {loading && (
             <div className="flex items-center justify-center py-8 text-sm text-[hsl(var(--muted-foreground))]">
-              Buscando...
+              {t('common.searching')}
             </div>
           )}
 
           {!loading && query.length >= 2 && results.length === 0 && (
             <div className="flex items-center justify-center py-8 text-sm text-[hsl(var(--muted-foreground))]">
-              Nenhum resultado para "{query}"
+              {t('common.noResultsFor', { query })}
             </div>
           )}
 
@@ -268,7 +270,7 @@ export default function GlobalSearch() {
           {query.length < 2 && !loading && (
             <>
               <div className="px-3 py-1.5 text-[10px] font-semibold uppercase tracking-wider text-[hsl(var(--muted-foreground))]">
-                Navegação rápida
+                {t('common.quickNav')}
               </div>
               {QUICK_LINKS.map((link, i) => {
                 const Icon = link.icon;
@@ -294,9 +296,9 @@ export default function GlobalSearch() {
 
         {/* Footer */}
         <div className="flex items-center gap-4 px-4 py-2 border-t border-[hsl(var(--border))] text-[10px] text-[hsl(var(--muted-foreground))]">
-          <span><kbd className="font-mono">↑↓</kbd> navegar</span>
-          <span><kbd className="font-mono">Enter</kbd> abrir</span>
-          <span><kbd className="font-mono">Esc</kbd> fechar</span>
+          <span><kbd className="font-mono">↑↓</kbd> {t('common.navigate')}</span>
+          <span><kbd className="font-mono">Enter</kbd> {t('common.open')}</span>
+          <span><kbd className="font-mono">Esc</kbd> {t('common.close')}</span>
         </div>
       </div>
     </div>

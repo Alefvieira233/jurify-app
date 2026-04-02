@@ -1,6 +1,7 @@
 
 
 import { Scale } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 interface LoadingSpinnerProps {
   size?: 'sm' | 'md' | 'lg';
@@ -8,11 +9,13 @@ interface LoadingSpinnerProps {
   fullScreen?: boolean;
 }
 
-const LoadingSpinner = ({ 
-  size = 'md', 
-  text = 'Carregando...', 
-  fullScreen = false 
+const LoadingSpinner = ({
+  size = 'md',
+  text,
+  fullScreen = false
 }: LoadingSpinnerProps) => {
+  const { t } = useTranslation();
+  const displayText = text ?? t('common.loading');
   const sizeClasses = {
     sm: 'h-4 w-4',
     md: 'h-8 w-8',
@@ -30,8 +33,8 @@ const LoadingSpinner = ({
           <Scale className={`${sizeClasses[size]} text-white animate-pulse`} />
         </div>
         <div className={`animate-spin rounded-full border-b-2 border-amber-500 mx-auto mb-4 ${sizeClasses[size]}`}></div>
-        <p className="text-muted-foreground font-medium">{text}</p>
-        <span className="sr-only">{text}</span>
+        <p className="text-muted-foreground font-medium">{displayText}</p>
+        <span className="sr-only">{displayText}</span>
       </div>
     </div>
   );

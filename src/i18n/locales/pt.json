@@ -7,6 +7,9 @@
     "edit": "Editar",
     "create": "Criar",
     "search": "Buscar...",
+    "searchPlaceholder": "Buscar leads, contratos, agendamentos...",
+    "searching": "Buscando...",
+    "noResultsFor": "Nenhum resultado para \"{{query}}\"",
     "noResults": "Nenhum resultado encontrado",
     "confirm": "Confirmar",
     "back": "Voltar",
@@ -18,7 +21,11 @@
     "yes": "Sim",
     "no": "Nao",
     "required": "Campo obrigatorio",
-    "actions": "Acoes"
+    "actions": "Acoes",
+    "pleaseWait": "Aguarde...",
+    "quickNav": "Navegação rápida",
+    "navigate": "navegar",
+    "open": "abrir"
   },
   "auth": {
     "login": "Entrar",
@@ -29,8 +36,24 @@
   },
   "errors": {
     "generic": "Ocorreu um erro inesperado. Tente novamente.",
+    "somethingWentWrong": "Ops! Algo deu errado",
+    "unexpectedError": "Ocorreu um erro inesperado. Nossa equipe foi notificada automaticamente.",
+    "searchError": "Erro na busca",
+    "searchErrorDescription": "Não foi possível realizar a busca. Tente novamente.",
+    "reloadPage": "Recarregar Página",
+    "errorDetails": "Detalhes do erro (desenvolvimento)",
     "network": "Erro de conexao. Verifique sua internet.",
     "permission": "Voce nao tem permissao para esta acao.",
     "notFound": "Registro nao encontrado."
+  },
+  "cookies": {
+    "title": "Privacidade & Cookies",
+    "description": "Utilizamos cookies essenciais para o funcionamento da plataforma e, com seu consentimento, cookies analíticos para melhoria do serviço. Seus dados são tratados conforme a",
+    "lgpd": "LGPD",
+    "privacyPolicy": "Política de Privacidade",
+    "andOur": "e nossa",
+    "acceptAll": "Aceitar todos",
+    "essentialOnly": "Apenas essenciais",
+    "consent": "Consentimento de cookies"
   }
 }

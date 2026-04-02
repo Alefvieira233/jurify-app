@@ -3,12 +3,14 @@ import { Link } from 'react-router-dom';
 import { Cookie, X, Check } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useConsentLog } from '@/hooks/useConsentLog';
+import { useTranslation } from 'react-i18next';
 
 const COOKIE_KEY = 'jurify_cookie_consent';
 
 const CookieBanner = () => {
   const [visible, setVisible] = useState(false);
   const { logConsent } = useConsentLog();
+  const { t } = useTranslation();
 
   useEffect(() => {
     const consent = localStorage.getItem(COOKIE_KEY);
@@ -41,7 +43,7 @@ const CookieBanner = () => {
   return (
     <div
       role="dialog"
-      aria-label="Consentimento de cookies"
+      aria-label={t('cookies.consent')}
       className="fixed bottom-4 left-4 right-4 md:left-auto md:right-6 md:bottom-6 md:max-w-md z-50 animate-in slide-in-from-bottom-4 duration-300"
     >
       <div className="bg-card border border-border rounded-2xl shadow-2xl p-5 space-y-4">
@@ -50,26 +52,25 @@ const CookieBanner = () => {
             <div className="bg-primary/10 p-2 rounded-xl">
               <Cookie className="h-4 w-4 text-primary" />
             </div>
-            <p className="font-semibold text-sm">Privacidade & Cookies</p>
+            <p className="font-semibold text-sm">{t('cookies.title')}</p>
           </div>
           <button
             onClick={decline}
             className="text-muted-foreground hover:text-foreground transition-colors"
-            aria-label="Fechar"
+            aria-label={t('common.close')}
           >
             <X className="h-4 w-4" />
           </button>
         </div>
 
         <p className="text-xs text-muted-foreground leading-relaxed">
-          Utilizamos cookies essenciais para o funcionamento da plataforma e, com seu consentimento,
-          cookies analíticos para melhoria do serviço. Seus dados são tratados conforme a{' '}
+          {t('cookies.description')}{' '}
           <Link to="/privacidade" className="underline hover:text-foreground transition-colors">
-            LGPD
+            {t('cookies.lgpd')}
           </Link>{' '}
-          e nossa{' '}
+          {t('cookies.andOur')}{' '}
           <Link to="/privacidade" className="underline hover:text-foreground transition-colors">
-            Política de Privacidade
+            {t('cookies.privacyPolicy')}
           </Link>.
         </p>
 
@@ -80,7 +81,7 @@ const CookieBanner = () => {
             className="flex-1 h-9 text-xs font-semibold"
           >
             <Check className="h-3.5 w-3.5 mr-1.5" />
-            Aceitar todos
+            {t('cookies.acceptAll')}
           </Button>
           <Button
             onClick={decline}
@@ -88,7 +89,7 @@ const CookieBanner = () => {
             size="sm"
             className="flex-1 h-9 text-xs font-semibold"
           >
-            Apenas essenciais
+            {t('cookies.essentialOnly')}
           </Button>
         </div>
       </div>
