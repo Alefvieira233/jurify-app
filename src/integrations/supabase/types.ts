@@ -4735,6 +4735,7 @@ export type Database = {
           last_message_at: string
           lead_id: string | null
           phone_number: string
+          responsavel_id: string | null
           status: string
           tenant_id: string
           unread_count: number
@@ -4754,6 +4755,7 @@ export type Database = {
           last_message_at?: string
           lead_id?: string | null
           phone_number: string
+          responsavel_id?: string | null
           status?: string
           tenant_id: string
           unread_count?: number
@@ -4773,6 +4775,7 @@ export type Database = {
           last_message_at?: string
           lead_id?: string | null
           phone_number?: string
+          responsavel_id?: string | null
           status?: string
           tenant_id?: string
           unread_count?: number
@@ -4792,6 +4795,13 @@ export type Database = {
             columns: ["lead_id"]
             isOneToOne: false
             referencedRelation: "v_leads_operacional"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "whatsapp_conversations_responsavel_id_fkey"
+            columns: ["responsavel_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
           {
