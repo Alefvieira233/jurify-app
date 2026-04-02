@@ -14,6 +14,8 @@ import LoadingSpinner from "./components/LoadingSpinner";
 import { ErrorBoundary } from "./components/ErrorBoundary";
 import { initSentry } from "./lib/sentry";
 import * as Sentry from '@sentry/react';
+import { QUERY_STALE_TIME_MS, QUERY_GC_TIME_MS, MAX_RETRY_DELAY_MS } from "./constants/timings";
+import { useNetworkBanner } from "@/hooks/useNetworkBanner";
 
 // Inicializar Sentry ANTES de tudo
 initSentry();
@@ -88,10 +90,10 @@ const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
       retry: 2,
-      retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 15000),
+      retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, MAX_RETRY_DELAY_MS),
       refetchOnWindowFocus: false,
-      staleTime: 5 * 60 * 1000, // 5 minutos
-      gcTime: 30 * 60 * 1000, // 30 minutos — mantém cache por mais tempo
+      staleTime: QUERY_STALE_TIME_MS,
+      gcTime: QUERY_GC_TIME_MS,
     },
   },
 });
@@ -136,6 +138,17 @@ function DeepLinkHandler() {
   return null;
 }
 
+/** Global offline banner — covers public routes not wrapped by Layout. */
+function OfflineBanner() {
+  const isOffline = useNetworkBanner();
+  if (!isOffline) return null;
+  return (
+    <div className="fixed top-0 left-0 right-0 z-[100] bg-yellow-500 text-yellow-950 text-center py-2 text-sm font-medium">
+      Sem conexao com a internet. Algumas funcionalidades podem nao funcionar.
+    </div>
+  );
+}
+
 const App = () => (
   <ErrorBoundary>
     <QueryClientProvider client={queryClient}>
@@ -143,6 +156,7 @@ const App = () => (
         <Toaster />
         <Sonner />
         <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+          <OfflineBanner />
           <DeepLinkHandler />
           <AuthProvider>
             <Suspense fallback={null}><CookieBanner /></Suspense>

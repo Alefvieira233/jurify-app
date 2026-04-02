@@ -14,6 +14,25 @@ const OCR_TIMEOUT_MS = 10_000;
 const OCR_MAX_RETRIES = 1;
 const MAX_BASE64_BYTES = 5 * 1024 * 1024;
 
+/**
+ * SSRF protection: only allow HTTPS URLs from whitelisted domains.
+ * Blocks private/internal IP ranges and non-HTTPS protocols.
+ */
+function isAllowedUrl(url: string): boolean {
+  try {
+    const parsed = new URL(url);
+    if (parsed.protocol !== "https:") return false;
+    const host = parsed.hostname;
+    // Block private/internal IPs (10.x, 172.16-31.x, 192.168.x, 127.x, 169.254.x, 0.x, localhost)
+    if (/^(10\.|172\.(1[6-9]|2\d|3[01])\.|192\.168\.|127\.|169\.254\.|0\.|localhost)/i.test(host)) return false;
+    // Allow only known domains
+    const allowed = [".supabase.co", ".supabase.in", "jurify.com.br", "jurify.vercel.app"];
+    return allowed.some((d) => host.endsWith(d));
+  } catch {
+    return false;
+  }
+}
+
 interface ExtractRequest {
   file_url?: string;
   base64?: string;
@@ -209,6 +228,14 @@ Deno.serve(async (req) => {
 
     if (!file_url && !base64) {
       return new Response(JSON.stringify({ error: "file_url or base64 is required" }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // SSRF protection: validate file_url before fetching
+    if (file_url && !isAllowedUrl(file_url)) {
+      return new Response(JSON.stringify({ error: "file_url is not allowed: must be HTTPS from a whitelisted domain" }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });

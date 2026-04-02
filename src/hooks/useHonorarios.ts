@@ -1,6 +1,10 @@
 /**
  * Hook para gerenciamento de Honorários Advocatícios.
- * Padrão: useProcessos.ts
+ *
+ * @deprecated For new entity hooks, prefer {@link useEntityCRUD} which extracts the common
+ * CRUD pattern into a reusable factory. This hook predates that abstraction.
+ *
+ * @see useEntityCRUD — preferred pattern for new entity hooks
  */
 import { useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';

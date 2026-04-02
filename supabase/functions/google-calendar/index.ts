@@ -45,7 +45,9 @@ Deno.serve(async (req) => {
         return rateLimitCheck.response;
     }
 
-    const { method, data } = await req.json()
+    const body = await req.json()
+    const method = body.action || body.method
+    const data = body.data
 
     const ALLOWED_METHODS = ['listEvents', 'createEvent', 'updateEvent', 'deleteEvent', 'syncEvents']
     if (!ALLOWED_METHODS.includes(method)) {

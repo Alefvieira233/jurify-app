@@ -17,6 +17,8 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { usePageTitle } from '@/hooks/usePageTitle';
+import { useDebounce } from '@/hooks/useDebounce';
+import { SEARCH_DEBOUNCE_MS } from '@/constants/timings';
 import type { ConversationFilterState } from './conversationFilterTypes';
 import { EMPTY_CONV_FILTERS } from './conversationFilterTypes';
 import { useTeamMembers } from '@/hooks/useTeamMembers';
@@ -153,6 +155,7 @@ const WhatsAppIA = () => {
   const [newMessage, setNewMessage] = useState('');
   const [showSetup, setShowSetup] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const debouncedSearch = useDebounce(searchQuery, SEARCH_DEBOUNCE_MS);
   const [convFilter, setConvFilter] = useState<ConversationFilterState>(EMPTY_CONV_FILTERS);
   const [showMobileChat, setShowMobileChat] = useState(false);
   const [isWhatsAppConnected, setIsWhatsAppConnected] = useState(() => {
@@ -206,11 +209,9 @@ const WhatsAppIA = () => {
   } = useWhatsAppConversations();
 
   // Auto-scroll when new messages arrive
-  const prevMsgCount = useRef(0);
-  if (messages.length !== prevMsgCount.current) {
-    prevMsgCount.current = messages.length;
+  useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }
+  }, [messages.length]);
 
   const uniqueAreas = useMemo(() => {
     const areas = new Set<string>();
@@ -248,13 +249,13 @@ const WhatsAppIA = () => {
       })();
       // Area juridica filter
       const areaMatch = !convFilter.areaJuridica || conv.area_juridica === convFilter.areaJuridica;
-      // Search filter
-      const searchMatch = !searchQuery.trim() ||
-        (conv.contact_name ?? '').toLowerCase().includes(searchQuery.toLowerCase()) ||
-        conv.phone_number.includes(searchQuery);
+      // Search filter (debounced to avoid re-filtering on every keystroke)
+      const searchMatch = !debouncedSearch.trim() ||
+        (conv.contact_name ?? '').toLowerCase().includes(debouncedSearch.toLowerCase()) ||
+        conv.phone_number.includes(debouncedSearch);
       return tabMatch && statusMatch && searchMatch && respMatch && areaMatch;
     });
-  }, [conversations, convFilter, searchQuery]);
+  }, [conversations, convFilter, debouncedSearch]);
 
   const handleSendMessage = () => {
     if (!newMessage.trim() || !selectedConversation) return;

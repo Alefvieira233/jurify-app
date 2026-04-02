@@ -1,17 +1,40 @@
 /**
- * Generic CRUD hook factory.
+ * Generic CRUD hook factory for Supabase-backed entities.
  *
- * Extracts the common pattern found in useProcessos, useHonorarios,
- * usePrazosProcessuais, etc. into a reusable factory so new entity
- * hooks can be created with minimal boilerplate.
+ * **This is the preferred pattern for all new entity hooks.** It extracts the
+ * common CRUD boilerplate (query, create, update, delete, pagination, tenant
+ * isolation, toast notifications, Sentry breadcrumbs) found in legacy hooks
+ * like useProcessos, useHonorarios, useContratos, etc.
  *
- * Usage:
- *   const useWidgets = (opts?) => useEntityCRUD<Widget, WidgetInput>({
+ * Legacy hooks that predate this factory are annotated with `@see useEntityCRUD`.
+ * They were not migrated because they contain entity-specific logic (plan limits,
+ * custom normalization, joined queries) that would require careful per-hook work.
+ *
+ * @example Basic usage
+ * ```ts
+ * import { useEntityCRUD } from '@/hooks/useEntityCRUD';
+ *
+ * interface Widget { id: string; name: string; tenant_id: string; created_at: string; }
+ * interface WidgetInput { name: string; }
+ *
+ * export const useWidgets = (opts?: EntityCRUDOptions) =>
+ *   useEntityCRUD<Widget, WidgetInput>({
  *     table: 'widgets',
  *     queryKeyPrefix: 'widgets',
  *     displayName: 'Widget',
  *     listColumns: '*',
  *   }, opts);
+ * ```
+ *
+ * @example With pagination and filters
+ * ```ts
+ * const { data, nextPage, hasNextPage } = useWidgets({
+ *   enablePagination: true,
+ *   page: 1,
+ *   filters: { status: 'active' },
+ *   search: { column: 'name', term: searchTerm },
+ * });
+ * ```
  */
 import { useCallback, useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';

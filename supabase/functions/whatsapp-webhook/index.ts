@@ -211,6 +211,23 @@ function timingSafeCompare(a: string, b: string): boolean {
   return crypto.subtle.timingSafeEqual(bufA, bufB);
 }
 
+/** Verify HMAC-SHA256 signature of a payload */
+async function verifyHmacSignature(payload: string, signature: string, secret: string): Promise<boolean> {
+  const encoder = new TextEncoder();
+  const key = await crypto.subtle.importKey(
+    "raw",
+    encoder.encode(secret),
+    { name: "HMAC", hash: "SHA-256" },
+    false,
+    ["sign"],
+  );
+  const sig = await crypto.subtle.sign("HMAC", key, encoder.encode(payload));
+  const computed = Array.from(new Uint8Array(sig))
+    .map((b) => b.toString(16).padStart(2, "0"))
+    .join("");
+  return timingSafeCompare(computed, signature);
+}
+
 const INTEGRATION_NAME_KAPSO = "whatsapp_kapso";
 const INTEGRATION_NAME_META = "whatsapp_oficial";
 
@@ -478,21 +495,38 @@ Deno.serve(async (req) => {
         return rateLimitCheck.response;
       }
 
-      const payload = await req.json();
+      // Read raw body for HMAC verification, then parse JSON
+      const rawBody = await req.text();
+      const payload = JSON.parse(rawBody);
 
       // ============================================
       // 🔀 ROTEAMENTO: Kapso ou Meta?
       // ============================================
       if (isKapsoPayload(payload)) {
-        // Verify Kapso webhook signature if secret is configured
-        const webhookSecret = req.headers.get("x-webhook-secret") || req.headers.get("x-kapso-signature");
-
+        // Verify Kapso webhook signature
         if (!KAPSO_WEBHOOK_SECRET) {
           console.error("[webhook:kapso] CRITICAL: KAPSO_WEBHOOK_SECRET not configured — rejecting");
           return new Response("Service misconfigured", { status: 503, headers: corsHeaders });
         }
-        if (!webhookSecret || !timingSafeCompare(webhookSecret, KAPSO_WEBHOOK_SECRET)) {
-          console.error("[webhook:kapso] SECURITY: Invalid webhook secret — rejecting");
+
+        const hmacSignature = req.headers.get("x-kapso-signature");
+        const webhookSecret = req.headers.get("x-webhook-secret");
+
+        if (hmacSignature) {
+          // Preferred: HMAC-SHA256 verification of the raw payload
+          const valid = await verifyHmacSignature(rawBody, hmacSignature, KAPSO_WEBHOOK_SECRET);
+          if (!valid) {
+            console.error("[webhook:kapso] SECURITY: Invalid HMAC signature — rejecting");
+            return new Response("Unauthorized", { status: 401, headers: corsHeaders });
+          }
+        } else if (webhookSecret) {
+          // Fallback: timing-safe comparison of shared secret header
+          if (!timingSafeCompare(webhookSecret, KAPSO_WEBHOOK_SECRET)) {
+            console.error("[webhook:kapso] SECURITY: Invalid webhook secret — rejecting");
+            return new Response("Unauthorized", { status: 401, headers: corsHeaders });
+          }
+        } else {
+          console.error("[webhook:kapso] SECURITY: No signature or secret header — rejecting");
           return new Response("Unauthorized", { status: 401, headers: corsHeaders });
         }
 

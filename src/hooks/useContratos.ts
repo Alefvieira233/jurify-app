@@ -1,4 +1,12 @@
-/** CRUD operations for contracts (contratos) with optimistic updates and tenant filtering. */
+/**
+ * CRUD operations for contracts (contratos) with optimistic updates and tenant filtering.
+ *
+ * @deprecated For new entity hooks, prefer {@link useEntityCRUD} which extracts the common
+ * CRUD pattern into a reusable factory. This hook predates that abstraction and contains
+ * custom logic (e.g. plan limits) that prevented automatic migration.
+ *
+ * @see useEntityCRUD — preferred pattern for new entity hooks
+ */
 
 
 import { useCallback } from 'react';
