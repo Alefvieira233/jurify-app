@@ -237,3 +237,40 @@ export const useSentry = () => {
     setContext: setSentryContext,
   };
 };
+
+// ---------------------------------------------------------------------------
+// Performance instrumentation
+// ---------------------------------------------------------------------------
+
+/**
+ * Measure performance of a critical operation and report to Sentry.
+ * Logs a warning if the operation exceeds 3 seconds.
+ */
+export function measurePerformance<T>(
+  name: string,
+  operation: () => Promise<T>,
+  tags?: Record<string, string>
+): Promise<T> {
+  const start = performance.now();
+  return operation().then(
+    (result) => {
+      const duration = performance.now() - start;
+      if (duration > 3000) {
+        Sentry.captureMessage(`Slow operation: ${name} (${Math.round(duration)}ms)`, {
+          level: 'warning',
+          tags: { operation: name, ...tags },
+          extra: { duration_ms: Math.round(duration) },
+        });
+      }
+      return result;
+    },
+    (error) => {
+      const duration = performance.now() - start;
+      Sentry.captureException(error, {
+        tags: { operation: name, ...tags },
+        extra: { duration_ms: Math.round(duration) },
+      });
+      throw error;
+    }
+  );
+}

@@ -1,5 +1,5 @@
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, memo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Target, TrendingUp, Clock, Users, DollarSign,
@@ -45,6 +45,72 @@ const PRIORITY_CLS: Record<string, string> = {
 const PRIORITY_LABEL: Record<string, string> = {
   urgent: 'Urgente', high: 'Alta', medium: 'Média', low: 'Baixa',
 };
+
+/* ── Memo'd list-item components ── */
+
+interface PipelineStageCardProps {
+  stage: PipelineStage;
+  isSelected: boolean;
+  onToggle: (id: string) => void;
+}
+
+const PipelineStageCard = memo(({ stage, isSelected, onToggle }: PipelineStageCardProps) => (
+  <button
+    onClick={() => onToggle(stage.id)}
+    className={`flex-shrink-0 min-w-[130px] p-3 rounded-lg border text-left transition-all duration-150 ${
+      isSelected
+        ? 'ring-2 ring-primary/40 shadow-md scale-[1.02]'
+        : 'hover:shadow-sm hover:scale-[1.01]'
+    }`}
+    style={{ borderColor: stage.color + '30', background: stage.color + '08' }}
+  >
+    <div className="flex items-center gap-1.5 mb-2">
+      <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: stage.color }} />
+      <p className="text-[11px] font-medium text-muted-foreground truncate">{stage.name}</p>
+    </div>
+    <p className="text-xl font-bold tabular-nums leading-none" style={{ color: stage.color }}>
+      {stage.lead_count || 0}
+    </p>
+    <p className="text-[10px] text-muted-foreground mt-1 tabular-nums">
+      {fmt(stage.total_value || 0)}
+    </p>
+  </button>
+));
+
+PipelineStageCard.displayName = 'PipelineStageCard';
+
+interface FollowUpItemProps {
+  fu: { id: string; title: string; lead_name: string; scheduled_at: string; status: string; priority: string };
+}
+
+const FollowUpItem = memo(({ fu }: FollowUpItemProps) => (
+  <div
+    className={`flex items-center gap-3 p-2.5 rounded-lg transition-colors ${
+      fu.status === 'overdue' ? 'bg-rose-50/50 dark:bg-rose-950/20' : 'bg-muted/40 hover:bg-muted/70'
+    }`}
+  >
+    <span
+      className="w-2 h-2 rounded-full flex-shrink-0"
+      style={{ background: fu.status === 'overdue' ? '#e11d48' : '#d97706' }}
+    />
+    <div className="flex-1 min-w-0">
+      <p className="text-xs font-medium text-foreground truncate">{fu.title}</p>
+      <p className="text-[10px] text-muted-foreground mt-0.5">
+        {fu.lead_name} · {fmtDt(fu.scheduled_at)}
+      </p>
+    </div>
+    <div className="flex items-center gap-1 flex-shrink-0">
+      {fu.status === 'overdue' && (
+        <Badge variant="destructive" className="h-4 px-1.5 text-[10px]">Atrasado</Badge>
+      )}
+      <span className={`text-[10px] px-1.5 py-0.5 rounded border font-medium ${PRIORITY_CLS[fu.priority] ?? PRIORITY_CLS.low}`}>
+        {PRIORITY_LABEL[fu.priority] ?? fu.priority}
+      </span>
+    </div>
+  </div>
+));
+
+FollowUpItem.displayName = 'FollowUpItem';
 
 /* ─────────────────────────────────────────────── */
 
@@ -270,27 +336,12 @@ const CRMDashboard = () => {
           ) : (
             <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-thin">
               {stages.map((stage: PipelineStage) => (
-                <button
+                <PipelineStageCard
                   key={stage.id}
-                  onClick={() => setSelectedStage(selectedStage === stage.id ? null : stage.id)}
-                  className={`flex-shrink-0 min-w-[130px] p-3 rounded-lg border text-left transition-all duration-150 ${
-                    selectedStage === stage.id
-                      ? 'ring-2 ring-primary/40 shadow-md scale-[1.02]'
-                      : 'hover:shadow-sm hover:scale-[1.01]'
-                  }`}
-                  style={{ borderColor: stage.color + '30', background: stage.color + '08' }}
-                >
-                  <div className="flex items-center gap-1.5 mb-2">
-                    <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: stage.color }} />
-                    <p className="text-[11px] font-medium text-muted-foreground truncate">{stage.name}</p>
-                  </div>
-                  <p className="text-xl font-bold tabular-nums leading-none" style={{ color: stage.color }}>
-                    {stage.lead_count || 0}
-                  </p>
-                  <p className="text-[10px] text-muted-foreground mt-1 tabular-nums">
-                    {fmt(stage.total_value || 0)}
-                  </p>
-                </button>
+                  stage={stage}
+                  isSelected={selectedStage === stage.id}
+                  onToggle={(id) => setSelectedStage(selectedStage === id ? null : id)}
+                />
               ))}
             </div>
           )}
@@ -327,34 +378,7 @@ const CRMDashboard = () => {
             ) : (
               <div className="space-y-1.5">
                 {upcomingFollowUps.map(fu => (
-                  <div
-                    key={fu.id}
-                    className={`flex items-center gap-3 p-2.5 rounded-lg transition-colors ${
-                      fu.status === 'overdue' ? 'bg-rose-50/50 dark:bg-rose-950/20' : 'bg-muted/40 hover:bg-muted/70'
-                    }`}
-                  >
-                    {/* Status dot */}
-                    <span
-                      className="w-2 h-2 rounded-full flex-shrink-0"
-                      style={{ background: fu.status === 'overdue' ? '#e11d48' : '#d97706' }}
-                    />
-
-                    <div className="flex-1 min-w-0">
-                      <p className="text-xs font-medium text-foreground truncate">{fu.title}</p>
-                      <p className="text-[10px] text-muted-foreground mt-0.5">
-                        {fu.lead_name} · {fmtDt(fu.scheduled_at)}
-                      </p>
-                    </div>
-
-                    <div className="flex items-center gap-1 flex-shrink-0">
-                      {fu.status === 'overdue' && (
-                        <Badge variant="destructive" className="h-4 px-1.5 text-[10px]">Atrasado</Badge>
-                      )}
-                      <span className={`text-[10px] px-1.5 py-0.5 rounded border font-medium ${PRIORITY_CLS[fu.priority] ?? PRIORITY_CLS.low}`}>
-                        {PRIORITY_LABEL[fu.priority] ?? fu.priority}
-                      </span>
-                    </div>
-                  </div>
+                  <FollowUpItem key={fu.id} fu={fu} />
                 ))}
               </div>
             )}
