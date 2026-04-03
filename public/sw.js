@@ -1,9 +1,9 @@
+/* global self, caches */
 /**
  * Jurify Service Worker — lightweight offline-first caching.
  * Strategies: CacheFirst for static assets, NetworkFirst for API with cache fallback.
  */
 
-const CACHE_NAME = 'jurify-v1';
 const STATIC_CACHE = 'jurify-static-v1';
 const API_CACHE = 'jurify-api-v1';
 const FONT_CACHE = 'jurify-fonts-v1';
@@ -66,6 +66,7 @@ self.addEventListener('fetch', (event) => {
   }
 });
 
+// eslint-disable-next-line no-unused-vars
 async function cacheFirst(request, cacheName, maxAgeSeconds) {
   const cached = await caches.match(request);
   if (cached) return cached;
@@ -82,6 +83,7 @@ async function cacheFirst(request, cacheName, maxAgeSeconds) {
   }
 }
 
+// eslint-disable-next-line no-unused-vars
 async function networkFirst(request, cacheName, maxAgeSeconds) {
   try {
     const response = await fetch(request);

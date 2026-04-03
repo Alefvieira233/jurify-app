@@ -31,6 +31,12 @@ export class GoogleOAuthService {
   }
 
   async exchangeCode(code: string, redirectUri: string): Promise<GoogleToken> {
+    const { data: existingToken } = await this.supabase
+      .from('google_calendar_tokens')
+      .select('refresh_token')
+      .eq('user_id', this.userId)
+      .single()
+
     const response = await fetch('https://oauth2.googleapis.com/token', {
       method: 'POST',
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
@@ -60,7 +66,7 @@ export class GoogleOAuthService {
     const tokenRecord = {
       user_id: this.userId,
       access_token: tokenData.access_token,
-      refresh_token: tokenData.refresh_token,
+      refresh_token: tokenData.refresh_token || existingToken?.refresh_token,
       expires_at: expiresAt.toISOString(),
       scope: tokenData.scope,
       token_type: tokenData.token_type,
@@ -99,7 +105,7 @@ export class GoogleOAuthService {
     return token.access_token
   }
 
-  async refreshToken(refreshToken: string): Promise<GoogleToken> {
+  private async refreshToken(refreshToken: string): Promise<GoogleToken> {
     const response = await fetch('https://oauth2.googleapis.com/token', {
       method: 'POST',
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },

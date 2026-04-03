@@ -55,8 +55,7 @@ Deno.serve(async (req) => {
       'updateEvent',
       'deleteEvent',
       'syncEvents',
-      'exchange_code',
-      'refresh_token'
+      'exchange_code'
     ]
     if (!ALLOWED_METHODS.includes(method)) {
       return new Response(
@@ -73,16 +72,6 @@ Deno.serve(async (req) => {
         const token = await googleService.exchangeCode(code, redirect_uri)
         // Security: Don't return the refresh_token to the frontend.
         // It's already stored in the database.
-        const { refresh_token: _, ...safeToken } = token
-        return new Response(JSON.stringify(safeToken), {
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        })
-      }
-
-      case 'refresh_token': {
-        const { refresh_token } = data
-        const token = await googleService.refreshToken(refresh_token)
-        // Security: Don't return the refresh_token to the frontend.
         const { refresh_token: _, ...safeToken } = token
         return new Response(JSON.stringify(safeToken), {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
