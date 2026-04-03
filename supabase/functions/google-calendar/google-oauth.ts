@@ -8,6 +8,8 @@ interface GoogleToken {
   expires_at: string
   scope: string
   token_type: string
+  expires_in?: number
+  email?: string
 }
 
 interface GoogleEvent {
@@ -26,6 +28,59 @@ export class GoogleOAuthService {
   constructor(supabase: any, userId: string) {
     this.supabase = supabase
     this.userId = userId
+  }
+
+  async exchangeCode(code: string, redirectUri: string): Promise<GoogleToken> {
+    const { data: existingToken } = await this.supabase
+      .from('google_calendar_tokens')
+      .select('refresh_token')
+      .eq('user_id', this.userId)
+      .single()
+
+    const response = await fetch('https://oauth2.googleapis.com/token', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({
+        code,
+        client_id: Deno.env.get('GOOGLE_CLIENT_ID')!,
+        client_secret: Deno.env.get('GOOGLE_CLIENT_SECRET')!,
+        redirect_uri: redirectUri,
+        grant_type: 'authorization_code',
+      }),
+    })
+
+    if (!response.ok) {
+      const error = await response.json()
+      throw new Error(`Failed to exchange code: ${error.error_description || error.error}`)
+    }
+
+    const tokenData = await response.json()
+    const expiresAt = new Date(Date.now() + tokenData.expires_in * 1000)
+
+    // Fetch user info to get email
+    const userInfoRes = await fetch('https://www.googleapis.com/oauth2/v2/userinfo', {
+      headers: { Authorization: `Bearer ${tokenData.access_token}` },
+    })
+    const userInfo = userInfoRes.ok ? await userInfoRes.json() : {}
+
+    const tokenRecord = {
+      user_id: this.userId,
+      access_token: tokenData.access_token,
+      refresh_token: tokenData.refresh_token || existingToken?.refresh_token,
+      expires_at: expiresAt.toISOString(),
+      scope: tokenData.scope,
+      token_type: tokenData.token_type,
+      email: userInfo.email,
+    }
+
+    await this.supabase
+      .from('google_calendar_tokens')
+      .upsert(tokenRecord, { onConflict: 'user_id' })
+
+    return {
+      ...tokenRecord,
+      expires_in: tokenData.expires_in,
+    }
   }
 
   async getValidToken(): Promise<string> {
@@ -83,6 +138,7 @@ export class GoogleOAuthService {
       expires_at: expiresAt.toISOString(),
       scope: tokenData.scope,
       token_type: tokenData.token_type,
+      expires_in: tokenData.expires_in,
     }
   }
 

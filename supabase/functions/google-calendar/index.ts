@@ -47,9 +47,16 @@ Deno.serve(async (req) => {
 
     const body = await req.json()
     const method = body.action || body.method
-    const data = body.data
+    const data = body.data || body
 
-    const ALLOWED_METHODS = ['listEvents', 'createEvent', 'updateEvent', 'deleteEvent', 'syncEvents']
+    const ALLOWED_METHODS = [
+      'listEvents',
+      'createEvent',
+      'updateEvent',
+      'deleteEvent',
+      'syncEvents',
+      'exchange_code'
+    ]
     if (!ALLOWED_METHODS.includes(method)) {
       return new Response(
         JSON.stringify({ error: 'Invalid method' }),
@@ -60,6 +67,17 @@ Deno.serve(async (req) => {
     const googleService = new GoogleOAuthService(supabase, user.id)
 
     switch (method) {
+      case 'exchange_code': {
+        const { code, redirect_uri } = data
+        const token = await googleService.exchangeCode(code, redirect_uri)
+        // Security: Don't return the refresh_token to the frontend.
+        // It's already stored in the database.
+        const { refresh_token: _, ...safeToken } = token
+        return new Response(JSON.stringify(safeToken), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        })
+      }
+
       case 'listEvents': {
         const { calendarId = 'primary', timeMin, timeMax } = data
         const events = await googleService.listEvents(calendarId, timeMin, timeMax)
