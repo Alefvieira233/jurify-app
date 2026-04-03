@@ -187,6 +187,7 @@ async function saveMessageToDatabase(
   supabase: ReturnType<typeof createClient>,
   request: SendMessageRequest,
   sendResult: { success: boolean; messageId?: string; error?: string },
+  tenantId?: string,
 ): Promise<void> {
   try {
     // Se temos conversationId, salvamos a mensagem
@@ -207,6 +208,7 @@ async function saveMessageToDatabase(
         provider_message_id: sendResult.messageId || null,
         send_error: sendResult.error || null,
         processed_by_agent: false,
+        tenant_id: tenantId,
       });
 
       if (error) {
@@ -425,12 +427,12 @@ Deno.serve(async (req) => {
 
     if (!result.success) {
       // Save failed message to DB before throwing
-      saveMessageToDatabase(supabase, messageRequest, result).catch(console.error);
+      saveMessageToDatabase(supabase, messageRequest, result, tenantId).catch(console.error);
       throw new Error(result.error || "Failed to send WhatsApp message");
     }
 
     // 💾 Salva mensagem no banco de dados (não-bloqueante)
-    saveMessageToDatabase(supabase, messageRequest, result).catch(console.error);
+    saveMessageToDatabase(supabase, messageRequest, result, tenantId).catch(console.error);
 
     // ✅ Retorna resposta de sucesso
     const response: SendMessageResponse = {

@@ -158,17 +158,24 @@ jobs:
       - name: ⚡ Deploy Edge Functions
         run: |
           echo "🚀 Deploying edge functions..."
-          # Functions públicas (sem JWT): health-check, stripe-webhook, whatsapp-webhook, zapsign-webhook
+          # Full list — synced with supabase/functions/ on 2026-04-03
+          # Functions públicas (sem JWT): health, health-check, stripe-webhook, whatsapp-webhook, zapsign-integration
+          supabase functions deploy health --no-verify-jwt
           supabase functions deploy health-check --no-verify-jwt
           supabase functions deploy stripe-webhook --no-verify-jwt
           supabase functions deploy whatsapp-webhook --no-verify-jwt
-          supabase functions deploy zapsign-webhook --no-verify-jwt
+          supabase functions deploy zapsign-integration --no-verify-jwt
           # Functions que requerem JWT (deploy padrão — com auth)
-          for fn in assistant chat-completion send-email create-checkout-session \
-                    customer-portal kapso-manager generate-embedding \
-                    ingest-document vector-search google-calendar \
-                    create-drive-folder cleanup-agent-memory ai-agent-processor \
-                    zapsign-integration agent-orchestrator media-processor; do
+          for fn in admin-create-user agentes-ia-api agent-orchestrator \
+                    ai-agent-processor assistant chat-completion \
+                    cleanup-agent-memory create-checkout-session \
+                    create-drive-folder create-portal-session \
+                    data-retention-cleanup decrypt-data encrypt-data \
+                    extract-document-text generate-document generate-embedding \
+                    google-calendar ingest-document ingest-document-from-file \
+                    kapso-manager media-processor process-followup-queue \
+                    process-prazos-alerts send-email send-push-notification \
+                    send-whatsapp-message vector-search; do
             supabase functions deploy "$fn" 2>/dev/null || echo "⚠️ $fn: não encontrada, pulando"
           done
           echo "✅ Edge functions deployed"

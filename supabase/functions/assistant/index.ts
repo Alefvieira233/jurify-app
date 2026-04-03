@@ -507,25 +507,40 @@ async function executeTool(
       const metric = args.metric ?? "all";
       const result: Record<string, unknown> = {};
 
+      // DEB-017: Parallelize independent queries with Promise.all
+      const needLeads = metric === "leads" || metric === "conversions" || metric === "all";
+      const needContracts = metric === "contracts" || metric === "all";
+      const needRevenue = metric === "revenue" || metric === "all";
+
+      const [leadsData, contractsData, revenueData] = await Promise.all([
+        needLeads
+          ? supabase.from("leads").select("status").eq("tenant_id", tenantId).gte("created_at", start)
+          : Promise.resolve({ data: null }),
+        needContracts
+          ? supabase.from("contratos").select("id, status").eq("tenant_id", tenantId).gte("created_at", start)
+          : Promise.resolve({ data: null }),
+        needRevenue
+          ? supabase.from("contratos").select("valor").eq("tenant_id", tenantId).eq("status", "signed").gte("created_at", start)
+          : Promise.resolve({ data: null }),
+      ]);
+
       if (metric === "leads" || metric === "all") {
-        const { data } = await supabase.from("leads").select("status").eq("tenant_id", tenantId).gte("created_at", start);
+        const allLeads = leadsData.data ?? [];
         const byStatus: Record<string, number> = {};
-        for (const l of data ?? []) byStatus[l.status] = (byStatus[l.status] || 0) + 1;
-        result.leads_total = data?.length ?? 0;
+        for (const l of allLeads) byStatus[l.status] = (byStatus[l.status] || 0) + 1;
+        result.leads_total = allLeads.length;
         result.leads_by_status = byStatus;
       }
       if (metric === "contracts" || metric === "all") {
-        const { data } = await supabase.from("contratos").select("id, status").eq("tenant_id", tenantId).gte("created_at", start);
-        result.contracts_total = data?.length ?? 0;
+        result.contracts_total = contractsData.data?.length ?? 0;
       }
       if (metric === "revenue" || metric === "all") {
-        const { data } = await supabase.from("contratos").select("valor").eq("tenant_id", tenantId).eq("status", "signed").gte("created_at", start);
-        result.revenue_total = (data ?? []).reduce((s: number, c: any) => s + (c.valor ?? 0), 0);
+        result.revenue_total = (revenueData.data ?? []).reduce((s: number, c: any) => s + (c.valor ?? 0), 0);
       }
       if (metric === "conversions" || metric === "all") {
-        const { data: allLeads } = await supabase.from("leads").select("status").eq("tenant_id", tenantId).gte("created_at", start);
-        const total = allLeads?.length ?? 0;
-        const conv = allLeads?.filter((l: any) => l.status === "converted").length ?? 0;
+        const allLeads = leadsData.data ?? [];
+        const total = allLeads.length;
+        const conv = allLeads.filter((l: any) => l.status === "converted").length;
         result.conversion_rate = total > 0 ? Math.round((conv / total) * 100) : 0;
       }
       return result;

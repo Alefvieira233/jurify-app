@@ -265,7 +265,7 @@ Tom: executivo e objetivo. Ir direto ao ponto. Valorize: agilidade e objetividad
         lead_id: payload.leadId,
         message: 'Proposta enviada',
         response: messageToSend,
-        tenant_id: lead?.tenant_id || this.context?.metadata?.tenantId || null,
+        tenant_id: lead?.tenant_id || this.context?.metadata?.tenantId,
         channel: this.context?.metadata?.channel || 'whatsapp',
         tipo: 'message',
         metadata: {
