@@ -85,7 +85,7 @@ LANGUAGE sql
 IMMUTABLE
 AS $$
   SELECT encode(
-    digest(p_salt || ':' || p_key, 'sha256'),
+    extensions.digest(p_salt || ':' || p_key, 'sha256'),
     'hex'
   );
 $$;
