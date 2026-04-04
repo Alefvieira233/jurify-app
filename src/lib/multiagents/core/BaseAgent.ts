@@ -8,7 +8,7 @@
  * @security Enterprise Grade - API keys protegidas
  */
 
-import { supabase } from '@/integrations/supabase/client';
+import { supabaseUntyped as supabase } from '@/integrations/supabase/client';
 import { DEFAULT_OPENAI_MODEL } from '@/lib/ai/model';
 import { ExecutionTracker } from './ExecutionTracker';
 import { agentMemory } from './AgentMemory';

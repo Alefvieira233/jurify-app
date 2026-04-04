@@ -12,6 +12,31 @@ export type Database = {
   __InternalSupabase: {
     PostgrestVersion: "12.2.3 (519615d)"
   }
+  graphql_public: {
+    Tables: {
+      [_ in never]: never
+    }
+    Views: {
+      [_ in never]: never
+    }
+    Functions: {
+      graphql: {
+        Args: {
+          extensions?: Json
+          operationName?: string
+          query?: string
+          variables?: Json
+        }
+        Returns: Json
+      }
+    }
+    Enums: {
+      [_ in never]: never
+    }
+    CompositeTypes: {
+      [_ in never]: never
+    }
+  }
   public: {
     Tables: {
       agendamentos: {
@@ -20,6 +45,7 @@ export type Database = {
           contrato_id: string | null
           created_at: string | null
           data_hora: string
+          deleted_at: string | null
           descricao: string | null
           duracao: number | null
           google_calendar_id: string | null
@@ -48,6 +74,7 @@ export type Database = {
           contrato_id?: string | null
           created_at?: string | null
           data_hora: string
+          deleted_at?: string | null
           descricao?: string | null
           duracao?: number | null
           google_calendar_id?: string | null
@@ -76,6 +103,7 @@ export type Database = {
           contrato_id?: string | null
           created_at?: string | null
           data_hora?: string
+          deleted_at?: string | null
           descricao?: string | null
           duracao?: number | null
           google_calendar_id?: string | null
@@ -112,13 +140,6 @@ export type Database = {
             columns: ["lead_id"]
             isOneToOne: false
             referencedRelation: "leads"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "agendamentos_lead_id_fkey"
-            columns: ["lead_id"]
-            isOneToOne: false
-            referencedRelation: "v_leads_operacional"
             referencedColumns: ["id"]
           },
           {
@@ -230,13 +251,6 @@ export type Database = {
             referencedRelation: "leads"
             referencedColumns: ["id"]
           },
-          {
-            foreignKeyName: "agent_ai_logs_lead_id_fkey"
-            columns: ["lead_id"]
-            isOneToOne: false
-            referencedRelation: "v_leads_operacional"
-            referencedColumns: ["id"]
-          },
         ]
       }
       agent_executions: {
@@ -302,13 +316,6 @@ export type Database = {
             referencedRelation: "leads"
             referencedColumns: ["id"]
           },
-          {
-            foreignKeyName: "agent_executions_lead_id_fkey"
-            columns: ["lead_id"]
-            isOneToOne: false
-            referencedRelation: "v_leads_operacional"
-            referencedColumns: ["id"]
-          },
         ]
       }
       agent_memory: {
@@ -366,13 +373,6 @@ export type Database = {
             columns: ["lead_id"]
             isOneToOne: false
             referencedRelation: "leads"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "agent_memory_lead_id_fkey"
-            columns: ["lead_id"]
-            isOneToOne: false
-            referencedRelation: "v_leads_operacional"
             referencedColumns: ["id"]
           },
         ]
@@ -553,8 +553,11 @@ export type Database = {
           created_at: string | null
           criado_por: string | null
           id: string
+          key_hash: string
+          key_prefix: string
           key_value: string
           nome: string
+          tenant_id: string
           updated_at: string | null
         }
         Insert: {
@@ -562,8 +565,11 @@ export type Database = {
           created_at?: string | null
           criado_por?: string | null
           id?: string
+          key_hash: string
+          key_prefix: string
           key_value: string
           nome: string
+          tenant_id: string
           updated_at?: string | null
         }
         Update: {
@@ -571,11 +577,22 @@ export type Database = {
           created_at?: string | null
           criado_por?: string | null
           id?: string
+          key_hash?: string
+          key_prefix?: string
           key_value?: string
           nome?: string
+          tenant_id?: string
           updated_at?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "api_keys_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       api_rate_limits: {
         Row: {
@@ -652,7 +669,15 @@ export type Database = {
           tools_used?: string[] | null
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "assistant_audit_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       assistant_conversations: {
         Row: {
@@ -685,7 +710,15 @@ export type Database = {
           updated_at?: string | null
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "assistant_conversations_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       audit_log: {
         Row: {
@@ -778,13 +811,6 @@ export type Database = {
             columns: ["lead_id"]
             isOneToOne: false
             referencedRelation: "leads"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "automation_executions_lead_id_fkey"
-            columns: ["lead_id"]
-            isOneToOne: false
-            referencedRelation: "v_leads_operacional"
             referencedColumns: ["id"]
           },
           {
@@ -1327,6 +1353,7 @@ export type Database = {
       configuracoes_integracoes: {
         Row: {
           api_key: string
+          api_key_encrypted: string | null
           atualizado_em: string
           created_at: string | null
           criado_em: string
@@ -1336,11 +1363,13 @@ export type Database = {
           nome_integracao: string
           observacoes: string | null
           status: Database["public"]["Enums"]["status_integracao"]
-          tenant_id: string | null
+          tenant_id: string
           verify_token: string | null
+          verify_token_encrypted: string | null
         }
         Insert: {
           api_key: string
+          api_key_encrypted?: string | null
           atualizado_em?: string
           created_at?: string | null
           criado_em?: string
@@ -1350,11 +1379,13 @@ export type Database = {
           nome_integracao: string
           observacoes?: string | null
           status?: Database["public"]["Enums"]["status_integracao"]
-          tenant_id?: string | null
+          tenant_id: string
           verify_token?: string | null
+          verify_token_encrypted?: string | null
         }
         Update: {
           api_key?: string
+          api_key_encrypted?: string | null
           atualizado_em?: string
           created_at?: string | null
           criado_em?: string
@@ -1364,10 +1395,63 @@ export type Database = {
           nome_integracao?: string
           observacoes?: string | null
           status?: Database["public"]["Enums"]["status_integracao"]
-          tenant_id?: string | null
+          tenant_id?: string
           verify_token?: string | null
+          verify_token_encrypted?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "configuracoes_integracoes_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      consent_logs: {
+        Row: {
+          accepted: boolean
+          consent_type: string
+          created_at: string | null
+          id: string
+          ip_address: string | null
+          metadata: Json | null
+          tenant_id: string
+          user_agent: string | null
+          user_id: string
+        }
+        Insert: {
+          accepted: boolean
+          consent_type: string
+          created_at?: string | null
+          id?: string
+          ip_address?: string | null
+          metadata?: Json | null
+          tenant_id: string
+          user_agent?: string | null
+          user_id: string
+        }
+        Update: {
+          accepted?: boolean
+          consent_type?: string
+          created_at?: string | null
+          id?: string
+          ip_address?: string | null
+          metadata?: Json | null
+          tenant_id?: string
+          user_agent?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "consent_logs_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       contratos: {
         Row: {
@@ -1383,6 +1467,7 @@ export type Database = {
           data_fim: string | null
           data_geracao_link: string | null
           data_inicio: string | null
+          deleted_at: string | null
           descricao: string | null
           honorarios: number | null
           id: string
@@ -1392,7 +1477,6 @@ export type Database = {
           nome_cliente: string | null
           numero: string | null
           observacoes: string | null
-          responsavel: string | null
           responsavel_id: string | null
           status: string | null
           status_assinatura: string | null
@@ -1418,6 +1502,7 @@ export type Database = {
           data_fim?: string | null
           data_geracao_link?: string | null
           data_inicio?: string | null
+          deleted_at?: string | null
           descricao?: string | null
           honorarios?: number | null
           id?: string
@@ -1427,7 +1512,6 @@ export type Database = {
           nome_cliente?: string | null
           numero?: string | null
           observacoes?: string | null
-          responsavel?: string | null
           responsavel_id?: string | null
           status?: string | null
           status_assinatura?: string | null
@@ -1453,6 +1537,7 @@ export type Database = {
           data_fim?: string | null
           data_geracao_link?: string | null
           data_inicio?: string | null
+          deleted_at?: string | null
           descricao?: string | null
           honorarios?: number | null
           id?: string
@@ -1462,7 +1547,6 @@ export type Database = {
           nome_cliente?: string | null
           numero?: string | null
           observacoes?: string | null
-          responsavel?: string | null
           responsavel_id?: string | null
           status?: string | null
           status_assinatura?: string | null
@@ -1484,24 +1568,10 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "contratos_cliente_id_fkey"
-            columns: ["cliente_id"]
-            isOneToOne: false
-            referencedRelation: "v_leads_operacional"
-            referencedColumns: ["id"]
-          },
-          {
             foreignKeyName: "contratos_lead_id_fkey"
             columns: ["lead_id"]
             isOneToOne: false
             referencedRelation: "leads"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "contratos_lead_id_fkey"
-            columns: ["lead_id"]
-            isOneToOne: false
-            referencedRelation: "v_leads_operacional"
             referencedColumns: ["id"]
           },
           {
@@ -1532,7 +1602,7 @@ export type Database = {
           receiver_id: string | null
           role: string | null
           sender_id: string | null
-          tenant_id: string | null
+          tenant_id: string
           type: string | null
         }
         Insert: {
@@ -1546,7 +1616,7 @@ export type Database = {
           receiver_id?: string | null
           role?: string | null
           sender_id?: string | null
-          tenant_id?: string | null
+          tenant_id: string
           type?: string | null
         }
         Update: {
@@ -1560,7 +1630,7 @@ export type Database = {
           receiver_id?: string | null
           role?: string | null
           sender_id?: string | null
-          tenant_id?: string | null
+          tenant_id?: string
           type?: string | null
         }
         Relationships: [
@@ -1569,13 +1639,6 @@ export type Database = {
             columns: ["lead_id"]
             isOneToOne: false
             referencedRelation: "leads"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "conversation_logs_lead_id_fkey"
-            columns: ["lead_id"]
-            isOneToOne: false
-            referencedRelation: "v_leads_operacional"
             referencedColumns: ["id"]
           },
           {
@@ -1633,13 +1696,6 @@ export type Database = {
             columns: ["lead_id"]
             isOneToOne: false
             referencedRelation: "leads"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "crm_activities_lead_id_fkey"
-            columns: ["lead_id"]
-            isOneToOne: false
-            referencedRelation: "v_leads_operacional"
             referencedColumns: ["id"]
           },
           {
@@ -1765,13 +1821,6 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "crm_followups_lead_id_fkey"
-            columns: ["lead_id"]
-            isOneToOne: false
-            referencedRelation: "v_leads_operacional"
-            referencedColumns: ["id"]
-          },
-          {
             foreignKeyName: "crm_followups_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
@@ -1814,13 +1863,6 @@ export type Database = {
             referencedRelation: "leads"
             referencedColumns: ["id"]
           },
-          {
-            foreignKeyName: "crm_lead_custom_values_lead_id_fkey"
-            columns: ["lead_id"]
-            isOneToOne: false
-            referencedRelation: "v_leads_operacional"
-            referencedColumns: ["id"]
-          },
         ]
       }
       crm_lead_scores: {
@@ -1860,13 +1902,6 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "crm_lead_scores_lead_id_fkey"
-            columns: ["lead_id"]
-            isOneToOne: false
-            referencedRelation: "v_leads_operacional"
-            referencedColumns: ["id"]
-          },
-          {
             foreignKeyName: "crm_lead_scores_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
@@ -1894,13 +1929,6 @@ export type Database = {
             columns: ["lead_id"]
             isOneToOne: false
             referencedRelation: "leads"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "crm_lead_tags_lead_id_fkey"
-            columns: ["lead_id"]
-            isOneToOne: false
-            referencedRelation: "v_leads_operacional"
             referencedColumns: ["id"]
           },
           {
@@ -2163,7 +2191,15 @@ export type Database = {
           verification_count?: number
           verified_at?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "document_hashes_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       documentos_juridicos: {
         Row: {
@@ -2232,13 +2268,6 @@ export type Database = {
             columns: ["lead_id"]
             isOneToOne: false
             referencedRelation: "leads"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "documentos_juridicos_lead_id_fkey"
-            columns: ["lead_id"]
-            isOneToOne: false
-            referencedRelation: "v_leads_operacional"
             referencedColumns: ["id"]
           },
           {
@@ -2354,13 +2383,6 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "drive_folders_lead_id_fkey"
-            columns: ["lead_id"]
-            isOneToOne: false
-            referencedRelation: "v_leads_operacional"
-            referencedColumns: ["id"]
-          },
-          {
             foreignKeyName: "drive_folders_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
@@ -2403,7 +2425,15 @@ export type Database = {
           updated_at?: string
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "google_calendar_settings_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       google_calendar_sync_logs: {
         Row: {
@@ -2444,10 +2474,12 @@ export type Database = {
       google_calendar_tokens: {
         Row: {
           access_token: string
+          access_token_encrypted: string | null
           created_at: string | null
           expires_at: string
           id: string
           refresh_token: string
+          refresh_token_encrypted: string | null
           scope: string | null
           token_type: string | null
           updated_at: string | null
@@ -2455,10 +2487,12 @@ export type Database = {
         }
         Insert: {
           access_token: string
+          access_token_encrypted?: string | null
           created_at?: string | null
           expires_at: string
           id?: string
           refresh_token: string
+          refresh_token_encrypted?: string | null
           scope?: string | null
           token_type?: string | null
           updated_at?: string | null
@@ -2466,10 +2500,12 @@ export type Database = {
         }
         Update: {
           access_token?: string
+          access_token_encrypted?: string | null
           created_at?: string | null
           expires_at?: string
           id?: string
           refresh_token?: string
+          refresh_token_encrypted?: string | null
           scope?: string | null
           token_type?: string | null
           updated_at?: string | null
@@ -2539,7 +2575,7 @@ export type Database = {
           resolved_by: string | null
           risk_level: string | null
           status: string | null
-          tenant_id: string | null
+          tenant_id: string
           ttl_minutes: number | null
           updated_at: string | null
           urgency: string | null
@@ -2562,7 +2598,7 @@ export type Database = {
           resolved_by?: string | null
           risk_level?: string | null
           status?: string | null
-          tenant_id?: string | null
+          tenant_id: string
           ttl_minutes?: number | null
           updated_at?: string | null
           urgency?: string | null
@@ -2585,7 +2621,7 @@ export type Database = {
           resolved_by?: string | null
           risk_level?: string | null
           status?: string | null
-          tenant_id?: string | null
+          tenant_id?: string
           ttl_minutes?: number | null
           updated_at?: string | null
           urgency?: string | null
@@ -2603,13 +2639,6 @@ export type Database = {
             columns: ["lead_id"]
             isOneToOne: false
             referencedRelation: "leads"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "hitl_requests_lead_id_fkey"
-            columns: ["lead_id"]
-            isOneToOne: false
-            referencedRelation: "v_leads_operacional"
             referencedColumns: ["id"]
           },
           {
@@ -2632,6 +2661,7 @@ export type Database = {
         Row: {
           created_at: string
           data_vencimento: string | null
+          deleted_at: string | null
           horas_estimadas: number | null
           id: string
           lead_id: string | null
@@ -2651,6 +2681,7 @@ export type Database = {
         Insert: {
           created_at?: string
           data_vencimento?: string | null
+          deleted_at?: string | null
           horas_estimadas?: number | null
           id?: string
           lead_id?: string | null
@@ -2670,6 +2701,7 @@ export type Database = {
         Update: {
           created_at?: string
           data_vencimento?: string | null
+          deleted_at?: string | null
           horas_estimadas?: number | null
           id?: string
           lead_id?: string | null
@@ -2692,13 +2724,6 @@ export type Database = {
             columns: ["lead_id"]
             isOneToOne: false
             referencedRelation: "leads"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "honorarios_lead_id_fkey"
-            columns: ["lead_id"]
-            isOneToOne: false
-            referencedRelation: "v_leads_operacional"
             referencedColumns: ["id"]
           },
           {
@@ -2731,7 +2756,7 @@ export type Database = {
           source: string | null
           source_url: string | null
           tags: string[] | null
-          tenant_id: string | null
+          tenant_id: string
           title: string | null
           updated_at: string | null
         }
@@ -2748,7 +2773,7 @@ export type Database = {
           source?: string | null
           source_url?: string | null
           tags?: string[] | null
-          tenant_id?: string | null
+          tenant_id: string
           title?: string | null
           updated_at?: string | null
         }
@@ -2765,7 +2790,7 @@ export type Database = {
           source?: string | null
           source_url?: string | null
           tags?: string[] | null
-          tenant_id?: string | null
+          tenant_id?: string
           title?: string | null
           updated_at?: string | null
         }
@@ -2838,13 +2863,6 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "lead_historico_lead_id_fkey"
-            columns: ["lead_id"]
-            isOneToOne: false
-            referencedRelation: "v_leads_operacional"
-            referencedColumns: ["id"]
-          },
-          {
             foreignKeyName: "lead_historico_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
@@ -2873,7 +2891,7 @@ export type Database = {
           outcome: string | null
           response: string | null
           sentiment: string | null
-          tenant_id: string | null
+          tenant_id: string
           tipo: string
           titulo: string | null
         }
@@ -2889,7 +2907,7 @@ export type Database = {
           outcome?: string | null
           response?: string | null
           sentiment?: string | null
-          tenant_id?: string | null
+          tenant_id: string
           tipo: string
           titulo?: string | null
         }
@@ -2905,7 +2923,7 @@ export type Database = {
           outcome?: string | null
           response?: string | null
           sentiment?: string | null
-          tenant_id?: string | null
+          tenant_id?: string
           tipo?: string
           titulo?: string | null
         }
@@ -2922,13 +2940,6 @@ export type Database = {
             columns: ["lead_id"]
             isOneToOne: false
             referencedRelation: "leads"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "lead_interactions_lead_id_fkey"
-            columns: ["lead_id"]
-            isOneToOne: false
-            referencedRelation: "v_leads_operacional"
             referencedColumns: ["id"]
           },
           {
@@ -2990,13 +3001,6 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "lead_notas_lead_id_fkey"
-            columns: ["lead_id"]
-            isOneToOne: false
-            referencedRelation: "v_leads_operacional"
-            referencedColumns: ["id"]
-          },
-          {
             foreignKeyName: "lead_notas_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
@@ -3043,13 +3047,6 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "lead_tags_lead_id_fkey"
-            columns: ["lead_id"]
-            isOneToOne: false
-            referencedRelation: "v_leads_operacional"
-            referencedColumns: ["id"]
-          },
-          {
             foreignKeyName: "lead_tags_tag_id_fkey"
             columns: ["tag_id"]
             isOneToOne: false
@@ -3071,6 +3068,7 @@ export type Database = {
           created_at: string | null
           custom_fields: Json | null
           data_reativacao_prevista: string | null
+          deleted_at: string | null
           departamento_id: string | null
           descricao: string | null
           email: string | null
@@ -3094,7 +3092,6 @@ export type Database = {
           proxima_acao_data: string | null
           proximo_responsavel_id: string | null
           responsavel_id: string | null
-          score: number | null
           status: string | null
           tags: string[] | null
           telefone: string | null
@@ -3119,6 +3116,7 @@ export type Database = {
           created_at?: string | null
           custom_fields?: Json | null
           data_reativacao_prevista?: string | null
+          deleted_at?: string | null
           departamento_id?: string | null
           descricao?: string | null
           email?: string | null
@@ -3142,7 +3140,6 @@ export type Database = {
           proxima_acao_data?: string | null
           proximo_responsavel_id?: string | null
           responsavel_id?: string | null
-          score?: number | null
           status?: string | null
           tags?: string[] | null
           telefone?: string | null
@@ -3167,6 +3164,7 @@ export type Database = {
           created_at?: string | null
           custom_fields?: Json | null
           data_reativacao_prevista?: string | null
+          deleted_at?: string | null
           departamento_id?: string | null
           descricao?: string | null
           email?: string | null
@@ -3190,7 +3188,6 @@ export type Database = {
           proxima_acao_data?: string | null
           proximo_responsavel_id?: string | null
           responsavel_id?: string | null
-          score?: number | null
           status?: string | null
           tags?: string[] | null
           telefone?: string | null
@@ -3366,7 +3363,7 @@ export type Database = {
           resposta_ia: string | null
           status: string
           tempo_execucao: number | null
-          tenant_id: string | null
+          tenant_id: string
         }
         Insert: {
           agente_id?: string | null
@@ -3382,7 +3379,7 @@ export type Database = {
           resposta_ia?: string | null
           status?: string
           tempo_execucao?: number | null
-          tenant_id?: string | null
+          tenant_id: string
         }
         Update: {
           agente_id?: string | null
@@ -3398,9 +3395,24 @@ export type Database = {
           resposta_ia?: string | null
           status?: string
           tempo_execucao?: number | null
-          tenant_id?: string | null
+          tenant_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "logs_execucao_agentes_agente_id_fkey"
+            columns: ["agente_id"]
+            isOneToOne: false
+            referencedRelation: "agentes_ia"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "logs_execucao_agentes_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       notificacoes: {
         Row: {
@@ -3442,7 +3454,22 @@ export type Database = {
           titulo?: string
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "notificacoes_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "notificacoes_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       notification_templates: {
         Row: {
@@ -3481,7 +3508,15 @@ export type Database = {
           title?: string
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "notification_templates_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       pagamentos: {
         Row: {
@@ -3498,7 +3533,7 @@ export type Database = {
           status: string | null
           status_detail: string | null
           subscription_id: string | null
-          tenant_id: string | null
+          tenant_id: string
           title: string | null
           transaction_amount: number | null
           updated_at: string | null
@@ -3518,7 +3553,7 @@ export type Database = {
           status?: string | null
           status_detail?: string | null
           subscription_id?: string | null
-          tenant_id?: string | null
+          tenant_id: string
           title?: string | null
           transaction_amount?: number | null
           updated_at?: string | null
@@ -3538,7 +3573,7 @@ export type Database = {
           status?: string | null
           status_detail?: string | null
           subscription_id?: string | null
-          tenant_id?: string | null
+          tenant_id?: string
           title?: string | null
           transaction_amount?: number | null
           updated_at?: string | null
@@ -3619,13 +3654,6 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "prazos_processuais_lead_id_fkey"
-            columns: ["lead_id"]
-            isOneToOne: false
-            referencedRelation: "v_leads_operacional"
-            referencedColumns: ["id"]
-          },
-          {
             foreignKeyName: "prazos_processuais_processo_id_fkey"
             columns: ["processo_id"]
             isOneToOne: false
@@ -3655,6 +3683,7 @@ export type Database = {
           created_at: string
           data_distribuicao: string | null
           data_encerramento: string | null
+          deleted_at: string | null
           fase_processual: string
           id: string
           lead_id: string | null
@@ -3681,6 +3710,7 @@ export type Database = {
           created_at?: string
           data_distribuicao?: string | null
           data_encerramento?: string | null
+          deleted_at?: string | null
           fase_processual?: string
           id?: string
           lead_id?: string | null
@@ -3707,6 +3737,7 @@ export type Database = {
           created_at?: string
           data_distribuicao?: string | null
           data_encerramento?: string | null
+          deleted_at?: string | null
           fase_processual?: string
           id?: string
           lead_id?: string | null
@@ -3733,13 +3764,6 @@ export type Database = {
             columns: ["lead_id"]
             isOneToOne: false
             referencedRelation: "leads"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "processos_lead_id_fkey"
-            columns: ["lead_id"]
-            isOneToOne: false
-            referencedRelation: "v_leads_operacional"
             referencedColumns: ["id"]
           },
           {
@@ -3974,13 +3998,6 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "recurring_events_lead_id_fkey"
-            columns: ["lead_id"]
-            isOneToOne: false
-            referencedRelation: "v_leads_operacional"
-            referencedColumns: ["id"]
-          },
-          {
             foreignKeyName: "recurring_events_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
@@ -4058,13 +4075,6 @@ export type Database = {
             columns: ["lead_id"]
             isOneToOne: false
             referencedRelation: "leads"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "reminders_lead_id_fkey"
-            columns: ["lead_id"]
-            isOneToOne: false
-            referencedRelation: "v_leads_operacional"
             referencedColumns: ["id"]
           },
           {
@@ -4372,7 +4382,15 @@ export type Database = {
           updated_by?: string | null
           value?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "system_settings_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       tags: {
         Row: {
@@ -4477,13 +4495,6 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "tarefas_lead_id_fkey"
-            columns: ["lead_id"]
-            isOneToOne: false
-            referencedRelation: "v_leads_operacional"
-            referencedColumns: ["id"]
-          },
-          {
             foreignKeyName: "tarefas_responsavel_id_fkey"
             columns: ["responsavel_id"]
             isOneToOne: false
@@ -4504,6 +4515,7 @@ export type Database = {
           ativo: boolean | null
           configuracoes: Json | null
           created_at: string | null
+          data_retention_days: number | null
           email: string | null
           id: string
           logo_url: string | null
@@ -4522,6 +4534,7 @@ export type Database = {
           ativo?: boolean | null
           configuracoes?: Json | null
           created_at?: string | null
+          data_retention_days?: number | null
           email?: string | null
           id?: string
           logo_url?: string | null
@@ -4540,6 +4553,7 @@ export type Database = {
           ativo?: boolean | null
           configuracoes?: Json | null
           created_at?: string | null
+          data_retention_days?: number | null
           email?: string | null
           id?: string
           logo_url?: string | null
@@ -4635,7 +4649,15 @@ export type Database = {
           tenant_id?: string
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "user_permissions_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       user_roles: {
         Row: {
@@ -4643,6 +4665,7 @@ export type Database = {
           created_at: string
           id: string
           role: string
+          tenant_id: string
           updated_at: string
           user_id: string
         }
@@ -4651,6 +4674,7 @@ export type Database = {
           created_at?: string
           id?: string
           role: string
+          tenant_id: string
           updated_at?: string
           user_id: string
         }
@@ -4659,10 +4683,19 @@ export type Database = {
           created_at?: string
           id?: string
           role?: string
+          tenant_id?: string
           updated_at?: string
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "user_roles_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       webhook_events: {
         Row: {
@@ -4791,13 +4824,6 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "whatsapp_conversations_lead_id_fkey"
-            columns: ["lead_id"]
-            isOneToOne: false
-            referencedRelation: "v_leads_operacional"
-            referencedColumns: ["id"]
-          },
-          {
             foreignKeyName: "whatsapp_conversations_responsavel_id_fkey"
             columns: ["responsavel_id"]
             isOneToOne: false
@@ -4824,7 +4850,6 @@ export type Database = {
           lead_id: string | null
           media_url: string | null
           message_id: string | null
-          message_text: string | null
           message_type: string | null
           metadata: Json | null
           processed_by_agent: boolean | null
@@ -4835,7 +4860,7 @@ export type Database = {
           sender: string | null
           session_id: string | null
           status: string | null
-          tenant_id: string | null
+          tenant_id: string
           timestamp: string | null
           to_number: string | null
         }
@@ -4849,7 +4874,6 @@ export type Database = {
           lead_id?: string | null
           media_url?: string | null
           message_id?: string | null
-          message_text?: string | null
           message_type?: string | null
           metadata?: Json | null
           processed_by_agent?: boolean | null
@@ -4860,7 +4884,7 @@ export type Database = {
           sender?: string | null
           session_id?: string | null
           status?: string | null
-          tenant_id?: string | null
+          tenant_id: string
           timestamp?: string | null
           to_number?: string | null
         }
@@ -4874,7 +4898,6 @@ export type Database = {
           lead_id?: string | null
           media_url?: string | null
           message_id?: string | null
-          message_text?: string | null
           message_type?: string | null
           metadata?: Json | null
           processed_by_agent?: boolean | null
@@ -4885,7 +4908,7 @@ export type Database = {
           sender?: string | null
           session_id?: string | null
           status?: string | null
-          tenant_id?: string | null
+          tenant_id?: string
           timestamp?: string | null
           to_number?: string | null
         }
@@ -4902,13 +4925,6 @@ export type Database = {
             columns: ["lead_id"]
             isOneToOne: false
             referencedRelation: "leads"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "whatsapp_messages_lead_id_fkey"
-            columns: ["lead_id"]
-            isOneToOne: false
-            referencedRelation: "v_leads_operacional"
             referencedColumns: ["id"]
           },
           {
@@ -4933,7 +4949,7 @@ export type Database = {
           phone_number: string | null
           qr_code: string | null
           session_id: string
-          tenant_id: string | null
+          tenant_id: string
           updated_at: string | null
         }
         Insert: {
@@ -4948,7 +4964,7 @@ export type Database = {
           phone_number?: string | null
           qr_code?: string | null
           session_id: string
-          tenant_id?: string | null
+          tenant_id: string
           updated_at?: string | null
         }
         Update: {
@@ -4963,7 +4979,7 @@ export type Database = {
           phone_number?: string | null
           qr_code?: string | null
           session_id?: string
-          tenant_id?: string | null
+          tenant_id?: string
           updated_at?: string | null
         }
         Relationships: [
@@ -5098,13 +5114,6 @@ export type Database = {
             columns: ["lead_id"]
             isOneToOne: false
             referencedRelation: "leads"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "agent_executions_lead_id_fkey"
-            columns: ["lead_id"]
-            isOneToOne: false
-            referencedRelation: "v_leads_operacional"
             referencedColumns: ["id"]
           },
         ]
@@ -5242,123 +5251,6 @@ export type Database = {
           },
         ]
       }
-      v_leads_operacional: {
-        Row: {
-          area_juridica: string | null
-          arquivado_em: string | null
-          arquivado_por: string | null
-          assigned_at: string | null
-          ativo: boolean | null
-          company_name: string | null
-          conexao_id: string | null
-          conexao_nome: string | null
-          conexao_telefone: string | null
-          cpf_cnpj: string | null
-          created_at: string | null
-          custom_fields: Json | null
-          data_reativacao_prevista: string | null
-          departamento_cor: string | null
-          departamento_id: string | null
-          departamento_nome: string | null
-          descricao: string | null
-          email: string | null
-          expected_value: number | null
-          followup_count: number | null
-          id: string | null
-          inactive_since: string | null
-          last_activity_at: string | null
-          lead_score: number | null
-          lost_at: string | null
-          lost_reason: string | null
-          metadata: Json | null
-          motivo_arquivamento: string | null
-          next_followup_at: string | null
-          nome: string | null
-          origem: string | null
-          pipeline_stage_color: string | null
-          pipeline_stage_id: string | null
-          pipeline_stage_name: string | null
-          prioridade: string | null
-          probability: number | null
-          proxima_acao: string | null
-          proxima_acao_data: string | null
-          proximo_responsavel_id: string | null
-          responsavel_avatar: string | null
-          responsavel_email: string | null
-          responsavel_id: string | null
-          responsavel_nome: string | null
-          score: number | null
-          status: string | null
-          tags: string[] | null
-          telefone: string | null
-          temperature: string | null
-          tenant_id: string | null
-          ultima_interacao: string | null
-          ultimo_contato: string | null
-          updated_at: string | null
-          valor_causa: number | null
-          valor_estimado: number | null
-          won_at: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "fk_leads_conexao"
-            columns: ["conexao_id"]
-            isOneToOne: false
-            referencedRelation: "conexoes_whatsapp"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "fk_leads_departamento"
-            columns: ["departamento_id"]
-            isOneToOne: false
-            referencedRelation: "departamentos"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "leads_arquivado_por_fkey"
-            columns: ["arquivado_por"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "leads_departamento_id_fkey"
-            columns: ["departamento_id"]
-            isOneToOne: false
-            referencedRelation: "departamentos"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "leads_pipeline_stage_id_fkey"
-            columns: ["pipeline_stage_id"]
-            isOneToOne: false
-            referencedRelation: "crm_pipeline_stages"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "leads_proximo_responsavel_id_fkey"
-            columns: ["proximo_responsavel_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "leads_responsavel_id_fkey"
-            columns: ["responsavel_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "leads_tenant_id_fkey"
-            columns: ["tenant_id"]
-            isOneToOne: false
-            referencedRelation: "tenants"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
     }
     Functions: {
       apply_rls_defaults: {
@@ -5425,6 +5317,7 @@ export type Database = {
         }[]
       }
       cleanup_old_webhook_events: { Args: never; Returns: number }
+      cleanup_retention_logs: { Args: never; Returns: Json }
       complete_job: {
         Args: { p_job_id: string; p_result?: Json }
         Returns: undefined
@@ -5515,6 +5408,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      hash_api_key: { Args: { p_key: string; p_salt: string }; Returns: string }
       increment_unread_count: {
         Args: { conversation_id: string }
         Returns: undefined
@@ -5558,6 +5452,7 @@ export type Database = {
           source_type: string
         }[]
       }
+      redact_pii: { Args: { input_text: string }; Returns: string }
       refresh_dashboard_views: { Args: never; Returns: undefined }
       registrar_log_atividade: {
         Args: {
@@ -5598,6 +5493,10 @@ export type Database = {
         Returns: boolean
       }
       validar_api_key: { Args: { _key_value: string }; Returns: boolean }
+      validate_api_key_v2: {
+        Args: { p_key: string; p_tenant_id: string }
+        Returns: boolean
+      }
       verify_document_hash: {
         Args: { p_content_hash: string; p_tenant_id: string }
         Returns: {
@@ -5761,6 +5660,9 @@ export type CompositeTypes<
     : never
 
 export const Constants = {
+  graphql_public: {
+    Enums: {},
+  },
   public: {
     Enums: {
       app_module: [
