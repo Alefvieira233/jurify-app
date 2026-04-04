@@ -26,7 +26,7 @@ function isAllowedUrl(url: string): boolean {
     // Block private/internal IPs (10.x, 172.16-31.x, 192.168.x, 127.x, 169.254.x, 0.x, localhost)
     if (/^(10\.|172\.(1[6-9]|2\d|3[01])\.|192\.168\.|127\.|169\.254\.|0\.|localhost)/i.test(host)) return false;
     // Allow only known domains
-    const allowed = [".supabase.co", ".supabase.in", "jurify.com.br", "jurify.vercel.app"];
+    const allowed = [".supabase.co", ".supabase.in", "jurify.com.br", "jurify.vercel.app", "jurify-app.vercel.app"];
     return allowed.some((d) => host.endsWith(d));
   } catch {
     return false;
