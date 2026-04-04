@@ -26,17 +26,9 @@ import ProcessoDetalhes from './components/ProcessoDetalhes';
 import { EncerrarProcessoDialog } from './components/EncerrarProcessoDialog';
 import type { ProcessoFormData } from '@/schemas/processoSchema';
 import { PROCESSO_STATUS_LABELS } from '@/schemas/processoSchema';
+import { getStatusClasses } from '@/constants/statusConfig';
 
 const log = createLogger('ProcessosManager');
-
-const STATUS_COLORS: Record<string, string> = {
-  ativo: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-300',
-  suspenso: 'bg-amber-500/10 text-amber-600 dark:text-amber-300',
-  encerrado_vitoria: 'bg-blue-500/10 text-blue-600 dark:text-blue-300',
-  encerrado_derrota: 'bg-red-500/10 text-red-600 dark:text-red-300',
-  encerrado_acordo: 'bg-purple-500/10 text-purple-600 dark:text-purple-300',
-  arquivado: 'bg-slate-500/10 text-slate-600 dark:text-slate-300',
-};
 
 const TIPO_LABELS: Record<string, string> = {
   civel: 'Cível',
@@ -346,7 +338,7 @@ const ProcessosManager = () => {
                     <h3 className="font-semibold text-base">
                       {processo.numero_processo || 'Sem número'}
                     </h3>
-                    <Badge className={STATUS_COLORS[processo.status] ?? 'bg-muted text-muted-foreground'}>
+                    <Badge className={getStatusClasses('processos', processo.status)}>
                       {PROCESSO_STATUS_LABELS[processo.status] ?? processo.status}
                     </Badge>
                     <Badge variant="outline" className="text-xs">

@@ -9,38 +9,13 @@ import {
 } from '@/components/ui/dialog';
 import { useTicketsSuporte, type TicketSuporte } from '@/hooks/useTicketsSuporte';
 import { fmtDateTime } from '@/utils/formatting';
+import { getStatusConfig } from '@/constants/statusConfig';
 
 interface TicketDetailDialogProps {
   ticket: TicketSuporte | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }
-
-const TIPO_LABELS: Record<string, string> = {
-  duvida: 'Dúvida',
-  bug: 'Bug',
-  sugestao: 'Sugestão',
-  outro: 'Outro',
-};
-
-const TIPO_COLORS: Record<string, string> = {
-  duvida: 'bg-blue-100 text-blue-700',
-  bug: 'bg-red-100 text-red-700',
-  sugestao: 'bg-purple-100 text-purple-700',
-  outro: 'bg-gray-100 text-gray-600',
-};
-
-const STATUS_COLORS: Record<string, string> = {
-  aberto: 'bg-amber-100 text-amber-700',
-  em_andamento: 'bg-blue-100 text-blue-700',
-  fechado: 'bg-emerald-100 text-emerald-700',
-};
-
-const STATUS_LABELS: Record<string, string> = {
-  aberto: 'Aberto',
-  em_andamento: 'Em Andamento',
-  fechado: 'Fechado',
-};
 
 const STATUS_OPTIONS: Array<{ value: TicketSuporte['status']; label: string }> = [
   { value: 'aberto', label: 'Aberto' },
@@ -72,11 +47,11 @@ export default function TicketDetailDialog({ ticket, open, onOpenChange }: Ticke
         <div className="space-y-4">
           {/* Meta */}
           <div className="flex items-center gap-2 flex-wrap">
-            <Badge variant="secondary" className={`text-[11px] ${TIPO_COLORS[ticket.tipo] ?? ''}`}>
-              {TIPO_LABELS[ticket.tipo] ?? ticket.tipo}
+            <Badge variant="secondary" className={`text-[11px] ${getStatusConfig('ticket_tipos', ticket.tipo).bgClass} ${getStatusConfig('ticket_tipos', ticket.tipo).textClass}`}>
+              {getStatusConfig('ticket_tipos', ticket.tipo).label || ticket.tipo}
             </Badge>
-            <Badge variant="secondary" className={`text-[11px] ${STATUS_COLORS[ticket.status] ?? ''}`}>
-              {STATUS_LABELS[ticket.status] ?? ticket.status}
+            <Badge variant="secondary" className={`text-[11px] ${getStatusConfig('tickets', ticket.status).bgClass} ${getStatusConfig('tickets', ticket.status).textClass}`}>
+              {getStatusConfig('tickets', ticket.status).label || ticket.status}
             </Badge>
             <span className="text-xs text-muted-foreground ml-auto">
               {fmtDateTime(ticket.created_at)}

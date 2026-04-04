@@ -9,18 +9,10 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Search, ChevronLeft, ChevronRight } from 'lucide-react';
-import { getInitials, getAvatarHex, fmtPhone, formatarEtapaPipeline } from '@/utils/formatting';
+import { getInitials, getAvatarHex, fmtPhone } from '@/utils/formatting';
+import { getStatusConfig } from '@/constants/statusConfig';
+import { ScreenReaderAnnounce } from '@/components/ui/ScreenReaderAnnounce';
 import LeadDrawer from '@/features/leads/LeadDrawer';
-
-const STATUS_COLORS: Record<string, string> = {
-  novo: 'bg-blue-100 text-blue-700',
-  em_contato: 'bg-cyan-100 text-cyan-700',
-  qualificado: 'bg-amber-100 text-amber-700',
-  proposta: 'bg-indigo-100 text-indigo-700',
-  negociacao: 'bg-purple-100 text-purple-700',
-  ganho: 'bg-emerald-100 text-emerald-700',
-  perdido: 'bg-rose-100 text-rose-700',
-};
 
 const PAGE_SIZE = 15;
 
@@ -100,6 +92,8 @@ export default function ContatosTable() {
         </div>
       </div>
 
+      <ScreenReaderAnnounce message={`${filtered.length} contato${filtered.length !== 1 ? 's' : ''} encontrado${filtered.length !== 1 ? 's' : ''}`} />
+
       {/* Search */}
       <div className="relative max-w-sm">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -160,9 +154,14 @@ export default function ContatosTable() {
                     {lead.responsavel_id ? (memberMap.get(lead.responsavel_id) ?? '\u2014') : '\u2014'}
                   </TableCell>
                   <TableCell>
-                    <Badge variant="secondary" className={`text-[11px] ${STATUS_COLORS[lead.status ?? 'novo'] ?? ''}`}>
-                      {formatarEtapaPipeline(lead.status ?? 'novo')}
-                    </Badge>
+                    {(() => {
+                      const sc = getStatusConfig('leads', lead.status ?? 'novo');
+                      return (
+                        <Badge variant="secondary" className={`text-[11px] ${sc.bgClass} ${sc.textClass}`}>
+                          {sc.label}
+                        </Badge>
+                      );
+                    })()}
                   </TableCell>
                   <TableCell className="text-sm text-muted-foreground">
                     {lead.departamento_id ? (deptoMap.get(lead.departamento_id) ?? '\u2014') : '\u2014'}

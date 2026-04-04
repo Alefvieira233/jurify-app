@@ -12,6 +12,7 @@ import { useRealtimeSync } from "@/hooks/useRealtimeSync";
 import { useNetworkStatus } from "@/hooks/useNetworkStatus";
 import { usePushNotifications } from '@/hooks/usePushNotifications';
 import { useLocalPrazosNotifications } from '@/hooks/useLocalPrazosNotifications';
+import { useFocusOnRouteChange } from '@/hooks/useFocusOnRouteChange';
 import { WifiOff, Wifi } from "lucide-react";
 import { useCapacitor } from '@/hooks/useCapacitor';
 import { App as CapacitorApp } from '@capacitor/app';
@@ -33,6 +34,7 @@ const Layout = () => {
     useRealtimeSync();
     usePushNotifications();
     useLocalPrazosNotifications();
+    useFocusOnRouteChange();
     const { isOnline, wasOffline } = useNetworkStatus();
     const { isNative, isAndroid } = useCapacitor();
 
@@ -101,6 +103,14 @@ const Layout = () => {
 
     return (
         <div className="min-h-screen bg-background flex flex-col">
+            {/* Skip-to-content link (WCAG 2.4.1) */}
+            <a
+              href="#main-content"
+              className="sr-only focus:not-sr-only focus:absolute focus:z-[100] focus:top-2 focus:left-2 focus:px-4 focus:py-2 focus:bg-background focus:text-foreground focus:border focus:rounded-md focus:shadow-lg"
+            >
+              Pular para conteúdo
+            </a>
+
             {/* Network status banner */}
             {!isOnline && (
                 <div className="fixed top-0 inset-x-0 z-[100] bg-destructive text-destructive-foreground text-center text-sm py-2 px-4 flex items-center justify-center gap-2 shadow-lg">
@@ -145,7 +155,11 @@ const Layout = () => {
                 </div>
 
                 {/* Main content area */}
-                <main className={`flex-1 min-w-0 overflow-y-auto bg-background ${isNative ? 'mobile-bottom-safe' : ''}`}>
+                <main
+                  id="main-content"
+                  tabIndex={-1}
+                  className={`flex-1 min-w-0 overflow-y-auto bg-background outline-none ${isNative ? 'mobile-bottom-safe' : ''}`}
+                >
                     <Breadcrumbs />
                     <div className="mx-auto max-w-[1920px] w-full min-h-full">
                         <Outlet />

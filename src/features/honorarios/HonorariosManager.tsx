@@ -23,16 +23,9 @@ import EmptyState from '@/components/EmptyState';
 import NovoHonorarioForm from './components/NovoHonorarioForm';
 import type { HonorarioFormData } from '@/schemas/honorarioSchema';
 import { HONORARIO_STATUS_LABELS } from '@/schemas/honorarioSchema';
+import { getStatusClasses } from '@/constants/statusConfig';
 
 const log = createLogger('HonorariosManager');
-
-const STATUS_COLORS: Record<string, string> = {
-  vigente: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-300',
-  pago: 'bg-blue-500/10 text-blue-600 dark:text-blue-300',
-  inadimplente: 'bg-red-500/10 text-red-600 dark:text-red-300',
-  cancelado: 'bg-slate-500/10 text-slate-500',
-  disputado: 'bg-amber-500/10 text-amber-600 dark:text-amber-300',
-};
 
 const TIPO_LABELS: Record<string, string> = {
   fixo: 'Fixo',
@@ -264,7 +257,7 @@ const HonorariosManager = () => {
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 flex-wrap">
                     <Badge variant="outline">{TIPO_LABELS[h.tipo] ?? h.tipo}</Badge>
-                    <Badge className={STATUS_COLORS[h.status] ?? ''}>{HONORARIO_STATUS_LABELS[h.status] ?? h.status}</Badge>
+                    <Badge className={getStatusClasses('honorarios', h.status)}>{HONORARIO_STATUS_LABELS[h.status] ?? h.status}</Badge>
                     {h.overdue && <Badge variant="destructive" className="text-xs">Vencido</Badge>}
                   </div>
                   <div className="flex gap-4 mt-2 text-sm">

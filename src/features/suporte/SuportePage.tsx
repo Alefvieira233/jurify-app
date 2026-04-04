@@ -17,33 +17,8 @@ import {
 } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { getStatusConfig } from '@/constants/statusConfig';
 import TicketDetailDialog from './TicketDetailDialog';
-
-const TIPO_LABELS: Record<string, string> = {
-  duvida: 'Dúvida',
-  bug: 'Bug',
-  sugestao: 'Sugestão',
-  outro: 'Outro',
-};
-
-const TIPO_COLORS: Record<string, string> = {
-  duvida: 'bg-blue-100 text-blue-700',
-  bug: 'bg-red-100 text-red-700',
-  sugestao: 'bg-purple-100 text-purple-700',
-  outro: 'bg-gray-100 text-gray-600',
-};
-
-const STATUS_COLORS: Record<string, string> = {
-  aberto: 'bg-amber-100 text-amber-700',
-  em_andamento: 'bg-blue-100 text-blue-700',
-  fechado: 'bg-emerald-100 text-emerald-700',
-};
-
-const STATUS_LABELS: Record<string, string> = {
-  aberto: 'Aberto',
-  em_andamento: 'Em Andamento',
-  fechado: 'Fechado',
-};
 
 export default function SuportePage() {
   usePageTitle('Suporte');
@@ -158,14 +133,24 @@ export default function SuportePage() {
                     {truncate(ticket.conteudo, 100)}
                   </TableCell>
                   <TableCell>
-                    <Badge variant="secondary" className={`text-[11px] ${TIPO_COLORS[ticket.tipo] ?? ''}`}>
-                      {TIPO_LABELS[ticket.tipo] ?? ticket.tipo}
-                    </Badge>
+                    {(() => {
+                      const tc = getStatusConfig('ticket_tipos', ticket.tipo);
+                      return (
+                        <Badge variant="secondary" className={`text-[11px] ${tc.bgClass} ${tc.textClass}`}>
+                          {tc.label}
+                        </Badge>
+                      );
+                    })()}
                   </TableCell>
                   <TableCell>
-                    <Badge variant="secondary" className={`text-[11px] ${STATUS_COLORS[ticket.status] ?? ''}`}>
-                      {STATUS_LABELS[ticket.status] ?? ticket.status}
-                    </Badge>
+                    {(() => {
+                      const sc = getStatusConfig('tickets', ticket.status);
+                      return (
+                        <Badge variant="secondary" className={`text-[11px] ${sc.bgClass} ${sc.textClass}`}>
+                          {sc.label}
+                        </Badge>
+                      );
+                    })()}
                   </TableCell>
                   <TableCell className="text-sm text-muted-foreground">
                     {ticket.avaliacao !== null ? `${'★'.repeat(ticket.avaliacao)}` : '—'}
