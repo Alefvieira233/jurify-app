@@ -147,10 +147,16 @@ async function upsertConfig(
 }
 
 /** Generate a Kapso setup link for Meta Embedded Signup. */
-async function createSetupLink(customerId: string): Promise<{ url: string }> {
+async function createSetupLink(customerId: string, frontendUrl?: string): Promise<{ url: string }> {
+  const baseUrl = frontendUrl || Deno.env.get('FRONTEND_URL') || 'https://jurify-app.vercel.app';
   const res = await kapsoFetch(`/platform/v1/customers/${customerId}/setup_links`, {
     method: 'POST',
-    body: JSON.stringify({ setup_link: {} }),
+    body: JSON.stringify({
+      setup_link: {
+        success_redirect_url: `${baseUrl}/conexoes?setup=success`,
+        failure_redirect_url: `${baseUrl}/conexoes?setup=failed`,
+      },
+    }),
   });
 
   const data = await res.json().catch(() => ({}));
