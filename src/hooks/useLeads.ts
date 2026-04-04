@@ -114,7 +114,6 @@ const ITEMS_PER_PAGE = 25;
 const LIST_COLUMNS = [
   'id',
   'nome',
-  'nome_completo',
   'email',
   'telefone',
   'status',
@@ -124,9 +123,7 @@ const LIST_COLUMNS = [
   'created_at',
   'updated_at',
   'tenant_id',
-  'fonte',
   'origem',
-  'temperatura',
   'temperature',
   'area_juridica',
   'valor_causa',
