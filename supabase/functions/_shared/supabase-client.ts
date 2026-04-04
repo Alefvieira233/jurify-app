@@ -50,7 +50,17 @@ export function isServiceRole(req: Request): boolean {
   const authHeader = req.headers.get("Authorization");
   const token = authHeader?.replace("Bearer ", "") ?? "";
   const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
-  return !!serviceKey && token === serviceKey;
+  if (!serviceKey || !token || token.length !== serviceKey.length) return false;
+  // Timing-safe comparison to prevent side-channel attacks
+  const encoder = new TextEncoder();
+  const a = encoder.encode(token);
+  const b = encoder.encode(serviceKey);
+  if (a.byteLength !== b.byteLength) return false;
+  let mismatch = 0;
+  for (let i = 0; i < a.byteLength; i++) {
+    mismatch |= a[i]! ^ b[i]!;
+  }
+  return mismatch === 0;
 }
 
 /**

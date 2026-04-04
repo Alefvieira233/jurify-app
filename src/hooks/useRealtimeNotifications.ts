@@ -35,7 +35,7 @@ export function useRealtimeNotifications() {
     if (!userId) return;
     try {
       const { data, error } = await supabase.rpc('contar_nao_lidas', { user_id: userId });
-      if (!error && data !== null) setUnreadCount(data as number);
+      if (!error && data !== null) setUnreadCount(data as unknown as number);
     } catch (err) {
       console.warn('[useRealtimeNotifications] fetchUnreadCount failed:', err);
     }

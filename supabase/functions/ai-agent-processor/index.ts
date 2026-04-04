@@ -16,6 +16,7 @@ import { getCorsHeaders } from "../_shared/cors.ts";
 import { checkBudgetBeforeCall, recordTokenUsage } from "../_shared/ai-budget.ts";
 import { initSentry, captureError } from "../_shared/sentry.ts";
 import { DEFAULT_OPENAI_MODEL } from "../_shared/ai-model.ts";
+import { sanitizeInput } from "../_shared/security.ts";
 
 // 🚀 INIT SENTRY
 initSentry();
@@ -364,6 +365,18 @@ Deno.serve(async (req) => {
     validateRequest(requestData);
 
     const aiRequest = requestData as AgentAIRequest;
+
+    // Sanitize user prompt against prompt injection (skip for service-role internal calls)
+    if (!isServiceRoleRequest) {
+      const sanitized = sanitizeInput(aiRequest.userPrompt, 10000);
+      if (!sanitized.safe) {
+        return new Response(
+          JSON.stringify({ error: "Input rejected: " + sanitized.reason }),
+          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+      aiRequest.userPrompt = sanitized.text;
+    }
 
     // 🔒 Security: resolve tenantId/userId from JWT, not from request body (for user requests)
     let resolvedTenantId: string;

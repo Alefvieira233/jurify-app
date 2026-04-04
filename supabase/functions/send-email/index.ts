@@ -103,7 +103,7 @@ function buildEmailContent(
   <h2 style="font-size:22px">Redefinição de senha</h2>
   <p style="color:#374151;line-height:1.6">Recebemos uma solicitação para redefinir a senha da sua conta. Clique no botão abaixo para criar uma nova senha.</p>
   <div style="text-align:center;margin:32px 0">
-    <a href="${data.reset_url}" style="background:#1e3a8a;color:white;padding:14px 32px;border-radius:8px;text-decoration:none;font-weight:600;font-size:16px">
+    <a href="${escapeHtml(data.reset_url)}" style="background:#1e3a8a;color:white;padding:14px 32px;border-radius:8px;text-decoration:none;font-weight:600;font-size:16px">
       Redefinir Senha
     </a>
   </div>
@@ -130,7 +130,7 @@ function buildEmailContent(
       <tr><td style="padding:6px 0">Período</td><td style="text-align:right">${escapeHtml(data.period)}</td></tr>
     </table>
   </div>
-  ${data.invoice_url ? `<div style="text-align:center;margin:24px 0"><a href="${data.invoice_url}" style="color:#1e3a8a;text-decoration:underline;font-size:14px">Ver fatura completa</a></div>` : ""}
+  ${data.invoice_url ? `<div style="text-align:center;margin:24px 0"><a href="${escapeHtml(data.invoice_url)}" style="color:#1e3a8a;text-decoration:underline;font-size:14px">Ver fatura completa</a></div>` : ""}
   <div style="text-align:center;margin:32px 0">
     <a href="https://jurify-app.vercel.app" style="background:#1e3a8a;color:white;padding:14px 32px;border-radius:8px;text-decoration:none;font-weight:600">
       Acessar Jurify

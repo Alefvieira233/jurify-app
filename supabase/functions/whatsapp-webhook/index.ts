@@ -6,6 +6,7 @@ import { applyRateLimit } from "../_shared/rate-limiter.ts";
 import { buildLegalContext } from "../_shared/legal-context.ts";
 import { DEFAULT_OPENAI_MODEL } from "../_shared/ai-model.ts";
 import { checkBudgetBeforeCall, recordTokenUsage } from "../_shared/ai-budget.ts";
+import { sanitizeInput } from "../_shared/security.ts";
 
 // whatsapp-webhook: Kapso Cloud API + Meta Official API webhook handler
 
@@ -913,7 +914,12 @@ async function processNormalizedMessage(supabase: ReturnType<typeof createClient
     // ========================================
     // STAGE 1: MEDIA PROCESSING
     // ========================================
-    let processedText = text;
+    // Sanitize incoming message text against prompt injection
+    const sanitized = sanitizeInput(text, 5000);
+    let processedText = sanitized.safe ? sanitized.text : text.trim().slice(0, 5000);
+    if (!sanitized.safe) {
+      console.warn(`[processMsg:${provider}] Prompt injection detected in WhatsApp message, using raw truncated text`);
+    }
     let mediaCategory = "text";
 
     if (msg.mediaUrl && msg.messageType !== "text") {

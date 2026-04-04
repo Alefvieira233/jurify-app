@@ -264,8 +264,11 @@ jobs:
       - name: 🔍 Health check - Frontend
         run: |
           echo "🔍 Checking frontend health..."
+          # Use Vercel production URL from secrets, fallback to custom domain
+          FRONTEND_URL="${FRONTEND_URL:-https://jurify.app}"
+          echo "Testing: $FRONTEND_URL"
           for i in 1 2 3; do
-            STATUS=$(curl -s -o /dev/null -w "%{http_code}" --max-time 10 https://jurify.app || echo "000")
+            STATUS=$(curl -s -o /dev/null -w "%{http_code}" --max-time 10 "$FRONTEND_URL" || echo "000")
             if [ "$STATUS" -ge 200 ] && [ "$STATUS" -lt 400 ]; then
               echo "✅ Frontend OK (HTTP $STATUS)"
               exit 0
@@ -275,6 +278,8 @@ jobs:
           done
           echo "❌ Frontend health check failed after 3 attempts"
           exit 1
+        env:
+          FRONTEND_URL: ${{ secrets.FRONTEND_URL }}
 
       - name: 🔍 Health check - Edge Functions
         run: |
@@ -291,10 +296,13 @@ jobs:
 
       - name: 📊 Report deployment
         run: |
+          FRONTEND_URL="${FRONTEND_URL:-https://jurify.app}"
           echo "✅ Deploy completed!"
-          echo "🌐 Frontend: https://jurify.app"
+          echo "🌐 Frontend: $FRONTEND_URL"
           echo "⚡ Edge Functions: Deployed"
           echo "🗄️ Migrations: Applied"
+        env:
+          FRONTEND_URL: ${{ secrets.FRONTEND_URL }}
 
   # ==========================================
   # JOB 5: NOTIFICATION

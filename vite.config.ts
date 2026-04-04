@@ -45,6 +45,7 @@ export default defineConfig(({ mode }) => {
             sentry: ['@sentry/react'],
             charts: ['recharts'],
             calendar: ['@fullcalendar/core', '@fullcalendar/react', '@fullcalendar/daygrid', '@fullcalendar/timegrid', '@fullcalendar/interaction', '@fullcalendar/list'],
+            dnd: ['@hello-pangea/dnd'],
             flow: ['@xyflow/react'],
           },
         }
