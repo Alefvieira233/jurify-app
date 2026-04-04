@@ -143,6 +143,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "agendamentos_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "v_leads_operacional"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "agendamentos_processo_id_fkey"
             columns: ["processo_id"]
             isOneToOne: false
@@ -251,6 +258,13 @@ export type Database = {
             referencedRelation: "leads"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "agent_ai_logs_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "v_leads_operacional"
+            referencedColumns: ["id"]
+          },
         ]
       }
       agent_executions: {
@@ -316,6 +330,13 @@ export type Database = {
             referencedRelation: "leads"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "agent_executions_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "v_leads_operacional"
+            referencedColumns: ["id"]
+          },
         ]
       }
       agent_memory: {
@@ -373,6 +394,13 @@ export type Database = {
             columns: ["lead_id"]
             isOneToOne: false
             referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "agent_memory_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "v_leads_operacional"
             referencedColumns: ["id"]
           },
         ]
@@ -532,21 +560,6 @@ export type Database = {
           },
         ]
       }
-      allowed_columns: {
-        Row: {
-          allowed_columns: string[]
-          table_name: string
-        }
-        Insert: {
-          allowed_columns: string[]
-          table_name: string
-        }
-        Update: {
-          allowed_columns?: string[]
-          table_name?: string
-        }
-        Relationships: []
-      }
       api_keys: {
         Row: {
           ativo: boolean | null
@@ -590,44 +603,6 @@ export type Database = {
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      api_rate_limits: {
-        Row: {
-          api_key_id: string | null
-          created_at: string
-          current_usage: number | null
-          daily_limit: number | null
-          id: string
-          reset_date: string | null
-          updated_at: string
-        }
-        Insert: {
-          api_key_id?: string | null
-          created_at?: string
-          current_usage?: number | null
-          daily_limit?: number | null
-          id?: string
-          reset_date?: string | null
-          updated_at?: string
-        }
-        Update: {
-          api_key_id?: string | null
-          created_at?: string
-          current_usage?: number | null
-          daily_limit?: number | null
-          id?: string
-          reset_date?: string | null
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "api_rate_limits_api_key_id_fkey"
-            columns: ["api_key_id"]
-            isOneToOne: false
-            referencedRelation: "api_keys"
             referencedColumns: ["id"]
           },
         ]
@@ -679,48 +654,55 @@ export type Database = {
           },
         ]
       }
-      assistant_conversations: {
+      audit_log: {
         Row: {
-          created_at: string | null
+          changed_fields: string[] | null
+          created_at: string
           id: string
-          message_count: number
-          messages: Json
-          tenant_id: string
-          title: string | null
-          updated_at: string | null
-          user_id: string
+          ip_address: unknown
+          new_data: Json | null
+          old_data: Json | null
+          operation: string
+          record_id: string
+          session_id: string | null
+          table_name: string
+          tenant_id: string | null
+          user_agent: string | null
+          user_id: string | null
         }
         Insert: {
-          created_at?: string | null
+          changed_fields?: string[] | null
+          created_at?: string
           id?: string
-          message_count?: number
-          messages?: Json
-          tenant_id: string
-          title?: string | null
-          updated_at?: string | null
-          user_id: string
+          ip_address?: unknown
+          new_data?: Json | null
+          old_data?: Json | null
+          operation: string
+          record_id: string
+          session_id?: string | null
+          table_name: string
+          tenant_id?: string | null
+          user_agent?: string | null
+          user_id?: string | null
         }
         Update: {
-          created_at?: string | null
+          changed_fields?: string[] | null
+          created_at?: string
           id?: string
-          message_count?: number
-          messages?: Json
-          tenant_id?: string
-          title?: string | null
-          updated_at?: string | null
-          user_id?: string
+          ip_address?: unknown
+          new_data?: Json | null
+          old_data?: Json | null
+          operation?: string
+          record_id?: string
+          session_id?: string | null
+          table_name?: string
+          tenant_id?: string | null
+          user_agent?: string | null
+          user_id?: string | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "assistant_conversations_tenant_id_fkey"
-            columns: ["tenant_id"]
-            isOneToOne: false
-            referencedRelation: "tenants"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
-      audit_log: {
+      audit_log_archive: {
         Row: {
           changed_fields: string[] | null
           created_at: string
@@ -811,6 +793,13 @@ export type Database = {
             columns: ["lead_id"]
             isOneToOne: false
             referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "automation_executions_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "v_leads_operacional"
             referencedColumns: ["id"]
           },
           {
@@ -1355,9 +1344,11 @@ export type Database = {
           api_key: string
           api_key_encrypted: string | null
           atualizado_em: string
+          configuracao_encrypted: string | null
           created_at: string | null
           criado_em: string
           data_ultima_sincronizacao: string | null
+          encryption_version: number | null
           endpoint_url: string
           id: string
           nome_integracao: string
@@ -1371,9 +1362,11 @@ export type Database = {
           api_key: string
           api_key_encrypted?: string | null
           atualizado_em?: string
+          configuracao_encrypted?: string | null
           created_at?: string | null
           criado_em?: string
           data_ultima_sincronizacao?: string | null
+          encryption_version?: number | null
           endpoint_url: string
           id?: string
           nome_integracao: string
@@ -1387,9 +1380,11 @@ export type Database = {
           api_key?: string
           api_key_encrypted?: string | null
           atualizado_em?: string
+          configuracao_encrypted?: string | null
           created_at?: string | null
           criado_em?: string
           data_ultima_sincronizacao?: string | null
+          encryption_version?: number | null
           endpoint_url?: string
           id?: string
           nome_integracao?: string
@@ -1568,10 +1563,24 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "contratos_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "v_leads_operacional"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "contratos_lead_id_fkey"
             columns: ["lead_id"]
             isOneToOne: false
             referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contratos_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "v_leads_operacional"
             referencedColumns: ["id"]
           },
           {
@@ -1583,66 +1592,6 @@ export type Database = {
           },
           {
             foreignKeyName: "contratos_tenant_id_fkey"
-            columns: ["tenant_id"]
-            isOneToOne: false
-            referencedRelation: "tenants"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      conversation_logs: {
-        Row: {
-          channel: string | null
-          conversation_id: string
-          created_at: string | null
-          id: string
-          lead_id: string | null
-          message: string | null
-          metadata: Json | null
-          receiver_id: string | null
-          role: string | null
-          sender_id: string | null
-          tenant_id: string
-          type: string | null
-        }
-        Insert: {
-          channel?: string | null
-          conversation_id: string
-          created_at?: string | null
-          id?: string
-          lead_id?: string | null
-          message?: string | null
-          metadata?: Json | null
-          receiver_id?: string | null
-          role?: string | null
-          sender_id?: string | null
-          tenant_id: string
-          type?: string | null
-        }
-        Update: {
-          channel?: string | null
-          conversation_id?: string
-          created_at?: string | null
-          id?: string
-          lead_id?: string | null
-          message?: string | null
-          metadata?: Json | null
-          receiver_id?: string | null
-          role?: string | null
-          sender_id?: string | null
-          tenant_id?: string
-          type?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "conversation_logs_lead_id_fkey"
-            columns: ["lead_id"]
-            isOneToOne: false
-            referencedRelation: "leads"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "conversation_logs_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"
@@ -1699,45 +1648,14 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "crm_activities_tenant_id_fkey"
-            columns: ["tenant_id"]
+            foreignKeyName: "crm_activities_lead_id_fkey"
+            columns: ["lead_id"]
             isOneToOne: false
-            referencedRelation: "tenants"
+            referencedRelation: "v_leads_operacional"
             referencedColumns: ["id"]
           },
-        ]
-      }
-      crm_custom_fields: {
-        Row: {
-          field_name: string
-          field_options: Json | null
-          field_type: string
-          id: string
-          is_required: boolean | null
-          position: number | null
-          tenant_id: string
-        }
-        Insert: {
-          field_name: string
-          field_options?: Json | null
-          field_type: string
-          id?: string
-          is_required?: boolean | null
-          position?: number | null
-          tenant_id: string
-        }
-        Update: {
-          field_name?: string
-          field_options?: Json | null
-          field_type?: string
-          id?: string
-          is_required?: boolean | null
-          position?: number | null
-          tenant_id?: string
-        }
-        Relationships: [
           {
-            foreignKeyName: "crm_custom_fields_tenant_id_fkey"
+            foreignKeyName: "crm_activities_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"
@@ -1821,46 +1739,17 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "crm_followups_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "v_leads_operacional"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "crm_followups_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      crm_lead_custom_values: {
-        Row: {
-          field_id: string
-          id: string
-          lead_id: string
-          value: string | null
-        }
-        Insert: {
-          field_id: string
-          id?: string
-          lead_id: string
-          value?: string | null
-        }
-        Update: {
-          field_id?: string
-          id?: string
-          lead_id?: string
-          value?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "crm_lead_custom_values_field_id_fkey"
-            columns: ["field_id"]
-            isOneToOne: false
-            referencedRelation: "crm_custom_fields"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "crm_lead_custom_values_lead_id_fkey"
-            columns: ["lead_id"]
-            isOneToOne: false
-            referencedRelation: "leads"
             referencedColumns: ["id"]
           },
         ]
@@ -1902,40 +1791,17 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "crm_lead_scores_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "v_leads_operacional"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "crm_lead_scores_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      crm_lead_tags: {
-        Row: {
-          lead_id: string
-          tag_id: string
-        }
-        Insert: {
-          lead_id: string
-          tag_id: string
-        }
-        Update: {
-          lead_id?: string
-          tag_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "crm_lead_tags_lead_id_fkey"
-            columns: ["lead_id"]
-            isOneToOne: false
-            referencedRelation: "leads"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "crm_lead_tags_tag_id_fkey"
-            columns: ["tag_id"]
-            isOneToOne: false
-            referencedRelation: "crm_tags"
             referencedColumns: ["id"]
           },
         ]
@@ -1980,35 +1846,6 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "crm_pipeline_stages_tenant_id_fkey"
-            columns: ["tenant_id"]
-            isOneToOne: false
-            referencedRelation: "tenants"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      crm_tags: {
-        Row: {
-          color: string | null
-          id: string
-          name: string
-          tenant_id: string
-        }
-        Insert: {
-          color?: string | null
-          id?: string
-          name: string
-          tenant_id: string
-        }
-        Update: {
-          color?: string | null
-          id?: string
-          name?: string
-          tenant_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "crm_tags_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"
@@ -2271,6 +2108,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "documentos_juridicos_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "v_leads_operacional"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "documentos_juridicos_processo_id_fkey"
             columns: ["processo_id"]
             isOneToOne: false
@@ -2383,6 +2227,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "drive_folders_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "v_leads_operacional"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "drive_folders_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
@@ -2476,6 +2327,7 @@ export type Database = {
           access_token: string
           access_token_encrypted: string | null
           created_at: string | null
+          encryption_version: number | null
           expires_at: string
           id: string
           refresh_token: string
@@ -2489,6 +2341,7 @@ export type Database = {
           access_token: string
           access_token_encrypted?: string | null
           created_at?: string | null
+          encryption_version?: number | null
           expires_at: string
           id?: string
           refresh_token: string
@@ -2502,6 +2355,7 @@ export type Database = {
           access_token?: string
           access_token_encrypted?: string | null
           created_at?: string | null
+          encryption_version?: number | null
           expires_at?: string
           id?: string
           refresh_token?: string
@@ -2552,107 +2406,6 @@ export type Database = {
             columns: ["user_id"]
             isOneToOne: true
             referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      hitl_requests: {
-        Row: {
-          ai_confidence: number | null
-          ai_proposed_response: string | null
-          assigned_to: string | null
-          context_data: Json | null
-          conversation_id: string | null
-          created_at: string | null
-          expires_at: string | null
-          human_response: string | null
-          id: string
-          lead_id: string | null
-          original_message: string | null
-          rejection_reason: string | null
-          request_type: string
-          resolved_at: string | null
-          resolved_by: string | null
-          risk_level: string | null
-          status: string | null
-          tenant_id: string
-          ttl_minutes: number | null
-          updated_at: string | null
-          urgency: string | null
-        }
-        Insert: {
-          ai_confidence?: number | null
-          ai_proposed_response?: string | null
-          assigned_to?: string | null
-          context_data?: Json | null
-          conversation_id?: string | null
-          created_at?: string | null
-          expires_at?: string | null
-          human_response?: string | null
-          id?: string
-          lead_id?: string | null
-          original_message?: string | null
-          rejection_reason?: string | null
-          request_type: string
-          resolved_at?: string | null
-          resolved_by?: string | null
-          risk_level?: string | null
-          status?: string | null
-          tenant_id: string
-          ttl_minutes?: number | null
-          updated_at?: string | null
-          urgency?: string | null
-        }
-        Update: {
-          ai_confidence?: number | null
-          ai_proposed_response?: string | null
-          assigned_to?: string | null
-          context_data?: Json | null
-          conversation_id?: string | null
-          created_at?: string | null
-          expires_at?: string | null
-          human_response?: string | null
-          id?: string
-          lead_id?: string | null
-          original_message?: string | null
-          rejection_reason?: string | null
-          request_type?: string
-          resolved_at?: string | null
-          resolved_by?: string | null
-          risk_level?: string | null
-          status?: string | null
-          tenant_id?: string
-          ttl_minutes?: number | null
-          updated_at?: string | null
-          urgency?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "hitl_requests_assigned_to_fkey"
-            columns: ["assigned_to"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "hitl_requests_lead_id_fkey"
-            columns: ["lead_id"]
-            isOneToOne: false
-            referencedRelation: "leads"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "hitl_requests_resolved_by_fkey"
-            columns: ["resolved_by"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "hitl_requests_tenant_id_fkey"
-            columns: ["tenant_id"]
-            isOneToOne: false
-            referencedRelation: "tenants"
             referencedColumns: ["id"]
           },
         ]
@@ -2724,6 +2477,13 @@ export type Database = {
             columns: ["lead_id"]
             isOneToOne: false
             referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "honorarios_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "v_leads_operacional"
             referencedColumns: ["id"]
           },
           {
@@ -2863,6 +2623,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "lead_historico_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "v_leads_operacional"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "lead_historico_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
@@ -2943,6 +2710,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "lead_interactions_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "v_leads_operacional"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "lead_interactions_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
@@ -3001,6 +2775,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "lead_notas_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "v_leads_operacional"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "lead_notas_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
@@ -3044,6 +2825,13 @@ export type Database = {
             columns: ["lead_id"]
             isOneToOne: false
             referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lead_tags_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "v_leads_operacional"
             referencedColumns: ["id"]
           },
           {
@@ -3093,7 +2881,6 @@ export type Database = {
           proximo_responsavel_id: string | null
           responsavel_id: string | null
           status: string | null
-          tags: string[] | null
           telefone: string | null
           temperature: string | null
           tenant_id: string
@@ -3141,7 +2928,6 @@ export type Database = {
           proximo_responsavel_id?: string | null
           responsavel_id?: string | null
           status?: string | null
-          tags?: string[] | null
           telefone?: string | null
           temperature?: string | null
           tenant_id: string
@@ -3189,7 +2975,6 @@ export type Database = {
           proximo_responsavel_id?: string | null
           responsavel_id?: string | null
           status?: string | null
-          tags?: string[] | null
           telefone?: string | null
           temperature?: string | null
           tenant_id?: string
@@ -3269,6 +3054,7 @@ export type Database = {
           metadata: Json
           source_id: string
           source_type: string
+          tenant_id: string | null
         }
         Insert: {
           content: string
@@ -3279,6 +3065,7 @@ export type Database = {
           metadata?: Json
           source_id: string
           source_type: string
+          tenant_id?: string | null
         }
         Update: {
           content?: string
@@ -3289,8 +3076,17 @@ export type Database = {
           metadata?: Json
           source_id?: string
           source_type?: string
+          tenant_id?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "legal_knowledge_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       logs_atividades: {
         Row: {
@@ -3344,72 +3140,6 @@ export type Database = {
             columns: ["departamento_id"]
             isOneToOne: false
             referencedRelation: "departamentos"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      logs_execucao_agentes: {
-        Row: {
-          agente_id: string | null
-          api_key_usado: string | null
-          created_at: string | null
-          erro_detalhes: string | null
-          id: string
-          input_recebido: string
-          n8n_error: string | null
-          n8n_response: Json | null
-          n8n_status: string | null
-          n8n_webhook_url: string | null
-          resposta_ia: string | null
-          status: string
-          tempo_execucao: number | null
-          tenant_id: string
-        }
-        Insert: {
-          agente_id?: string | null
-          api_key_usado?: string | null
-          created_at?: string | null
-          erro_detalhes?: string | null
-          id?: string
-          input_recebido: string
-          n8n_error?: string | null
-          n8n_response?: Json | null
-          n8n_status?: string | null
-          n8n_webhook_url?: string | null
-          resposta_ia?: string | null
-          status?: string
-          tempo_execucao?: number | null
-          tenant_id: string
-        }
-        Update: {
-          agente_id?: string | null
-          api_key_usado?: string | null
-          created_at?: string | null
-          erro_detalhes?: string | null
-          id?: string
-          input_recebido?: string
-          n8n_error?: string | null
-          n8n_response?: Json | null
-          n8n_status?: string | null
-          n8n_webhook_url?: string | null
-          resposta_ia?: string | null
-          status?: string
-          tempo_execucao?: number | null
-          tenant_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "logs_execucao_agentes_agente_id_fkey"
-            columns: ["agente_id"]
-            isOneToOne: false
-            referencedRelation: "agentes_ia"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "logs_execucao_agentes_tenant_id_fkey"
-            columns: ["tenant_id"]
-            isOneToOne: false
-            referencedRelation: "tenants"
             referencedColumns: ["id"]
           },
         ]
@@ -3654,6 +3384,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "prazos_processuais_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "v_leads_operacional"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "prazos_processuais_processo_id_fkey"
             columns: ["processo_id"]
             isOneToOne: false
@@ -3767,6 +3504,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "processos_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "v_leads_operacional"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "processos_responsavel_id_fkey"
             columns: ["responsavel_id"]
             isOneToOne: false
@@ -3851,6 +3595,7 @@ export type Database = {
         Row: {
           count: number
           created_at: string | null
+          description: string | null
           id: string
           identifier: string
           key: string
@@ -3861,6 +3606,7 @@ export type Database = {
         Insert: {
           count?: number
           created_at?: string | null
+          description?: string | null
           id?: string
           identifier: string
           key: string
@@ -3871,6 +3617,7 @@ export type Database = {
         Update: {
           count?: number
           created_at?: string | null
+          description?: string | null
           id?: string
           identifier?: string
           key?: string
@@ -3879,139 +3626,6 @@ export type Database = {
           updated_at?: string | null
         }
         Relationships: []
-      }
-      recurring_event_instances: {
-        Row: {
-          agendamento_id: string | null
-          created_at: string
-          end_time: string
-          google_event_id: string | null
-          id: string
-          recurring_event_id: string
-          start_time: string
-          status: string
-        }
-        Insert: {
-          agendamento_id?: string | null
-          created_at?: string
-          end_time: string
-          google_event_id?: string | null
-          id?: string
-          recurring_event_id: string
-          start_time: string
-          status?: string
-        }
-        Update: {
-          agendamento_id?: string | null
-          created_at?: string
-          end_time?: string
-          google_event_id?: string | null
-          id?: string
-          recurring_event_id?: string
-          start_time?: string
-          status?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "recurring_event_instances_agendamento_id_fkey"
-            columns: ["agendamento_id"]
-            isOneToOne: false
-            referencedRelation: "agendamentos"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "recurring_event_instances_recurring_event_id_fkey"
-            columns: ["recurring_event_id"]
-            isOneToOne: false
-            referencedRelation: "recurring_events"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      recurring_events: {
-        Row: {
-          area_juridica: string | null
-          created_at: string
-          description: string | null
-          duration_minutes: number | null
-          end_date: string | null
-          google_event_id: string | null
-          id: string
-          is_active: boolean | null
-          lead_id: string | null
-          metadata: Json | null
-          responsavel: string | null
-          rrule: string
-          start_date: string
-          tenant_id: string
-          timezone: string | null
-          title: string
-          updated_at: string
-          user_id: string
-        }
-        Insert: {
-          area_juridica?: string | null
-          created_at?: string
-          description?: string | null
-          duration_minutes?: number | null
-          end_date?: string | null
-          google_event_id?: string | null
-          id?: string
-          is_active?: boolean | null
-          lead_id?: string | null
-          metadata?: Json | null
-          responsavel?: string | null
-          rrule: string
-          start_date: string
-          tenant_id: string
-          timezone?: string | null
-          title: string
-          updated_at?: string
-          user_id: string
-        }
-        Update: {
-          area_juridica?: string | null
-          created_at?: string
-          description?: string | null
-          duration_minutes?: number | null
-          end_date?: string | null
-          google_event_id?: string | null
-          id?: string
-          is_active?: boolean | null
-          lead_id?: string | null
-          metadata?: Json | null
-          responsavel?: string | null
-          rrule?: string
-          start_date?: string
-          tenant_id?: string
-          timezone?: string | null
-          title?: string
-          updated_at?: string
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "recurring_events_lead_id_fkey"
-            columns: ["lead_id"]
-            isOneToOne: false
-            referencedRelation: "leads"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "recurring_events_tenant_id_fkey"
-            columns: ["tenant_id"]
-            isOneToOne: false
-            referencedRelation: "tenants"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "recurring_events_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-        ]
       }
       reminders: {
         Row: {
@@ -4078,6 +3692,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "reminders_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "v_leads_operacional"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "reminders_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
@@ -4119,78 +3740,6 @@ export type Database = {
           role?: Database["public"]["Enums"]["app_role"]
         }
         Relationships: []
-      }
-      security_audit: {
-        Row: {
-          action: string | null
-          changes: Json | null
-          created_at: string | null
-          event_category: string | null
-          event_type: string
-          id: string
-          ip_address: unknown
-          metadata: Json | null
-          outcome: string | null
-          resource_id: string | null
-          resource_type: string | null
-          severity: string | null
-          tenant_id: string | null
-          trace_id: string | null
-          user_agent: string | null
-          user_id: string | null
-        }
-        Insert: {
-          action?: string | null
-          changes?: Json | null
-          created_at?: string | null
-          event_category?: string | null
-          event_type: string
-          id?: string
-          ip_address?: unknown
-          metadata?: Json | null
-          outcome?: string | null
-          resource_id?: string | null
-          resource_type?: string | null
-          severity?: string | null
-          tenant_id?: string | null
-          trace_id?: string | null
-          user_agent?: string | null
-          user_id?: string | null
-        }
-        Update: {
-          action?: string | null
-          changes?: Json | null
-          created_at?: string | null
-          event_category?: string | null
-          event_type?: string
-          id?: string
-          ip_address?: unknown
-          metadata?: Json | null
-          outcome?: string | null
-          resource_id?: string | null
-          resource_type?: string | null
-          severity?: string | null
-          tenant_id?: string | null
-          trace_id?: string | null
-          user_agent?: string | null
-          user_id?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "security_audit_tenant_id_fkey"
-            columns: ["tenant_id"]
-            isOneToOne: false
-            referencedRelation: "tenants"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "security_audit_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-        ]
       }
       subscription_plans: {
         Row: {
@@ -4495,6 +4044,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "tarefas_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "v_leads_operacional"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "tarefas_responsavel_id_fkey"
             columns: ["responsavel_id"]
             isOneToOne: false
@@ -4718,42 +4274,6 @@ export type Database = {
         }
         Relationships: []
       }
-      webhook_logs: {
-        Row: {
-          error_message: string | null
-          event_type: string | null
-          headers: Json | null
-          id: string
-          payload: Json | null
-          processed_at: string | null
-          response: Json | null
-          service: string
-          status_code: number | null
-        }
-        Insert: {
-          error_message?: string | null
-          event_type?: string | null
-          headers?: Json | null
-          id?: string
-          payload?: Json | null
-          processed_at?: string | null
-          response?: Json | null
-          service: string
-          status_code?: number | null
-        }
-        Update: {
-          error_message?: string | null
-          event_type?: string | null
-          headers?: Json | null
-          id?: string
-          payload?: Json | null
-          processed_at?: string | null
-          response?: Json | null
-          service?: string
-          status_code?: number | null
-        }
-        Relationships: []
-      }
       whatsapp_conversations: {
         Row: {
           agent_processed_at: string | null
@@ -4824,6 +4344,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "whatsapp_conversations_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "v_leads_operacional"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "whatsapp_conversations_responsavel_id_fkey"
             columns: ["responsavel_id"]
             isOneToOne: false
@@ -4841,6 +4368,7 @@ export type Database = {
       }
       whatsapp_messages: {
         Row: {
+          archived: boolean | null
           content: string | null
           conversation_id: string | null
           created_at: string | null
@@ -4865,6 +4393,7 @@ export type Database = {
           to_number: string | null
         }
         Insert: {
+          archived?: boolean | null
           content?: string | null
           conversation_id?: string | null
           created_at?: string | null
@@ -4889,6 +4418,7 @@ export type Database = {
           to_number?: string | null
         }
         Update: {
+          archived?: boolean | null
           content?: string | null
           conversation_id?: string | null
           created_at?: string | null
@@ -4925,6 +4455,13 @@ export type Database = {
             columns: ["lead_id"]
             isOneToOne: false
             referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "whatsapp_messages_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "v_leads_operacional"
             referencedColumns: ["id"]
           },
           {
@@ -5116,6 +4653,13 @@ export type Database = {
             referencedRelation: "leads"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "agent_executions_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "v_leads_operacional"
+            referencedColumns: ["id"]
+          },
         ]
       }
       audit_recent: {
@@ -5251,11 +4795,138 @@ export type Database = {
           },
         ]
       }
+      v_leads_operacional: {
+        Row: {
+          area_juridica: string | null
+          arquivado_em: string | null
+          arquivado_por: string | null
+          assigned_at: string | null
+          ativo: boolean | null
+          company_name: string | null
+          conexao_id: string | null
+          conexao_nome: string | null
+          conexao_telefone: string | null
+          cpf_cnpj: string | null
+          created_at: string | null
+          custom_fields: Json | null
+          data_reativacao_prevista: string | null
+          deleted_at: string | null
+          departamento_cor: string | null
+          departamento_id: string | null
+          departamento_nome: string | null
+          descricao: string | null
+          email: string | null
+          expected_value: number | null
+          followup_count: number | null
+          id: string | null
+          inactive_since: string | null
+          last_activity_at: string | null
+          lead_score: number | null
+          lost_at: string | null
+          lost_reason: string | null
+          metadata: Json | null
+          motivo_arquivamento: string | null
+          next_followup_at: string | null
+          nome: string | null
+          origem: string | null
+          pipeline_stage_color: string | null
+          pipeline_stage_id: string | null
+          pipeline_stage_name: string | null
+          prioridade: string | null
+          probability: number | null
+          proxima_acao: string | null
+          proxima_acao_data: string | null
+          proximo_responsavel_id: string | null
+          responsavel_avatar: string | null
+          responsavel_email: string | null
+          responsavel_id: string | null
+          responsavel_id_fk: string | null
+          responsavel_nome: string | null
+          status: string | null
+          telefone: string | null
+          temperature: string | null
+          tenant_id: string | null
+          updated_at: string | null
+          valor_causa: number | null
+          valor_estimado: number | null
+          won_at: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_leads_conexao"
+            columns: ["conexao_id"]
+            isOneToOne: false
+            referencedRelation: "conexoes_whatsapp"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_leads_departamento"
+            columns: ["departamento_id"]
+            isOneToOne: false
+            referencedRelation: "departamentos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "leads_arquivado_por_fkey"
+            columns: ["arquivado_por"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "leads_departamento_id_fkey"
+            columns: ["departamento_id"]
+            isOneToOne: false
+            referencedRelation: "departamentos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "leads_pipeline_stage_id_fkey"
+            columns: ["pipeline_stage_id"]
+            isOneToOne: false
+            referencedRelation: "crm_pipeline_stages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "leads_proximo_responsavel_id_fkey"
+            columns: ["proximo_responsavel_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "leads_responsavel_id_fkey"
+            columns: ["responsavel_id_fk"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "leads_responsavel_id_fkey"
+            columns: ["responsavel_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "leads_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Functions: {
       apply_rls_defaults: {
         Args: { _mode?: string; _table: string }
         Returns: undefined
+      }
+      archive_old_audit_logs: { Args: never; Returns: number }
+      archive_old_whatsapp_messages: {
+        Args: { p_days?: number }
+        Returns: number
       }
       buscar_agente_para_execucao: {
         Args: { _agente_id: string }
@@ -5316,6 +4987,13 @@ export type Database = {
           tenant_id: string
         }[]
       }
+      cleanup_expired_data: {
+        Args: never
+        Returns: {
+          rows_deleted: number
+          table_name: string
+        }[]
+      }
       cleanup_old_webhook_events: { Args: never; Returns: number }
       cleanup_retention_logs: { Args: never; Returns: Json }
       complete_job: {
@@ -5328,6 +5006,14 @@ export type Database = {
         Returns: number
       }
       current_tenant_id: { Args: never; Returns: string }
+      decrypt_sensitive: {
+        Args: { p_encrypted: string; p_key?: string }
+        Returns: string
+      }
+      encrypt_sensitive: {
+        Args: { p_key?: string; p_plaintext: string }
+        Returns: string
+      }
       ensure_policy: {
         Args: {
           _check?: string
@@ -5338,12 +5024,52 @@ export type Database = {
         }
         Returns: undefined
       }
-      exec_sql: { Args: { sql_query: string }; Returns: string }
       fail_job: {
         Args: { p_error: string; p_job_id: string }
         Returns: undefined
       }
-      generate_recurring_instances: { Args: never; Returns: undefined }
+      get_active_executions: { Args: { _tenant_id?: string }; Returns: Json }
+      get_agendamentos_metrics: {
+        Args: { _tenant_id?: string }
+        Returns: {
+          agendamentos_hoje: number
+          agendamentos_semana: number
+          refreshed_at: string
+          total_agendamentos: number
+        }[]
+      }
+      get_agentes_metrics: {
+        Args: { _tenant_id?: string }
+        Returns: {
+          agentes_ativos: number
+          execucoes_erro: number
+          execucoes_hoje: number
+          execucoes_sucesso: number
+          refreshed_at: string
+          total_execucoes: number
+        }[]
+      }
+      get_audit_recent: {
+        Args: { _limit?: number; _tenant_id?: string }
+        Returns: {
+          changed_fields: string[]
+          created_at: string
+          id: string
+          operation: string
+          record_id: string
+          table_name: string
+          tenant_id: string
+          user_id: string
+        }[]
+      }
+      get_contratos_metrics: {
+        Args: { _tenant_id?: string }
+        Returns: {
+          contratos_assinados: number
+          refreshed_at: string
+          total_contratos: number
+        }[]
+      }
       get_current_tenant_id: { Args: never; Returns: string }
       get_dashboard_metrics: {
         Args: { _tenant_id: string }
@@ -5369,6 +5095,21 @@ export type Database = {
           total_leads: number
         }[]
       }
+      get_leads_metrics: {
+        Args: { _tenant_id?: string }
+        Returns: {
+          leads_novo_mes: number
+          refreshed_at: string
+          status_contrato_assinado: number
+          status_em_atendimento: number
+          status_em_qualificacao: number
+          status_lead_perdido: number
+          status_novo_lead: number
+          status_proposta_enviada: number
+          total_leads: number
+        }[]
+      }
+      get_leads_operacional: { Args: { _tenant_id?: string }; Returns: Json }
       get_leads_por_area: {
         Args: { _tenant_id: string }
         Returns: {
@@ -5436,22 +5177,39 @@ export type Database = {
           similarity: number
         }[]
       }
-      match_legal_documents: {
-        Args: {
-          filter?: Json
-          match_count?: number
-          match_threshold?: number
-          query_embedding: string
-        }
-        Returns: {
-          content: string
-          id: string
-          metadata: Json
-          similarity: number
-          source_id: string
-          source_type: string
-        }[]
-      }
+      match_legal_documents:
+        | {
+            Args: {
+              filter_tenant_id?: string
+              match_count?: number
+              match_threshold?: number
+              query_embedding: string
+            }
+            Returns: {
+              content: string
+              id: string
+              metadata: Json
+              similarity: number
+              source_id: string
+              source_type: string
+            }[]
+          }
+        | {
+            Args: {
+              filter?: Json
+              match_count?: number
+              match_threshold?: number
+              query_embedding: string
+            }
+            Returns: {
+              content: string
+              id: string
+              metadata: Json
+              similarity: number
+              source_id: string
+              source_type: string
+            }[]
+          }
       redact_pii: { Args: { input_text: string }; Returns: string }
       refresh_dashboard_views: { Args: never; Returns: undefined }
       registrar_log_atividade: {

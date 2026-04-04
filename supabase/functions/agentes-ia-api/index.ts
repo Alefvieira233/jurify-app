@@ -111,13 +111,14 @@ Deno.serve(async (req) => {
 
     // Criar log inicial
     const { data: logData } = await supabaseClient
-      .from('logs_execucao_agentes')
+      .from('agent_ai_logs')
       .insert({
-        agente_id,
+        agent_name: agente.nome || agente_id,
         tenant_id: profile.tenant_id,
-        input_recebido: input_usuario,
+        user_prompt: input_usuario,
         status: 'processing',
-        api_key_usado: 'openai'
+        model: agente.modelo_ia || 'gpt-4o-mini',
+        user_id: profile.id,
       })
       .select()
       .single();
@@ -160,15 +161,19 @@ Deno.serve(async (req) => {
 
     const aiResponse = responseData.choices[0]?.message?.content || 'Resposta não disponível';
 
-    // Atualizar log
+    // Atualizar log com resultado
     if (logData?.id) {
+      const usage = responseData.usage;
       await supabaseClient
-        .from('logs_execucao_agentes')
+        .from('agent_ai_logs')
         .update({
-          resposta_ia: aiResponse,
+          result_preview: aiResponse.substring(0, 500),
+          full_result: aiResponse,
           status: 'success',
-          tempo_execucao: executionTime,
-          api_key_usado: 'openai'
+          latency_ms: executionTime,
+          prompt_tokens: usage?.prompt_tokens ?? null,
+          completion_tokens: usage?.completion_tokens ?? null,
+          total_tokens: usage?.total_tokens ?? null,
         })
         .eq('id', logData.id);
     }

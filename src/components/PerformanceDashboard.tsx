@@ -49,8 +49,8 @@ const PerformanceDashboard = () => {
     enabled: !!tenantId,
     queryFn: async () => {
       const { data, error } = await supabase
-        .from('logs_execucao_agentes')
-        .select('agente_id')
+        .from('agent_ai_logs')
+        .select('agent_name')
         .eq('tenant_id', tenantId!)
         .gte('created_at', inicio7Dias);
 

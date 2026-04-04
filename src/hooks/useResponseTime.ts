@@ -12,15 +12,15 @@ interface ResponseTimeData {
 }
 
 function groupByDay(
-  logs: Array<{ tempo_execucao: number | null; created_at: string | null }>
+  logs: Array<{ latency_ms: number | null; created_at: string | null }>
 ): ResponseTimeData[] {
   const byDay: Record<string, number[]> = {};
 
   for (const log of logs) {
-    if (!log.tempo_execucao || !log.created_at) continue;
+    if (!log.latency_ms || !log.created_at) continue;
     const day = log.created_at.slice(0, 10);
     if (!byDay[day]) byDay[day] = [];
-    byDay[day].push(log.tempo_execucao);
+    byDay[day].push(log.latency_ms);
   }
 
   return Object.entries(byDay)
@@ -52,8 +52,8 @@ export function useResponseTime(days = 7) {
       const since = new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString();
 
       const { data, error } = await supabase
-        .from('logs_execucao_agentes')
-        .select('tempo_execucao, created_at')
+        .from('agent_ai_logs')
+        .select('latency_ms, created_at')
         .eq('tenant_id', tenantId)
         .gte('created_at', since)
         .order('created_at', { ascending: true });

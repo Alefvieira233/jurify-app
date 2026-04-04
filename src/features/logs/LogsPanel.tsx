@@ -34,10 +34,10 @@ const LogsPanel = () => {
   const isAdmin = profile?.role === 'admin';
 
   const filtered = useMemo(() => logs.filter(log => {
-    const name    = log.agentes_ia?.nome ?? '';
+    const name    = log.agent_name ?? '';
     const matchSearch = !debouncedSearch
       || name.toLowerCase().includes(debouncedSearch.toLowerCase())
-      || log.input_recebido.toLowerCase().includes(debouncedSearch.toLowerCase());
+      || (log.user_prompt ?? '').toLowerCase().includes(debouncedSearch.toLowerCase());
     const matchStatus = !filterStatus || filterStatus === 'all' || log.status === filterStatus;
     return matchSearch && matchStatus;
   }), [logs, debouncedSearch, filterStatus]);
@@ -176,10 +176,10 @@ const LogsPanel = () => {
             {filtered.map(log => {
               const key       = `${log.agente_id}-${log.created_at}`;
               const isExpanded = expandedKey === key;
-              const cfg        = STATUS_CFG[log.status] ?? STATUS_CFG.success;
+              const cfg        = STATUS_CFG[log.status as keyof typeof STATUS_CFG] ?? STATUS_CFG.success;
               const Icon       = cfg.icon;
-              const agentName  = log.agentes_ia?.nome ?? 'Agente Desconhecido';
-              const agentType  = log.agentes_ia?.tipo_agente;
+              const agentName  = log.agent_name ?? 'Agente Desconhecido';
+              const agentType  = log.model;
 
               return (
                 <div
@@ -225,7 +225,7 @@ const LogsPanel = () => {
                         </div>
                       </div>
                       <p className="text-[11px] text-muted-foreground/65 mt-0.5 truncate">
-                        {log.input_recebido}
+                        {log.user_prompt}
                       </p>
                     </div>
                   </button>
@@ -236,24 +236,24 @@ const LogsPanel = () => {
                       <div>
                         <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide mb-1">Input</p>
                         <p className="text-xs text-foreground/80 bg-muted/40 rounded px-2.5 py-2 leading-relaxed">
-                          {log.input_recebido}
+                          {log.user_prompt}
                         </p>
                       </div>
 
-                      {log.resposta_ia && (
+                      {log.result_preview && (
                         <div>
                           <p className="text-[10px] font-semibold text-emerald-600 dark:text-emerald-400 uppercase tracking-wide mb-1">Resposta IA</p>
                           <p className="text-xs text-foreground/80 bg-emerald-500/5 border border-emerald-500/15 rounded px-2.5 py-2 leading-relaxed">
-                            {log.resposta_ia.length > 300 ? log.resposta_ia.slice(0, 300) + '\u2026' : log.resposta_ia}
+                            {log.result_preview.length > 300 ? log.result_preview.slice(0, 300) + '\u2026' : log.result_preview}
                           </p>
                         </div>
                       )}
 
-                      {log.erro_detalhes && (
+                      {log.error_message && (
                         <div>
                           <p className="text-[10px] font-semibold text-rose-600 dark:text-rose-400 uppercase tracking-wide mb-1">Detalhes do Erro</p>
                           <p className="text-xs text-rose-600 dark:text-rose-300 bg-rose-500/8 border border-rose-500/20 rounded px-2.5 py-2 leading-relaxed">
-                            {log.erro_detalhes}
+                            {log.error_message}
                           </p>
                         </div>
                       )}

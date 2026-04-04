@@ -48,12 +48,12 @@ export const useAgentesMetrics = () => {
       // The month query includes today's data, so we derive today's count client-side
       const [mesResult, ultimaResult] = await Promise.all([
         supabase
-          .from('logs_execucao_agentes')
-          .select('agente_id, status, tempo_execucao, created_at, agentes_ia:agente_id(nome)')
+          .from('agent_ai_logs')
+          .select('agent_name, status, latency_ms, created_at')
           .eq('tenant_id', profile.tenant_id)
           .gte('created_at', inicioMes.toISOString()),
         supabase
-          .from('logs_execucao_agentes')
+          .from('agent_ai_logs')
           .select('created_at')
           .eq('tenant_id', profile.tenant_id)
           .order('created_at', { ascending: false })
@@ -76,7 +76,7 @@ export const useAgentesMetrics = () => {
       const execucoesMesCount = allMesRows.length;
 
       // Tempo medio de resposta (em ms)
-      const temposExecucao = allMesRows.map(row => row.tempo_execucao).filter(Boolean);
+      const temposExecucao = allMesRows.map(row => row.latency_ms).filter(Boolean);
       const tempoMedioResposta = temposExecucao.length > 0
         ? Math.round(temposExecucao.reduce((a: number, b: number) => a + b, 0) / temposExecucao.length)
         : 0;
@@ -88,19 +88,14 @@ export const useAgentesMetrics = () => {
         : 0;
 
       // Agente mais ativo (derived from the same month data with join)
-      type AgenteMaisAtivoRow = {
-        agente_id: string | null;
-        agentes_ia?: { nome?: string | null } | null;
-      };
       const agenteCounts: Record<string, { count: number; nome: string }> = {};
-      (allMesRows as AgenteMaisAtivoRow[]).forEach(row => {
-        const agentId = row.agente_id;
-        const agentNome = row.agentes_ia?.nome || 'Agente Desconhecido';
-        if (agentId) {
-          if (!agenteCounts[agentId]) {
-            agenteCounts[agentId] = { count: 0, nome: agentNome };
+      allMesRows.forEach(row => {
+        const agentName = row.agent_name;
+        if (agentName) {
+          if (!agenteCounts[agentName]) {
+            agenteCounts[agentName] = { count: 0, nome: agentName };
           }
-          agenteCounts[agentId].count++;
+          agenteCounts[agentName].count++;
         }
       });
 

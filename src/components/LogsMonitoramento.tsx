@@ -197,7 +197,7 @@ const LogsMonitoramento = () => {
               <TableHead>Input</TableHead>
               <TableHead>Status</TableHead>
               <TableHead>Tempo</TableHead>
-              <TableHead>API Key</TableHead>
+              <TableHead>Modelo</TableHead>
               <TableHead>Ações</TableHead>
             </TableRow>
           </TableHeader>
@@ -215,13 +215,13 @@ const LogsMonitoramento = () => {
                 </TableCell>
                 <TableCell>
                   <div>
-                    <p className="font-medium">{log.agentes_ia?.nome || 'N/A'}</p>
-                    <p className="text-sm text-muted-foreground">{log.agentes_ia?.tipo_agente}</p>
+                    <p className="font-medium">{log.agent_name || 'N/A'}</p>
+                    <p className="text-sm text-muted-foreground">{log.model || 'IA'}</p>
                   </div>
                 </TableCell>
                 <TableCell>
-                  <span className="text-sm" title={log.input_recebido}>
-                    {truncateText(log.input_recebido)}
+                  <span className="text-sm" title={log.user_prompt || ''}>
+                    {truncateText(log.user_prompt || '')}
                   </span>
                 </TableCell>
                 <TableCell>
@@ -237,7 +237,7 @@ const LogsMonitoramento = () => {
                 </TableCell>
                 <TableCell>
                   <code className="text-xs bg-muted px-1 py-0.5 rounded">
-                    {log.api_key_usado || 'N/A'}
+                    {log.model || 'N/A'}
                   </code>
                 </TableCell>
                 <TableCell>
@@ -263,7 +263,7 @@ const LogsMonitoramento = () => {
                           <div className="grid grid-cols-2 gap-4">
                             <div>
                               <label className="text-sm font-medium text-muted-foreground">Agente:</label>
-                              <p className="text-sm">{selectedLog.agentes_ia?.nome}</p>
+                              <p className="text-sm">{selectedLog.agent_name || 'N/A'}</p>
                             </div>
                             <div>
                               <label className="text-sm font-medium text-muted-foreground">Status:</label>
@@ -276,32 +276,32 @@ const LogsMonitoramento = () => {
                               <p className="text-sm">{formatTempo(selectedLog.tempo_execucao)}</p>
                             </div>
                             <div>
-                              <label className="text-sm font-medium text-muted-foreground">API Key:</label>
-                              <p className="text-sm">{selectedLog.api_key_usado || 'N/A'}</p>
+                              <label className="text-sm font-medium text-muted-foreground">Modelo:</label>
+                              <p className="text-sm">{selectedLog.model || 'N/A'}</p>
                             </div>
                           </div>
                           
                           <div>
                             <label className="text-sm font-medium text-muted-foreground">Input Recebido:</label>
                             <div className="bg-muted/50 p-3 rounded border text-sm mt-1">
-                              {selectedLog.input_recebido}
+                              {selectedLog.user_prompt}
                             </div>
                           </div>
 
-                          {selectedLog.resposta_ia && (
+                          {selectedLog.result_preview && (
                             <div>
                               <label className="text-sm font-medium text-muted-foreground">Resposta da IA:</label>
                               <div className="bg-green-50 p-3 rounded border text-sm mt-1">
-                                {selectedLog.resposta_ia}
+                                {selectedLog.result_preview}
                               </div>
                             </div>
                           )}
 
-                          {selectedLog.erro_detalhes && (
+                          {selectedLog.error_message && (
                             <div>
                               <label className="text-sm font-medium text-muted-foreground">Erro:</label>
                               <div className="bg-red-50 p-3 rounded border text-sm mt-1 text-red-700">
-                                {selectedLog.erro_detalhes}
+                                {selectedLog.error_message}
                               </div>
                             </div>
                           )}

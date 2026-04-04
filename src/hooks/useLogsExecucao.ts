@@ -20,25 +20,25 @@ import { queryKeys } from '@/lib/queryKeys';
 const logger = createLogger('LogsExecucao');
 
 interface LogExecucao {
-  agente_id: string;
-  input_recebido: string;
-  resposta_ia: string | null;
-  status: 'success' | 'error' | 'processing';
-  tempo_execucao: number | null;
-  erro_detalhes: string | null;
-  api_key_usado: string | null;
+  agent_name: string;
+  user_prompt: string | null;
+  result_preview: string | null;
+  status: string;
+  latency_ms: number | null;
+  error_message: string | null;
+  model: string | null;
+  total_tokens: number | null;
   created_at: string;
-  agentes_ia?: {
-    nome: string;
-    tipo_agente: string;
-  };
+  // Legacy compatibility aliases
+  agente_id?: string;
+  tempo_execucao?: number | null;
 }
 
 function computeStats(logs: LogExecucao[]) {
   const total = logs.length;
   const sucessos = logs.filter(l => l.status === 'success').length;
   const erros = logs.filter(l => l.status === 'error').length;
-  const temposValidos = logs.filter(l => l.tempo_execucao).map(l => l.tempo_execucao!);
+  const temposValidos = logs.filter(l => l.latency_ms).map(l => l.latency_ms!);
   const tempoMedio = temposValidos.length > 0
     ? temposValidos.reduce((acc, t) => acc + t, 0) / temposValidos.length
     : 0;
@@ -55,14 +55,8 @@ export const useLogsExecucao = () => {
     queryKey: queryKeys.logsExecucao.list(tenantId),
     queryFn: async () => {
       const { data, error } = await supabase
-        .from('logs_execucao_agentes')
-        .select(`
-          *,
-          agentes_ia:agente_id (
-            nome,
-            tipo_agente
-          )
-        `)
+        .from('agent_ai_logs')
+        .select('*')
         .eq('tenant_id', tenantId!)
         .order('created_at', { ascending: false })
         .limit(50);
@@ -71,7 +65,9 @@ export const useLogsExecucao = () => {
 
       return ((data || []) as LogExecucao[]).map(log => ({
         ...log,
-        status: log.status
+        // Legacy aliases for backward compatibility
+        agente_id: log.agent_name,
+        tempo_execucao: log.latency_ms,
       }));
     },
     enabled: !!tenantId,
@@ -85,14 +81,8 @@ export const useLogsExecucao = () => {
 
     try {
       const { data, error } = await supabase
-        .from('logs_execucao_agentes')
-        .select(`
-          *,
-          agentes_ia:agente_id (
-            nome,
-            tipo_agente
-          )
-        `)
+        .from('agent_ai_logs')
+        .select('*')
         .eq('tenant_id', tenantId)
         .order('created_at', { ascending: false })
         .limit(limite);
@@ -101,7 +91,8 @@ export const useLogsExecucao = () => {
 
       const transformedData: LogExecucao[] = (data || []).map(log => ({
         ...log,
-        status: log.status as 'success' | 'error' | 'processing'
+        agente_id: log.agent_name,
+        tempo_execucao: log.latency_ms,
       }));
 
       queryClient.setQueryData(['logs-execucao', tenantId], transformedData);
@@ -120,16 +111,10 @@ export const useLogsExecucao = () => {
 
     try {
       const { data, error } = await supabase
-        .from('logs_execucao_agentes')
-        .select(`
-          *,
-          agentes_ia:agente_id (
-            nome,
-            tipo_agente
-          )
-        `)
+        .from('agent_ai_logs')
+        .select('*')
         .eq('tenant_id', tenantId)
-        .eq('agente_id', agenteId)
+        .eq('agent_name', agenteId)
         .order('created_at', { ascending: false })
         .limit(20);
 
@@ -137,7 +122,8 @@ export const useLogsExecucao = () => {
 
       const transformedData: LogExecucao[] = (data || []).map(log => ({
         ...log,
-        status: log.status as 'success' | 'error' | 'processing'
+        agente_id: log.agent_name,
+        tempo_execucao: log.latency_ms,
       }));
 
       return transformedData;
@@ -155,7 +141,7 @@ export const useLogsExecucao = () => {
   const clearMutation = useMutation({
     mutationFn: async () => {
       const { error } = await supabase
-        .from('logs_execucao_agentes')
+        .from('agent_ai_logs')
         .delete()
         .eq('tenant_id', tenantId!)
         .lt('created_at', new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString());
