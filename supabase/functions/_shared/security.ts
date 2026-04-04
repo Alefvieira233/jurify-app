@@ -1,51 +1,12 @@
 /**
  * Security Middleware for Edge Functions
  *
- * - Rate limiting (in-memory per-isolate, good enough for burst protection)
  * - Input sanitisation against prompt injection
  * - PII content filtering (CPF, RG, phone)
  * - Audit trail logging to Supabase
+ *
+ * Rate limiting consolidated in rate-limiter.ts
  */
-
-import { getCache, setCache, CACHE_TTL } from "./cache.ts";
-
-// ---------------------------------------------------------------------------
-// Rate limiting
-// ---------------------------------------------------------------------------
-
-interface RateLimitBucket {
-  count: number;
-  windowStart: number;
-}
-
-/**
- * Check and enforce rate limit for a user.
- * @returns `true` if allowed, `false` if rate-limited.
- */
-export function rateLimit(
-  userId: string,
-  limit = 20,
-  windowSeconds = 60
-): boolean {
-  const key = `rl:${userId}`;
-  const now = Date.now();
-  const bucket = getCache<RateLimitBucket>(key);
-
-  if (!bucket || now - bucket.windowStart > windowSeconds * 1000) {
-    // New window
-    setCache<RateLimitBucket>(key, { count: 1, windowStart: now }, windowSeconds);
-    return true;
-  }
-
-  if (bucket.count >= limit) {
-    return false;
-  }
-
-  // Increment in-place (cache stores reference)
-  bucket.count++;
-  setCache<RateLimitBucket>(key, bucket, windowSeconds);
-  return true;
-}
 
 // ---------------------------------------------------------------------------
 // Input sanitisation

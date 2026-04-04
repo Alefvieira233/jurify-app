@@ -10,7 +10,8 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { getCorsHeaders } from "../_shared/cors.ts";
 import { getCache, setCache, CACHE_TTL } from "../_shared/cache.ts";
-import { rateLimit, sanitizeInput, redactPII, auditLog } from "../_shared/security.ts";
+import { sanitizeInput, redactPII, auditLog } from "../_shared/security.ts";
+import { applyRateLimit } from "../_shared/rate-limiter.ts";
 import { checkBudgetBeforeCall, recordTokenUsage } from "../_shared/ai-budget.ts";
 
 // SEC-03: Escape LIKE wildcards in user-derived query values
@@ -167,12 +168,15 @@ Deno.serve(async (req) => {
   // Use the authenticated user ID, not the one from the body
   const userId = authenticatedUserId;
 
-  // ── Rate limiting ──
-  if (!rateLimit(userId, 20, 60)) {
-    return new Response(
-      JSON.stringify({ error: "Limite de requisições excedido. Aguarde 1 minuto." }),
-      { status: 429, headers: jsonHeaders }
-    );
+  // ── Rate limiting (consolidated in rate-limiter.ts) ──
+  const rateLimitCheck = await applyRateLimit(req, {
+    maxRequests: 20,
+    windowSeconds: 60,
+    namespace: "assistant",
+  }, { user: { id: userId }, corsHeaders: corsHeaders });
+
+  if (!rateLimitCheck.allowed) {
+    return rateLimitCheck.response;
   }
 
   // ── Input sanitisation ──

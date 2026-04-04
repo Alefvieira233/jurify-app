@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -8,6 +8,7 @@ import { CheckCircle2, ArrowRight, X, Sparkles, PartyPopper } from 'lucide-react
 import { useAuth } from '@/contexts/AuthContext';
 import { supabaseUntyped } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 
 
 interface OnboardingStep {
@@ -24,21 +25,21 @@ const STEP_DEFINITIONS = [
   {
     id: 'perfil',
     title: 'Perfil configurado',
-    description: 'Preencha seu nome completo e informações básicas do seu perfil.',
+    description: 'Preencha seu nome completo e informacoes basicas do seu perfil.',
     link: '/configuracoes?tab=perfil',
     actionLabel: 'Configurar Perfil',
   },
   {
     id: 'escritorio',
-    title: 'Escritório configurado',
-    description: 'Configure o nome e dados do seu escritório para personalizar o sistema.',
+    title: 'Escritorio configurado',
+    description: 'Configure o nome e dados do seu escritorio para personalizar o sistema.',
     link: '/configuracoes?tab=escritorio',
-    actionLabel: 'Configurar Escritório',
+    actionLabel: 'Configurar Escritorio',
   },
   {
     id: 'whatsapp',
     title: 'WhatsApp conectado',
-    description: 'Conecte seu WhatsApp para atendimento automático de clientes.',
+    description: 'Conecte seu WhatsApp para atendimento automatico de clientes.',
     link: '/conexoes',
     actionLabel: 'Conectar WhatsApp',
   },
@@ -52,7 +53,7 @@ const STEP_DEFINITIONS = [
   {
     id: 'agente',
     title: 'Agente IA ativo',
-    description: 'Crie um agente de inteligência artificial para automatizar atendimentos.',
+    description: 'Crie um agente de inteligencia artificial para automatizar atendimentos.',
     link: '/agentes',
     actionLabel: 'Criar Agente',
   },
@@ -66,7 +67,7 @@ const STEP_DEFINITIONS = [
   {
     id: 'departamento',
     title: 'Departamento criado',
-    description: 'Organize sua equipe criando departamentos e áreas de atuação.',
+    description: 'Organize sua equipe criando departamentos e areas de atuacao.',
     link: '/departamentos',
     actionLabel: 'Criar Departamento',
   },
@@ -74,17 +75,100 @@ const STEP_DEFINITIONS = [
 
 const DISMISS_COOLDOWN_MS = 24 * 60 * 60 * 1000; // 24 hours
 
+interface OnboardingData {
+  visible: boolean;
+  completionMap: Record<string, boolean>;
+  allComplete: boolean;
+}
+
 const OnboardingFlow = () => {
   const navigate = useNavigate();
   const { user, profile, hasRole } = useAuth();
   const { toast } = useToast();
+  const queryClient = useQueryClient();
   const tenantId = profile?.tenant_id || null;
 
-  const [visible, setVisible] = useState(false);
-  const [loading, setLoading] = useState(true);
-  const [completionMap, setCompletionMap] = useState<Record<string, boolean>>({});
-  const [allComplete, setAllComplete] = useState(false);
   const [showCelebration, setShowCelebration] = useState(false);
+  const [dismissed, setDismissed] = useState(false);
+
+  const isAdmin = user && profile && hasRole('admin');
+
+  const { data: onboardingData, isLoading: loading } = useQuery<OnboardingData>({
+    queryKey: ['onboarding-status', tenantId, user?.id],
+    queryFn: async () => {
+      if (!tenantId || !user) return { visible: false, completionMap: {}, allComplete: false };
+
+      // Check if already completed
+      const { data: completedSetting } = await supabaseUntyped
+        .from('system_settings')
+        .select('value')
+        .eq('tenant_id', tenantId)
+        .eq('key', 'onboarding_completed')
+        .single();
+
+      if (completedSetting?.value === 'true') {
+        return { visible: false, completionMap: {}, allComplete: true };
+      }
+
+      // Check if dismissed within the last 24h
+      const { data: dismissedSetting } = await supabaseUntyped
+        .from('system_settings')
+        .select('value, updated_at')
+        .eq('tenant_id', tenantId)
+        .eq('key', 'onboarding_dismissed')
+        .single();
+
+      if (dismissedSetting?.value === 'true' && dismissedSetting.updated_at) {
+        const dismissedAt = new Date(dismissedSetting.updated_at as string).getTime();
+        if (Date.now() - dismissedAt < DISMISS_COOLDOWN_MS) {
+          return { visible: false, completionMap: {}, allComplete: false };
+        }
+      }
+
+      // Run all completion checks in parallel
+      const [
+        { data: profileData },
+        { data: tenantData },
+        { data: conexoes },
+        { data: leads },
+        { data: agentes },
+        { data: userRoles },
+        { data: departamentos },
+      ] = await Promise.all([
+        supabaseUntyped.from('profiles').select('nome_completo').eq('id', user.id).single(),
+        supabaseUntyped.from('tenants').select('nome').eq('id', tenantId).single(),
+        supabaseUntyped.from('conexoes_whatsapp').select('id').eq('tenant_id', tenantId).eq('status', 'connected').limit(1),
+        supabaseUntyped.from('leads').select('id').eq('tenant_id', tenantId).limit(1),
+        supabaseUntyped.from('agentes_ia').select('id').eq('tenant_id', tenantId).limit(1),
+        supabaseUntyped.from('user_roles').select('id').eq('tenant_id', tenantId),
+        supabaseUntyped.from('departamentos').select('id').eq('tenant_id', tenantId).limit(1),
+      ]);
+
+      const completionMap: Record<string, boolean> = {
+        perfil: Boolean(profileData?.nome_completo && String(profileData.nome_completo).trim().length > 0),
+        escritorio: Boolean(tenantData?.nome && String(tenantData.nome).trim().length > 0),
+        whatsapp: Array.isArray(conexoes) && conexoes.length > 0,
+        lead: Array.isArray(leads) && leads.length > 0,
+        agente: Array.isArray(agentes) && agentes.length > 0,
+        equipe: Array.isArray(userRoles) && userRoles.length > 1,
+        departamento: Array.isArray(departamentos) && departamentos.length > 0,
+      };
+
+      const allComplete = Object.values(completionMap).every(Boolean);
+      if (allComplete) {
+        setShowCelebration(true);
+      }
+
+      return { visible: true, completionMap, allComplete };
+    },
+    enabled: !!isAdmin && !!tenantId,
+    staleTime: 5 * 60 * 1000,
+    refetchOnWindowFocus: false,
+  });
+
+  const visible = !dismissed && (onboardingData?.visible ?? false);
+  const completionMap = useMemo(() => onboardingData?.completionMap ?? {}, [onboardingData?.completionMap]);
+  const allComplete = onboardingData?.allComplete ?? false;
 
   const steps: OnboardingStep[] = useMemo(
     () =>
@@ -109,100 +193,9 @@ const OnboardingFlow = () => {
     [steps],
   );
 
-  const fetchCompletionStatus = useCallback(async () => {
-    if (!tenantId || !user) return;
-
-    try {
-      // Check if already completed
-      const { data: completedSetting } = await supabaseUntyped
-        .from('system_settings')
-        .select('value')
-        .eq('tenant_id', tenantId)
-        .eq('key', 'onboarding_completed')
-        .single();
-
-      if (completedSetting?.value === 'true') {
-        setVisible(false);
-        setLoading(false);
-        return;
-      }
-
-      // Check if dismissed within the last 24h
-      const { data: dismissedSetting } = await supabaseUntyped
-        .from('system_settings')
-        .select('value, updated_at')
-        .eq('tenant_id', tenantId)
-        .eq('key', 'onboarding_dismissed')
-        .single();
-
-      if (dismissedSetting?.value === 'true' && dismissedSetting.updated_at) {
-        const dismissedAt = new Date(dismissedSetting.updated_at as string).getTime();
-        if (Date.now() - dismissedAt < DISMISS_COOLDOWN_MS) {
-          setVisible(false);
-          setLoading(false);
-          return;
-        }
-      }
-
-      // Run all completion checks in parallel
-      const [
-        { data: profileData },
-        { data: tenantData },
-        { data: conexoes },
-        { data: leads },
-        { data: agentes },
-        { data: userRoles },
-        { data: departamentos },
-      ] = await Promise.all([
-        supabaseUntyped.from('profiles').select('nome_completo').eq('id', user.id).single(),
-        supabaseUntyped.from('tenants').select('nome').eq('id', tenantId).single(),
-        supabaseUntyped.from('conexoes_whatsapp').select('id').eq('tenant_id', tenantId).eq('status', 'connected').limit(1),
-        supabaseUntyped.from('leads').select('id').eq('tenant_id', tenantId).limit(1),
-        supabaseUntyped.from('agentes_ia').select('id').eq('tenant_id', tenantId).limit(1),
-        supabaseUntyped.from('user_roles').select('id').eq('tenant_id', tenantId),
-        supabaseUntyped.from('departamentos').select('id').eq('tenant_id', tenantId).limit(1),
-      ]);
-
-      const map: Record<string, boolean> = {
-        perfil: Boolean(profileData?.nome_completo && String(profileData.nome_completo).trim().length > 0),
-        escritorio: Boolean(tenantData?.nome && String(tenantData.nome).trim().length > 0),
-        whatsapp: Array.isArray(conexoes) && conexoes.length > 0,
-        lead: Array.isArray(leads) && leads.length > 0,
-        agente: Array.isArray(agentes) && agentes.length > 0,
-        equipe: Array.isArray(userRoles) && userRoles.length > 1,
-        departamento: Array.isArray(departamentos) && departamentos.length > 0,
-      };
-
-      setCompletionMap(map);
-
-      const allDone = Object.values(map).every(Boolean);
-      setAllComplete(allDone);
-      if (allDone) {
-        setShowCelebration(true);
-      }
-
-      setVisible(true);
-    } catch (err) {
-      console.warn('[OnboardingFlow] fetchCompletionStatus failed:', err);
-      setVisible(false);
-    } finally {
-      setLoading(false);
-    }
-  }, [tenantId, user]);
-
-  useEffect(() => {
-    if (user && profile && hasRole('admin')) {
-      void fetchCompletionStatus();
-    } else {
-      setLoading(false);
-    }
-  }, [user, profile, hasRole, fetchCompletionStatus]);
-
-  const handleDismiss = useCallback(async () => {
-    setVisible(false);
-
-    if (!tenantId) return;
-    try {
+  const dismissMutation = useMutation({
+    mutationFn: async () => {
+      if (!tenantId) return;
       await supabaseUntyped.from('system_settings').upsert({
         tenant_id: tenantId,
         key: 'onboarding_dismissed',
@@ -210,42 +203,55 @@ const OnboardingFlow = () => {
         category: 'sistema',
         description: 'Onboarding dispensado pelo administrador',
       });
-    } catch (err) {
+    },
+    onMutate: () => {
+      setDismissed(true);
+    },
+    onError: (err) => {
       console.warn('[OnboardingFlow] handleDismiss failed:', err);
-    }
-  }, [tenantId]);
+    },
+  });
 
-  const handleComplete = useCallback(async () => {
-    if (!tenantId) return;
-
-    try {
+  const completeMutation = useMutation({
+    mutationFn: async () => {
+      if (!tenantId) throw new Error('Tenant not found');
       await supabaseUntyped.from('system_settings').upsert({
         tenant_id: tenantId,
         key: 'onboarding_completed',
         value: 'true',
         category: 'sistema',
-        description: 'Onboarding concluído pelo administrador',
+        description: 'Onboarding concluido pelo administrador',
       });
-
-      setVisible(false);
-
+    },
+    onSuccess: () => {
+      setDismissed(true);
+      void queryClient.invalidateQueries({ queryKey: ['onboarding-status'] });
       toast({
-        title: 'Configuração concluída!',
-        description: 'Parabéns! Seu escritório Jurify está 100% configurado.',
+        title: 'Configuracao concluida!',
+        description: 'Parabens! Seu escritorio Jurify esta 100% configurado.',
       });
-    } catch (err) {
+    },
+    onError: (err) => {
       console.error('[OnboardingFlow] handleComplete failed:', err);
       toast({
         title: 'Erro ao salvar',
-        description: 'Não foi possível salvar o progresso. Tente novamente.',
+        description: 'Nao foi possivel salvar o progresso. Tente novamente.',
         variant: 'destructive',
       });
-    }
-  }, [tenantId, toast]);
+    },
+  });
+
+  const handleDismiss = useCallback(() => {
+    dismissMutation.mutate();
+  }, [dismissMutation]);
+
+  const handleComplete = useCallback(() => {
+    completeMutation.mutate();
+  }, [completeMutation]);
 
   const handleNavigate = useCallback(
     (link: string) => {
-      setVisible(false);
+      setDismissed(true);
       navigate(link);
     },
     [navigate],
@@ -263,13 +269,13 @@ const OnboardingFlow = () => {
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Sparkles className="h-5 w-5 text-primary" />
-              <CardTitle className="text-xl">Configuração Inicial</CardTitle>
+              <CardTitle className="text-xl">Configuracao Inicial</CardTitle>
             </div>
             <Button
               variant="ghost"
               size="icon"
               className="h-8 w-8 text-muted-foreground hover:text-foreground"
-              onClick={() => { void handleDismiss(); }}
+              onClick={handleDismiss}
               aria-label="Fechar"
             >
               <X className="h-4 w-4" />
@@ -278,7 +284,7 @@ const OnboardingFlow = () => {
 
           <div className="space-y-2 pt-2">
             <div className="flex items-center justify-between text-sm text-muted-foreground">
-              <span>{completedCount} de 7 concluídas</span>
+              <span>{completedCount} de 7 concluidas</span>
               <span className="font-medium">{Math.round(progress)}%</span>
             </div>
             <Progress value={progress} className="h-2 w-full" />
@@ -293,10 +299,10 @@ const OnboardingFlow = () => {
               <PartyPopper className="h-6 w-6 text-green-500 shrink-0" />
               <div>
                 <p className="font-semibold text-green-700 dark:text-green-400">
-                  Tudo pronto! Parabéns!
+                  Tudo pronto! Parabens!
                 </p>
                 <p className="text-sm text-green-600 dark:text-green-500">
-                  Todas as 7 etapas foram concluídas. Seu escritório está 100% configurado.
+                  Todas as 7 etapas foram concluidas. Seu escritorio esta 100% configurado.
                 </p>
               </div>
             </div>
@@ -352,7 +358,7 @@ const OnboardingFlow = () => {
                             : ''
                         }`}
                       >
-                        {step.completed ? 'Concluído' : 'Pendente'}
+                        {step.completed ? 'Concluido' : 'Pendente'}
                       </Badge>
                     </div>
 
@@ -396,15 +402,15 @@ const OnboardingFlow = () => {
             variant="ghost"
             size="sm"
             className="text-muted-foreground"
-            onClick={() => { void handleDismiss(); }}
+            onClick={handleDismiss}
           >
             Pular por agora
           </Button>
 
           {allComplete && (
-            <Button size="sm" onClick={() => { void handleComplete(); }}>
+            <Button size="sm" onClick={handleComplete} disabled={completeMutation.isPending}>
               <PartyPopper className="h-4 w-4 mr-2" />
-              Concluir Configuração
+              Concluir Configuracao
             </Button>
           )}
         </div>

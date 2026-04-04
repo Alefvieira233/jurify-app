@@ -1,19 +1,22 @@
 /**
- * 📈 JURIFY ANALYTICS DASHBOARD
- * 
+ * JURIFY ANALYTICS DASHBOARD
+ *
  * Enterprise analytics dashboard with real-time metrics, charts, and insights.
  * Provides comprehensive view of business performance.
- * 
- * @version 1.0.0
+ *
+ * Migrated to React Query for proper caching, deduplication, and background refetch.
+ *
+ * @version 1.1.0
  */
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRBAC } from '@/hooks/useRBAC';
 import { supabaseUntyped as supabase } from '@/integrations/supabase/client';
+import { useQuery } from '@tanstack/react-query';
 import {
     BarChart,
     Bar,
@@ -85,14 +88,62 @@ interface ChartData {
     agentPerformance: { agent: string; calls: number; successRate: number }[];
 }
 
+interface AnalyticsData {
+    metrics: DashboardMetrics;
+    chartData: ChartData;
+}
+
 const COLORS = ['#8884d8', '#82ca9d', '#ffc658', '#ff7c43', '#a4de6c', '#d0ed57'];
+
+// ── Helper functions (pure, outside component) ─────────────────────────────
+
+function generateTimeSeriesData(leads: LeadRecord[], contracts: ContractRecord[], days: number) {
+    const data = [];
+    for (let i = days - 1; i >= 0; i--) {
+        const date = new Date();
+        date.setDate(date.getDate() - i);
+        const dateStr = date.toISOString().split('T')[0] ?? '';
+
+        const leadsOnDay = leads.filter(l => l.created_at.startsWith(dateStr)).length;
+        const conversionsOnDay = contracts.filter(c => c.created_at.startsWith(dateStr)).length;
+
+        data.push({
+            date: date.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' }),
+            leads: leadsOnDay,
+            conversions: conversionsOnDay,
+        });
+    }
+    return data;
+}
+
+function groupByField(items: Array<Record<string, string | null | undefined>>, field: string) {
+    const groups: Record<string, number> = {};
+    items.forEach(item => {
+        const key = item[field] ?? 'Nao informado';
+        groups[key] = (groups[key] ?? 0) + 1;
+    });
+    return Object.entries(groups).map(([name, value]) => ({ name, value })).slice(0, 6);
+}
+
+function generateAgentMetrics(logs: AiLogRecord[]) {
+    const agents = ['Coordenador', 'Qualificador', 'Juridico', 'Comercial', 'Comunicador'];
+    return agents.map(agent => {
+        const agentLogs = logs.filter(l =>
+            l.agent_name?.includes(agent) ||
+            l.agent_name?.toLowerCase().includes(agent.toLowerCase())
+        );
+        const calls = agentLogs.length;
+        const successCount = agentLogs.filter(l => l.status === 'success' || l.status === 'completed').length;
+        const successRate = calls > 0 ? (successCount / calls) * 100 : 0;
+        return { agent, calls, successRate };
+    });
+}
+
+// ── Component ───────────────────────────────────────────────────────────────
 
 export const AnalyticsDashboard = () => {
     const { profile } = useAuth();
     const { getLeadVisibilityScope, getUserDepartamentos } = useRBAC();
-    const [metrics, setMetrics] = useState<DashboardMetrics | null>(null);
-    const [chartData, setChartData] = useState<ChartData | null>(null);
-    const [loading, setLoading] = useState(true);
     const [selectedPeriod, setSelectedPeriod] = useState<'7d' | '30d' | '90d'>('30d');
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -110,12 +161,12 @@ export const AnalyticsDashboard = () => {
         return query;
     }, [getLeadVisibilityScope, getUserDepartamentos, profile?.id]);
 
-    const loadAnalytics = useCallback(async () => {
-        if (!profile?.tenant_id) return;
+    const tenantId = profile?.tenant_id;
 
-        try {
-            setLoading(true);
-            const tenantId = profile.tenant_id;
+    const { data: analyticsData, isLoading: loading, refetch } = useQuery<AnalyticsData | null>({
+        queryKey: ['analytics-dashboard', tenantId, selectedPeriod],
+        queryFn: async () => {
+            if (!tenantId) return null;
 
             // Calculate date ranges
             const now = new Date();
@@ -151,7 +202,7 @@ export const AnalyticsDashboard = () => {
 
             const conversionRate = currentLeadsCount > 0 ? Math.min((currentContractsCount / currentLeadsCount) * 100, 100) : 0;
 
-            setMetrics({
+            const metrics: DashboardMetrics = {
                 totalLeads: allLeads?.length || 0,
                 leadsThisMonth: currentLeadsCount,
                 leadsGrowth,
@@ -161,8 +212,8 @@ export const AnalyticsDashboard = () => {
                 conversionRate,
                 avgResponseTime: 2.5,
                 aiCallsToday: aiLogs?.length || 0,
-                totalRevenue: currentContractsCount * 5000, // Estimate
-            });
+                totalRevenue: currentContractsCount * 5000,
+            };
 
             // Generate chart data
             const leadsOverTime = generateTimeSeriesData(currentLeads || [], currentContracts || [], periodDays);
@@ -170,83 +221,49 @@ export const AnalyticsDashboard = () => {
             const leadsBySource = groupByField(allLeads || [], 'origem');
             const agentPerformance = generateAgentMetrics(aiLogs || []);
 
-            setChartData({
+            const chartData: ChartData = {
                 leadsOverTime,
                 leadsByArea,
                 leadsBySource,
                 agentPerformance,
-            });
+            };
 
-        } catch (error) {
-            log.error('Error loading analytics', error);
-        } finally {
-            setLoading(false);
-        }
-    }, [profile?.tenant_id, selectedPeriod, applyLeadVisibilityFilter]);
+            return { metrics, chartData };
+        },
+        enabled: !!tenantId,
+        staleTime: 2 * 60 * 1000,
+        refetchOnWindowFocus: false,
+        meta: {
+            onError: (error: unknown) => {
+                log.error('Error loading analytics', error);
+            },
+        },
+    });
 
-    useEffect(() => {
-        void loadAnalytics();
-    }, [loadAnalytics]);
+    const metrics = analyticsData?.metrics ?? null;
+    const chartData = analyticsData?.chartData ?? null;
 
-    const generateTimeSeriesData = (leads: LeadRecord[], contracts: ContractRecord[], days: number) => {
-        const data = [];
-        for (let i = days - 1; i >= 0; i--) {
-            const date = new Date();
-            date.setDate(date.getDate() - i);
-            const dateStr = date.toISOString().split('T')[0] ?? '';
-
-            const leadsOnDay = leads.filter(l => l.created_at.startsWith(dateStr)).length;
-            const conversionsOnDay = contracts.filter(c => c.created_at.startsWith(dateStr)).length;
-
-            data.push({
-                date: date.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' }),
-                leads: leadsOnDay,
-                conversions: conversionsOnDay,
-            });
-        }
-        return data;
-    };
-
-    const groupByField = (items: Array<Record<string, string | null | undefined>>, field: string) => {
-        const groups: Record<string, number> = {};
-        items.forEach(item => {
-            const key = item[field] ?? 'Não informado';
-            groups[key] = (groups[key] ?? 0) + 1;
-        });
-        return Object.entries(groups).map(([name, value]) => ({ name, value })).slice(0, 6);
-    };
-
-    const generateAgentMetrics = (logs: AiLogRecord[]) => {
-        const agents = ['Coordenador', 'Qualificador', 'Jurídico', 'Comercial', 'Comunicador'];
-        return agents.map(agent => {
-            const agentLogs = logs.filter(l =>
-                l.agent_name?.includes(agent) ||
-                l.agent_name?.toLowerCase().includes(agent.toLowerCase())
-            );
-            const calls = agentLogs.length;
-            const successCount = agentLogs.filter(l => l.status === 'success' || l.status === 'completed').length;
-            const successRate = calls > 0 ? (successCount / calls) * 100 : 0;
-            return { agent, calls, successRate };
-        });
-    };
-
-    const MetricCard = ({ title, value, change, icon: Icon }: { title: string; value: string | number; change?: number; icon: React.ComponentType<{ className?: string }> }) => (
-        <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium text-muted-foreground">{title}</CardTitle>
-                <Icon className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-                <div className="text-2xl font-bold">{value}</div>
-                {change !== undefined && (
-                    <div className={`flex items-center text-xs ${change >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                        {change >= 0 ? <ArrowUpRight className="h-3 w-3" /> : <ArrowDownRight className="h-3 w-3" />}
-                        {Math.abs(change).toFixed(1)}% vs período anterior
-                    </div>
-                )}
-            </CardContent>
-        </Card>
-    );
+    const MetricCard = useMemo(() => {
+        const Component = ({ title, value, change, icon: Icon }: { title: string; value: string | number; change?: number; icon: React.ComponentType<{ className?: string }> }) => (
+            <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium text-muted-foreground">{title}</CardTitle>
+                    <Icon className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                    <div className="text-2xl font-bold">{value}</div>
+                    {change !== undefined && (
+                        <div className={`flex items-center text-xs ${change >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                            {change >= 0 ? <ArrowUpRight className="h-3 w-3" /> : <ArrowDownRight className="h-3 w-3" />}
+                            {Math.abs(change).toFixed(1)}% vs periodo anterior
+                        </div>
+                    )}
+                </CardContent>
+            </Card>
+        );
+        Component.displayName = 'MetricCard';
+        return Component;
+    }, []);
 
     if (loading) {
         return (
@@ -262,7 +279,7 @@ export const AnalyticsDashboard = () => {
             <div className="flex items-center justify-between">
                 <div>
                     <h2 className="text-3xl font-bold tracking-tight">Analytics</h2>
-                    <p className="text-muted-foreground">Visão completa do seu escritório</p>
+                    <p className="text-muted-foreground">Visao completa do seu escritorio</p>
                 </div>
                 <div className="flex items-center gap-2">
                     <div className="flex items-center bg-muted rounded-lg p-1">
@@ -277,7 +294,7 @@ export const AnalyticsDashboard = () => {
                             </Button>
                         ))}
                     </div>
-                    <Button variant="outline" size="sm" onClick={() => { void loadAnalytics(); }}>
+                    <Button variant="outline" size="sm" onClick={() => { void refetch(); }}>
                         <RefreshCw className="h-4 w-4 mr-2" />
                         Atualizar
                     </Button>
@@ -300,7 +317,7 @@ export const AnalyticsDashboard = () => {
                         icon={FileText}
                     />
                     <MetricCard
-                        title="Taxa de Conversão"
+                        title="Taxa de Conversao"
                         value={`${metrics.conversionRate.toFixed(1)}%`}
                         icon={TrendingUp}
                     />
@@ -316,7 +333,7 @@ export const AnalyticsDashboard = () => {
             {chartData && (
                 <Tabs defaultValue="overview" className="space-y-4">
                     <TabsList>
-                        <TabsTrigger value="overview">Visão Geral</TabsTrigger>
+                        <TabsTrigger value="overview">Visao Geral</TabsTrigger>
                         <TabsTrigger value="leads">Clientes</TabsTrigger>
                         <TabsTrigger value="agents">Agentes IA</TabsTrigger>
                     </TabsList>
@@ -324,7 +341,7 @@ export const AnalyticsDashboard = () => {
                     <TabsContent value="overview" className="space-y-4">
                         <Card>
                             <CardHeader>
-                                <CardTitle>Clientes e Conversões ao Longo do Tempo</CardTitle>
+                                <CardTitle>Clientes e Conversoes ao Longo do Tempo</CardTitle>
                             </CardHeader>
                             <CardContent>
                                 <ResponsiveContainer width="100%" height={300}>
@@ -334,7 +351,7 @@ export const AnalyticsDashboard = () => {
                                         <YAxis fontSize={12} />
                                         <Tooltip />
                                         <Area type="monotone" dataKey="leads" stackId="1" stroke="#8884d8" fill="#8884d8" fillOpacity={0.6} name="Leads" />
-                                        <Area type="monotone" dataKey="conversions" stackId="2" stroke="#82ca9d" fill="#82ca9d" fillOpacity={0.6} name="Conversões" />
+                                        <Area type="monotone" dataKey="conversions" stackId="2" stroke="#82ca9d" fill="#82ca9d" fillOpacity={0.6} name="Conversoes" />
                                     </AreaChart>
                                 </ResponsiveContainer>
                             </CardContent>
@@ -345,7 +362,7 @@ export const AnalyticsDashboard = () => {
                         <div className="grid gap-4 md:grid-cols-2">
                             <Card>
                                 <CardHeader>
-                                    <CardTitle>Clientes por Área Jurídica</CardTitle>
+                                    <CardTitle>Clientes por Area Juridica</CardTitle>
                                 </CardHeader>
                                 <CardContent>
                                     <ResponsiveContainer width="100%" height={300}>

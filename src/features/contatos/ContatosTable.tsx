@@ -3,6 +3,7 @@ import { useLeads, type Lead } from '@/hooks/useLeads';
 import { usePageTitle } from '@/hooks/usePageTitle';
 import { useDepartamentos } from '@/hooks/useDepartamentos';
 import { useTeamMembers } from '@/hooks/useTeamMembers';
+import { useVirtualList } from '@/hooks/useVirtualList';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
@@ -15,7 +16,8 @@ import { ScreenReaderAnnounce } from '@/components/ui/ScreenReaderAnnounce';
 import { useTableKeyboardNav } from '@/hooks/useTableKeyboardNav';
 import LeadDrawer from '@/features/leads/LeadDrawer';
 
-const PAGE_SIZE = 15;
+const PAGE_SIZE = 100;
+const ROW_HEIGHT = 56;
 
 interface ContatoRowProps {
   lead: Lead;
@@ -23,14 +25,16 @@ interface ContatoRowProps {
   memberMap: Map<string, string>;
   deptoMap: Map<string, string>;
   keyboardProps?: Record<string, unknown>;
+  style?: React.CSSProperties;
 }
 
-const ContatoRow = memo(({ lead, onRowClick, memberMap, deptoMap, keyboardProps }: ContatoRowProps) => {
+const ContatoRow = memo(({ lead, onRowClick, memberMap, deptoMap, keyboardProps, style }: ContatoRowProps) => {
   const sc = getStatusConfig('leads', lead.status ?? 'novo');
   return (
     <TableRow
       className="cursor-pointer hover:bg-accent/50 transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-1"
       onClick={() => onRowClick(lead)}
+      style={style}
       {...keyboardProps}
     >
       <TableCell>
@@ -104,13 +108,20 @@ export default function ContatosTable() {
   const totalPages = Math.ceil(filtered.length / PAGE_SIZE);
   const paginated = filtered.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
 
+  // Virtual scrolling
+  const { parentRef, virtualizer } = useVirtualList({
+    count: paginated.length,
+    estimateSize: ROW_HEIGHT,
+    overscan: 10,
+  });
+
   const handleRowClick = useCallback((lead: Lead) => {
     setSelectedLead(lead);
     setDrawerOpen(true);
   }, []);
 
-  // Keyboard navigation
-  const { containerRef, getRowProps } = useTableKeyboardNav({
+  // Keyboard navigation — operates on virtual items mapped to paginated array
+  const { getRowProps } = useTableKeyboardNav({
     itemCount: paginated.length,
     onActivate: (index) => {
       const lead = paginated[index];
@@ -143,6 +154,8 @@ export default function ContatosTable() {
     );
   }
 
+  const virtualItems = virtualizer.getVirtualItems();
+
   return (
     <div className="p-6 space-y-4">
       {/* Header */}
@@ -166,39 +179,68 @@ export default function ContatosTable() {
         />
       </div>
 
-      {/* Table */}
+      {/* Table with virtual scrolling */}
       <div className="border border-border rounded-lg overflow-hidden">
+        {/* Fixed header */}
         <Table role="grid" aria-label="Tabela de contatos">
           <TableHeader>
             <TableRow className="bg-muted/30">
               <TableHead className="text-xs uppercase tracking-wider">Nome</TableHead>
               <TableHead className="text-xs uppercase tracking-wider">Telefone</TableHead>
-              <TableHead className="text-xs uppercase tracking-wider">Responsável</TableHead>
+              <TableHead className="text-xs uppercase tracking-wider">Responsavel</TableHead>
               <TableHead className="text-xs uppercase tracking-wider">Status</TableHead>
               <TableHead className="text-xs uppercase tracking-wider">Departamento</TableHead>
             </TableRow>
           </TableHeader>
-          <TableBody ref={containerRef}>
-            {paginated.length === 0 ? (
+        </Table>
+
+        {/* Scrollable virtualized body */}
+        {paginated.length === 0 ? (
+          <Table>
+            <TableBody>
               <TableRow>
                 <TableCell colSpan={5} className="text-center py-12 text-muted-foreground">
                   {search ? `Nenhum resultado para "${search}"` : 'Nenhum contato encontrado'}
                 </TableCell>
               </TableRow>
-            ) : (
-              paginated.map((lead, index) => (
-                <ContatoRow
-                  key={lead.id}
-                  lead={lead}
-                  onRowClick={handleRowClick}
-                  memberMap={memberMap}
-                  deptoMap={deptoMap}
-                  keyboardProps={getRowProps(index)}
-                />
-              ))
-            )}
-          </TableBody>
-        </Table>
+            </TableBody>
+          </Table>
+        ) : (
+          <div
+            ref={parentRef}
+            className="overflow-auto"
+            style={{ maxHeight: 'calc(100vh - 340px)' }}
+          >
+            <div style={{ height: `${virtualizer.getTotalSize()}px`, position: 'relative' }}>
+              <Table>
+                <TableBody>
+                  {virtualItems.map((virtualRow) => {
+                    const lead = paginated[virtualRow.index];
+                    if (!lead) return null;
+                    return (
+                      <ContatoRow
+                        key={lead.id}
+                        lead={lead}
+                        onRowClick={handleRowClick}
+                        memberMap={memberMap}
+                        deptoMap={deptoMap}
+                        keyboardProps={getRowProps(virtualRow.index)}
+                        style={{
+                          position: 'absolute',
+                          top: 0,
+                          left: 0,
+                          width: '100%',
+                          height: `${virtualRow.size}px`,
+                          transform: `translateY(${virtualRow.start}px)`,
+                        }}
+                      />
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Pagination */}
