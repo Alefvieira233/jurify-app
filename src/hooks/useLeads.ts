@@ -245,15 +245,15 @@ export const useLeads = (options?: { enablePagination?: boolean; pageSize?: numb
       }
 
       // Defense-in-depth: filter by visibility scope (RLS is authoritative, this is UX guard)
-      if (visibilityScope === 'own') {
-        query = query.eq('responsavel_id', profile?.id ?? '');
+      if (visibilityScope === 'own' && profile?.id) {
+        query = query.eq('responsavel_id', profile.id);
       } else if (visibilityScope === 'department') {
         const deptoIds = getUserDepartamentos();
         if (deptoIds.length > 0) {
           query = query.in('departamento_id', deptoIds);
-        } else {
+        } else if (profile?.id) {
           // No department memberships → fall back to own leads only
-          query = query.eq('responsavel_id', profile?.id ?? '');
+          query = query.eq('responsavel_id', profile.id);
         }
       }
       // visibilityScope === 'all' → no additional filter (admin/manager)
@@ -269,7 +269,7 @@ export const useLeads = (options?: { enablePagination?: boolean; pageSize?: numb
       log.debug(`${data?.length ?? 0} leads encontrados`);
       return { leads: ((data || []) as unknown as Record<string, unknown>[]).map(normalizeLead), totalCount: count ?? 0 };
     },
-    enabled: !!user,
+    enabled: !!user && !!profile?.id && !!tenantId,
     staleTime: 2 * 60 * 1000,    // 2 min — leads mudam com frequência média
     refetchOnWindowFocus: false,
   });
