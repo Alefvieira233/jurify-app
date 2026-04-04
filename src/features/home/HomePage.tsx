@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import StatCard from '@/features/dashboard/components/StatCard';
 import PrazosUrgentesWidget from '@/features/dashboard/components/PrazosUrgentesWidget';
+import ErrorState from '@/components/ErrorState';
 
 export default function HomePage() {
   usePageTitle('Home');
@@ -43,13 +44,7 @@ export default function HomePage() {
   if (isError) {
     return (
       <div className="h-[calc(100vh-var(--topbar-h,4rem))] flex items-center justify-center p-6">
-        <div className="text-center">
-          <p className="text-destructive font-medium">Erro ao carregar dados</p>
-          <p className="text-sm text-muted-foreground mt-1">Tente recarregar a pagina</p>
-          <Button variant="outline" size="sm" className="mt-4" onClick={() => window.location.reload()}>
-            Recarregar
-          </Button>
-        </div>
+        <ErrorState title="Erro ao carregar dados" onRetry={() => window.location.reload()} />
       </div>
     );
   }

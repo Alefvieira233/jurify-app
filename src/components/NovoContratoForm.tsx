@@ -1,3 +1,4 @@
+import { useEffect, useCallback } from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -11,6 +12,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea';
 import { Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
+import { useFormDraftPersistence } from '@/hooks/useDraftPersistence';
+import { DraftRecoveryBanner } from '@/components/ui/DraftRecoveryBanner';
 
 interface Lead {
   id: string;
@@ -115,12 +118,20 @@ export const NovoContratoForm = ({ onClose }: NovoContratoFormProps) => {
   const tenantId = profile?.tenant_id || null;
   const queryClient = useQueryClient();
 
+  // Draft persistence
+  const { hasDraft, saveDraft, loadDraft, clearDraft } = useFormDraftPersistence<ContratoFormValues>({
+    formName: 'novo-contrato',
+    tenantId,
+  });
+
   const {
     register,
     control,
     handleSubmit,
     getValues,
     setValue,
+    watch,
+    reset,
     formState: { errors },
   } = useForm<ContratoFormValues>({
     resolver: zodResolver(contratoSchema),
@@ -135,6 +146,35 @@ export const NovoContratoForm = ({ onClose }: NovoContratoFormProps) => {
       data_assinatura: '',
     },
   });
+
+  // Save draft on form value changes
+  useEffect(() => {
+    const subscription = watch((values) => {
+      saveDraft(values as Partial<ContratoFormValues>);
+    });
+    return () => subscription.unsubscribe();
+  }, [watch, saveDraft]);
+
+  const handleRestoreDraft = useCallback(() => {
+    const draft = loadDraft();
+    if (draft) {
+      reset({
+        lead_id: '',
+        nome_cliente: '',
+        area_juridica: '',
+        valor_causa: 0,
+        responsavel: profile?.nome_completo ?? '',
+        texto_contrato: DEFAULT_TEXTO,
+        clausulas_customizadas: '',
+        data_assinatura: '',
+        ...draft,
+      } as ContratoFormValues);
+    }
+  }, [loadDraft, reset, profile?.nome_completo]);
+
+  const handleDiscardDraft = useCallback(() => {
+    clearDraft();
+  }, [clearDraft]);
 
   const { data: leads = [] } = useQuery({
     queryKey: ['leads-contratos', tenantId],
@@ -157,6 +197,7 @@ export const NovoContratoForm = ({ onClose }: NovoContratoFormProps) => {
       if (error) throw error;
     },
     onSuccess: () => {
+      clearDraft();
       void queryClient.invalidateQueries({ queryKey: ['contratos'] });
       toast.success('Contrato criado com sucesso!');
       onClose();
@@ -215,6 +256,11 @@ export const NovoContratoForm = ({ onClose }: NovoContratoFormProps) => {
 
   return (
     <form onSubmit={(e) => { void handleSubmit(onSubmit)(e); }} className="space-y-6">
+      {/* Draft recovery banner */}
+      {hasDraft && (
+        <DraftRecoveryBanner onRestore={handleRestoreDraft} onDiscard={handleDiscardDraft} />
+      )}
+
       <div className="space-y-2">
         <Label>Cliente Existente (Opcional)</Label>
         <Controller

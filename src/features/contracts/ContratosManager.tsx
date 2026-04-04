@@ -1,6 +1,9 @@
 
 import { useState, useMemo, useCallback, memo } from 'react';
-import { Plus, Search, Eye, Edit, FileSignature, Send, AlertCircle, RefreshCw, Trash2, Share2 } from 'lucide-react';
+import { Plus, Search, Eye, Edit, FileSignature, Send, RefreshCw, Trash2, Share2, MoreVertical } from 'lucide-react';
+import { useIsMobile } from '@/hooks/use-mobile';
+import { MobileCard } from '@/components/ui/MobileCard';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { nativeShare } from '@/hooks/useNativeShare';
 import { useDebounce } from '@/hooks/useDebounce';
 import { Button } from '@/components/ui/button';
@@ -24,6 +27,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { createLogger } from '@/lib/logger';
 import { usePageTitle } from '@/hooks/usePageTitle';
 import EmptyState from '@/components/EmptyState';
+import ErrorState from '@/components/ErrorState';
 
 const log = createLogger('ContratosManager');
 
@@ -136,6 +140,7 @@ ContratoCard.displayName = 'ContratoCard';
 
 const ContratosManager = () => {
   usePageTitle('Contratos');
+  const isMobile = useIsMobile();
   const [searchTerm, setSearchTerm] = useState('');
   const debouncedSearchTerm = useDebounce(searchTerm, 300);
   const [filterStatus, setFilterStatus] = useState('all');
@@ -265,46 +270,7 @@ const ContratosManager = () => {
   if (error) {
     return (
       <div className="p-6 space-y-6">
-        <Card>
-          <CardHeader>
-            <div className="flex justify-between items-center">
-              <div>
-                <CardTitle className="text-2xl">Gestão de Contratos</CardTitle>
-                <p className="text-[hsl(var(--muted-foreground))]">Gerencie contratos e assinaturas digitais</p>
-              </div>
-              <Button onClick={() => setIsNovoContratoOpen(true)} className="bg-[hsl(var(--accent))] hover:bg-[hsl(var(--accent-hover))] text-[hsl(var(--accent-foreground))]">
-                <Plus className="h-4 w-4 mr-2" />
-                Novo Contrato
-              </Button>
-            </div>
-          </CardHeader>
-        </Card>
-
-        <Card className="border-red-200 bg-red-50">
-          <CardContent className="p-8">
-            <div className="text-center">
-              <AlertCircle className="h-12 w-12 text-red-500 mx-auto mb-4" />
-              <h3 className="text-lg font-medium text-red-900 mb-2">Erro ao carregar contratos</h3>
-              <p className="text-red-700 mb-4">{error}</p>
-              <div className="flex gap-2 justify-center">
-                <Button 
-                  onClick={handleRetry}
-                  className="bg-red-600 hover:bg-red-700"
-                >
-                  <RefreshCw className="h-4 w-4 mr-2" />
-                  Tentar novamente
-                </Button>
-                <Button 
-                  onClick={() => window.location.reload()}
-                  variant="outline"
-                  className="border-red-300 text-red-700 hover:bg-red-100"
-                >
-                  Recarregar página
-                </Button>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+        <ErrorState title="Erro ao carregar contratos" message={error} onRetry={handleRetry} />
       </div>
     );
   }
@@ -436,6 +402,49 @@ const ContratosManager = () => {
           </Card>
 
           {/* Lista de Contratos */}
+          {isMobile ? (
+            <div className="space-y-3">
+              {filteredContratos.map((contrato) => (
+                <MobileCard
+                  key={contrato.id}
+                  title={contrato.nome_cliente ?? 'Sem nome'}
+                  subtitle={contrato.area_juridica ?? ''}
+                  badge={
+                    <Badge className={getStatusColor(contrato.status ?? '')}>
+                      {getStatusLabel(contrato.status ?? '')}
+                    </Badge>
+                  }
+                  details={[
+                    { label: 'Responsável', value: contrato.responsavel ?? '—' },
+                    { label: 'Valor', value: fmtCurrency(Number(contrato.valor_causa)) },
+                    ...(contrato.data_envio ? [{ label: 'Envio', value: fmtDate(contrato.data_envio) }] : []),
+                  ]}
+                  actions={
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button size="sm" variant="outline" className="w-full">
+                          <MoreVertical className="w-4 h-4 mr-2" />
+                          Ações
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem onClick={() => handleOpenDetails(contrato)}>
+                          <Eye className="w-4 h-4 mr-2" /> Ver detalhes
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => handleOpenDetails(contrato)}>
+                          <Edit className="w-4 h-4 mr-2" /> Editar
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => handleRequestDelete(contrato)} className="text-destructive">
+                          <Trash2 className="w-4 h-4 mr-2" /> Excluir
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  }
+                  onClick={() => handleOpenDetails(contrato)}
+                />
+              ))}
+            </div>
+          ) : (
           <div className="grid gap-4">
             {filteredContratos.map((contrato) => (
               <ContratoCard
@@ -448,6 +457,7 @@ const ContratosManager = () => {
               />
             ))}
           </div>
+          )}
 
           {filteredContratos.length === 0 && searchTerm && (
             <EmptyState

@@ -38,7 +38,7 @@ export function useTarefas() {
   const qc = useQueryClient();
   const tenantId = profile?.tenant_id;
 
-  const { data: tarefas, isLoading } = useQuery({
+  const { data: tarefas, isLoading, isError, error, refetch } = useQuery({
     queryKey: queryKeys.tarefas.list(tenantId),
     enabled: !!tenantId,
     queryFn: async () => {
@@ -94,5 +94,5 @@ export function useTarefas() {
     },
   });
 
-  return { tarefas: tarefas ?? [], isLoading, createTarefa, updateTarefa, deleteTarefa };
+  return { tarefas: tarefas ?? [], isLoading, isError, error, refetch, createTarefa, updateTarefa, deleteTarefa };
 }

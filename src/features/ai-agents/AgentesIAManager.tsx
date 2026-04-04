@@ -31,6 +31,7 @@ import { trackUserAction } from '@/lib/monitoring';
 import { useAuth } from '@/contexts/AuthContext';
 import { createLogger } from '@/lib/logger';
 import { usePageTitle } from '@/hooks/usePageTitle';
+import ErrorState from '@/components/ErrorState';
 
 const log = createLogger('AgentesIAManager');
 
@@ -159,21 +160,7 @@ const AgentesIAManager = () => {
   if (error) {
     return (
       <div className="space-y-6">
-        <div className="flex justify-between items-center">
-          <h1 className="text-2xl font-bold text-[hsl(var(--foreground))]">Agentes de IA</h1>
-        </div>
-        <Card className="border-red-200 bg-red-50">
-          <CardContent className="p-6 text-center">
-            <div className="text-red-600 mb-4">
-              <Bot className="h-12 w-12 mx-auto mb-2" />
-              <h3 className="text-lg font-semibold">Erro ao carregar agentes</h3>
-              <p className="text-sm">{error}</p>
-            </div>
-            <Button onClick={handleRetry} variant="outline" className="border-red-300 text-red-700">
-              Tentar Novamente
-            </Button>
-          </CardContent>
-        </Card>
+        <ErrorState title="Erro ao carregar agentes" message={error} onRetry={handleRetry} />
       </div>
     );
   }

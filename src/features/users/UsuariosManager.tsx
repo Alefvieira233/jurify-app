@@ -7,6 +7,8 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Plus, Search, MoreHorizontal, Edit, Trash, ShieldAlert, Users, ExternalLink, UserPlus } from 'lucide-react';
+import { useIsMobile } from '@/hooks/use-mobile';
+import { MobileCard } from '@/components/ui/MobileCard';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { useRBAC } from '@/hooks/useRBAC';
@@ -18,6 +20,7 @@ import ConfirmDialog from '@/components/ConfirmDialog';
 import { usePageTitle } from '@/hooks/usePageTitle';
 import { getAvatarHex, getInitials } from '@/utils/formatting';
 import EmptyState from '@/components/EmptyState';
+import ErrorState from '@/components/ErrorState';
 
 interface Usuario {
   id: string;
@@ -47,6 +50,7 @@ const getRoleBadgeConfig = (role: string) => {
 
 const UsuariosManager = () => {
   usePageTitle('Equipe');
+  const isMobile = useIsMobile();
   const { profile } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -61,7 +65,7 @@ const UsuariosManager = () => {
   const canViewUsers = can('usuarios', 'read');
   const canCreate = can('usuarios', 'create');
 
-  const { data: usuarios = [], isLoading } = useQuery({
+  const { data: usuarios = [], isLoading, isError, refetch } = useQuery({
     queryKey: ['usuarios'],
     queryFn: async () => {
       let query = supabase
@@ -108,6 +112,14 @@ const UsuariosManager = () => {
       (u.cargo || '').toLowerCase().includes(searchTerm.toLowerCase())
     );
   }, [usuarios, searchTerm]);
+
+  if (isError) {
+    return (
+      <div className="p-6">
+        <ErrorState title="Erro ao carregar usuários" onRetry={() => void refetch()} />
+      </div>
+    );
+  }
 
   if (!canViewUsers) {
     return (
@@ -207,21 +219,78 @@ const UsuariosManager = () => {
             ? { label: 'Limpar busca', onClick: () => setSearchTerm('') }
             : { label: 'Convidar Membro', onClick: () => setIsNovoUsuarioOpen(true) }}
         />
+      ) : isMobile ? (
+        <div className="space-y-3">
+          {filteredUsuarios.map((usuario) => {
+            const activeRoles = usuario.user_roles?.filter(r => r.ativo) || [];
+            return (
+              <MobileCard
+                key={usuario.id}
+                title={usuario.nome_completo}
+                subtitle={usuario.email}
+                badge={
+                  activeRoles.length > 0 ? (
+                    <div className="flex gap-1">
+                      {activeRoles.map(ur => {
+                        const cfg = getRoleBadgeConfig(ur.role);
+                        return (
+                          <span key={ur.role} className={`px-2 py-[2px] rounded-md text-[10px] font-bold uppercase tracking-wider ${cfg.bg} ${cfg.text}`}>
+                            {cfg.label}
+                          </span>
+                        );
+                      })}
+                    </div>
+                  ) : undefined
+                }
+                details={[
+                  { label: 'Cargo', value: usuario.cargo || 'Indefinido' },
+                  { label: 'Status', value: usuario.ativo ? 'Ativo' : 'Inativo' },
+                  { label: 'Último acesso', value: usuario.data_ultimo_acesso
+                    ? new Date(usuario.data_ultimo_acesso).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' })
+                    : 'Nunca logou' },
+                ]}
+                actions={
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button size="sm" variant="outline" className="w-full">
+                        <MoreHorizontal className="w-4 h-4 mr-2" />
+                        Ações
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuItem onClick={() => { setSelectedUser(usuario); setIsEditarUsuarioOpen(true); }}>
+                        <Edit className="h-4 w-4 mr-2" /> Editar Perfil
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => { setSelectedUser(usuario); setIsPermissoesOpen(true); }}>
+                        <ShieldAlert className="h-4 w-4 mr-2" /> Acessos (RBAC)
+                      </DropdownMenuItem>
+                      {usuario.ativo && canDeleteUsers && (
+                        <DropdownMenuItem onClick={() => setConfirmDeactivate({ open: true, id: usuario.id, nome: usuario.nome_completo })} className="text-red-500">
+                          <Trash className="h-4 w-4 mr-2" /> Revogar Acesso
+                        </DropdownMenuItem>
+                      )}
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                }
+              />
+            );
+          })}
+        </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
           {filteredUsuarios.map((usuario) => {
             const avatarColor = getAvatarHex(usuario.nome_completo);
             const initials = getInitials(usuario.nome_completo);
             const activeRoles = usuario.user_roles?.filter(r => r.ativo) || [];
-            
+
             return (
-              <div 
-                key={usuario.id} 
+              <div
+                key={usuario.id}
                 className={`group relative bg-background border border-border/10 rounded-[24px] p-6 hover:shadow-2xl hover:shadow-primary/5 transition-all duration-300 ${!usuario.ativo && 'opacity-60 grayscale'}`}
               >
                 {/* Visual Flair */}
                 <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-border/20 to-transparent"></div>
-                
+
                 <div className="flex items-start justify-between mb-5 relative">
                   <div className="w-14 h-14 rounded-full flex items-center justify-center text-white text-lg font-bold shadow-md border-2 border-background z-10" style={{ backgroundColor: avatarColor }}>
                     {initials}
@@ -276,7 +345,7 @@ const UsuariosManager = () => {
                         );
                       })
                     ) : (
-                      <span className="text-[10px] text-muted-foreground/50 italic">Sem permissões vinculadas</span>
+                      <span className="text-[10px] text-muted-foreground/50 italic">Sem permissoes vinculadas</span>
                     )}
                   </div>
 
@@ -286,7 +355,7 @@ const UsuariosManager = () => {
                       Acesso
                     </span>
                     <span className="text-xs font-semibold text-foreground">
-                      {usuario.data_ultimo_acesso 
+                      {usuario.data_ultimo_acesso
                         ? new Date(usuario.data_ultimo_acesso).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' })
                         : 'Nunca logou'}
                     </span>

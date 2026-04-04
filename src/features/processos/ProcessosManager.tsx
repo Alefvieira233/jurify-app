@@ -1,5 +1,8 @@
 import { useState, useCallback, memo } from 'react';
-import { Plus, Search, Scale, AlertCircle, RefreshCw, Eye, Edit, Trash2, XCircle, Gavel, TrendingUp, Clock } from 'lucide-react';
+import { Plus, Search, Scale, Eye, Edit, Trash2, XCircle, Gavel, TrendingUp, Clock, MoreVertical } from 'lucide-react';
+import { useIsMobile } from '@/hooks/use-mobile';
+import { MobileCard } from '@/components/ui/MobileCard';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { useDebounce } from '@/hooks/useDebounce';
 import { useQuery } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
@@ -20,6 +23,7 @@ import { useRBAC } from '@/hooks/useRBAC';
 import { supabaseUntyped as supabase } from '@/integrations/supabase/client';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import EmptyState from '@/components/EmptyState';
+import ErrorState from '@/components/ErrorState';
 import PaginationControls from '@/components/PaginationControls';
 import NovoProcessoForm from './components/NovoProcessoForm';
 import ProcessoDetalhes from './components/ProcessoDetalhes';
@@ -137,6 +141,7 @@ ProcessoCard.displayName = 'ProcessoCard';
 
 const ProcessosManager = () => {
   usePageTitle('Processos');
+  const isMobile = useIsMobile();
   const [searchTerm, setSearchTerm] = useState('');
   const debouncedSearch = useDebounce(searchTerm, 300);
   const [filterStatus, setFilterStatus] = useState('all');
@@ -305,21 +310,7 @@ const ProcessosManager = () => {
   if (error) {
     return (
       <div className="p-6">
-        <Card>
-          <CardHeader>
-            <div className="flex items-center gap-2 text-destructive">
-              <AlertCircle className="w-5 h-5" />
-              <CardTitle>Erro ao carregar processos</CardTitle>
-            </div>
-          </CardHeader>
-          <CardContent>
-            <p className="text-sm text-muted-foreground mb-4">{error}</p>
-            <Button onClick={fetchProcessos} variant="outline">
-              <RefreshCw className="w-4 h-4 mr-2" />
-              Tentar novamente
-            </Button>
-          </CardContent>
-        </Card>
+        <ErrorState title="Erro ao carregar processos" message={error} onRetry={fetchProcessos} />
       </div>
     );
   }
@@ -450,6 +441,58 @@ const ProcessosManager = () => {
       </Card>
 
       {/* List */}
+      {isMobile ? (
+        <div className="space-y-3">
+          {processos.map(processo => (
+            <MobileCard
+              key={processo.id}
+              title={processo.numero_processo || 'Sem número'}
+              subtitle={[processo.tribunal, processo.vara, processo.comarca].filter(Boolean).join(' \u2022 ') || 'Sem localização'}
+              badge={
+                <Badge className={getStatusClasses('processos', processo.status)}>
+                  {PROCESSO_STATUS_LABELS[processo.status] ?? processo.status}
+                </Badge>
+              }
+              details={[
+                { label: 'Tipo', value: TIPO_LABELS[processo.tipo_acao] ?? processo.tipo_acao },
+                { label: 'Fase', value: <span className="capitalize">{processo.fase_processual.replace(/_/g, ' ')}</span> },
+                ...(processo.valor_causa ? [{ label: 'Valor', value: processo.valor_causa.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }) }] : []),
+              ]}
+              actions={
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button size="sm" variant="outline" className="w-full">
+                      <MoreVertical className="w-4 h-4 mr-2" />
+                      Ações
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuItem onClick={() => handleViewProcesso(processo)}>
+                      <Eye className="w-4 h-4 mr-2" /> Ver detalhes
+                    </DropdownMenuItem>
+                    {canUpdateProcessos && (
+                      <DropdownMenuItem onClick={() => handleEditProcesso(processo)}>
+                        <Edit className="w-4 h-4 mr-2" /> Editar
+                      </DropdownMenuItem>
+                    )}
+                    {canUpdateProcessos && (processo.status === 'ativo' || processo.status === 'suspenso') && (
+                      <DropdownMenuItem onClick={() => handleEncerrarProcesso(processo)} className="text-amber-600">
+                        <XCircle className="w-4 h-4 mr-2" /> Encerrar
+                      </DropdownMenuItem>
+                    )}
+                    {canDeleteProcessos && (
+                      <DropdownMenuItem onClick={() => handleConfirmDelete(processo)} className="text-destructive">
+                        <Trash2 className="w-4 h-4 mr-2" /> Excluir
+                      </DropdownMenuItem>
+                    )}
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              }
+              onClick={() => handleViewProcesso(processo)}
+            />
+          ))}
+        </div>
+      ) : (
       <div className="grid gap-4">
         {processos.map(processo => (
           <ProcessoCard
@@ -464,6 +507,7 @@ const ProcessosManager = () => {
           />
         ))}
       </div>
+      )}
 
       {processos.length === 0 && (
         <Card>

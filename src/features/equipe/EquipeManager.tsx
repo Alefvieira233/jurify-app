@@ -8,6 +8,8 @@ import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Switch } from '@/components/ui/switch';
 import { Users, Search, Phone, Briefcase, Check, X, Pencil, UserPlus } from 'lucide-react';
+import { useIsMobile } from '@/hooks/use-mobile';
+import { MobileCard } from '@/components/ui/MobileCard';
 import { useTeamMembers, type TeamMember, type UpdateTeamMemberInput } from '@/hooks/useTeamMembers';
 import { useDepartamentos } from '@/hooks/useDepartamentos';
 import { useRBAC } from '@/hooks/useRBAC';
@@ -15,6 +17,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { usePageTitle } from '@/hooks/usePageTitle';
 import { getAvatarHex, getInitials } from '@/utils/formatting';
 import EmptyState from '@/components/EmptyState';
+import ErrorState from '@/components/ErrorState';
 
 
 interface DepartmentMembership {
@@ -56,8 +59,9 @@ interface EditingState {
 
 const EquipeManager = () => {
   usePageTitle('Equipe');
+  const isMobile = useIsMobile();
   const { profile } = useAuth();
-  const { members, isLoading, updateMember, isUpdating } = useTeamMembers();
+  const { members, isLoading, isError, refetch, updateMember, isUpdating } = useTeamMembers();
   const { departamentos } = useDepartamentos();
   const { isAdmin, isManager } = useRBAC();
   const canEdit = isAdmin || isManager;
@@ -137,6 +141,14 @@ const EquipeManager = () => {
     setEditing(null);
   }, [editing, updateMember]);
 
+  if (isError) {
+    return (
+      <div className="space-y-8 pb-12">
+        <ErrorState title="Erro ao carregar equipe" onRetry={() => void refetch()} />
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-8 pb-12">
       {/* Header */}
@@ -198,6 +210,43 @@ const EquipeManager = () => {
             onClick: () => setSearchTerm(''),
           } : undefined}
         />
+      ) : isMobile ? (
+        <div className="space-y-3">
+          {filteredMembers.map((member: TeamMember) => {
+            const deptos = memberDepartments.get(member.id) ?? [];
+            return (
+              <MobileCard
+                key={member.id}
+                title={member.nome_completo ?? 'Sem nome'}
+                subtitle={member.email}
+                badge={getRoleBadge(member.role)}
+                details={[
+                  { label: 'Cargo', value: member.cargo || 'Indefinido' },
+                  { label: 'Telefone', value: member.telefone || 'Sem telefone' },
+                  ...(deptos.length > 0 ? [{ label: 'Departamentos', value: (
+                    <div className="flex flex-wrap gap-1 justify-end">
+                      {deptos.map((d) => (
+                        <Badge
+                          key={d.nome}
+                          variant="outline"
+                          className="text-[10px] font-semibold"
+                          style={{ borderColor: d.cor, color: d.cor, backgroundColor: `${d.cor}10` }}
+                        >
+                          {d.nome}
+                        </Badge>
+                      ))}
+                    </div>
+                  )}] : []),
+                ]}
+                actions={canEdit ? (
+                  <Button size="sm" variant="outline" className="w-full" onClick={() => handleStartEdit(member)}>
+                    <Pencil className="w-4 h-4 mr-2" /> Editar
+                  </Button>
+                ) : undefined}
+              />
+            );
+          })}
+        </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
           {filteredMembers.map((member: TeamMember) => {

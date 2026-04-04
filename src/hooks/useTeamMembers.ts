@@ -79,6 +79,9 @@ export function useTeamMembers() {
   return {
     members: query.data ?? [],
     isLoading: query.isLoading,
+    isError: query.isError,
+    error: query.error,
+    refetch: query.refetch,
     updateMember: updateMember.mutate,
     updateMemberAsync: updateMember.mutateAsync,
     isUpdating: updateMember.isPending,

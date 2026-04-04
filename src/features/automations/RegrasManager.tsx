@@ -1,8 +1,8 @@
 /* eslint-disable react-refresh/only-export-components */
 import { useState, useMemo, useCallback } from 'react';
 import {
-  Plus, Search, Zap, Edit, Trash2,
-  Activity, Filter, RefreshCw, GitBranch,
+  Plus, Search, Edit, Trash2,
+  Activity, Filter, GitBranch,
 } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
@@ -20,6 +20,7 @@ import { supabaseUntyped as supabase } from '@/integrations/supabase/client';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import RuleEditor from './RuleEditor';
 import EmptyState from '@/components/EmptyState';
+import ErrorState from '@/components/ErrorState';
 
 // ── Types ──
 
@@ -274,13 +275,8 @@ export const RegrasManager = () => {
 
   if (error) {
     return (
-      <div className="flex flex-col items-center justify-center py-20 space-y-4">
-        <Zap className="w-12 h-12 text-destructive/60" />
-        <p className="text-muted-foreground">Erro ao carregar regras de automação</p>
-        <Button variant="outline" onClick={() => void refetch()} className="rounded-[12px]">
-          <RefreshCw className="w-4 h-4 mr-2" />
-          Tentar novamente
-        </Button>
+      <div className="space-y-8 pb-12">
+        <ErrorState title="Erro ao carregar regras de automação" onRetry={() => void refetch()} />
       </div>
     );
   }

@@ -23,6 +23,7 @@ import { useRBAC } from '@/hooks/useRBAC';
 import { TAG_CATEGORIAS } from '@/types/crm-operacional';
 import type { Tag } from '@/types/crm-operacional';
 import { TagForm } from '@/features/tags/TagForm';
+import ErrorState from '@/components/ErrorState';
 
 const CATEGORIA_LABELS: Record<string, string> = {
   prioridade: 'Prioridade',
@@ -35,7 +36,7 @@ const CATEGORIA_LABELS: Record<string, string> = {
 
 export function TagsManager() {
   usePageTitle('Tags');
-  const { tags, isLoading, deleteTag } = useTags();
+  const { tags, isLoading, isError, refetch, deleteTag } = useTags();
   const { can } = useRBAC();
 
   const [search, setSearch] = useState('');
@@ -101,6 +102,14 @@ export function TagsManager() {
             <Skeleton key={`skel-${i}`} className="h-24 rounded-lg" />
           ))}
         </div>
+      </div>
+    );
+  }
+
+  if (isError) {
+    return (
+      <div className="p-6">
+        <ErrorState title="Erro ao carregar tags" onRetry={() => void refetch()} />
       </div>
     );
   }

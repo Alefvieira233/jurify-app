@@ -1,5 +1,5 @@
 import { useState, lazy, Suspense } from 'react';
-import { Plus, Search, Clock, AlertCircle, RefreshCw, Edit, Trash2, CheckCircle, List, CalendarDays, PieChart } from 'lucide-react';
+import { Plus, Search, Clock, Edit, Trash2, CheckCircle, List, CalendarDays, PieChart } from 'lucide-react';
 import { useSearchParams } from 'react-router-dom';
 import { useDebounce } from '@/hooks/useDebounce';
 import { Button } from '@/components/ui/button';
@@ -19,6 +19,7 @@ import { usePageTitle } from '@/hooks/usePageTitle';
 import { useRBAC } from '@/hooks/useRBAC';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import EmptyState from '@/components/EmptyState';
+import ErrorState from '@/components/ErrorState';
 import PaginationControls from '@/components/PaginationControls';
 import PrazoAlertaBadge from './components/PrazoAlertaBadge';
 import NovoPrazoForm from './components/NovoPrazoForm';
@@ -137,21 +138,7 @@ const PrazosManager = () => {
   if (error) {
     return (
       <div className="p-6">
-        <Card>
-          <CardHeader>
-            <div className="flex items-center gap-2 text-destructive">
-              <AlertCircle className="w-5 h-5" />
-              <CardTitle>Erro ao carregar prazos</CardTitle>
-            </div>
-          </CardHeader>
-          <CardContent>
-            <p className="text-sm text-muted-foreground mb-4">{error}</p>
-            <Button onClick={fetchPrazos} variant="outline">
-              <RefreshCw className="w-4 h-4 mr-2" />
-              Tentar novamente
-            </Button>
-          </CardContent>
-        </Card>
+        <ErrorState title="Erro ao carregar prazos" message={error} onRetry={fetchPrazos} />
       </div>
     );
   }

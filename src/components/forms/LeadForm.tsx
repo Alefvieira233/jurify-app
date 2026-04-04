@@ -1,7 +1,10 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useCallback } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { X, User, Phone, Mail, Briefcase, DollarSign, FileText, MapPin, Building2, Thermometer, Loader2, ShieldCheck } from 'lucide-react';
+import { useFormDraftPersistence } from '@/hooks/useDraftPersistence';
+import { DraftRecoveryBanner } from '@/components/ui/DraftRecoveryBanner';
+import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -145,8 +148,17 @@ const LeadForm: React.FC<LeadFormProps> = ({
   onSuccess,
 }) => {
   const { toast } = useToast();
+  const { profile } = useAuth();
   const { activeDepartamentos } = useDepartamentos();
   const { members } = useTeamMembers();
+
+  // Draft persistence — only for new leads (not editing)
+  const isEditing = !!lead;
+  const { hasDraft, saveDraft, loadDraft, clearDraft } = useFormDraftPersistence<LeadFormData>({
+    formName: 'novo-lead',
+    tenantId: profile?.tenant_id,
+  });
+
   const form = useForm<LeadFormData>({
     resolver: zodResolver(leadFormSchema),
     defaultValues: lead ? leadToFormData(lead) : EMPTY_DEFAULTS,
@@ -158,10 +170,31 @@ const LeadForm: React.FC<LeadFormProps> = ({
     }
   }, [lead, form]);
 
+  // Save draft on form value changes (only for new leads)
+  useEffect(() => {
+    if (isEditing || !open) return;
+    const subscription = form.watch((values) => {
+      saveDraft(values as Partial<LeadFormData>);
+    });
+    return () => subscription.unsubscribe();
+  }, [form, saveDraft, isEditing, open]);
+
+  const handleRestoreDraft = useCallback(() => {
+    const draft = loadDraft();
+    if (draft) {
+      form.reset({ ...EMPTY_DEFAULTS, ...draft } as LeadFormData);
+    }
+  }, [loadDraft, form]);
+
+  const handleDiscardDraft = useCallback(() => {
+    clearDraft();
+  }, [clearDraft]);
+
   const onSubmit = async (data: LeadFormData) => {
     try {
       const success = await onSubmitData(formDataToLeadInput(data));
       if (success) {
+        clearDraft();
         if (!lead) form.reset();
         onOpenChange(false);
         onSuccess?.();
@@ -190,6 +223,11 @@ const LeadForm: React.FC<LeadFormProps> = ({
 
         <Form {...form}>
           <form onSubmit={(event) => { void form.handleSubmit(onSubmit)(event); }} className="space-y-6">
+            {/* Draft recovery banner */}
+            {!isEditing && hasDraft && (
+              <DraftRecoveryBanner onRestore={handleRestoreDraft} onDiscard={handleDiscardDraft} />
+            )}
+
             {/* Informacoes Pessoais */}
             <div className="space-y-4">
               <h3 className="text-lg font-semibold text-foreground flex items-center gap-2">

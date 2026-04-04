@@ -1,5 +1,8 @@
 import { useState, useMemo, useCallback, memo } from 'react';
-import { Plus, Search, DollarSign, AlertCircle, RefreshCw, Edit, Trash2, TrendingUp } from 'lucide-react';
+import { Plus, Search, DollarSign, Edit, Trash2, TrendingUp, MoreVertical } from 'lucide-react';
+import { useIsMobile } from '@/hooks/use-mobile';
+import { MobileCard } from '@/components/ui/MobileCard';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { useDebounce } from '@/hooks/useDebounce';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -20,6 +23,7 @@ import { supabaseUntyped as supabase } from '@/integrations/supabase/client';
 import { useQueryClient } from '@tanstack/react-query';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import EmptyState from '@/components/EmptyState';
+import ErrorState from '@/components/ErrorState';
 import NovoHonorarioForm from './components/NovoHonorarioForm';
 import type { HonorarioFormData } from '@/schemas/honorarioSchema';
 import { HONORARIO_STATUS_LABELS } from '@/schemas/honorarioSchema';
@@ -100,6 +104,7 @@ HonorarioCard.displayName = 'HonorarioCard';
 
 const HonorariosManager = () => {
   usePageTitle('Honorários');
+  const isMobile = useIsMobile();
   const [searchTerm, setSearchTerm] = useState('');
   const debouncedSearch = useDebounce(searchTerm, 300);
   const [filterStatus, setFilterStatus] = useState('all');
@@ -204,21 +209,7 @@ const HonorariosManager = () => {
   if (error) {
     return (
       <div className="p-6">
-        <Card>
-          <CardHeader>
-            <div className="flex items-center gap-2 text-destructive">
-              <AlertCircle className="w-5 h-5" />
-              <CardTitle>Erro ao carregar honorários</CardTitle>
-            </div>
-          </CardHeader>
-          <CardContent>
-            <p className="text-sm text-muted-foreground mb-4">{error}</p>
-            <Button onClick={fetchHonorarios} variant="outline">
-              <RefreshCw className="w-4 h-4 mr-2" />
-              Tentar novamente
-            </Button>
-          </CardContent>
-        </Card>
+        <ErrorState title="Erro ao carregar honorários" message={error} onRetry={fetchHonorarios} />
       </div>
     );
   }
@@ -321,6 +312,55 @@ const HonorariosManager = () => {
       </Card>
 
       {/* List */}
+      {isMobile ? (
+        <div className="space-y-3">
+          {filteredHonorarios.map(h => (
+            <MobileCard
+              key={h.id}
+              title={TIPO_LABELS[h.tipo] ?? h.tipo}
+              subtitle={h.observacoes ?? undefined}
+              badge={
+                <div className="flex gap-1">
+                  <Badge className={getStatusClasses('honorarios', h.status)}>{HONORARIO_STATUS_LABELS[h.status] ?? h.status}</Badge>
+                  {h.overdue && <Badge variant="destructive" className="text-xs">Vencido</Badge>}
+                </div>
+              }
+              details={[
+                { label: 'Acordado', value: fmt(h.valor_total_acordado) },
+                { label: 'Recebido', value: <span className="text-emerald-600 dark:text-emerald-400">{fmt(h.valor_recebido)}</span> },
+                ...(h.data_vencimento ? [{ label: 'Vencimento', value: new Date(h.data_vencimento).toLocaleDateString('pt-BR') }] : []),
+              ]}
+              actions={
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button size="sm" variant="outline" className="w-full">
+                      <MoreVertical className="w-4 h-4 mr-2" />
+                      Ações
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    {canUpdateHonorarios && (
+                      <DropdownMenuItem onClick={() => handleEditHonorario(h)}>
+                        <Edit className="w-4 h-4 mr-2" /> Editar
+                      </DropdownMenuItem>
+                    )}
+                    {h.overdue && canUpdateHonorarios && (
+                      <DropdownMenuItem onClick={() => { void handleMarcarInadimplente(h.id); }} className="text-destructive">
+                        Marcar Inadimplente
+                      </DropdownMenuItem>
+                    )}
+                    {canDeleteHonorarios && (
+                      <DropdownMenuItem onClick={() => handleRequestDeleteHonorario(h.id)} className="text-destructive">
+                        <Trash2 className="w-4 h-4 mr-2" /> Excluir
+                      </DropdownMenuItem>
+                    )}
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              }
+            />
+          ))}
+        </div>
+      ) : (
       <div className="grid gap-3">
         {filteredHonorarios.map(h => (
           <HonorarioCard
@@ -334,6 +374,7 @@ const HonorariosManager = () => {
           />
         ))}
       </div>
+      )}
 
       <PaginationControls
         currentPage={page}

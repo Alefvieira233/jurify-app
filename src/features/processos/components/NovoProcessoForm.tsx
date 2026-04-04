@@ -1,9 +1,13 @@
+import { useEffect, useCallback } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { useFormDraftPersistence } from '@/hooks/useDraftPersistence';
+import { DraftRecoveryBanner } from '@/components/ui/DraftRecoveryBanner';
+import { useAuth } from '@/contexts/AuthContext';
 import {
   Select,
   SelectContent,
@@ -32,12 +36,29 @@ interface NovoProcessoFormProps {
   initialData?: Processo | null;
 }
 
+const NEW_DEFAULTS: Partial<ProcessoFormData> = {
+  tipo_acao: 'civel',
+  fase_processual: 'conhecimento',
+  posicao: 'autor',
+  status: 'ativo',
+};
+
 const NovoProcessoForm = ({ onSubmit, onCancel, loading, initialData }: NovoProcessoFormProps) => {
+  const { profile } = useAuth();
+  const isEditing = !!initialData;
+
+  // Draft persistence — only for new processos
+  const { hasDraft, saveDraft, loadDraft, clearDraft } = useFormDraftPersistence<ProcessoFormData>({
+    formName: 'novo-processo',
+    tenantId: profile?.tenant_id,
+  });
+
   const {
     register,
     handleSubmit,
     setValue,
     watch,
+    reset,
     formState: { errors, isSubmitting },
   } = useForm<ProcessoFormData>({
     resolver: zodResolver(processoFormSchema),
@@ -56,20 +77,41 @@ const NovoProcessoForm = ({ onSubmit, onCancel, loading, initialData }: NovoProc
       data_distribuicao: initialData.data_distribuicao,
       status: initialData.status as ProcessoFormData['status'],
       observacoes: initialData.observacoes,
-    } : {
-      tipo_acao: 'civel',
-      fase_processual: 'conhecimento',
-      posicao: 'autor',
-      status: 'ativo',
-    },
+    } : NEW_DEFAULTS,
   });
 
+  // Save draft on form value changes (only for new processos)
+  useEffect(() => {
+    if (isEditing) return;
+    const subscription = watch((values) => {
+      saveDraft(values as Partial<ProcessoFormData>);
+    });
+    return () => subscription.unsubscribe();
+  }, [watch, saveDraft, isEditing]);
+
+  const handleRestoreDraft = useCallback(() => {
+    const draft = loadDraft();
+    if (draft) {
+      reset({ ...NEW_DEFAULTS, ...draft } as ProcessoFormData);
+    }
+  }, [loadDraft, reset]);
+
+  const handleDiscardDraft = useCallback(() => {
+    clearDraft();
+  }, [clearDraft]);
+
   const handleFormSubmit = async (data: ProcessoFormData) => {
-    await onSubmit(data);
+    const ok = await onSubmit(data);
+    if (ok) clearDraft();
   };
 
   return (
     <form onSubmit={(e) => { void handleSubmit(handleFormSubmit)(e); }} className="space-y-4">
+      {/* Draft recovery banner */}
+      {!isEditing && hasDraft && (
+        <DraftRecoveryBanner onRestore={handleRestoreDraft} onDiscard={handleDiscardDraft} />
+      )}
+
       <div className="grid grid-cols-2 gap-4">
         <div className="space-y-1.5">
           <Label htmlFor="numero_processo">Número do Processo</Label>

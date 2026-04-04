@@ -84,7 +84,9 @@ export function useTags() {
   return {
     tags: tagsQuery.data ?? [],
     isLoading: tagsQuery.isLoading,
+    isError: tagsQuery.isError,
     error: tagsQuery.error,
+    refetch: tagsQuery.refetch,
     createTag: createTag.mutateAsync,
     updateTag: updateTag.mutateAsync,
     deleteTag: deleteTag.mutateAsync,

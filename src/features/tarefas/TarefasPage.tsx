@@ -14,6 +14,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Search, Plus, CheckCircle, Clock, AlertTriangle, MoreHorizontal, ListTodo } from 'lucide-react';
+import ErrorState from '@/components/ErrorState';
 import { fmtDate } from '@/utils/formatting';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import NovaTarefaForm from './NovaTarefaForm';
@@ -36,7 +37,7 @@ const PRIORIDADE_COLORS: Record<string, string> = {
 
 export default function TarefasPage() {
   usePageTitle('Tarefas');
-  const { tarefas, isLoading, updateTarefa, deleteTarefa } = useTarefas();
+  const { tarefas, isLoading, isError, refetch, updateTarefa, deleteTarefa } = useTarefas();
   const { members } = useTeamMembers();
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
@@ -87,6 +88,14 @@ export default function TarefasPage() {
           <div className="h-8 w-48 bg-muted rounded" />
           <div className="h-[400px] bg-muted rounded" />
         </div>
+      </div>
+    );
+  }
+
+  if (isError) {
+    return (
+      <div className="p-6">
+        <ErrorState title="Erro ao carregar tarefas" onRetry={() => void refetch()} />
       </div>
     );
   }

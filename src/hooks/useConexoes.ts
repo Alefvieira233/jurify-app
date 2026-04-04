@@ -143,7 +143,9 @@ export function useConexoes() {
   return {
     conexoes: conexoesQuery.data ?? [],
     isLoading: conexoesQuery.isLoading,
+    isError: conexoesQuery.isError,
     error: conexoesQuery.error,
+    refetch: conexoesQuery.refetch,
     createConexao: createMutation.mutateAsync,
     updateConexao: updateMutation.mutateAsync,
     deleteConexao: deleteMutation.mutateAsync,

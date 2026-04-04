@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { Search, FolderOpen, AlertCircle, RefreshCw, Download, Trash2, FileText, Eye } from 'lucide-react';
+import { Search, FolderOpen, Download, Trash2, FileText, Eye } from 'lucide-react';
 import { useDebounce } from '@/hooks/useDebounce';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -16,6 +16,7 @@ import { usePageTitle } from '@/hooks/usePageTitle';
 import { useRBAC } from '@/hooks/useRBAC';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import EmptyState from '@/components/EmptyState';
+import ErrorState from '@/components/ErrorState';
 import UploadDocumentoForm from './components/UploadDocumentoForm';
 import type { DocumentoFormData } from '@/schemas/documentoSchema';
 
@@ -105,21 +106,7 @@ const DocumentosManager = () => {
   if (error) {
     return (
       <div className="p-6">
-        <Card>
-          <CardHeader>
-            <div className="flex items-center gap-2 text-destructive">
-              <AlertCircle className="w-5 h-5" />
-              <CardTitle>Erro ao carregar documentos</CardTitle>
-            </div>
-          </CardHeader>
-          <CardContent>
-            <p className="text-sm text-muted-foreground mb-4">{error}</p>
-            <Button onClick={fetchDocumentos} variant="outline">
-              <RefreshCw className="w-4 h-4 mr-2" />
-              Tentar novamente
-            </Button>
-          </CardContent>
-        </Card>
+        <ErrorState title="Erro ao carregar documentos" message={error} onRetry={fetchDocumentos} />
       </div>
     );
   }

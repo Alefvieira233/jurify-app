@@ -20,10 +20,11 @@ import { Textarea } from '@/components/ui/textarea';
 import { getStatusConfig } from '@/constants/statusConfig';
 import TicketDetailDialog from './TicketDetailDialog';
 import EmptyState from '@/components/EmptyState';
+import ErrorState from '@/components/ErrorState';
 
 export default function SuportePage() {
   usePageTitle('Suporte');
-  const { tickets, isLoading, createTicket } = useTicketsSuporte();
+  const { tickets, isLoading, isError, refetch, createTicket } = useTicketsSuporte();
   const [search, setSearch] = useState('');
   const [tipoFilter, setTipoFilter] = useState('all');
   const [formOpen, setFormOpen] = useState(false);
@@ -56,6 +57,14 @@ export default function SuportePage() {
     setSelectedTicket(ticket);
     setDetailOpen(true);
   };
+
+  if (isError) {
+    return (
+      <div className="p-6">
+        <ErrorState title="Erro ao carregar tickets de suporte" onRetry={() => void refetch()} />
+      </div>
+    );
+  }
 
   return (
     <div className="p-6 space-y-4">

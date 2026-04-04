@@ -2,7 +2,7 @@ import { useState, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   Plus, Workflow, Loader2, Zap, Clock,
-  Edit, Trash2, AlertCircle, Activity,
+  Edit, Trash2, Activity,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -13,6 +13,7 @@ import { usePageTitle } from '@/hooks/usePageTitle';
 import { supabaseUntyped as supabase } from '@/integrations/supabase/client';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import EmptyState from '@/components/EmptyState';
+import ErrorState from '@/components/ErrorState';
 import { FlowEditor, type FlowData } from './FlowEditor';
 import { createLogger } from '@/lib/logger';
 import type { Node, Edge } from '@xyflow/react';
@@ -149,6 +150,7 @@ export function FluxosManager() {
     data: flows = [],
     isLoading,
     error,
+    refetch: refetchFlows,
   } = useQuery({
     queryKey: ['automation-flows', tenantId],
     queryFn: async () => {
@@ -389,12 +391,7 @@ export function FluxosManager() {
 
       {/* Error */}
       {error && (
-        <div className="flex items-center gap-3 rounded-[16px] border border-red-500/20 bg-red-500/5 p-4">
-          <AlertCircle className="h-5 w-5 text-red-400 shrink-0" />
-          <p className="text-sm text-red-300">
-            Erro ao carregar fluxos. Tente novamente mais tarde.
-          </p>
-        </div>
+        <ErrorState title="Erro ao carregar fluxos" onRetry={() => void refetchFlows()} />
       )}
 
       {/* Empty state */}

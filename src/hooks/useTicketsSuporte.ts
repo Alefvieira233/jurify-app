@@ -35,7 +35,7 @@ export function useTicketsSuporte() {
   const qc = useQueryClient();
   const tenantId = profile?.tenant_id;
 
-  const { data: tickets, isLoading } = useQuery({
+  const { data: tickets, isLoading, isError, error, refetch } = useQuery({
     queryKey: queryKeys.ticketsSuporte.list(tenantId),
     enabled: !!tenantId,
     queryFn: async () => {
@@ -83,5 +83,5 @@ export function useTicketsSuporte() {
     },
   });
 
-  return { tickets: tickets ?? [], isLoading, createTicket, updateTicket };
+  return { tickets: tickets ?? [], isLoading, isError, error, refetch, createTicket, updateTicket };
 }

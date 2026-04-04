@@ -12,6 +12,7 @@ import { Search, ChevronLeft, ChevronRight } from 'lucide-react';
 import { getInitials, getAvatarHex, fmtPhone } from '@/utils/formatting';
 import { getStatusConfig } from '@/constants/statusConfig';
 import { ScreenReaderAnnounce } from '@/components/ui/ScreenReaderAnnounce';
+import { useTableKeyboardNav } from '@/hooks/useTableKeyboardNav';
 import LeadDrawer from '@/features/leads/LeadDrawer';
 
 const PAGE_SIZE = 15;
@@ -21,14 +22,16 @@ interface ContatoRowProps {
   onRowClick: (lead: Lead) => void;
   memberMap: Map<string, string>;
   deptoMap: Map<string, string>;
+  keyboardProps?: Record<string, unknown>;
 }
 
-const ContatoRow = memo(({ lead, onRowClick, memberMap, deptoMap }: ContatoRowProps) => {
+const ContatoRow = memo(({ lead, onRowClick, memberMap, deptoMap, keyboardProps }: ContatoRowProps) => {
   const sc = getStatusConfig('leads', lead.status ?? 'novo');
   return (
     <TableRow
-      className="cursor-pointer hover:bg-accent/50 transition-colors"
+      className="cursor-pointer hover:bg-accent/50 transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-1"
       onClick={() => onRowClick(lead)}
+      {...keyboardProps}
     >
       <TableCell>
         <div className="flex items-center gap-3">
@@ -106,6 +109,15 @@ export default function ContatosTable() {
     setDrawerOpen(true);
   }, []);
 
+  // Keyboard navigation
+  const { containerRef, getRowProps } = useTableKeyboardNav({
+    itemCount: paginated.length,
+    onActivate: (index) => {
+      const lead = paginated[index];
+      if (lead) handleRowClick(lead);
+    },
+  });
+
   if (loading) {
     return (
       <div className="p-6">
@@ -156,7 +168,7 @@ export default function ContatosTable() {
 
       {/* Table */}
       <div className="border border-border rounded-lg overflow-hidden">
-        <Table>
+        <Table role="grid" aria-label="Tabela de contatos">
           <TableHeader>
             <TableRow className="bg-muted/30">
               <TableHead className="text-xs uppercase tracking-wider">Nome</TableHead>
@@ -166,7 +178,7 @@ export default function ContatosTable() {
               <TableHead className="text-xs uppercase tracking-wider">Departamento</TableHead>
             </TableRow>
           </TableHeader>
-          <TableBody>
+          <TableBody ref={containerRef}>
             {paginated.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={5} className="text-center py-12 text-muted-foreground">
@@ -174,13 +186,14 @@ export default function ContatosTable() {
                 </TableCell>
               </TableRow>
             ) : (
-              paginated.map(lead => (
+              paginated.map((lead, index) => (
                 <ContatoRow
                   key={lead.id}
                   lead={lead}
                   onRowClick={handleRowClick}
                   memberMap={memberMap}
                   deptoMap={deptoMap}
+                  keyboardProps={getRowProps(index)}
                 />
               ))
             )}

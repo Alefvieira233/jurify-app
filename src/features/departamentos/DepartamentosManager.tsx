@@ -18,6 +18,7 @@ import ConfirmDialog from '@/components/ConfirmDialog';
 import DepartamentoForm from './DepartamentoForm';
 import MembrosSection from './MembrosSection';
 import EmptyState from '@/components/EmptyState';
+import ErrorState from '@/components/ErrorState';
 import type { Departamento } from '@/types/crm-operacional';
 
 const DepartamentosManager = () => {
@@ -31,7 +32,7 @@ const DepartamentosManager = () => {
   });
   const [deleteLoading, setDeleteLoading] = useState(false);
 
-  const { departamentos, isLoading, deleteDepto } = useDepartamentos();
+  const { departamentos, isLoading, isError, refetch, deleteDepto } = useDepartamentos();
   const { can } = useRBAC();
 
   const canCreate = can('departamentos', 'create');
@@ -88,6 +89,14 @@ const DepartamentosManager = () => {
             <Skeleton key={i} className="h-48 w-full rounded-[24px]" />
           ))}
         </div>
+      </div>
+    );
+  }
+
+  if (isError) {
+    return (
+      <div className="space-y-8 pb-12">
+        <ErrorState title="Erro ao carregar departamentos" onRetry={() => void refetch()} />
       </div>
     );
   }

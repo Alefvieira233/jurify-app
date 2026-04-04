@@ -1,6 +1,6 @@
 
 import { useState, useMemo, lazy, Suspense } from 'react';
-import { Plus, Search, Calendar, AlertCircle, RefreshCw, Eye, Edit, Trash2, LayoutGrid, CalendarDays } from 'lucide-react';
+import { Plus, Search, Calendar, RefreshCw, Eye, Edit, Trash2, LayoutGrid, CalendarDays } from 'lucide-react';
 import { useDebounce } from '@/hooks/useDebounce';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -19,6 +19,7 @@ import { cn } from '@/lib/utils';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import { usePageTitle } from '@/hooks/usePageTitle';
 import EmptyState from '@/components/EmptyState';
+import ErrorState from '@/components/ErrorState';
 
 const CalendarPanel = lazy(() => import('@/components/agenda/CalendarPanel'));
 
@@ -121,36 +122,8 @@ const AgendamentosManager = () => {
   if (error) {
     return (
       <div className="flex flex-col h-[calc(100vh-var(--topbar-h,4rem))]">
-        <div className="flex-shrink-0 px-5 py-3 border-b border-border bg-background">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
-                <Calendar className="h-4 w-4 text-primary" />
-              </div>
-              <div>
-                <h1 className="text-sm font-bold text-foreground">Agendamentos</h1>
-                <p className="text-[11px] text-muted-foreground">Gerencie reuniões e compromissos</p>
-              </div>
-            </div>
-          </div>
-        </div>
         <div className="flex-1 flex items-center justify-center px-5 py-4">
-          <div className="text-center max-w-sm">
-            <div className="w-12 h-12 rounded-full bg-rose-500/10 flex items-center justify-center mx-auto mb-3">
-              <AlertCircle className="h-6 w-6 text-rose-500" />
-            </div>
-            <h3 className="text-sm font-semibold text-foreground mb-1">Erro ao carregar agendamentos</h3>
-            <p className="text-[11px] text-muted-foreground mb-4">{error}</p>
-            <div className="flex gap-2 justify-center">
-              <Button size="sm" onClick={handleRetry}>
-                <RefreshCw className="h-3.5 w-3.5 mr-1.5" />
-                Tentar novamente
-              </Button>
-              <Button size="sm" variant="outline" onClick={() => window.location.reload()}>
-                Recarregar página
-              </Button>
-            </div>
-          </div>
+          <ErrorState title="Erro ao carregar agendamentos" message={error} onRetry={handleRetry} />
         </div>
       </div>
     );

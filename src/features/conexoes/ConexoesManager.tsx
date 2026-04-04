@@ -20,6 +20,7 @@ import { toUserMessage } from '@/lib/errorMessages';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import WhatsAppWizard from './WhatsAppWizard';
 import ConnectionDetailsDrawer from './ConnectionDetailsDrawer';
+import ErrorState from '@/components/ErrorState';
 
 const STATUS_CONFIG: Record<string, { label: string; variant: 'default' | 'secondary' | 'destructive'; dot: string }> = {
   connected:    { label: 'Conectado',     variant: 'default',     dot: 'bg-green-500' },
@@ -48,7 +49,7 @@ function timeSince(date: string | null): string {
 
 const ConexoesManager = () => {
   usePageTitle('Conexões');
-  const { conexoes, isLoading, deleteConexao } = useConexoes();
+  const { conexoes, isLoading, isError, refetch: refetchConexoes, deleteConexao } = useConexoes();
   const { can } = useRBAC();
   const { toast } = useToast();
 
@@ -88,6 +89,14 @@ const ConexoesManager = () => {
     // Open the wizard to generate a new setup link
     setWizardOpen(true);
   };
+
+  if (isError) {
+    return (
+      <div className="space-y-6 pb-12">
+        <ErrorState title="Erro ao carregar conexões" onRetry={() => void refetchConexoes()} />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6 pb-12">
