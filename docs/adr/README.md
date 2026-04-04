@@ -12,3 +12,4 @@ Decisions that shaped Jurify's architecture. Each ADR captures the context, deci
 | [006](006-rbac-permission-matrix.md) | Role-based access control with permission matrix | Accepted | 2026-02 |
 | [007](007-kapso-whatsapp.md) | Kapso API for WhatsApp integration | Accepted | 2026-03 |
 | [008](008-lazy-loading-routes.md) | Lazy loading with retry for all routes | Accepted | 2026-01 |
+| [009](009-capacitor-transitive-vulnerabilities.md) | Accept Capacitor transitive vulnerabilities | Accepted | 2026-04 |

@@ -13,7 +13,7 @@ import Layout from "./components/Layout";
 import LoadingSpinner from "./components/LoadingSpinner";
 import { ErrorBoundary } from "./components/ErrorBoundary";
 import { initSentry } from "./lib/sentry";
-import * as Sentry from '@sentry/react';
+import { withSentryReactRouterV6Routing } from '@sentry/react';
 import { QUERY_STALE_TIME_MS, QUERY_GC_TIME_MS, MAX_RETRY_DELAY_MS } from "./constants/timings";
 import { useNetworkBanner } from "@/hooks/useNetworkBanner";
 
@@ -99,7 +99,7 @@ const queryClient = new QueryClient({
 });
 
 // Wrap BrowserRouter com Sentry para tracking de navegação
-const SentryRoutes = Sentry.withSentryReactRouterV6Routing(Routes);
+const SentryRoutes = withSentryReactRouterV6Routing(Routes);
 
 // Rotas válidas para deep links jurify://
 const ALLOWED_DEEP_LINK_PATHS = new Set([

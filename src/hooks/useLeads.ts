@@ -105,6 +105,48 @@ export type LeadInput = CreateLeadData;
 
 const ITEMS_PER_PAGE = 25;
 
+/**
+ * Column projection for list queries. Fetches only the columns needed by
+ * list/table/pipeline views instead of all 47 columns.
+ * Detail views (LeadDrawer, edit forms) use mutations that call .select() on
+ * single rows, so they still get full data.
+ */
+const LIST_COLUMNS = [
+  'id',
+  'nome',
+  'nome_completo',
+  'email',
+  'telefone',
+  'status',
+  'lead_score',
+  'responsavel_id',
+  'departamento_id',
+  'created_at',
+  'updated_at',
+  'tenant_id',
+  'fonte',
+  'origem',
+  'temperatura',
+  'temperature',
+  'area_juridica',
+  'valor_causa',
+  'pipeline_stage_id',
+  'expected_value',
+  'probability',
+  'prioridade',
+  'conexao_id',
+  'company_name',
+  'cpf_cnpj',
+  'followup_count',
+  'next_followup_at',
+  'last_activity_at',
+  'inactive_since',
+  'arquivado_em',
+  'motivo_arquivamento',
+  'data_reativacao_prevista',
+  'descricao',
+].join(', ');
+
 // ─── Pure helpers (outside hook to avoid re-creation on every render) ────────
 
 function normalizeLead(lead: Record<string, unknown>): Lead {
@@ -196,7 +238,7 @@ export const useLeads = (options?: { enablePagination?: boolean; pageSize?: numb
 
       let query = supabase
         .from('leads')
-        .select('*', { count: 'exact' })
+        .select(LIST_COLUMNS, { count: 'exact' })
         .order('created_at', { ascending: false });
 
       if (effectiveTenantId) {
@@ -228,7 +270,7 @@ export const useLeads = (options?: { enablePagination?: boolean; pageSize?: numb
       if (fetchError) throw fetchError;
 
       log.debug(`${data?.length ?? 0} leads encontrados`);
-      return { leads: (data || []).map(normalizeLead), totalCount: count ?? 0 };
+      return { leads: ((data || []) as unknown as Record<string, unknown>[]).map(normalizeLead), totalCount: count ?? 0 };
     },
     enabled: !!user,
     staleTime: 2 * 60 * 1000,    // 2 min — leads mudam com frequência média

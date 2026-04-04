@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useCallback, memo } from 'react';
 import { Plus, Search, DollarSign, AlertCircle, RefreshCw, Edit, Trash2, TrendingUp } from 'lucide-react';
 import { useDebounce } from '@/hooks/useDebounce';
 import { Button } from '@/components/ui/button';
@@ -38,6 +38,66 @@ const TIPO_LABELS: Record<string, string> = {
 const fmt = (v: number | null | undefined) =>
   v != null ? v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }) : '—';
 
+interface HonorarioCardProps {
+  honorario: HonorarioWithOverdue;
+  canUpdate: boolean;
+  canDelete: boolean;
+  onMarcarInadimplente: (id: string) => void | Promise<void>;
+  onEdit: (h: HonorarioWithOverdue) => void;
+  onDelete: (id: string) => void;
+}
+
+const HonorarioCard = memo(({ honorario: h, canUpdate, canDelete, onMarcarInadimplente, onEdit, onDelete }: HonorarioCardProps) => (
+  <Card className="hover:border-primary/50 transition-colors">
+    <CardContent className="p-5">
+      <div className="flex justify-between items-start gap-4">
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 flex-wrap">
+            <Badge variant="outline">{TIPO_LABELS[h.tipo] ?? h.tipo}</Badge>
+            <Badge className={getStatusClasses('honorarios', h.status)}>{HONORARIO_STATUS_LABELS[h.status] ?? h.status}</Badge>
+            {h.overdue && <Badge variant="destructive" className="text-xs">Vencido</Badge>}
+          </div>
+          <div className="flex gap-4 mt-2 text-sm">
+            <span><span className="text-muted-foreground">Acordado:</span> <span className="font-medium">{fmt(h.valor_total_acordado)}</span></span>
+            <span><span className="text-muted-foreground">Recebido:</span> <span className="font-medium text-emerald-600 dark:text-emerald-400">{fmt(h.valor_recebido)}</span></span>
+            {h.data_vencimento && (
+              <span><span className="text-muted-foreground">Vencimento:</span> <span className="font-medium">{new Date(h.data_vencimento).toLocaleDateString('pt-BR')}</span></span>
+            )}
+          </div>
+          {h.observacoes && (
+            <p className="text-xs text-muted-foreground mt-1 truncate">{h.observacoes}</p>
+          )}
+        </div>
+        <div className="flex items-center gap-1 flex-shrink-0">
+          {h.overdue && canUpdate && (
+            <Button
+              size="sm"
+              variant="destructive"
+              onClick={() => { void onMarcarInadimplente(h.id); }}
+            >
+              Marcar Inadimplente
+            </Button>
+          )}
+          {canUpdate && (
+            <Button size="sm" variant="ghost" title="Editar"
+              onClick={() => onEdit(h)}>
+              <Edit className="w-4 h-4" />
+            </Button>
+          )}
+          {canDelete && (
+            <Button size="sm" variant="ghost" title="Excluir"
+              className="text-destructive hover:text-destructive"
+              onClick={() => onDelete(h.id)}>
+              <Trash2 className="w-4 h-4" />
+            </Button>
+          )}
+        </div>
+      </div>
+    </CardContent>
+  </Card>
+));
+HonorarioCard.displayName = 'HonorarioCard';
+
 const HonorariosManager = () => {
   usePageTitle('Honorários');
   const [searchTerm, setSearchTerm] = useState('');
@@ -57,7 +117,19 @@ const HonorariosManager = () => {
   const queryClient = useQueryClient();
   const tenantId = profile?.tenant_id ?? null;
 
-  const handleMarcarInadimplente = async (id: string) => {
+  const canUpdateHonorarios = can('honorarios', 'update');
+  const canDeleteHonorarios = can('honorarios', 'delete');
+
+  const handleEditHonorario = useCallback((h: HonorarioWithOverdue) => {
+    setSelectedHonorario(h);
+    setIsFormOpen(true);
+  }, []);
+
+  const handleRequestDeleteHonorario = useCallback((id: string) => {
+    setConfirmDelete({ open: true, id });
+  }, []);
+
+  const handleMarcarInadimplente = useCallback(async (id: string) => {
     const { error: updateError } = await supabase
       .from('honorarios')
       .update({ status: 'inadimplente' })
@@ -68,7 +140,7 @@ const HonorariosManager = () => {
       toast({ title: 'Status atualizado', description: 'Honorário marcado como inadimplente.' });
       void queryClient.invalidateQueries({ queryKey: ['honorarios'] });
     }
-  };
+  }, [toast, queryClient]);
 
   const filteredHonorarios = useMemo(() => honorarios.filter(h => {
     const matchSearch = !debouncedSearch ||
@@ -251,53 +323,15 @@ const HonorariosManager = () => {
       {/* List */}
       <div className="grid gap-3">
         {filteredHonorarios.map(h => (
-          <Card key={h.id} className="hover:border-primary/50 transition-colors">
-            <CardContent className="p-5">
-              <div className="flex justify-between items-start gap-4">
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <Badge variant="outline">{TIPO_LABELS[h.tipo] ?? h.tipo}</Badge>
-                    <Badge className={getStatusClasses('honorarios', h.status)}>{HONORARIO_STATUS_LABELS[h.status] ?? h.status}</Badge>
-                    {h.overdue && <Badge variant="destructive" className="text-xs">Vencido</Badge>}
-                  </div>
-                  <div className="flex gap-4 mt-2 text-sm">
-                    <span><span className="text-muted-foreground">Acordado:</span> <span className="font-medium">{fmt(h.valor_total_acordado)}</span></span>
-                    <span><span className="text-muted-foreground">Recebido:</span> <span className="font-medium text-emerald-600 dark:text-emerald-400">{fmt(h.valor_recebido)}</span></span>
-                    {h.data_vencimento && (
-                      <span><span className="text-muted-foreground">Vencimento:</span> <span className="font-medium">{new Date(h.data_vencimento).toLocaleDateString('pt-BR')}</span></span>
-                    )}
-                  </div>
-                  {h.observacoes && (
-                    <p className="text-xs text-muted-foreground mt-1 truncate">{h.observacoes}</p>
-                  )}
-                </div>
-                <div className="flex items-center gap-1 flex-shrink-0">
-                  {h.overdue && can('honorarios', 'update') && (
-                    <Button
-                      size="sm"
-                      variant="destructive"
-                      onClick={() => { void handleMarcarInadimplente(h.id); }}
-                    >
-                      Marcar Inadimplente
-                    </Button>
-                  )}
-                  {can('honorarios', 'update') && (
-                    <Button size="sm" variant="ghost" title="Editar"
-                      onClick={() => { setSelectedHonorario(h); setIsFormOpen(true); }}>
-                      <Edit className="w-4 h-4" />
-                    </Button>
-                  )}
-                  {can('honorarios', 'delete') && (
-                    <Button size="sm" variant="ghost" title="Excluir"
-                      className="text-destructive hover:text-destructive"
-                      onClick={() => setConfirmDelete({ open: true, id: h.id })}>
-                      <Trash2 className="w-4 h-4" />
-                    </Button>
-                  )}
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+          <HonorarioCard
+            key={h.id}
+            honorario={h}
+            canUpdate={canUpdateHonorarios}
+            canDelete={canDeleteHonorarios}
+            onMarcarInadimplente={handleMarcarInadimplente}
+            onEdit={handleEditHonorario}
+            onDelete={handleRequestDeleteHonorario}
+          />
         ))}
       </div>
 

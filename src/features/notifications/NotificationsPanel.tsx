@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, memo } from 'react';
 import { Bell, Check, CheckCheck, AlertCircle, Info, RefreshCw } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useNotifications } from '@/hooks/useNotifications';
@@ -15,6 +15,76 @@ const TYPE_CONFIG = {
 import { relativeTime } from '@/utils/formatting';
 
 type Filter = 'todas' | 'nao_lidas' | 'lidas';
+
+interface NotificationItemProps {
+  notification: {
+    id: string;
+    titulo: string | null;
+    mensagem: string | null;
+    tipo: keyof typeof TYPE_CONFIG | null;
+    data_criacao: string | null;
+    created_at: string;
+  };
+  read: boolean;
+  onMarkAsRead: (id: string) => void | Promise<void>;
+}
+
+const NotificationItem = memo(({ notification, read, onMarkAsRead }: NotificationItemProps) => {
+  const tipo = notification.tipo ?? 'info';
+  const cfg = TYPE_CONFIG[tipo] ?? TYPE_CONFIG.info;
+  const Icon = cfg.icon;
+
+  return (
+    <div
+      className={cn(
+        'flex items-start gap-3 px-4 py-3 rounded-lg border transition-colors',
+        read
+          ? 'border-border/50 bg-card hover:bg-muted/20'
+          : 'border-l-2 bg-primary/5 border-primary hover:bg-primary/8'
+      )}
+    >
+      {/* Type icon */}
+      <div
+        className={cn('w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5', cfg.bgClass)}
+      >
+        <Icon className={cn('h-3 w-3', cfg.textClass)} />
+      </div>
+
+      {/* Content */}
+      <div className="flex-1 min-w-0">
+        <div className="flex items-start justify-between gap-2">
+          <p className={cn('text-xs leading-snug truncate', read ? 'font-normal text-foreground/70' : 'font-semibold text-foreground')}>
+            {notification.titulo ?? 'Notificacao'}
+          </p>
+          <span className="text-[10px] text-muted-foreground/50 flex-shrink-0 tabular-nums">
+            {relativeTime(notification.data_criacao ?? notification.created_at)}
+          </span>
+        </div>
+        {notification.mensagem && (
+          <p className="text-[11px] text-muted-foreground/70 mt-0.5 line-clamp-2 leading-relaxed">
+            {notification.mensagem}
+          </p>
+        )}
+        <div className="flex items-center gap-2 mt-1.5">
+          <span className={cn('text-[9px] font-semibold uppercase tracking-wide px-1.5 py-0.5 rounded-full', cfg.bgClass, cfg.textClass)}>
+            {cfg.label}
+          </span>
+          {!read && (
+            <button
+              type="button"
+              onClick={() => { void onMarkAsRead(notification.id); }}
+              className="text-[10px] text-muted-foreground/50 hover:text-primary transition-colors flex items-center gap-0.5"
+            >
+              <Check className="h-3 w-3" />
+              Marcar lida
+            </button>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+});
+NotificationItem.displayName = 'NotificationItem';
 
 const NotificationsPanel = () => {
   usePageTitle('Notificações');
@@ -140,63 +210,14 @@ const NotificationsPanel = () => {
           </div>
         ) : (
           <div className="space-y-1.5">
-            {filtered.map(notification => {
-              const read = isRead(notification);
-              const tipo = notification.tipo ?? 'info';
-              const cfg  = TYPE_CONFIG[tipo] ?? TYPE_CONFIG.info;
-              const Icon = cfg.icon;
-
-              return (
-                <div
-                  key={notification.id}
-                  className={cn(
-                    'flex items-start gap-3 px-4 py-3 rounded-lg border transition-colors',
-                    read
-                      ? 'border-border/50 bg-card hover:bg-muted/20'
-                      : 'border-l-2 bg-primary/5 border-primary hover:bg-primary/8'
-                  )}
-                >
-                  {/* Type icon */}
-                  <div
-                    className={cn('w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5', cfg.bgClass)}
-                  >
-                    <Icon className={cn('h-3 w-3', cfg.textClass)} />
-                  </div>
-
-                  {/* Content */}
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-start justify-between gap-2">
-                      <p className={cn('text-xs leading-snug truncate', read ? 'font-normal text-foreground/70' : 'font-semibold text-foreground')}>
-                        {notification.titulo ?? 'Notificação'}
-                      </p>
-                      <span className="text-[10px] text-muted-foreground/50 flex-shrink-0 tabular-nums">
-                        {relativeTime(notification.data_criacao ?? notification.created_at)}
-                      </span>
-                    </div>
-                    {notification.mensagem && (
-                      <p className="text-[11px] text-muted-foreground/70 mt-0.5 line-clamp-2 leading-relaxed">
-                        {notification.mensagem}
-                      </p>
-                    )}
-                    <div className="flex items-center gap-2 mt-1.5">
-                      <span className={cn('text-[9px] font-semibold uppercase tracking-wide px-1.5 py-0.5 rounded-full', cfg.bgClass, cfg.textClass)}>
-                        {cfg.label}
-                      </span>
-                      {!read && (
-                        <button
-                          type="button"
-                          onClick={() => { void markAsRead(notification.id); }}
-                          className="text-[10px] text-muted-foreground/50 hover:text-primary transition-colors flex items-center gap-0.5"
-                        >
-                          <Check className="h-3 w-3" />
-                          Marcar lida
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
+            {filtered.map(notification => (
+              <NotificationItem
+                key={notification.id}
+                notification={notification}
+                read={isRead(notification)}
+                onMarkAsRead={markAsRead}
+              />
+            ))}
           </div>
         )}
       </div>

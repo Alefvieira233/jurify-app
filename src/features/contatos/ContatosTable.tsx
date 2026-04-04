@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useCallback, memo } from 'react';
 import { useLeads, type Lead } from '@/hooks/useLeads';
 import { usePageTitle } from '@/hooks/usePageTitle';
 import { useDepartamentos } from '@/hooks/useDepartamentos';
@@ -15,6 +15,55 @@ import { ScreenReaderAnnounce } from '@/components/ui/ScreenReaderAnnounce';
 import LeadDrawer from '@/features/leads/LeadDrawer';
 
 const PAGE_SIZE = 15;
+
+interface ContatoRowProps {
+  lead: Lead;
+  onRowClick: (lead: Lead) => void;
+  memberMap: Map<string, string>;
+  deptoMap: Map<string, string>;
+}
+
+const ContatoRow = memo(({ lead, onRowClick, memberMap, deptoMap }: ContatoRowProps) => {
+  const sc = getStatusConfig('leads', lead.status ?? 'novo');
+  return (
+    <TableRow
+      className="cursor-pointer hover:bg-accent/50 transition-colors"
+      onClick={() => onRowClick(lead)}
+    >
+      <TableCell>
+        <div className="flex items-center gap-3">
+          <Avatar className="h-8 w-8">
+            <AvatarFallback
+              style={{ backgroundColor: getAvatarHex(lead.nome_completo ?? lead.nome ?? 'L') }}
+              className="text-white text-xs"
+            >
+              {getInitials(lead.nome_completo ?? lead.nome ?? null)}
+            </AvatarFallback>
+          </Avatar>
+          <div>
+            <div className="font-medium text-sm">{lead.nome_completo ?? lead.nome ?? 'Sem nome'}</div>
+            {lead.email && <div className="text-xs text-muted-foreground">{lead.email}</div>}
+          </div>
+        </div>
+      </TableCell>
+      <TableCell className="text-sm">
+        {lead.telefone ? fmtPhone(lead.telefone) : '\u2014'}
+      </TableCell>
+      <TableCell className="text-sm text-muted-foreground">
+        {lead.responsavel_id ? (memberMap.get(lead.responsavel_id) ?? '\u2014') : '\u2014'}
+      </TableCell>
+      <TableCell>
+        <Badge variant="secondary" className={`text-[11px] ${sc.bgClass} ${sc.textClass}`}>
+          {sc.label}
+        </Badge>
+      </TableCell>
+      <TableCell className="text-sm text-muted-foreground">
+        {lead.departamento_id ? (deptoMap.get(lead.departamento_id) ?? '\u2014') : '\u2014'}
+      </TableCell>
+    </TableRow>
+  );
+});
+ContatoRow.displayName = 'ContatoRow';
 
 export default function ContatosTable() {
   usePageTitle('Contatos');
@@ -52,10 +101,10 @@ export default function ContatosTable() {
   const totalPages = Math.ceil(filtered.length / PAGE_SIZE);
   const paginated = filtered.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
 
-  const handleRowClick = (lead: Lead) => {
+  const handleRowClick = useCallback((lead: Lead) => {
     setSelectedLead(lead);
     setDrawerOpen(true);
-  };
+  }, []);
 
   if (loading) {
     return (
@@ -126,47 +175,13 @@ export default function ContatosTable() {
               </TableRow>
             ) : (
               paginated.map(lead => (
-                <TableRow
+                <ContatoRow
                   key={lead.id}
-                  className="cursor-pointer hover:bg-accent/50 transition-colors"
-                  onClick={() => handleRowClick(lead)}
-                >
-                  <TableCell>
-                    <div className="flex items-center gap-3">
-                      <Avatar className="h-8 w-8">
-                        <AvatarFallback
-                          style={{ backgroundColor: getAvatarHex(lead.nome_completo ?? lead.nome ?? 'L') }}
-                          className="text-white text-xs"
-                        >
-                          {getInitials(lead.nome_completo ?? lead.nome ?? null)}
-                        </AvatarFallback>
-                      </Avatar>
-                      <div>
-                        <div className="font-medium text-sm">{lead.nome_completo ?? lead.nome ?? 'Sem nome'}</div>
-                        {lead.email && <div className="text-xs text-muted-foreground">{lead.email}</div>}
-                      </div>
-                    </div>
-                  </TableCell>
-                  <TableCell className="text-sm">
-                    {lead.telefone ? fmtPhone(lead.telefone) : '\u2014'}
-                  </TableCell>
-                  <TableCell className="text-sm text-muted-foreground">
-                    {lead.responsavel_id ? (memberMap.get(lead.responsavel_id) ?? '\u2014') : '\u2014'}
-                  </TableCell>
-                  <TableCell>
-                    {(() => {
-                      const sc = getStatusConfig('leads', lead.status ?? 'novo');
-                      return (
-                        <Badge variant="secondary" className={`text-[11px] ${sc.bgClass} ${sc.textClass}`}>
-                          {sc.label}
-                        </Badge>
-                      );
-                    })()}
-                  </TableCell>
-                  <TableCell className="text-sm text-muted-foreground">
-                    {lead.departamento_id ? (deptoMap.get(lead.departamento_id) ?? '\u2014') : '\u2014'}
-                  </TableCell>
-                </TableRow>
+                  lead={lead}
+                  onRowClick={handleRowClick}
+                  memberMap={memberMap}
+                  deptoMap={deptoMap}
+                />
               ))
             )}
           </TableBody>

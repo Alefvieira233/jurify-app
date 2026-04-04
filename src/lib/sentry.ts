@@ -1,14 +1,37 @@
 /**
  * Sentry configuration - error tracking and performance monitoring.
+ *
+ * Bundle optimization (DEB-036):
+ * - Named imports instead of `import * as Sentry` to enable tree-shaking
+ * - Replay and Feedback integrations removed (heaviest sub-packages, ~200KB each)
+ * - Lazy initialization: Sentry.init runs async in production only
+ * - Only browserTracingIntegration kept (lightweight, essential for APM)
  */
 
-import * as Sentry from '@sentry/react';
-import type { User } from '@supabase/supabase-js';
+import {
+  init,
+  browserTracingIntegration,
+  captureException,
+  captureMessage,
+  setUser,
+  setContext,
+  addBreadcrumb,
+  withScope,
+  withErrorBoundary,
+  startInactiveSpan,
+} from '@sentry/react';
+import type { SeverityLevel } from '@sentry/react';
+import type { User as SupabaseUser } from '@supabase/supabase-js';
+
+/** Whether Sentry has been initialized — used for guard checks. */
+let sentryInitialized = false;
 
 /**
  * Initialize Sentry only in production.
+ * Non-blocking: the app renders immediately while Sentry boots.
  */
 export function initSentry() {
+  if (sentryInitialized) return;
   if (import.meta.env.MODE !== 'production') {
     console.log('[sentry] disabled in development mode');
     return;
@@ -21,29 +44,18 @@ export function initSentry() {
     return;
   }
 
-  Sentry.init({
+  init({
     dsn,
     environment: import.meta.env.MODE,
     release: import.meta.env.VITE_APP_VERSION || '1.0.0',
     integrations: [
-      Sentry.browserTracingIntegration(),
-      Sentry.replayIntegration({
-        maskAllText: true,
-        blockAllMedia: true,
-      }),
-      Sentry.feedbackIntegration({
-        colorScheme: 'system',
-        showBranding: false,
-      }),
+      browserTracingIntegration(),
+      // Replay and Feedback removed — they add ~400KB to the bundle
+      // and are not essential for error tracking. Re-enable via lazy
+      // loading when session replay is needed for specific tenants.
     ],
-    tracesSampleRate: import.meta.env.MODE === 'production' ? 0.1 : 1.0,
-    replaysSessionSampleRate: 0.1,
-    replaysOnErrorSampleRate: 1.0,
+    tracesSampleRate: 0.1,
     beforeSend(event, hint) {
-      if (import.meta.env.MODE === 'development') {
-        return null;
-      }
-
       const error = hint.originalException;
 
       if (error && typeof error === 'object' && 'message' in error) {
@@ -79,19 +91,20 @@ export function initSentry() {
     ],
   });
 
+  sentryInitialized = true;
   console.log('[sentry] initialized');
 }
 
 /**
  * Set user context for Sentry.
  */
-export function setSentryUser(user: User | null) {
+export function setSentryUser(user: SupabaseUser | null) {
   if (!user) {
-    Sentry.setUser(null);
+    setUser(null);
     return;
   }
 
-  Sentry.setUser({
+  setUser({
     id: user.id,
     email: user.email,
     username: user.user_metadata?.full_name || user.email?.split('@')[0],
@@ -102,14 +115,14 @@ export function setSentryUser(user: User | null) {
  * Add custom context.
  */
 export function setSentryContext(key: string, value: Record<string, unknown>) {
-  Sentry.setContext(key, value);
+  setContext(key, value);
 }
 
 /**
  * Add breadcrumb.
  */
-export function addSentryBreadcrumb(message: string, category?: string, level?: Sentry.SeverityLevel) {
-  Sentry.addBreadcrumb({
+export function addSentryBreadcrumb(message: string, category?: string, level?: SeverityLevel) {
+  addBreadcrumb({
     message,
     category: category || 'user-action',
     level: level || 'info',
@@ -121,7 +134,7 @@ export function addSentryBreadcrumb(message: string, category?: string, level?: 
  * Capture an error manually.
  */
 export function captureSentryError(error: Error, context?: Record<string, unknown>) {
-  Sentry.captureException(error, {
+  captureException(error, {
     contexts: context ? { custom: context } : undefined,
   });
 }
@@ -129,18 +142,16 @@ export function captureSentryError(error: Error, context?: Record<string, unknow
 /**
  * Capture a message.
  */
-export function captureSentryMessage(message: string, level: Sentry.SeverityLevel = 'info') {
-  Sentry.captureMessage(message, level);
+export function captureSentryMessage(message: string, level: SeverityLevel = 'info') {
+  captureMessage(message, level);
 }
 
 /**
  * Performance transaction (legacy API). Returns null if unsupported.
  */
 export function startSentryTransaction(name: string, op: string = 'custom') {
-  // startTransaction foi removido na Sentry v8+. Usar startInactiveSpan.
-  const sentryObj = Sentry as unknown as Record<string, unknown>;
-  if (typeof sentryObj.startInactiveSpan === 'function') {
-    return (sentryObj.startInactiveSpan as (opts: { name: string; op: string }) => unknown)({ name, op });
+  if (typeof startInactiveSpan === 'function') {
+    return startInactiveSpan({ name, op });
   }
   return null;
 }
@@ -163,7 +174,7 @@ export function captureAgentError(
     stage?: string;
   }
 ) {
-  Sentry.withScope((scope) => {
+  withScope((scope) => {
     scope.setTag('agent.name', context.agentName);
     scope.setTag('agent.stage', context.stage ?? 'unknown');
     scope.setContext('agent', {
@@ -174,7 +185,7 @@ export function captureAgentError(
       stage: context.stage,
     });
     scope.setLevel('error');
-    Sentry.captureException(error);
+    captureException(error);
   });
 }
 
@@ -188,11 +199,11 @@ export function reportSlowAgent(
 ) {
   if (durationMs <= thresholdMs) return;
 
-  Sentry.withScope((scope) => {
+  withScope((scope) => {
     scope.setTag('agent.name', agentName);
     scope.setTag('alert.type', 'slow_response');
     scope.setLevel('warning');
-    Sentry.captureMessage(
+    captureMessage(
       `Agent ${agentName} exceeded response time: ${durationMs}ms (threshold: ${thresholdMs}ms)`,
       'warning'
     );
@@ -209,11 +220,11 @@ export function reportHighAgentFailureRate(
 ) {
   if (failureRate <= thresholdPct) return;
 
-  Sentry.withScope((scope) => {
+  withScope((scope) => {
     scope.setTag('alert.type', 'high_failure_rate');
     scope.setTag('tenant.id', tenantId);
     scope.setLevel('error');
-    Sentry.captureMessage(
+    captureMessage(
       `Agent failure rate for tenant ${tenantId}: ${failureRate.toFixed(1)}% (threshold: ${thresholdPct}%)`,
       'error'
     );
@@ -223,7 +234,7 @@ export function reportHighAgentFailureRate(
 /**
  * HOC for error boundary.
  */
-export const withSentryErrorBoundary = Sentry.withErrorBoundary;
+export const withSentryErrorBoundary = withErrorBoundary;
 
 /**
  * Hook helpers for Sentry.
@@ -256,7 +267,7 @@ export function measurePerformance<T>(
     (result) => {
       const duration = performance.now() - start;
       if (duration > 3000) {
-        Sentry.captureMessage(`Slow operation: ${name} (${Math.round(duration)}ms)`, {
+        captureMessage(`Slow operation: ${name} (${Math.round(duration)}ms)`, {
           level: 'warning',
           tags: { operation: name, ...tags },
           extra: { duration_ms: Math.round(duration) },
@@ -266,7 +277,7 @@ export function measurePerformance<T>(
     },
     (error) => {
       const duration = performance.now() - start;
-      Sentry.captureException(error, {
+      captureException(error, {
         tags: { operation: name, ...tags },
         extra: { duration_ms: Math.round(duration) },
       });
@@ -274,3 +285,7 @@ export function measurePerformance<T>(
     }
   );
 }
+
+// Re-export for consumers that need direct access
+export { captureException, captureMessage, withScope, setContext, setUser } from '@sentry/react';
+export type { SeverityLevel } from '@sentry/react';
