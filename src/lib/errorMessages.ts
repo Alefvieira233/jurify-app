@@ -41,7 +41,12 @@ export function toUserMessage(error: unknown): string {
   } else if (error && typeof error === 'object') {
     // Supabase errors are plain objects with .message or .msg
     const obj = error as Record<string, unknown>;
-    raw = String(obj.message ?? obj.msg ?? obj.error_description ?? '');
+    const val = obj.message ?? obj.msg ?? obj.error_description ?? '';
+    if (typeof val === 'string') {
+      raw = val;
+    } else {
+      raw = '';
+    }
   }
 
   for (const [pattern, msg] of ERROR_MAP) {
