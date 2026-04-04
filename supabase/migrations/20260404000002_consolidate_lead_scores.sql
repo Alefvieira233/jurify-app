@@ -13,7 +13,7 @@ UPDATE public.leads
 SET lead_score = COALESCE(lead_score, score)
 WHERE lead_score IS NULL AND score IS NOT NULL;
 
--- Step 2: Drop the legacy score column
-ALTER TABLE public.leads DROP COLUMN IF EXISTS score;
+-- Step 2: Drop the legacy score column (CASCADE drops dependent views; they use lead_score too)
+ALTER TABLE public.leads DROP COLUMN IF EXISTS score CASCADE;
 
 COMMIT;
