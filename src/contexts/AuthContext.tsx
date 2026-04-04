@@ -179,26 +179,19 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     return supabase.auth.signInWithPassword({ email, password });
   };
   const signUp = (email: string, password: string, userData?: Record<string, unknown>) => {
-    // Client-side password strength check
-    if (password.length < 12) {
-      return Promise.resolve({
-        data: { user: null, session: null },
-        error: { message: 'Senha fraca: Mínimo 12 caracteres' },
-      }) as ReturnType<typeof supabase.auth.signUp>;
-    }
-
+    // Client-side password strength: align with UI (min 8 chars, 4 of 5 criteria)
     const score = [
       /[A-Z]/.test(password),
       /[a-z]/.test(password),
       /[0-9]/.test(password),
       /[^A-Za-z0-9]/.test(password),
-      password.length >= 12,
+      password.length >= 8,
     ].filter(Boolean).length;
 
-    if (score < 4) {
+    if (password.length < 8 || score < 4) {
       return Promise.resolve({
         data: { user: null, session: null },
-        error: { message: 'Senha fraca: não atende aos requisitos mínimos de segurança' },
+        error: new Error('Senha fraca: não atende aos requisitos mínimos de segurança'),
       }) as ReturnType<typeof supabase.auth.signUp>;
     }
 

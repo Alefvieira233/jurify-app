@@ -130,7 +130,7 @@ describe('🔐 AuthContext - Password Validation', () => {
       });
     });
 
-    it('❌ Deve REJEITAR senha < 12 caracteres', async () => {
+    it('❌ Deve REJEITAR senha < 8 caracteres', async () => {
       renderWithAuth(
         <TestComponent onAuth={(auth) => { authContext = auth; }} />
       );
@@ -139,14 +139,14 @@ describe('🔐 AuthContext - Password Validation', () => {
         expect(authContext).not.toBeNull();
       });
 
-      // Senha com 11 chars (abaixo do mínimo)
+      // Senha com 7 chars (abaixo do mínimo)
       const result = await authContext!.signUp(
         'test@example.com',
-        'Str0ng!Pass' // 11 caracteres
+        'Str0ng!' // 7 caracteres
       );
 
       expect(result.error).not.toBeNull();
-      expect(result.error.message).toContain('Mínimo 12 caracteres');
+      expect(result.error?.message).toContain('requisitos mínimos');
       expect(supabase.auth.signUp).not.toHaveBeenCalled();
     });
 

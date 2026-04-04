@@ -7,27 +7,42 @@
  */
 
 const ERROR_MAP: Array<[RegExp, string]> = [
+  // Auth-specific errors (Supabase GoTrue)
+  [/over_email_send_rate_limit/i, 'Limite de envio atingido. Aguarde alguns minutos e tente novamente.'],
+  [/email_address_invalid/i, 'Endereço de e-mail inválido.'],
+  [/user.*already.*registered|email.*already.*use|already.*been.*registered/i, 'Este e-mail já está cadastrado. Tente fazer login.'],
+  [/signup.*disabled/i, 'Cadastro temporariamente desabilitado.'],
+  [/email_not_confirmed/i, 'Confirme seu e-mail antes de fazer login.'],
+  [/invalid.*credentials|invalid.*login/i, 'E-mail ou senha incorretos.'],
+  [/password.*weak|password.*short|senha.*fraca/i, 'Senha muito fraca. Use pelo menos 8 caracteres com letras, números e símbolos.'],
+  [/invalid.*email/i, 'E-mail inválido.'],
+
+  // Database / RLS errors
   [/duplicate key|already exists|unique.*constraint/i, 'Este registro já existe.'],
   [/not found|no rows/i, 'Registro não encontrado.'],
   [/permission denied|row.*level.*security/i, 'Você não tem permissão para esta ação.'],
-  [/network|fetch|timeout|ECONNREFUSED/i, 'Erro de conexão. Verifique sua internet e tente novamente.'],
-  [/invalid.*email/i, 'E-mail inválido.'],
-  [/password.*weak|password.*short/i, 'Senha muito fraca. Use pelo menos 6 caracteres.'],
-  [/user.*already.*registered/i, 'Este e-mail já está cadastrado.'],
-  [/invalid.*credentials|invalid.*login/i, 'E-mail ou senha incorretos.'],
-  [/rate.*limit|too many requests/i, 'Muitas tentativas. Aguarde um momento e tente novamente.'],
   [/foreign.*key|violates.*constraint/i, 'Este registro está vinculado a outros dados e não pode ser alterado.'],
+
+  // Network errors
+  [/network|fetch|timeout|ECONNREFUSED/i, 'Erro de conexão. Verifique sua internet e tente novamente.'],
+  [/rate.*limit|too many requests/i, 'Muitas tentativas. Aguarde um momento e tente novamente.'],
+  [/upstream.*connect|503|service.*unavailable/i, 'Serviço temporariamente indisponível. Tente novamente em instantes.'],
 ];
 
 const GENERIC_MESSAGE = 'Ocorreu um erro inesperado. Tente novamente ou entre em contato com o suporte.';
 
 export function toUserMessage(error: unknown): string {
-  const raw =
-    error instanceof Error
-      ? error.message
-      : typeof error === 'string'
-        ? error
-        : '';
+  let raw = '';
+
+  if (error instanceof Error) {
+    raw = error.message;
+  } else if (typeof error === 'string') {
+    raw = error;
+  } else if (error && typeof error === 'object') {
+    // Supabase errors are plain objects with .message or .msg
+    const obj = error as Record<string, unknown>;
+    raw = String(obj.message ?? obj.msg ?? obj.error_description ?? '');
+  }
 
   for (const [pattern, msg] of ERROR_MAP) {
     if (pattern.test(raw)) return msg;

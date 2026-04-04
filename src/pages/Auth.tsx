@@ -85,13 +85,22 @@ const Auth = () => {
           return;
         }
 
-        const { error } = await signUp(email, password, { full_name: nomeCompleto });
+        const { data, error } = await signUp(email, password, { full_name: nomeCompleto });
         if (error) {
+          const errorMsg = error instanceof Error ? error.message : (error as { message?: string })?.message || '';
+          console.error('[Auth] Signup error:', errorMsg, error);
           toast({
             title: "Erro no cadastro",
-            description: toUserMessage(error),
+            description: errorMsg || toUserMessage(error),
             variant: "destructive",
           });
+        } else if (data?.user) {
+          toast({
+            title: "Conta criada!",
+            description: "Redirecionando...",
+          });
+          // autoconfirm is ON — user is already logged in, redirect
+          navigate('/');
         } else {
           setEmailConfirmationPending(true);
         }
