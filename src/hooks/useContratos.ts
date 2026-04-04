@@ -17,6 +17,7 @@ import { useToast } from '@/hooks/use-toast';
 import { toUserMessage } from '@/lib/errorMessages';
 import { createLogger } from '@/lib/logger';
 import { addSentryBreadcrumb } from '@/lib/sentry';
+import { queryKeys } from '@/lib/queryKeys';
 import { usePlanLimits } from '@/hooks/usePlanLimits';
 
 const log = createLogger('Contratos');
@@ -52,8 +53,9 @@ const LIST_COLUMNS = 'id,lead_id,tenant_id,nome_cliente,area_juridica,valor_caus
 
 function normalizeContrato(row: ContratoRow): Contrato { return { ...row }; }
 
+/** @deprecated Use `queryKeys.contratos.list(tenantId)` from `@/lib/queryKeys` instead. */
 export const contratosQueryKey = (tenantId: string | undefined) =>
-  ['contratos', tenantId] as const;
+  queryKeys.contratos.list(tenantId);
 
 export const useContratos = () => {
   const { user, profile } = useAuth();

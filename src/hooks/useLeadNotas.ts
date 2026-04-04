@@ -12,10 +12,11 @@
  */
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { supabaseUntyped } from '@/integrations/supabase/client';
+import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { toUserMessage } from '@/lib/errorMessages';
+import { queryKeys } from '@/lib/queryKeys';
 import type { LeadNota } from '@/types/crm-operacional';
 
 
@@ -26,9 +27,9 @@ export function useLeadNotas(leadId: string | null) {
   const tenantId = profile?.tenant_id;
 
   const notasQuery = useQuery({
-    queryKey: ['lead_notas', leadId],
+    queryKey: queryKeys.leadNotas.list(leadId ?? undefined),
     queryFn: async (): Promise<LeadNota[]> => {
-      const { data, error } = await supabaseUntyped
+      const { data, error } = await supabase
         .from('lead_notas')
         .select('*')
         .eq('lead_id', leadId!)
@@ -43,7 +44,7 @@ export function useLeadNotas(leadId: string | null) {
   const createNota = useMutation({
     mutationFn: async ({ conteudo, fixada }: { conteudo: string; fixada?: boolean }) => {
       if (!leadId || !tenantId || !user) throw new Error('Contexto de autenticação não disponível');
-      const { data, error } = await supabaseUntyped
+      const { data, error } = await supabase
         .from('lead_notas')
         .insert({
           lead_id: leadId,
@@ -59,7 +60,7 @@ export function useLeadNotas(leadId: string | null) {
       return data;
     },
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ['lead_notas', leadId] });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.leadNotas.list(leadId ?? undefined) });
     },
     onError: (err: unknown) => {
       toast({ title: 'Erro ao criar nota', description: toUserMessage(err), variant: 'destructive' });
@@ -68,7 +69,7 @@ export function useLeadNotas(leadId: string | null) {
 
   const updateNota = useMutation({
     mutationFn: async ({ id, ...updates }: Partial<LeadNota> & { id: string }) => {
-      const { data, error } = await supabaseUntyped
+      const { data, error } = await supabase
         .from('lead_notas')
         .update({ ...updates, updated_at: new Date().toISOString() })
         .eq('id', id)
@@ -78,7 +79,7 @@ export function useLeadNotas(leadId: string | null) {
       return data;
     },
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ['lead_notas', leadId] });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.leadNotas.list(leadId ?? undefined) });
     },
     onError: (err: unknown) => {
       toast({ title: 'Erro ao atualizar nota', description: toUserMessage(err), variant: 'destructive' });
@@ -87,11 +88,11 @@ export function useLeadNotas(leadId: string | null) {
 
   const deleteNota = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabaseUntyped.from('lead_notas').delete().eq('id', id);
+      const { error } = await supabase.from('lead_notas').delete().eq('id', id);
       if (error) throw error;
     },
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ['lead_notas', leadId] });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.leadNotas.list(leadId ?? undefined) });
     },
     onError: (err: unknown) => {
       toast({ title: 'Erro ao remover nota', description: toUserMessage(err), variant: 'destructive' });

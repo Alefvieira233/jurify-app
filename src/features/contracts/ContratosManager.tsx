@@ -23,6 +23,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
 import { createLogger } from '@/lib/logger';
 import { usePageTitle } from '@/hooks/usePageTitle';
+import EmptyState from '@/components/EmptyState';
 
 const log = createLogger('ContratosManager');
 
@@ -216,19 +217,15 @@ const ContratosManager = () => {
           </CardHeader>
         </Card>
 
-        <Card className="border-blue-500/30 bg-blue-500/10">
-          <CardContent className="p-8">
-            <div className="text-center">
-              <FileSignature className="h-16 w-16 text-blue-300 mx-auto mb-4" />
-              <h3 className="text-xl font-semibold text-[hsl(var(--foreground))] mb-2">Nenhum contrato cadastrado</h3>
-              <p className="text-[hsl(var(--muted-foreground))] mb-6">Comece criando seu primeiro contrato para gerenciar assinaturas digitais.</p>
-              <Button onClick={() => setIsNovoContratoOpen(true)} className="bg-[hsl(var(--accent))] hover:bg-[hsl(var(--accent-hover))] text-[hsl(var(--accent-foreground))]">
-                <Plus className="h-4 w-4 mr-2" />
-                Criar primeiro contrato
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
+        <EmptyState
+          icon={FileSignature}
+          title="Nenhum contrato cadastrado"
+          description="Comece criando seu primeiro contrato para gerenciar assinaturas digitais."
+          action={{
+            label: 'Criar primeiro contrato',
+            onClick: () => setIsNovoContratoOpen(true),
+          }}
+        />
       </div>
     );
   }
@@ -429,17 +426,11 @@ const ContratosManager = () => {
           </div>
 
           {filteredContratos.length === 0 && searchTerm && (
-            <Card className="border-amber-500/30 bg-amber-500/10">
-              <CardContent className="p-8">
-                <div className="text-center">
-                  <Search className="h-12 w-12 text-amber-300 mx-auto mb-4" />
-                  <h3 className="text-lg font-medium text-[hsl(var(--foreground))] mb-2">Nenhum resultado encontrado</h3>
-                  <p className="text-[hsl(var(--muted-foreground))]">
-                    Não foram encontrados contratos com o termo "{searchTerm}". Tente ajustar sua busca.
-                  </p>
-                </div>
-              </CardContent>
-            </Card>
+            <EmptyState
+              icon={Search}
+              title="Nenhum resultado encontrado"
+              description={`Não foram encontrados contratos com o termo "${searchTerm}". Tente ajustar sua busca.`}
+            />
           )}
         </TabsContent>
 

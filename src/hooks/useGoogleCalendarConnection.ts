@@ -4,6 +4,7 @@ import { useState, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { queryKeys } from '@/lib/queryKeys';
 
 interface GoogleCalendarStatus {
   connected: boolean;
@@ -39,7 +40,7 @@ export function useGoogleCalendarConnection() {
 
   /* ── Status query ── */
   const statusQuery = useQuery<GoogleCalendarStatus>({
-    queryKey: ['google-calendar-status', user?.id],
+    queryKey: queryKeys.googleCalendarStatus.detail(user?.id),
     enabled: !!user?.id,
     staleTime: 60_000,
     queryFn: async () => {
@@ -57,7 +58,7 @@ export function useGoogleCalendarConnection() {
       return callOAuthFunction('disconnect', {}, session.access_token);
     },
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ['google-calendar-status'] });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.googleCalendarStatus.all });
     },
     onError: (err: Error) => {
       setError(err.message);
@@ -99,7 +100,7 @@ export function useGoogleCalendarConnection() {
         || `${window.location.origin}${REDIRECT_PATH}`;
 
       const result = await callOAuthFunction('exchangeCode', { code, redirectUri }, session.access_token);
-      void queryClient.invalidateQueries({ queryKey: ['google-calendar-status'] });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.googleCalendarStatus.all });
       sessionStorage.removeItem('gcal_redirect_uri');
       return result;
     } catch (err) {

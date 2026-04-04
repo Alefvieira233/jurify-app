@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Plus, Search } from 'lucide-react';
+import { Plus, Search, LifeBuoy } from 'lucide-react';
 import { usePageTitle } from '@/hooks/usePageTitle';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -19,6 +19,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { getStatusConfig } from '@/constants/statusConfig';
 import TicketDetailDialog from './TicketDetailDialog';
+import EmptyState from '@/components/EmptyState';
 
 export default function SuportePage() {
   usePageTitle('Suporte');
@@ -115,8 +116,19 @@ export default function SuportePage() {
               </TableRow>
             ) : filtered.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={5} className="text-center py-12 text-muted-foreground">
-                  Nenhum ticket encontrado
+                <TableCell colSpan={5} className="p-0">
+                  <EmptyState
+                    icon={search || (tipoFilter && tipoFilter !== 'all') ? Search : LifeBuoy}
+                    title="Nenhum ticket encontrado"
+                    description={search || (tipoFilter && tipoFilter !== 'all')
+                      ? 'Tente ajustar os filtros para encontrar seus tickets.'
+                      : 'Abra seu primeiro ticket de suporte para receber ajuda.'}
+                    action={!(search || (tipoFilter && tipoFilter !== 'all')) ? {
+                      label: 'Novo Ticket',
+                      onClick: () => setFormOpen(true),
+                    } : undefined}
+                    className="border-0 shadow-none"
+                  />
                 </TableCell>
               </TableRow>
             ) : (

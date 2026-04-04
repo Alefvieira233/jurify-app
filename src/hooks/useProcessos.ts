@@ -6,6 +6,7 @@
  */
 import { useMemo } from 'react';
 import { useEntityCRUD, type EntityCRUDOptions } from '@/hooks/useEntityCRUD';
+import { queryKeys } from '@/lib/queryKeys';
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -40,6 +41,7 @@ export type ProcessoInput = Partial<Omit<Processo, 'id' | 'created_at' | 'update
 
 // ─── Query key factory ───────────────────────────────────────────────────────
 
+/** @deprecated Use `queryKeys.processos.list(...)` from `@/lib/queryKeys` instead. */
 export const processosQueryKey = (
   tenantId: string | undefined,
   page?: number,
@@ -47,7 +49,7 @@ export const processosQueryKey = (
   filterTipo?: string,
   search?: string,
 ) =>
-  ['processos', tenantId, page ?? 1, filterStatus ?? '', filterTipo ?? '', search ?? ''] as const;
+  queryKeys.processos.list(tenantId, page, filterStatus, filterTipo, search);
 
 // ─── Hook ────────────────────────────────────────────────────────────────────
 

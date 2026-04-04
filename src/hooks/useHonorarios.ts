@@ -6,6 +6,7 @@
  */
 import { useMemo } from 'react';
 import { useEntityCRUD, type EntityCRUDOptions } from '@/hooks/useEntityCRUD';
+import { queryKeys } from '@/lib/queryKeys';
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -31,8 +32,9 @@ export type Honorario = {
 
 export type HonorarioInput = Partial<Omit<Honorario, 'id' | 'created_at' | 'updated_at'>>;
 
+/** @deprecated Use `queryKeys.honorarios.list(tenantId)` from `@/lib/queryKeys` instead. */
 export const honorariosQueryKey = (tenantId: string | undefined) =>
-  ['honorarios', tenantId] as const;
+  queryKeys.honorarios.list(tenantId);
 
 export type HonorarioWithOverdue = Honorario & { overdue: boolean };
 

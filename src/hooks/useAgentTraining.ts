@@ -2,10 +2,11 @@
 
 import { useState, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { supabaseUntyped as supabase } from '@/integrations/supabase/client';
+import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { createLogger } from '@/lib/logger';
+import { queryKeys } from '@/lib/queryKeys';
 
 const log = createLogger('AgentTraining');
 
@@ -33,7 +34,7 @@ export const useAgentTraining = () => {
   const queryClient = useQueryClient();
 
   const { data: documents = [], isLoading: loading } = useQuery({
-    queryKey: ['agent-training-documents', tenantId],
+    queryKey: queryKeys.agentTraining.list(tenantId),
     queryFn: async () => {
       const { data, error } = await supabase
         .from('agent_training_documents')
@@ -49,7 +50,7 @@ export const useAgentTraining = () => {
   });
 
   const invalidate = useCallback(() => {
-    void queryClient.invalidateQueries({ queryKey: ['agent-training-documents', tenantId] });
+    void queryClient.invalidateQueries({ queryKey: queryKeys.agentTraining.list(tenantId) });
   }, [queryClient, tenantId]);
 
   // Helpers -- stable references

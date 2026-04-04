@@ -1,10 +1,11 @@
 /** Manages WhatsApp connection instances: CRUD, reconnection, testing, and status monitoring. */
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { supabaseUntyped } from '@/integrations/supabase/client';
+import { supabaseUntyped as supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { toUserMessage } from '@/lib/errorMessages';
+import { queryKeys } from '@/lib/queryKeys';
 
 export interface ConexaoWhatsApp {
   id: string;
@@ -62,9 +63,9 @@ export function useConexoes() {
   const tenantId = profile?.tenant_id;
 
   const conexoesQuery = useQuery({
-    queryKey: ['conexoes_whatsapp', tenantId],
+    queryKey: queryKeys.conexoesWhatsapp.list(tenantId),
     queryFn: async (): Promise<ConexaoWhatsApp[]> => {
-      const { data, error } = await supabaseUntyped
+      const { data, error } = await supabase
         .from('conexoes_whatsapp')
         .select('*')
         .eq('tenant_id', tenantId!)
@@ -84,7 +85,7 @@ export function useConexoes() {
 
   const createMutation = useMutation({
     mutationFn: async (input: Partial<ConexaoWhatsApp>) => {
-      const { data, error } = await supabaseUntyped
+      const { data, error } = await supabase
         .from('conexoes_whatsapp')
         .insert({ ...input, tenant_id: tenantId! })
         .select()
@@ -93,7 +94,7 @@ export function useConexoes() {
       return data;
     },
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ['conexoes_whatsapp'] });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.conexoesWhatsapp.all });
       toast({ title: 'Conexão criada com sucesso' });
     },
     onError: (err: unknown) => {
@@ -103,7 +104,7 @@ export function useConexoes() {
 
   const updateMutation = useMutation({
     mutationFn: async ({ id, ...updates }: Partial<ConexaoWhatsApp> & { id: string }) => {
-      const { data, error } = await supabaseUntyped
+      const { data, error } = await supabase
         .from('conexoes_whatsapp')
         .update(updates)
         .eq('id', id)
@@ -114,7 +115,7 @@ export function useConexoes() {
       return data;
     },
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ['conexoes_whatsapp'] });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.conexoesWhatsapp.all });
     },
     onError: (err: unknown) => {
       toast({ title: 'Erro ao atualizar conexão', description: toUserMessage(err), variant: 'destructive' });
@@ -123,7 +124,7 @@ export function useConexoes() {
 
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabaseUntyped
+      const { error } = await supabase
         .from('conexoes_whatsapp')
         .delete()
         .eq('id', id)
@@ -131,7 +132,7 @@ export function useConexoes() {
       if (error) throw error;
     },
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ['conexoes_whatsapp'] });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.conexoesWhatsapp.all });
       toast({ title: 'Conexão removida' });
     },
     onError: (err: unknown) => {
@@ -152,9 +153,9 @@ export function useConexoes() {
 
 export function useConexaoLogs(conexaoId: string | null) {
   return useQuery({
-    queryKey: ['conexoes_logs', conexaoId],
+    queryKey: queryKeys.conexoesWhatsapp.logs(conexaoId ?? undefined),
     queryFn: async (): Promise<ConexaoLog[]> => {
-      const { data, error } = await supabaseUntyped
+      const { data, error } = await supabase
         .from('conexoes_logs')
         .select('*')
         .eq('conexao_id', conexaoId!)
@@ -169,9 +170,9 @@ export function useConexaoLogs(conexaoId: string | null) {
 
 export function useConexaoAlertas(conexaoId: string | null) {
   return useQuery({
-    queryKey: ['conexoes_alertas', conexaoId],
+    queryKey: queryKeys.conexoesWhatsapp.alertas(conexaoId ?? undefined),
     queryFn: async (): Promise<ConexaoAlerta[]> => {
-      const { data, error } = await supabaseUntyped
+      const { data, error } = await supabase
         .from('conexoes_alertas')
         .select('*')
         .eq('conexao_id', conexaoId!)

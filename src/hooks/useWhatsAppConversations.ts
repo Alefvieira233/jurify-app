@@ -6,6 +6,7 @@ import { supabaseUntyped as supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { createLogger } from '@/lib/logger';
+import { queryKeys } from '@/lib/queryKeys';
 
 const log = createLogger('WhatsApp');
 
@@ -73,7 +74,7 @@ export const useWhatsAppConversations = (): UseWhatsAppConversationsReturn => {
   const queryClient = useQueryClient();
 
   const { data: conversations = [], isLoading: loading } = useQuery({
-    queryKey: ['whatsapp-conversations', profile?.tenant_id],
+    queryKey: queryKeys.whatsappConversations.list(profile?.tenant_id),
     queryFn: async () => {
       log.debug('Carregando conversas');
       setError(null);
@@ -466,7 +467,7 @@ export const useWhatsAppConversations = (): UseWhatsAppConversationsReturn => {
 
   const fetchConversations = useCallback(async () => {
     try {
-      await queryClient.invalidateQueries({ queryKey: ['whatsapp-conversations', profile?.tenant_id] });
+      await queryClient.invalidateQueries({ queryKey: queryKeys.whatsappConversations.list(profile?.tenant_id) });
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : 'Erro ao carregar conversas';
       log.error('Erro ao carregar conversas', err);

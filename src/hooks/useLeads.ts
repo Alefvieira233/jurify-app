@@ -21,6 +21,7 @@ import { useToast } from '@/hooks/use-toast';
 import { toUserMessage } from '@/lib/errorMessages';
 import { createLogger } from '@/lib/logger';
 import { addSentryBreadcrumb } from '@/lib/sentry';
+import { queryKeys } from '@/lib/queryKeys';
 import { usePlanLimits } from '@/hooks/usePlanLimits';
 
 const log = createLogger('Leads');
@@ -157,8 +158,9 @@ function mapLeadInputToDb(data: Partial<LeadInput>): Record<string, unknown> {
 
 // ─── Query key factory ───────────────────────────────────────────────────────
 
+/** @deprecated Use `queryKeys.leads.list(tenantId, page, scope)` from `@/lib/queryKeys` instead. */
 export const leadsQueryKey = (tenantId: string | undefined, page?: number, scope?: string) =>
-  ['leads', tenantId, page ?? 1, scope ?? 'all'] as const;
+  queryKeys.leads.list(tenantId, page, scope);
 
 // ─── Hook ────────────────────────────────────────────────────────────────────
 

@@ -6,6 +6,7 @@ import { supabaseUntyped as supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { createLogger } from '@/lib/logger';
+import { queryKeys } from '@/lib/queryKeys';
 
 const log = createLogger('CRMPipeline');
 
@@ -32,7 +33,7 @@ export const useCRMPipeline = () => {
   const tenantId = profile?.tenant_id || (user?.user_metadata as Record<string, unknown>)?.tenant_id as string | undefined;
 
   const { data: stages = [], isLoading: loading } = useQuery({
-    queryKey: ['crm-pipeline-stages', tenantId],
+    queryKey: queryKeys.crmPipeline.list(tenantId),
     queryFn: async () => {
       const { data, error } = await supabase
         .from('crm_pipeline_stages')
@@ -75,12 +76,12 @@ export const useCRMPipeline = () => {
   });
 
   const invalidate = useCallback(() => {
-    void queryClient.invalidateQueries({ queryKey: ['crm-pipeline-stages', tenantId] });
+    void queryClient.invalidateQueries({ queryKey: queryKeys.crmPipeline.list(tenantId) });
   }, [queryClient, tenantId]);
 
   const createMutation = useMutation({
     mutationFn: async (data: Partial<PipelineStage>) => {
-      const currentStages = queryClient.getQueryData<PipelineStage[]>(['crm-pipeline-stages', tenantId]) || [];
+      const currentStages = queryClient.getQueryData<PipelineStage[]>(queryKeys.crmPipeline.list(tenantId)) || [];
       const maxPosition = currentStages.length > 0 ? Math.max(...currentStages.map(s => s.position)) + 1 : 0;
       const { error } = await supabase
         .from('crm_pipeline_stages')

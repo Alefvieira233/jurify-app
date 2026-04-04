@@ -6,6 +6,7 @@ import { supabaseUntyped as supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { createLogger } from '@/lib/logger';
+import { queryKeys } from '@/lib/queryKeys';
 
 const log = createLogger('FollowUps');
 
@@ -60,7 +61,7 @@ export const useFollowUps = () => {
   const tenantId = profile?.tenant_id || (user?.user_metadata as Record<string, unknown>)?.tenant_id as string | undefined;
 
   const { data: followUps = [], isLoading: loading } = useQuery({
-    queryKey: ['crm-followups', tenantId],
+    queryKey: queryKeys.crmFollowups.list(tenantId),
     queryFn: async () => {
       const { data, error } = await supabase
         .from('crm_followups')
@@ -85,7 +86,7 @@ export const useFollowUps = () => {
   });
 
   const { data: overdueCount = 0 } = useQuery({
-    queryKey: ['crm-followups-overdue', tenantId],
+    queryKey: queryKeys.crmFollowups.overdue(tenantId),
     queryFn: async () => {
       const { count, error } = await supabase
         .from('crm_followups')
@@ -100,8 +101,8 @@ export const useFollowUps = () => {
   });
 
   const invalidateAll = useCallback(() => {
-    void queryClient.invalidateQueries({ queryKey: ['crm-followups', tenantId] });
-    void queryClient.invalidateQueries({ queryKey: ['crm-followups-overdue', tenantId] });
+    void queryClient.invalidateQueries({ queryKey: queryKeys.crmFollowups.list(tenantId) });
+    void queryClient.invalidateQueries({ queryKey: queryKeys.crmFollowups.overdue(tenantId) });
   }, [queryClient, tenantId]);
 
   const createMutation = useMutation({
@@ -343,7 +344,7 @@ export const useFollowUps = () => {
   }, [rescheduleMutation]);
 
   const getOverdueCount = useCallback(() => {
-    void queryClient.invalidateQueries({ queryKey: ['crm-followups-overdue', tenantId] });
+    void queryClient.invalidateQueries({ queryKey: queryKeys.crmFollowups.overdue(tenantId) });
   }, [queryClient, tenantId]);
 
   return {

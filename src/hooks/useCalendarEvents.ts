@@ -8,6 +8,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '@/contexts/AuthContext';
 import { useAgendamentos } from '@/hooks/useAgendamentos';
 import { useGoogleCalendarConnection } from '@/hooks/useGoogleCalendarConnection';
+import { queryKeys } from '@/lib/queryKeys';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -99,7 +100,7 @@ export function useCalendarEvents() {
 
   // Fetch Google Calendar events via Edge Function using React Query
   const { data: googleEvents = [], isLoading: loadingGoogle } = useQuery({
-    queryKey: ['google-calendar-events', user?.id, gcalStatus.connected, dateRange?.start, dateRange?.end],
+    queryKey: queryKeys.googleCalendarEvents.list(user?.id, gcalStatus.connected, dateRange?.start, dateRange?.end),
     queryFn: async () => {
       if (!dateRange) return [];
 

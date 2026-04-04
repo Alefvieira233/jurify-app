@@ -14,6 +14,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabaseUntyped as supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
+import { queryKeys } from '@/lib/queryKeys';
 
 export interface Tarefa {
   id: string;
@@ -38,7 +39,7 @@ export function useTarefas() {
   const tenantId = profile?.tenant_id;
 
   const { data: tarefas, isLoading } = useQuery({
-    queryKey: ['tarefas', tenantId],
+    queryKey: queryKeys.tarefas.list(tenantId),
     enabled: !!tenantId,
     queryFn: async () => {
       const { data, error } = await supabase
@@ -61,7 +62,7 @@ export function useTarefas() {
       if (error) throw error;
     },
     onSuccess: () => {
-      void qc.invalidateQueries({ queryKey: ['tarefas'] });
+      void qc.invalidateQueries({ queryKey: queryKeys.tarefas.all });
       toast({ title: 'Tarefa criada com sucesso' });
     },
     onError: () => {
@@ -78,7 +79,7 @@ export function useTarefas() {
       if (error) throw error;
     },
     onSuccess: () => {
-      void qc.invalidateQueries({ queryKey: ['tarefas'] });
+      void qc.invalidateQueries({ queryKey: queryKeys.tarefas.all });
     },
   });
 
@@ -88,7 +89,7 @@ export function useTarefas() {
       if (error) throw error;
     },
     onSuccess: () => {
-      void qc.invalidateQueries({ queryKey: ['tarefas'] });
+      void qc.invalidateQueries({ queryKey: queryKeys.tarefas.all });
       toast({ title: 'Tarefa removida' });
     },
   });

@@ -112,6 +112,33 @@ Deno.serve(async (req) => {
         .lt("created_at", cutoffDate);
       deleted.agent_executions = execCount ?? 0;
 
+      // --- Fixed-TTL log tables (LGPD retention periods) ---
+      // agent_ai_logs: 90-day retention
+      const aiLogCutoff = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString();
+      const { count: aiLogCount } = await supabaseAdmin
+        .from("agent_ai_logs")
+        .delete({ count: "exact" })
+        .eq("tenant_id", tenant.id)
+        .lt("created_at", aiLogCutoff);
+      deleted.agent_ai_logs = aiLogCount ?? 0;
+
+      // logs_execucao_agentes: 90-day retention
+      const { count: execLogCount } = await supabaseAdmin
+        .from("logs_execucao_agentes")
+        .delete({ count: "exact" })
+        .eq("tenant_id", tenant.id)
+        .lt("created_at", aiLogCutoff);
+      deleted.logs_execucao_agentes = execLogCount ?? 0;
+
+      // audit_log: 365-day retention
+      const auditCutoff = new Date(Date.now() - 365 * 24 * 60 * 60 * 1000).toISOString();
+      const { count: auditCount } = await supabaseAdmin
+        .from("audit_log")
+        .delete({ count: "exact" })
+        .eq("tenant_id", tenant.id)
+        .lt("created_at", auditCutoff);
+      deleted.audit_log = auditCount ?? 0;
+
       results.push({ tenant_id: tenant.id, retention_days: tenant.data_retention_days, deleted });
       log.info(`Tenant ${tenant.id} cleanup done`, deleted);
     }

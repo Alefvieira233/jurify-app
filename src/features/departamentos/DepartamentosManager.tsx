@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { Plus, Search, Building2, Trash2, Edit, MoreHorizontal, ShieldCheck, Users } from 'lucide-react';
+import { Plus, Search, Building2, Trash2, Edit, MoreHorizontal, Users } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -17,6 +17,7 @@ import { useRBAC } from '@/hooks/useRBAC';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import DepartamentoForm from './DepartamentoForm';
 import MembrosSection from './MembrosSection';
+import EmptyState from '@/components/EmptyState';
 import type { Departamento } from '@/types/crm-operacional';
 
 const DepartamentosManager = () => {
@@ -143,23 +144,15 @@ const DepartamentosManager = () => {
       </div>
 
       {departamentos.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-24 text-center border border-dashed border-border/20 rounded-[24px] bg-muted/5">
-          <div className="w-20 h-20 rounded-full bg-primary/10 flex items-center justify-center mb-6">
-            <Building2 className="h-10 w-10 text-primary" />
-          </div>
-          <h3 className="text-2xl font-bold text-foreground mb-2">
-            Nenhum departamento criado
-          </h3>
-          <p className="text-base text-muted-foreground mb-8 max-w-md">
-            Crie departamentos para dividir sua esteira operacional (ex: Comercial, Jurídico Cível, Financeiro) e distribua seus leads.
-          </p>
-          {canCreate && (
-            <Button onClick={handleOpenCreate} size="lg" className="rounded-[12px]">
-              <Plus className="h-4 w-4 mr-2" />
-              Criar Primeira Área
-            </Button>
-          )}
-        </div>
+        <EmptyState
+          icon={Building2}
+          title="Nenhum departamento criado"
+          description="Crie departamentos para dividir sua esteira operacional (ex: Comercial, Jurídico Cível, Financeiro) e distribua seus leads."
+          action={canCreate ? {
+            label: 'Criar Primeira Área',
+            onClick: handleOpenCreate,
+          } : undefined}
+        />
       ) : (
         <>
           {/* Grid de Departamentos */}
@@ -245,15 +238,15 @@ const DepartamentosManager = () => {
           </div>
 
           {filtered.length === 0 && searchTerm && (
-            <div className="flex flex-col items-center justify-center py-12 text-center bg-muted/5 border border-dashed border-border/10 rounded-[24px]">
-              <ShieldCheck className="w-12 h-12 text-muted-foreground/30 mb-4" />
-              <p className="text-muted-foreground text-lg">
-                Nenhum departamento encontrado para "<span className="text-foreground font-semibold">{searchTerm}</span>".
-              </p>
-              <Button variant="ghost" className="mt-4" onClick={() => setSearchTerm('')}>
-                Limpar busca
-              </Button>
-            </div>
+            <EmptyState
+              icon={Search}
+              title="Nenhum departamento encontrado"
+              description={`Nenhum departamento encontrado para "${searchTerm}".`}
+              action={{
+                label: 'Limpar busca',
+                onClick: () => setSearchTerm(''),
+              }}
+            />
           )}
         </>
       )}

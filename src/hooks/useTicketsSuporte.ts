@@ -15,6 +15,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabaseUntyped as supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
+import { queryKeys } from '@/lib/queryKeys';
 
 export interface TicketSuporte {
   id: string;
@@ -35,7 +36,7 @@ export function useTicketsSuporte() {
   const tenantId = profile?.tenant_id;
 
   const { data: tickets, isLoading } = useQuery({
-    queryKey: ['tickets-suporte', tenantId],
+    queryKey: queryKeys.ticketsSuporte.list(tenantId),
     enabled: !!tenantId,
     queryFn: async () => {
       const { data, error } = await supabase
@@ -58,7 +59,7 @@ export function useTicketsSuporte() {
       if (error) throw error;
     },
     onSuccess: () => {
-      void qc.invalidateQueries({ queryKey: ['tickets-suporte'] });
+      void qc.invalidateQueries({ queryKey: queryKeys.ticketsSuporte.all });
       toast({ title: 'Ticket criado com sucesso' });
     },
     onError: () => {
@@ -75,7 +76,7 @@ export function useTicketsSuporte() {
       if (error) throw error;
     },
     onSuccess: () => {
-      void qc.invalidateQueries({ queryKey: ['tickets-suporte'] });
+      void qc.invalidateQueries({ queryKey: queryKeys.ticketsSuporte.all });
     },
     onError: () => {
       toast({ title: 'Erro ao atualizar ticket', variant: 'destructive' });

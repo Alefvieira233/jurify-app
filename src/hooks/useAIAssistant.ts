@@ -11,7 +11,7 @@
 import { useState, useCallback } from 'react';
 import { useMutation } from '@tanstack/react-query';
 import { useAuth } from '@/contexts/AuthContext';
-import { supabaseUntyped as supabase } from '@/integrations/supabase/client';
+import { supabase } from '@/integrations/supabase/client';
 import { trackQuery, trackError, getAnalyticsSummary } from '@/lib/assistantAnalytics';
 
 interface AssistantMessage {

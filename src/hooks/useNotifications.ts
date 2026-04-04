@@ -15,6 +15,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { createLogger } from '@/lib/logger';
+import { queryKeys } from '@/lib/queryKeys';
 
 const log = createLogger('Notifications');
 
@@ -42,7 +43,7 @@ export const useNotifications = () => {
   const tenantId = profile?.tenant_id ?? null;
 
   const { data: notifications = [], isLoading: loading } = useQuery({
-    queryKey: ['notifications', tenantId, user?.id],
+    queryKey: queryKeys.notifications.list(tenantId ?? undefined, user?.id),
     queryFn: async () => {
       const { data, error } = await supabase
         .from('notificacoes')
@@ -63,7 +64,7 @@ export const useNotifications = () => {
     : 0;
 
   const fetchNotifications = useCallback(() => {
-    void queryClient.invalidateQueries({ queryKey: ['notifications', tenantId, user?.id] });
+    void queryClient.invalidateQueries({ queryKey: queryKeys.notifications.list(tenantId ?? undefined, user?.id) });
   }, [queryClient, tenantId, user?.id]);
 
   const markAsRead = async (notificationId: string) => {
@@ -80,7 +81,7 @@ export const useNotifications = () => {
       if (data) {
         // Optimistic update in cache
         queryClient.setQueryData<Notification[]>(
-          ['notifications', tenantId, user.id],
+          queryKeys.notifications.list(tenantId ?? undefined, user.id),
           (prev) => (prev || []).map((n) =>
             n.id === notificationId
               ? { ...n, lido_por: [...(n.lido_por || []), user.id] }
@@ -103,7 +104,7 @@ export const useNotifications = () => {
 
       // Optimistic update in cache
       queryClient.setQueryData<Notification[]>(
-        ['notifications', tenantId, user.id],
+        queryKeys.notifications.list(tenantId ?? undefined, user.id),
         (prev) => (prev || []).map((n) => ({
           ...n,
           lido_por: [...(n.lido_por || []), user.id],
@@ -141,7 +142,7 @@ export const useNotifications = () => {
       if (error) throw error;
     },
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ['notifications', tenantId, user?.id] });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.notifications.list(tenantId ?? undefined, user?.id) });
       toast({ title: 'Notificacao criada', description: 'A notificacao foi criada com sucesso.' });
     },
     onError: (error) => {

@@ -12,6 +12,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabaseUntyped as supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { createLogger } from '@/lib/logger';
+import { queryKeys } from '@/lib/queryKeys';
 
 const log = createLogger('DashboardMetricsFast');
 
@@ -155,7 +156,7 @@ export function useDashboardMetricsFast() {
   const queryClient = useQueryClient();
   const [isLive, setIsLive] = useState(false);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const qKey = useMemo(() => ['dashboard-metrics-fast', tenantId] as const, [tenantId]);
+  const qKey = useMemo(() => queryKeys.dashboardMetrics.list(tenantId), [tenantId]);
 
   const {
     data,

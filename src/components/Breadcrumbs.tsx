@@ -1,4 +1,4 @@
-import { useLocation } from 'react-router-dom';
+import { useLocation, Link } from 'react-router-dom';
 import { ChevronRight } from 'lucide-react';
 
 const ROUTE_LABELS: Record<string, string> = {
@@ -40,18 +40,35 @@ export default function Breadcrumbs() {
     return null;
   }
 
-  const crumbs = segments.map(seg => ROUTE_LABELS[seg] || seg.charAt(0).toUpperCase() + seg.slice(1));
+  const crumbs = segments.map((seg, i) => ({
+    label: ROUTE_LABELS[seg] || seg.charAt(0).toUpperCase() + seg.slice(1),
+    path: '/' + segments.slice(0, i + 1).join('/'),
+  }));
 
   return (
-    <nav className="flex items-center gap-1 text-xs text-muted-foreground px-6 pt-4 pb-1">
-      {crumbs.map((crumb, i) => (
-        <span key={`${crumb}-${i}`} className="flex items-center gap-1">
-          {i > 0 && <ChevronRight className="h-3 w-3 text-muted-foreground/40" />}
-          <span className={i === crumbs.length - 1 ? 'text-foreground font-semibold' : ''}>
-            {crumb}
-          </span>
-        </span>
-      ))}
+    <nav aria-label="Breadcrumb" className="flex items-center gap-1 text-xs text-muted-foreground px-6 pt-4 pb-1">
+      <ol className="flex items-center gap-1 list-none p-0 m-0">
+        {crumbs.map((crumb, i) => {
+          const isLast = i === crumbs.length - 1;
+          return (
+            <li key={`${crumb.label}-${i}`} className="flex items-center gap-1">
+              {i > 0 && <ChevronRight className="h-3 w-3 text-muted-foreground/40" aria-hidden="true" />}
+              {isLast ? (
+                <span className="text-foreground font-semibold" aria-current="page">
+                  {crumb.label}
+                </span>
+              ) : (
+                <Link
+                  to={crumb.path}
+                  className="hover:text-foreground transition-colors"
+                >
+                  {crumb.label}
+                </Link>
+              )}
+            </li>
+          );
+        })}
+      </ol>
     </nav>
   );
 }

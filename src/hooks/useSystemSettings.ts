@@ -5,6 +5,7 @@ import { supabaseUntyped as supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
 import { createLogger } from '@/lib/logger';
+import { queryKeys } from '@/lib/queryKeys';
 
 const log = createLogger('SystemSettings');
 
@@ -26,7 +27,7 @@ export const useSystemSettings = () => {
   const tenantId = profile?.tenant_id ?? null;
 
   const { data: settings = [], isLoading } = useQuery({
-    queryKey: ['system-settings', tenantId],
+    queryKey: queryKeys.systemSettings.list(tenantId),
     enabled: !!tenantId,
     queryFn: async () => {
       const { data, error } = await supabase
@@ -55,7 +56,7 @@ export const useSystemSettings = () => {
       return data;
     },
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ['system-settings', tenantId] });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.systemSettings.list(tenantId) });
       toast({
         title: 'Configuracao atualizada',
         description: 'A configuração foi salva com sucesso.',

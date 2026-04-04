@@ -6,8 +6,9 @@
  */
 
 import { useQuery } from '@tanstack/react-query';
-import { supabaseUntyped as supabase } from '@/integrations/supabase/client';
+import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { queryKeys } from '@/lib/queryKeys';
 import {
   startOfDay,
   endOfDay,
@@ -93,7 +94,7 @@ export function useAgendaMetrics() {
   const tenantId = profile?.tenant_id;
 
   const { data = DEFAULT, isLoading } = useQuery({
-    queryKey: ['agenda-metrics', tenantId],
+    queryKey: queryKeys.agendaMetrics.list(tenantId),
     queryFn: () => fetchAgendaMetrics(tenantId!),
     enabled: !!user && !!tenantId,
     staleTime: 2 * 60 * 1000,

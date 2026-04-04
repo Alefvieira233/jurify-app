@@ -1,10 +1,11 @@
 /** Manages team member profiles, roles, and department assignments within a tenant. */
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { supabaseUntyped } from '@/integrations/supabase/client';
+import { supabaseUntyped as supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { toUserMessage } from '@/lib/errorMessages';
+import { queryKeys } from '@/lib/queryKeys';
 
 export interface TeamMember {
   id: string;
@@ -31,9 +32,9 @@ export function useTeamMembers() {
   const tenantId = profile?.tenant_id;
 
   const query = useQuery({
-    queryKey: ['team_members', tenantId],
+    queryKey: queryKeys.teamMembers.list(tenantId),
     queryFn: async (): Promise<TeamMember[]> => {
-      const { data, error } = await supabaseUntyped
+      const { data, error } = await supabase
         .from('profiles')
         .select('id, nome_completo, email, avatar_url, ativo, cargo, telefone, role, departamento')
         .eq('tenant_id', tenantId!)
@@ -55,7 +56,7 @@ export function useTeamMembers() {
   const updateMember = useMutation({
     mutationFn: async ({ id, ...updates }: UpdateTeamMemberInput) => {
       if (!tenantId) throw new Error('Tenant não encontrado');
-      const { data, error } = await supabaseUntyped
+      const { data, error } = await supabase
         .from('profiles')
         .update(updates)
         .eq('id', id)
@@ -66,8 +67,8 @@ export function useTeamMembers() {
       return data as TeamMember;
     },
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ['team_members'] });
-      void queryClient.invalidateQueries({ queryKey: ['usuarios'] });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.teamMembers.all });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.usuarios.all });
       toast({ title: 'Membro atualizado', description: 'Dados salvos com sucesso.' });
     },
     onError: (err: unknown) => {

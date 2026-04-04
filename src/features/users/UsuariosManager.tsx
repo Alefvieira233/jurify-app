@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { Plus, Search, MoreHorizontal, Edit, Trash, ShieldAlert, Users, ExternalLink } from 'lucide-react';
+import { Plus, Search, MoreHorizontal, Edit, Trash, ShieldAlert, Users, ExternalLink, UserPlus } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { useRBAC } from '@/hooks/useRBAC';
@@ -17,6 +17,7 @@ import GerenciarPermissoesForm from '@/components/GerenciarPermissoesForm';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import { usePageTitle } from '@/hooks/usePageTitle';
 import { getAvatarHex, getInitials } from '@/utils/formatting';
+import EmptyState from '@/components/EmptyState';
 
 interface Usuario {
   id: string;
@@ -196,20 +197,16 @@ const UsuariosManager = () => {
           {[...Array(4)].map((_, i) => <Skeleton key={i} className="h-48 rounded-[24px]" />)}
         </div>
       ) : filteredUsuarios.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-24 text-center border border-dashed border-border/20 rounded-[24px] bg-muted/5">
-          <div className="w-20 h-20 rounded-full bg-primary/10 flex items-center justify-center mb-6">
-            <Users className="h-10 w-10 text-primary" />
-          </div>
-          <h3 className="text-2xl font-bold text-foreground mb-2">
-            Nenhum membro encontrado
-          </h3>
-          <p className="text-base text-muted-foreground mb-8 max-w-md">
-            {searchTerm ? 'Nenhum integrante da equipe bate com a sua pesquisa atual.' : 'Convide o primeiro membro para a plataforma e delegue os atendimentos.'}
-          </p>
-          {searchTerm && (
-            <Button variant="ghost" onClick={() => setSearchTerm('')}>Limpar busca</Button>
-          )}
-        </div>
+        <EmptyState
+          icon={searchTerm ? Search : UserPlus}
+          title="Nenhum membro encontrado"
+          description={searchTerm
+            ? 'Nenhum integrante da equipe bate com a sua pesquisa atual.'
+            : 'Convide o primeiro membro para a plataforma e delegue os atendimentos.'}
+          action={searchTerm
+            ? { label: 'Limpar busca', onClick: () => setSearchTerm('') }
+            : { label: 'Convidar Membro', onClick: () => setIsNovoUsuarioOpen(true) }}
+        />
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
           {filteredUsuarios.map((usuario) => {

@@ -18,6 +18,7 @@ import { DetalhesAgendamento } from '@/components/DetalhesAgendamento';
 import { cn } from '@/lib/utils';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import { usePageTitle } from '@/hooks/usePageTitle';
+import EmptyState from '@/components/EmptyState';
 
 const CalendarPanel = lazy(() => import('@/components/agenda/CalendarPanel'));
 
@@ -182,17 +183,16 @@ const AgendamentosManager = () => {
           </div>
         </div>
         <div className="flex-1 flex items-center justify-center px-5 py-4">
-          <div className="text-center max-w-sm">
-            <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-3">
-              <Calendar className="h-6 w-6 text-primary" />
-            </div>
-            <h3 className="text-sm font-semibold text-foreground mb-1">Nenhum agendamento</h3>
-            <p className="text-[11px] text-muted-foreground mb-4">Comece criando seu primeiro agendamento para organizar suas reuniões.</p>
-            <Button size="sm" onClick={() => setIsNovoAgendamentoOpen(true)}>
-              <Plus className="h-3.5 w-3.5 mr-1.5" />
-              Criar primeiro agendamento
-            </Button>
-          </div>
+          <EmptyState
+            icon={Calendar}
+            title="Nenhum agendamento"
+            description="Comece criando seu primeiro agendamento para organizar suas reuniões."
+            action={{
+              label: 'Criar primeiro agendamento',
+              onClick: () => setIsNovoAgendamentoOpen(true),
+            }}
+            className="border-0 shadow-none"
+          />
         </div>
 
         <Dialog open={isNovoAgendamentoOpen} onOpenChange={setIsNovoAgendamentoOpen}>

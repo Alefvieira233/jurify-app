@@ -15,6 +15,7 @@ import { supabaseUntyped as supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { createLogger } from '@/lib/logger';
+import { queryKeys } from '@/lib/queryKeys';
 
 const log = createLogger('AgentesIA');
 
@@ -91,7 +92,7 @@ export const useAgentesIA = () => {
   }, []);
 
   const queryClient = useQueryClient();
-  const qKey = useMemo(() => ['agentes_ia', tenantId] as const, [tenantId]);
+  const qKey = useMemo(() => queryKeys.agentesIA.list(tenantId), [tenantId]);
 
   const fetchAgentes = useCallback(async (): Promise<AgenteIA[]> => {
     let query = supabase

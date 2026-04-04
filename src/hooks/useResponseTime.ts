@@ -1,8 +1,9 @@
 /** Fetches average response time metrics for WhatsApp conversations. */
 
 import { useQuery } from '@tanstack/react-query';
-import { supabaseUntyped as supabase } from '@/integrations/supabase/client';
+import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { queryKeys } from '@/lib/queryKeys';
 
 interface ResponseTimeData {
   time: string;
@@ -44,7 +45,7 @@ export function useResponseTime(days = 7) {
   const tenantId = profile?.tenant_id;
 
   return useQuery<ResponseTimeData[]>({
-    queryKey: ['response-time', tenantId, days],
+    queryKey: queryKeys.responseTime.list(tenantId, days),
     queryFn: async () => {
       if (!tenantId) return [];
 

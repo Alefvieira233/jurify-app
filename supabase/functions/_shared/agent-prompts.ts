@@ -133,7 +133,7 @@ CONTEXTO FORNECIDO:
 - has_media: se a mensagem contém mídia processada
 - media_category: tipo da mídia (image/audio/pdf/document/text)
 - is_first_contact: se é o primeiro contato do cliente
-- message_text: o texto da mensagem (ou transcrição/análise da mídia)
+- content: o texto da mensagem (ou transcrição/análise da mídia)
 
 Responda APENAS com um JSON:
 {"agent": "nome_do_agente", "reason": "motivo em 1 frase"}`;

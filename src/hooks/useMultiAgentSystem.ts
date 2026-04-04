@@ -19,6 +19,7 @@ import { supabaseUntyped as supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
 import { createLogger } from '@/lib/logger';
+import { queryKeys } from '@/lib/queryKeys';
 
 const log = createLogger('MultiAgentSystem');
 
@@ -63,7 +64,7 @@ export const useMultiAgentSystem = () => {
 
   // System stats query (includes in-memory stats + recent activity from DB)
   const { data: statsData } = useQuery({
-    queryKey: ['multi-agent-stats', tenantId],
+    queryKey: queryKeys.multiAgent.stats(tenantId),
     queryFn: async () => {
       const stats = multiAgentSystem.getSystemStats();
 
@@ -86,7 +87,7 @@ export const useMultiAgentSystem = () => {
 
   // Metrics query
   const { data: metrics = null } = useQuery({
-    queryKey: ['multi-agent-metrics', tenantId],
+    queryKey: queryKeys.multiAgent.metrics(tenantId),
     queryFn: async () => {
       const since = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
 
@@ -218,8 +219,8 @@ export const useMultiAgentSystem = () => {
         title: 'Lead processado',
         description: `Lead ${leadData.name} enviado ao sistema multiagentes.`,
       });
-      void queryClient.invalidateQueries({ queryKey: ['multi-agent-stats', tenantId] });
-      void queryClient.invalidateQueries({ queryKey: ['multi-agent-metrics', tenantId] });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.multiAgent.stats(tenantId) });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.multiAgent.metrics(tenantId) });
     },
     onError: (error) => {
       log.error('Failed to process lead', error);
@@ -308,11 +309,11 @@ export const useMultiAgentSystem = () => {
   }, [toast]);
 
   const loadSystemStats = useCallback(() => {
-    void queryClient.invalidateQueries({ queryKey: ['multi-agent-stats', tenantId] });
+    void queryClient.invalidateQueries({ queryKey: queryKeys.multiAgent.stats(tenantId) });
   }, [queryClient, tenantId]);
 
   const loadMetrics = useCallback(() => {
-    void queryClient.invalidateQueries({ queryKey: ['multi-agent-metrics', tenantId] });
+    void queryClient.invalidateQueries({ queryKey: queryKeys.multiAgent.metrics(tenantId) });
   }, [queryClient, tenantId]);
 
   return {

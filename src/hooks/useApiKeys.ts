@@ -5,6 +5,7 @@ import { supabaseUntyped as supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
 import { createLogger } from '@/lib/logger';
+import { queryKeys } from '@/lib/queryKeys';
 
 const log = createLogger('ApiKeys');
 
@@ -27,7 +28,7 @@ export const useApiKeys = () => {
   const tenantId = profile?.tenant_id ?? null;
 
   const { data: apiKeys = [], isLoading: loading } = useQuery({
-    queryKey: ['api-keys', tenantId],
+    queryKey: queryKeys.apiKeys.list(tenantId),
     queryFn: async () => {
       const { data, error } = await supabase
         .from('api_keys')
@@ -66,7 +67,7 @@ export const useApiKeys = () => {
       return data;
     },
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ['api-keys', tenantId] });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.apiKeys.list(tenantId) });
       toast({ title: 'Sucesso', description: 'API key criada com sucesso.' });
     },
     onError: (error) => {
@@ -86,7 +87,7 @@ export const useApiKeys = () => {
       if (error) throw error;
     },
     onSuccess: (_data, variables) => {
-      void queryClient.invalidateQueries({ queryKey: ['api-keys', tenantId] });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.apiKeys.list(tenantId) });
       toast({ title: 'Sucesso', description: `API key ${!variables.ativo ? 'ativada' : 'desativada'} com sucesso.` });
     },
     onError: (error) => {
@@ -106,7 +107,7 @@ export const useApiKeys = () => {
       if (error) throw error;
     },
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ['api-keys', tenantId] });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.apiKeys.list(tenantId) });
       toast({ title: 'Sucesso', description: 'API key excluida com sucesso.' });
     },
     onError: (error) => {
@@ -135,6 +136,6 @@ export const useApiKeys = () => {
     criarApiKey,
     toggleApiKey,
     deletarApiKey,
-    refetch: () => queryClient.invalidateQueries({ queryKey: ['api-keys', tenantId] }),
+    refetch: () => queryClient.invalidateQueries({ queryKey: queryKeys.apiKeys.list(tenantId) }),
   };
 };

@@ -6,6 +6,7 @@
  */
 import { useMemo } from 'react';
 import { useEntityCRUD, type EntityCRUDOptions } from '@/hooks/useEntityCRUD';
+import { queryKeys } from '@/lib/queryKeys';
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -28,8 +29,9 @@ export type PrazoProcessual = {
 
 export type PrazoInput = Partial<Omit<PrazoProcessual, 'id' | 'created_at' | 'updated_at'>>;
 
+/** @deprecated Use `queryKeys.prazosProcessuais.list(tenantId, page)` from `@/lib/queryKeys` instead. */
 export const prazosQueryKey = (tenantId: string | undefined, page?: number) =>
-  ['prazos_processuais', tenantId, page ?? 1] as const;
+  queryKeys.prazosProcessuais.list(tenantId, page);
 
 // ─── Hook ────────────────────────────────────────────────────────────────────
 

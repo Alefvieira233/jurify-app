@@ -6,6 +6,7 @@ import { supabaseUntyped as supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { createLogger } from '@/lib/logger';
+import { queryKeys } from '@/lib/queryKeys';
 
 const log = createLogger('IntegracoesConfig');
 
@@ -38,7 +39,7 @@ export const useIntegracoesConfig = () => {
   const tenantId = profile?.tenant_id ?? null;
 
   const { data: integracoes = [], isLoading: loading } = useQuery({
-    queryKey: ['integracoes-config', tenantId],
+    queryKey: queryKeys.integracoesConfig.list(tenantId),
     queryFn: async () => {
       const { data, error } = await supabase
         .from('configuracoes_integracoes')
@@ -54,7 +55,7 @@ export const useIntegracoesConfig = () => {
   });
 
   const invalidate = useCallback(() => {
-    void queryClient.invalidateQueries({ queryKey: ['integracoes-config', tenantId] });
+    void queryClient.invalidateQueries({ queryKey: queryKeys.integracoesConfig.list(tenantId) });
   }, [queryClient, tenantId]);
 
   const createMutation = useMutation({

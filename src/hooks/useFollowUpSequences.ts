@@ -7,6 +7,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { toUserMessage } from '@/lib/errorMessages';
 import { createLogger } from '@/lib/logger';
+import { queryKeys } from '@/lib/queryKeys';
 
 const log = createLogger('FollowUpSequences');
 
@@ -51,14 +52,14 @@ export type CreateSequenceInput = {
 
 export type UpdateSequenceInput = Partial<CreateSequenceInput>;
 
-const QUERY_KEY_BASE = 'followup-sequences';
+// @deprecated QUERY_KEY_BASE — use queryKeys.followupSequences from @/lib/queryKeys
 
 export function useFollowUpSequences() {
   const { user, profile } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const tenantId = profile?.tenant_id;
-  const qKey = [QUERY_KEY_BASE, tenantId];
+  const qKey = queryKeys.followupSequences.list(tenantId);
 
   // ── Query ──────────────────────────────────────────────────────────────────
   const {

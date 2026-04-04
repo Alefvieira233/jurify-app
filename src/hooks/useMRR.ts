@@ -1,8 +1,9 @@
 /** Calculates Monthly Recurring Revenue (MRR) from active subscriptions. */
 
 import { useQuery } from '@tanstack/react-query';
-import { supabaseUntyped as supabase } from '@/integrations/supabase/client';
+import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { queryKeys } from '@/lib/queryKeys';
 
 const PLAN_PRICES: Record<string, number> = {
   free: 0,
@@ -90,7 +91,7 @@ export function useMRR() {
   const tenantId = profile?.tenant_id;
 
   return useQuery<MRRData>({
-    queryKey: ['mrr', tenantId],
+    queryKey: queryKeys.mrr.list(tenantId),
     queryFn: () => fetchMRR(tenantId),
     staleTime: 5 * 60 * 1000,
     gcTime: 10 * 60 * 1000,

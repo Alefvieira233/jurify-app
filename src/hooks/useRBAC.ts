@@ -1,7 +1,8 @@
 import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '@/contexts/AuthContext';
 import { UserRole, Resource, Action, ROLE_PERMISSIONS } from '@/types/rbac';
-import { supabaseUntyped } from '@/integrations/supabase/client';
+import { supabase } from '@/integrations/supabase/client';
+import { queryKeys } from '@/lib/queryKeys';
 import type { DepartamentoMembro } from '@/types/crm-operacional';
 
 type DepartmentAction = 'ver_todos' | 'atribuir' | 'mover' | 'editar' | 'arquivar' | 'metricas' | 'gerenciar';
@@ -70,9 +71,9 @@ export const useRBAC = () => {
   // ── Department-scoped permission helpers ──
 
   const userDepartamentosQuery = useQuery({
-    queryKey: ['user_departamentos', profile?.id],
+    queryKey: queryKeys.userDepartamentos.list(profile?.id),
     queryFn: async (): Promise<DepartamentoMembro[]> => {
-      const { data, error } = await supabaseUntyped
+      const { data, error } = await supabase
         .from('departamento_membros')
         .select('*')
         .eq('profile_id', profile!.id);

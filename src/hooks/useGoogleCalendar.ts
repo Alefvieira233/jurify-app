@@ -8,6 +8,7 @@ import { supabaseUntyped as supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { GoogleOAuthService, type CalendarEvent } from '@/lib/google/GoogleOAuthService';
+import { queryKeys } from '@/lib/queryKeys';
 import { toUserMessage } from '@/lib/errorMessages';
 
 export type GoogleCalendarSettings = {
@@ -43,7 +44,7 @@ export const useGoogleCalendar = () => {
   const isOAuthConfigured = GoogleOAuthService.isConfigured();
 
   const { data: settings = null, isLoading: loading } = useQuery({
-    queryKey: ['google-calendar-settings', tenantId, user?.id],
+    queryKey: queryKeys.googleCalendarSettings.detail(tenantId, user?.id),
     queryFn: async () => {
       const { data, error } = await supabaseAny
         .from('google_calendar_settings')
@@ -122,7 +123,7 @@ export const useGoogleCalendar = () => {
   }, [user?.id, tenantId, settings, updateSettingsMutation]);
 
   const loadSettings = useCallback(() => {
-    void queryClient.invalidateQueries({ queryKey: ['google-calendar-settings', tenantId, user?.id] });
+    void queryClient.invalidateQueries({ queryKey: queryKeys.googleCalendarSettings.detail(tenantId, user?.id) });
   }, [queryClient, tenantId, user?.id]);
 
   const initializeGoogleAuth = useCallback(() => {
@@ -288,7 +289,7 @@ export const useGoogleCalendar = () => {
       }]);
 
       // Invalidate agendamentos cache so UI reflects sync status
-      void queryClient.invalidateQueries({ queryKey: ['agendamentos'] });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.agendamentos.all });
 
       return googleEvent.id;
     } catch (error: unknown) {
@@ -344,7 +345,7 @@ export const useGoogleCalendar = () => {
       }]);
 
       // Invalidate agendamentos cache so UI reflects sync status
-      void queryClient.invalidateQueries({ queryKey: ['agendamentos'] });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.agendamentos.all });
 
       return true;
     } catch (error: unknown) {

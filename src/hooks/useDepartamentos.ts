@@ -1,10 +1,11 @@
 /** CRUD operations for departments with member assignment and tenant isolation. */
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { supabaseUntyped } from '@/integrations/supabase/client';
+import { supabaseUntyped as supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { toUserMessage } from '@/lib/errorMessages';
+import { queryKeys } from '@/lib/queryKeys';
 import type { Departamento, DepartamentoMembro } from '@/types/crm-operacional';
 
 
@@ -15,9 +16,9 @@ export function useDepartamentos() {
   const tenantId = profile?.tenant_id;
 
   const deptosQuery = useQuery({
-    queryKey: ['departamentos', tenantId],
+    queryKey: queryKeys.departamentos.list(tenantId),
     queryFn: async (): Promise<Departamento[]> => {
-      const { data, error } = await supabaseUntyped
+      const { data, error } = await supabase
         .from('departamentos')
         .select('*')
         .eq('tenant_id', tenantId!)
@@ -30,7 +31,7 @@ export function useDepartamentos() {
 
   const createDepto = useMutation({
     mutationFn: async (input: Partial<Departamento>) => {
-      const { data, error } = await supabaseUntyped
+      const { data, error } = await supabase
         .from('departamentos')
         .insert({ ...input, tenant_id: tenantId! })
         .select()
@@ -39,7 +40,7 @@ export function useDepartamentos() {
       return data;
     },
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ['departamentos'] });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.departamentos.all });
       toast({ title: 'Departamento criado' });
     },
     onError: (err: unknown) => {
@@ -49,7 +50,7 @@ export function useDepartamentos() {
 
   const updateDepto = useMutation({
     mutationFn: async ({ id, ...updates }: Partial<Departamento> & { id: string }) => {
-      const { data, error } = await supabaseUntyped
+      const { data, error } = await supabase
         .from('departamentos')
         .update({ ...updates, updated_at: new Date().toISOString() })
         .eq('id', id)
@@ -59,7 +60,7 @@ export function useDepartamentos() {
       return data;
     },
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ['departamentos'] });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.departamentos.all });
     },
     onError: (err: unknown) => {
       toast({ title: 'Erro ao atualizar departamento', description: toUserMessage(err), variant: 'destructive' });
@@ -68,11 +69,11 @@ export function useDepartamentos() {
 
   const deleteDepto = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabaseUntyped.from('departamentos').delete().eq('id', id);
+      const { error } = await supabase.from('departamentos').delete().eq('id', id);
       if (error) throw error;
     },
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ['departamentos'] });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.departamentos.all });
       toast({ title: 'Departamento removido' });
     },
     onError: (err: unknown) => {
@@ -97,9 +98,9 @@ export function useDepartamentoMembros(departamentoId: string | null) {
   const queryClient = useQueryClient();
 
   const membrosQuery = useQuery({
-    queryKey: ['departamento_membros', departamentoId],
+    queryKey: queryKeys.departamentos.membros(departamentoId ?? undefined),
     queryFn: async (): Promise<DepartamentoMembro[]> => {
-      const { data, error } = await supabaseUntyped
+      const { data, error } = await supabase
         .from('departamento_membros')
         .select('*, profile:profile_id(id, nome_completo, email, avatar_url)')
         .eq('departamento_id', departamentoId!);
@@ -111,7 +112,7 @@ export function useDepartamentoMembros(departamentoId: string | null) {
 
   const addMembro = useMutation({
     mutationFn: async ({ departamentoId: dId, profileId, roleNoDepto }: { departamentoId: string; profileId: string; roleNoDepto?: string }) => {
-      const { data, error } = await supabaseUntyped
+      const { data, error } = await supabase
         .from('departamento_membros')
         .insert({ departamento_id: dId, profile_id: profileId, role_no_depto: roleNoDepto ?? 'membro' })
         .select('*, profile:profile_id(id, nome_completo, email, avatar_url)')
@@ -120,7 +121,7 @@ export function useDepartamentoMembros(departamentoId: string | null) {
       return data;
     },
     onSuccess: (_: unknown, vars: { departamentoId: string; profileId: string; roleNoDepto?: string }) => {
-      void queryClient.invalidateQueries({ queryKey: ['departamento_membros', vars.departamentoId] });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.departamentos.membros(vars.departamentoId) });
       toast({ title: 'Membro adicionado' });
     },
     onError: (err: unknown) => {
@@ -130,11 +131,11 @@ export function useDepartamentoMembros(departamentoId: string | null) {
 
   const removeMembro = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabaseUntyped.from('departamento_membros').delete().eq('id', id);
+      const { error } = await supabase.from('departamento_membros').delete().eq('id', id);
       if (error) throw error;
     },
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ['departamento_membros', departamentoId] });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.departamentos.membros(departamentoId ?? undefined) });
       toast({ title: 'Membro removido' });
     },
     onError: (err: unknown) => {
@@ -144,7 +145,7 @@ export function useDepartamentoMembros(departamentoId: string | null) {
 
   const updateMembro = useMutation({
     mutationFn: async ({ id, ...updates }: Partial<DepartamentoMembro> & { id: string }) => {
-      const { data, error } = await supabaseUntyped
+      const { data, error } = await supabase
         .from('departamento_membros')
         .update(updates)
         .eq('id', id)
@@ -154,7 +155,7 @@ export function useDepartamentoMembros(departamentoId: string | null) {
       return data;
     },
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ['departamento_membros', departamentoId] });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.departamentos.membros(departamentoId ?? undefined) });
     },
     onError: (err: unknown) => {
       toast({ title: 'Erro ao atualizar permissões', description: toUserMessage(err), variant: 'destructive' });

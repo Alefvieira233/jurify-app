@@ -7,13 +7,14 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Switch } from '@/components/ui/switch';
-import { Users, Search, Phone, Briefcase, Check, X, Pencil } from 'lucide-react';
+import { Users, Search, Phone, Briefcase, Check, X, Pencil, UserPlus } from 'lucide-react';
 import { useTeamMembers, type TeamMember, type UpdateTeamMemberInput } from '@/hooks/useTeamMembers';
 import { useDepartamentos } from '@/hooks/useDepartamentos';
 import { useRBAC } from '@/hooks/useRBAC';
 import { useAuth } from '@/contexts/AuthContext';
 import { usePageTitle } from '@/hooks/usePageTitle';
 import { getAvatarHex, getInitials } from '@/utils/formatting';
+import EmptyState from '@/components/EmptyState';
 
 
 interface DepartmentMembership {
@@ -186,24 +187,17 @@ const EquipeManager = () => {
           ))}
         </div>
       ) : filteredMembers.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-24 text-center border border-dashed border-border/20 rounded-[24px] bg-muted/5">
-          <div className="w-20 h-20 rounded-full bg-primary/10 flex items-center justify-center mb-6">
-            <Users className="h-10 w-10 text-primary" />
-          </div>
-          <h3 className="text-2xl font-bold text-foreground mb-2">
-            Nenhum membro encontrado
-          </h3>
-          <p className="text-base text-muted-foreground mb-8 max-w-md">
-            {searchTerm
-              ? 'Nenhum integrante da equipe corresponde à busca.'
-              : 'Nenhum membro ativo na equipe.'}
-          </p>
-          {searchTerm && (
-            <Button variant="ghost" onClick={() => setSearchTerm('')}>
-              Limpar busca
-            </Button>
-          )}
-        </div>
+        <EmptyState
+          icon={searchTerm ? Search : UserPlus}
+          title="Nenhum membro encontrado"
+          description={searchTerm
+            ? 'Nenhum integrante da equipe corresponde à busca.'
+            : 'Nenhum membro ativo na equipe.'}
+          action={searchTerm ? {
+            label: 'Limpar busca',
+            onClick: () => setSearchTerm(''),
+          } : undefined}
+        />
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
           {filteredMembers.map((member: TeamMember) => {

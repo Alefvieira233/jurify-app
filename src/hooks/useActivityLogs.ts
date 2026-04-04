@@ -6,6 +6,7 @@ import { supabaseUntyped as supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { createLogger } from '@/lib/logger';
+import { queryKeys } from '@/lib/queryKeys';
 
 const log = createLogger('ActivityLogs');
 
@@ -61,7 +62,7 @@ export const useActivityLogs = () => {
   }, [user, tenantId]);
 
   const { data: queryData, isLoading: loading } = useQuery({
-    queryKey: ['activity-logs', tenantId],
+    queryKey: queryKeys.activityLogs.list(tenantId ?? undefined),
     queryFn: () => fetchLogsRpc(),
     enabled: !!user && !!tenantId,
     staleTime: 5 * 60 * 1000,
@@ -135,7 +136,7 @@ export const useActivityLogs = () => {
         description: `Logs antigos (${diasAntigos} dias) removidos com sucesso.`,
       });
 
-      await queryClient.invalidateQueries({ queryKey: ['activity-logs', tenantId] });
+      await queryClient.invalidateQueries({ queryKey: queryKeys.activityLogs.list(tenantId) });
       return true;
     } catch (error) {
       log.error('Erro ao limpar logs', error);

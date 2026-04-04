@@ -1,10 +1,11 @@
 /** CRUD for tags with color support, used for categorizing leads and contacts. */
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { supabaseUntyped } from '@/integrations/supabase/client';
+import { supabaseUntyped as supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { toUserMessage } from '@/lib/errorMessages';
+import { queryKeys } from '@/lib/queryKeys';
 import type { Tag, LeadTag } from '@/types/crm-operacional';
 
 
@@ -15,9 +16,9 @@ export function useTags() {
   const tenantId = profile?.tenant_id;
 
   const tagsQuery = useQuery({
-    queryKey: ['tags', tenantId],
+    queryKey: queryKeys.tags.list(tenantId),
     queryFn: async (): Promise<Tag[]> => {
-      const { data, error } = await supabaseUntyped
+      const { data, error } = await supabase
         .from('tags')
         .select('*')
         .eq('tenant_id', tenantId!)
@@ -30,7 +31,7 @@ export function useTags() {
 
   const createTag = useMutation({
     mutationFn: async (input: Partial<Tag>) => {
-      const { data, error } = await supabaseUntyped
+      const { data, error } = await supabase
         .from('tags')
         .insert({ ...input, tenant_id: tenantId! })
         .select()
@@ -39,7 +40,7 @@ export function useTags() {
       return data;
     },
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ['tags'] });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.tags.all });
       toast({ title: 'Tag criada' });
     },
     onError: (err: unknown) => {
@@ -49,7 +50,7 @@ export function useTags() {
 
   const updateTag = useMutation({
     mutationFn: async ({ id, ...updates }: Partial<Tag> & { id: string }) => {
-      const { data, error } = await supabaseUntyped
+      const { data, error } = await supabase
         .from('tags')
         .update(updates)
         .eq('id', id)
@@ -59,7 +60,7 @@ export function useTags() {
       return data;
     },
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ['tags'] });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.tags.all });
     },
     onError: (err: unknown) => {
       toast({ title: 'Erro ao atualizar tag', description: toUserMessage(err), variant: 'destructive' });
@@ -68,11 +69,11 @@ export function useTags() {
 
   const deleteTag = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabaseUntyped.from('tags').delete().eq('id', id);
+      const { error } = await supabase.from('tags').delete().eq('id', id);
       if (error) throw error;
     },
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ['tags'] });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.tags.all });
       toast({ title: 'Tag removida' });
     },
     onError: (err: unknown) => {
@@ -96,9 +97,9 @@ export function useLeadTags(leadId: string | null) {
   const queryClient = useQueryClient();
 
   const leadTagsQuery = useQuery({
-    queryKey: ['lead_tags', leadId],
+    queryKey: queryKeys.leadTags.list(leadId ?? undefined),
     queryFn: async (): Promise<LeadTag[]> => {
-      const { data, error } = await supabaseUntyped
+      const { data, error } = await supabase
         .from('lead_tags')
         .select('*, tag:tag_id(*)')
         .eq('lead_id', leadId!);
@@ -110,7 +111,7 @@ export function useLeadTags(leadId: string | null) {
 
   const addTag = useMutation({
     mutationFn: async ({ leadId: lid, tagId, userId }: { leadId: string; tagId: string; userId?: string }) => {
-      const { data, error } = await supabaseUntyped
+      const { data, error } = await supabase
         .from('lead_tags')
         .insert({ lead_id: lid, tag_id: tagId, created_by: userId ?? null })
         .select('*, tag:tag_id(*)')
@@ -119,7 +120,7 @@ export function useLeadTags(leadId: string | null) {
       return data;
     },
     onSuccess: (_: unknown, vars: { leadId: string; tagId: string; userId?: string }) => {
-      void queryClient.invalidateQueries({ queryKey: ['lead_tags', vars.leadId] });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.leadTags.list(vars.leadId) });
     },
     onError: (err: unknown) => {
       toast({ title: 'Erro ao adicionar tag', description: toUserMessage(err), variant: 'destructive' });
@@ -128,7 +129,7 @@ export function useLeadTags(leadId: string | null) {
 
   const removeTag = useMutation({
     mutationFn: async ({ leadId: lid, tagId }: { leadId: string; tagId: string }) => {
-      const { error } = await supabaseUntyped
+      const { error } = await supabase
         .from('lead_tags')
         .delete()
         .eq('lead_id', lid)
@@ -136,7 +137,7 @@ export function useLeadTags(leadId: string | null) {
       if (error) throw error;
     },
     onSuccess: (_: unknown, vars: { leadId: string; tagId: string }) => {
-      void queryClient.invalidateQueries({ queryKey: ['lead_tags', vars.leadId] });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.leadTags.list(vars.leadId) });
     },
     onError: (err: unknown) => {
       toast({ title: 'Erro ao remover tag', description: toUserMessage(err), variant: 'destructive' });

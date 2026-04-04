@@ -8,7 +8,7 @@
  */
 
 import { useEffect, useRef, useState, useCallback } from 'react';
-import { supabaseUntyped as supabase } from '@/integrations/supabase/client';
+import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import type { RealtimeChannel } from '@supabase/supabase-js';

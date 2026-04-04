@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
-import { supabaseUntyped } from '@/integrations/supabase/client';
+import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { queryKeys } from '@/lib/queryKeys';
 import type { Tag } from '@/types/crm-operacional';
 
 
@@ -18,9 +19,9 @@ export function useLeadTagsBatch() {
   const tenantId = profile?.tenant_id;
 
   const query = useQuery({
-    queryKey: ['lead_tags_batch', tenantId],
+    queryKey: queryKeys.leadTagsBatch.list(tenantId),
     queryFn: async (): Promise<Map<string, Tag[]>> => {
-      const { data, error } = await supabaseUntyped
+      const { data, error } = await supabase
         .from('lead_tags')
         .select('lead_id, tag:tag_id(id, nome, cor, categoria, ordem, ativo)')
         .eq('tenant_id', tenantId!)

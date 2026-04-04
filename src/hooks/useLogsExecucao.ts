@@ -15,6 +15,7 @@ import { supabaseUntyped as supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
 import { createLogger } from '@/lib/logger';
+import { queryKeys } from '@/lib/queryKeys';
 
 const logger = createLogger('LogsExecucao');
 
@@ -51,7 +52,7 @@ export const useLogsExecucao = () => {
   const queryClient = useQueryClient();
 
   const { data: logs = [], isLoading: loading } = useQuery({
-    queryKey: ['logs-execucao', tenantId],
+    queryKey: queryKeys.logsExecucao.list(tenantId),
     queryFn: async () => {
       const { data, error } = await supabase
         .from('logs_execucao_agentes')
@@ -162,7 +163,7 @@ export const useLogsExecucao = () => {
       if (error) throw error;
     },
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ['logs-execucao', tenantId] });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.logsExecucao.list(tenantId) });
       toast({ title: 'Sucesso', description: 'Logs antigos removidos com sucesso' });
     },
     onError: (error) => {

@@ -888,7 +888,6 @@ async function processNormalizedMessage(supabase: ReturnType<typeof createClient
       session_id: conversationId,
       direction: "inbound",
       from_number: from,
-      message_text: text,
     }).select("id").single();
 
     const inboundMsgId = savedMsg?.id || null;
@@ -1319,7 +1318,6 @@ async function processNormalizedMessage(supabase: ReturnType<typeof createClient
       session_id: conversationId,
       direction: "outbound",
       to_number: from,
-      message_text: aiText,
     });
 
     if (aiMsgError) {

@@ -11,6 +11,7 @@ import { supabaseUntyped as supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import type { RealtimeChannel } from '@supabase/supabase-js';
 import { createLogger } from '@/lib/logger';
+// queryKeys factory available at @/lib/queryKeys for future migration
 
 const log = createLogger('RealtimeSync');
 

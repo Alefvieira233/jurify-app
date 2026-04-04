@@ -17,6 +17,7 @@ import { useToast } from '@/hooks/use-toast';
 import { createLogger } from '@/lib/logger';
 import { addSentryBreadcrumb } from '@/lib/sentry';
 import { toUserMessage } from '@/lib/errorMessages';
+import { queryKeys } from '@/lib/queryKeys';
 
 const log = createLogger('Documentos');
 
@@ -45,8 +46,9 @@ export type DocumentoJuridico = {
 
 export type DocumentoInput = Partial<Omit<DocumentoJuridico, 'id' | 'created_at' | 'updated_at'>>;
 
+/** @deprecated Use `queryKeys.documentosJuridicos.list(tenantId)` from `@/lib/queryKeys` instead. */
 export const documentosQueryKey = (tenantId: string | undefined) =>
-  ['documentos_juridicos', tenantId] as const;
+  queryKeys.documentosJuridicos.list(tenantId);
 
 function normalizeDocumento(row: Record<string, unknown>): DocumentoJuridico {
   return { ...(row as DocumentoJuridico) };

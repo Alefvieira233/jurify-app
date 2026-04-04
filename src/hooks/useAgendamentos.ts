@@ -6,6 +6,7 @@ import { supabaseUntyped as supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { toUserMessage } from '@/lib/errorMessages';
+import { queryKeys } from '@/lib/queryKeys';
 
 type AgendamentoRow = {
   id: string;
@@ -56,8 +57,9 @@ function sortByDataHora(list: Agendamento[]): Agendamento[] {
 
 // ─── Query key factory ───────────────────────────────────────────────────────
 
+/** @deprecated Use `queryKeys.agendamentos.list(tenantId)` from `@/lib/queryKeys` instead. */
 export const agendamentosQueryKey = (tenantId: string | undefined) =>
-  ['agendamentos', tenantId] as const;
+  queryKeys.agendamentos.list(tenantId);
 
 // ─── Hook ────────────────────────────────────────────────────────────────────
 

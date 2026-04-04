@@ -5,6 +5,7 @@ import { supabaseUntyped as supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
 import { createLogger } from '@/lib/logger';
+import { queryKeys } from '@/lib/queryKeys';
 
 const log = createLogger('NotificationTemplates');
 
@@ -27,7 +28,7 @@ export const useNotificationTemplates = () => {
   const tenantId = profile?.tenant_id ?? null;
 
   const { data: templates = [], isLoading } = useQuery({
-    queryKey: ['notification-templates', tenantId],
+    queryKey: queryKeys.notificationTemplates.list(tenantId),
     enabled: !!tenantId,
     queryFn: async () => {
       const { data, error } = await supabase
@@ -54,7 +55,7 @@ export const useNotificationTemplates = () => {
       if (error) throw error;
     },
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ['notification-templates', tenantId] });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.notificationTemplates.list(tenantId) });
       toast({
         title: 'Template atualizado',
         description: 'O template foi salvo com sucesso.',
@@ -81,7 +82,7 @@ export const useNotificationTemplates = () => {
       if (error) throw error;
     },
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ['notification-templates', tenantId] });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.notificationTemplates.list(tenantId) });
       toast({
         title: 'Template criado',
         description: 'O template foi criado com sucesso.',

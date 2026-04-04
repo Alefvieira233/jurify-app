@@ -18,6 +18,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useMonitoring } from '@/lib/monitoring';
 import { toUserMessage } from '@/lib/errorMessages';
 import type { Agendamento } from '@/hooks/useAgendamentos';
+import { queryKeys } from '@/lib/queryKeys';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -427,8 +428,8 @@ export function useAgendaAutomation() {
     }
 
     // Invalidate related caches so UI reflects automation side-effects
-    void queryClient.invalidateQueries({ queryKey: ['agendamentos'] });
-    void queryClient.invalidateQueries({ queryKey: ['crm-followups'] });
+    void queryClient.invalidateQueries({ queryKey: queryKeys.agendamentos.all });
+    void queryClient.invalidateQueries({ queryKey: queryKeys.crmFollowups.all });
 
     return { successful, failed, results };
   }, [user?.id, queryClient, createCalendarEvent, toast, captureError, trackAction, trackMetric]);

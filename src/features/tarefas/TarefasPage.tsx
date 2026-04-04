@@ -13,11 +13,12 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Search, Plus, CheckCircle, Clock, AlertTriangle, MoreHorizontal } from 'lucide-react';
+import { Search, Plus, CheckCircle, Clock, AlertTriangle, MoreHorizontal, ListTodo } from 'lucide-react';
 import { fmtDate } from '@/utils/formatting';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import NovaTarefaForm from './NovaTarefaForm';
 import EditTarefaDialog from './EditTarefaDialog';
+import EmptyState from '@/components/EmptyState';
 
 const STATUS_CONFIG: Record<string, { label: string; color: string; icon: typeof CheckCircle }> = {
   pendente: { label: 'Pendente', color: 'bg-amber-100 text-amber-700', icon: Clock },
@@ -158,8 +159,19 @@ export default function TarefasPage() {
           <TableBody>
             {filtered.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={8} className="text-center py-12 text-muted-foreground">
-                  {search || (statusFilter && statusFilter !== 'all') || (prioridadeFilter && prioridadeFilter !== 'all') ? 'Nenhuma tarefa encontrada' : 'Nenhuma tarefa criada ainda'}
+                <TableCell colSpan={8} className="p-0">
+                  <EmptyState
+                    icon={search || (statusFilter && statusFilter !== 'all') || (prioridadeFilter && prioridadeFilter !== 'all') ? Search : ListTodo}
+                    title={search || (statusFilter && statusFilter !== 'all') || (prioridadeFilter && prioridadeFilter !== 'all') ? 'Nenhuma tarefa encontrada' : 'Nenhuma tarefa criada ainda'}
+                    description={search || (statusFilter && statusFilter !== 'all') || (prioridadeFilter && prioridadeFilter !== 'all')
+                      ? 'Tente ajustar os filtros para encontrar suas tarefas.'
+                      : 'Crie sua primeira tarefa para organizar o trabalho da equipe.'}
+                    action={!(search || (statusFilter && statusFilter !== 'all') || (prioridadeFilter && prioridadeFilter !== 'all')) ? {
+                      label: 'Nova Tarefa',
+                      onClick: () => setFormOpen(true),
+                    } : undefined}
+                    className="border-0 shadow-none"
+                  />
                 </TableCell>
               </TableRow>
             ) : (

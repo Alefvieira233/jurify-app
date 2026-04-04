@@ -19,6 +19,7 @@ import { usePageTitle } from '@/hooks/usePageTitle';
 import { supabaseUntyped as supabase } from '@/integrations/supabase/client';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import RuleEditor from './RuleEditor';
+import EmptyState from '@/components/EmptyState';
 
 // ── Types ──
 
@@ -352,19 +353,15 @@ export const RegrasManager = () => {
 
       {/* ── Rules List ── */}
       {filteredRules.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-20 space-y-4 rounded-[20px] border border-dashed border-border/10 bg-muted/30 backdrop-blur-xl">
-          <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center">
-            <GitBranch className="w-8 h-8 text-primary/60" />
-          </div>
-          <h3 className="text-lg font-semibold">Nenhuma regra configurada</h3>
-          <p className="text-muted-foreground text-center max-w-md">
-            Crie regras de automação para executar ações automaticamente quando eventos acontecerem no seu escritório.
-          </p>
-          <Button onClick={handleNewRule} className="rounded-[12px] shadow-lg shadow-primary/20 gap-2 mt-2">
-            <Plus className="w-4 h-4" />
-            Criar primeira regra
-          </Button>
-        </div>
+        <EmptyState
+          icon={GitBranch}
+          title="Nenhuma regra configurada"
+          description="Crie regras de automação para executar ações automaticamente quando eventos acontecerem no seu escritório."
+          action={{
+            label: 'Criar primeira regra',
+            onClick: handleNewRule,
+          }}
+        />
       ) : (
         <div className="space-y-4">
           {filteredRules.map((rule) => {

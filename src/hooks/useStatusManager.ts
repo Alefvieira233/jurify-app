@@ -4,6 +4,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabaseUntyped as supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
+import { queryKeys } from '@/lib/queryKeys';
 
 export interface StatusStage {
   id: string;
@@ -32,7 +33,7 @@ export function useStatusManager() {
   const tenantId = profile?.tenant_id;
 
   const { data: stages = [], isLoading } = useQuery({
-    queryKey: ['status-stages', tenantId],
+    queryKey: queryKeys.statusStages.list(tenantId),
     enabled: !!tenantId,
     queryFn: async () => {
       const { data, error } = await supabase
@@ -46,7 +47,7 @@ export function useStatusManager() {
   });
 
   const { data: leadCounts = new Map<string, number>() } = useQuery({
-    queryKey: ['status-stages-lead-counts', tenantId],
+    queryKey: queryKeys.statusStages.leadCounts(tenantId),
     enabled: !!tenantId && stages.length > 0,
     queryFn: async () => {
       const stageIds = stages.map((s) => s.id);
@@ -90,8 +91,8 @@ export function useStatusManager() {
       if (error) throw error;
     },
     onSuccess: () => {
-      void qc.invalidateQueries({ queryKey: ['status-stages', tenantId] });
-      void qc.invalidateQueries({ queryKey: ['status-stages-lead-counts', tenantId] });
+      void qc.invalidateQueries({ queryKey: queryKeys.statusStages.list(tenantId) });
+      void qc.invalidateQueries({ queryKey: queryKeys.statusStages.leadCounts(tenantId) });
       toast({ title: 'Status criado' });
     },
     onError: () => {
@@ -122,8 +123,8 @@ export function useStatusManager() {
       if (error) throw error;
     },
     onSuccess: () => {
-      void qc.invalidateQueries({ queryKey: ['status-stages', tenantId] });
-      void qc.invalidateQueries({ queryKey: ['status-stages-lead-counts', tenantId] });
+      void qc.invalidateQueries({ queryKey: queryKeys.statusStages.list(tenantId) });
+      void qc.invalidateQueries({ queryKey: queryKeys.statusStages.leadCounts(tenantId) });
       toast({ title: 'Status atualizado' });
     },
     onError: () => {
@@ -141,8 +142,8 @@ export function useStatusManager() {
       if (error) throw error;
     },
     onSuccess: () => {
-      void qc.invalidateQueries({ queryKey: ['status-stages', tenantId] });
-      void qc.invalidateQueries({ queryKey: ['status-stages-lead-counts', tenantId] });
+      void qc.invalidateQueries({ queryKey: queryKeys.statusStages.list(tenantId) });
+      void qc.invalidateQueries({ queryKey: queryKeys.statusStages.leadCounts(tenantId) });
       toast({ title: 'Status removido' });
     },
     onError: () => {
@@ -162,7 +163,7 @@ export function useStatusManager() {
       await Promise.all(updates);
     },
     onSuccess: () => {
-      void qc.invalidateQueries({ queryKey: ['status-stages', tenantId] });
+      void qc.invalidateQueries({ queryKey: queryKeys.statusStages.list(tenantId) });
     },
     onError: () => {
       toast({ title: 'Erro ao reordenar status', variant: 'destructive' });
