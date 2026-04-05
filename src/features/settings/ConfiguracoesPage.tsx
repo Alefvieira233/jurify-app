@@ -6,7 +6,8 @@ import { useState } from 'react';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 
 // Reutilizar componentes existentes
-import PerfilSection from '@/components/configuracoes/PerfilSection';
+import MinhaContaSection from '@/components/configuracoes/MinhaContaSection';
+import SegurancaSection from '@/components/configuracoes/SegurancaSection';
 import EscritorioSection from '@/components/configuracoes/EscritorioSection';
 import IntegracoesSection from '@/components/configuracoes/IntegracoesSection';
 import UsuariosPermissoesSection from '@/components/configuracoes/UsuariosPermissoesSection';
@@ -15,6 +16,9 @@ import AssinaturaSection from '@/components/configuracoes/AssinaturaSection';
 import HorarioComercialSection from './sections/HorarioComercialSection';
 import StatusManager from './sections/StatusManager';
 import UsoSection from './sections/UsoSection';
+import PlaceholderClassManager from './sections/PlaceholderClassManager';
+import TagsManager from '@/features/tags/TagsManager';
+import DepartamentosManager from '@/features/departamentos/DepartamentosManager';
 
 type SettingsSection = {
   id: string;
@@ -82,7 +86,7 @@ function SettingsContent({ section, subsection }: { section: string; subsection?
           <Breadcrumb path={['Perfil', 'Minha Conta']} />
           <h1 className="text-lg font-semibold mb-1">Minha Conta</h1>
           <p className="text-sm text-muted-foreground mb-6">Gerencie suas informações pessoais e preferências.</p>
-          <PerfilSection />
+          <MinhaContaSection />
         </div>
       );
     case 'seguranca':
@@ -90,8 +94,8 @@ function SettingsContent({ section, subsection }: { section: string; subsection?
         <div className="p-6 max-w-3xl">
           <Breadcrumb path={['Perfil', 'Segurança']} />
           <h1 className="text-lg font-semibold mb-1">Segurança</h1>
-          <p className="text-sm text-muted-foreground mb-6">Gerencie sua senha e autenticação.</p>
-          <PerfilSection />
+          <p className="text-sm text-muted-foreground mb-6">Altere sua senha e configure autenticação de dois fatores.</p>
+          <SegurancaSection />
         </div>
       );
     case 'notificacoes':
@@ -112,13 +116,30 @@ function SettingsContent({ section, subsection }: { section: string; subsection?
           <EscritorioSection />
         </div>
       );
-    case 'classes':
+    case 'classes': {
+      const sub = subsection || 'status';
+      const subLabel = sub.charAt(0).toUpperCase() + sub.slice(1);
       return (
-        <div className="p-6 max-w-4xl">
-          <Breadcrumb path={['Empresa', 'Classes', (subsection || 'status').charAt(0).toUpperCase() + (subsection || 'status').slice(1)]} />
-          <StatusManager />
+        <div className="p-6 max-w-5xl">
+          <Breadcrumb path={['Empresa', 'Classes', subLabel]} />
+          {sub === 'status' && <StatusManager />}
+          {sub === 'etiquetas' && <TagsManager />}
+          {sub === 'departamento' && <DepartamentosManager />}
+          {sub === 'origem' && (
+            <PlaceholderClassManager
+              title="Origem"
+              description="Configure as origens de captação dos seus leads (Google, Instagram, indicação, etc)."
+            />
+          )}
+          {sub === 'variaveis' && (
+            <PlaceholderClassManager
+              title="Variáveis"
+              description="Defina variáveis customizadas para templates de mensagens e automações."
+            />
+          )}
         </div>
       );
+    }
     case 'templates':
       return (
         <div className="p-6 max-w-3xl">
@@ -175,7 +196,7 @@ function SettingsContent({ section, subsection }: { section: string; subsection?
           <Breadcrumb path={['Perfil', 'Minha Conta']} />
           <h1 className="text-lg font-semibold mb-1">Minha Conta</h1>
           <p className="text-sm text-muted-foreground mb-6">Gerencie suas informações pessoais e preferências.</p>
-          <PerfilSection />
+          <MinhaContaSection />
         </div>
       );
   }
