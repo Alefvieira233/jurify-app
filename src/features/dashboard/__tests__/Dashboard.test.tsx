@@ -2,6 +2,7 @@ import React from 'react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
 vi.mock('recharts', async () => {
   const actual = await vi.importActual<typeof import('recharts')>('recharts');
@@ -45,8 +46,15 @@ vi.mock('@/hooks/useRBAC', () => ({
 import Dashboard from '../Dashboard';
 
 function createWrapper() {
+  const queryClient = new QueryClient({
+    defaultOptions: { queries: { retry: false, gcTime: 0 } },
+  });
   return ({ children }: { children: React.ReactNode }) =>
-    React.createElement(MemoryRouter, null, children);
+    React.createElement(
+      QueryClientProvider,
+      { client: queryClient },
+      React.createElement(MemoryRouter, null, children)
+    );
 }
 
 describe('Dashboard', () => {

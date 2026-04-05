@@ -8,6 +8,7 @@ const PALETTE_ITEMS = [
   { type: 'delay', label: 'Espera', icon: Clock, color: 'text-purple-400 bg-purple-500/15' },
 ];
 
+// eslint-disable-next-line react-refresh/only-export-components
 export { PALETTE_ITEMS };
 
 export default function FlowPalette() {
