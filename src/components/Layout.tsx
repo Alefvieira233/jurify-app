@@ -1,10 +1,13 @@
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, Suspense } from "react";
 import { Outlet, useLocation, useNavigate } from "react-router-dom";
 import Sidebar from "@/components/Sidebar";
 import { useAuth } from "@/contexts/AuthContext";
 import LoadingSpinner from "@/components/LoadingSpinner";
 import OnboardingFlow from "@/components/OnboardingFlow";
+import { lazyWithRetry } from "@/lib/lazyWithRetry";
+
+const OnboardingWizard = lazyWithRetry(() => import("@/features/onboarding/OnboardingWizard"));
 import { useKeyboardShortcuts } from "@/hooks/useKeyboardShortcuts";
 import GlobalSearch from "@/components/GlobalSearch";
 import AIAssistantChat from "@/components/ai/AIAssistantChat";
@@ -124,6 +127,7 @@ const Layout = () => {
                     Conexão restabelecida!
                 </div>
             )}
+            <Suspense fallback={null}><OnboardingWizard /></Suspense>
             <OnboardingFlow />
             <GlobalSearch />
             <AIAssistantChat />
