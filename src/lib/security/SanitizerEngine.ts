@@ -80,7 +80,8 @@ function generateTokenId(): string {
 
   let id = '';
   for (let i = 0; i < 8; i++) {
-    id += hex[array[i] % 16];
+    // Non-null assertion is safe because array has length 8
+    id += hex[array[i]! % 16];
   }
   return id;
 }
