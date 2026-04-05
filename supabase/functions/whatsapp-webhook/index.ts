@@ -721,11 +721,40 @@ async function processNormalizedMessage(supabase: ReturnType<typeof createClient
 
     console.log(`[processMsg:${provider}] START from=${from} instance=${instanceName} type=${messageType}`);
 
-    // --- RESOLVE TENANT ---
+    // --- RESOLVE TENANT (multi-tenant: each tenant has own Kapso account) ---
     let tenantId: string | null = null;
 
-    // 1. Busca tenant diretamente via configuracoes_integracoes.tenant_id
-    if (instanceName) {
+    // 1. PRIMARY: Resolve by phone_number_id stored in configuracoes_integracoes
+    //    This is the most reliable method in multi-tenant model
+    if (from) {
+      const { data: configByPhone } = await supabase
+        .from("configuracoes_integracoes")
+        .select("tenant_id")
+        .eq("nome_integracao", INTEGRATION_NAME_KAPSO)
+        .not("tenant_id", "is", null)
+        .not("phone_number_id", "is", null)
+        .limit(10);
+
+      // Match by checking if any tenant's conexoes_whatsapp has this phone
+      if (!tenantId && configByPhone && configByPhone.length > 0) {
+        for (const cfg of configByPhone) {
+          const { data: conn } = await supabase
+            .from("conexoes_whatsapp")
+            .select("id")
+            .eq("tenant_id", cfg.tenant_id)
+            .eq("status", "connected")
+            .limit(1)
+            .maybeSingle();
+          if (conn) {
+            tenantId = cfg.tenant_id;
+            break;
+          }
+        }
+      }
+    }
+
+    // 2. Resolve by instance name (Kapso sends instance = customer external_id)
+    if (!tenantId && instanceName) {
       const { data: config } = await supabase
         .from("configuracoes_integracoes")
         .select("tenant_id")
@@ -734,15 +763,10 @@ async function processNormalizedMessage(supabase: ReturnType<typeof createClient
         .not("tenant_id", "is", null)
         .maybeSingle();
 
-      if (config?.tenant_id) {
-        tenantId = config.tenant_id;
-        // tenant resolved from integration config
-      } else {
-        console.warn(`[webhook] No config found for instance: ${instanceName}`);
-      }
+      if (config?.tenant_id) tenantId = config.tenant_id;
     }
 
-    // 2. Fallback: busca por conversa existente
+    // 3. Resolve by existing conversation (phone number match)
     if (!tenantId) {
       const { data: existingConv } = await supabase
         .from("whatsapp_conversations")
@@ -753,37 +777,6 @@ async function processNormalizedMessage(supabase: ReturnType<typeof createClient
         .maybeSingle();
 
       if (existingConv) tenantId = existingConv.tenant_id;
-    }
-
-    // 3. Fallback: extrai tenant_id do nome da instância (formato: jurify_XXXXXXXX)
-    if (!tenantId && instanceName) {
-      const tenantPrefix = instanceName.replace("jurify_", "");
-      if (tenantPrefix && tenantPrefix !== instanceName) {
-        const { data: profile } = await supabase
-          .from("profiles")
-          .select("tenant_id")
-          .ilike("tenant_id", `${escapeLike(tenantPrefix)}%`)
-          .limit(1)
-          .maybeSingle();
-
-        if (profile?.tenant_id) {
-          tenantId = profile.tenant_id;
-          console.log(`[webhook:${provider}] Tenant resolved from instance name: ${instanceName}`);
-
-          // Auto-repair: cria o registro faltante em configuracoes_integracoes
-          void supabase.from("configuracoes_integracoes").insert({
-            nome_integracao: INTEGRATION_NAME_KAPSO,
-            status: "ativa",
-            api_key: "kapso_managed",
-            endpoint_url: Deno.env.get("KAPSO_API_URL") || "https://api.kapso.ai",
-            observacoes: `Instance: ${instanceName}`,
-            tenant_id: tenantId,
-          }).then(({ error }) => {
-            if (error) console.error("[webhook] Auto-repair insert error:", error.message);
-            else console.log("[webhook] Auto-repaired configuracoes_integracoes for", instanceName);
-          });
-        }
-      }
     }
 
     if (!tenantId) {
@@ -996,18 +989,17 @@ async function processNormalizedMessage(supabase: ReturnType<typeof createClient
       if (config?.whatsapp_assistant_name) assistantName = config.whatsapp_assistant_name as string;
     } catch { /* use defaults */ }
 
-    // Orchestrate: decide which specialist agent handles this
+    // ========================================
+    // STAGE 3: ROUTE TO AGENT (orchestrator + DB lookup)
+    // ========================================
+    let agentType: string; // "recepcionista", "juridico", "comercial", etc.
     let agentName: string;
     let agentPrompt: string;
     let agentTemp: number;
     let agentMaxTokens: number;
 
     if (commandKey) {
-      // Commands always go to juridico
-      agentName = "Assistente Jurídico";
-      agentPrompt = "";
-      agentTemp = 0.3;
-      agentMaxTokens = 800;
+      agentType = "juridico";
     } else {
       try {
         const routing = await callEdgeFunction<{
@@ -1023,26 +1015,44 @@ async function processNormalizedMessage(supabase: ReturnType<typeof createClient
           leadId,
           tenantId,
         });
-
-        agentName = routing.agentDefinition.name;
-        agentPrompt = routing.agentDefinition.systemPrompt;
-        agentTemp = routing.agentDefinition.temperature;
-        agentMaxTokens = routing.agentDefinition.maxTokens;
-        console.log(`[processMsg:${provider}] Orchestrator routed to: ${routing.agent} (${routing.reason})`);
+        agentType = routing.agent;
+        console.log(`[processMsg:${provider}] Orchestrator routed to: ${agentType} (${routing.reason})`);
       } catch (orchErr) {
         console.error(`[processMsg:${provider}] Orchestrator failed, using default:`, orchErr);
-        agentName = legalCtx.has_context ? "Assistente Jurídico" : "Recepcionista";
-        agentPrompt = "";
-        agentTemp = 0.5;
-        agentMaxTokens = legalCtx.has_context ? 800 : 400;
+        agentType = legalCtx.has_context ? "juridico" : "recepcionista";
       }
     }
 
-    // Build final system prompt
-    let finalSystemPrompt = agentPrompt ||
-      `Você é ${assistantName}, ${agentName.toLowerCase()} do escritório ${officeName}. Atenda o cliente de forma profissional e objetiva em português brasileiro. Respostas curtas (WhatsApp).`;
+    // Load CUSTOMIZED agent from tenant's agentes_ia table (user can edit prompts!)
+    const { data: dbAgent } = await supabase
+      .from("agentes_ia")
+      .select("nome, prompt_sistema, temperatura, max_tokens, script_saudacao")
+      .eq("tenant_id", tenantId)
+      .eq("tipo", agentType)
+      .eq("ativo", true)
+      .limit(1)
+      .maybeSingle();
 
-    finalSystemPrompt = `Você trabalha no escritório ${officeName}. Seu nome é ${assistantName}.\n\n${finalSystemPrompt}`;
+    if (dbAgent?.prompt_sistema) {
+      // Use the tenant's customized prompt
+      agentName = dbAgent.nome || agentType;
+      agentPrompt = dbAgent.prompt_sistema;
+      agentTemp = dbAgent.temperatura ?? 0.5;
+      agentMaxTokens = dbAgent.max_tokens ?? 500;
+      console.log(`[processMsg:${provider}] Using tenant's custom agent: ${agentName}`);
+    } else {
+      // Fallback to hardcoded defaults (agent-prompts.ts)
+      const { AGENTS } = await import("../_shared/agent-prompts.ts");
+      const fallback = AGENTS[agentType] || AGENTS.recepcionista;
+      agentName = fallback.name;
+      agentPrompt = fallback.systemPrompt;
+      agentTemp = fallback.temperature;
+      agentMaxTokens = fallback.maxTokens;
+      console.log(`[processMsg:${provider}] Using default agent (no DB override): ${agentName}`);
+    }
+
+    // Build final system prompt with office context
+    let finalSystemPrompt = `Você trabalha no escritório ${officeName}. Seu nome é ${assistantName}.\n\n${agentPrompt}`;
 
     if (conversationHistory) {
       finalSystemPrompt += `\n\nHISTÓRICO DA CONVERSA:\n${conversationHistory}`;
@@ -1295,6 +1305,26 @@ async function processNormalizedMessage(supabase: ReturnType<typeof createClient
 
     if (qualification.suggestedStatus !== currentLeadStatus) {
       console.log(`[processMsg:${provider}] Lead ${leadId} qualified: ${currentLeadStatus} → ${qualification.suggestedStatus} (area=${qualification.extractedArea}, temp=${qualification.temperature})`);
+
+      // --- NOTIFY ADMIN/TEAM about lead qualification ---
+      const statusLabels: Record<string, string> = {
+        novo: 'Novo Lead', em_contato: 'Em Contato', qualificado: 'Qualificado',
+        proposta: 'Proposta', negociacao: 'Negociação', ganho: 'Ganho',
+      };
+      const leadName = qualification.extractedName || name || from;
+      const newStatusLabel = statusLabels[qualification.suggestedStatus] || qualification.suggestedStatus;
+      const urgencyEmoji = qualification.extractedUrgency === 'alta' ? '🔴' :
+                           qualification.extractedUrgency === 'media' ? '🟡' : '🟢';
+
+      void supabase.from("notificacoes").insert({
+        tenant_id: tenantId,
+        tipo: qualification.temperature === 'hot' ? 'alerta' : 'info',
+        titulo: `${urgencyEmoji} Lead qualificado: ${leadName}`,
+        mensagem: `${agentName} qualificou o lead como "${newStatusLabel}"${qualification.extractedArea ? ` — Área: ${qualification.extractedArea}` : ''}${qualification.extractedUrgency ? ` — Urgência: ${qualification.extractedUrgency}` : ''}. Confira na aba de Leads.`,
+        ativo: true,
+      }).then(({ error: notifErr }) => {
+        if (notifErr) console.error("[webhook] Notification insert error:", notifErr.message);
+      });
     }
 
     // --- SEND REPLY FIRST, THEN SAVE ---
