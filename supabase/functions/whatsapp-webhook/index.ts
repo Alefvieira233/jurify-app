@@ -1301,7 +1301,7 @@ async function processNormalizedMessage(supabase: ReturnType<typeof createClient
     console.log(`[processMsg:${provider}] Sending reply via ${provider} to ${from}`);
     let sendResult: SendResult;
     if (provider === "kapso") {
-      sendResult = await sendViaKapso(from, aiText);
+      sendResult = await sendViaKapso(from, aiText, tenantId, supabase);
     } else {
       sendResult = await sendViaMeta(from, aiText, tenantId, supabase);
     }
@@ -1374,13 +1374,23 @@ interface SendResult {
   error: string | null;
 }
 
-async function sendViaKapso(to: string, text: string): Promise<SendResult> {
+async function sendViaKapso(to: string, text: string, tenantId: string, supabase: ReturnType<typeof createClient>): Promise<SendResult> {
   try {
-    const { sendTextMessage } = await import("../_shared/kapso-client.ts");
+    const { sendTextMessage, getTenantKapsoConfig } = await import("../_shared/kapso-client.ts");
+
+    // Load tenant's Kapso config (per-tenant API key model)
+    const tenantConfig = await getTenantKapsoConfig(supabase, tenantId);
+    if (!tenantConfig) {
+      return { success: false, messageId: null, error: "Kapso API key não configurada para este tenant" };
+    }
+    if (!tenantConfig.phoneNumberId) {
+      return { success: false, messageId: null, error: "WhatsApp não conectado (sem phone_number_id)" };
+    }
+
     const MAX_RETRIES = 2;
     for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
       try {
-        const result = await sendTextMessage(to, text);
+        const result = await sendTextMessage(tenantConfig, to, text);
         return { success: true, messageId: result.messageId, error: null };
       } catch (error) {
         if (attempt < MAX_RETRIES) {
