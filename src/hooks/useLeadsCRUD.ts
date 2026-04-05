@@ -51,7 +51,7 @@ export function useLeadsCRUD({ qKey, queryData: _queryData, tenantId, queryClien
     },
     onSuccess: (newLead) => {
       addSentryBreadcrumb(`Lead criado: ${newLead.id}`, 'leads', 'info');
-      queryClient.setQueryData(qKey, (prev: typeof queryData) => ({
+      queryClient.setQueryData(qKey, (prev: typeof _queryData) => ({
         leads: [newLead, ...(prev?.leads ?? [])],
         totalCount: (prev?.totalCount ?? 0) + 1,
       }));
@@ -92,7 +92,7 @@ export function useLeadsCRUD({ qKey, queryData: _queryData, tenantId, queryClien
       return normalizeLead(updatedLead);
     },
     onSuccess: (updated) => {
-      queryClient.setQueryData(qKey, (prev: typeof queryData) => ({
+      queryClient.setQueryData(qKey, (prev: typeof _queryData) => ({
         leads: (prev?.leads ?? []).map((l: Lead) => l.id === updated.id ? { ...l, ...updated } : l),
         totalCount: prev?.totalCount ?? 0,
       }));
@@ -121,7 +121,7 @@ export function useLeadsCRUD({ qKey, queryData: _queryData, tenantId, queryClien
     },
     onSuccess: (deletedId) => {
       addSentryBreadcrumb(`Lead deletado: ${deletedId}`, 'leads', 'info');
-      queryClient.setQueryData(qKey, (prev: typeof queryData) => ({
+      queryClient.setQueryData(qKey, (prev: typeof _queryData) => ({
         leads: (prev?.leads ?? []).filter((l: Lead) => l.id !== deletedId),
         totalCount: Math.max(0, (prev?.totalCount ?? 1) - 1),
       }));
@@ -165,7 +165,7 @@ export function useLeadsCRUD({ qKey, queryData: _queryData, tenantId, queryClien
       return normalizeLead(updated);
     },
     onSuccess: (updated) => {
-      queryClient.setQueryData(qKey, (prev: typeof queryData) => ({
+      queryClient.setQueryData(qKey, (prev: typeof _queryData) => ({
         leads: (prev?.leads ?? []).map((l: Lead) => l.id === updated.id ? updated : l),
         totalCount: prev?.totalCount ?? 0,
       }));
@@ -195,7 +195,7 @@ export function useLeadsCRUD({ qKey, queryData: _queryData, tenantId, queryClien
       return normalizeLead(updated);
     },
     onSuccess: (updated) => {
-      queryClient.setQueryData(qKey, (prev: typeof queryData) => ({
+      queryClient.setQueryData(qKey, (prev: typeof _queryData) => ({
         leads: (prev?.leads ?? []).map((l: Lead) => l.id === updated.id ? updated : l),
         totalCount: prev?.totalCount ?? 0,
       }));

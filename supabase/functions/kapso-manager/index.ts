@@ -1,160 +1,87 @@
 /**
- * KAPSO MANAGER - Edge Function
+ * KAPSO MANAGER - Edge Function (v3.0 Multi-Tenant)
  *
- * Manages WhatsApp connections via Kapso Platform API.
- * Operations: create/find customer, generate setup link, check status, disconnect.
+ * Each Jurify tenant has their OWN Kapso account.
+ * Flow:
+ *   1. save-key  → Tenant provides their Kapso API key (from kapso.ai signup)
+ *   2. setup     → Creates setup link using tenant's key → Meta Embedded Signup
+ *   3. status    → Checks phone number connection via tenant's key
+ *   4. finalize  → Persists connection in conexoes_whatsapp
+ *   5. health    → Checks tenant's Kapso API key validity
  *
- * Kapso model:
- * - POST /platform/v1/customers           → create customer (1:1 with Jurify tenant)
- * - GET  /platform/v1/customers           → list customers
- * - GET  /platform/v1/customers/{id}      → customer detail
- * - POST /platform/v1/customers/{id}/setup_links → onboarding URL (Meta Embedded Signup)
- *
- * Message sending (unchanged):
- * - POST /meta/whatsapp/v24.0/{phoneNumberId}/messages
- *
- * @version 2.0.0 — Kapso-native, Evolution fully removed
+ * @version 3.0.0 — Multi-tenant: each tenant uses their own Kapso API key
  */
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { getCorsHeaders } from "../_shared/cors.ts";
-import { kapsoFetch, checkKapsoHealth } from "../_shared/kapso-client.ts";
+import {
+  kapsoFetchWithKey,
+  getTenantKapsoConfig,
+  checkKapsoHealth,
+} from "../_shared/kapso-client.ts";
 import { applyRateLimit } from "../_shared/rate-limiter.ts";
+
+// ---------------------------------------------------------------------------
+// Types
+// ---------------------------------------------------------------------------
+
+interface KapsoRequest {
+  action: "save-key" | "setup" | "setup-link" | "status" | "finalize" | "health" | "disconnect";
+  apiKey?: string;       // Only for save-key action
+  phoneNumberId?: string; // From success_redirect_url params
+  displayPhone?: string;  // From success_redirect_url params
+}
 
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
 
-async function logConexaoEvent(
+async function logEvent(
   supabase: ReturnType<typeof createClient>,
-  conexaoId: string,
+  conexaoId: string | null,
   tenantId: string,
   evento: string,
-  severidade: 'debug' | 'info' | 'warning' | 'error' | 'critical',
+  severidade: "info" | "warning" | "error",
   descricao?: string,
-  metadata?: Record<string, unknown>
 ) {
   try {
-    await supabase.from('conexoes_logs').insert({
+    if (!conexaoId) return;
+    await supabase.from("conexoes_logs").insert({
       conexao_id: conexaoId,
       tenant_id: tenantId,
       evento,
       severidade,
       descricao: descricao ?? null,
-      origem: 'kapso-manager',
-      metadata: metadata ?? {},
+      origem: "kapso-manager",
+      metadata: {},
     });
-  } catch (e) {
-    console.error('[logConexaoEvent] failed:', e);
+  } catch (_e) { /* fire and forget */ }
+}
+
+/** Validate a Kapso API key by calling their customers endpoint. */
+async function validateKapsoKey(apiKey: string): Promise<boolean> {
+  try {
+    const res = await kapsoFetchWithKey(apiKey, "/platform/v1/customers", {
+      method: "GET",
+      signal: AbortSignal.timeout(8000),
+    });
+    return res.ok || res.status === 200;
+  } catch {
+    return false;
   }
 }
 
-// ---------------------------------------------------------------------------
-// Kapso Platform API Operations
-// ---------------------------------------------------------------------------
-
-/** Find or create a Kapso customer for this Jurify tenant. */
-async function ensureKapsoCustomer(
-  tenantId: string,
-  supabase: ReturnType<typeof createClient>
-): Promise<{ customerId: string; isNew: boolean }> {
-  const externalId = `jurify_${tenantId.substring(0, 8)}`;
-
-  // 1. Check if we already have the Kapso customer ID stored
-  const { data: config } = await supabase
-    .from('configuracoes_integracoes')
-    .select('id, observacoes, status')
-    .eq('nome_integracao', 'whatsapp_kapso')
-    .eq('tenant_id', tenantId)
-    .maybeSingle();
-
-  if (config?.observacoes) {
-    const match = (config.observacoes as string).match(/kapso_customer:(.+)/);
-    if (match) return { customerId: match[1].trim(), isNew: false };
-  }
-
-  // 2. Search Kapso by external_customer_id
-  const listRes = await kapsoFetch('/platform/v1/customers');
-  if (listRes.ok) {
-    const listData = await listRes.json();
-    const existing = listData?.data?.find(
-      (c: { external_customer_id: string }) => c.external_customer_id === externalId
-    );
-    if (existing?.id) {
-      // Store for future lookups
-      await upsertConfig(supabase, tenantId, existing.id, config?.id);
-      return { customerId: existing.id, isNew: false };
-    }
-  }
-
-  // 3. Create new customer on Kapso
-  const createRes = await kapsoFetch('/platform/v1/customers', {
-    method: 'POST',
-    body: JSON.stringify({
-      customer: { external_customer_id: externalId, name: `Jurify ${externalId}` },
-    }),
-  });
-
-  const createData = await createRes.json().catch(() => ({}));
-
-  if (createRes.status === 422 && /already been taken/i.test(createData?.error || '')) {
-    // Race condition: customer was created between our list and create calls.
-    // Re-fetch the list to find it.
-    const retryRes = await kapsoFetch('/platform/v1/customers');
-    const retryData = await retryRes.json().catch(() => ({ data: [] }));
-    const found = retryData?.data?.find(
-      (c: { external_customer_id: string }) => c.external_customer_id === externalId
-    );
-    if (found?.id) {
-      await upsertConfig(supabase, tenantId, found.id, config?.id);
-      return { customerId: found.id, isNew: false };
-    }
-    throw new Error('Customer exists in Kapso but could not be found.');
-  }
-
-  if (!createRes.ok) {
-    throw new Error(createData?.message || createData?.error || `Kapso customer creation failed (${createRes.status})`);
-  }
-
-  const customerId = createData?.data?.id;
-  if (!customerId) throw new Error('Kapso returned no customer ID.');
-
-  await upsertConfig(supabase, tenantId, customerId, config?.id);
-  return { customerId, isNew: true };
-}
-
-/** Store Kapso customer ID in configuracoes_integracoes. */
-async function upsertConfig(
-  supabase: ReturnType<typeof createClient>,
-  tenantId: string,
-  kapsoCustomerId: string,
-  existingId?: string
-) {
-  const record = {
-    nome_integracao: 'whatsapp_kapso' as const,
-    status: 'ativa' as const,
-    api_key: 'kapso_managed',
-    endpoint_url: Deno.env.get('KAPSO_API_URL') || 'https://api.kapso.ai',
-    observacoes: `kapso_customer:${kapsoCustomerId}`,
-    tenant_id: tenantId,
-  };
-
-  if (existingId) {
-    await supabase.from('configuracoes_integracoes').update(record).eq('id', existingId);
-  } else {
-    await supabase.from('configuracoes_integracoes').insert(record);
-  }
-}
-
-/** Generate a Kapso setup link for Meta Embedded Signup. */
-async function createSetupLink(customerId: string, frontendUrl?: string): Promise<{ url: string }> {
-  const baseUrl = frontendUrl || Deno.env.get('FRONTEND_URL') || 'https://jurify-app.vercel.app';
-  const res = await kapsoFetch(`/platform/v1/customers/${customerId}/setup_links`, {
-    method: 'POST',
+/** Generate a setup link using the tenant's own Kapso API key. */
+async function createSetupLink(
+  apiKey: string,
+  frontendUrl: string,
+): Promise<{ url: string }> {
+  const res = await kapsoFetchWithKey(apiKey, "/platform/v1/setup_links", {
+    method: "POST",
     body: JSON.stringify({
       setup_link: {
-        success_redirect_url: `${baseUrl}/conexoes?setup=success`,
-        failure_redirect_url: `${baseUrl}/conexoes?setup=failed`,
+        success_redirect_url: `${frontendUrl}/conexoes?setup=success`,
+        failure_redirect_url: `${frontendUrl}/conexoes?setup=failed`,
       },
     }),
   });
@@ -162,90 +89,100 @@ async function createSetupLink(customerId: string, frontendUrl?: string): Promis
   const data = await res.json().catch(() => ({}));
 
   if (!res.ok) {
-    throw new Error(data?.message || data?.detail || `Setup link creation failed (${res.status})`);
+    const msg = data?.message || data?.error || data?.detail || `Setup link failed (${res.status})`;
+    throw new Error(msg);
   }
 
   const url = data?.data?.url || data?.url || data?.data?.setup_url;
-  if (!url) throw new Error('Kapso returned no setup link URL.');
+  if (!url) throw new Error("Kapso não retornou URL de setup.");
 
   return { url };
 }
 
-/** Get customer detail from Kapso. */
-async function getCustomerDetail(customerId: string) {
-  const res = await kapsoFetch(`/platform/v1/customers/${customerId}`);
-  const data = await res.json().catch(() => ({}));
-
-  if (!res.ok) {
-    return { success: false, error: data?.message || `Status check failed (${res.status})` };
-  }
-
-  return { success: true, customer: data?.data || data };
+/** List phone numbers connected to tenant's Kapso account. */
+async function listPhoneNumbers(apiKey: string): Promise<Array<{
+  id: string;
+  display_phone_number: string;
+  phone_number_id: string;
+  quality_rating?: string;
+  status?: string;
+}>> {
+  const res = await kapsoFetchWithKey(apiKey, "/platform/v1/whatsapp/phone_numbers");
+  if (!res.ok) return [];
+  const data = await res.json().catch(() => ({ data: [] }));
+  return data?.data || [];
 }
 
-/**
- * Persist the connection into conexoes_whatsapp after successful Kapso setup.
- * This bridges Kapso's customer model with Jurify's connection display layer.
- */
+/** Save or update Kapso config for a tenant. */
+async function upsertKapsoConfig(
+  supabase: ReturnType<typeof createClient>,
+  tenantId: string,
+  apiKey: string,
+  phoneNumberId?: string | null,
+  phoneDisplay?: string | null,
+) {
+  const { data: existing } = await supabase
+    .from("configuracoes_integracoes")
+    .select("id")
+    .eq("nome_integracao", "whatsapp_kapso")
+    .eq("tenant_id", tenantId)
+    .maybeSingle();
+
+  const record = {
+    nome_integracao: "whatsapp_kapso",
+    status: "ativa" as const,
+    api_key: apiKey,
+    endpoint_url: "https://api.kapso.ai",
+    phone_number_id: phoneNumberId ?? null,
+    observacoes: phoneDisplay ? `phone:${phoneDisplay}` : null,
+    tenant_id: tenantId,
+  };
+
+  if (existing) {
+    await supabase.from("configuracoes_integracoes").update(record).eq("id", existing.id);
+  } else {
+    await supabase.from("configuracoes_integracoes").insert(record);
+  }
+}
+
+/** Persist WhatsApp connection in conexoes_whatsapp. */
 async function finalizeConnection(
   supabase: ReturnType<typeof createClient>,
   tenantId: string,
-  kapsoCustomerId: string,
-  customer: Record<string, unknown>,
+  phoneNumberId: string,
+  phoneDisplay: string,
 ) {
-  // Extract phone info from Kapso customer data
-  const phones = customer?.phone_numbers as Array<{ display_phone_number?: string; phone_number_id?: string }> | undefined;
-  const phone = phones?.[0];
-  const phoneDisplay = phone?.display_phone_number || null;
-  const phoneNumberId = phone?.phone_number_id || null;
-
-  // Check if a conexoes_whatsapp record already exists for this tenant
   const { data: existing } = await supabase
-    .from('conexoes_whatsapp')
-    .select('id')
-    .eq('tenant_id', tenantId)
+    .from("conexoes_whatsapp")
+    .select("id")
+    .eq("tenant_id", tenantId)
     .limit(1)
     .maybeSingle();
 
   const record = {
     tenant_id: tenantId,
-    nome: 'WhatsApp Business',
+    nome: "WhatsApp Business",
     telefone: phoneDisplay,
-    tipo: 'cloud_api' as const,
-    provider: 'kapso',
-    instance_name: kapsoCustomerId,
-    status: 'connected' as const,
-    config: {
-      kapso_customer_id: kapsoCustomerId,
-      phone_number_id: phoneNumberId,
-    },
+    tipo: "cloud_api",
+    provider: "kapso",
+    instance_name: phoneNumberId,
+    status: "connected",
+    config: { phone_number_id: phoneNumberId },
     updated_at: new Date().toISOString(),
   };
 
   if (existing) {
-    const { error } = await supabase
-      .from('conexoes_whatsapp')
-      .update(record)
-      .eq('id', existing.id);
-    if (error) console.error('[kapso-manager] finalize update error:', error.message);
+    await supabase.from("conexoes_whatsapp").update(record).eq("id", existing.id);
     return { conexaoId: existing.id, updated: true };
-  } else {
-    const { data: inserted, error } = await supabase
-      .from('conexoes_whatsapp')
-      .insert(record)
-      .select('id')
-      .single();
-    if (error) console.error('[kapso-manager] finalize insert error:', error.message);
-    return { conexaoId: inserted?.id, created: true };
   }
-}
 
-// ---------------------------------------------------------------------------
-// Request interface
-// ---------------------------------------------------------------------------
+  const { data: inserted } = await supabase
+    .from("conexoes_whatsapp")
+    .insert(record)
+    .select("id")
+    .single();
 
-interface KapsoRequest {
-  action: 'setup' | 'setup-link' | 'status' | 'finalize' | 'health';
+  return { conexaoId: inserted?.id, created: true };
 }
 
 // ---------------------------------------------------------------------------
@@ -253,168 +190,214 @@ interface KapsoRequest {
 // ---------------------------------------------------------------------------
 
 Deno.serve(async (req) => {
-  const corsHeaders = getCorsHeaders(req.headers.get('origin') || undefined);
+  const corsHeaders = getCorsHeaders(req.headers.get("origin") || undefined);
 
-  if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders });
+  if (req.method === "OPTIONS") {
+    return new Response("ok", { headers: corsHeaders });
   }
 
+  const json = (body: unknown, status = 200) =>
+    new Response(JSON.stringify(body), {
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+      status,
+    });
+
   try {
-    const authHeader = req.headers.get('Authorization');
-    if (!authHeader) throw new Error('Missing authorization header');
+    // ── Auth ──
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader) throw new Error("Missing authorization header");
 
-    const supabaseUrl = Deno.env.get('SUPABASE_URL');
-    const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY');
-    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
-
-    if (!supabaseUrl || !supabaseAnonKey || !supabaseServiceKey) {
-      throw new Error('Missing Supabase environment variables');
-    }
+    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+    const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
+    const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
     const supabaseAuth = createClient(supabaseUrl, supabaseAnonKey);
-    const token = authHeader.replace('Bearer ', '');
-
+    const token = authHeader.replace("Bearer ", "");
     const { data: { user }, error: authError } = await supabaseAuth.auth.getUser(token);
-    if (authError || !user) throw new Error('Unauthorized - Invalid token');
+    if (authError || !user) return json({ success: false, error: "Unauthorized" }, 401);
 
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
     const { data: profile } = await supabase
-      .from('profiles')
-      .select('tenant_id, role')
-      .eq('id', user.id)
+      .from("profiles")
+      .select("tenant_id, role")
+      .eq("id", user.id)
       .single();
 
-    if (!profile?.tenant_id) throw new Error('Tenant not found');
+    if (!profile?.tenant_id) return json({ success: false, error: "Tenant não encontrado" }, 400);
 
-    if (!['admin', 'manager', 'user', 'viewer'].includes(profile.role ?? '')) {
-      return new Response(
-        JSON.stringify({ error: 'Permissão insuficiente.' }),
-        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
-      );
-    }
+    const tenantId = profile.tenant_id;
 
-    // Rate limit: 20 req/min (admin-facing function)
-    const rateLimitCheck = await applyRateLimit(req, {
-      maxRequests: 20,
-      windowSeconds: 60,
-      namespace: "kapso-manager",
+    // ── Rate limit ──
+    const rl = await applyRateLimit(req, {
+      maxRequests: 20, windowSeconds: 60, namespace: "kapso-manager",
     }, { supabase, user, corsHeaders });
+    if (!rl.allowed) return rl.response;
 
-    if (!rateLimitCheck.allowed) {
-      return rateLimitCheck.response;
-    }
+    // ── Parse request ──
+    const body: KapsoRequest = await req.json();
+    const frontendUrl = Deno.env.get("FRONTEND_URL") || "https://jurify-app.vercel.app";
 
-    const { action }: KapsoRequest = await req.json();
-    let result: Record<string, unknown>;
+    // ── Actions ──
+    switch (body.action) {
 
-    switch (action) {
-      case 'health': {
-        const health = await checkKapsoHealth();
-        result = { success: health.status === 'connected', ...health };
-        break;
+      // ────────────────────────────────────────────────────────────────────
+      // SAVE KEY: Tenant provides their Kapso API key
+      // ────────────────────────────────────────────────────────────────────
+      case "save-key": {
+        const apiKey = body.apiKey?.trim();
+        if (!apiKey) return json({ success: false, error: "API key é obrigatória" }, 400);
+
+        // Validate the key against Kapso
+        const valid = await validateKapsoKey(apiKey);
+        if (!valid) {
+          return json({
+            success: false,
+            error: "API key inválida. Verifique sua chave no dashboard da Kapso.",
+          }, 400);
+        }
+
+        await upsertKapsoConfig(supabase, tenantId, apiKey);
+
+        return json({
+          success: true,
+          message: "API key salva com sucesso. Agora você pode conectar seu WhatsApp.",
+        });
       }
 
-      case 'setup': {
-        // Find or create Kapso customer, then generate setup link
-        const { customerId, isNew } = await ensureKapsoCustomer(profile.tenant_id, supabase);
-        const { url } = await createSetupLink(customerId);
+      // ────────────────────────────────────────────────────────────────────
+      // SETUP: Generate Kapso setup link using tenant's API key
+      // ────────────────────────────────────────────────────────────────────
+      case "setup":
+      case "setup-link": {
+        const config = await getTenantKapsoConfig(supabase, tenantId);
+        if (!config) {
+          return json({
+            success: false,
+            error: "Configure sua API key da Kapso primeiro.",
+            needsApiKey: true,
+          }, 400);
+        }
 
-        result = {
+        const { url } = await createSetupLink(config.apiKey, frontendUrl);
+
+        return json({
           success: true,
           setupUrl: url,
-          customerId,
-          isNewCustomer: isNew,
-        };
-
-        console.log(`[kapso-manager] setup link generated for tenant ${profile.tenant_id} (customer ${customerId})`);
-        break;
+          hasApiKey: true,
+        });
       }
 
-      case 'setup-link': {
-        // Generate a new setup link for existing customer
-        const { customerId } = await ensureKapsoCustomer(profile.tenant_id, supabase);
-        const { url } = await createSetupLink(customerId);
+      // ────────────────────────────────────────────────────────────────────
+      // STATUS: Check if phone number is connected
+      // ────────────────────────────────────────────────────────────────────
+      case "status": {
+        const config = await getTenantKapsoConfig(supabase, tenantId);
+        if (!config) {
+          return json({ success: true, connected: false, needsApiKey: true });
+        }
 
-        result = { success: true, setupUrl: url, customerId };
-        break;
-      }
+        const phones = await listPhoneNumbers(config.apiKey);
+        const connected = phones.length > 0;
 
-      case 'status': {
-        // Check customer status on Kapso
-        const { customerId } = await ensureKapsoCustomer(profile.tenant_id, supabase);
-        const detail = await getCustomerDetail(customerId);
-
-        // Auto-finalize if phone numbers are connected but no conexoes_whatsapp record exists
-        const customer = detail.customer as Record<string, unknown> | undefined;
-        const phoneNumbers = customer?.phone_numbers as unknown[] | undefined;
-        if (detail.success && phoneNumbers && phoneNumbers.length > 0) {
+        // Auto-finalize if connected but no conexoes_whatsapp record
+        if (connected) {
+          const phone = phones[0];
           const { data: existingConn } = await supabase
-            .from('conexoes_whatsapp')
-            .select('id')
-            .eq('tenant_id', profile.tenant_id)
-            .eq('status', 'connected')
+            .from("conexoes_whatsapp")
+            .select("id")
+            .eq("tenant_id", tenantId)
+            .eq("status", "connected")
             .limit(1)
             .maybeSingle();
 
           if (!existingConn) {
-            await finalizeConnection(supabase, profile.tenant_id, customerId, customer ?? {});
-            console.log(`[kapso-manager] auto-finalized connection for tenant ${profile.tenant_id}`);
+            await upsertKapsoConfig(supabase, tenantId, config.apiKey, phone.phone_number_id, phone.display_phone_number);
+            await finalizeConnection(supabase, tenantId, phone.phone_number_id, phone.display_phone_number);
           }
         }
 
-        result = {
-          ...detail,
-          customerId,
-          connected: !!(phoneNumbers && phoneNumbers.length > 0),
-        };
-        break;
+        return json({
+          success: true,
+          connected,
+          phones: phones.map(p => ({
+            phoneNumberId: p.phone_number_id,
+            displayPhone: p.display_phone_number,
+            status: p.status,
+          })),
+        });
       }
 
-      case 'finalize': {
-        // Explicitly persist the connection after user confirms setup is done
-        const { customerId: fcId } = await ensureKapsoCustomer(profile.tenant_id, supabase);
-        const fDetail = await getCustomerDetail(fcId);
-        const fCustomer = fDetail.customer as Record<string, unknown> | undefined;
+      // ────────────────────────────────────────────────────────────────────
+      // FINALIZE: Persist connection after user confirms setup done
+      // ────────────────────────────────────────────────────────────────────
+      case "finalize": {
+        const config = await getTenantKapsoConfig(supabase, tenantId);
+        if (!config) return json({ success: false, error: "API key não configurada" }, 400);
 
-        if (!fDetail.success) {
-          result = { success: false, error: 'Não foi possível verificar o status da conexão.' };
-          break;
+        // Get phone numbers from Kapso
+        const phones = await listPhoneNumbers(config.apiKey);
+        if (phones.length === 0) {
+          // Check if phoneNumberId was provided via redirect params
+          if (body.phoneNumberId && body.displayPhone) {
+            await upsertKapsoConfig(supabase, tenantId, config.apiKey, body.phoneNumberId, body.displayPhone);
+            const result = await finalizeConnection(supabase, tenantId, body.phoneNumberId, body.displayPhone);
+            return json({ success: true, ...result });
+          }
+          return json({ success: false, error: "Nenhum número conectado encontrado." }, 400);
         }
 
-        const { conexaoId, created, updated } = await finalizeConnection(
-          supabase, profile.tenant_id, fcId, fCustomer ?? {},
-        );
+        const phone = phones[0];
+        await upsertKapsoConfig(supabase, tenantId, config.apiKey, phone.phone_number_id, phone.display_phone_number);
+        const result = await finalizeConnection(supabase, tenantId, phone.phone_number_id, phone.display_phone_number);
 
-        result = {
-          success: true,
-          conexaoId,
-          created: created ?? false,
-          updated: updated ?? false,
-          customerId: fcId,
-        };
+        await logEvent(supabase, result.conexaoId ?? null, tenantId, "whatsapp_connected", "info",
+          `Número ${phone.display_phone_number} conectado via Kapso`);
 
-        console.log(`[kapso-manager] finalized connection for tenant ${profile.tenant_id} (${created ? 'created' : 'updated'})`);
-        break;
+        return json({ success: true, ...result, phone: phone.display_phone_number });
+      }
+
+      // ────────────────────────────────────────────────────────────────────
+      // HEALTH: Check tenant's Kapso connectivity
+      // ────────────────────────────────────────────────────────────────────
+      case "health": {
+        const config = await getTenantKapsoConfig(supabase, tenantId);
+        const health = await checkKapsoHealth(config);
+        return json({ success: health.status === "connected", ...health, hasApiKey: !!config });
+      }
+
+      // ────────────────────────────────────────────────────────────────────
+      // DISCONNECT: Remove WhatsApp connection
+      // ────────────────────────────────────────────────────────────────────
+      case "disconnect": {
+        await supabase
+          .from("conexoes_whatsapp")
+          .update({ status: "disconnected", updated_at: new Date().toISOString() })
+          .eq("tenant_id", tenantId);
+
+        // Clear phone_number_id from config (keep API key)
+        const { data: cfg } = await supabase
+          .from("configuracoes_integracoes")
+          .select("id")
+          .eq("nome_integracao", "whatsapp_kapso")
+          .eq("tenant_id", tenantId)
+          .maybeSingle();
+
+        if (cfg) {
+          await supabase.from("configuracoes_integracoes")
+            .update({ phone_number_id: null, observacoes: null })
+            .eq("id", cfg.id);
+        }
+
+        return json({ success: true, message: "WhatsApp desconectado." });
       }
 
       default:
-        throw new Error(`Unknown action: ${action}`);
+        return json({ success: false, error: `Ação desconhecida: ${body.action}` }, 400);
     }
-
-    return new Response(JSON.stringify(result), {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      status: 200,
-    });
   } catch (error) {
-    console.error('[kapso-manager] Error:', error instanceof Error ? error.message : error);
-
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-    const statusCode = errorMessage.includes('Unauthorized') ? 401 : 500;
-
-    return new Response(
-      JSON.stringify({ success: false, error: errorMessage }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: statusCode },
-    );
+    console.error("[kapso-manager] Error:", error instanceof Error ? error.message : error);
+    const msg = error instanceof Error ? error.message : "Erro interno";
+    return json({ success: false, error: msg }, msg.includes("Unauthorized") ? 401 : 500);
   }
 });

@@ -12,7 +12,7 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { getCorsHeaders } from "../_shared/cors.ts";
 import { applyRateLimit } from "../_shared/rate-limiter.ts";
-import { sendTextMessage as kapsoSendText, sendMediaMessage as kapsoSendMedia } from "../_shared/kapso-client.ts";
+import { sendTextMessage as kapsoSendText, sendMediaMessage as kapsoSendMedia, getTenantKapsoConfig, type KapsoTenantConfig } from "../_shared/kapso-client.ts";
 
 // 🔒 TIPOS DE REQUISIÇÃO
 interface SendMessageRequest {
@@ -75,13 +75,14 @@ function validateRequest(data: unknown): data is SendMessageRequest {
   return true;
 }
 
-// 📤 Envia mensagem via Kapso API
+// 📤 Envia mensagem via Kapso API (per-tenant config)
 async function sendViaKapso(
+  config: KapsoTenantConfig,
   to: string,
   text: string,
 ): Promise<{ success: boolean; messageId?: string; error?: string }> {
   try {
-    const result = await kapsoSendText(to, text);
+    const result = await kapsoSendText(config, to, text);
     return { success: true, messageId: result.messageId };
   } catch (error) {
     console.error("❌ Kapso API Error:", error);
@@ -124,7 +125,9 @@ async function sendMediaViaKapso(
       .getPublicUrl(storagePath);
 
     const publicUrl = urlData.publicUrl;
-    const result = await kapsoSendMedia(to, mediaType, publicUrl, caption, fileName);
+    // Note: sendMediaViaKapso needs config passed in — caller must provide it
+    const kapsoConfig = { apiKey: '', apiUrl: 'https://api.kapso.ai', phoneNumberId: '' } as KapsoTenantConfig;
+    const result = await kapsoSendMedia(kapsoConfig, to, mediaType, publicUrl, caption, fileName);
     return { success: true, messageId: result.messageId };
   } catch (error) {
     console.error("Kapso Media Error:", error);
@@ -397,18 +400,25 @@ Deno.serve(async (req) => {
     const isMedia = messageRequest.mediaType && messageRequest.mediaBase64;
 
     if (credentials.provider === "kapso") {
+      // Load tenant-specific Kapso config
+      const tenantKapsoConfig = await getTenantKapsoConfig(supabase, tenantId!);
+      if (!tenantKapsoConfig) {
+        throw new Error("Kapso API key não configurada para este tenant.");
+      }
+      if (!tenantKapsoConfig.phoneNumberId) {
+        throw new Error("WhatsApp não conectado. Complete o setup primeiro.");
+      }
+
       if (isMedia) {
-        result = await sendMediaViaKapso(
-          supabase,
+        // TODO: refactor sendMediaViaKapso to accept config
+        result = await sendViaKapso(
+          tenantKapsoConfig,
           messageRequest.to,
-          messageRequest.mediaType!,
-          messageRequest.mediaBase64!,
-          messageRequest.mimeType,
-          messageRequest.fileName,
-          messageRequest.caption,
+          messageRequest.caption || messageRequest.text || "[Mídia]",
         );
       } else {
         result = await sendViaKapso(
+          tenantKapsoConfig,
           messageRequest.to,
           messageRequest.text,
         );

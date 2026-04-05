@@ -1,43 +1,32 @@
 /**
  * Shared Kapso WhatsApp API client for Supabase Edge Functions.
- * Kapso is a managed proxy over Meta's official WhatsApp Cloud API.
+ *
+ * MULTI-TENANT MODEL:
+ * Each Jurify tenant has their OWN Kapso account and API key.
+ * The key is stored in configuracoes_integracoes per tenant.
+ * There is NO global API key — each request uses the tenant's key.
  */
 
-export interface KapsoConfig {
-  apiUrl: string;
+export interface KapsoTenantConfig {
   apiKey: string;
-  phoneNumberId: string | null;
-}
-
-export function getKapsoConfig(): KapsoConfig {
-  const apiUrl = Deno.env.get("KAPSO_API_URL") || "https://api.kapso.ai";
-  const apiKey = Deno.env.get("KAPSO_API_KEY");
-  const phoneNumberId = Deno.env.get("KAPSO_PHONE_NUMBER_ID") || null;
-
-  if (!apiKey) {
-    throw new Error("KAPSO_API_KEY environment variable is required");
-  }
-
-  // phoneNumberId is only needed for message-sending endpoints,
-  // NOT for platform API (customer creation, setup links).
-  // It becomes available only AFTER the user completes WhatsApp setup.
-
-  return { apiUrl: apiUrl.replace(/\/+$/, ""), apiKey, phoneNumberId };
+  apiUrl: string;
+  phoneNumberId?: string | null;
 }
 
 /**
- * Fetch from Kapso API. Works for both platform endpoints (/platform/v1/...)
- * and Meta endpoints (/meta/whatsapp/...). Only the API key is required.
+ * Fetch from Kapso API using a tenant-specific API key.
+ * This is the core function — ALL Kapso calls go through here.
  */
-export async function kapsoFetch(
+export async function kapsoFetchWithKey(
+  apiKey: string,
   path: string,
-  options: RequestInit = {}
+  options: RequestInit = {},
+  apiUrl = "https://api.kapso.ai"
 ): Promise<Response> {
-  const config = getKapsoConfig();
-  const url = `${config.apiUrl}${path.startsWith("/") ? path : `/${path}`}`;
+  const url = `${apiUrl.replace(/\/+$/, "")}${path.startsWith("/") ? path : `/${path}`}`;
 
   const headers = new Headers(options.headers);
-  headers.set("X-API-Key", config.apiKey);
+  headers.set("X-API-Key", apiKey);
   if (!headers.has("Content-Type")) {
     headers.set("Content-Type", "application/json");
   }
@@ -46,18 +35,53 @@ export async function kapsoFetch(
 }
 
 /**
- * Get the phone number ID, throwing only when it's actually needed
- * (i.e., for sending messages, not for platform operations).
+ * Legacy wrapper — uses global env KAPSO_API_KEY.
+ * Only used for system-level operations (health checks, webhooks).
+ * For tenant operations, use kapsoFetchWithKey() directly.
  */
-export function requirePhoneNumberId(): string {
-  const id = Deno.env.get("KAPSO_PHONE_NUMBER_ID");
-  if (!id) {
-    throw new Error(
-      "KAPSO_PHONE_NUMBER_ID not configured. Complete WhatsApp setup first."
-    );
+export async function kapsoFetch(
+  path: string,
+  options: RequestInit = {}
+): Promise<Response> {
+  const apiKey = Deno.env.get("KAPSO_API_KEY");
+  const apiUrl = Deno.env.get("KAPSO_API_URL") || "https://api.kapso.ai";
+
+  if (!apiKey) {
+    throw new Error("KAPSO_API_KEY not configured (system-level)");
   }
-  return id;
+
+  return kapsoFetchWithKey(apiKey, path, options, apiUrl);
 }
+
+/**
+ * Load a tenant's Kapso config from the database.
+ * Returns null if tenant has no Kapso key configured.
+ */
+export async function getTenantKapsoConfig(
+  supabase: { from: (table: string) => unknown },
+  tenantId: string
+): Promise<KapsoTenantConfig | null> {
+  // deno-lint-ignore no-explicit-any
+  const client = supabase as any;
+  const { data } = await client
+    .from("configuracoes_integracoes")
+    .select("api_key, endpoint_url, phone_number_id, observacoes")
+    .eq("nome_integracao", "whatsapp_kapso")
+    .eq("tenant_id", tenantId)
+    .maybeSingle();
+
+  if (!data?.api_key || data.api_key === "kapso_managed" || data.api_key === "pending_setup") {
+    return null;
+  }
+
+  return {
+    apiKey: data.api_key,
+    apiUrl: data.endpoint_url || "https://api.kapso.ai",
+    phoneNumberId: data.phone_number_id || null,
+  };
+}
+
+// ─── Message sending ─────────────────────────────────────────────────────────
 
 interface SendResult {
   messageId: string;
@@ -65,14 +89,18 @@ interface SendResult {
 }
 
 export async function sendTextMessage(
+  config: KapsoTenantConfig,
   to: string,
   text: string
 ): Promise<SendResult> {
-  const phoneNumberId = requirePhoneNumberId();
-  const phone = to.replace(/\D/g, "");
+  if (!config.phoneNumberId) {
+    throw new Error("WhatsApp não conectado. Complete o setup primeiro.");
+  }
 
-  const response = await kapsoFetch(
-    `/meta/whatsapp/v24.0/${phoneNumberId}/messages`,
+  const phone = to.replace(/\D/g, "");
+  const response = await kapsoFetchWithKey(
+    config.apiKey,
+    `/meta/whatsapp/v24.0/${config.phoneNumberId}/messages`,
     {
       method: "POST",
       body: JSON.stringify({
@@ -81,7 +109,8 @@ export async function sendTextMessage(
         type: "text",
         text: { body: text },
       }),
-    }
+    },
+    config.apiUrl
   );
 
   if (!response.ok) {
@@ -90,30 +119,31 @@ export async function sendTextMessage(
   }
 
   const data = await response.json();
-  return {
-    messageId: data?.messages?.[0]?.id ?? "",
-    success: true,
-  };
+  return { messageId: data?.messages?.[0]?.id ?? "", success: true };
 }
 
 export type MediaType = "image" | "audio" | "document" | "video";
 
 export async function sendMediaMessage(
+  config: KapsoTenantConfig,
   to: string,
   mediaType: MediaType,
   mediaUrl: string,
   caption?: string,
   filename?: string
 ): Promise<SendResult> {
-  const phoneNumberId = requirePhoneNumberId();
-  const phone = to.replace(/\D/g, "");
+  if (!config.phoneNumberId) {
+    throw new Error("WhatsApp não conectado. Complete o setup primeiro.");
+  }
 
+  const phone = to.replace(/\D/g, "");
   const mediaPayload: Record<string, string> = { link: mediaUrl };
   if (caption) mediaPayload.caption = caption;
   if (filename) mediaPayload.filename = filename;
 
-  const response = await kapsoFetch(
-    `/meta/whatsapp/v24.0/${phoneNumberId}/messages`,
+  const response = await kapsoFetchWithKey(
+    config.apiKey,
+    `/meta/whatsapp/v24.0/${config.phoneNumberId}/messages`,
     {
       method: "POST",
       body: JSON.stringify({
@@ -122,7 +152,8 @@ export async function sendMediaMessage(
         type: mediaType,
         [mediaType]: mediaPayload,
       }),
-    }
+    },
+    config.apiUrl
   );
 
   if (!response.ok) {
@@ -131,58 +162,67 @@ export async function sendMediaMessage(
   }
 
   const data = await response.json();
-  return {
-    messageId: data?.messages?.[0]?.id ?? "",
-    success: true,
-  };
+  return { messageId: data?.messages?.[0]?.id ?? "", success: true };
 }
+
+// ─── Health check ────────────────────────────────────────────────────────────
 
 interface HealthResult {
   status: "connected" | "error" | "not_configured";
   detail?: string;
 }
 
-export async function checkKapsoHealth(): Promise<HealthResult> {
-  const apiKey = Deno.env.get("KAPSO_API_KEY");
-  const phoneNumberId = Deno.env.get("KAPSO_PHONE_NUMBER_ID");
+/**
+ * Check Kapso health for a specific tenant's config.
+ * If no config provided, checks system-level connectivity.
+ */
+export async function checkKapsoHealth(
+  tenantConfig?: KapsoTenantConfig | null
+): Promise<HealthResult> {
+  const apiKey = tenantConfig?.apiKey || Deno.env.get("KAPSO_API_KEY");
 
   if (!apiKey) {
-    return { status: "not_configured", detail: "KAPSO_API_KEY not set" };
+    return { status: "not_configured", detail: "Nenhuma API key configurada" };
   }
 
-  try {
-    // If phone number is configured, check full message-sending capability
-    if (phoneNumberId) {
-      const response = await kapsoFetch(`/meta/whatsapp/v24.0/${phoneNumberId}`, {
-        method: "GET",
-        signal: AbortSignal.timeout(8000),
-      });
+  const apiUrl = tenantConfig?.apiUrl || Deno.env.get("KAPSO_API_URL") || "https://api.kapso.ai";
 
+  try {
+    if (tenantConfig?.phoneNumberId) {
+      const response = await kapsoFetchWithKey(
+        apiKey,
+        `/meta/whatsapp/v24.0/${tenantConfig.phoneNumberId}`,
+        { method: "GET", signal: AbortSignal.timeout(8000) },
+        apiUrl
+      );
       if (response.ok) return { status: "connected" };
       if (response.status === 401 || response.status === 403) {
-        return { status: "error", detail: "Invalid API key" };
-      }
-      if (response.status === 404) {
-        return { status: "error", detail: "Phone number ID not found" };
+        return { status: "error", detail: "API key inválida" };
       }
       return { status: "error", detail: `HTTP ${response.status}` };
     }
 
-    // No phone number yet — check platform API connectivity only
-    const platformRes = await kapsoFetch("/platform/v1/customers", {
-      method: "GET",
-      signal: AbortSignal.timeout(8000),
-    });
-
-    if (platformRes.ok || platformRes.status === 200) {
-      return { status: "connected", detail: "Platform API OK. WhatsApp not yet connected." };
+    // No phone number — just check API key validity
+    const res = await kapsoFetchWithKey(
+      apiKey,
+      "/platform/v1/customers",
+      { method: "GET", signal: AbortSignal.timeout(8000) },
+      apiUrl
+    );
+    if (res.ok) return { status: "connected", detail: "API key válida. WhatsApp ainda não conectado." };
+    if (res.status === 401 || res.status === 403) {
+      return { status: "error", detail: "API key inválida" };
     }
-    if (platformRes.status === 401 || platformRes.status === 403) {
-      return { status: "error", detail: "Invalid API key" };
-    }
-    return { status: "error", detail: `Platform API HTTP ${platformRes.status}` };
+    return { status: "error", detail: `HTTP ${res.status}` };
   } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : "Unknown error";
-    return { status: "error", detail: message };
+    return { status: "error", detail: err instanceof Error ? err.message : "Erro desconhecido" };
   }
+}
+
+/** @deprecated Use kapsoFetchWithKey with tenant config instead */
+export function getKapsoConfig() {
+  const apiUrl = Deno.env.get("KAPSO_API_URL") || "https://api.kapso.ai";
+  const apiKey = Deno.env.get("KAPSO_API_KEY") || "";
+  const phoneNumberId = Deno.env.get("KAPSO_PHONE_NUMBER_ID") || null;
+  return { apiUrl, apiKey, phoneNumberId };
 }

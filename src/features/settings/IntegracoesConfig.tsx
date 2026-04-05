@@ -150,7 +150,7 @@ const IntegracoesConfig = () => {
             isEdit={false}
             formData={formData}
             onFormDataChange={setFormData}
-            onSubmit={() => { void handleSubmit(); }}
+            onSubmit={(e: React.FormEvent) => { void handleSubmit(e); }}
             onCancel={handleCancel}
           />
         </Dialog>
@@ -218,7 +218,7 @@ const IntegracoesConfig = () => {
           isEdit={true}
           formData={formData}
           onFormDataChange={setFormData}
-          onSubmit={() => { void handleSubmit(); }}
+          onSubmit={(e: React.FormEvent) => { void handleSubmit(e); }}
           onCancel={handleCancel}
         />
       </Dialog>
