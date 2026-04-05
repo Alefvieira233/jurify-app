@@ -138,7 +138,7 @@ const OnboardingWizard = () => {
           ) : <span />}
 
           {step === 0 && (
-            <Button variant="ghost" size="sm" className="text-muted-foreground text-xs" onClick={markComplete}>
+            <Button variant="ghost" size="sm" className="text-muted-foreground text-xs" onClick={handleFinish}>
               Pular configuracao
             </Button>
           )}
