@@ -1,18 +1,16 @@
 
 import React, { useState } from 'react';
-import { Navigate, Link, useNavigate } from 'react-router-dom';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
+import { Navigate, useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Scale, ArrowRight, Shield, Sparkles, Zap, Fingerprint } from 'lucide-react';
+import { Scale, Shield, Sparkles, Zap } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
-import PasswordStrength from '@/components/ui/password-strength';
 import { validatePasswordStrength } from '@/components/ui/password-strength';
-import ForgotPasswordDialog from '@/components/ForgotPasswordDialog';
 import { useBiometrics } from '@/hooks/useBiometrics';
 import { toUserMessage } from '@/lib/errorMessages';
+import EmailConfirmation from './auth/components/EmailConfirmation';
+import LoginForm from './auth/components/LoginForm';
+import RegisterForm from './auth/components/RegisterForm';
 
 const Auth = () => {
   const [isLogin, setIsLogin] = useState(true);
@@ -118,32 +116,10 @@ const Auth = () => {
 
   if (emailConfirmationPending) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-[hsl(222_47%_11%)] via-[hsl(222_47%_8%)] to-[hsl(222_47%_4%)] flex items-center justify-center p-6">
-        <Card className="w-full max-w-md bg-white/10 border-white/20 backdrop-blur-sm text-white">
-          <CardHeader className="text-center space-y-3">
-            <div className="mx-auto w-14 h-14 rounded-full bg-amber-500/20 border border-amber-400/40 flex items-center justify-center">
-              <ArrowRight className="h-6 w-6 text-amber-400" />
-            </div>
-            <CardTitle className="text-xl">Confirme seu email</CardTitle>
-          </CardHeader>
-          <CardContent className="text-center space-y-4">
-            <p className="text-white/70 text-sm leading-relaxed">
-              Enviamos um link de confirmação para <strong className="text-white">{email}</strong>.
-              Verifique sua caixa de entrada (e a pasta de spam).
-            </p>
-            <p className="text-white/50 text-xs">
-              Após confirmar o email, volte aqui e faça login normalmente.
-            </p>
-            <Button
-              variant="outline"
-              className="w-full border-white/30 text-white hover:bg-white/10"
-              onClick={() => { setEmailConfirmationPending(false); setIsLogin(true); }}
-            >
-              Ir para o login
-            </Button>
-          </CardContent>
-        </Card>
-      </div>
+      <EmailConfirmation
+        email={email}
+        onBackToLogin={() => { setEmailConfirmationPending(false); setIsLogin(true); }}
+      />
     );
   }
 
@@ -352,150 +328,33 @@ const Auth = () => {
               </CardHeader>
 
           <CardContent className="space-y-6">
-            <form onSubmit={(e) => void handleSubmit(e)} className="space-y-5" aria-label={isLogin ? 'Formulário de login' : 'Formulário de cadastro'}>
-              {!isLogin && (
-                <div className="space-y-2">
-                  <Label htmlFor="nomeCompleto" className="text-sm font-semibold text-[hsl(var(--foreground))]">
-                    Nome Completo
-                  </Label>
-                  <Input
-                    id="nomeCompleto"
-                    type="text"
-                    value={nomeCompleto}
-                    onChange={(e) => setNomeCompleto(e.target.value)}
-                    required={!isLogin}
-                    placeholder="Dr. João da Silva"
-                    className="h-12 border-[hsl(var(--border))] focus:border-[hsl(var(--accent))] focus:ring-[hsl(var(--accent))] transition-all"
-                  />
-                </div>
-              )}
-
-              <div className="space-y-2">
-                <Label htmlFor="email" className="text-sm font-semibold text-[hsl(var(--foreground))]">
-                  Email Profissional
-                </Label>
-                <Input
-                  id="email"
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  required
-                  placeholder="seu@escritorio.com.br"
-                  className="h-12 border-[hsl(var(--border))] focus:border-[hsl(var(--accent))] focus:ring-[hsl(var(--accent))] transition-all"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <Label htmlFor="password" className="text-sm font-semibold text-[hsl(var(--foreground))]">
-                    Senha
-                  </Label>
-                  {isLogin && <ForgotPasswordDialog />}
-                </div>
-                <Input
-                  id="password"
-                  type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  required
-                  placeholder="••••••••"
-                  className="h-12 border-[hsl(var(--border))] focus:border-[hsl(var(--accent))] focus:ring-[hsl(var(--accent))] transition-all"
-                />
-                {!isLogin && (
-                  <PasswordStrength password={password} showRequirements={true} />
-                )}
-              </div>
-
-              {!isLogin && (
-                <div className="flex items-start gap-3 p-3 rounded-xl bg-muted/30 border border-border">
-                  <input
-                    id="lgpdConsent"
-                    type="checkbox"
-                    checked={lgpdConsent}
-                    onChange={(e) => setLgpdConsent(e.target.checked)}
-                    className="mt-0.5 h-4 w-4 rounded border-border accent-[hsl(43_96%_56%)] cursor-pointer"
-                  />
-                  <label htmlFor="lgpdConsent" className="text-xs text-muted-foreground leading-relaxed cursor-pointer">
-                    Li e concordo com os{' '}
-                    <Link to="/termos" target="_blank" className="underline text-foreground hover:text-[hsl(43_96%_56%)] transition-colors">
-                      Termos de Uso
-                    </Link>{' '}
-                    e a{' '}
-                    <Link to="/privacidade" target="_blank" className="underline text-foreground hover:text-[hsl(43_96%_56%)] transition-colors">
-                      Política de Privacidade
-                    </Link>
-                    , incluindo o tratamento dos meus dados conforme a LGPD.
-                  </label>
-                </div>
-              )}
-
-              {/* Premium Submit Button */}
-              <div className="relative group">
-                {/* Button Glow */}
-                <div className="absolute -inset-1 bg-gradient-to-r from-[hsl(43_96%_56%)] via-[hsl(43_96%_48%)] to-[hsl(43_96%_56%)] rounded-2xl blur-lg opacity-50 group-hover:opacity-75 transition-opacity duration-500" />
-
-                <Button
-                  type="submit"
-                  className="relative w-full h-14 bg-gradient-to-r from-[hsl(43_96%_56%)] via-[hsl(43_96%_48%)] to-[hsl(43_74%_49%)] hover:from-[hsl(43_96%_60%)] hover:via-[hsl(43_96%_52%)] hover:to-[hsl(43_74%_53%)] text-[hsl(222_47%_11%)] font-bold text-base shadow-2xl hover:shadow-[hsl(43_96%_56%_/_0.5)] transition-all duration-500 rounded-2xl group/btn overflow-hidden"
-                  disabled={loading}
-                  data-testid="btn-auth-submit"
-                >
-                  {/* Button Shine Effect */}
-                  <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover/btn:translate-x-full transition-transform duration-1000" />
-
-                  {loading ? (
-                    <span className="relative flex items-center justify-center">
-                      <div className="w-6 h-6 border-3 border-[hsl(222_47%_11%)] border-t-transparent rounded-full animate-spin mr-3" />
-                      <span className="font-bold">Processando...</span>
-                    </span>
-                  ) : (
-                    <span className="relative flex items-center justify-center">
-                      <span className="font-bold tracking-wide">
-                        {isLogin ? 'Acessar Plataforma' : 'Começar Agora'}
-                      </span>
-                      <ArrowRight className="ml-2.5 h-5 w-5 group-hover/btn:translate-x-1 transition-transform duration-300" strokeWidth={3} />
-                    </span>
-                  )}
-                </Button>
-              </div>
-            </form>
-
-            {isBiometricsAvailable && (
-              <Button
-                type="button"
-                variant="outline"
-                className="w-full gap-2 mt-2"
-                onClick={() => { void handleBiometricLogin(); }}
-              >
-                <Fingerprint className="h-4 w-4" />
-                Entrar com biometria
-              </Button>
+            {isLogin ? (
+              <LoginForm
+                email={email}
+                password={password}
+                loading={loading}
+                isBiometricsAvailable={isBiometricsAvailable}
+                onEmailChange={setEmail}
+                onPasswordChange={setPassword}
+                onSubmit={(e) => void handleSubmit(e)}
+                onBiometricLogin={() => { void handleBiometricLogin(); }}
+                onSwitchToRegister={() => setIsLogin(false)}
+              />
+            ) : (
+              <RegisterForm
+                nomeCompleto={nomeCompleto}
+                email={email}
+                password={password}
+                lgpdConsent={lgpdConsent}
+                loading={loading}
+                onNomeCompletoChange={setNomeCompleto}
+                onEmailChange={setEmail}
+                onPasswordChange={setPassword}
+                onLgpdConsentChange={setLgpdConsent}
+                onSubmit={(e) => void handleSubmit(e)}
+                onSwitchToLogin={() => setIsLogin(true)}
+              />
             )}
-
-            {/* Premium Divider */}
-            <div className="relative py-6">
-              <div className="absolute inset-0 flex items-center">
-                <div className="w-full border-t border-[hsl(var(--border))]"></div>
-              </div>
-              <div className="relative flex justify-center">
-                <span className="bg-[hsl(var(--card))] px-4 text-xs font-semibold text-[hsl(var(--muted-foreground))] uppercase tracking-wider">
-                  {isLogin ? 'Novo por aqui?' : 'Já tem conta?'}
-                </span>
-              </div>
-            </div>
-
-            {/* Toggle Auth Mode - Premium */}
-            <button
-              type="button"
-              onClick={() => setIsLogin(!isLogin)}
-              className="w-full text-center px-6 py-4 rounded-2xl text-sm font-bold text-[hsl(var(--accent))] hover:text-[hsl(var(--accent-hover))] bg-[hsl(var(--accent)_/_0.05)] hover:bg-[hsl(var(--accent)_/_0.1)] border border-[hsl(var(--accent)_/_0.2)] hover:border-[hsl(var(--accent)_/_0.3)] transition-all duration-300 group"
-            >
-              <span className="flex items-center justify-center space-x-2">
-                {!isLogin && <ArrowRight className="h-4 w-4 rotate-180 group-hover:-translate-x-1 transition-transform" />}
-                <span>{isLogin ? 'Criar uma nova conta' : 'Voltar para login'}</span>
-                {isLogin && <ArrowRight className="h-4 w-4 group-hover:translate-x-1 transition-transform" />}
-              </span>
-            </button>
 
             {/* Security Notice */}
             <div className="mt-6 p-4 rounded-xl bg-[hsl(var(--muted)_/_0.3)] border border-[hsl(var(--border))]">

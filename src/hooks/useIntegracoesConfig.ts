@@ -15,11 +15,12 @@ export type IntegracaoConfig = {
   tenant_id: string | null;
   nome_integracao: string;
   status: 'ativa' | 'inativa' | 'erro';
-  api_key: string;
   endpoint_url: string;
   observacoes: string | null;
   criado_em: string;
   atualizado_em?: string | null;
+  phone_number_id?: string | null;
+  webhook_url?: string | null;
   data_ultima_sincronizacao?: string | null;
 };
 

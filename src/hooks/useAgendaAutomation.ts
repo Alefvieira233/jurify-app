@@ -1,5 +1,6 @@
 /**
- * useAgendaAutomation — Motor de Automação de Fluxos Jurídicos
+ * @module useAgendaAutomation
+ * @description Motor de Automação de Fluxos Jurídicos (facade).
  *
  * Quando um agendamento é criado/atualizado:
  * - Sincroniza com Google Calendar
@@ -7,6 +8,9 @@
  * - Cria tarefas no pipeline
  * - Gera lembretes
  * - Cria pasta no GDrive
+ *
+ * Composes useAgendaTasks (email, whatsapp, task, drive) and
+ * useAgendaReminders (reminder scheduling).
  */
 
 import { useCallback } from 'react';
@@ -19,9 +23,17 @@ import { useMonitoring } from '@/lib/monitoring';
 import { toUserMessage } from '@/lib/errorMessages';
 import type { Agendamento } from '@/hooks/useAgendamentos';
 import { queryKeys } from '@/lib/queryKeys';
+import { createReminders } from './useAgendaReminders';
+import {
+  fetchLeadForAutomation,
+  createEmailInvite,
+  createWhatsAppMessage,
+  createTask,
+  createDriveFolder,
+} from './useAgendaTasks';
 
 // ---------------------------------------------------------------------------
-// Types
+// Types (re-exported for consumers)
 // ---------------------------------------------------------------------------
 
 export interface AutomationTask {
@@ -41,150 +53,6 @@ export interface WorkflowConfig {
   create_reminders: boolean;
   create_drive_folder: boolean;
   custom_message?: string;
-}
-
-// ---------------------------------------------------------------------------
-// Helper functions
-// ---------------------------------------------------------------------------
-
-/** Lead data fetched once at orchestration level for all automation helpers */
-interface LeadData {
-  email: string | null;
-  nome: string | null;
-  whatsapp: string | null;
-  cpf_cnpj: string | null;
-}
-
-async function fetchLeadForAutomation(leadId: string): Promise<LeadData> {
-  const { data: lead, error } = await supabase
-    .from('leads')
-    .select('email, nome, whatsapp, cpf_cnpj')
-    .eq('id', leadId)
-    .single();
-
-  if (error || !lead) throw new Error('Lead não encontrado');
-  return lead as LeadData;
-}
-
-async function createEmailInvite(agendamento: Agendamento, config: WorkflowConfig, lead: LeadData) {
-  if (!lead.email) throw new Error('Lead sem email');
-
-  const message = config.custom_message || `
-Olá ${lead.nome},
-
-Confirmamos seu agendamento:
-
-📅 ${new Date(agendamento.data_hora).toLocaleDateString('pt-BR', {
-    weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
-  })}
-⏰ ${new Date(agendamento.data_hora).toLocaleTimeString('pt-BR', {
-    hour: '2-digit', minute: '2-digit'
-  })}
-📍 ${agendamento.observacoes || 'A definir'}
-
-Por favor, confirme sua presença.
-
-Atenciosamente,
-Escritório Jurídico
-  `.trim();
-
-  // Chamar Edge Function de email
-  const { error } = await supabase.functions.invoke('send-email', {
-    body: {
-      to: lead.email,
-      subject: `Confirmação de agendamento - ${new Date(agendamento.data_hora).toLocaleDateString('pt-BR')}`,
-      message,
-    },
-  });
-
-  if (error) throw error;
-}
-
-async function createWhatsAppMessage(agendamento: Agendamento, config: WorkflowConfig, lead: LeadData) {
-  if (!lead.whatsapp) throw new Error('Lead sem WhatsApp');
-
-  const message = config.custom_message || `
-Olá ${lead.nome}! 👋
-
-Confirmamos seu agendamento:
-📅 ${new Date(agendamento.data_hora).toLocaleDateString('pt-BR')}
-⏰ ${new Date(agendamento.data_hora).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit'})}
-
-Por favor, responda *CONFIRMAR* para confirmar presença.
-
-Atenciosamente,
-Escritório Jurídico
-  `.trim();
-
-  // Chamar Edge Function de WhatsApp
-  const { error } = await supabase.functions.invoke('send-whatsapp-message', {
-    body: {
-      to: lead.whatsapp,
-      text: message,
-    },
-  });
-
-  if (error) throw error;
-}
-
-async function createTask(agendamento: Agendamento, userId: string) {
-  const task = {
-    tenant_id: agendamento.tenant_id,
-    title: `Preparar ${agendamento.area_juridica} - ${agendamento.responsavel}`,
-    description: `Agendamento para ${new Date(agendamento.data_hora).toLocaleString('pt-BR')}`,
-    lead_id: agendamento.lead_id,
-    assigned_to: agendamento.responsavel,
-    due_date: new Date(new Date(agendamento.data_hora).getTime() - 24 * 60 * 60 * 1000).toISOString(), // 1 dia antes
-    priority: 'high',
-    status: 'pending',
-    created_by: userId,
-  };
-
-  const { error } = await supabase.from('tasks').insert([task]);
-  if (error) throw error;
-}
-
-async function createReminders(agendamento: Agendamento, userId: string) {
-  const reminders = [
-    {
-      tenant_id: agendamento.tenant_id,
-      user_id: userId,
-      lead_id: agendamento.lead_id,
-      agendamento_id: agendamento.id,
-      type: 'email',
-      scheduled_for: new Date(new Date(agendamento.data_hora).getTime() - 24 * 60 * 60 * 1000).toISOString(), // 24h antes
-      message: 'Lembrete: Agendamento amanhã',
-      status: 'scheduled',
-    },
-    {
-      tenant_id: agendamento.tenant_id,
-      user_id: userId,
-      lead_id: agendamento.lead_id,
-      agendamento_id: agendamento.id,
-      type: 'email',
-      scheduled_for: new Date(new Date(agendamento.data_hora).getTime() - 2 * 60 * 60 * 1000).toISOString(), // 2h antes
-      message: 'Lembrete: Agendamento em 2 horas',
-      status: 'scheduled',
-    },
-  ];
-
-  const { error } = await supabase.from('reminders').insert(reminders);
-  if (error) throw error;
-}
-
-async function createDriveFolder(agendamento: Agendamento, lead: LeadData) {
-  const folderName = `${lead.nome} - ${agendamento.area_juridica} - ${new Date(agendamento.data_hora).toLocaleDateString('pt-BR')}`;
-
-  // Chamar Edge Function para criar pasta no Google Drive
-  const { error } = await supabase.functions.invoke('create-drive-folder', {
-    body: {
-      name: folderName,
-      lead_id: agendamento.lead_id,
-      agendamento_id: agendamento.id,
-    },
-  });
-
-  if (error) throw error;
 }
 
 // ---------------------------------------------------------------------------
@@ -350,7 +218,7 @@ export function useAgendaAutomation() {
           // Update task status to completed
           await supabase
             .from('automation_tasks')
-            .update({ 
+            .update({
               status: 'completed',
               completed_at: new Date().toISOString(),
             })
@@ -361,7 +229,7 @@ export function useAgendaAutomation() {
           // Update task status to failed
           await supabase
             .from('automation_tasks')
-            .update({ 
+            .update({
               status: 'failed',
               error: error instanceof Error ? error.message : 'Unknown error',
             })
@@ -397,7 +265,7 @@ export function useAgendaAutomation() {
         description: `${successful} tarefas executadas, ${failed} falharam`,
         variant: 'destructive',
       });
-      
+
       // Log errors for debugging
       results.forEach((result, index) => {
         if (result.status === 'rejected') {
@@ -417,7 +285,7 @@ export function useAgendaAutomation() {
         description: 'Nenhuma tarefa pôde ser executada',
         variant: 'destructive',
       });
-      
+
       captureError(new Error('All automation tasks failed'), {
         component: 'useAgendaAutomation',
         action: 'automation_complete_failure',
@@ -457,7 +325,7 @@ export function useAgendaAutomation() {
     // Reset status to pending
     await supabase
       .from('automation_tasks')
-      .update({ 
+      .update({
         status: 'pending',
         error: null,
         completed_at: null,

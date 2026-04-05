@@ -1,4 +1,4 @@
-import { useState, useCallback, memo } from 'react';
+import { useState, useCallback } from 'react';
 import { Plus, Search, Scale, Eye, Edit, Trash2, XCircle, Gavel, TrendingUp, Clock, MoreVertical } from 'lucide-react';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { MobileCard } from '@/components/ui/MobileCard';
@@ -31,113 +31,10 @@ import { EncerrarProcessoDialog } from './components/EncerrarProcessoDialog';
 import type { ProcessoFormData } from '@/schemas/processoSchema';
 import { PROCESSO_STATUS_LABELS } from '@/schemas/processoSchema';
 import { getStatusClasses } from '@/constants/statusConfig';
+import ProcessoCard, { TIPO_LABELS } from './components/ProcessoCard';
 
 const log = createLogger('ProcessosManager');
 
-const TIPO_LABELS: Record<string, string> = {
-  civel: 'Cível',
-  criminal: 'Criminal',
-  trabalhista: 'Trabalhista',
-  previdenciario: 'Previdenciário',
-  familia: 'Família',
-  empresarial: 'Empresarial',
-  tributario: 'Tributário',
-  administrativo: 'Administrativo',
-  outro: 'Outro',
-};
-
-interface ProcessoCardProps {
-  processo: Processo;
-  canUpdate: boolean;
-  canDelete: boolean;
-  onView: (processo: Processo) => void;
-  onEdit: (processo: Processo) => void;
-  onEncerrar: (processo: Processo) => void;
-  onDelete: (processo: Processo) => void;
-}
-
-const ProcessoCard = memo(({ processo, canUpdate, canDelete, onView, onEdit, onEncerrar, onDelete }: ProcessoCardProps) => (
-  <Card className="hover:border-primary/50 transition-colors">
-    <CardContent className="p-6">
-      <div className="flex justify-between items-start gap-4">
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 flex-wrap">
-            <h3 className="font-semibold text-base">
-              {processo.numero_processo || 'Sem número'}
-            </h3>
-            <Badge className={getStatusClasses('processos', processo.status)}>
-              {PROCESSO_STATUS_LABELS[processo.status] ?? processo.status}
-            </Badge>
-            <Badge variant="outline" className="text-xs">
-              {TIPO_LABELS[processo.tipo_acao] ?? processo.tipo_acao}
-            </Badge>
-          </div>
-          <p className="text-sm text-muted-foreground mt-1">
-            {[processo.tribunal, processo.vara, processo.comarca]
-              .filter(Boolean).join(' \u2022 ') || 'Sem localização'}
-          </p>
-          <div className="flex gap-4 mt-2 text-xs text-muted-foreground">
-            <span>Fase: <span className="font-medium capitalize">{processo.fase_processual.replace(/_/g, ' ')}</span></span>
-            <span>Posição: <span className="font-medium capitalize">{processo.posicao}</span></span>
-            {processo.valor_causa && (
-              <span>Valor: <span className="font-medium">
-                {processo.valor_causa.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
-              </span></span>
-            )}
-          </div>
-          {processo.observacoes && (
-            <p className="text-sm text-muted-foreground mt-2 truncate max-w-xl">
-              {processo.observacoes}
-            </p>
-          )}
-        </div>
-        <div className="flex items-center gap-1 flex-shrink-0">
-          <Button
-            size="sm"
-            variant="ghost"
-            title="Ver detalhes"
-            onClick={() => onView(processo)}
-          >
-            <Eye className="w-4 h-4" />
-          </Button>
-          {canUpdate && (
-            <Button
-              size="sm"
-              variant="ghost"
-              title="Editar"
-              onClick={() => onEdit(processo)}
-            >
-              <Edit className="w-4 h-4" />
-            </Button>
-          )}
-          {canUpdate && (processo.status === 'ativo' || processo.status === 'suspenso') && (
-            <Button
-              size="sm"
-              variant="ghost"
-              title="Encerrar"
-              className="text-amber-600 hover:text-amber-700"
-              onClick={() => onEncerrar(processo)}
-            >
-              <XCircle className="w-4 h-4" />
-            </Button>
-          )}
-          {canDelete && (
-            <Button
-              size="sm"
-              variant="ghost"
-              title="Excluir"
-              className="text-destructive hover:text-destructive"
-              onClick={() => onDelete(processo)}
-            >
-              <Trash2 className="w-4 h-4" />
-            </Button>
-          )}
-        </div>
-      </div>
-    </CardContent>
-  </Card>
-));
-ProcessoCard.displayName = 'ProcessoCard';
 
 const ProcessosManager = () => {
   usePageTitle('Processos');

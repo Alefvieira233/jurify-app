@@ -1,9 +1,8 @@
 
-import { useState, useMemo, memo } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useState, useMemo } from 'react';
 import {
-  Target, TrendingUp, Clock, Users, DollarSign,
-  BarChart3, Tag, ArrowRight, AlertCircle, Search, Plus, UserCheck,
+  Target, Clock,
+  BarChart3, Tag, ArrowRight, UserCheck,
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -11,112 +10,21 @@ import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
-import { Input } from '@/components/ui/input';
+
 import FollowUpPanel from './FollowUpPanel';
 import { useCRMPipeline, type PipelineStage } from '@/hooks/useCRMPipeline';
 import { useFollowUps } from '@/hooks/useFollowUps';
 import { useTags } from '@/hooks/useTags';
 import { useLeads } from '@/hooks/useLeads';
 import { usePageTitle } from '@/hooks/usePageTitle';
-
-/* ── KPI config ── */
-const KPI_COLORS = {
-  blue:    { hex: '#2563eb', bg: 'rgba(37,99,235,0.08)'   },
-  emerald: { hex: '#059669', bg: 'rgba(5,150,105,0.08)'   },
-  amber:   { hex: '#d97706', bg: 'rgba(217,119,6,0.08)'   },
-  rose:    { hex: '#e11d48', bg: 'rgba(225,29,72,0.08)'   },
-};
-
-import { fmtCurrency as fmt, fmtDateTime as fmtDt, fmtDate } from '@/utils/formatting';
-
-/* ── Client status filter ── */
-const CLIENT_STATUSES = ['ganho'] as const;
-const STATUS_LABEL: Record<string, string> = {
-  ganho: 'Ganho',
-};
-
-/* ── Priority badge classes ── */
-const PRIORITY_CLS: Record<string, string> = {
-  urgent: 'bg-rose-100  text-rose-700  border-rose-200  dark:bg-rose-900/30  dark:text-rose-300',
-  high:   'bg-amber-100 text-amber-700 border-amber-200 dark:bg-amber-900/30 dark:text-amber-300',
-  medium: 'bg-blue-100  text-blue-700  border-blue-200  dark:bg-blue-900/30  dark:text-blue-300',
-  low:    'bg-slate-100 text-slate-600 border-slate-200 dark:bg-slate-800/50 dark:text-slate-400',
-};
-const PRIORITY_LABEL: Record<string, string> = {
-  urgent: 'Urgente', high: 'Alta', medium: 'Média', low: 'Baixa',
-};
-
-/* ── Memo'd list-item components ── */
-
-interface PipelineStageCardProps {
-  stage: PipelineStage;
-  isSelected: boolean;
-  onToggle: (id: string) => void;
-}
-
-const PipelineStageCard = memo(({ stage, isSelected, onToggle }: PipelineStageCardProps) => (
-  <button
-    onClick={() => onToggle(stage.id)}
-    className={`flex-shrink-0 min-w-[130px] p-3 rounded-lg border text-left transition-all duration-150 ${
-      isSelected
-        ? 'ring-2 ring-primary/40 shadow-md scale-[1.02]'
-        : 'hover:shadow-sm hover:scale-[1.01]'
-    }`}
-    style={{ borderColor: stage.color + '30', background: stage.color + '08' }}
-  >
-    <div className="flex items-center gap-1.5 mb-2">
-      <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: stage.color }} />
-      <p className="text-[11px] font-medium text-muted-foreground truncate">{stage.name}</p>
-    </div>
-    <p className="text-xl font-bold tabular-nums leading-none" style={{ color: stage.color }}>
-      {stage.lead_count || 0}
-    </p>
-    <p className="text-[10px] text-muted-foreground mt-1 tabular-nums">
-      {fmt(stage.total_value || 0)}
-    </p>
-  </button>
-));
-
-PipelineStageCard.displayName = 'PipelineStageCard';
-
-interface FollowUpItemProps {
-  fu: { id: string; title: string; lead_name: string; scheduled_at: string; status: string; priority: string };
-}
-
-const FollowUpItem = memo(({ fu }: FollowUpItemProps) => (
-  <div
-    className={`flex items-center gap-3 p-2.5 rounded-lg transition-colors ${
-      fu.status === 'overdue' ? 'bg-rose-50/50 dark:bg-rose-950/20' : 'bg-muted/40 hover:bg-muted/70'
-    }`}
-  >
-    <span
-      className="w-2 h-2 rounded-full flex-shrink-0"
-      style={{ background: fu.status === 'overdue' ? '#e11d48' : '#d97706' }}
-    />
-    <div className="flex-1 min-w-0">
-      <p className="text-xs font-medium text-foreground truncate">{fu.title}</p>
-      <p className="text-[10px] text-muted-foreground mt-0.5">
-        {fu.lead_name} · {fmtDt(fu.scheduled_at)}
-      </p>
-    </div>
-    <div className="flex items-center gap-1 flex-shrink-0">
-      {fu.status === 'overdue' && (
-        <Badge variant="destructive" className="h-4 px-1.5 text-[10px]">Atrasado</Badge>
-      )}
-      <span className={`text-[10px] px-1.5 py-0.5 rounded border font-medium ${PRIORITY_CLS[fu.priority] ?? PRIORITY_CLS.low}`}>
-        {PRIORITY_LABEL[fu.priority] ?? fu.priority}
-      </span>
-    </div>
-  </div>
-));
-
-FollowUpItem.displayName = 'FollowUpItem';
-
-/* ─────────────────────────────────────────────── */
+import { fmtCurrency as fmt } from '@/utils/formatting';
+import PipelineStageCard from './components/PipelineStageCard';
+import FollowUpItem from './components/FollowUpItem';
+import KPICards from './components/KPICards';
+import ClientsTab from './components/ClientsTab';
 
 const CRMDashboard = () => {
   usePageTitle('CRM');
-  const navigate = useNavigate();
   const { stages, loading: stagesLoading } = useCRMPipeline();
   const { followUps, overdueCount, loading: followUpsLoading } = useFollowUps();
   const { tags } = useTags();
@@ -124,7 +32,6 @@ const CRMDashboard = () => {
   const [selectedStage, setSelectedStage] = useState<string | null>(null);
   const [followUpsOpen, setFollowUpsOpen] = useState(false);
   const [activeTab, setActiveTab] = useState('pipeline');
-  const [clientSearch, setClientSearch] = useState('');
 
   const loading = stagesLoading || followUpsLoading || leadsLoading;
 
@@ -143,16 +50,9 @@ const CRMDashboard = () => {
       .slice(0, 5),
   [followUps]);
 
-  const clients = useMemo(() => {
-    const filtered = leads.filter(l =>
-      CLIENT_STATUSES.includes(l.status as typeof CLIENT_STATUSES[number]),
-    );
-    if (!clientSearch.trim()) return filtered;
-    const q = clientSearch.trim().toLowerCase();
-    return filtered.filter(l =>
-      (l.nome_completo ?? l.nome ?? '').toLowerCase().includes(q),
-    );
-  }, [leads, clientSearch]);
+  const clientCount = useMemo(() =>
+    leads.filter(l => l.status === 'ganho').length,
+  [leads]);
 
   /* ── Loading ── */
   if (loading) {
@@ -236,8 +136,8 @@ const CRMDashboard = () => {
             <TabsTrigger value="clientes" className="h-7 text-xs px-3 gap-1.5">
               <UserCheck className="h-3.5 w-3.5" />
               Clientes
-              {clients.length > 0 && (
-                <span className="ml-0.5 text-[10px] text-muted-foreground">({clients.length})</span>
+              {clientCount > 0 && (
+                <span className="ml-0.5 text-[10px] text-muted-foreground">({clientCount})</span>
               )}
             </TabsTrigger>
           </TabsList>
@@ -246,78 +146,13 @@ const CRMDashboard = () => {
         {/* ── Pipeline Tab ── */}
         <TabsContent value="pipeline" className="mt-0 flex-1 overflow-y-auto px-5 py-5 space-y-5">
 
-      {/* ── KPI Cards ── */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-
-        {/* Leads */}
-        <Card className="shadow-sm border-border/60">
-          <CardContent className="p-4">
-            <div className="flex items-start justify-between gap-2">
-              <div className="flex-1 min-w-0">
-                <p className="text-xs text-muted-foreground">Clientes no Pipeline</p>
-                <p className="text-2xl font-bold tabular-nums mt-0.5">{metrics.totalLeads}</p>
-              </div>
-              <div className="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0"
-                style={{ background: KPI_COLORS.blue.bg }}>
-                <Users className="h-4.5 w-4.5" style={{ color: KPI_COLORS.blue.hex }} />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Value */}
-        <Card className="shadow-sm border-border/60">
-          <CardContent className="p-4">
-            <div className="flex items-start justify-between gap-2">
-              <div className="flex-1 min-w-0">
-                <p className="text-xs text-muted-foreground">Valor Total Pipeline</p>
-                <p className="text-lg font-bold tabular-nums mt-0.5 truncate">{fmt(metrics.totalPipelineValue)}</p>
-              </div>
-              <div className="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0"
-                style={{ background: KPI_COLORS.emerald.bg }}>
-                <DollarSign className="h-4.5 w-4.5" style={{ color: KPI_COLORS.emerald.hex }} />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Follow-ups */}
-        <Card className="shadow-sm border-border/60">
-          <CardContent className="p-4">
-            <div className="flex items-start justify-between gap-2">
-              <div className="flex-1 min-w-0">
-                <p className="text-xs text-muted-foreground">Follow-ups Pendentes</p>
-                <p className="text-2xl font-bold tabular-nums mt-0.5">{metrics.pendingFollowUps}</p>
-                {metrics.overdueCount > 0 && (
-                  <p className="text-[10px] text-destructive mt-0.5 flex items-center gap-1">
-                    <AlertCircle className="h-2.5 w-2.5" /> {metrics.overdueCount} atrasados
-                  </p>
-                )}
-              </div>
-              <div className="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0"
-                style={{ background: KPI_COLORS.amber.bg }}>
-                <Clock className="h-4.5 w-4.5" style={{ color: KPI_COLORS.amber.hex }} />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Hot leads */}
-        <Card className="shadow-sm border-border/60">
-          <CardContent className="p-4">
-            <div className="flex items-start justify-between gap-2">
-              <div className="flex-1 min-w-0">
-                <p className="text-xs text-muted-foreground">Clientes Quentes</p>
-                <p className="text-2xl font-bold tabular-nums mt-0.5">{metrics.hotLeads}</p>
-              </div>
-              <div className="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0"
-                style={{ background: KPI_COLORS.rose.bg }}>
-                <TrendingUp className="h-4.5 w-4.5" style={{ color: KPI_COLORS.rose.hex }} />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+      <KPICards
+        totalLeads={metrics.totalLeads}
+        totalPipelineValue={metrics.totalPipelineValue}
+        pendingFollowUps={metrics.pendingFollowUps}
+        overdueCount={metrics.overdueCount}
+        hotLeads={metrics.hotLeads}
+      />
 
       {/* ── Pipeline Stages ── */}
       <Card className="shadow-sm border-border/60">
@@ -429,99 +264,7 @@ const CRMDashboard = () => {
 
         {/* ── Clientes Tab ── */}
         <TabsContent value="clientes" className="mt-0 flex-1 overflow-y-auto px-5 py-5 space-y-4">
-          {/* Search + Action Bar */}
-          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
-            <div className="relative flex-1 w-full sm:max-w-sm">
-              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
-              <Input
-                placeholder="Buscar cliente por nome..."
-                value={clientSearch}
-                onChange={e => setClientSearch(e.target.value)}
-                className="h-8 pl-8 text-xs"
-              />
-            </div>
-            <Button
-              size="sm"
-              className="h-8 text-xs gap-1.5"
-              onClick={() => navigate('/pipeline')}
-            >
-              <Plus className="h-3.5 w-3.5" />
-              Novo Cliente
-            </Button>
-          </div>
-
-          {/* Clients Table */}
-          <Card className="shadow-sm border-border/60">
-            <CardContent className="p-0">
-              {clients.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-12 text-center">
-                  <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center mb-3">
-                    <UserCheck className="h-5 w-5 text-muted-foreground/40" />
-                  </div>
-                  <p className="text-sm font-medium text-muted-foreground">
-                    {clientSearch.trim() ? 'Nenhum cliente encontrado' : 'Nenhum cliente ativo'}
-                  </p>
-                  <p className="text-xs text-muted-foreground/70 mt-1 max-w-xs">
-                    {clientSearch.trim()
-                      ? 'Tente buscar por outro nome.'
-                      : 'Leads com status "Contrato Assinado" ou "Em Atendimento" aparecem aqui.'}
-                  </p>
-                </div>
-              ) : (
-                <div className="overflow-x-auto">
-                  <table className="w-full text-xs">
-                    <thead>
-                      <tr className="border-b border-border/60 bg-muted/30">
-                        <th className="text-left px-4 py-2.5 font-medium text-muted-foreground">Nome</th>
-                        <th className="text-left px-4 py-2.5 font-medium text-muted-foreground hidden md:table-cell">CPF/CNPJ</th>
-                        <th className="text-left px-4 py-2.5 font-medium text-muted-foreground hidden sm:table-cell">Telefone</th>
-                        <th className="text-left px-4 py-2.5 font-medium text-muted-foreground hidden lg:table-cell">Email</th>
-                        <th className="text-left px-4 py-2.5 font-medium text-muted-foreground">Status</th>
-                        <th className="text-left px-4 py-2.5 font-medium text-muted-foreground hidden sm:table-cell">Data de Cadastro</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {clients.map(client => (
-                        <tr
-                          key={client.id}
-                          className="border-b border-border/40 hover:bg-muted/40 cursor-pointer transition-colors"
-                          onClick={() => navigate(`/crm/lead/${client.id}`)}
-                        >
-                          <td className="px-4 py-2.5 font-medium text-foreground">
-                            {client.nome_completo ?? client.nome ?? '—'}
-                          </td>
-                          <td className="px-4 py-2.5 text-muted-foreground hidden md:table-cell tabular-nums">
-                            {client.cpf_cnpj ?? '—'}
-                          </td>
-                          <td className="px-4 py-2.5 text-muted-foreground hidden sm:table-cell tabular-nums">
-                            {client.telefone ?? '—'}
-                          </td>
-                          <td className="px-4 py-2.5 text-muted-foreground hidden lg:table-cell truncate max-w-[200px]">
-                            {client.email ?? '—'}
-                          </td>
-                          <td className="px-4 py-2.5">
-                            <Badge
-                              variant="outline"
-                              className={`text-[10px] font-medium ${
-                                client.status === 'ganho'
-                                  ? 'border-emerald-300 text-emerald-700 bg-emerald-50 dark:border-emerald-700 dark:text-emerald-300 dark:bg-emerald-900/30'
-                                  : 'border-cyan-300 text-cyan-700 bg-cyan-50 dark:border-cyan-700 dark:text-cyan-300 dark:bg-cyan-900/30'
-                              }`}
-                            >
-                              {STATUS_LABEL[client.status ?? ''] ?? client.status}
-                            </Badge>
-                          </td>
-                          <td className="px-4 py-2.5 text-muted-foreground hidden sm:table-cell tabular-nums">
-                            {fmtDate(client.created_at)}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              )}
-            </CardContent>
-          </Card>
+          <ClientsTab leads={leads} />
         </TabsContent>
 
       </Tabs>

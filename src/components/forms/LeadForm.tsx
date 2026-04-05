@@ -1,20 +1,11 @@
 import React, { useEffect, useCallback } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { X, User, Phone, Mail, Briefcase, DollarSign, FileText, MapPin, Building2, Thermometer, Loader2, ShieldCheck } from 'lucide-react';
+import { X, User, Loader2 } from 'lucide-react';
 import { useFormDraftPersistence } from '@/hooks/useDraftPersistence';
 import { DraftRecoveryBanner } from '@/components/ui/DraftRecoveryBanner';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
 import {
   Dialog,
   DialogContent,
@@ -25,18 +16,15 @@ import {
 } from '@/components/ui/dialog';
 import {
   Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
 } from '@/components/ui/form';
 import { type Lead, type LeadInput } from '@/hooks/useLeads';
-import { leadFormSchema, AREAS_JURIDICAS, ORIGENS_LEAD, LEAD_TEMPERATURES, type LeadFormData } from '@/schemas/leadSchema';
-import { PRIORIDADES } from '@/types/crm-operacional';
+import { leadFormSchema, type LeadFormData } from '@/schemas/leadSchema';
 import { useDepartamentos } from '@/hooks/useDepartamentos';
 import { useTeamMembers } from '@/hooks/useTeamMembers';
 import { useToast } from '@/hooks/use-toast';
+import LeadBasicInfo from './lead/LeadBasicInfo';
+import LeadJuridicalInfo from './lead/LeadJuridicalInfo';
+import LeadCRMInfo from './lead/LeadCRMInfo';
 
 interface LeadFormProps {
   open: boolean;
@@ -228,386 +216,21 @@ const LeadForm: React.FC<LeadFormProps> = ({
               <DraftRecoveryBanner onRestore={handleRestoreDraft} onDiscard={handleDiscardDraft} />
             )}
 
-            {/* Informacoes Pessoais */}
-            <div className="space-y-4">
-              <h3 className="text-lg font-semibold text-foreground flex items-center gap-2">
-                <User className="h-5 w-5 text-amber-500" />
-                Informações Pessoais
-              </h3>
+            <LeadBasicInfo form={form} formatPhoneNumber={formatPhoneNumber} />
 
-              <FormField
-                control={form.control}
-                name="nome_completo"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Nome Completo *</FormLabel>
-                    <FormControl>
-                      <Input placeholder="Ex: João Silva Santos" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+            <LeadJuridicalInfo
+              form={form}
+              members={members}
+              formatCurrency={formatCurrency}
+              parseCurrency={parseCurrency}
+            />
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <FormField
-                  control={form.control}
-                  name="telefone"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel className="flex items-center gap-1">
-                        <Phone className="h-4 w-4" />
-                        Telefone
-                      </FormLabel>
-                      <FormControl>
-                        <Input
-                          placeholder="(11) 99999-9999"
-                          {...field}
-                          value={formatPhoneNumber(field.value || '')}
-                          onChange={(e) => field.onChange(e.target.value.replace(/\D/g, ''))}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="email"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel className="flex items-center gap-1">
-                        <Mail className="h-4 w-4" />
-                        Email
-                      </FormLabel>
-                      <FormControl>
-                        <Input
-                          type="email"
-                          placeholder="joao@exemplo.com"
-                          {...field}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
-            </div>
-
-            {/* Informacoes Juridicas */}
-            <div className="space-y-4 pt-4 border-t">
-              <h3 className="text-lg font-semibold text-foreground flex items-center gap-2">
-                <Briefcase className="h-5 w-5 text-amber-500" />
-                Informações do Caso
-              </h3>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <FormField
-                  control={form.control}
-                  name="area_juridica"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Área Jurídica *</FormLabel>
-                      <Select onValueChange={field.onChange} value={field.value}>
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Selecione a área" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          {AREAS_JURIDICAS.map((area) => (
-                            <SelectItem key={area} value={area}>
-                              {area}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="origem"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel className="flex items-center gap-1">
-                        <MapPin className="h-4 w-4" />
-                        Origem *
-                      </FormLabel>
-                      <Select onValueChange={field.onChange} value={field.value}>
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Como chegou até nós?" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          {ORIGENS_LEAD.map((origem) => (
-                            <SelectItem key={origem} value={origem}>
-                              {origem}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <FormField
-                  control={form.control}
-                  name="valor_causa"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel className="flex items-center gap-1">
-                        <DollarSign className="h-4 w-4" />
-                        Valor da Causa
-                      </FormLabel>
-                      <FormControl>
-                        <Input
-                          placeholder="R$ 0,00"
-                          value={formatCurrency(field.value ?? undefined)}
-                          onChange={(e) => field.onChange(parseCurrency(e.target.value))}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="responsavel_id"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Responsável</FormLabel>
-                      <Select onValueChange={field.onChange} value={field.value ?? undefined}>
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Selecione o responsável" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          {members.map((m) => (
-                            <SelectItem key={m.id} value={m.id}>
-                              {m.nome_completo}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
-            </div>
-
-            {/* Informações da Empresa */}
-            <div className="space-y-4 pt-4 border-t">
-              <h3 className="text-lg font-semibold text-foreground flex items-center gap-2">
-                <Building2 className="h-5 w-5 text-amber-500" />
-                Empresa & Qualificação
-              </h3>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <FormField
-                  control={form.control}
-                  name="company_name"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel className="flex items-center gap-1">
-                        <Building2 className="h-4 w-4" />
-                        Empresa
-                      </FormLabel>
-                      <FormControl>
-                        <Input placeholder="Nome da empresa (opcional)" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="cpf_cnpj"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>CPF/CNPJ</FormLabel>
-                      <FormControl>
-                        <Input placeholder="000.000.000-00" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <FormField
-                  control={form.control}
-                  name="temperature"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel className="flex items-center gap-1">
-                        <Thermometer className="h-4 w-4" />
-                        Temperatura
-                      </FormLabel>
-                      <Select onValueChange={field.onChange} value={field.value}>
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Selecione" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          {LEAD_TEMPERATURES.map((temp) => (
-                            <SelectItem key={temp.value} value={temp.value}>
-                              {temp.label}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="expected_value"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel className="flex items-center gap-1">
-                        <DollarSign className="h-4 w-4" />
-                        Valor Esperado
-                      </FormLabel>
-                      <FormControl>
-                        <Input
-                          placeholder="R$ 0,00"
-                          value={formatCurrency(field.value ?? undefined)}
-                          onChange={(e) => field.onChange(parseCurrency(e.target.value))}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="probability"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Probabilidade (%)</FormLabel>
-                      <FormControl>
-                        <Input
-                          type="number"
-                          min={0}
-                          max={100}
-                          placeholder="50"
-                          value={field.value ?? 50}
-                          onChange={(e) => field.onChange(parseInt(e.target.value) || 0)}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
-            </div>
-
-            {/* Triagem & Operação */}
-            <div className="space-y-4 pt-4 border-t">
-              <h3 className="text-lg font-semibold text-foreground flex items-center gap-2">
-                <ShieldCheck className="h-5 w-5 text-amber-500" />
-                Triagem & Operação
-              </h3>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <FormField
-                  control={form.control}
-                  name="departamento_id"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Departamento</FormLabel>
-                      <Select onValueChange={field.onChange} value={field.value ?? undefined}>
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Selecione o departamento" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          {activeDepartamentos.map((d) => (
-                            <SelectItem key={d.id} value={d.id}>
-                              <span className="flex items-center gap-2">
-                                <span className="w-2 h-2 rounded-full" style={{ background: d.cor }} />
-                                {d.nome}
-                              </span>
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="prioridade"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Prioridade</FormLabel>
-                      <Select onValueChange={field.onChange} value={field.value ?? 'media'}>
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Selecione" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          {PRIORIDADES.map((p) => (
-                            <SelectItem key={p.value} value={p.value}>
-                              <span className="flex items-center gap-2">
-                                <span className="w-2 h-2 rounded-full" style={{ background: p.cor }} />
-                                {p.label}
-                              </span>
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
-            </div>
-
-            {/* Observacoes */}
-            <div className="space-y-4 pt-4 border-t">
-              <FormField
-                control={form.control}
-                name="observacoes"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel className="flex items-center gap-1">
-                      <FileText className="h-4 w-4" />
-                      Observações
-                    </FormLabel>
-                    <FormControl>
-                      <Textarea
-                        placeholder="Informações adicionais sobre o caso..."
-                        rows={4}
-                        {...field}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
+            <LeadCRMInfo
+              form={form}
+              activeDepartamentos={activeDepartamentos}
+              formatCurrency={formatCurrency}
+              parseCurrency={parseCurrency}
+            />
 
             <DialogFooter className="gap-2">
               <Button
