@@ -1,11 +1,12 @@
 /**
- * WhatsApp Setup - Direct QR Code connection via Kapso API
+ * WhatsApp Setup — redirects to WhatsAppWizard (Kapso platform flow).
+ * Legacy wrapper kept for backward compatibility with WhatsAppIA.tsx import.
  */
 
 import { lazy, Suspense } from 'react';
 import { Loader2 } from 'lucide-react';
 
-const WhatsAppKapsoSetup = lazy(() => import('./WhatsAppKapsoSetup'));
+const WhatsAppWizard = lazy(() => import('@/features/conexoes/WhatsAppWizard'));
 
 interface WhatsAppSetupProps {
   onConnectionSuccess?: () => void;
@@ -20,7 +21,7 @@ export default function WhatsAppSetup({ onConnectionSuccess }: WhatsAppSetupProp
         </div>
       }
     >
-      <WhatsAppKapsoSetup onConnectionSuccess={onConnectionSuccess} />
+      <WhatsAppWizard onClose={() => {}} onConnected={() => onConnectionSuccess?.()} />
     </Suspense>
   );
 }

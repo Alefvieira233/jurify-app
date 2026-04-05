@@ -32,7 +32,7 @@ export const useApiKeys = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('api_keys')
-        .select('*')
+        .select('id, nome, tenant_id, ativo, created_at, updated_at')
         .eq('tenant_id', tenantId!)
         .order('created_at', { ascending: false });
 

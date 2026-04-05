@@ -43,7 +43,7 @@ export const useIntegracoesConfig = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('configuracoes_integracoes')
-        .select('*')
+        .select('id, nome_integracao, status, endpoint_url, observacoes, tenant_id, criado_em, atualizado_em, phone_number_id, webhook_url')
         .eq('tenant_id', tenantId!)
         .order('criado_em', { ascending: false });
 

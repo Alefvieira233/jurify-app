@@ -122,7 +122,7 @@ Deno.serve(async (req) => {
         .lt("created_at", aiLogCutoff);
       deleted.agent_ai_logs = aiLogCount ?? 0;
 
-      // logs_execucao_agentes: removed (consolidated into agent_ai_logs)
+
 
       // audit_log: 365-day retention
       const auditCutoff = new Date(Date.now() - 365 * 24 * 60 * 60 * 1000).toISOString();
