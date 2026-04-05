@@ -61,14 +61,26 @@ const PII_PATTERNS: PIIPattern[] = [
   },
 ];
 
-// ─── UUID Generator (no crypto dependency needed) ───────────────────────────
+// ─── UUID Generator (secure) ────────────────────────────────────────────────
 
 function generateTokenId(): string {
-  // Simple UUID v4-like generator that works in all environments
+  // Cryptographically secure token ID generator
   const hex = '0123456789abcdef';
+  const array = new Uint8Array(8);
+
+  // Use crypto.getRandomValues if available (Browser/Edge/Deno)
+  if (typeof crypto !== 'undefined' && crypto.getRandomValues) {
+    crypto.getRandomValues(array);
+  } else {
+    // Fallback for extreme legacy or polyfill (not ideal for security, but keeps functionality)
+    for (let i = 0; i < array.length; i++) {
+      array[i] = Math.floor(Math.random() * 256);
+    }
+  }
+
   let id = '';
   for (let i = 0; i < 8; i++) {
-    id += hex[Math.floor(Math.random() * 16)];
+    id += hex[array[i] % 16];
   }
   return id;
 }
