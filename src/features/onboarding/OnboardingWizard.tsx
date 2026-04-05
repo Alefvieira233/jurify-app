@@ -22,6 +22,7 @@ const OnboardingWizard = () => {
   const tenantId = profile?.tenant_id ?? null;
   const [step, setStep] = useState(0);
   const [showConfetti, setShowConfetti] = useState(false);
+  const [dismissed, setDismissed] = useState(false);
 
   const { data: shouldShow, isLoading } = useQuery({
     queryKey: ['onboarding-wizard-completed', tenantId],
@@ -69,19 +70,21 @@ const OnboardingWizard = () => {
   const markComplete = useCallback(() => completeMutation.mutate(), [completeMutation]);
 
   const handleFinish = useCallback(() => {
+    setDismissed(true);
     markComplete();
     navigate('/');
   }, [markComplete, navigate]);
 
   const handleNavigateAway = useCallback(
     (path: string) => {
+      setDismissed(true);
       markComplete();
       navigate(path);
     },
     [markComplete, navigate],
   );
 
-  if (isLoading || !shouldShow) return null;
+  if (isLoading || !shouldShow || dismissed) return null;
 
   const progressWidth = ((step + 1) / TOTAL_STEPS) * 100;
 
