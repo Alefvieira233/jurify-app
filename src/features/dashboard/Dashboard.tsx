@@ -1,5 +1,6 @@
 import { useState, useMemo } from 'react';
 import SankeyChart from './components/SankeyChart';
+import AgentActivityWidget from './components/AgentActivityWidget';
 import {
   MessageSquare, Search, CheckCircle, FileText, Trophy, XCircle,
   TrendingUp, Calendar, HelpCircle,
@@ -181,6 +182,9 @@ const Dashboard = () => {
           </div>
         </div>
       </div>
+
+      {/* ── Atividade dos Agentes IA ── */}
+      <AgentActivityWidget />
 
       {/* ── Eventos por Status — 6 stat cards ── */}
       <div>
