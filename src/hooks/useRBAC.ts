@@ -17,14 +17,28 @@ const ACTION_TO_PERMISSION: Record<DepartmentAction, keyof DepartamentoMembro> =
   gerenciar: 'pode_gerenciar',
 };
 
+// Map database roles (app_role enum) to RBAC roles used in the permission matrix.
+const DB_ROLE_TO_RBAC: Record<string, UserRole> = {
+  administrador: 'admin',
+  advogado: 'user',
+  comercial: 'user',
+  pos_venda: 'user',
+  suporte: 'viewer',
+  // Direct RBAC roles (for forward-compatibility if DB enum is updated)
+  admin: 'admin',
+  manager: 'manager',
+  user: 'user',
+  viewer: 'viewer',
+};
+
 /**
  * RBAC permission helper.
  */
 export const useRBAC = () => {
   const { user, profile } = useAuth();
 
-  // Default to viewer when role is missing.
-  const userRole: UserRole = (profile?.role as UserRole) || 'viewer';
+  // Map the DB role to an RBAC role; default to viewer when unknown.
+  const userRole: UserRole = DB_ROLE_TO_RBAC[profile?.role ?? ''] ?? 'viewer';
 
   const can = (resource: Resource, action: Action): boolean => {
     if (!user || !profile) {
