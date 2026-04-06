@@ -6,7 +6,7 @@ import { applyRateLimit } from "../_shared/rate-limiter.ts";
 import { buildLegalContext } from "../_shared/legal-context.ts";
 import { DEFAULT_OPENAI_MODEL } from "../_shared/ai-model.ts";
 import { checkBudgetBeforeCall, recordTokenUsage } from "../_shared/ai-budget.ts";
-import { sanitizeInput } from "../_shared/security.ts";
+import { sanitizeInput, redactPII } from "../_shared/security.ts";
 
 // whatsapp-webhook: Kapso Cloud API + Meta Official API webhook handler
 
@@ -1190,6 +1190,11 @@ async function processNormalizedMessage(supabase: ReturnType<typeof createClient
 
       // Log AI processing (non-blocking)
       if (executionRowId) {
+        // Redact PII from prompts and result before logging
+        const systemPromptRedacted = redactPII(finalSystemPrompt);
+        const userPromptRedacted = redactPII(commandIntent ?? processedText);
+        const fullResultRedacted = redactPII(resultText);
+
         void supabase.from("agent_ai_logs").insert({
           execution_id: executionRowId,
           agent_name: agentName,
@@ -1199,10 +1204,10 @@ async function processNormalizedMessage(supabase: ReturnType<typeof createClient
           prompt_tokens: aiResponse.usage?.prompt_tokens || 0,
           completion_tokens: aiResponse.usage?.completion_tokens || 0,
           total_tokens: aiResponse.usage?.total_tokens || 0,
-          result_preview: resultText.substring(0, 200),
-          system_prompt: finalSystemPrompt.substring(0, 500),
-          user_prompt: (commandIntent ?? processedText).substring(0, 500),
-          full_result: resultText.substring(0, 2000),
+          result_preview: fullResultRedacted.substring(0, 200),
+          system_prompt: systemPromptRedacted.substring(0, 500),
+          user_prompt: userPromptRedacted.substring(0, 500),
+          full_result: fullResultRedacted.substring(0, 2000),
           context: { mediaCategory, agent: agentName, hasLegalContext: legalCtx.has_context },
           created_at: new Date().toISOString(),
         }).then(({ error }) => { if (error) console.error("[webhook] ai_log insert error:", error.message); });
