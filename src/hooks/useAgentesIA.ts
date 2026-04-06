@@ -98,7 +98,7 @@ export const useAgentesIA = () => {
   const fetchAgentes = useCallback(async (): Promise<AgenteIA[]> => {
     let query = supabase
       .from('agentes_ia')
-      .select('*')
+      .select('id, nome, area_juridica, objetivo, script_saudacao, perguntas_qualificacao, keywords_acao, delay_resposta, status, descricao_funcao, prompt_base, tipo_agente, parametros_avancados, tenant_id, created_at, updated_at')
       .order('created_at', { ascending: false });
 
     if (tenantId) {

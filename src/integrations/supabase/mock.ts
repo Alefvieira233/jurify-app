@@ -1,19 +1,22 @@
 // Mock do Supabase para desenvolvimento sem backend
 // Este arquivo simula respostas do Supabase para testar o frontend
 
+import { createLogger } from '@/lib/logger';
+
+const log = createLogger('SupabaseMock');
 
 // Event emitter simples para gerenciar listeners
 const authListeners: Array<(event: string, session: unknown) => void> = [];
 
 const notifyListeners = (event: string, session: unknown) => {
-  console.log(`🧪 [MOCK] Notificando ${authListeners.length} listeners: ${event}`);
+  log.info(`Notificando ${authListeners.length} listeners: ${event}`);
   authListeners.forEach(listener => listener(event, session));
 };
 
 export const mockSupabaseClient = {
   auth: {
     signInWithPassword: async ({ email, password }: { email: string; password: string }) => {
-      console.log('🧪 [MOCK] Tentativa de login:', email);
+      log.info('Tentativa de login', { email });
 
       // Simular delay de rede
       await new Promise(resolve => setTimeout(resolve, 500));
@@ -59,7 +62,7 @@ export const mockSupabaseClient = {
     },
 
     signUp: async ({ email, password: _password }: { email: string; password: string }) => {
-      console.log('🧪 [MOCK] Cadastro:', email);
+      log.info('Cadastro', { email });
 
       await new Promise(resolve => setTimeout(resolve, 500));
       
@@ -79,14 +82,14 @@ export const mockSupabaseClient = {
     },
 
     signOut: () => {
-      console.log('🧪 [MOCK] Logout');
+      log.info('Logout');
       localStorage.removeItem('mock_session');
       notifyListeners('SIGNED_OUT', null);
       return { error: null };
     },
 
     getSession: () => {
-      console.log('🧪 [MOCK] Verificando sessão');
+      log.info('Verificando sessao');
 
       // Retornar sessão válida se houver no localStorage
       const savedSession = localStorage.getItem('mock_session');
@@ -95,7 +98,7 @@ export const mockSupabaseClient = {
           const session = JSON.parse(savedSession);
           return { data: { session }, error: null };
         } catch (err) {
-          console.warn('[mock] session parse failed:', err);
+          log.warn('session parse failed', { error: String(err) });
           return { data: { session: null }, error: null };
         }
       }
@@ -104,7 +107,7 @@ export const mockSupabaseClient = {
     },
 
     onAuthStateChange: (callback: (event: string, session: unknown) => void) => {
-      console.log('🧪 [MOCK] Auth state listener registrado');
+      log.info('Auth state listener registrado');
       
       authListeners.push(callback);
 
@@ -116,7 +119,7 @@ export const mockSupabaseClient = {
             const session = JSON.parse(savedSession);
             callback('SIGNED_IN', session);
           } catch (err) {
-            console.warn('[mock] auth state restore failed:', err);
+            log.warn('auth state restore failed', { error: String(err) });
             callback('SIGNED_OUT', null);
           }
         } else {
@@ -128,7 +131,7 @@ export const mockSupabaseClient = {
         data: {
           subscription: {
             unsubscribe: () => {
-              console.log('🧪 [MOCK] Auth listener removido');
+              log.info('Auth listener removido');
               const index = authListeners.indexOf(callback);
               if (index > -1) {
                 authListeners.splice(index, 1);
@@ -145,7 +148,7 @@ export const mockSupabaseClient = {
     select: (_columns = '*') => ({
       order: (_column: string, _options?: unknown) => ({
         then: (resolve: (value: unknown) => void) => {
-          console.log(`🧪 [MOCK] SELECT from ${table}`);
+          log.info(`SELECT from ${table}`);
 
           // Mock de dados baseado na tabela
           const mockData: Record<string, unknown[]> = {
@@ -302,7 +305,8 @@ export const mockSupabaseClient = {
               {
                 id: '1',
                 nome: 'Chave Principal',
-                key_value: 'sk-mock-key-123',
+                key_hash: 'a1b2c3d4e5f6mock-hash',
+                key_prefix: 'sk-mock',
                 ativo: true,
                 created_at: new Date().toISOString()
               }
@@ -340,7 +344,7 @@ export const mockSupabaseClient = {
       eq: function(column: string, value: unknown) {
         return {
           single: () => {
-            console.log(`🧪 [MOCK] SELECT from ${table} WHERE ${column} = ${String(value)}`);
+            log.info(`SELECT from ${table} WHERE ${column} = ${String(value)}`);
 
             if (table === 'profiles' && column === 'id') {
               return {
@@ -363,7 +367,7 @@ export const mockSupabaseClient = {
   }),
 
   rpc: (functionName: string, params: unknown) => {
-    console.log(`🧪 [MOCK] RPC call: ${functionName}`, params);
+    log.info(`RPC call: ${functionName}`, params as Record<string, unknown>);
     return { data: null, error: null };
   }
 };

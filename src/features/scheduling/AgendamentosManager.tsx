@@ -13,15 +13,16 @@ import { fmtMessageTime } from '@/utils/formatting';
 const fmtDay = (iso: string) => new Date(iso).toLocaleDateString('pt-BR', { day: '2-digit' });
 const fmtMonth = (iso: string) => new Date(iso).toLocaleDateString('pt-BR', { month: 'short' });
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { NovoAgendamentoForm } from '@/components/NovoAgendamentoForm';
-import { DetalhesAgendamento } from '@/components/DetalhesAgendamento';
+import { NovoAgendamentoForm } from './components/NovoAgendamentoForm';
+import { DetalhesAgendamento } from './components/DetalhesAgendamento';
 import { cn } from '@/lib/utils';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import { usePageTitle } from '@/hooks/usePageTitle';
 import EmptyState from '@/components/EmptyState';
 import ErrorState from '@/components/ErrorState';
+import { getStatusClasses, getStatusLabel } from '@/constants/statusConfig';
 
-const CalendarPanel = lazy(() => import('@/components/agenda/CalendarPanel'));
+const CalendarPanel = lazy(() => import('./components/CalendarPanel'));
 
 type ViewMode = 'list' | 'calendar';
 
@@ -43,27 +44,8 @@ const AgendamentosManager = () => {
     return matchesSearch && matchesStatus;
   }), [agendamentos, debouncedSearchTerm, filterStatus]);
 
-  const getStatusColor = (status: string) => {
-    const colors: Record<string, string> = {
-      agendado: 'bg-blue-500/10 text-blue-600 dark:text-blue-400',
-      confirmado: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400',
-      reagendado: 'bg-amber-500/10 text-amber-600 dark:text-amber-400',
-      cancelado: 'bg-rose-500/10 text-rose-600 dark:text-rose-400',
-      realizado: 'bg-purple-500/10 text-purple-600 dark:text-purple-400',
-    };
-    return colors[status] || 'bg-muted text-muted-foreground';
-  };
-
-  const getStatusLabel = (status: string) => {
-    const labels: Record<string, string> = {
-      agendado: 'Agendado',
-      confirmado: 'Confirmado',
-      reagendado: 'Reagendado',
-      cancelado: 'Cancelado',
-      realizado: 'Realizado',
-    };
-    return labels[status] || status;
-  };
+  const getStatusColor = (status: string) => getStatusClasses('agendamentos', status);
+  const getAgendamentoLabel = (status: string) => getStatusLabel('agendamentos', status);
 
   const handleRetry = () => {
     fetchAgendamentos();
@@ -273,7 +255,7 @@ const AgendamentosManager = () => {
         <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
           {filteredAgendamentos.map((agendamento) => {
             const scColor = getStatusColor(agendamento.status ?? '');
-            const scLabel = getStatusLabel(agendamento.status ?? '');
+            const scLabel = getAgendamentoLabel(agendamento.status ?? '');
             
             return (
               <div key={agendamento.id} className="group flex items-center gap-5 p-5 rounded-[20px] border border-border/10 bg-background hover:bg-card hover:shadow-xl hover:shadow-primary/5 hover:border-border/30 transition-all duration-300 hover:-translate-y-0.5 relative overflow-hidden">

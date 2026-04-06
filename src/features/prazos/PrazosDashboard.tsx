@@ -46,7 +46,7 @@ function badgeDias(dias: number) {
 }
 
 function badgeDiasRestantes(dias: number) {
-  if (dias < 0) return <Badge className="bg-gray-500/15 text-gray-500 border-gray-300">Vencido</Badge>;
+  if (dias < 0) return <Badge className="bg-muted text-muted-foreground border-border">Vencido</Badge>;
   if (dias < 3) return <Badge className="bg-red-500/15 text-red-600 border-red-200">{dias}d</Badge>;
   if (dias <= 7) return <Badge className="bg-yellow-500/15 text-yellow-600 border-yellow-200">{dias}d</Badge>;
   return <Badge className="bg-emerald-500/15 text-emerald-600 border-emerald-200">{dias}d</Badge>;
@@ -59,7 +59,7 @@ function badgeStatus(status: string) {
     case 'cumprido':
       return <Badge className="bg-emerald-500/15 text-emerald-600 border-emerald-200">Cumprido</Badge>;
     case 'cancelado':
-      return <Badge className="bg-gray-500/15 text-gray-500 border-gray-300">Cancelado</Badge>;
+      return <Badge className="bg-muted text-muted-foreground border-border">Cancelado</Badge>;
     default:
       return <Badge variant="outline">{status}</Badge>;
   }

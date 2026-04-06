@@ -221,7 +221,7 @@ export const useAgentCrud = (tenantId: string | null, onSuccess?: () => void | P
     try {
       const { data: activeConversations } = await supabase
         .from('lead_interactions')
-        .select('*')
+        .select('id, metadata, created_at')
         .eq('tenant_id', tenantId)
         .gte('created_at', new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString());
 

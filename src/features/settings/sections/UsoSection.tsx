@@ -17,7 +17,7 @@ export default function UsoSection() {
 
       {/* Limits grid */}
       <div className="mb-8">
-        <h3 className="text-sm font-medium mb-3">Limites de uso</h3>
+        <h2 className="text-sm font-medium mb-3">Limites de uso</h2>
         <p className="text-xs text-muted-foreground mb-4">Uso atual vs. limites do plano.</p>
         <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
           {limits.map(limit => (
@@ -40,7 +40,7 @@ export default function UsoSection() {
 
       {/* Credit consumption */}
       <div className="border rounded-lg p-4">
-        <h3 className="text-sm font-medium mb-1">Consumo de Créditos</h3>
+        <h2 className="text-sm font-medium mb-1">Consumo de Créditos</h2>
         <p className="text-xs text-muted-foreground mb-4">Ciclo de reinício dos créditos de IA da plataforma.</p>
 
         <div className="space-y-2">

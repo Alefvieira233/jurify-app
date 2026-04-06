@@ -32,6 +32,10 @@ export const queryKeys = {
       [...queryKeys.leads.all, tenantId, page ?? 1, scope ?? 'all'] as const,
     details: () => [...queryKeys.leads.all, 'detail'] as const,
     detail: (id: string) => [...queryKeys.leads.details(), id] as const,
+    byId: (leadId?: string) => ['lead', leadId] as const,
+    byTenant: (tenantId?: string | null, leadId?: string | null) => ['lead', tenantId, leadId] as const,
+    stats: (tenantId?: string | null) => ['leads-stats', tenantId] as const,
+    contratos: (tenantId?: string | null) => ['leads-contratos', tenantId] as const,
   },
 
   processos: {
@@ -39,11 +43,15 @@ export const queryKeys = {
     lists: () => [...queryKeys.processos.all, 'list'] as const,
     list: (tenantId?: string | null, page?: number, filterStatus?: string, filterTipo?: string, search?: string) =>
       [...queryKeys.processos.all, tenantId, page ?? 1, filterStatus ?? '', filterTipo ?? '', search ?? ''] as const,
+    statsAtivos: (tenantId?: string | null) => ['processos-stats-ativos', tenantId] as const,
+    statsExito: (tenantId?: string | null) => ['processos-stats-exito', tenantId] as const,
   },
 
   contratos: {
     all: ['contratos'] as const,
-    list: (tenantId?: string | null) => [...queryKeys.contratos.all, tenantId] as const,
+    list: (tenantId?: string | null, page?: number, search?: string, status?: string) =>
+      [...queryKeys.contratos.all, tenantId, page ?? 0, search ?? '', status ?? ''] as const,
+    stats: (tenantId?: string | null) => ['contratos-stats', tenantId] as const,
   },
 
   honorarios: {
@@ -53,18 +61,23 @@ export const queryKeys = {
 
   agendamentos: {
     all: ['agendamentos'] as const,
-    list: (tenantId?: string | null) => [...queryKeys.agendamentos.all, tenantId] as const,
+    list: (tenantId?: string | null, page?: number, status?: string, dateFrom?: string, dateTo?: string) =>
+      [...queryKeys.agendamentos.all, tenantId, page ?? 0, status ?? '', dateFrom ?? '', dateTo ?? ''] as const,
   },
 
   tarefas: {
     all: ['tarefas'] as const,
-    list: (tenantId?: string | null) => [...queryKeys.tarefas.all, tenantId] as const,
+    list: (tenantId?: string | null, page?: number, status?: string, search?: string) =>
+      [...queryKeys.tarefas.all, tenantId, page ?? 0, status ?? '', search ?? ''] as const,
   },
 
   prazosProcessuais: {
     all: ['prazos_processuais'] as const,
     list: (tenantId?: string | null, page?: number) =>
       [...queryKeys.prazosProcessuais.all, tenantId, page ?? 1] as const,
+    calendarioAll: ['prazos-calendario'] as const,
+    calendario: (tenantId?: string | null, year?: number, month?: number, status?: string) =>
+      ['prazos-calendario', tenantId, year, month, status] as const,
   },
 
   documentosJuridicos: {
@@ -225,6 +238,16 @@ export const queryKeys = {
     list: (tenantId?: string | null) => [...queryKeys.dashboardMetrics.all, tenantId] as const,
   },
 
+  dashboardAgentActivity: {
+    all: ['dashboard', 'agent-activity'] as const,
+    list: (tenantId?: string | null) => ['dashboard', 'agent-activity', tenantId] as const,
+  },
+
+  analyticsDashboard: {
+    all: ['analytics-dashboard'] as const,
+    list: (tenantId?: string | null, period?: string) => ['analytics-dashboard', tenantId, period] as const,
+  },
+
   mrr: {
     all: ['mrr'] as const,
     list: (tenantId?: string | null) => [...queryKeys.mrr.all, tenantId] as const,
@@ -239,6 +262,54 @@ export const queryKeys = {
   agendaMetrics: {
     all: ['agenda-metrics'] as const,
     list: (tenantId?: string | null) => [...queryKeys.agendaMetrics.all, tenantId] as const,
+  },
+
+  // ─── Reports (Relatorios) ──────────────────────────────────────────────────
+
+  kpisGerais: {
+    all: ['kpis-gerais'] as const,
+    list: (tenantId?: string | null, periodo?: string, areaJuridica?: string, origemLead?: string, visibilityScope?: string) =>
+      ['kpis-gerais', tenantId, periodo, areaJuridica, origemLead, visibilityScope] as const,
+  },
+
+  dadosFunil: {
+    all: ['dados-funil'] as const,
+    list: (tenantId?: string | null, periodo?: string, areaJuridica?: string, origemLead?: string, visibilityScope?: string) =>
+      ['dados-funil', tenantId, periodo, areaJuridica, origemLead, visibilityScope] as const,
+  },
+
+  dadosAreaJuridica: {
+    all: ['dados-area-juridica'] as const,
+    list: (tenantId?: string | null, periodo?: string, origemLead?: string, visibilityScope?: string) =>
+      ['dados-area-juridica', tenantId, periodo, origemLead, visibilityScope] as const,
+  },
+
+  dadosOrigem: {
+    all: ['dados-origem'] as const,
+    list: (tenantId?: string | null, periodo?: string, areaJuridica?: string, visibilityScope?: string) =>
+      ['dados-origem', tenantId, periodo, areaJuridica, visibilityScope] as const,
+  },
+
+  dadosConversao: {
+    all: ['dados-conversao'] as const,
+    list: (tenantId?: string | null, periodo?: string) => ['dados-conversao', tenantId, periodo] as const,
+  },
+
+  rankingAgentes: {
+    all: ['ranking-agentes'] as const,
+    list: (tenantId?: string | null, periodo?: string, visibilityScope?: string) =>
+      ['ranking-agentes', tenantId, periodo, visibilityScope] as const,
+  },
+
+  agendamentosReport: {
+    all: ['agendamentos-report'] as const,
+    list: (tenantId?: string | null) => ['agendamentos-report', tenantId] as const,
+  },
+
+  clientsReport: {
+    all: ['clients-report'] as const,
+    list: (tenantId?: string | null, visibilityScope?: string) =>
+      ['clients-report', tenantId, visibilityScope] as const,
   },
 
   // ─── Google Calendar ────────────────────────────────────────────────────────
@@ -264,5 +335,65 @@ export const queryKeys = {
 
   usuarios: {
     all: ['usuarios'] as const,
+  },
+
+  userRoles: {
+    all: ['user-roles'] as const,
+    detail: (userId?: string) => ['user-roles', userId] as const,
+  },
+
+  configuracoesMembros: {
+    all: ['configuracoes-membros'] as const,
+    list: (tenantId?: string | null) => ['configuracoes-membros', tenantId] as const,
+  },
+
+  rolePermissionsMatriz: {
+    all: ['role-permissions-matriz'] as const,
+  },
+
+  // ─── Automations ───────────────────────────────────────────────────────────
+
+  automationRules: {
+    all: ['automation-rules'] as const,
+  },
+
+  automationFlows: {
+    all: ['automation-flows'] as const,
+    list: (tenantId?: string | null) => ['automation-flows', tenantId] as const,
+    detail: (flowId?: string | null) => ['automation-flow-detail', flowId] as const,
+  },
+
+  // ─── Onboarding ────────────────────────────────────────────────────────────
+
+  onboardingWizard: {
+    all: ['onboarding-wizard-completed'] as const,
+    detail: (tenantId?: string | null) => ['onboarding-wizard-completed', tenantId] as const,
+  },
+
+  onboardingStatus: {
+    all: ['onboarding-status'] as const,
+    detail: (tenantId?: string | null, userId?: string) =>
+      ['onboarding-status', tenantId, userId] as const,
+  },
+
+  // ─── Performance / Misc ────────────────────────────────────────────────────
+
+  agentExecutions: {
+    all: ['agent-executions'] as const,
+    list: (tenantId?: string | null) => ['agent-executions', tenantId] as const,
+  },
+
+  errorLogs: {
+    all: ['error-logs'] as const,
+    list: (tenantId?: string | null) => ['error-logs', tenantId] as const,
+  },
+
+  allDepartmentMemberships: {
+    all: ['all_department_memberships'] as const,
+    list: (tenantId?: string | null) => ['all_department_memberships', tenantId] as const,
+  },
+
+  aiUsageStats: {
+    all: ['ai-usage-stats'] as const,
   },
 } as const;

@@ -11,7 +11,6 @@
 
 import { supabaseUntyped as supabase } from '@/integrations/supabase/client';
 import { createLogger } from '@/lib/logger';
-import CryptoJS from 'crypto-js';
 
 const log = createLogger('DocumentHash');
 
@@ -60,20 +59,11 @@ export class DocumentHashService {
    * 🔑 Gera hash SHA-256 de um arquivo (client-side)
    */
   async generateHash(file: File): Promise<string> {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = () => {
-        try {
-          const wordArray = CryptoJS.lib.WordArray.create(reader.result as ArrayBuffer);
-          const hash = CryptoJS.SHA256(wordArray).toString(CryptoJS.enc.Hex);
-          resolve(hash);
-        } catch (error) {
-          reject(error instanceof Error ? error : new Error(String(error)));
-        }
-      };
-      reader.onerror = () => reject(new Error(reader.error?.message ?? 'FileReader error'));
-      reader.readAsArrayBuffer(file);
-    });
+    const buffer = await file.arrayBuffer();
+    const hashBuffer = await crypto.subtle.digest('SHA-256', buffer);
+    return Array.from(new Uint8Array(hashBuffer))
+      .map(b => b.toString(16).padStart(2, '0'))
+      .join('');
   }
 
   /**
@@ -117,7 +107,7 @@ export class DocumentHashService {
           },
           { onConflict: 'tenant_id,content_hash' }
         )
-        .select('*')
+        .select('id, tenant_id, document_type, original_filename, file_size_bytes, content_hash, hash_algorithm, storage_path, signed_by, verified_at, verification_count, blockchain_tx_id, metadata, created_at')
         .single();
 
       if (error) {
@@ -184,7 +174,7 @@ export class DocumentHashService {
     try {
       let query = supabase
         .from('document_hashes')
-        .select('*')
+        .select('id, tenant_id, document_type, original_filename, file_size_bytes, content_hash, hash_algorithm, storage_path, signed_by, verified_at, verification_count, blockchain_tx_id, metadata, created_at')
         .eq('tenant_id', tenantId)
         .order('created_at', { ascending: false })
         .limit(options?.limit || 50);

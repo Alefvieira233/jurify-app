@@ -70,7 +70,7 @@ export const useMultiAgentSystem = () => {
 
       const { data: activity } = await supabase
         .from('lead_interactions')
-        .select('*')
+        .select('id, tenant_id, lead_id, interaction_type, metadata, created_at')
         .eq('tenant_id', tenantId!)
         .order('created_at', { ascending: false })
         .limit(10);
@@ -93,13 +93,13 @@ export const useMultiAgentSystem = () => {
 
       const { data: leads } = await supabase
         .from('leads')
-        .select('*')
+        .select('id, status, created_at')
         .eq('tenant_id', tenantId!)
         .gte('created_at', since);
 
       const { data: interactions } = await supabase
         .from('lead_interactions')
-        .select('*')
+        .select('id, metadata, created_at')
         .eq('tenant_id', tenantId!)
         .gte('created_at', since);
 
@@ -240,7 +240,7 @@ export const useMultiAgentSystem = () => {
         await processLeadMutation.mutateAsync(leadData);
         return true;
       } catch (err) {
-        console.error('[useMultiAgentSystem] processLead failed:', err);
+        log.error('processLead failed', err);
         return false;
       } finally {
         setIsProcessing(false);

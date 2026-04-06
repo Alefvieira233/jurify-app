@@ -1,86 +1,125 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
+import { type UseFormReturn } from 'react-hook-form';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { ArrowRight } from 'lucide-react';
 import PasswordStrength from '@/components/ui/password-strength';
+import {
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from '@/components/ui/form';
+import { type RegisterFormData } from '../schemas';
 
 interface RegisterFormProps {
-  nomeCompleto: string;
-  email: string;
-  password: string;
+  form: UseFormReturn<RegisterFormData>;
   lgpdConsent: boolean;
   loading: boolean;
-  onNomeCompletoChange: (value: string) => void;
-  onEmailChange: (value: string) => void;
-  onPasswordChange: (value: string) => void;
   onLgpdConsentChange: (value: boolean) => void;
   onSubmit: (e: React.FormEvent) => void;
   onSwitchToLogin: () => void;
 }
 
 const RegisterForm: React.FC<RegisterFormProps> = ({
-  nomeCompleto,
-  email,
-  password,
+  form,
   lgpdConsent,
   loading,
-  onNomeCompletoChange,
-  onEmailChange,
-  onPasswordChange,
   onLgpdConsentChange,
   onSubmit,
   onSwitchToLogin,
 }) => {
+  const passwordValue = form.watch('password');
+
   return (
     <>
       <form onSubmit={onSubmit} className="space-y-5" aria-label="Formulário de cadastro">
-        <div className="space-y-2">
-          <Label htmlFor="nomeCompleto" className="text-sm font-semibold text-[hsl(var(--foreground))]">
-            Nome Completo
-          </Label>
-          <Input
-            id="nomeCompleto"
-            type="text"
-            value={nomeCompleto}
-            onChange={(e) => onNomeCompletoChange(e.target.value)}
-            required
-            placeholder="Dr. João da Silva"
-            className="h-12 border-[hsl(var(--border))] focus:border-[hsl(var(--accent))] focus:ring-[hsl(var(--accent))] transition-all"
-          />
-        </div>
+        <FormField
+          control={form.control}
+          name="nomeCompleto"
+          render={({ field }) => (
+            <FormItem className="space-y-2">
+              <FormLabel className="text-sm font-semibold text-[hsl(var(--foreground))]">
+                Nome Completo
+              </FormLabel>
+              <FormControl>
+                <Input
+                  type="text"
+                  placeholder="Dr. João da Silva"
+                  className="h-12 border-[hsl(var(--border))] focus:border-[hsl(var(--accent))] focus:ring-[hsl(var(--accent))] transition-all"
+                  {...field}
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
 
-        <div className="space-y-2">
-          <Label htmlFor="email" className="text-sm font-semibold text-[hsl(var(--foreground))]">
-            Email Profissional
-          </Label>
-          <Input
-            id="email"
-            type="email"
-            value={email}
-            onChange={(e) => onEmailChange(e.target.value)}
-            required
-            placeholder="seu@escritorio.com.br"
-            className="h-12 border-[hsl(var(--border))] focus:border-[hsl(var(--accent))] focus:ring-[hsl(var(--accent))] transition-all"
-          />
-        </div>
+        <FormField
+          control={form.control}
+          name="email"
+          render={({ field }) => (
+            <FormItem className="space-y-2">
+              <FormLabel className="text-sm font-semibold text-[hsl(var(--foreground))]">
+                Email Profissional
+              </FormLabel>
+              <FormControl>
+                <Input
+                  type="email"
+                  placeholder="seu@escritorio.com.br"
+                  className="h-12 border-[hsl(var(--border))] focus:border-[hsl(var(--accent))] focus:ring-[hsl(var(--accent))] transition-all"
+                  {...field}
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
 
-        <div className="space-y-2">
-          <Label htmlFor="password" className="text-sm font-semibold text-[hsl(var(--foreground))]">
-            Senha
-          </Label>
-          <Input
-            id="password"
-            type="password"
-            value={password}
-            onChange={(e) => onPasswordChange(e.target.value)}
-            required
-            placeholder="••••••••"
-            className="h-12 border-[hsl(var(--border))] focus:border-[hsl(var(--accent))] focus:ring-[hsl(var(--accent))] transition-all"
-          />
-          <PasswordStrength password={password} showRequirements={true} />
-        </div>
+        <FormField
+          control={form.control}
+          name="password"
+          render={({ field }) => (
+            <FormItem className="space-y-2">
+              <FormLabel className="text-sm font-semibold text-[hsl(var(--foreground))]">
+                Senha
+              </FormLabel>
+              <FormControl>
+                <Input
+                  type="password"
+                  placeholder="••••••••"
+                  className="h-12 border-[hsl(var(--border))] focus:border-[hsl(var(--accent))] focus:ring-[hsl(var(--accent))] transition-all"
+                  {...field}
+                />
+              </FormControl>
+              <FormMessage />
+              <PasswordStrength password={passwordValue} showRequirements={true} />
+            </FormItem>
+          )}
+        />
+
+        <FormField
+          control={form.control}
+          name="confirmPassword"
+          render={({ field }) => (
+            <FormItem className="space-y-2">
+              <FormLabel className="text-sm font-semibold text-[hsl(var(--foreground))]">
+                Confirmar Senha
+              </FormLabel>
+              <FormControl>
+                <Input
+                  type="password"
+                  placeholder="••••••••"
+                  className="h-12 border-[hsl(var(--border))] focus:border-[hsl(var(--accent))] focus:ring-[hsl(var(--accent))] transition-all"
+                  {...field}
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
 
         <div className="flex items-start gap-3 p-3 rounded-xl bg-muted/30 border border-border">
           <input

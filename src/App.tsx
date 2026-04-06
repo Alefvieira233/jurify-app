@@ -1,21 +1,27 @@
 import { Suspense, useEffect } from "react";
 import { lazyWithRetry } from "@/lib/lazyWithRetry";
 import { Toaster } from "@/components/ui/toaster";
-import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate, useNavigate } from "react-router-dom";
-import { App as CapacitorApp } from '@capacitor/app';
-import { Capacitor } from '@capacitor/core';
+// Capacitor is loaded dynamically only on native platforms to avoid bundling for web users.
+// Use isNativePlatform() below instead of importing @capacitor/core at the top level.
+const isNativePlatform = typeof (window as unknown as Record<string, unknown>)?.Capacitor !== 'undefined'
+  && typeof (window as unknown as Record<string, unknown> & { Capacitor: { isNativePlatform: () => boolean } }).Capacitor?.isNativePlatform === 'function'
+  && (window as unknown as Record<string, unknown> & { Capacitor: { isNativePlatform: () => boolean } }).Capacitor.isNativePlatform();
 import { AuthProvider } from "@/contexts/AuthContext";
 import ProtectedRoute from "./components/ProtectedRoute";
 import Layout from "./components/Layout";
 import LoadingSpinner from "./components/LoadingSpinner";
 import { ErrorBoundary } from "./components/ErrorBoundary";
+import { FeatureErrorBoundary } from "./components/FeatureErrorBoundary";
 import { initSentry } from "./lib/sentry";
 import { withSentryReactRouterV6Routing } from '@sentry/react';
 import { QUERY_STALE_TIME_MS, QUERY_GC_TIME_MS, MAX_RETRY_DELAY_MS } from "./constants/timings";
 import { useNetworkBanner } from "@/hooks/useNetworkBanner";
+import { createLogger } from "@/lib/logger";
+
+const log = createLogger('App');
 
 // Inicializar Sentry ANTES de tudo
 initSentry();
@@ -71,11 +77,10 @@ const ArquivadosView = lazyWithRetry(() => import("./features/leads/ArquivadosVi
 const MetricasOperacionais = lazyWithRetry(() => import("./features/reports/MetricasOperacionais"));
 const AdminStatus = lazyWithRetry(() => import("./pages/AdminStatus"));
 
-// WhatsApp Error Boundary - import direto (necessário para wrapping)
-import { WhatsAppErrorBoundary } from "./features/whatsapp/WhatsAppErrorBoundary";
+// WhatsApp now uses FeatureErrorBoundary (WhatsAppErrorBoundary retained for standalone use)
 
 // Prefetch rotas mais acessadas após o idle do browser
-if (typeof window !== 'undefined' && 'requestIdleCallback' in window && !Capacitor.isNativePlatform()) {
+if (typeof window !== 'undefined' && 'requestIdleCallback' in window && !isNativePlatform) {
   window.requestIdleCallback(() => {
     void import("./features/pipeline/PipelineJuridico");
     void import("./features/scheduling/AgendamentosManager");
@@ -116,23 +121,29 @@ function DeepLinkHandler() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    if (!Capacitor.isNativePlatform()) return;
+    if (!isNativePlatform) return;
 
-    const listenerPromise = CapacitorApp.addListener('appUrlOpen', (event) => {
-      try {
-        const url = new URL(event.url);
-        const basePath = url.hostname ? `/${url.hostname}` : url.pathname;
-        const fullPath = basePath + (url.pathname !== '/' && url.hostname ? url.pathname : '');
-        const baseRoute = '/' + (fullPath.split('/')[1] ?? '');
-        if (fullPath && fullPath !== '/' && ALLOWED_DEEP_LINK_PATHS.has(baseRoute)) {
-          navigate(fullPath + url.search);
+    let cleanup: (() => void) | undefined;
+
+    void import('@capacitor/app').then(({ App: CapacitorApp }) => {
+      const listenerPromise = CapacitorApp.addListener('appUrlOpen', (event) => {
+        try {
+          const url = new URL(event.url);
+          const basePath = url.hostname ? `/${url.hostname}` : url.pathname;
+          const fullPath = basePath + (url.pathname !== '/' && url.hostname ? url.pathname : '');
+          const baseRoute = '/' + (fullPath.split('/')[1] ?? '');
+          if (fullPath && fullPath !== '/' && ALLOWED_DEEP_LINK_PATHS.has(baseRoute)) {
+            navigate(fullPath + url.search);
+          }
+        } catch (err) {
+          log.warn('deep link URL parse failed', { error: String(err) });
         }
-      } catch (err) {
-        console.warn('[App] deep link URL parse failed:', err);
-      }
+      });
+
+      cleanup = () => { void listenerPromise.then(l => l.remove()); };
     });
 
-    return () => { void listenerPromise.then(l => l.remove()); };
+    return () => { cleanup?.(); };
   }, [navigate]);
 
   return null;
@@ -154,7 +165,6 @@ const App = () => (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
         <Toaster />
-        <Sonner />
         <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
           <OfflineBanner />
           <DeepLinkHandler />
@@ -171,33 +181,33 @@ const App = () => (
                 <Route path="/precos" element={<Pricing />} />
 
                 <Route path="/" element={<ProtectedRoute><Layout /></ProtectedRoute>}>
-                  <Route index element={<ErrorBoundary><HomePage /></ErrorBoundary>} />
+                  <Route index element={<FeatureErrorBoundary feature="Home"><HomePage /></FeatureErrorBoundary>} />
                   <Route path="home" element={<Navigate to="/" replace />} />
-                  <Route path="dashboard" element={<ErrorBoundary><Dashboard /></ErrorBoundary>} />
+                  <Route path="dashboard" element={<FeatureErrorBoundary feature="Dashboard"><Dashboard /></FeatureErrorBoundary>} />
                   {/* /leads absorvido por Pipeline — redirect para evitar rotas fantasma */}
                   <Route path="leads" element={<Navigate to="/pipeline" replace />} />
-                  <Route path="conexoes" element={<ProtectedRoute><ErrorBoundary><ConexoesManager /></ErrorBoundary></ProtectedRoute>} />
-                  <Route path="pipeline" element={<ErrorBoundary><KanbanOperacional /></ErrorBoundary>} />
-                  <Route path="pipeline/classico" element={<ErrorBoundary><PipelineJuridico /></ErrorBoundary>} />
-                  <Route path="agendamentos" element={<ErrorBoundary><AgendamentosManager /></ErrorBoundary>} />
-                  <Route path="tarefas" element={<ErrorBoundary><TarefasPage /></ErrorBoundary>} />
-                  <Route path="contratos" element={<ErrorBoundary><ContratosManager /></ErrorBoundary>} />
-                  <Route path="relatorios" element={<ErrorBoundary><RelatoriosGerenciais /></ErrorBoundary>} />
+                  <Route path="conexoes" element={<ProtectedRoute requiredRoles={['admin', 'manager']}><FeatureErrorBoundary feature="Conexoes"><ConexoesManager /></FeatureErrorBoundary></ProtectedRoute>} />
+                  <Route path="pipeline" element={<FeatureErrorBoundary feature="Pipeline"><KanbanOperacional /></FeatureErrorBoundary>} />
+                  <Route path="pipeline/classico" element={<FeatureErrorBoundary feature="Pipeline Classico"><PipelineJuridico /></FeatureErrorBoundary>} />
+                  <Route path="agendamentos" element={<FeatureErrorBoundary feature="Agendamentos"><AgendamentosManager /></FeatureErrorBoundary>} />
+                  <Route path="tarefas" element={<FeatureErrorBoundary feature="Tarefas"><TarefasPage /></FeatureErrorBoundary>} />
+                  <Route path="contratos" element={<FeatureErrorBoundary feature="Contratos"><ContratosManager /></FeatureErrorBoundary>} />
+                  <Route path="relatorios" element={<FeatureErrorBoundary feature="Relatorios"><RelatoriosGerenciais /></FeatureErrorBoundary>} />
                   <Route path="whatsapp" element={
-                    <WhatsAppErrorBoundary>
+                    <FeatureErrorBoundary feature="WhatsApp">
                       <WhatsAppIA />
-                    </WhatsAppErrorBoundary>
+                    </FeatureErrorBoundary>
                   } />
-                  <Route path="agentes" element={<ProtectedRoute><ErrorBoundary><AgentesIAManager /></ErrorBoundary></ProtectedRoute>} />
-                  <Route path="fluxos" element={<ProtectedRoute><ErrorBoundary><FluxosManager /></ErrorBoundary></ProtectedRoute>} />
-                  <Route path="regras" element={<ProtectedRoute><ErrorBoundary><RegrasManager /></ErrorBoundary></ProtectedRoute>} />
-                  <Route path="usuarios" element={<ProtectedRoute requiredRoles={['admin', 'manager']}><ErrorBoundary><UsuariosManager /></ErrorBoundary></ProtectedRoute>} />
-                  <Route path="logs" element={<ProtectedRoute requiredRoles={['admin', 'manager']}><ErrorBoundary><LogsPanel /></ErrorBoundary></ProtectedRoute>} />
-                  <Route path="integracoes" element={<ProtectedRoute><ErrorBoundary><IntegracoesConfig /></ErrorBoundary></ProtectedRoute>} />
-                  <Route path="configuracoes" element={<ErrorBoundary><ConfiguracoesPage /></ErrorBoundary>} />
-                  <Route path="configuracoes/:section" element={<ErrorBoundary><ConfiguracoesPage /></ErrorBoundary>} />
-                  <Route path="configuracoes/:section/:subsection" element={<ErrorBoundary><ConfiguracoesPage /></ErrorBoundary>} />
-                  <Route path="notificacoes" element={<ErrorBoundary><NotificationsPanel /></ErrorBoundary>} />
+                  <Route path="agentes" element={<ProtectedRoute requiredRoles={['admin', 'manager']}><FeatureErrorBoundary feature="Agentes IA"><AgentesIAManager /></FeatureErrorBoundary></ProtectedRoute>} />
+                  <Route path="fluxos" element={<ProtectedRoute requiredRoles={['admin', 'manager']}><FeatureErrorBoundary feature="Fluxos"><FluxosManager /></FeatureErrorBoundary></ProtectedRoute>} />
+                  <Route path="regras" element={<ProtectedRoute requiredRoles={['admin', 'manager']}><FeatureErrorBoundary feature="Regras"><RegrasManager /></FeatureErrorBoundary></ProtectedRoute>} />
+                  <Route path="usuarios" element={<ProtectedRoute requiredRoles={['admin', 'manager']}><FeatureErrorBoundary feature="Usuarios"><UsuariosManager /></FeatureErrorBoundary></ProtectedRoute>} />
+                  <Route path="logs" element={<ProtectedRoute requiredRoles={['admin', 'manager']}><FeatureErrorBoundary feature="Logs"><LogsPanel /></FeatureErrorBoundary></ProtectedRoute>} />
+                  <Route path="integracoes" element={<ProtectedRoute requiredRoles={['admin']}><FeatureErrorBoundary feature="Integracoes"><IntegracoesConfig /></FeatureErrorBoundary></ProtectedRoute>} />
+                  <Route path="configuracoes" element={<ProtectedRoute requiredRoles={['admin', 'manager']}><FeatureErrorBoundary feature="Configuracoes"><ConfiguracoesPage /></FeatureErrorBoundary></ProtectedRoute>} />
+                  <Route path="configuracoes/:section" element={<ProtectedRoute requiredRoles={['admin', 'manager']}><FeatureErrorBoundary feature="Configuracoes"><ConfiguracoesPage /></FeatureErrorBoundary></ProtectedRoute>} />
+                  <Route path="configuracoes/:section/:subsection" element={<ProtectedRoute requiredRoles={['admin', 'manager']}><FeatureErrorBoundary feature="Configuracoes"><ConfiguracoesPage /></FeatureErrorBoundary></ProtectedRoute>} />
+                  <Route path="notificacoes" element={<FeatureErrorBoundary feature="Notificacoes"><NotificationsPanel /></FeatureErrorBoundary>} />
                   {/* /timeline absorvido por Clientes (CRM) */}
                   <Route path="timeline" element={<Navigate to="/crm" replace />} />
                   {/* /planos unificado em Assinatura */}
@@ -205,34 +215,34 @@ const App = () => (
                   {/* /analytics absorvido por Relatórios como aba */}
                   <Route path="analytics" element={<Navigate to="/relatorios" replace />} />
                   {/* billing now lives in configuracoes/plano */}
-                  <Route path="crm" element={<ErrorBoundary><ContatosTable /></ErrorBoundary>} />
+                  <Route path="crm" element={<FeatureErrorBoundary feature="CRM"><ContatosTable /></FeatureErrorBoundary>} />
                   {/* /crm/followups acessível via CRM Dashboard */}
                   <Route path="crm/followups" element={<Navigate to="/crm" replace />} />
-                  <Route path="crm/lead/:leadId" element={<ErrorBoundary><LeadDetailPanel /></ErrorBoundary>} />
+                  <Route path="crm/lead/:leadId" element={<FeatureErrorBoundary feature="CRM"><LeadDetailPanel /></FeatureErrorBoundary>} />
                   {/* Módulos Jurídicos */}
-                  <Route path="processos" element={<ErrorBoundary><ProcessosManager /></ErrorBoundary>} />
-                  <Route path="prazos" element={<ErrorBoundary><PrazosManager /></ErrorBoundary>} />
+                  <Route path="processos" element={<FeatureErrorBoundary feature="Processos"><ProcessosManager /></FeatureErrorBoundary>} />
+                  <Route path="prazos" element={<FeatureErrorBoundary feature="Prazos"><PrazosManager /></FeatureErrorBoundary>} />
                   <Route path="painel-prazos" element={<Navigate to="/prazos?tab=painel" replace />} />
-                  <Route path="auditoria" element={<ProtectedRoute requiredRoles={['admin', 'manager']}><ErrorBoundary><AuditTrail /></ErrorBoundary></ProtectedRoute>} />
+                  <Route path="auditoria" element={<ProtectedRoute requiredRoles={['admin', 'manager']}><FeatureErrorBoundary feature="Auditoria"><AuditTrail /></FeatureErrorBoundary></ProtectedRoute>} />
                   <Route path="honorarios" element={
                     <ProtectedRoute requiredRoles={['admin', 'manager']}>
-                      <ErrorBoundary><HonorariosManager /></ErrorBoundary>
+                      <FeatureErrorBoundary feature="Honorarios"><HonorariosManager /></FeatureErrorBoundary>
                     </ProtectedRoute>
                   } />
-                  <Route path="documentos" element={<ErrorBoundary><DocumentosManager /></ErrorBoundary>} />
-                  <Route path="departamentos" element={<ProtectedRoute><ErrorBoundary><DepartamentosManager /></ErrorBoundary></ProtectedRoute>} />
-                  <Route path="tags" element={<ErrorBoundary><TagsManager /></ErrorBoundary>} />
-                  <Route path="equipe" element={<ProtectedRoute requiredRoles={['admin', 'manager']}><ErrorBoundary><EquipeManager /></ErrorBoundary></ProtectedRoute>} />
-                  <Route path="arquivados" element={<ErrorBoundary><ArquivadosView /></ErrorBoundary>} />
-                  <Route path="metricas" element={<ErrorBoundary><MetricasOperacionais /></ErrorBoundary>} />
-                  <Route path="suporte" element={<ErrorBoundary><SuportePage /></ErrorBoundary>} />
-                  <Route path="base-conhecimento" element={<ProtectedRoute><ErrorBoundary><BaseConhecimento /></ErrorBoundary></ProtectedRoute>} />
+                  <Route path="documentos" element={<FeatureErrorBoundary feature="Documentos"><DocumentosManager /></FeatureErrorBoundary>} />
+                  <Route path="departamentos" element={<ProtectedRoute requiredRoles={['admin', 'manager']}><FeatureErrorBoundary feature="Departamentos"><DepartamentosManager /></FeatureErrorBoundary></ProtectedRoute>} />
+                  <Route path="tags" element={<FeatureErrorBoundary feature="Tags"><TagsManager /></FeatureErrorBoundary>} />
+                  <Route path="equipe" element={<ProtectedRoute requiredRoles={['admin', 'manager']}><FeatureErrorBoundary feature="Equipe"><EquipeManager /></FeatureErrorBoundary></ProtectedRoute>} />
+                  <Route path="arquivados" element={<FeatureErrorBoundary feature="Arquivados"><ArquivadosView /></FeatureErrorBoundary>} />
+                  <Route path="metricas" element={<FeatureErrorBoundary feature="Metricas"><MetricasOperacionais /></FeatureErrorBoundary>} />
+                  <Route path="suporte" element={<FeatureErrorBoundary feature="Suporte"><SuportePage /></FeatureErrorBoundary>} />
+                  <Route path="base-conhecimento" element={<ProtectedRoute requiredRoles={['admin', 'manager', 'user']}><FeatureErrorBoundary feature="Base de Conhecimento"><BaseConhecimento /></FeatureErrorBoundary></ProtectedRoute>} />
                   {/* Redirects for old SISTEMA paths → new locations */}
                   <Route path="billing" element={<Navigate to="/configuracoes/plano" replace />} />
                   <Route path="administracao" element={<Navigate to="/configuracoes" replace />} />
-                  <Route path="admin/playground" element={<ProtectedRoute requiredRoles={['admin']}><ErrorBoundary><AgentsPlayground /></ErrorBoundary></ProtectedRoute>} />
-                  <Route path="admin/mission-control" element={<ProtectedRoute requiredRoles={['admin']}><ErrorBoundary><MissionControl /></ErrorBoundary></ProtectedRoute>} />
-                  <Route path="admin/status" element={<ProtectedRoute requiredRoles={['admin']}><ErrorBoundary><AdminStatus /></ErrorBoundary></ProtectedRoute>} />
+                  <Route path="admin/playground" element={<ProtectedRoute requiredRoles={['admin']}><FeatureErrorBoundary feature="Agents Playground"><AgentsPlayground /></FeatureErrorBoundary></ProtectedRoute>} />
+                  <Route path="admin/mission-control" element={<ProtectedRoute requiredRoles={['admin']}><FeatureErrorBoundary feature="Mission Control"><MissionControl /></FeatureErrorBoundary></ProtectedRoute>} />
+                  <Route path="admin/status" element={<ProtectedRoute requiredRoles={['admin']}><FeatureErrorBoundary feature="Admin Status"><AdminStatus /></FeatureErrorBoundary></ProtectedRoute>} />
                 </Route>
 
                 <Route path="*" element={<NotFound />} />

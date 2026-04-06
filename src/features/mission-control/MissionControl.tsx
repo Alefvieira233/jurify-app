@@ -41,7 +41,7 @@ interface AgentStatusCardProps {
 function AgentStatusCard({ agent }: AgentStatusCardProps) {
   const statusConfig = {
     idle: {
-      color: 'bg-gray-500',
+      color: 'bg-muted-foreground',
       icon: Clock,
       text: 'Ocioso',
       pulse: false
@@ -253,7 +253,7 @@ function RealTimeTerminal({ logs }: RealTimeTerminalProps) {
               variant="ghost"
               size="sm"
               onClick={() => setAutoScroll(!autoScroll)}
-              className="h-7 text-xs text-slate-400 hover:text-white"
+              className="h-7 text-xs text-slate-500 dark:text-slate-400 hover:text-white"
             >
               Auto-scroll: {autoScroll ? 'ON' : 'OFF'}
             </Button>
@@ -277,7 +277,7 @@ function RealTimeTerminal({ logs }: RealTimeTerminalProps) {
                   log.status === 'failed' && 'bg-red-950/30 text-red-400',
                   log.status === 'completed' && 'text-green-400',
                   log.status === 'processing' && 'text-blue-400 bg-blue-950/20',
-                  log.status === 'pending' && 'text-slate-400'
+                  log.status === 'pending' && 'text-slate-500 dark:text-slate-400'
                 )}>
                   <span className="text-slate-500">
                     [{new Date(log.created_at).toLocaleTimeString()}]

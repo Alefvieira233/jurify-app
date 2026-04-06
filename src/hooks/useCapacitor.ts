@@ -3,6 +3,9 @@
 import { useState } from 'react';
 import { Capacitor } from '@capacitor/core';
 import { Haptics, ImpactStyle, NotificationType } from '@capacitor/haptics';
+import { createLogger } from '@/lib/logger';
+
+const log = createLogger('useCapacitor');
 
 export interface CapacitorInfo {
   isNative: boolean;
@@ -41,6 +44,6 @@ export async function triggerHaptic(
       await Haptics.impact({ style: impactMap[style] });
     }
   } catch (err) {
-    console.warn('[useCapacitor] haptic feedback unavailable:', err);
+    log.warn('haptic feedback unavailable', { error: String(err) });
   }
 }

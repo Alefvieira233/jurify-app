@@ -2,6 +2,7 @@
 import { useEffect, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
+import { queryKeys } from '@/lib/queryKeys';
 import {
   ArrowLeft, Phone, Mail, Tag, Activity, Clock,
   Scale, Building2, CreditCard,
@@ -79,10 +80,10 @@ const LeadDetailPanel = () => {
   const { scores, getLeadScore }                      = useLeadScoring();
 
   const { data: lead, isLoading: loading } = useQuery({
-    queryKey: ['lead', leadId],
+    queryKey: queryKeys.leads.byId(leadId),
     queryFn: async () => {
       const { data, error } = await supabase
-        .from('leads').select('*').eq('id', leadId!).single();
+        .from('leads').select('id, nome_completo, nome, email, telefone, area_juridica, status, origem, valor_causa, lead_score, temperature, expected_value, probability, company_name, cpf_cnpj, pipeline_stage_id, last_activity_at, next_followup_at, followup_count, created_at, updated_at').eq('id', leadId!).single();
       if (error) throw error;
       return data as LeadDetail;
     },

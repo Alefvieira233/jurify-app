@@ -212,7 +212,7 @@ const FollowUpPanel = () => {
               placeholder="Buscar follow-up..."
               value={searchTerm}
               onChange={e => setSearchTerm(e.target.value)}
-              className="h-8 w-44 bg-muted/50 border border-border rounded-md pl-8 pr-3 text-xs placeholder:text-muted-foreground/50 focus:outline-none focus:ring-1 focus:ring-ring transition-shadow"
+              className="h-8 w-44 bg-muted/50 border border-border rounded-md pl-8 pr-3 text-xs placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring transition-shadow"
             />
           </div>
 

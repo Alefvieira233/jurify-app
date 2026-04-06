@@ -305,7 +305,7 @@ export function useAgendaAutomation() {
   const getAutomationStatus = useCallback(async (agendamentoId: string) => {
     const { data, error } = await supabase
       .from('automation_tasks')
-      .select('*')
+      .select('id, type, status, payload, error, created_at, completed_at')
       .eq('payload->>agendamento_id', agendamentoId)
       .order('created_at', { ascending: false });
 
@@ -316,7 +316,7 @@ export function useAgendaAutomation() {
   const retryFailedTask = useCallback(async (taskId: string) => {
     const { data: task } = await supabase
       .from('automation_tasks')
-      .select('*')
+      .select('id, type, status, payload, error, created_at, completed_at')
       .eq('id', taskId)
       .single();
 
@@ -345,7 +345,7 @@ export function useAgendaAutomation() {
 
     const { data: agendamento } = await supabase
       .from('agendamentos')
-      .select('*')
+      .select('id, lead_id, tenant_id, area_juridica, data_hora, responsavel, observacoes, google_event_id, status, created_at, updated_at')
       .eq('id', agendamentoId)
       .single();
 

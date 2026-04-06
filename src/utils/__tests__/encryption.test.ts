@@ -1,5 +1,4 @@
-import { describe, it, expect, beforeAll, afterAll, beforeEach, vi } from 'vitest';
-import CryptoJS from 'crypto-js';
+import { describe, it, expect, vi } from 'vitest';
 import {
   encryption,
   encrypt,
@@ -74,41 +73,37 @@ describe('EncryptionService', () => {
   });
 
   // =========================================================================
-  // hashPassword / verifyPassword
+  // hashPassword / verifyPassword (Web Crypto PBKDF2)
   // =========================================================================
-  describe('hashPassword & verifyPassword (600k PBKDF2)', () => {
-    let originalPBKDF2: typeof CryptoJS.PBKDF2;
-    beforeAll(() => {
-      originalPBKDF2 = CryptoJS.PBKDF2;
-      vi.spyOn(CryptoJS, 'PBKDF2').mockImplementation(
-        (password, salt) => originalPBKDF2(password, salt, { keySize: 512 / 32, iterations: 1 })
-      );
-    });
-    afterAll(() => vi.restoreAllMocks());
-
-    it('hashes and verifies a password', () => {
+  describe('hashPassword & verifyPassword (Web Crypto PBKDF2)', () => {
+    it('hashes and verifies a password', async () => {
       const password = 'MyStr0ng!Pass';
-      const hash = hashPassword(password);
+      const { hash, salt } = await hashPassword(password);
 
-      expect(hash).toContain(':');
-      expect(verifyPassword(password, hash)).toBe(true);
-    }, 5_000);
+      expect(hash.length).toBe(64); // 256-bit = 64 hex chars
+      expect(salt.length).toBeGreaterThan(0);
+      expect(await verifyPassword(password, hash, salt)).toBe(true);
+    });
 
-    it('rejects wrong password', () => {
-      const hash = hashPassword('correct-password');
-      expect(verifyPassword('wrong-password', hash)).toBe(false);
-    }, 5_000);
+    it('rejects wrong password', async () => {
+      const { hash, salt } = await hashPassword('correct-password');
+      expect(await verifyPassword('wrong-password', hash, salt)).toBe(false);
+    });
 
-    it('produces different hashes for the same password (random salt)', () => {
+    it('produces different hashes for the same password (random salt)', async () => {
       const password = 'same-password';
-      const h1 = hashPassword(password);
-      const h2 = hashPassword(password);
-      expect(h1).not.toBe(h2);
-    }, 5_000);
+      const r1 = await hashPassword(password);
+      const r2 = await hashPassword(password);
+      expect(r1.hash).not.toBe(r2.hash);
+      expect(r1.salt).not.toBe(r2.salt);
+    });
 
-    it('returns false for malformed hash', () => {
-      expect(verifyPassword('password', 'no-colon-here')).toBe(false);
-    }, 5_000);
+    it('produces same hash with same salt', async () => {
+      const password = 'deterministic';
+      const { hash: h1, salt } = await hashPassword(password);
+      const { hash: h2 } = await hashPassword(password, salt);
+      expect(h1).toBe(h2);
+    });
   });
 
   // =========================================================================
@@ -277,20 +272,20 @@ describe('EncryptionService', () => {
   // hashData
   // =========================================================================
   describe('hashData', () => {
-    it('produces consistent SHA-256 hash', () => {
-      const h1 = encryption.hashData('test');
-      const h2 = encryption.hashData('test');
+    it('produces consistent SHA-256 hash', async () => {
+      const h1 = await encryption.hashData('test');
+      const h2 = await encryption.hashData('test');
       expect(h1).toBe(h2);
     });
 
-    it('produces different hashes for different inputs', () => {
-      const h1 = encryption.hashData('input-a');
-      const h2 = encryption.hashData('input-b');
+    it('produces different hashes for different inputs', async () => {
+      const h1 = await encryption.hashData('input-a');
+      const h2 = await encryption.hashData('input-b');
       expect(h1).not.toBe(h2);
     });
 
-    it('returns 64-char hex string (SHA-256)', () => {
-      const hash = encryption.hashData('anything');
+    it('returns 64-char hex string (SHA-256)', async () => {
+      const hash = await encryption.hashData('anything');
       expect(hash).toMatch(/^[0-9a-f]{64}$/);
     });
   });

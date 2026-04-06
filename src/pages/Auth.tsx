@@ -1,6 +1,8 @@
 
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { Navigate, useNavigate } from 'react-router-dom';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Scale, Shield, Sparkles, Zap } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
@@ -8,15 +10,17 @@ import { useToast } from '@/hooks/use-toast';
 import { validatePasswordStrength } from '@/components/ui/password-strength';
 import { useBiometrics } from '@/hooks/useBiometrics';
 import { toUserMessage } from '@/lib/errorMessages';
+import { createLogger } from '@/lib/logger';
+
+const log = createLogger('Auth');
+import { Form } from '@/components/ui/form';
 import EmailConfirmation from './auth/components/EmailConfirmation';
 import LoginForm from './auth/components/LoginForm';
 import RegisterForm from './auth/components/RegisterForm';
+import { loginSchema, registerSchema, type LoginFormData, type RegisterFormData } from './auth/schemas';
 
 const Auth = () => {
   const [isLogin, setIsLogin] = useState(true);
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [nomeCompleto, setNomeCompleto] = useState('');
   const [lgpdConsent, setLgpdConsent] = useState(false);
   const [loading, setLoading] = useState(false);
   const [emailConfirmationPending, setEmailConfirmationPending] = useState(false);
@@ -25,6 +29,18 @@ const Auth = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
   const { isAvailable: isBiometricsAvailable, authenticate: biometricAuth } = useBiometrics();
+
+  const loginForm = useForm<LoginFormData>({
+    resolver: zodResolver(loginSchema),
+    defaultValues: { email: '', password: '' },
+    mode: 'onBlur',
+  });
+
+  const registerForm = useForm<RegisterFormData>({
+    resolver: zodResolver(registerSchema),
+    defaultValues: { nomeCompleto: '', email: '', password: '', confirmPassword: '' },
+    mode: 'onBlur',
+  });
 
   const handleBiometricLogin = async () => {
     const success = await biometricAuth();
@@ -36,72 +52,81 @@ const Auth = () => {
     return <Navigate to="/" replace />;
   }
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleLoginSubmit = async (data: LoginFormData) => {
     setLoading(true);
-
     try {
-      if (isLogin) {
-        const { data, error } = await signIn(email, password);
+      const { data: authData, error } = await signIn(data.email, data.password);
 
-        if (error) {
-          const msg = error.message?.toLowerCase() ?? '';
-          if (msg.includes('email not confirmed') || msg.includes('email_not_confirmed')) {
-            setEmailConfirmationPending(true);
-          } else {
-            toast({
-              title: "Erro no login",
-              description: "Email ou senha incorretos.",
-              variant: "destructive",
-            });
-          }
-        } else if (data?.user) {
-          toast({
-            title: "Login realizado!",
-            description: "Redirecionando...",
-          });
-        }
-      } else {
-        const { isStrong } = validatePasswordStrength(password);
-        if (!isStrong) {
-          toast({
-            title: "Senha fraca",
-            description: "A senha deve atender pelo menos 4 dos 5 requisitos de segurança.",
-            variant: "destructive",
-          });
-          setLoading(false);
-          return;
-        }
-
-        if (!lgpdConsent) {
-          toast({
-            title: "Consentimento obrigatório",
-            description: "Você precisa aceitar os Termos de Uso e a Política de Privacidade para criar uma conta.",
-            variant: "destructive",
-          });
-          setLoading(false);
-          return;
-        }
-
-        const { data, error } = await signUp(email, password, { full_name: nomeCompleto });
-        if (error) {
-          const errorMsg = error instanceof Error ? error.message : (error as { message?: string })?.message || '';
-          console.error('[Auth] Signup error:', errorMsg, error);
-          toast({
-            title: "Erro no cadastro",
-            description: errorMsg || toUserMessage(error),
-            variant: "destructive",
-          });
-        } else if (data?.user) {
-          toast({
-            title: "Conta criada!",
-            description: "Redirecionando...",
-          });
-          // autoconfirm is ON — user is already logged in, redirect
-          navigate('/');
-        } else {
+      if (error) {
+        const msg = error.message?.toLowerCase() ?? '';
+        if (msg.includes('email not confirmed') || msg.includes('email_not_confirmed')) {
           setEmailConfirmationPending(true);
+        } else {
+          toast({
+            title: "Erro no login",
+            description: "Email ou senha incorretos.",
+            variant: "destructive",
+          });
         }
+      } else if (authData?.user) {
+        toast({
+          title: "Login realizado!",
+          description: "Redirecionando...",
+        });
+      }
+    } catch (_error) {
+      toast({
+        title: "Erro",
+        description: "Algo deu errado. Tente novamente.",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleRegisterSubmit = async (data: RegisterFormData) => {
+    setLoading(true);
+    try {
+      const { isStrong } = validatePasswordStrength(data.password);
+      if (!isStrong) {
+        toast({
+          title: "Senha fraca",
+          description: "A senha deve atender pelo menos 4 dos 5 requisitos de segurança.",
+          variant: "destructive",
+        });
+        setLoading(false);
+        return;
+      }
+
+      if (!lgpdConsent) {
+        toast({
+          title: "Consentimento obrigatório",
+          description: "Você precisa aceitar os Termos de Uso e a Política de Privacidade para criar uma conta.",
+          variant: "destructive",
+        });
+        setLoading(false);
+        return;
+      }
+
+      const { data: authData, error } = await signUp(data.email, data.password, { full_name: data.nomeCompleto });
+      if (error) {
+        const errorMsg = error instanceof Error ? error.message : (error as { message?: string })?.message || '';
+        log.error('Signup error', error, { errorMsg });
+        toast({
+          title: "Erro no cadastro",
+          description: errorMsg || toUserMessage(error),
+          variant: "destructive",
+        });
+      } else if (authData?.user) {
+        toast({
+          title: "Conta criada!",
+          description: "Redirecionando...",
+        });
+        // autoconfirm is ON — user is already logged in, redirect
+        navigate('/');
+      } else {
+        setEmailConfirmationPending(true);
       }
     } catch (_error) {
       toast({
@@ -115,6 +140,7 @@ const Auth = () => {
   };
 
   if (emailConfirmationPending) {
+    const email = isLogin ? loginForm.getValues('email') : registerForm.getValues('email');
     return (
       <EmailConfirmation
         email={email}
@@ -329,31 +355,27 @@ const Auth = () => {
 
           <CardContent className="space-y-6">
             {isLogin ? (
-              <LoginForm
-                email={email}
-                password={password}
-                loading={loading}
-                isBiometricsAvailable={isBiometricsAvailable}
-                onEmailChange={setEmail}
-                onPasswordChange={setPassword}
-                onSubmit={(e) => void handleSubmit(e)}
-                onBiometricLogin={() => { void handleBiometricLogin(); }}
-                onSwitchToRegister={() => setIsLogin(false)}
-              />
+              <Form {...loginForm}>
+                <LoginForm
+                  form={loginForm}
+                  loading={loading}
+                  isBiometricsAvailable={isBiometricsAvailable}
+                  onSubmit={loginForm.handleSubmit((data) => void handleLoginSubmit(data))}
+                  onBiometricLogin={() => { void handleBiometricLogin(); }}
+                  onSwitchToRegister={() => setIsLogin(false)}
+                />
+              </Form>
             ) : (
-              <RegisterForm
-                nomeCompleto={nomeCompleto}
-                email={email}
-                password={password}
-                lgpdConsent={lgpdConsent}
-                loading={loading}
-                onNomeCompletoChange={setNomeCompleto}
-                onEmailChange={setEmail}
-                onPasswordChange={setPassword}
-                onLgpdConsentChange={setLgpdConsent}
-                onSubmit={(e) => void handleSubmit(e)}
-                onSwitchToLogin={() => setIsLogin(true)}
-              />
+              <Form {...registerForm}>
+                <RegisterForm
+                  form={registerForm}
+                  lgpdConsent={lgpdConsent}
+                  loading={loading}
+                  onLgpdConsentChange={setLgpdConsent}
+                  onSubmit={registerForm.handleSubmit((data) => void handleRegisterSubmit(data))}
+                  onSwitchToLogin={() => setIsLogin(true)}
+                />
+              </Form>
             )}
 
             {/* Security Notice */}

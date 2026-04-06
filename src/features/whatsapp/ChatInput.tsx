@@ -9,6 +9,9 @@ import {
   X,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { createLogger } from '@/lib/logger';
+
+const log = createLogger('ChatInput');
 
 export interface ChatInputProps {
   newMessage: string;
@@ -89,7 +92,7 @@ const ChatInput = ({
         setRecordingTime(t => t + 1);
       }, 1000);
     } catch (err) {
-      console.error('[ChatInput] microphone access failed:', err);
+      log.error('microphone access failed', err);
       alert('Não foi possível acessar o microfone. Verifique as permissões do navegador.');
     }
   };

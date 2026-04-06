@@ -18,7 +18,7 @@ const HONORARIO_STATUS_COLORS: Record<string, string> = {
   vigente: 'bg-emerald-500/10 text-emerald-600',
   pago: 'bg-blue-500/10 text-blue-600',
   inadimplente: 'bg-red-500/10 text-red-600',
-  cancelado: 'bg-slate-500/10 text-slate-500',
+  cancelado: 'bg-slate-500/10 text-slate-600 dark:text-slate-400',
   disputado: 'bg-amber-500/10 text-amber-600',
 };
 

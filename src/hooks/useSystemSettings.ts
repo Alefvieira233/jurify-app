@@ -32,7 +32,7 @@ export const useSystemSettings = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('system_settings')
-        .select('*')
+        .select('id, key, value, category, description, is_sensitive, tenant_id')
         .eq('tenant_id', tenantId)
         .order('category', { ascending: true });
 

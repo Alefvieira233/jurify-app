@@ -207,11 +207,11 @@ export function useLeadsCRUD({ qKey, queryData: _queryData, tenantId, queryClien
   });
 
   const archiveLead = useCallback(async (id: string, motivo: string, observacao?: string, dataReativacao?: string, proximoResponsavelId?: string): Promise<boolean> => {
-    try { await archiveMutation.mutateAsync({ id, motivo, observacao, dataReativacao, proximoResponsavelId }); return true; } catch (err) { console.error('[useLeads] archiveLead failed:', err); return false; }
+    try { await archiveMutation.mutateAsync({ id, motivo, observacao, dataReativacao, proximoResponsavelId }); return true; } catch (err) { log.error('archiveLead failed', err); return false; }
   }, [archiveMutation]);
 
   const unarchiveLead = useCallback(async (id: string): Promise<boolean> => {
-    try { await unarchiveMutation.mutateAsync(id); return true; } catch (err) { console.error('[useLeads] unarchiveLead failed:', err); return false; }
+    try { await unarchiveMutation.mutateAsync(id); return true; } catch (err) { log.error('unarchiveLead failed', err); return false; }
   }, [unarchiveMutation]);
 
   // ── Public API wrappers ───────────────────────────────────────────────────
@@ -236,7 +236,7 @@ export function useLeadsCRUD({ qKey, queryData: _queryData, tenantId, queryClien
       void refreshPlanUsage();
       return true;
     } catch (err) {
-      console.error('[useLeads] createLead failed:', err);
+      log.error('createLead failed', err);
       return false;
     }
   }, [user, createMutation, toast, canUsePlan, planLimits.leads, refreshPlanUsage]);
@@ -247,7 +247,7 @@ export function useLeadsCRUD({ qKey, queryData: _queryData, tenantId, queryClien
       await updateMutation.mutateAsync({ id, updateData });
       return true;
     } catch (err) {
-      console.error('[useLeads] updateLead failed:', err);
+      log.error('updateLead failed', err);
       return false;
     }
   }, [user, tenantId, updateMutation]);
@@ -258,7 +258,7 @@ export function useLeadsCRUD({ qKey, queryData: _queryData, tenantId, queryClien
       await deleteMutation.mutateAsync(id);
       return true;
     } catch (err) {
-      console.error('[useLeads] deleteLead failed:', err);
+      log.error('deleteLead failed', err);
       return false;
     }
   }, [user, tenantId, deleteMutation]);

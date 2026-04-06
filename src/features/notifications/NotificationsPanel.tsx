@@ -4,6 +4,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { useNotifications } from '@/hooks/useNotifications';
 import { cn } from '@/lib/utils';
 import { usePageTitle } from '@/hooks/usePageTitle';
+import { ScreenReaderAnnounce } from '@/components/ui/ScreenReaderAnnounce';
 
 const TYPE_CONFIG = {
   info:    { icon: Info,         hex: '#2563eb', bgClass: 'bg-blue-500/10',    textClass: 'text-blue-600 dark:text-blue-400',    label: 'Info'    },
@@ -56,24 +57,24 @@ const NotificationItem = memo(({ notification, read, onMarkAsRead }: Notificatio
           <p className={cn('text-xs leading-snug truncate', read ? 'font-normal text-foreground/70' : 'font-semibold text-foreground')}>
             {notification.titulo ?? 'Notificacao'}
           </p>
-          <span className="text-[10px] text-muted-foreground/50 flex-shrink-0 tabular-nums">
+          <span className="text-xs text-muted-foreground/50 flex-shrink-0 tabular-nums">
             {relativeTime(notification.data_criacao ?? notification.created_at)}
           </span>
         </div>
         {notification.mensagem && (
-          <p className="text-[11px] text-muted-foreground/70 mt-0.5 line-clamp-2 leading-relaxed">
+          <p className="text-xs text-muted-foreground/70 mt-0.5 line-clamp-2 leading-relaxed">
             {notification.mensagem}
           </p>
         )}
         <div className="flex items-center gap-2 mt-1.5">
-          <span className={cn('text-[9px] font-semibold uppercase tracking-wide px-1.5 py-0.5 rounded-full', cfg.bgClass, cfg.textClass)}>
+          <span className={cn('text-xs font-semibold uppercase tracking-wide px-1.5 py-0.5 rounded-full', cfg.bgClass, cfg.textClass)}>
             {cfg.label}
           </span>
           {!read && (
             <button
               type="button"
               onClick={() => { void onMarkAsRead(notification.id); }}
-              className="text-[10px] text-muted-foreground/50 hover:text-primary transition-colors flex items-center gap-0.5"
+              className="text-xs text-muted-foreground/50 hover:text-primary transition-colors flex items-center gap-0.5"
             >
               <Check className="h-3 w-3" />
               Marcar lida
@@ -107,7 +108,7 @@ const NotificationsPanel = () => {
             </div>
             <div>
               <p className="text-sm font-bold text-foreground leading-tight">Notificações</p>
-              <p className="text-[11px] text-muted-foreground leading-none mt-0.5">Carregando...</p>
+              <p className="text-xs text-muted-foreground leading-none mt-0.5">Carregando...</p>
             </div>
           </div>
         </div>
@@ -127,8 +128,13 @@ const NotificationsPanel = () => {
     );
   }
 
+  const loadedAnnouncement = !loading
+    ? `${notifications.length} notificações carregadas. ${unreadCount} não lidas.`
+    : '';
+
   return (
     <div className="flex flex-col h-[calc(100vh-var(--topbar-h,4rem))]">
+      {loadedAnnouncement && <ScreenReaderAnnounce message={loadedAnnouncement} />}
       {/* Header */}
       <div className="flex-shrink-0 px-5 py-3 border-b border-border bg-background">
         <div className="flex items-center justify-between gap-4">
@@ -137,7 +143,7 @@ const NotificationsPanel = () => {
               <Bell className="h-4 w-4 text-primary" />
               {unreadCount > 0 && (
                 <span className="absolute -top-1 -right-1 w-4 h-4 bg-rose-500 rounded-full flex items-center justify-center">
-                  <span className="text-[8px] font-bold text-white leading-none">
+                  <span className="text-xs font-bold text-white leading-none">
                     {unreadCount > 9 ? '9+' : unreadCount}
                   </span>
                 </span>
@@ -145,7 +151,7 @@ const NotificationsPanel = () => {
             </div>
             <div>
               <p className="text-sm font-bold text-foreground leading-tight">Notificações</p>
-              <p className="text-[11px] text-muted-foreground leading-none mt-0.5">
+              <p className="text-xs text-muted-foreground leading-none mt-0.5">
                 {unreadCount > 0 ? `${unreadCount} não lida${unreadCount > 1 ? 's' : ''}` : 'Tudo em dia'}
               </p>
             </div>
@@ -155,7 +161,7 @@ const NotificationsPanel = () => {
               <button
                 type="button"
                 onClick={() => { void markAllAsRead(); }}
-                className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-[11px] font-medium text-primary bg-primary/8 hover:bg-primary/15 transition-colors"
+                className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs font-medium text-primary bg-primary/8 hover:bg-primary/15 transition-colors"
               >
                 <Check className="h-3 w-3" />
                 Marcar todas
@@ -184,7 +190,7 @@ const NotificationsPanel = () => {
               type="button"
               onClick={() => setFilter(tab.key)}
               className={cn(
-                'px-2.5 py-1 rounded-md text-[11px] font-medium transition-colors',
+                'px-2.5 py-1 rounded-md text-xs font-medium transition-colors',
                 filter === tab.key
                   ? 'bg-primary/10 text-primary'
                   : 'text-muted-foreground/60 hover:text-muted-foreground hover:bg-muted/50'
@@ -204,7 +210,7 @@ const NotificationsPanel = () => {
               <Bell className="h-5 w-5 text-muted-foreground/40" />
             </div>
             <p className="text-sm font-medium text-foreground">Tudo em dia</p>
-            <p className="text-[11px] text-muted-foreground mt-1">
+            <p className="text-xs text-muted-foreground mt-1">
               {filter === 'nao_lidas' ? 'Não há notificações não lidas' : 'Nenhuma notificação encontrada'}
             </p>
           </div>

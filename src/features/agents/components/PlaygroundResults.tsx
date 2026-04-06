@@ -266,7 +266,7 @@ export default function PlaygroundResults({ result, showRawJson }: PlaygroundRes
                 {typeof result.formattedMessages === 'string' ? (
                   <div>
                     <p className="text-xs text-muted-foreground mb-1">Mensagem</p>
-                    <p className="text-sm bg-gray-100 p-2 rounded">
+                    <p className="text-sm bg-muted p-2 rounded">
                       {result.formattedMessages.substring(0, 150)}...
                     </p>
                   </div>
@@ -275,7 +275,7 @@ export default function PlaygroundResults({ result, showRawJson }: PlaygroundRes
                     {result.formattedMessages.whatsapp_message && (
                       <div>
                         <p className="text-xs text-muted-foreground mb-1">WhatsApp</p>
-                        <p className="text-sm bg-gray-100 p-2 rounded">
+                        <p className="text-sm bg-muted p-2 rounded">
                           {result.formattedMessages.whatsapp_message.substring(0, 150)}...
                         </p>
                       </div>
@@ -283,7 +283,7 @@ export default function PlaygroundResults({ result, showRawJson }: PlaygroundRes
                     {result.formattedMessages.email_message && (
                       <div>
                         <p className="text-xs text-muted-foreground mb-1">E-mail</p>
-                        <p className="text-sm bg-gray-100 p-2 rounded">
+                        <p className="text-sm bg-muted p-2 rounded">
                           {result.formattedMessages.email_message.substring(0, 150)}...
                         </p>
                       </div>

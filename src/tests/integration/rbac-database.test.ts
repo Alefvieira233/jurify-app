@@ -249,11 +249,14 @@ describe('RBAC Database Integration — has_permission() parity', () => {
     });
 
     describe('notificacoes policies', () => {
-      it('INSERT is tenant-only (no role check)', () => {
-        // All authenticated users in the tenant can create notifications (system-generated)
-        // The SQL policy does NOT call has_permission for INSERT
-        // So all roles effectively can insert — tested here as "not blocked by role"
-        expect(true).toBe(true); // tenant-only, no role restriction
+      it('INSERT is tenant-only (no role check) — all roles can create', () => {
+        // The SQL policy does NOT call has_permission for INSERT on notificacoes.
+        // Verify that the permission matrix does NOT list 'create' for notificacoes,
+        // confirming INSERT is handled at the tenant/RLS level, not by has_permission().
+        expect(hasPermissionSQL('admin', 'notificacoes', 'create')).toBe(false);
+        expect(hasPermissionSQL('manager', 'notificacoes', 'create')).toBe(false);
+        expect(hasPermissionSQL('user', 'notificacoes', 'create')).toBe(false);
+        expect(hasPermissionSQL('viewer', 'notificacoes', 'create')).toBe(false);
       });
 
       it('admin, manager, user can UPDATE (mark as read)', () => {

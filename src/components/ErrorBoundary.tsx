@@ -5,7 +5,6 @@ import { Card, CardContent } from '@/components/ui/card';
 import { AlertTriangle, RefreshCw } from 'lucide-react';
 import { captureException } from '@sentry/react';
 import { createLogger } from '@/lib/logger';
-import { Translation } from 'react-i18next';
 
 const log = createLogger('ErrorBoundary');
 
@@ -66,53 +65,49 @@ export class ErrorBoundary extends Component<Props, State> {
       }
 
       return (
-        <Translation>
-          {(t) => (
-            <div className="min-h-screen flex items-center justify-center p-4 bg-[hsl(var(--background))]">
-              <Card className="w-full max-w-md" role="alert">
-                <CardContent className="p-6 text-center">
-                  <AlertTriangle className="w-12 h-12 text-red-300 mx-auto mb-4" />
-                  <h2 className="text-xl font-semibold text-[hsl(var(--foreground))] mb-2">
-                    {t('errors.somethingWentWrong')}
-                  </h2>
-                  <p className="text-[hsl(var(--muted-foreground))] mb-6">
-                    {t('errors.unexpectedError')}
-                  </p>
+        <div className="min-h-screen flex items-center justify-center p-4 bg-[hsl(var(--background))]">
+          <Card className="w-full max-w-md" role="alert">
+            <CardContent className="p-6 text-center">
+              <AlertTriangle className="w-12 h-12 text-red-300 mx-auto mb-4" />
+              <h2 className="text-xl font-semibold text-[hsl(var(--foreground))] mb-2">
+                Ops! Algo deu errado
+              </h2>
+              <p className="text-[hsl(var(--muted-foreground))] mb-6">
+                Ocorreu um erro inesperado. Nossa equipe foi notificada automaticamente.
+              </p>
 
-                  <div className="space-y-3">
-                    <Button
-                      onClick={this.handleReset}
-                      className="w-full bg-[hsl(var(--accent))] hover:bg-[hsl(var(--accent))] text-[hsl(var(--accent-foreground))]"
-                    >
-                      <RefreshCw className="w-4 h-4 mr-2" />
-                      {t('common.tryAgain')}
-                    </Button>
+              <div className="space-y-3">
+                <Button
+                  onClick={this.handleReset}
+                  className="w-full bg-[hsl(var(--accent))] hover:bg-[hsl(var(--accent))] text-[hsl(var(--accent-foreground))]"
+                >
+                  <RefreshCw className="w-4 h-4 mr-2" />
+                  Tentar novamente
+                </Button>
 
-                    <Button
-                      variant="outline"
-                      onClick={this.handleReload}
-                      className="w-full bg-[hsl(var(--card))] border-[hsl(var(--border))] hover:bg-[hsl(var(--muted))]"
-                    >
-                      {t('errors.reloadPage')}
-                    </Button>
-                  </div>
+                <Button
+                  variant="outline"
+                  onClick={this.handleReload}
+                  className="w-full bg-[hsl(var(--card))] border-[hsl(var(--border))] hover:bg-[hsl(var(--muted))]"
+                >
+                  Recarregar Página
+                </Button>
+              </div>
 
-                  {import.meta.env.MODE === 'development' && this.state.error && (
-                    <details className="mt-6 text-left">
-                      <summary className="cursor-pointer text-sm text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))]">
-                        {t('errors.errorDetails')}
-                      </summary>
-                      <pre className="mt-2 text-xs bg-[hsl(var(--muted))] border border-[hsl(var(--border))] p-2 rounded overflow-auto max-h-32">
-                        {this.state.error.toString()}
-                        {this.state.errorInfo?.componentStack}
-                      </pre>
-                    </details>
-                  )}
-                </CardContent>
-              </Card>
-            </div>
-          )}
-        </Translation>
+              {import.meta.env.MODE === 'development' && this.state.error && (
+                <details className="mt-6 text-left">
+                  <summary className="cursor-pointer text-sm text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))]">
+                    Detalhes do erro (desenvolvimento)
+                  </summary>
+                  <pre className="mt-2 text-xs bg-[hsl(var(--muted))] border border-[hsl(var(--border))] p-2 rounded overflow-auto max-h-32">
+                    {this.state.error.toString()}
+                    {this.state.errorInfo?.componentStack}
+                  </pre>
+                </details>
+              )}
+            </CardContent>
+          </Card>
+        </div>
       );
     }
 

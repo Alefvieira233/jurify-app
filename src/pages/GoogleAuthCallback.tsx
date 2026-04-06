@@ -69,19 +69,19 @@ const GoogleAuthCallback: React.FC = () => {
           {status === 'processing' && (
             <div className="text-center py-8">
               <Loader2 className="h-12 w-12 animate-spin text-amber-500 mx-auto mb-4" />
-              <p className="text-gray-300 font-medium">Processando autenticação...</p>
-              <p className="text-sm text-gray-400 mt-2">Aguarde enquanto validamos suas credenciais</p>
+              <p className="text-muted-foreground font-medium">Processando autenticação...</p>
+              <p className="text-sm text-muted-foreground mt-2">Aguarde enquanto validamos suas credenciais</p>
             </div>
           )}
 
           {status === 'success' && (
             <div className="text-center py-8">
               <CheckCircle className="h-12 w-12 text-green-500 mx-auto mb-4" />
-              <h3 className="text-lg font-semibold text-gray-100 mb-2">
+              <h3 className="text-lg font-semibold text-foreground mb-2">
                 Conectado com sucesso!
               </h3>
-              <p className="text-gray-300">Google Calendar configurado corretamente.</p>
-              <p className="text-sm text-gray-400 mt-4 mb-4">
+              <p className="text-muted-foreground">Google Calendar configurado corretamente.</p>
+              <p className="text-sm text-muted-foreground mt-4 mb-4">
                 Redirecionando para configurações...
               </p>
               <Button variant="outline" size="sm" onClick={() => navigate('/configuracoes?tab=integracoes')}>
@@ -97,7 +97,7 @@ const GoogleAuthCallback: React.FC = () => {
                 Erro na Autenticação
               </h3>
               <p className="text-red-200 mb-4 text-sm">{errorMessage}</p>
-              <p className="text-sm text-gray-400 mb-4">
+              <p className="text-sm text-muted-foreground mb-4">
                 Redirecionando para configurações em 5 segundos...
               </p>
               <Button variant="outline" size="sm" onClick={() => navigate('/configuracoes?tab=integracoes')}>

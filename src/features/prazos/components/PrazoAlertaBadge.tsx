@@ -10,7 +10,7 @@ export const PrazoAlertaBadge = ({ dataPrazo, status }: PrazoAlertaBadgeProps) =
     const statusMap: Record<string, { label: string; className: string }> = {
       cumprido: { label: 'Cumprido', className: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-300' },
       perdido: { label: 'Perdido', className: 'bg-red-500/10 text-red-600 dark:text-red-300' },
-      cancelado: { label: 'Cancelado', className: 'bg-slate-500/10 text-slate-500' },
+      cancelado: { label: 'Cancelado', className: 'bg-slate-500/10 text-slate-600 dark:text-slate-400' },
     };
     const s = statusMap[status];
     if (s) return <Badge className={s.className}>{s.label}</Badge>;

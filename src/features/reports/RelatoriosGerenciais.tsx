@@ -13,10 +13,10 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Download, TrendingUp, BarChart3 } from 'lucide-react';
 import { useMRR } from '@/hooks/useMRR';
 import { useResponseTime } from '@/hooks/useResponseTime';
-import { ConversionFunnel } from '@/components/analytics/ConversionFunnel';
-import { RevenueCard } from '@/components/analytics/RevenueCard';
-import { ResponseTimeChart } from '@/components/analytics/ResponseTimeChart';
-import { ChurnCard } from '@/components/analytics/ChurnCard';
+import { ConversionFunnel } from '@/features/dashboard/components/analytics/ConversionFunnel';
+import { RevenueCard } from '@/features/dashboard/components/analytics/RevenueCard';
+import { ResponseTimeChart } from '@/features/dashboard/components/analytics/ResponseTimeChart';
+import { ChurnCard } from '@/features/dashboard/components/analytics/ChurnCard';
 import { usePageTitle } from '@/hooks/usePageTitle';
 import type { PeriodKey } from './useReportMetrics';
 import { computePeriodRange, tooltipStyle } from './useReportMetrics';
@@ -26,7 +26,7 @@ import ReportChartPanel, { EmptyChart } from './ReportChartPanel';
 
 /* Analytics avançado — lazy para não bloquear o bundle principal */
 const AnalyticsDashboard = lazy(() =>
-  import('@/components/analytics/AnalyticsDashboard').then(m => ({ default: m.AnalyticsDashboard }))
+  import('@/features/dashboard/components/analytics/AnalyticsDashboard').then(m => ({ default: m.AnalyticsDashboard }))
 );
 
 /* ─────────────────────────────────────────────────────────────────────────── */

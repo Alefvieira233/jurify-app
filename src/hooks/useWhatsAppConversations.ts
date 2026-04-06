@@ -82,7 +82,7 @@ export const useWhatsAppConversations = (): UseWhatsAppConversationsReturn => {
 
       let query = supabase
         .from('whatsapp_conversations')
-        .select('*')
+        .select('id, lead_id, tenant_id, user_id, responsavel_id, phone_number, contact_name, status, area_juridica, last_message, last_message_at, unread_count, ia_active, created_at, updated_at, agent_status, last_agent_error, agent_processed_at')
         .order('last_message_at', { ascending: false });
 
       if (profile?.tenant_id) {
@@ -114,7 +114,7 @@ export const useWhatsAppConversations = (): UseWhatsAppConversationsReturn => {
 
       let msgsQuery = supabase
         .from('whatsapp_messages')
-        .select('*')
+        .select('id, conversation_id, sender, content, message_type, media_url, read, timestamp, created_at, send_status, send_error, processed_by_agent')
         .eq('conversation_id', conversationId);
 
       if (profile?.tenant_id) {

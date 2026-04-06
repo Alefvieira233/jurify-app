@@ -45,7 +45,7 @@ export const useLeadScoring = () => {
     try {
       const { data, error } = await supabase
         .from('crm_lead_scores')
-        .select('*')
+        .select('id, lead_id, score, score_factors, scored_by, created_at')
         .eq('lead_id', leadId)
         .order('created_at', { ascending: false })
         .limit(20);

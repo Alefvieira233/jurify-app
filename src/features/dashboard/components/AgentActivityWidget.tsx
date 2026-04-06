@@ -1,4 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
+import { queryKeys } from '@/lib/queryKeys';
 import { Bot, MessageSquare, TrendingUp, Clock } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -18,7 +19,7 @@ export default function AgentActivityWidget() {
   const tenantId = profile?.tenant_id;
 
   const { data: stats, isLoading } = useQuery({
-    queryKey: ['dashboard', 'agent-activity', tenantId],
+    queryKey: queryKeys.dashboardAgentActivity.list(tenantId),
     queryFn: async (): Promise<AgentStats> => {
       const now = new Date();
       const h24 = new Date(now.getTime() - 24 * 60 * 60 * 1000).toISOString();

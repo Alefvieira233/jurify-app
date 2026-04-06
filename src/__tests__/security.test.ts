@@ -163,14 +163,14 @@ describe('🛡️ Security Tests', () => {
       expect(decrypted).toBe(originalData);
     });
 
-    it('should hash and verify passwords', () => {
+    it('should hash and verify passwords', async () => {
       const password = 'MySecurePassword123!';
-      const hash = hashPassword(password);
-      
+      const { hash, salt } = await hashPassword(password);
+
       expect(hash).not.toBe(password);
-      expect(verifyPassword(password, hash)).toBe(true);
-      expect(verifyPassword('WrongPassword', hash)).toBe(false);
-    }, 60_000);
+      expect(await verifyPassword(password, hash, salt)).toBe(true);
+      expect(await verifyPassword('WrongPassword', hash, salt)).toBe(false);
+    });
 
     it('should encrypt PII data for LGPD compliance', async () => {
       const piiData = {

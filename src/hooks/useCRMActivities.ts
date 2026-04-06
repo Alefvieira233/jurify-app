@@ -51,7 +51,7 @@ export const useCRMActivities = () => {
       const limit = options?.limit || 50;
       let query = supabase
         .from('crm_activities')
-        .select('*')
+        .select('id, tenant_id, lead_id, user_id, activity_type, title, description, metadata, scheduled_at, completed_at, created_at')
         .eq('lead_id', leadId)
         .order('created_at', { ascending: false })
         .limit(limit);
@@ -108,7 +108,7 @@ export const useCRMActivities = () => {
       await logActivityMutation.mutateAsync(data);
       return true;
     } catch (err) {
-      console.error('[useCRMActivities] logActivity failed:', err);
+      log.error('logActivity failed', err);
       return false;
     }
   }, [user, tenantId, logActivityMutation]);

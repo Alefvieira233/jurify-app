@@ -41,7 +41,7 @@ function maskPhone(tel: string | null | undefined): string {
 }
 
 const PRIORIDADE_STYLE: Record<string, { label: string; className: string }> = {
-  baixa:   { label: 'Baixa',   className: 'bg-gray-100 text-gray-700 dark:bg-gray-900/30 dark:text-gray-400' },
+  baixa:   { label: 'Baixa',   className: 'bg-gray-100 text-gray-700 dark:bg-gray-900/30 dark:text-gray-300' },
   media:   { label: 'Média',   className: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400' },
   alta:    { label: 'Alta',    className: 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400' },
   urgente: { label: 'Urgente', className: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' },
@@ -82,7 +82,7 @@ export const KanbanCard = memo(({ lead, onClick, provided, tags, conexaoNome }: 
       {/* Top: avatar + name + priority */}
       <div className="flex items-start gap-2 mb-1.5">
         <div
-          className="w-7 h-7 rounded-full flex items-center justify-center text-white text-[10px] font-bold shrink-0"
+          className="w-7 h-7 rounded-full flex items-center justify-center text-white text-xs font-bold shrink-0"
           style={{ background: bgColor }}
         >
           {initials}
@@ -92,14 +92,14 @@ export const KanbanCard = memo(({ lead, onClick, provided, tags, conexaoNome }: 
             {lead.nome_completo ?? lead.nome ?? 'Sem nome'}
           </p>
           {lead.telefone && (
-            <div className="flex items-center gap-1 text-[10px] text-muted-foreground/70 mt-0.5">
+            <div className="flex items-center gap-1 text-xs text-muted-foreground/70 mt-0.5">
               <Phone className="h-2.5 w-2.5 shrink-0" />
               <span>{maskPhone(lead.telefone)}</span>
             </div>
           )}
         </div>
         {prioridade && (
-          <Badge variant="secondary" className={`text-[9px] px-1.5 py-0 h-4 font-medium shrink-0 ${prioridade.className}`}>
+          <Badge variant="secondary" className={`text-xs px-1.5 py-0 h-4 font-medium shrink-0 ${prioridade.className}`}>
             {prioridade.label}
           </Badge>
         )}
@@ -107,7 +107,7 @@ export const KanbanCard = memo(({ lead, onClick, provided, tags, conexaoNome }: 
 
       {/* Message preview */}
       {truncatedPreview && (
-        <div className="flex items-start gap-1.5 text-[10px] text-muted-foreground/60 mb-1.5 pl-9">
+        <div className="flex items-start gap-1.5 text-xs text-muted-foreground/60 mb-1.5 pl-9">
           <MessageSquare className="h-2.5 w-2.5 shrink-0 mt-0.5" />
           <span className="line-clamp-2 leading-relaxed">{truncatedPreview}</span>
         </div>
@@ -119,7 +119,7 @@ export const KanbanCard = memo(({ lead, onClick, provided, tags, conexaoNome }: 
           {visibleTags.map((tag) => (
             <span
               key={tag.id}
-              className="inline-flex items-center gap-1 rounded-full px-1.5 py-0 text-[9px] font-medium"
+              className="inline-flex items-center gap-1 rounded-full px-1.5 py-0 text-xs font-medium"
               style={{ backgroundColor: `${tag.cor}20` }}
             >
               <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ backgroundColor: tag.cor }} />
@@ -127,7 +127,7 @@ export const KanbanCard = memo(({ lead, onClick, provided, tags, conexaoNome }: 
             </span>
           ))}
           {extraTagCount > 0 && (
-            <span className="text-[9px] text-muted-foreground/50 font-medium">+{extraTagCount}</span>
+            <span className="text-xs text-muted-foreground/50 font-medium">+{extraTagCount}</span>
           )}
         </div>
       )}
@@ -136,14 +136,14 @@ export const KanbanCard = memo(({ lead, onClick, provided, tags, conexaoNome }: 
       <div className="flex items-center justify-between gap-1 mt-1 pl-9">
         <div className="flex items-center gap-1.5 min-w-0">
           {conexaoNome && (
-            <div className="flex items-center gap-1 text-[9px] text-muted-foreground/50 max-w-[140px]">
+            <div className="flex items-center gap-1 text-xs text-muted-foreground/50 max-w-[140px]">
               <Wifi className="h-2.5 w-2.5 shrink-0" />
               <span className="truncate">{conexaoNome}</span>
             </div>
           )}
         </div>
         {relTime && (
-          <div className="flex items-center gap-0.5 text-[10px] text-muted-foreground/50 shrink-0">
+          <div className="flex items-center gap-0.5 text-xs text-muted-foreground/50 shrink-0">
             <Clock className="h-2.5 w-2.5" />
             <span>{relTime}</span>
           </div>

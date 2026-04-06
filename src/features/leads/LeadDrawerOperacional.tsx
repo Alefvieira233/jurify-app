@@ -13,6 +13,9 @@ import {
 import { Button } from '@/components/ui/button';
 import { Check, Loader2 } from 'lucide-react';
 import type { Lead } from '@/hooks/useLeads';
+import { createLogger } from '@/lib/logger';
+
+const log = createLogger('LeadDrawerOperacional');
 import { useLeads } from '@/hooks/useLeads';
 import { useDepartamentos } from '@/hooks/useDepartamentos';
 import { useTeamMembers } from '@/hooks/useTeamMembers';
@@ -48,7 +51,7 @@ function formatDate(dateStr: string | null): string {
       minute: '2-digit',
     }).format(new Date(dateStr));
   } catch (err) {
-    console.warn('[LeadDrawerOperacional] date format failed:', err);
+    log.warn('date format failed', { error: String(err) });
     return dateStr;
   }
 }

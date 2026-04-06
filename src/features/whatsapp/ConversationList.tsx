@@ -43,6 +43,9 @@ interface ConversationItemProps {
 const ConversationItem = memo(({ conv, isSelected, onSelect }: ConversationItemProps) => (
   <div
     onClick={() => onSelect(conv.id)}
+    onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onSelect(conv.id); } }}
+    role="button"
+    tabIndex={0}
     className={`flex items-start gap-3 px-4 py-3 cursor-pointer transition-colors border-b border-[hsl(var(--border))]/50 ${
       isSelected
         ? 'bg-emerald-50 dark:bg-emerald-950/20 border-l-2 border-l-emerald-500'

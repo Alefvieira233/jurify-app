@@ -26,8 +26,8 @@ export async function checkBudgetBeforeCall(
     .maybeSingle();
 
   if (error) {
-    console.error("Budget check failed:", error.message);
-    return { allowed: true, tokensUsed: 0, budgetLimit: 100000 };
+    console.warn("[ai-budget] Budget check failed, denying request (fail-closed):", error.message);
+    return { allowed: false, tokensUsed: 0, budgetLimit: 0 };
   }
 
   if (!data) {
@@ -60,8 +60,8 @@ export async function recordTokenUsage(
   });
 
   if (error) {
-    console.error("Record token usage failed:", error.message);
-    return { allowed: true, tokensUsed: 0, budgetLimit: 100000, thresholdReached: false };
+    console.warn("[ai-budget] Token usage recording failed, denying further requests (fail-closed):", error.message);
+    return { allowed: false, tokensUsed: 0, budgetLimit: 0, thresholdReached: false };
   }
 
   const result = data?.[0] ?? data;

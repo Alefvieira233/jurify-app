@@ -38,7 +38,7 @@ export function useStatusManager() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('crm_pipeline_stages')
-        .select('*')
+        .select('id, tenant_id, name, slug, color, position, is_won, is_lost, auto_followup_days, created_at')
         .eq('tenant_id', tenantId!)
         .order('position', { ascending: true });
       if (error) throw error;

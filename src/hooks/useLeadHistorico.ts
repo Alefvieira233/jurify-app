@@ -12,7 +12,7 @@ export function useLeadHistorico(leadId: string | null) {
     queryFn: async (): Promise<LeadHistorico[]> => {
       const { data, error } = await supabase
         .from('lead_historico')
-        .select('*')
+        .select('id, lead_id, tenant_id, usuario_id, usuario_nome, tipo_evento, campo, valor_anterior, valor_novo, descricao, metadata, created_at')
         .eq('lead_id', leadId!)
         .order('created_at', { ascending: false })
         .limit(100);

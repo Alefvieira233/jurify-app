@@ -18,9 +18,5 @@ describe('Concurrent Operation Safety', () => {
     qc.clear();
   });
 
-  it('optimistic updates have rollback on failure', () => {
-    // Document that mutations use onError for cache rollback
-    // Real test needs render context — this validates the pattern exists
-    expect(true).toBe(true);
-  });
+  it.todo('optimistic updates have rollback on failure — requires render context with QueryClientProvider to test onError cache rollback');
 });

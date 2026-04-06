@@ -5,8 +5,12 @@ import { Badge } from '@/components/ui/badge';
 import { supabase, supabaseUntyped } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useQueryClient } from '@tanstack/react-query';
+import { queryKeys } from '@/lib/queryKeys';
 import { useRBAC } from '@/hooks/useRBAC';
 import { useConexoes, useConexaoLogs, useConexaoAlertas } from '@/hooks/useConexoes';
+import { createLogger } from '@/lib/logger';
+
+const log = createLogger('ConnectionDetailsDrawer');
 import ConfirmDialog from '@/components/ConfirmDialog';
 import { STATUS_BADGE, type ConnectionDetailsDrawerProps, type DiagnosticoResult } from './connectionDetailsTypes';
 import ConnectionGeralTab from './ConnectionGeralTab';
@@ -71,7 +75,7 @@ const ConnectionDetailsDrawer = ({ conexao, open, onOpenChange }: ConnectionDeta
         kapsoReachable: statusRes.error ? false : (kapsoOk ?? !healthRes.error),
       });
     } catch (err) {
-      console.error('[ConnectionDetailsDrawer] runDiagnostico failed:', err);
+      log.error('runDiagnostico failed', err);
       setDiagResult({
         sessaoConectada: null,
         ultimoHeartbeat: conexao?.last_heartbeat ?? null,
@@ -109,7 +113,7 @@ const ConnectionDetailsDrawer = ({ conexao, open, onOpenChange }: ConnectionDeta
         toast({ title: 'Reconex\u00e3o iniciada', description: 'Complete a autentica\u00e7\u00e3o na janela que foi aberta.' });
       }
     } catch (err) {
-      console.error('[ConnectionDetailsDrawer] handleReconnect failed:', err);
+      log.error('handleReconnect failed', err);
       toast({ title: 'Erro ao reconectar', variant: 'destructive' });
     } finally {
       setIsReconnecting(false);
@@ -122,7 +126,7 @@ const ConnectionDetailsDrawer = ({ conexao, open, onOpenChange }: ConnectionDeta
       toast({ title: 'Conex\u00e3o desconectada' });
       onOpenChange(false);
     } catch (err) {
-      console.error('[ConnectionDetailsDrawer] handleDisconnect failed:', err);
+      log.error('handleDisconnect failed', err);
       toast({ title: 'Erro ao desconectar', variant: 'destructive' });
     }
   };
@@ -141,7 +145,7 @@ const ConnectionDetailsDrawer = ({ conexao, open, onOpenChange }: ConnectionDeta
         variant: connected ? 'default' : 'destructive',
       });
     } catch (err) {
-      console.error('[ConnectionDetailsDrawer] handleTestConnection failed:', err);
+      log.error('handleTestConnection failed', err);
       toast({ title: 'Falha no teste', variant: 'destructive' });
     } finally {
       setIsTesting(false);
@@ -153,7 +157,7 @@ const ConnectionDetailsDrawer = ({ conexao, open, onOpenChange }: ConnectionDeta
       await deleteConexao(conexao.id);
       onOpenChange(false);
     } catch (err) {
-      console.error('[ConnectionDetailsDrawer] handleDelete failed:', err);
+      log.error('handleDelete failed', err);
       toast({ title: 'Erro ao excluir', variant: 'destructive' });
     }
   };
@@ -166,9 +170,9 @@ const ConnectionDetailsDrawer = ({ conexao, open, onOpenChange }: ConnectionDeta
         .eq('id', alertaId);
       if (error) throw error;
       toast({ title: 'Alerta marcado como resolvido' });
-      void queryClient.invalidateQueries({ queryKey: ['conexoes_alertas', conexao?.id] });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.conexoesWhatsapp.alertas(conexao?.id) });
     } catch (err) {
-      console.error('[ConnectionDetailsDrawer] handleResolverAlerta failed:', err);
+      log.error('handleResolverAlerta failed', err);
       toast({ title: 'Erro ao resolver alerta', variant: 'destructive' });
     }
   };

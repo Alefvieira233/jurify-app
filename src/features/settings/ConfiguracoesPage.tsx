@@ -6,13 +6,13 @@ import { useState } from 'react';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 
 // Reutilizar componentes existentes
-import MinhaContaSection from '@/components/configuracoes/MinhaContaSection';
-import SegurancaSection from '@/components/configuracoes/SegurancaSection';
-import EscritorioSection from '@/components/configuracoes/EscritorioSection';
-import IntegracoesSection from '@/components/configuracoes/IntegracoesSection';
-import UsuariosPermissoesSection from '@/components/configuracoes/UsuariosPermissoesSection';
-import NotificacoesSection from '@/components/configuracoes/NotificacoesSection';
-import AssinaturaSection from '@/components/configuracoes/AssinaturaSection';
+import MinhaContaSection from './configuracoes/MinhaContaSection';
+import SegurancaSection from './configuracoes/SegurancaSection';
+import EscritorioSection from './configuracoes/EscritorioSection';
+import IntegracoesSection from './configuracoes/IntegracoesSection';
+import UsuariosPermissoesSection from './configuracoes/UsuariosPermissoesSection';
+import NotificacoesSection from './configuracoes/NotificacoesSection';
+import AssinaturaSection from './configuracoes/AssinaturaSection';
 import HorarioComercialSection from './sections/HorarioComercialSection';
 import StatusManager from './sections/StatusManager';
 import UsoSection from './sections/UsoSection';

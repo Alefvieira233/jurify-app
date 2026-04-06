@@ -1,0 +1,217 @@
+name: Rollback Production
+
+# Manual rollback for Vercel frontend and/or Supabase Edge Functions.
+# Trigger from: Actions -> Rollback Production -> Run workflow
+
+on:
+  workflow_dispatch:
+    inputs:
+      reason:
+        description: 'Why is this rollback needed?'
+        required: true
+        type: string
+      rollback_frontend:
+        description: 'Rollback Vercel frontend deployment'
+        required: false
+        type: boolean
+        default: true
+      rollback_edge_functions:
+        description: 'Redeploy previous Edge Functions from HEAD~1'
+        required: false
+        type: boolean
+        default: false
+
+env:
+  NODE_VERSION: '20'
+
+jobs:
+  # ==========================================
+  # JOB 1: ROLLBACK FRONTEND
+  # ==========================================
+  rollback-frontend:
+    name: Rollback Frontend (Vercel)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    if: ${{ inputs.rollback_frontend }}
+
+    steps:
+      - name: Install Vercel CLI
+        run: npm install -g vercel@latest
+
+      - name: List recent deployments
+        run: |
+          echo "Recent Vercel deployments:"
+          vercel ls --token=${{ secrets.VERCEL_TOKEN }} --scope=${{ secrets.VERCEL_ORG_ID }} 2>&1 | head -20
+        env:
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+
+      - name: Rollback to previous deployment
+        run: |
+          echo "Rolling back Vercel production deployment..."
+          vercel rollback --token=${{ secrets.VERCEL_TOKEN }} --scope=${{ secrets.VERCEL_ORG_ID }} --yes
+          echo "Vercel rollback completed."
+        env:
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+
+  # ==========================================
+  # JOB 2: ROLLBACK EDGE FUNCTIONS
+  # ==========================================
+  rollback-edge-functions:
+    name: Rollback Edge Functions (Supabase)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    if: ${{ inputs.rollback_edge_functions }}
+
+    steps:
+      - name: Checkout previous commit
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+
+      - name: Move to previous commit
+        run: git checkout HEAD~1
+
+      - name: Validate required secrets
+        run: |
+          MISSING=""
+          [ -z "${{ secrets.SUPABASE_ACCESS_TOKEN }}" ] && MISSING="$MISSING SUPABASE_ACCESS_TOKEN"
+          [ -z "${{ secrets.SUPABASE_PROJECT_REF }}" ] && MISSING="$MISSING SUPABASE_PROJECT_REF"
+          [ -z "${{ secrets.OPENAI_API_KEY }}" ] && MISSING="$MISSING OPENAI_API_KEY"
+          if [ -n "$MISSING" ]; then
+            echo "Missing required secrets:$MISSING"
+            exit 1
+          fi
+          echo "All required secrets present"
+
+      - name: Setup Deno
+        uses: denoland/setup-deno@v1
+        with:
+          deno-version: v1.x
+
+      - name: Install Supabase CLI
+        run: |
+          curl -fsSL https://github.com/supabase/cli/releases/latest/download/supabase_linux_amd64.tar.gz | tar -xz -C /tmp
+          sudo mv /tmp/supabase /usr/local/bin/
+
+      - name: Link Supabase project
+        run: supabase link --project-ref ${{ secrets.SUPABASE_PROJECT_REF }}
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+
+      - name: Deploy Edge Functions from previous commit
+        run: |
+          echo "Redeploying edge functions from HEAD~1..."
+          # Public functions (no JWT)
+          supabase functions deploy health --no-verify-jwt
+          supabase functions deploy health-check --no-verify-jwt
+          supabase functions deploy stripe-webhook --no-verify-jwt
+          supabase functions deploy whatsapp-webhook --no-verify-jwt
+          supabase functions deploy zapsign-integration --no-verify-jwt
+          # Critical functions (with auth)
+          for fn in assistant send-email send-whatsapp-message \
+                    create-checkout-session create-portal-session \
+                    ai-agent-processor agent-orchestrator; do
+            echo "  Deploying (critical): $fn"
+            supabase functions deploy "$fn"
+          done
+          # Non-critical functions
+          for fn in admin-create-user agentes-ia-api \
+                    chat-completion cleanup-agent-memory \
+                    create-drive-folder data-retention-cleanup \
+                    decrypt-data encrypt-data extract-document-text \
+                    generate-document generate-embedding google-calendar \
+                    ingest-document ingest-document-from-file kapso-manager \
+                    media-processor process-followup-queue process-prazos-alerts \
+                    send-push-notification vector-search; do
+            echo "  Deploying: $fn"
+            supabase functions deploy "$fn" || echo "WARNING: $fn deploy failed (non-critical), continuing"
+          done
+          echo "Edge functions rollback completed"
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+
+  # ==========================================
+  # JOB 3: HEALTH CHECK
+  # ==========================================
+  health-check:
+    name: Post-Rollback Health Check
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    needs: [rollback-frontend, rollback-edge-functions]
+    if: always() && !cancelled() && (needs.rollback-frontend.result == 'success' || needs.rollback-frontend.result == 'skipped') && (needs.rollback-edge-functions.result == 'success' || needs.rollback-edge-functions.result == 'skipped')
+
+    steps:
+      - name: Health check - Frontend
+        if: ${{ inputs.rollback_frontend }}
+        run: |
+          FRONTEND_URL="${FRONTEND_URL:-https://jurify.app}"
+          echo "Checking frontend health at $FRONTEND_URL..."
+          for i in 1 2 3; do
+            STATUS=$(curl -s -o /dev/null -w "%{http_code}" --max-time 10 "$FRONTEND_URL" || echo "000")
+            if [ "$STATUS" -ge 200 ] && [ "$STATUS" -lt 400 ]; then
+              echo "Frontend OK (HTTP $STATUS)"
+              exit 0
+            fi
+            echo "Attempt $i: HTTP $STATUS — retrying in 10s..."
+            sleep 10
+          done
+          echo "Frontend health check failed after 3 attempts"
+          exit 1
+        env:
+          FRONTEND_URL: ${{ secrets.FRONTEND_URL }}
+
+      - name: Health check - Edge Functions
+        if: ${{ inputs.rollback_edge_functions }}
+        run: |
+          echo "Checking edge functions health..."
+          STATUS=$(curl -s -o /dev/null -w "%{http_code}" --max-time 15 \
+            "${{ secrets.VITE_SUPABASE_URL }}/functions/v1/health" || echo "000")
+          if [ "$STATUS" -ge 200 ] && [ "$STATUS" -lt 400 ]; then
+            echo "Edge Functions OK (HTTP $STATUS)"
+          else
+            echo "Edge Functions health check failed (HTTP $STATUS)"
+            exit 1
+          fi
+
+  # ==========================================
+  # JOB 4: NOTIFY
+  # ==========================================
+  notify:
+    name: Rollback Summary
+    runs-on: ubuntu-latest
+    needs: [rollback-frontend, rollback-edge-functions, health-check]
+    if: always()
+
+    steps:
+      - name: Create rollback summary
+        run: |
+          echo "## Rollback Report" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Detail | Value |" >> $GITHUB_STEP_SUMMARY
+          echo "|--------|-------|" >> $GITHUB_STEP_SUMMARY
+          echo "| **Triggered by** | ${{ github.actor }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| **Reason** | ${{ inputs.reason }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| **Timestamp** | $(date -u '+%Y-%m-%d %H:%M:%S UTC') |" >> $GITHUB_STEP_SUMMARY
+          echo "| **Commit (at trigger)** | \`${{ github.sha }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Rollback Scope" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Component | Requested | Result |" >> $GITHUB_STEP_SUMMARY
+          echo "|-----------|-----------|--------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Frontend (Vercel) | ${{ inputs.rollback_frontend }} | ${{ needs.rollback-frontend.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Edge Functions (Supabase) | ${{ inputs.rollback_edge_functions }} | ${{ needs.rollback-edge-functions.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Health Check | — | ${{ needs.health-check.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          if [ "${{ needs.health-check.result }}" == "success" ]; then
+            echo "> Rollback completed successfully." >> $GITHUB_STEP_SUMMARY
+          else
+            echo "> **WARNING:** Health check did not pass. Verify production manually." >> $GITHUB_STEP_SUMMARY
+          fi
+
+      - name: Fail if rollback failed
+        if: contains(needs.*.result, 'failure')
+        run: |
+          echo "One or more rollback steps failed. Check the summary above."
+          exit 1

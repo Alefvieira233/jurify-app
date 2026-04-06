@@ -1,4 +1,3 @@
-import './i18n';
 import React from 'react'
 import { createRoot } from 'react-dom/client'
 import { captureException } from '@sentry/react'
@@ -39,12 +38,3 @@ const app = (
 createRoot(rootElement).render(
   isDev ? <React.StrictMode>{app}</React.StrictMode> : app
 );
-
-// Register Service Worker for offline caching (production only)
-if ('serviceWorker' in navigator && !isDev) {
-  window.addEventListener('load', () => {
-    navigator.serviceWorker.register('/sw.js').catch(() => {
-      // SW registration failed — app works fine without it
-    });
-  });
-}

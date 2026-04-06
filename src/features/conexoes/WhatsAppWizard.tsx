@@ -9,6 +9,9 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { supabase } from '@/integrations/supabase/client';
 import { cn } from '@/lib/utils';
+import { createLogger } from '@/lib/logger';
+
+const log = createLogger('WhatsAppWizard');
 
 type WizardStep = 'api-key' | 'prepare' | 'connecting' | 'syncing' | 'connected';
 type SetupState = 'idle' | 'loading' | 'ready' | 'error';
@@ -114,7 +117,7 @@ const WhatsAppWizard = ({ onClose, onConnected }: WhatsAppWizardProps) => {
             setStep('syncing');
           }
         } catch (err) {
-          console.warn('[WhatsAppWizard] status poll failed:', err);
+          log.warn('status poll failed', { error: String(err) });
         }
       })();
     };
@@ -154,7 +157,7 @@ const WhatsAppWizard = ({ onClose, onConnected }: WhatsAppWizardProps) => {
       setSetupUrl(data.setupUrl as string);
       setSetupState('ready');
     } catch (err) {
-      console.error('[WhatsAppWizard] generateSetupLink failed:', err);
+      log.error('generateSetupLink failed', err);
       setSetupState('error');
       setErrorMsg(err instanceof Error ? err.message : 'Não foi possível preparar a conexão.');
     }

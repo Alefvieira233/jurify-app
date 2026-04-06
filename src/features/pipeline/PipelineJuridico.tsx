@@ -165,7 +165,7 @@ const PipelineJuridico = () => {
               value={searchTerm}
               onChange={e => setSearchTerm(e.target.value)}
               data-testid="input-buscar-lead"
-              className="h-8 w-44 bg-background/50 border border-border/30 rounded-md pl-8 pr-3 text-xs placeholder:text-muted-foreground/50 focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary transition-shadow"
+              className="h-8 w-44 bg-background/50 border border-border/30 rounded-md pl-8 pr-3 text-xs placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary transition-shadow"
             />
           </div>
 

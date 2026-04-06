@@ -22,9 +22,9 @@ const ErrorState: React.FC<ErrorStateProps> = ({
       <CardContent className="flex flex-col items-center justify-center p-8 text-center">
         <AlertCircle className="w-12 h-12 text-destructive mb-4" />
 
-        <h3 className="text-lg font-semibold text-foreground mb-2">
+        <h2 className="text-lg font-semibold text-foreground mb-2">
           {title}
-        </h3>
+        </h2>
 
         {message && (
           <p className="text-muted-foreground mb-6 max-w-md text-sm">

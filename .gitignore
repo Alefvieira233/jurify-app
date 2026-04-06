@@ -1,4 +1,4 @@
-﻿# Logs
+# Logs
 /logs
 !src/features/logs/
 *.log
@@ -100,3 +100,24 @@ vdeps.json
 /android/app/build/
 .gstack/
 qa-screenshots/
+
+# Environment & Secrets (AIOX)
+.env.*.local
+*.key
+
+# Dependencies (AIOX)
+node_modules/
+
+# Build & Logs (AIOX)
+dist/
+build/
+logs/
+
+# IDE & OS (AIOX)
+.idea/
+*.swp
+
+# AIOX Local (AIOX)
+.aiox-core/local/
+.claude/settings.local.json
+.aiox/install-log.txt

@@ -6,14 +6,14 @@ import {
 } from 'lucide-react';
 import { useRBAC } from '@/hooks/useRBAC';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import IntegracoesSection from '@/components/configuracoes/IntegracoesSection';
-import UsuariosPermissoesSection from '@/components/configuracoes/UsuariosPermissoesSection';
-import NotificacoesSection from '@/components/configuracoes/NotificacoesSection';
-import SistemaSection from '@/components/configuracoes/SistemaSection';
-import PerfilSection from '@/components/configuracoes/PerfilSection';
-import EscritorioSection from '@/components/configuracoes/EscritorioSection';
-import AssinaturaSection from '@/components/configuracoes/AssinaturaSection';
-import LGPDPrivacySection from '@/components/configuracoes/LGPDPrivacySection';
+import IntegracoesSection from './configuracoes/IntegracoesSection';
+import UsuariosPermissoesSection from './configuracoes/UsuariosPermissoesSection';
+import NotificacoesSection from './configuracoes/NotificacoesSection';
+import SistemaSection from './configuracoes/SistemaSection';
+import PerfilSection from './configuracoes/PerfilSection';
+import EscritorioSection from './configuracoes/EscritorioSection';
+import AssinaturaSection from './configuracoes/AssinaturaSection';
+import LGPDPrivacySection from './configuracoes/LGPDPrivacySection';
 import { usePageTitle } from '@/hooks/usePageTitle';
 import { useSearchParams } from 'react-router-dom';
 

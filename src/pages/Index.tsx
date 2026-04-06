@@ -18,7 +18,7 @@ import ConfiguracoesGerais from "@/features/settings/ConfiguracoesGerais";
 import NotificationsPanel from "@/features/notifications/NotificationsPanel";
 import LogsPanel from "@/features/logs/LogsPanel";
 import IntegracoesConfig from "@/features/settings/IntegracoesConfig";
-import OnboardingFlow from "@/components/OnboardingFlow";
+import OnboardingFlow from "@/features/onboarding/OnboardingFlow";
 import LoadingSpinner from "@/components/LoadingSpinner";
 import TimelineConversas from "@/features/timeline/TimelineConversas";
 import { useSearchParams } from "react-router-dom";

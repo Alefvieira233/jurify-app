@@ -1,5 +1,6 @@
-import { useState, useMemo } from 'react';
-import SankeyChart from './components/SankeyChart';
+import React, { useState, useMemo, Suspense } from 'react';
+import { ScreenReaderAnnounce } from '@/components/ui/ScreenReaderAnnounce';
+const SankeyChart = React.lazy(() => import('./components/SankeyChart'));
 import AgentActivityWidget from './components/AgentActivityWidget';
 import {
   MessageSquare, Search, CheckCircle, FileText, Trophy, XCircle,
@@ -145,8 +146,13 @@ const Dashboard = () => {
     );
   }
 
+  const announceMessage = leads && !leadsError
+    ? `Dashboard carregado. ${totalFiltered} leads no período selecionado.`
+    : '';
+
   return (
     <div className="p-6 space-y-6 max-w-[1400px] mx-auto">
+      {announceMessage && <ScreenReaderAnnounce message={announceMessage} />}
       {/* Header */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
@@ -285,7 +291,9 @@ const Dashboard = () => {
       </div>
 
       {/* ── Fluxo do Pipeline — Sankey diagram ── */}
-      <SankeyChart leads={filteredLeads} />
+      <Suspense fallback={<div className="h-[300px] rounded-lg bg-muted animate-pulse" />}>
+        <SankeyChart leads={filteredLeads} />
+      </Suspense>
 
       {/* ── Pipeline Overview — horizontal bar summary ── */}
       <div className="border border-border rounded-lg p-5 bg-card">

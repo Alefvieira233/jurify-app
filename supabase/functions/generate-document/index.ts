@@ -107,14 +107,18 @@ Deno.serve(async (req) => {
 
         if (uploadError) throw uploadError;
 
-        // Get Public URL
-        const { data: { publicUrl } } = supabase
+        // Generate signed URL with 1-hour expiration (not public — legal documents are sensitive)
+        const { data: signedUrlData, error: signedUrlError } = await supabase
             .storage
             .from("documents")
-            .getPublicUrl(fileName);
+            .createSignedUrl(fileName, 3600);
+
+        if (signedUrlError || !signedUrlData?.signedUrl) {
+            throw new Error("Failed to generate signed URL for document");
+        }
 
         return new Response(
-            JSON.stringify({ url: publicUrl, path: fileName }),
+            JSON.stringify({ url: signedUrlData.signedUrl, path: fileName }),
             { headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
 

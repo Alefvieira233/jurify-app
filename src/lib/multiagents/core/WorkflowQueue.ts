@@ -185,7 +185,7 @@ export class WorkflowQueueService {
     try {
       const { data, error } = await supabase
         .from('workflow_jobs')
-        .select('*')
+        .select('id, tenant_id, job_type, status, priority, payload, result, error_message, attempt, max_attempts, created_at, started_at, completed_at')
         .eq('id', jobId)
         .single();
 
@@ -261,7 +261,7 @@ export class WorkflowQueueService {
     try {
       let query = supabase
         .from('workflow_jobs')
-        .select('*')
+        .select('id, tenant_id, job_type, status, priority, payload, result, error_message, attempt, max_attempts, created_at, started_at, completed_at')
         .eq('tenant_id', tenantId)
         .order('created_at', { ascending: false })
         .limit(options?.limit || 50);

@@ -4,13 +4,13 @@ import { Outlet, useLocation, useNavigate } from "react-router-dom";
 import Sidebar from "@/components/Sidebar";
 import { useAuth } from "@/contexts/AuthContext";
 import LoadingSpinner from "@/components/LoadingSpinner";
-import OnboardingFlow from "@/components/OnboardingFlow";
+import OnboardingFlow from "@/features/onboarding/OnboardingFlow";
 import { lazyWithRetry } from "@/lib/lazyWithRetry";
 
 const OnboardingWizard = lazyWithRetry(() => import("@/features/onboarding/OnboardingWizard"));
 import { useKeyboardShortcuts } from "@/hooks/useKeyboardShortcuts";
 import GlobalSearch from "@/components/GlobalSearch";
-import AIAssistantChat from "@/components/ai/AIAssistantChat";
+import AIAssistantChat from "@/features/ai-agents/components/AIAssistantChat";
 import { useRealtimeSync } from "@/hooks/useRealtimeSync";
 import { useNetworkStatus } from "@/hooks/useNetworkStatus";
 import { usePushNotifications } from '@/hooks/usePushNotifications';
@@ -18,7 +18,6 @@ import { useLocalPrazosNotifications } from '@/hooks/useLocalPrazosNotifications
 import { useFocusOnRouteChange } from '@/hooks/useFocusOnRouteChange';
 import { WifiOff, Wifi } from "lucide-react";
 import { useCapacitor } from '@/hooks/useCapacitor';
-import { App as CapacitorApp } from '@capacitor/app';
 import TopBar from '@/components/TopBar';
 import Breadcrumbs from '@/components/Breadcrumbs';
 
@@ -45,17 +44,23 @@ const Layout = () => {
     useEffect(() => {
       if (!isAndroid) return;
 
-      const listenerPromise = CapacitorApp.addListener('backButton', ({ canGoBack }) => {
-        if (mobileMenuOpen) {
-          setMobileMenuOpen(false);
-        } else if (canGoBack) {
-          window.history.back();
-        } else {
-          void CapacitorApp.exitApp();
-        }
+      let cleanup: (() => void) | undefined;
+
+      void import('@capacitor/app').then(({ App: CapacitorApp }) => {
+        const listenerPromise = CapacitorApp.addListener('backButton', ({ canGoBack }) => {
+          if (mobileMenuOpen) {
+            setMobileMenuOpen(false);
+          } else if (canGoBack) {
+            window.history.back();
+          } else {
+            void CapacitorApp.exitApp();
+          }
+        });
+
+        cleanup = () => { void listenerPromise.then(l => l.remove()); };
       });
 
-      return () => { void listenerPromise.then(l => l.remove()); };
+      return () => { cleanup?.(); };
     }, [isAndroid, mobileMenuOpen]);
 
     const getActiveSection = (path: string) => {

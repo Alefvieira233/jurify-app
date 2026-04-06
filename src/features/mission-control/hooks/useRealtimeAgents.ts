@@ -140,7 +140,7 @@ export function useRealtimeAgents(tenantId?: string) {
       // Buscar execuÃ§Ãµes ativas
       const { data: executions, error: execError } = await supabase
         .from('agent_executions')
-        .select('*')
+        .select('id, execution_id, status, current_agent, current_stage, agents_involved, total_agents_used, total_tokens, estimated_cost_usd, error_message, started_at, completed_at, total_duration_ms')
         .eq('tenant_id', tenantId)
         .in('status', ['pending', 'processing'])
         .order('started_at', { ascending: false })
@@ -169,7 +169,7 @@ export function useRealtimeAgents(tenantId?: string) {
     try {
       const { data: executions, error: execError } = await supabase
         .from('agent_executions')
-        .select('*')
+        .select('id, execution_id, status, current_agent, current_stage, agents_involved, total_agents_used, total_tokens, estimated_cost_usd, error_message, started_at, completed_at, total_duration_ms')
         .eq('tenant_id', tenantId)
         .in('status', ['pending', 'processing'])
         .order('started_at', { ascending: false })
@@ -180,7 +180,7 @@ export function useRealtimeAgents(tenantId?: string) {
 
       const { data: logs, error: logsError } = await supabase
         .from('agent_ai_logs')
-        .select('*')
+        .select('id, agent_name, user_prompt, result_preview, status, latency_ms, error_message, model, total_tokens, created_at')
         .eq('tenant_id', tenantId)
         .order('created_at', { ascending: false })
         .limit(50);

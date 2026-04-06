@@ -7,6 +7,9 @@ import { useLeadTags } from '@/hooks/useTags';
 import { TagBadge } from '@/features/tags/TagBadge';
 import { LEAD_STATUS_LABELS as STATUS_LABELS } from '@/features/pipeline/pipelineConfig';
 import { PRIORIDADES } from '@/types/crm-operacional';
+import { createLogger } from '@/lib/logger';
+
+const log = createLogger('LeadDrawerAtendimento');
 
 interface LeadDrawerAtendimentoProps {
   lead: Lead;
@@ -23,7 +26,7 @@ function formatDate(dateStr: string | null): string {
       minute: '2-digit',
     }).format(new Date(dateStr));
   } catch (err) {
-    console.warn('[LeadDrawerAtendimento] date format failed:', err);
+    log.warn('date format failed', { error: String(err) });
     return dateStr;
   }
 }

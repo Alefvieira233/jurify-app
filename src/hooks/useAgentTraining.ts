@@ -39,7 +39,7 @@ export const useAgentTraining = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('agent_training_documents')
-        .select('*')
+        .select('id, tenant_id, uploaded_by, file_name, file_type, file_size_bytes, storage_path, status, error_message, chunks_count, extracted_text_preview, created_at, updated_at')
         .eq('tenant_id', tenantId!)
         .order('created_at', { ascending: false });
 
@@ -290,7 +290,7 @@ export const useAgentTraining = () => {
       await deleteMutation.mutateAsync(docId);
       return true;
     } catch (err) {
-      console.error('[useAgentTraining] deleteDocument failed:', err);
+      log.error('deleteDocument failed', err);
       return false;
     }
   }, [user, tenantId, deleteMutation]);

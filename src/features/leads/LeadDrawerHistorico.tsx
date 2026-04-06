@@ -37,7 +37,7 @@ const eventoColors: Record<TipoEventoHistorico, string> = {
   responsavel_alterado: 'text-blue-500',
   prioridade_alterada: 'text-red-500',
   tag_adicionada: 'text-emerald-500',
-  tag_removida: 'text-gray-500',
+  tag_removida: 'text-muted-foreground',
   arquivado: 'text-rose-600',
   reativado: 'text-green-600',
   propriedade_alterada: 'text-indigo-500',
@@ -133,7 +133,7 @@ export default function LeadDrawerHistorico({ leadId }: LeadDrawerHistoricoProps
       <div className="space-y-4">
         {historico.map((entry) => {
           const Icon = eventoIcons[entry.tipo_evento] ?? RefreshCw;
-          const colorClass = eventoColors[entry.tipo_evento] ?? 'text-gray-500';
+          const colorClass = eventoColors[entry.tipo_evento] ?? 'text-muted-foreground';
 
           return (
             <div key={entry.id} className="flex gap-3 relative">

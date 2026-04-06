@@ -182,12 +182,9 @@ jobs:
           path: ./
           extra_args: --only-verified --exclude-paths=.trufflehog-ignore
 
-      # continue-on-error: known transitive vulnerabilities from @capacitor/*
-      # have no fix available — audit-level=critical ensures only real threats block CI
       - name: 🛡️ Run npm audit
         working-directory: ${{ env.WORKING_DIR }}
         run: npm audit --audit-level=critical
-        continue-on-error: true
 
       - name: 📋 Check for exposed secrets in .env files
         run: |

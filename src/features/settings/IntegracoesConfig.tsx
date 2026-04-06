@@ -8,7 +8,7 @@ import { useGoogleCalendarConnection } from '@/hooks/useGoogleCalendarConnection
 import { Plus, Loader2, Plug } from 'lucide-react';
 import { useRBAC } from '@/hooks/useRBAC';
 import { usePageTitle } from '@/hooks/usePageTitle';
-import type { IntegrationStatus } from '@/components/configuracoes/IntegrationCard';
+import type { IntegrationStatus } from './configuracoes/IntegrationCard';
 import GoogleCalendarCard from './integrations/GoogleCalendarCard';
 import ZapSignCard from './integrations/ZapSignCard';
 import NativeIntegrationsGrid from './integrations/NativeIntegrationsGrid';
@@ -26,12 +26,10 @@ const IntegracoesConfig = () => {
     createIntegracao, updateIntegracao, toggleStatus, updateSincronizacao, deleteIntegracao,
   } = useIntegracoesConfig();
 
-  const [showApiKeys, setShowApiKeys] = useState<Record<string, boolean>>({});
-  const [copied, setCopied] = useState<string | null>(null);
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [editingIntegracao, setEditingIntegracao] = useState<IntegracaoConfig | null>(null);
   const [formData, setFormData] = useState<CreateIntegracaoData>({
-    nome_integracao: '', status: 'inativa', api_key: '', endpoint_url: '', observacoes: '',
+    nome_integracao: '', status: 'inativa', api_key_encrypted: '', endpoint_url: '', observacoes: '',
   });
 
   /* ── Derived status ── */
@@ -57,19 +55,8 @@ const IntegracoesConfig = () => {
   const gcalStatus: IntegrationStatus = gcal.status.connected ? 'connected' : 'not_configured';
 
   /* ── CRUD helpers ── */
-  const handleCopy = (text: string, key: string) => {
-    void navigator.clipboard.writeText(text);
-    setCopied(key);
-    setTimeout(() => setCopied(null), 2000);
-  };
-
-  const maskApiKey = (apiKey: string) => {
-    if (apiKey.length <= 8) return '*'.repeat(apiKey.length);
-    return apiKey.substring(0, 4) + '*'.repeat(apiKey.length - 8) + apiKey.substring(apiKey.length - 4);
-  };
-
   const resetForm = () => {
-    setFormData({ nome_integracao: '', status: 'inativa', api_key: '', endpoint_url: '', observacoes: '' });
+    setFormData({ nome_integracao: '', status: 'inativa', api_key_encrypted: '', endpoint_url: '', observacoes: '' });
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -83,12 +70,12 @@ const IntegracoesConfig = () => {
     }
   };
 
-  const handleEdit = (integracao: IntegracaoConfig & { api_key?: string }) => {
+  const handleEdit = (integracao: IntegracaoConfig & { api_key_encrypted?: string }) => {
     setEditingIntegracao(integracao);
     setFormData({
       nome_integracao: integracao.nome_integracao,
       status: integracao.status,
-      api_key: integracao.api_key ?? '',
+      api_key_encrypted: integracao.api_key_encrypted ?? '',
       endpoint_url: integracao.endpoint_url,
       observacoes: integracao.observacoes || '',
     });
@@ -198,17 +185,12 @@ const IntegracoesConfig = () => {
         </div>
 
         <CustomIntegrations
-          integracoes={integracoes as (IntegracaoConfig & { api_key: string; data_ultima_sincronizacao?: string | null })[]}
-          showApiKeys={showApiKeys}
-          copied={copied}
-          onToggleApiKeyVisibility={(id) => setShowApiKeys(p => ({ ...p, [id]: !p[id] }))}
-          onCopy={handleCopy}
+          integracoes={integracoes as (IntegracaoConfig & { api_key_encrypted?: string; data_ultima_sincronizacao?: string | null })[]}
           onToggleStatus={(id, status) => void toggleStatus(id, status)}
           onEdit={handleEdit}
           onSync={(id) => void updateSincronizacao(id)}
           onDelete={(id) => void deleteIntegracao(id)}
           onCreateNew={() => { resetForm(); setIsCreateDialogOpen(true); }}
-          maskApiKey={maskApiKey}
         />
       </div>
 

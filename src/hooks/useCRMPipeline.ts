@@ -37,7 +37,7 @@ export const useCRMPipeline = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('crm_pipeline_stages')
-        .select('*')
+        .select('id, tenant_id, name, slug, color, position, is_won, is_lost, auto_followup_days, created_at')
         .eq('tenant_id', tenantId!)
         .order('position', { ascending: true });
 
@@ -155,7 +155,7 @@ export const useCRMPipeline = () => {
       await createMutation.mutateAsync(data);
       return true;
     } catch (err) {
-      console.error('[useCRMPipeline] createStage failed:', err);
+      log.error('createStage failed', err);
       return false;
     }
   }, [tenantId, createMutation]);
@@ -166,7 +166,7 @@ export const useCRMPipeline = () => {
       await updateMutation.mutateAsync({ id, data });
       return true;
     } catch (err) {
-      console.error('[useCRMPipeline] updateStage failed:', err);
+      log.error('updateStage failed', err);
       return false;
     }
   }, [tenantId, updateMutation]);
@@ -177,7 +177,7 @@ export const useCRMPipeline = () => {
       await deleteMutation.mutateAsync(id);
       return true;
     } catch (err) {
-      console.error('[useCRMPipeline] deleteStage failed:', err);
+      log.error('deleteStage failed', err);
       return false;
     }
   }, [tenantId, deleteMutation]);

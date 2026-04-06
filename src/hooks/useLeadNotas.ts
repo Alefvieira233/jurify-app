@@ -31,7 +31,7 @@ export function useLeadNotas(leadId: string | null) {
     queryFn: async (): Promise<LeadNota[]> => {
       const { data, error } = await supabase
         .from('lead_notas')
-        .select('*')
+        .select('id, lead_id, tenant_id, autor_id, autor_nome, conteudo, fixada, created_at, updated_at')
         .eq('lead_id', leadId!)
         .order('fixada', { ascending: false })
         .order('created_at', { ascending: false });

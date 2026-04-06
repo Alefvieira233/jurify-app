@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { queryKeys } from '@/lib/queryKeys';
 import { supabaseUntyped as supabase } from '@/integrations/supabase/client';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -35,8 +36,8 @@ function formatDateStr(date: Date): string {
 }
 
 function getPillColor(dataStr: string, status: string): string {
-  if (status === 'cumprido') return 'bg-gray-200 text-gray-600';
-  if (status === 'cancelado') return 'bg-gray-100 text-gray-400';
+  if (status === 'cumprido') return 'bg-muted text-muted-foreground';
+  if (status === 'cancelado') return 'bg-muted/50 text-muted-foreground/70';
   const today = new Date();
   today.setHours(0, 0, 0, 0);
   const date = new Date(dataStr + 'T00:00:00');
@@ -75,11 +76,11 @@ export function PrazosCalendario({ tenantId }: Props) {
   const endOfMonth = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`;
 
   const { data: prazos = [] } = useQuery({
-    queryKey: ['prazos-calendario', tenantId, currentYear, currentMonth, filterStatus],
+    queryKey: queryKeys.prazosProcessuais.calendario(tenantId, currentYear, currentMonth, filterStatus),
     queryFn: async () => {
       let q = supabase
         .from('prazos_processuais')
-        .select('*')
+        .select('id, tenant_id, processo_id, lead_id, tipo, descricao, data_prazo, alertas_dias, responsavel_id, status, data_cumprimento, observacoes, created_at, updated_at')
         .eq('tenant_id', tenantId)
         .gte('data_prazo', startOfMonth)
         .lte('data_prazo', endOfMonth)
@@ -124,8 +125,8 @@ export function PrazosCalendario({ tenantId }: Props) {
       toast({ title: 'Erro', description: 'Não foi possível marcar o prazo.', variant: 'destructive' });
     } else {
       toast({ title: 'Prazo cumprido', description: 'Prazo marcado como cumprido.' });
-      void queryClient.invalidateQueries({ queryKey: ['prazos-calendario'] });
-      void queryClient.invalidateQueries({ queryKey: ['prazos_processuais'] });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.prazosProcessuais.calendarioAll });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.prazosProcessuais.all });
       setSelectedPrazo(null);
     }
   };

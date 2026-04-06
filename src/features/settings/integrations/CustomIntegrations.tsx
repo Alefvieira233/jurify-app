@@ -6,7 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Separator } from '@/components/ui/separator';
 import {
-  Eye, EyeOff, Plus, Settings, Trash2, RefreshCw, Copy, Check, Plug,
+  Plus, Settings, Trash2, RefreshCw, Plug, ShieldCheck,
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -15,36 +15,26 @@ import { type IntegracaoConfig } from '@/hooks/useIntegracoesConfig';
 
 /** Extended type that includes DB columns not yet in the base IntegracaoConfig type */
 type IntegracaoWithDetails = IntegracaoConfig & {
-  api_key: string;
+  api_key_encrypted?: string;
   data_ultima_sincronizacao?: string | null;
 };
 
 interface CustomIntegrationsProps {
   integracoes: IntegracaoWithDetails[];
-  showApiKeys: Record<string, boolean>;
-  copied: string | null;
-  onToggleApiKeyVisibility: (id: string) => void;
-  onCopy: (text: string, key: string) => void;
   onToggleStatus: (id: string, status: IntegracaoConfig['status']) => void;
   onEdit: (integracao: IntegracaoConfig) => void;
   onSync: (id: string) => void;
   onDelete: (id: string) => void;
   onCreateNew: () => void;
-  maskApiKey: (apiKey: string) => string;
 }
 
 const CustomIntegrations: React.FC<CustomIntegrationsProps> = ({
   integracoes,
-  showApiKeys,
-  copied,
-  onToggleApiKeyVisibility,
-  onCopy,
   onToggleStatus,
   onEdit,
   onSync,
   onDelete,
   onCreateNew,
-  maskApiKey,
 }) => {
   if (integracoes.length === 0) {
     return (
@@ -67,7 +57,7 @@ const CustomIntegrations: React.FC<CustomIntegrationsProps> = ({
   return (
     <div className="grid gap-4">
       {integracoes.map((integracao) => {
-        const isConnected = integracao.status === 'ativa' && !!integracao.api_key && !!integracao.endpoint_url;
+        const isConnected = integracao.status === 'ativa' && !!integracao.api_key_encrypted && !!integracao.endpoint_url;
         return (
           <Card key={integracao.id} className={cn(isConnected && 'border-emerald-200 dark:border-emerald-800/50')}>
             <CardHeader className="pb-2">
@@ -120,15 +110,10 @@ const CustomIntegrations: React.FC<CustomIntegrationsProps> = ({
                 <div>
                   <Label className="text-[11px] text-muted-foreground">API Key</Label>
                   <div className="flex items-center gap-1 mt-0.5">
+                    <ShieldCheck className="h-3 w-3 text-green-500 shrink-0" />
                     <p className="font-mono truncate">
-                      {showApiKeys[integracao.id] ? integracao.api_key : maskApiKey(integracao.api_key)}
+                      {integracao.api_key_encrypted ? '••••••••' : 'Não configurada'}
                     </p>
-                    <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => onToggleApiKeyVisibility(integracao.id)}>
-                      {showApiKeys[integracao.id] ? <EyeOff className="h-3 w-3" /> : <Eye className="h-3 w-3" />}
-                    </Button>
-                    <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => onCopy(integracao.api_key, integracao.id)}>
-                      {copied === integracao.id ? <Check className="h-3 w-3 text-green-500" /> : <Copy className="h-3 w-3" />}
-                    </Button>
                   </div>
                 </div>
                 <div>

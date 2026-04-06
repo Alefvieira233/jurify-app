@@ -327,7 +327,7 @@ export class AgentMemoryService {
           .eq('id', id);
       }
     } catch (err) {
-      console.warn('[AgentMemory] touchLastAccessed failed:', err);
+      log.warn('touchLastAccessed failed', { error: String(err) });
     }
   }
 }

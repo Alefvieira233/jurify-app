@@ -1,4 +1,7 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
+import { createLogger } from '@/lib/logger';
+
+const log = createLogger('useDraftPersistence');
 
 /**
  * Persists form draft state in sessionStorage so user input survives
@@ -28,7 +31,7 @@ export function useDraftPersistence<T>(
         return parsed;
       }
     } catch (err) {
-      console.warn('[useDraftPersistence] restoring draft failed:', err);
+      log.warn('restoring draft failed', { error: String(err) });
     }
     return initialValue;
   });
@@ -42,7 +45,7 @@ export function useDraftPersistence<T>(
     try {
       sessionStorage.setItem(storageKey, JSON.stringify(state));
     } catch (err) {
-      console.warn('[useDraftPersistence] persisting draft failed:', err);
+      log.warn('persisting draft failed', { error: String(err) });
     }
   }, [state, storageKey]);
 
@@ -53,7 +56,7 @@ export function useDraftPersistence<T>(
         try {
           sessionStorage.setItem(storageKey, JSON.stringify(next));
         } catch (err) {
-          console.warn('[useDraftPersistence] setDraft persist failed:', err);
+          log.warn('setDraft persist failed', { error: String(err) });
         }
         return next;
       });
@@ -65,7 +68,7 @@ export function useDraftPersistence<T>(
     try {
       sessionStorage.removeItem(storageKey);
     } catch (err) {
-      console.warn('[useDraftPersistence] clearDraft failed:', err);
+      log.warn('clearDraft failed', { error: String(err) });
     }
   }, [storageKey]);
 

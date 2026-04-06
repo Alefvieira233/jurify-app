@@ -12,6 +12,7 @@ import { supabaseUntyped as supabase } from '@/integrations/supabase/client';
 import { formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { createLogger } from '@/lib/logger';
+import { getStatusConfig } from '@/constants/statusConfig';
 
 const log = createLogger('TimelineConversas');
 
@@ -143,19 +144,11 @@ const TimelineConversas: React.FC<TimelineConversasProps> = ({ leadId, className
       case 'lead': return 'bg-blue-500';
       case 'agente': return 'bg-orange-500';
       case 'usuario': return 'bg-green-500';
-      default: return 'bg-gray-500';
+      default: return 'bg-muted-foreground';
     }
   };
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'enviado': return 'text-blue-500';
-      case 'entregue': return 'text-green-500';
-      case 'lido': return 'text-green-700';
-      case 'erro': return 'text-red-500';
-      default: return 'text-muted-foreground/50';
-    }
-  };
+  const getStatusColor = (status: string) => getStatusConfig('timeline', status).textClass;
 
   const toggleCardExpansion = (conversaId: string) => {
     const newExpanded = new Set(expandedCards);

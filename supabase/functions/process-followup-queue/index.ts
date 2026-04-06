@@ -1,6 +1,7 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { getCorsHeaders } from "../_shared/cors.ts";
 import { createEdgeLogger } from "../_shared/logger.ts";
+import { isServiceRole } from "../_shared/supabase-client.ts";
 
 const log = createEdgeLogger("process-followup-queue");
 
@@ -24,17 +25,15 @@ Deno.serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
-  // Auth gate: require service-role key (this is a cron/internal function)
-  const authHeader = req.headers.get("Authorization");
-  const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
-  const token = authHeader?.replace("Bearer ", "") ?? "";
-
-  if (!supabaseServiceKey || token !== supabaseServiceKey) {
+  // Auth gate: require service-role key (timing-safe comparison)
+  if (!isServiceRole(req)) {
     return new Response(JSON.stringify({ error: "Unauthorized" }), {
       status: 401,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
+
+  const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
 
   const startTime = Date.now();
   let processed = 0;

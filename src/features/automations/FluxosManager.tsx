@@ -1,9 +1,7 @@
-import { useState, useCallback } from 'react';
+import React, { useState, useCallback, Suspense } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import {
-  Plus, Workflow, Loader2, Zap, Clock,
-  Edit, Trash2, Activity,
-} from 'lucide-react';
+import { queryKeys } from '@/lib/queryKeys';
+import { Plus, Workflow, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -14,96 +12,15 @@ import { supabaseUntyped as supabase } from '@/integrations/supabase/client';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import EmptyState from '@/components/EmptyState';
 import ErrorState from '@/components/ErrorState';
-import { FlowEditor, type FlowData } from './FlowEditor';
+import type { FlowData } from './FlowEditor';
+const FlowEditor = React.lazy(() => import('./FlowEditor').then(m => ({ default: m.FlowEditor })));
 import { createLogger } from '@/lib/logger';
 import type { Node, Edge } from '@xyflow/react';
+import { FlowCard, type AutomationFlow, type FlowNode, type FlowEdge } from './FlowCard';
 
 const logger = createLogger('FluxosManager');
 
-// ─── Types ───────────────────────────────────────────────────────────────────
-
-interface AutomationFlow {
-  id: string;
-  tenant_id: string;
-  nome: string;
-  descricao: string | null;
-  status: 'rascunho' | 'ativo' | 'pausado' | 'arquivado';
-  trigger_type: string;
-  trigger_config: Record<string, unknown>;
-  viewport: { x: number; y: number; zoom: number };
-  execucoes_total: number;
-  ultima_execucao: string | null;
-  created_by: string | null;
-  created_at: string;
-  updated_at: string;
-}
-
-interface FlowNode {
-  id: string;
-  flow_id: string;
-  tipo: string;
-  label: string;
-  config: Record<string, unknown>;
-  position_x: number;
-  position_y: number;
-}
-
-interface FlowEdge {
-  id: string;
-  flow_id: string;
-  source_node: string;
-  target_node: string;
-  source_handle: string | null;
-  label: string | null;
-}
-
-// FlowData is imported from FlowEditor
-
-// ─── Constants ───────────────────────────────────────────────────────────────
-
-const TRIGGER_LABELS: Record<string, string> = {
-  novo: 'Novo Lead',
-  status_alterado: 'Status Alterado',
-  departamento_alterado: 'Dept. Alterado',
-  lead_quente: 'Lead Quente',
-  agendamento_criado: 'Agendamento',
-  ganho: 'Ganho',
-  webhook: 'Webhook',
-  manual: 'Manual',
-  timer: 'Timer',
-};
-
-const STATUS_BADGES: Record<string, { label: string; className: string }> = {
-  rascunho: {
-    label: 'Rascunho',
-    className: 'bg-slate-500/10 text-slate-400 border-slate-500/20',
-  },
-  ativo: {
-    label: 'Ativo',
-    className: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20',
-  },
-  pausado: {
-    label: 'Pausado',
-    className: 'bg-amber-500/10 text-amber-400 border-amber-500/20',
-  },
-  arquivado: {
-    label: 'Arquivado',
-    className: 'bg-red-500/10 text-red-400 border-red-500/20',
-  },
-};
-
 // ─── Helpers ─────────────────────────────────────────────────────────────────
-
-function formatDate(iso: string | null): string {
-  if (!iso) return 'Nunca';
-  return new Date(iso).toLocaleDateString('pt-BR', {
-    day: '2-digit',
-    month: '2-digit',
-    year: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
-  });
-}
 
 function dbNodesToReactFlow(dbNodes: FlowNode[]): Node[] {
   return dbNodes.map((n) => ({
@@ -152,11 +69,11 @@ export function FluxosManager() {
     error,
     refetch: refetchFlows,
   } = useQuery({
-    queryKey: ['automation-flows', tenantId],
+    queryKey: queryKeys.automationFlows.list(tenantId),
     queryFn: async () => {
       const { data, error: err } = await supabase
         .from('automation_flows')
-        .select('*')
+        .select('id, tenant_id, nome, descricao, status, trigger_type, trigger_config, viewport, execucoes_total, ultima_execucao, created_by, created_at, updated_at')
         .order('updated_at', { ascending: false });
       if (err) throw err;
       return (data ?? []) as AutomationFlow[];
@@ -169,13 +86,13 @@ export function FluxosManager() {
     data: editingFlowData,
     isLoading: loadingEditor,
   } = useQuery({
-    queryKey: ['automation-flow-detail', editingFlowId],
+    queryKey: queryKeys.automationFlows.detail(editingFlowId),
     queryFn: async () => {
       if (!editingFlowId) return null;
       const [flowRes, nodesRes, edgesRes] = await Promise.all([
-        supabase.from('automation_flows').select('*').eq('id', editingFlowId).single(),
-        supabase.from('automation_flow_nodes').select('*').eq('flow_id', editingFlowId),
-        supabase.from('automation_flow_edges').select('*').eq('flow_id', editingFlowId),
+        supabase.from('automation_flows').select('id, tenant_id, nome, descricao, status, trigger_type, trigger_config, viewport, execucoes_total, ultima_execucao, created_by, created_at, updated_at').eq('id', editingFlowId).single(),
+        supabase.from('automation_flow_nodes').select('id, flow_id, tipo, label, config, position_x, position_y').eq('flow_id', editingFlowId),
+        supabase.from('automation_flow_edges').select('id, flow_id, source_node, target_node, source_handle, label').eq('flow_id', editingFlowId),
       ]);
       if (flowRes.error) throw flowRes.error;
       const flow = flowRes.data as AutomationFlow;
@@ -190,7 +107,6 @@ export function FluxosManager() {
 
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
-      // Cascade deletes nodes/edges via FK
       const { error: err } = await supabase
         .from('automation_flows')
         .delete()
@@ -198,7 +114,7 @@ export function FluxosManager() {
       if (err) throw err;
     },
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ['automation-flows'] });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.automationFlows.all });
       toast({ title: 'Fluxo excluído com sucesso' });
     },
     onError: () => {
@@ -216,7 +132,6 @@ export function FluxosManager() {
         let flowId = data.id;
 
         if (flowId) {
-          // Update existing flow
           const { error: updateErr } = await supabase
             .from('automation_flows')
             .update({
@@ -230,7 +145,6 @@ export function FluxosManager() {
             .eq('id', flowId);
           if (updateErr) throw updateErr;
         } else {
-          // Insert new flow
           const { data: inserted, error: insertErr } = await supabase
             .from('automation_flows')
             .insert({
@@ -249,7 +163,6 @@ export function FluxosManager() {
           flowId = (inserted as { id: string }).id;
         }
 
-        // Delete old nodes and edges, then re-insert
         await Promise.all([
           supabase.from('automation_flow_nodes').delete().eq('flow_id', flowId),
           supabase.from('automation_flow_edges').delete().eq('flow_id', flowId),
@@ -257,7 +170,6 @@ export function FluxosManager() {
 
         const resolvedFlowId = flowId ?? '';
 
-        // Insert nodes
         if (data.nodes.length > 0) {
           const dbNodes = data.nodes.map((n) => {
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -279,7 +191,6 @@ export function FluxosManager() {
           if (nodesErr) throw nodesErr;
         }
 
-        // Insert edges
         if (data.edges.length > 0) {
           const dbEdges = data.edges.map((e) => ({
             id: e.id,
@@ -295,7 +206,7 @@ export function FluxosManager() {
           if (edgesErr) throw edgesErr;
         }
 
-        void queryClient.invalidateQueries({ queryKey: ['automation-flows'] });
+        void queryClient.invalidateQueries({ queryKey: queryKeys.automationFlows.all });
         toast({ title: 'Fluxo salvo com sucesso' });
         setEditorMode('list');
         setEditingFlowId(null);
@@ -309,15 +220,28 @@ export function FluxosManager() {
     [tenantId, profile?.id, queryClient, toast]
   );
 
+  // ─── Handlers ───────────────────────────────────────────────────────────
+
+  const handleEdit = useCallback((id: string) => {
+    setEditingFlowId(id);
+    setEditorMode('edit');
+  }, []);
+
+  const handleDelete = useCallback((id: string, label: string) => {
+    setConfirmDelete({ open: true, id, label });
+  }, []);
+
   // ─── Editor view ─────────────────────────────────────────────────────────
 
   if (editorMode === 'new') {
     return (
-      <FlowEditor
-        onSave={handleSave}
-        onBack={() => { setEditorMode('list'); setEditingFlowId(null); }}
-        saving={saving}
-      />
+      <Suspense fallback={<div className="flex items-center justify-center h-[60vh]"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>}>
+        <FlowEditor
+          onSave={handleSave}
+          onBack={() => { setEditorMode('list'); setEditingFlowId(null); }}
+          saving={saving}
+        />
+      </Suspense>
     );
   }
 
@@ -331,12 +255,14 @@ export function FluxosManager() {
     }
 
     return (
-      <FlowEditor
-        initialData={editingFlowData}
-        onSave={handleSave}
-        onBack={() => { setEditorMode('list'); setEditingFlowId(null); }}
-        saving={saving}
-      />
+      <Suspense fallback={<div className="flex items-center justify-center h-[60vh]"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>}>
+        <FlowEditor
+          initialData={editingFlowData}
+          onSave={handleSave}
+          onBack={() => { setEditorMode('list'); setEditingFlowId(null); }}
+          saving={saving}
+        />
+      </Suspense>
     );
   }
 
@@ -407,93 +333,14 @@ export function FluxosManager() {
       {/* Flow cards */}
       {!isLoading && flows.length > 0 && (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-          {flows.map((flow) => {
-            const statusBadge = STATUS_BADGES[flow.status] ?? { label: 'Rascunho', className: 'bg-slate-500/10 text-slate-400 border-slate-500/20' };
-
-            return (
-              <div
-                key={flow.id}
-                className="group relative rounded-[20px] border border-border/10 bg-background/95 backdrop-blur-xl
-                           p-5 hover:border-border/20 transition-all duration-200 cursor-pointer"
-                onClick={() => {
-                  setEditingFlowId(flow.id);
-                  setEditorMode('edit');
-                }}
-              >
-                {/* Status badge */}
-                <div className="flex items-center justify-between mb-3">
-                  <Badge
-                    variant="outline"
-                    className={`text-[10px] rounded-full ${statusBadge.className}`}
-                  >
-                    {flow.status === 'ativo' && (
-                      <span className="mr-1 inline-block h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                    )}
-                    {statusBadge.label}
-                  </Badge>
-
-                  <Badge
-                    variant="outline"
-                    className="text-[10px] bg-muted/30 text-muted-foreground border-border/10 rounded-full"
-                  >
-                    <Zap className="h-3 w-3 mr-1" />
-                    {TRIGGER_LABELS[flow.trigger_type] ?? flow.trigger_type}
-                  </Badge>
-                </div>
-
-                {/* Name */}
-                <h3 className="text-sm font-semibold text-foreground mb-1 truncate">
-                  {flow.nome}
-                </h3>
-                {flow.descricao && (
-                  <p className="text-[11px] text-muted-foreground truncate mb-3">
-                    {flow.descricao}
-                  </p>
-                )}
-
-                {/* Stats */}
-                <div className="flex items-center gap-4 text-[11px] text-muted-foreground mt-auto pt-3 border-t border-border/5">
-                  <div className="flex items-center gap-1">
-                    <Activity className="h-3 w-3" />
-                    <span>{flow.execucoes_total} execuções</span>
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <Clock className="h-3 w-3" />
-                    <span>{formatDate(flow.ultima_execucao)}</span>
-                  </div>
-                </div>
-
-                {/* Action buttons (visible on hover) */}
-                <div className="absolute top-3 right-3 flex items-center gap-1 opacity-70 hover:opacity-100 transition-opacity">
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-7 w-7 rounded-[8px] bg-muted/30 hover:bg-muted/50"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setEditingFlowId(flow.id);
-                      setEditorMode('edit');
-                    }}
-                    aria-label="Editar fluxo"
-                  >
-                    <Edit className="h-3.5 w-3.5" />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-7 w-7 rounded-[8px] bg-muted/30 hover:bg-red-500/20 hover:text-red-400"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setConfirmDelete({ open: true, id: flow.id, label: flow.nome });
-                    }}
-                    aria-label="Excluir fluxo"
-                  >
-                    <Trash2 className="h-3.5 w-3.5" />
-                  </Button>
-                </div>
-              </div>
-            );
-          })}
+          {flows.map((flow) => (
+            <FlowCard
+              key={flow.id}
+              flow={flow}
+              onEdit={handleEdit}
+              onDelete={handleDelete}
+            />
+          ))}
         </div>
       )}
 

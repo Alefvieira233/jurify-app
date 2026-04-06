@@ -12,7 +12,8 @@ const log = createLogger('ApiKeys');
 interface ApiKey {
   id: string;
   nome: string;
-  key_value: string;
+  key_prefix: string;
+  key_hash: string;
   ativo: boolean;
   criado_por: string;
   created_at: string;
@@ -32,7 +33,7 @@ export const useApiKeys = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('api_keys')
-        .select('id, nome, tenant_id, ativo, created_at, updated_at')
+        .select('id, nome, key_prefix, key_hash, tenant_id, ativo, created_at, updated_at')
         .eq('tenant_id', tenantId!)
         .order('created_at', { ascending: false });
 
@@ -51,11 +52,18 @@ export const useApiKeys = () => {
       crypto.getRandomValues(bytes);
       const keyValue = 'jf_' + Array.from(bytes).map(b => b.toString(16).padStart(2, '0')).join('');
 
+      // Hash the key for storage — plaintext is never persisted
+      const encoder = new TextEncoder();
+      const hashBuffer = await crypto.subtle.digest('SHA-256', encoder.encode(keyValue));
+      const keyHash = Array.from(new Uint8Array(hashBuffer), b => b.toString(16).padStart(2, '0')).join('');
+      const keyPrefix = keyValue.substring(0, 7);
+
       const { data, error } = await supabase
         .from('api_keys')
         .insert({
           nome,
-          key_value: keyValue,
+          key_hash: keyHash,
+          key_prefix: keyPrefix,
           ativo: true,
           criado_por: user?.id,
           tenant_id: tenantId,
@@ -64,7 +72,7 @@ export const useApiKeys = () => {
         .single();
 
       if (error) throw error;
-      return data;
+      return { ...data, _plainKey: keyValue };
     },
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: queryKeys.apiKeys.list(tenantId) });

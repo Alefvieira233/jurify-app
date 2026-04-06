@@ -15,7 +15,7 @@ export interface DiagnosticoResult {
 }
 
 export const SEVERITY_STYLES: Record<string, string> = {
-  debug:    'text-slate-500 bg-slate-100 dark:bg-slate-800/40',
+  debug:    'text-slate-600 dark:text-slate-400 bg-slate-100 dark:bg-slate-800/40',
   info:     'text-blue-600  bg-blue-50   dark:bg-blue-900/30',
   warning:  'text-amber-600 bg-amber-50  dark:bg-amber-900/30',
   error:    'text-red-600   bg-red-50    dark:bg-red-900/30',

@@ -9,6 +9,9 @@
 
 import { supabaseUntyped as supabase } from '@/integrations/supabase/client';
 import type { ExecutionStatus, StageResult } from '../types';
+import { createLogger } from '@/lib/logger';
+
+const log = createLogger('ExecutionStore');
 
 const COST_PER_1K_PROMPT_TOKENS = 0.01;
 
@@ -74,7 +77,7 @@ export class ExecutionStore {
 
       return data?.id ?? null;
     } catch (_error) {
-      console.warn('[ExecutionStore] createExecution failed:', _error);
+      log.warn('createExecution failed', { error: String(_error) });
       return null;
     }
   }
@@ -104,10 +107,10 @@ export class ExecutionStore {
         .eq('execution_id', executionId);
 
       if (error) {
-        console.warn('[ExecutionStore] updateStatus DB error:', error);
+        log.warn('updateStatus DB error', { error: String(error) });
       }
     } catch (_error) {
-      console.warn('[ExecutionStore] updateStatus failed:', _error);
+      log.warn('updateStatus failed', { error: String(_error) });
     }
   }
 
@@ -151,10 +154,10 @@ export class ExecutionStore {
         .eq('execution_id', executionId);
 
       if (error) {
-        console.warn('[ExecutionStore] recordStageResult DB error:', error);
+        log.warn('recordStageResult DB error', { error: String(error) });
       }
     } catch (_error) {
-      console.warn('[ExecutionStore] recordStageResult failed:', _error);
+      log.warn('recordStageResult failed', { error: String(_error) });
     }
   }
 
@@ -193,10 +196,10 @@ export class ExecutionStore {
         .eq('execution_id', executionId);
 
       if (error) {
-        console.warn('[ExecutionStore] completeExecution DB error:', error);
+        log.warn('completeExecution DB error', { error: String(error) });
       }
     } catch (_error) {
-      console.warn('[ExecutionStore] completeExecution failed:', _error);
+      log.warn('completeExecution failed', { error: String(_error) });
     }
   }
 
@@ -218,10 +221,10 @@ export class ExecutionStore {
         .eq('execution_id', executionId);
 
       if (error) {
-        console.warn('[ExecutionStore] failExecution DB error:', error);
+        log.warn('failExecution DB error', { error: String(error) });
       }
     } catch (_error) {
-      console.warn('[ExecutionStore] failExecution failed:', _error);
+      log.warn('failExecution failed', { error: String(_error) });
     }
   }
 
@@ -232,7 +235,7 @@ export class ExecutionStore {
     try {
       const { data, error } = await supabase
         .from('agent_executions')
-        .select('*')
+        .select('id, execution_id, lead_id, tenant_id, user_id, status, current_agent, current_stage, started_at, completed_at, total_duration_ms, agents_involved, total_agents_used, total_prompt_tokens, total_completion_tokens, total_tokens, estimated_cost_usd, final_result, error_message, metadata')
         .eq('execution_id', executionId)
         .single();
 
@@ -242,7 +245,7 @@ export class ExecutionStore {
 
       return data as ExecutionRecord;
     } catch (_error) {
-      console.warn('[ExecutionStore] getExecution failed:', _error);
+      log.warn('getExecution failed', { error: String(_error) });
       return null;
     }
   }

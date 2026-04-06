@@ -22,7 +22,7 @@ const TRIGGER_TYPES = [
 ];
 
 const STATUS_OPTIONS = [
-  { value: 'rascunho', label: 'Rascunho', color: 'text-slate-400' },
+  { value: 'rascunho', label: 'Rascunho', color: 'text-slate-600 dark:text-slate-400' },
   { value: 'ativo', label: 'Ativo', color: 'text-emerald-400' },
   { value: 'pausado', label: 'Pausado', color: 'text-amber-400' },
 ];

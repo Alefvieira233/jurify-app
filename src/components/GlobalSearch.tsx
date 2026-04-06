@@ -6,8 +6,6 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useRBAC } from '@/hooks/useRBAC';
 import { useToast } from '@/hooks/use-toast';
 import { createLogger } from '@/lib/logger';
-import { useTranslation } from 'react-i18next';
-
 const log = createLogger('GlobalSearch');
 
 interface SearchResult {
@@ -45,8 +43,6 @@ export default function GlobalSearch() {
   const { profile } = useAuth();
   const { getLeadVisibilityScope, getUserDepartamentos } = useRBAC();
   const { toast } = useToast();
-  const { t } = useTranslation();
-
   // Ctrl+K to open
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -156,14 +152,14 @@ export default function GlobalSearch() {
     } catch (err) {
       log.error('Search error', err);
       toast({
-        title: t('errors.searchError'),
-        description: t('errors.searchErrorDescription'),
+        title: 'Erro na busca',
+        description: 'Não foi possível realizar a busca. Tente novamente.',
         variant: 'destructive',
       });
     } finally {
       setLoading(false);
     }
-  }, [profile?.tenant_id, profile?.id, toast, getLeadVisibilityScope, getUserDepartamentos, t]);
+  }, [profile?.tenant_id, profile?.id, toast, getLeadVisibilityScope, getUserDepartamentos]);
 
   // Debounced search
   useEffect(() => {
@@ -210,18 +206,18 @@ export default function GlobalSearch() {
           <input
             ref={inputRef}
             type="text"
-            placeholder={t('common.searchPlaceholder')}
+            placeholder="Buscar leads, contratos, agendamentos..."
             value={query}
             onChange={e => setQuery(e.target.value)}
             onKeyDown={handleKeyDown}
-            className="flex-1 bg-transparent text-sm text-[hsl(var(--foreground))] placeholder:text-[hsl(var(--muted-foreground))] outline-none"
+            className="flex-1 bg-transparent text-sm text-[hsl(var(--foreground))] placeholder:text-[hsl(var(--muted-foreground))] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 rounded-sm"
           />
           {query && (
-            <button onClick={() => setQuery('')}>
+            <button onClick={() => setQuery('')} aria-label="Limpar busca">
               <X className="w-4 h-4 text-[hsl(var(--muted-foreground))]" />
             </button>
           )}
-          <kbd className="hidden sm:inline-flex px-1.5 py-0.5 text-[10px] font-mono bg-[hsl(var(--muted))] text-[hsl(var(--muted-foreground))] rounded">
+          <kbd className="hidden sm:inline-flex px-1.5 py-0.5 text-xs font-mono bg-[hsl(var(--muted))] text-[hsl(var(--muted-foreground))] rounded">
             ESC
           </kbd>
         </div>
@@ -230,13 +226,13 @@ export default function GlobalSearch() {
         <div className="max-h-80 overflow-y-auto p-2">
           {loading && (
             <div className="flex items-center justify-center py-8 text-sm text-[hsl(var(--muted-foreground))]">
-              {t('common.searching')}
+              Buscando...
             </div>
           )}
 
           {!loading && query.length >= 2 && results.length === 0 && (
             <div className="flex items-center justify-center py-8 text-sm text-[hsl(var(--muted-foreground))]">
-              {t('common.noResultsFor', { query })}
+              {`Nenhum resultado para "${query}"`}
             </div>
           )}
 
@@ -258,7 +254,7 @@ export default function GlobalSearch() {
                   <div className="text-sm font-medium truncate">{result.title}</div>
                   <div className="text-xs text-[hsl(var(--muted-foreground))] truncate">{result.subtitle}</div>
                 </div>
-                <span className="text-[10px] px-1.5 py-0.5 rounded bg-[hsl(var(--muted))] text-[hsl(var(--muted-foreground))]">
+                <span className="text-xs px-1.5 py-0.5 rounded bg-[hsl(var(--muted))] text-[hsl(var(--muted-foreground))]">
                   {config.label}
                 </span>
                 <ArrowRight className="w-3 h-3 text-[hsl(var(--muted-foreground))]" />
@@ -269,8 +265,8 @@ export default function GlobalSearch() {
           {/* Quick links when no query */}
           {query.length < 2 && !loading && (
             <>
-              <div className="px-3 py-1.5 text-[10px] font-semibold uppercase tracking-wider text-[hsl(var(--muted-foreground))]">
-                {t('common.quickNav')}
+              <div className="px-3 py-1.5 text-xs font-semibold uppercase tracking-wider text-[hsl(var(--muted-foreground))]">
+                Navegação rápida
               </div>
               {QUICK_LINKS.map((link, i) => {
                 const Icon = link.icon;
@@ -295,10 +291,10 @@ export default function GlobalSearch() {
         </div>
 
         {/* Footer */}
-        <div className="flex items-center gap-4 px-4 py-2 border-t border-[hsl(var(--border))] text-[10px] text-[hsl(var(--muted-foreground))]">
-          <span><kbd className="font-mono">↑↓</kbd> {t('common.navigate')}</span>
-          <span><kbd className="font-mono">Enter</kbd> {t('common.open')}</span>
-          <span><kbd className="font-mono">Esc</kbd> {t('common.close')}</span>
+        <div className="flex items-center gap-4 px-4 py-2 border-t border-[hsl(var(--border))] text-xs text-[hsl(var(--muted-foreground))]">
+          <span><kbd className="font-mono">↑↓</kbd> navegar</span>
+          <span><kbd className="font-mono">Enter</kbd> abrir</span>
+          <span><kbd className="font-mono">Esc</kbd> Fechar</span>
         </div>
       </div>
     </div>

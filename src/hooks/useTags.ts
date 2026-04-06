@@ -20,7 +20,7 @@ export function useTags() {
     queryFn: async (): Promise<Tag[]> => {
       const { data, error } = await supabase
         .from('tags')
-        .select('*')
+        .select('id, tenant_id, nome, cor, categoria, ordem, ativo, created_at')
         .eq('tenant_id', tenantId!)
         .order('ordem', { ascending: true });
       if (error) throw error;

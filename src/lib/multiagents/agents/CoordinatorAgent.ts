@@ -1,5 +1,8 @@
 import { BaseAgent } from '../core/BaseAgent';
 import { AgentMessage, MessageType, Priority, AGENT_CONFIG } from '../types';
+import { createLogger } from '@/lib/logger';
+
+const log = createLogger('CoordinatorAgent');
 
 /**
  * 🎯 COORDINATOR AGENT - Orquestrador do Fluxo de Agentes
@@ -195,7 +198,7 @@ LEAD NOVO
         reason = parsed.reason || 'Decisão da IA';
       }
     } catch (_e) {
-      console.warn('[CoordinatorAgent] plan parsing failed, using default agent:', _e);
+      log.warn('plan parsing failed, using default agent', { error: String(_e) });
     }
 
     this.updateContext(payload.leadId || '', { stage: 'planned', plan, nextAgent, task });

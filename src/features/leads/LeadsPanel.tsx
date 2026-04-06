@@ -16,6 +16,7 @@ import NovoLeadForm from '@/components/forms/NovoLeadForm';
 import LeadDrawer from '@/components/forms/LeadDrawer';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import { getAvatarHex, getInitials } from '@/utils/formatting';
+import { ScreenReaderAnnounce } from '@/components/ui/ScreenReaderAnnounce';
 
 const STATUS_MAP: Record<string, { label: string; dot: string; bg: string; text: string }> = {
   novo:        { label: 'Novo',        dot: 'bg-blue-500',    bg: 'bg-blue-500/10',    text: 'text-blue-500' },
@@ -52,6 +53,10 @@ const LeadsPanel = () => {
   const totalValue = useMemo(() => filteredLeads.reduce((s, l) => s + (Number(l.valor_causa) || 0), 0), [filteredLeads]);
   const hasFilter = searchTerm || (filterStatus && filterStatus !== 'all');
 
+  const filterAnnouncement = hasFilter
+    ? `${filteredLeads.length} resultados encontrados`
+    : '';
+
   if (loading) {
     return (
       <div className="space-y-8 pb-12">
@@ -70,7 +75,7 @@ const LeadsPanel = () => {
     return (
       <div className="flex flex-col items-center justify-center py-24 text-center border border-dashed border-destructive/20 rounded-[24px] bg-destructive/5">
         <ShieldCheck className="h-16 w-16 text-destructive/40 mb-4" />
-        <h3 className="text-2xl font-bold text-foreground mb-2">Erro ao carregar dados</h3>
+        <h2 className="text-2xl font-bold text-foreground mb-2">Erro ao carregar dados</h2>
         <p className="text-muted-foreground max-w-md mx-auto mb-6">{error}</p>
         <Button onClick={() => void fetchLeads()} size="lg" className="rounded-[12px]">
           <RefreshCw className="mr-2 h-4 w-4" /> Tentar Novamente
@@ -81,6 +86,7 @@ const LeadsPanel = () => {
 
   return (
     <div className="space-y-8 pb-12">
+      {filterAnnouncement && <ScreenReaderAnnounce message={filterAnnouncement} />}
       {/* Header Lex Obsidian */}
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
         <div>
@@ -130,12 +136,12 @@ const LeadsPanel = () => {
         </Select>
         <div className="flex items-center gap-6 px-4">
           <div className="text-center">
-            <p className="text-[10px] uppercase font-bold text-muted-foreground">Volume</p>
+            <p className="text-xs uppercase font-bold text-muted-foreground">Volume</p>
             <p className="text-xl font-black">{filteredLeads.length}</p>
           </div>
           <div className="w-px h-8 bg-border/20"></div>
           <div className="text-center min-w-[100px]">
-            <p className="text-[10px] uppercase font-bold text-muted-foreground">Pipelines Estimado</p>
+            <p className="text-xs uppercase font-bold text-muted-foreground">Pipelines Estimado</p>
             <p className="text-xl font-black text-primary truncate max-w-[150px]">
               {fmtCurrency(totalValue)}
             </p>
@@ -148,7 +154,7 @@ const LeadsPanel = () => {
           <div className="w-20 h-20 rounded-full bg-primary/10 flex items-center justify-center mb-6">
             <Users className="h-10 w-10 text-primary" />
           </div>
-          <h3 className="text-2xl font-bold text-foreground mb-2">Base de contatos vazia</h3>
+          <h2 className="text-2xl font-bold text-foreground mb-2">Base de contatos vazia</h2>
           <p className="text-base text-muted-foreground mb-8 max-w-md">
             Você não tem tickets cadastrados. Preencha manualmente ou ative uma conexão para captar de forma unida.
           </p>
@@ -159,7 +165,7 @@ const LeadsPanel = () => {
       ) : filteredLeads.length === 0 && hasFilter ? (
         <div className="flex flex-col items-center justify-center py-16 text-center">
           <Search className="h-12 w-12 text-muted-foreground/30 mb-4" />
-          <h3 className="text-xl font-bold text-foreground">Sem resultados</h3>
+          <h2 className="text-xl font-bold text-foreground">Sem resultados</h2>
           <p className="text-muted-foreground">O filtro selecionado não encontrou leads correspondentes.</p>
           <Button variant="link" onClick={() => { setSearchTerm(''); setFilterStatus('all'); }} className="mt-4 text-primary">
             Limpar filtros
@@ -176,6 +182,9 @@ const LeadsPanel = () => {
               <div
                 key={lead.id}
                 onClick={() => setEditingLead(lead)}
+                onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setEditingLead(lead); } }}
+                role="button"
+                tabIndex={0}
                 className="group relative bg-background border border-border/10 rounded-[20px] p-5 hover:shadow-2xl hover:shadow-primary/5 hover:border-border/30 transition-all duration-300 hover:-translate-y-0.5 overflow-hidden cursor-pointer"
               >
                 {/* Glow status */}
@@ -195,7 +204,7 @@ const LeadsPanel = () => {
                       </h3>
                       <div className="flex items-center gap-1.5 mt-1">
                         <div className={`w-2 h-2 rounded-full ${sc.dot}`} />
-                        <span className={`text-[10px] uppercase font-bold tracking-widest ${sc.text}`}>
+                        <span className={`text-xs uppercase font-bold tracking-widest ${sc.text}`}>
                           {sc.label}
                         </span>
                       </div>
@@ -240,7 +249,7 @@ const LeadsPanel = () => {
                   {lead.responsavel_id ? (
                     <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-muted/40 border border-border/10">
                       <User className="h-3 w-3 text-muted-foreground" />
-                      <span className="text-[10px] font-medium text-foreground max-w-[90px] truncate">—</span>
+                      <span className="text-xs font-medium text-foreground max-w-[90px] truncate">—</span>
                     </div>
                   ) : <span />}
                   
@@ -249,7 +258,7 @@ const LeadsPanel = () => {
                       {fmtCurrency(Number(lead.valor_causa))}
                     </span>
                   ) : (
-                    <span className="text-[10px] text-muted-foreground/30 font-medium">--</span>
+                    <span className="text-xs text-muted-foreground/30 font-medium">--</span>
                   )}
                 </div>
               </div>

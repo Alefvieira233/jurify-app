@@ -1,10 +1,11 @@
 import { useState, useCallback } from 'react';
-import { Plus, Search, Scale, Eye, Edit, Trash2, XCircle, Gavel, TrendingUp, Clock, MoreVertical } from 'lucide-react';
+import { Plus, Search, Scale, Eye, Edit, Trash2, XCircle, MoreVertical } from 'lucide-react';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { MobileCard } from '@/components/ui/MobileCard';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { useDebounce } from '@/hooks/useDebounce';
 import { useQuery } from '@tanstack/react-query';
+import { queryKeys } from '@/lib/queryKeys';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -26,6 +27,7 @@ import ConfirmDialog from '@/components/ConfirmDialog';
 import EmptyState from '@/components/EmptyState';
 import ErrorState from '@/components/ErrorState';
 import PaginationControls from '@/components/PaginationControls';
+import { ScreenReaderAnnounce } from '@/components/ui/ScreenReaderAnnounce';
 import NovoProcessoForm from './components/NovoProcessoForm';
 import ProcessoDetalhes from './components/ProcessoDetalhes';
 import { EncerrarProcessoDialog } from './components/EncerrarProcessoDialog';
@@ -33,6 +35,7 @@ import type { ProcessoFormData } from '@/schemas/processoSchema';
 import { PROCESSO_STATUS_LABELS } from '@/schemas/processoSchema';
 import { getStatusClasses } from '@/constants/statusConfig';
 import ProcessoCard, { TIPO_LABELS } from './components/ProcessoCard';
+import { ProcessosStats } from './components/ProcessosStats';
 
 const log = createLogger('ProcessosManager');
 
@@ -103,7 +106,7 @@ const ProcessosManager = () => {
   const { prazosUrgentes } = usePrazosProcessuais();
 
   const { data: statsAtivos } = useQuery({
-    queryKey: ['processos-stats-ativos', tenantId],
+    queryKey: queryKeys.processos.statsAtivos(tenantId),
     queryFn: async () => {
       const { count, error: err } = await supabase
         .from('processos')
@@ -118,7 +121,7 @@ const ProcessosManager = () => {
   });
 
   const { data: statsExito } = useQuery({
-    queryKey: ['processos-stats-exito', tenantId],
+    queryKey: queryKeys.processos.statsExito(tenantId),
     queryFn: async () => {
       const statuses = ['encerrado_vitoria', 'encerrado_derrota', 'encerrado_acordo'];
       const counts = await Promise.all(
@@ -212,9 +215,15 @@ const ProcessosManager = () => {
     );
   }
 
+  const hasFilter = debouncedSearch || (filterStatus && filterStatus !== 'all') || (filterTipo && filterTipo !== 'all');
+  const filterAnnouncement = hasFilter
+    ? `${totalCount} processo${totalCount !== 1 ? 's' : ''} encontrado${totalCount !== 1 ? 's' : ''}`
+    : '';
+
   // ── Main ───────────────────────────────────────────────────────────────────
   return (
     <div className="p-6 space-y-6">
+      {filterAnnouncement && <ScreenReaderAnnounce message={filterAnnouncement} />}
       {/* Header */}
       <Card>
         <CardHeader>
@@ -239,52 +248,12 @@ const ProcessosManager = () => {
       </Card>
 
       {/* Stats */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <Card>
-          <CardContent className="p-4 flex items-center gap-3">
-            <div className="p-2 rounded-lg bg-primary/10">
-              <Gavel className="w-5 h-5 text-primary" />
-            </div>
-            <div>
-              <p className="text-2xl font-bold">{totalCount}</p>
-              <p className="text-xs text-muted-foreground">Total</p>
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4 flex items-center gap-3">
-            <div className="p-2 rounded-lg bg-emerald-500/10">
-              <Scale className="w-5 h-5 text-emerald-600" />
-            </div>
-            <div>
-              <p className="text-2xl font-bold">{statsAtivos ?? 0}</p>
-              <p className="text-xs text-muted-foreground">Ativos</p>
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4 flex items-center gap-3">
-            <div className="p-2 rounded-lg bg-blue-500/10">
-              <TrendingUp className="w-5 h-5 text-blue-600" />
-            </div>
-            <div>
-              <p className="text-2xl font-bold">{statsExito ?? 0}%</p>
-              <p className="text-xs text-muted-foreground">Taxa de Êxito</p>
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4 flex items-center gap-3">
-            <div className="p-2 rounded-lg bg-red-500/10">
-              <Clock className="w-5 h-5 text-red-600" />
-            </div>
-            <div>
-              <p className="text-2xl font-bold">{prazosUrgentes.length}</p>
-              <p className="text-xs text-muted-foreground">Prazos Urgentes</p>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+      <ProcessosStats
+        totalCount={totalCount}
+        statsAtivos={statsAtivos ?? 0}
+        statsExito={statsExito ?? 0}
+        prazosUrgentesCount={prazosUrgentes.length}
+      />
 
       {isEmpty ? (
         <EmptyState

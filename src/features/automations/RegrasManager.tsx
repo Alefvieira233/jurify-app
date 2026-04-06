@@ -5,6 +5,7 @@ import {
   Activity, Filter, GitBranch,
 } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { queryKeys } from '@/lib/queryKeys';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -84,13 +85,13 @@ const EVENT_TYPE_COLORS: Record<string, string> = {
   departamento_alterado: 'bg-purple-500/15 text-purple-400 border-purple-500/20',
   prioridade_alterada: 'bg-red-500/15 text-red-400 border-red-500/20',
   tag_adicionada: 'bg-teal-500/15 text-teal-400 border-teal-500/20',
-  tag_removida: 'bg-slate-500/15 text-slate-400 border-slate-500/20',
+  tag_removida: 'bg-slate-500/15 text-slate-600 dark:text-slate-400 border-slate-500/20',
   lead_arquivado: 'bg-rose-500/15 text-rose-400 border-rose-500/20',
   lead_reativado: 'bg-cyan-500/15 text-cyan-400 border-cyan-500/20',
   agendamento_criado: 'bg-indigo-500/15 text-indigo-400 border-indigo-500/20',
   ganho: 'bg-green-500/15 text-green-400 border-green-500/20',
   temperatura_alterada: 'bg-orange-500/15 text-orange-400 border-orange-500/20',
-  inatividade: 'bg-gray-500/15 text-gray-400 border-gray-500/20',
+  inatividade: 'bg-muted/50 text-muted-foreground border-border',
 };
 
 // ── Component ──
@@ -113,11 +114,11 @@ export const RegrasManager = () => {
   // ── Fetch rules ──
 
   const { data: rules = [], isLoading, error, refetch } = useQuery({
-    queryKey: ['automation-rules'],
+    queryKey: queryKeys.automationRules.all,
     queryFn: async () => {
       const { data, error } = await supabase
         .from('automation_rules')
-        .select('*')
+        .select('id, tenant_id, nome, descricao, status, evento, match_logic, prioridade, execucoes_total, ultima_execucao, created_by, created_at, updated_at')
         .order('prioridade', { ascending: false })
         .order('created_at', { ascending: false });
 
@@ -128,8 +129,8 @@ export const RegrasManager = () => {
       if (ruleIds.length === 0) return [];
 
       const [conditionsRes, actionsRes] = await Promise.all([
-        supabase.from('automation_rule_conditions').select('*').in('rule_id', ruleIds).order('ordem'),
-        supabase.from('automation_rule_actions').select('*').in('rule_id', ruleIds).order('ordem'),
+        supabase.from('automation_rule_conditions').select('id, rule_id, campo, operador, valor, ordem').in('rule_id', ruleIds).order('ordem'),
+        supabase.from('automation_rule_actions').select('id, rule_id, tipo, config, ordem').in('rule_id', ruleIds).order('ordem'),
       ]);
 
       const conditionsByRule = new Map<string, RuleCondition[]>();
@@ -166,7 +167,7 @@ export const RegrasManager = () => {
       if (error) throw error;
     },
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ['automation-rules'] });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.automationRules.all });
     },
     onError: () => {
       toast({ title: 'Erro ao alterar status da regra', variant: 'destructive' });
@@ -187,7 +188,7 @@ export const RegrasManager = () => {
     },
     onSuccess: () => {
       toast({ title: 'Regra excluída com sucesso' });
-      void queryClient.invalidateQueries({ queryKey: ['automation-rules'] });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.automationRules.all });
       setConfirmDelete({ open: false, id: '', label: '' });
     },
     onError: () => {
@@ -228,7 +229,7 @@ export const RegrasManager = () => {
 
   const handleEditorSaved = useCallback(() => {
     handleEditorClose();
-    void queryClient.invalidateQueries({ queryKey: ['automation-rules'] });
+    void queryClient.invalidateQueries({ queryKey: queryKeys.automationRules.all });
   }, [handleEditorClose, queryClient]);
 
   const handleToggleStatus = useCallback(

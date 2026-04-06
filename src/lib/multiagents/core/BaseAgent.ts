@@ -388,7 +388,7 @@ export abstract class BaseAgent implements IAgent {
             if (onToken) onToken(parsed.delta);
           }
         } catch (err) {
-          console.warn('[BaseAgent] malformed stream chunk:', err);
+          log.warn('malformed stream chunk', { error: String(err) });
         }
       }
     }

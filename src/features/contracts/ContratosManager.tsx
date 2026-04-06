@@ -16,9 +16,9 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { useContratos } from '@/hooks/useContratos';
 import type { Contrato } from '@/hooks/useContratos';
 import { fmtCurrency, fmtDate } from '@/utils/formatting';
-import UploadContratos from '@/components/UploadContratos';
-import { NovoContratoForm } from '@/components/NovoContratoForm';
-import { DetalhesContrato } from '@/components/DetalhesContrato';
+import UploadContratos from './components/UploadContratos';
+import { NovoContratoForm } from './components/NovoContratoForm';
+import { DetalhesContrato } from './components/DetalhesContrato';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import { supabaseUntyped as supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -29,6 +29,7 @@ import { usePageTitle } from '@/hooks/usePageTitle';
 import EmptyState from '@/components/EmptyState';
 import ErrorState from '@/components/ErrorState';
 import ContratoCard from './components/ContratoCard';
+import { getStatusClasses, getStatusLabel as getStatusLabelFromConfig } from '@/constants/statusConfig';
 
 const log = createLogger('ContratosManager');
 
@@ -54,25 +55,8 @@ const ContratosManager = () => {
     return matchesSearch && matchesStatus;
   }), [contratos, debouncedSearchTerm, filterStatus]);
 
-  const getStatusColor = (status: string) => {
-    const colors: Record<string, string> = {
-      rascunho: 'bg-slate-500/10 text-slate-600 dark:text-slate-300 border border-slate-400/30',
-      enviado:  'bg-blue-500/10  text-blue-700  dark:text-blue-300  border border-blue-400/30',
-      assinado: 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border border-emerald-400/30',
-      cancelado: 'bg-red-500/10  text-red-700   dark:text-red-300   border border-red-400/30',
-    };
-    return colors[status] ?? 'bg-muted text-muted-foreground border border-border';
-  };
-
-  const getStatusLabel = (status: string) => {
-    const labels = {
-      rascunho: 'Rascunho',
-      enviado: 'Enviado',
-      assinado: 'Assinado',
-      cancelado: 'Cancelado'
-    };
-    return (labels as Record<string, string>)[status] || status;
-  };
+  const getContratosStatusColor = (status: string) => getStatusClasses('contratos', status);
+  const getContratosStatusLabel = (status: string) => getStatusLabelFromConfig('contratos', status);
 
   const handleRetry = () => {
     fetchContratos();
@@ -303,8 +287,8 @@ const ContratosManager = () => {
                   title={contrato.nome_cliente ?? 'Sem nome'}
                   subtitle={contrato.area_juridica ?? ''}
                   badge={
-                    <Badge className={getStatusColor(contrato.status ?? '')}>
-                      {getStatusLabel(contrato.status ?? '')}
+                    <Badge className={getContratosStatusColor(contrato.status ?? '')}>
+                      {getContratosStatusLabel(contrato.status ?? '')}
                     </Badge>
                   }
                   details={[
@@ -345,8 +329,8 @@ const ContratosManager = () => {
                 contrato={contrato}
                 onOpenDetails={handleOpenDetails}
                 onDelete={handleRequestDelete}
-                getStatusColor={getStatusColor}
-                getStatusLabel={getStatusLabel}
+                getStatusColor={getContratosStatusColor}
+                getStatusLabel={getContratosStatusLabel}
               />
             ))}
           </div>

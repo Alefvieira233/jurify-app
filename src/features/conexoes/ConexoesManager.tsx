@@ -200,6 +200,9 @@ const ConexoesManager = () => {
                     key={conexao.id}
                     className="rounded-xl border bg-card p-5 hover:border-primary/20 transition-colors cursor-pointer"
                     onClick={() => { setSelectedConexao(conexao); setDetailsOpen(true); }}
+                    onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setSelectedConexao(conexao); setDetailsOpen(true); } }}
+                    role="button"
+                    tabIndex={0}
                   >
                     <div className="flex items-start justify-between">
                       <div className="flex items-center gap-4">

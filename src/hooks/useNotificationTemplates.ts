@@ -33,7 +33,7 @@ export const useNotificationTemplates = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('notification_templates')
-        .select('*')
+        .select('id, name, title, template, event_type, is_active, roles_enabled, tenant_id')
         .eq('tenant_id', tenantId)
         .order('event_type');
 

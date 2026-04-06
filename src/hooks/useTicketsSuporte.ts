@@ -41,7 +41,7 @@ export function useTicketsSuporte() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('tickets_suporte')
-        .select('*')
+        .select('id, tenant_id, criador_id, tipo, conteudo, status, avaliacao, created_at, updated_at')
         .eq('tenant_id', tenantId!)
         .order('created_at', { ascending: false });
       if (error) throw error;

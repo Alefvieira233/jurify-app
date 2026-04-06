@@ -1,0 +1,319 @@
+
+import { useState } from 'react';
+import {
+  Activity,
+  CheckCircle,
+  XCircle,
+  Clock,
+  Eye,
+  Trash2,
+  Filter
+} from 'lucide-react';
+import { useLogsExecucao } from '@/hooks/useLogsExecucao';
+import { Button } from '@/components/ui/button';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
+import { Badge } from '@/components/ui/badge';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue
+} from '@/components/ui/select';
+import { getStatusClasses } from '@/constants/statusConfig';
+
+const LogsMonitoramento = () => {
+  const { logs, loading, stats, limparLogs, refetch } = useLogsExecucao();
+  type LogEntry = (typeof logs)[number];
+  const [selectedLog, setSelectedLog] = useState<LogEntry | null>(null);
+  const [statusFilter, setStatusFilter] = useState<string>('todos');
+
+  const filteredLogs = logs.filter(log => {
+    if (statusFilter === 'todos') return true;
+    return log.status === statusFilter;
+  });
+
+  const getStatusIcon = (status: string) => {
+    switch (status) {
+      case 'success':
+        return <CheckCircle className="h-4 w-4 text-green-500" />;
+      case 'error':
+        return <XCircle className="h-4 w-4 text-red-500" />;
+      case 'processing':
+        return <Clock className="h-4 w-4 text-yellow-500" />;
+      default:
+        return <Activity className="h-4 w-4 text-muted-foreground" />;
+    }
+  };
+
+  const getStatusColor = (status: string) => getStatusClasses('logs', status);
+
+  const formatTempo = (tempo: number | null) => {
+    if (!tempo) return '-';
+    if (tempo < 1000) return `${tempo}ms`;
+    return `${(tempo / 1000).toFixed(2)}s`;
+  };
+
+  const truncateText = (text: string, maxLength: number = 50) => {
+    if (text.length <= maxLength) return text;
+    return text.substring(0, maxLength) + '...';
+  };
+
+  const handleRefetch = () => {
+    void refetch();
+  };
+
+  const handleLimparLogs = () => {
+    void limparLogs();
+  };
+
+  if (loading) {
+    return (
+      <div className="p-6">
+        <div className="flex items-center justify-center h-64">
+          <div className="text-center">
+            <Activity className="h-8 w-8 animate-spin mx-auto mb-2" />
+            <p className="text-muted-foreground">Carregando logs...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="p-6 space-y-6">
+      {/* Header */}
+      <div className="flex justify-between items-center">
+        <div>
+          <h2 className="text-2xl font-bold text-foreground">Monitoramento de Execuções</h2>
+          <p className="text-muted-foreground">Acompanhe as execuções dos Agentes IA em tempo real</p>
+        </div>
+        
+        <div className="flex space-x-2">
+          <Button variant="outline" onClick={handleRefetch}>
+            <Activity className="h-4 w-4 mr-2" />
+            Atualizar
+          </Button>
+          <Button variant="destructive" onClick={handleLimparLogs}>
+            <Trash2 className="h-4 w-4 mr-2" />
+            Limpar Logs
+          </Button>
+        </div>
+      </div>
+
+      {/* Stats Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div className="bg-card rounded-lg shadow-sm border border-border p-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-muted-foreground">Total de Execuções</p>
+              <p className="text-2xl font-bold text-foreground">{stats.total}</p>
+            </div>
+            <Activity className="h-8 w-8 text-blue-500" />
+          </div>
+        </div>
+        
+        <div className="bg-card rounded-lg shadow-sm border border-border p-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-muted-foreground">Sucessos</p>
+              <p className="text-2xl font-bold text-green-600">{stats.sucessos}</p>
+            </div>
+            <CheckCircle className="h-8 w-8 text-green-500" />
+          </div>
+        </div>
+
+        <div className="bg-card rounded-lg shadow-sm border border-border p-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-muted-foreground">Erros</p>
+              <p className="text-2xl font-bold text-red-600">{stats.erros}</p>
+            </div>
+            <XCircle className="h-8 w-8 text-red-500" />
+          </div>
+        </div>
+
+        <div className="bg-card rounded-lg shadow-sm border border-border p-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-muted-foreground">Tempo Médio</p>
+              <p className="text-2xl font-bold text-purple-600">{formatTempo(stats.tempoMedio)}</p>
+            </div>
+            <Clock className="h-8 w-8 text-purple-500" />
+          </div>
+        </div>
+      </div>
+
+      {/* Filtros */}
+      <div className="bg-card rounded-lg shadow-sm border border-border p-4">
+        <div className="flex items-center space-x-4">
+          <Filter className="h-5 w-5 text-muted-foreground" />
+          <Select value={statusFilter} onValueChange={setStatusFilter}>
+            <SelectTrigger className="w-48">
+              <SelectValue placeholder="Filtrar por status" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="todos">Todos os Status</SelectItem>
+              <SelectItem value="success">Sucessos</SelectItem>
+              <SelectItem value="error">Erros</SelectItem>
+              <SelectItem value="processing">Processando</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+
+      {/* Logs Table */}
+      <div className="bg-card rounded-lg shadow-sm border border-border">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Data/Hora</TableHead>
+              <TableHead>Agente</TableHead>
+              <TableHead>Input</TableHead>
+              <TableHead>Status</TableHead>
+              <TableHead>Tempo</TableHead>
+              <TableHead>Modelo</TableHead>
+              <TableHead>Ações</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {filteredLogs.map((log) => (
+              <TableRow key={`${log.agente_id}-${log.created_at}`}>
+                <TableCell>
+                  <div className="text-sm">
+                    {new Date(log.created_at).toLocaleDateString('pt-BR')}
+                    <br />
+                    <span className="text-muted-foreground">
+                      {new Date(log.created_at).toLocaleTimeString('pt-BR')}
+                    </span>
+                  </div>
+                </TableCell>
+                <TableCell>
+                  <div>
+                    <p className="font-medium">{log.agent_name || 'N/A'}</p>
+                    <p className="text-sm text-muted-foreground">{log.model || 'IA'}</p>
+                  </div>
+                </TableCell>
+                <TableCell>
+                  <span className="text-sm" title={log.user_prompt || ''}>
+                    {truncateText(log.user_prompt || '')}
+                  </span>
+                </TableCell>
+                <TableCell>
+                  <Badge className={getStatusColor(log.status)}>
+                    <div className="flex items-center space-x-1">
+                      {getStatusIcon(log.status)}
+                      <span className="capitalize">{log.status}</span>
+                    </div>
+                  </Badge>
+                </TableCell>
+                <TableCell>
+                  {formatTempo(log.tempo_execucao)}
+                </TableCell>
+                <TableCell>
+                  <code className="text-xs bg-muted px-1 py-0.5 rounded">
+                    {log.model || 'N/A'}
+                  </code>
+                </TableCell>
+                <TableCell>
+                  <Dialog>
+                    <DialogTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setSelectedLog(log)}
+                      >
+                        <Eye className="h-4 w-4" />
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent className="w-[95vw] max-w-4xl">
+                      <DialogHeader>
+                        <DialogTitle>Detalhes da Execução</DialogTitle>
+                        <DialogDescription>
+                          Detalhes completos da execução do agente IA
+                        </DialogDescription>
+                      </DialogHeader>
+                      {selectedLog && (
+                        <div className="space-y-4 max-h-96 overflow-y-auto">
+                          <div className="grid grid-cols-2 gap-4">
+                            <div>
+                              <label className="text-sm font-medium text-muted-foreground">Agente:</label>
+                              <p className="text-sm">{selectedLog.agent_name || 'N/A'}</p>
+                            </div>
+                            <div>
+                              <label className="text-sm font-medium text-muted-foreground">Status:</label>
+                              <Badge className={getStatusColor(selectedLog.status)}>
+                                {selectedLog.status}
+                              </Badge>
+                            </div>
+                            <div>
+                              <label className="text-sm font-medium text-muted-foreground">Tempo de Execução:</label>
+                              <p className="text-sm">{formatTempo(selectedLog.tempo_execucao)}</p>
+                            </div>
+                            <div>
+                              <label className="text-sm font-medium text-muted-foreground">Modelo:</label>
+                              <p className="text-sm">{selectedLog.model || 'N/A'}</p>
+                            </div>
+                          </div>
+                          
+                          <div>
+                            <label className="text-sm font-medium text-muted-foreground">Input Recebido:</label>
+                            <div className="bg-muted/50 p-3 rounded border text-sm mt-1">
+                              {selectedLog.user_prompt}
+                            </div>
+                          </div>
+
+                          {selectedLog.result_preview && (
+                            <div>
+                              <label className="text-sm font-medium text-muted-foreground">Resposta da IA:</label>
+                              <div className="bg-green-50 p-3 rounded border text-sm mt-1">
+                                {selectedLog.result_preview}
+                              </div>
+                            </div>
+                          )}
+
+                          {selectedLog.error_message && (
+                            <div>
+                              <label className="text-sm font-medium text-muted-foreground">Erro:</label>
+                              <div className="bg-red-50 p-3 rounded border text-sm mt-1 text-red-700">
+                                {selectedLog.error_message}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </DialogContent>
+                  </Dialog>
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+        
+        {filteredLogs.length === 0 && (
+          <div className="text-center py-8">
+            <Activity className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+            <p className="text-muted-foreground">Nenhuma execução encontrada</p>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
+export default LogsMonitoramento;

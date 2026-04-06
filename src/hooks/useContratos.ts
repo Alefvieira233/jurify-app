@@ -57,40 +57,66 @@ function normalizeContrato(row: ContratoRow): Contrato { return { ...row }; }
 export const contratosQueryKey = (tenantId: string | undefined) =>
   queryKeys.contratos.list(tenantId);
 
-export const useContratos = () => {
+export interface UseContratosOptions {
+  /** Page number (0-based). Defaults to 0. */
+  page?: number;
+  /** Items per page. Defaults to 50. */
+  pageSize?: number;
+  /** Server-side search on nome_cliente (ilike). */
+  search?: string;
+  /** Server-side status filter (exact match). */
+  status?: string;
+}
+
+export const useContratos = (options?: UseContratosOptions) => {
   const { user, profile } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const tenantId = profile?.tenant_id;
-  const qKey = contratosQueryKey(tenantId);
+
+  const page = options?.page ?? 0;
+  const pageSize = options?.pageSize ?? 50;
+  const search = options?.search;
+  const status = options?.status;
+
+  const qKey = queryKeys.contratos.list(tenantId, page, search, status);
 
   // ── Query ──────────────────────────────────────────────────────────────────
+  type QueryData = { items: Contrato[]; total: number };
+
   const {
-    data: contratos = [],
+    data: queryData,
     isLoading: loading,
     error: queryError,
     refetch,
-  } = useQuery<Contrato[]>({
+  } = useQuery<QueryData>({
     queryKey: qKey,
     queryFn: async () => {
       let query = supabase
         .from('contratos')
-        .select(LIST_COLUMNS)
-        .order('created_at', { ascending: false })
-        .limit(100);
+        .select(LIST_COLUMNS, { count: 'exact' })
+        .order('created_at', { ascending: false });
 
       if (tenantId) query = query.eq('tenant_id', tenantId);
+      if (search) query = query.ilike('nome_cliente', `%${search}%`);
+      if (status) query = query.eq('status', status);
 
-      const { data, error } = await query;
+      query = query.range(page * pageSize, (page + 1) * pageSize - 1);
+
+      const { data, error, count } = await query;
       if (error) { log.error('Erro ao buscar contratos', error); throw error; }
-      log.debug(`${data?.length ?? 0} contratos encontrados`);
-      return (data || []).map(normalizeContrato);
+      log.debug(`${data?.length ?? 0} contratos encontrados (total: ${count})`);
+      return { items: (data || []).map(normalizeContrato), total: count ?? 0 };
     },
     enabled: !!user,
     staleTime: 2 * 60 * 1000,
     refetchOnWindowFocus: false,
   });
 
+  const contratos = queryData?.items ?? [];
+  const total = queryData?.total ?? 0;
+  const totalPages = Math.max(1, Math.ceil(total / pageSize));
+  const hasMore = (page + 1) * pageSize < total;
   const error = queryError ? (queryError).message : null;
 
   // ── Mutations ──────────────────────────────────────────────────────────────
@@ -103,7 +129,10 @@ export const useContratos = () => {
     },
     onSuccess: (newContrato) => {
       addSentryBreadcrumb(`Contrato criado: ${newContrato.id}`, 'contratos', 'info');
-      queryClient.setQueryData<Contrato[]>(qKey, prev => [newContrato, ...(prev ?? [])]);
+      queryClient.setQueryData<QueryData>(qKey, prev => ({
+        items: [newContrato, ...(prev?.items ?? [])],
+        total: (prev?.total ?? 0) + 1,
+      }));
       toast({ title: 'Sucesso', description: 'Contrato criado com sucesso!' });
       log.info('Contrato criado', { id: newContrato.id });
     },
@@ -129,9 +158,10 @@ export const useContratos = () => {
     },
     onSuccess: (updated, { updateData }) => {
       addSentryBreadcrumb(`Contrato atualizado: ${updated.id}`, 'contratos', 'info');
-      queryClient.setQueryData<Contrato[]>(qKey, prev =>
-        (prev ?? []).map(c => c.id === updated.id ? { ...c, ...updated } : c)
-      );
+      queryClient.setQueryData<QueryData>(qKey, prev => ({
+        items: (prev?.items ?? []).map(c => c.id === updated.id ? { ...c, ...updated } : c),
+        total: prev?.total ?? 0,
+      }));
       toast({ title: 'Sucesso', description: 'Contrato atualizado com sucesso!' });
       if (updateData.status === 'assinado' && tenantId && user?.id) {
         void supabase.from('notificacoes').insert({
@@ -159,12 +189,12 @@ export const useContratos = () => {
       toast({ title: 'Limite atingido', description: `Seu plano permite ${planLimits.leads} clientes. Faça upgrade para criar mais contratos.`, variant: 'destructive' });
       return false;
     }
-    try { await createMutation.mutateAsync(data); return true; } catch (err) { console.error('[useContratos] createContrato failed:', err); return false; }
+    try { await createMutation.mutateAsync(data); return true; } catch (err) { log.error('createContrato failed', err); return false; }
   }, [user, createMutation, toast, canUsePlan, planLimits.leads]);
 
   const updateContrato = useCallback(async (id: string, updateData: Partial<ContratoInput>): Promise<boolean> => {
     if (!user || !tenantId) return false;
-    try { await updateMutation.mutateAsync({ id, updateData }); return true; } catch (err) { console.error('[useContratos] updateContrato failed:', err); return false; }
+    try { await updateMutation.mutateAsync({ id, updateData }); return true; } catch (err) { log.error('updateContrato failed', err); return false; }
   }, [user, tenantId, updateMutation]);
 
   const fetchContratos = useCallback(() => { void refetch(); }, [refetch]);
@@ -177,6 +207,12 @@ export const useContratos = () => {
     fetchContratos,
     createContrato,
     updateContrato,
+    // Pagination metadata
+    total,
+    page,
+    pageSize,
+    totalPages,
+    hasMore,
   };
 };
 

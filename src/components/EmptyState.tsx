@@ -30,9 +30,9 @@ const EmptyState: React.FC<EmptyStateProps> = ({
           <Icon className="w-12 h-12 text-[hsl(var(--muted-foreground))] mb-4" />
         )}
         
-        <h3 className="text-lg font-semibold text-[hsl(var(--foreground))] mb-2">
+        <h2 className="text-lg font-semibold text-[hsl(var(--foreground))] mb-2">
           {title}
-        </h3>
+        </h2>
         
         {description && (
           <p className="text-[hsl(var(--muted-foreground))] mb-6 max-w-md">

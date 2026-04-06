@@ -39,7 +39,7 @@ export const useAgentStats = (tenantId: string | null) => {
       try {
         const { data: interactions } = await supabase
           .from('lead_interactions')
-          .select('*')
+          .select('id, metadata, created_at')
           .eq('tenant_id', tenantId);
 
         const filteredInteractions = interactions?.filter((interaction) =>

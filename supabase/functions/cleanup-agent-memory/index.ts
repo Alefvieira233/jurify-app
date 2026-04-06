@@ -20,6 +20,7 @@
  */
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { isServiceRole } from "../_shared/supabase-client.ts";
 
 Deno.serve(async (req) => {
   // Only allow POST (cron invocations are POST)
@@ -30,10 +31,8 @@ Deno.serve(async (req) => {
     });
   }
 
-  // Require service-role key to prevent unauthorized invocations
-  const authHeader = req.headers.get("Authorization");
-  const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
-  if (!authHeader || authHeader.replace("Bearer ", "") !== serviceRoleKey) {
+  // Require service-role key to prevent unauthorized invocations (timing-safe)
+  if (!isServiceRole(req)) {
     return new Response(JSON.stringify({ error: "Unauthorized" }), {
       status: 401,
       headers: { "Content-Type": "application/json" },

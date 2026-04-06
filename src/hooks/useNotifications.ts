@@ -47,10 +47,11 @@ export const useNotifications = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('notificacoes')
-        .select('*')
+        .select('id, titulo, mensagem, tipo, lido_por, data_criacao, created_by, tenant_id, ativo, created_at, updated_at')
         .eq('ativo', true)
         .eq('tenant_id', tenantId!)
-        .order('data_criacao', { ascending: false });
+        .order('data_criacao', { ascending: false })
+        .limit(100);
 
       if (error) throw error;
       return (data || []) as Notification[];

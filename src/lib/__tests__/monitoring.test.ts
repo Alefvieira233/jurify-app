@@ -34,16 +34,12 @@ describe('monitoring service', () => {
     expect(typeof monitoring.clearErrors).toBe('function');
   });
 
-  it('can track user action', () => {
-    monitoring.trackAction('login', { userId: 'test' });
-    // Method exists and doesn't throw
-    expect(true).toBe(true);
+  it('can track user action without throwing', () => {
+    expect(() => monitoring.trackAction('login', { userId: 'test' })).not.toThrow();
   });
 
-  it('can track custom metric', () => {
-    monitoring.trackMetric('custom_metric', 42);
-    // Method exists and doesn't throw
-    expect(true).toBe(true);
+  it('can track custom metric without throwing', () => {
+    expect(() => monitoring.trackMetric('custom_metric', 42)).not.toThrow();
   });
 
   it('can capture error', () => {

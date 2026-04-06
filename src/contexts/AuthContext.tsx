@@ -48,20 +48,16 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   const fetchProfile = useCallback(async (userId: string) => {
     try {
-      const { data: profileData, error: profileError } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', userId)
-        .maybeSingle();
+      // Parallel fetch: profile + role are independent queries
+      const [profileResult, roleResult] = await Promise.all([
+        supabase.from('profiles').select('id, nome_completo, email, avatar_url, tenant_id, role, created_at, updated_at').eq('id', userId).maybeSingle(),
+        supabase.from('user_roles').select('role').eq('user_id', userId).maybeSingle(),
+      ]);
 
+      const { data: profileData, error: profileError } = profileResult;
       if (profileError || !profileData) throw new Error('RLS_BLOCK_OR_NOT_FOUND');
 
-      // Buscar role da tabela separada (evita privilege escalation via profiles)
-      const { data: roleData } = await supabase
-        .from('user_roles')
-        .select('role')
-        .eq('user_id', userId)
-        .maybeSingle();
+      const { data: roleData } = roleResult;
 
       // Supabase generated types lag behind the actual schema; cast for fields
       // added via migration but not yet regenerated (subscription_tier, subscription_status).
@@ -155,7 +151,17 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             table: 'profiles',
             filter: `id=eq.${s.user.id}`,
           }, (payload) => {
-            setProfile(prev => prev ? { ...prev, ...payload.new as typeof prev } : prev);
+            // Filter realtime updates to allowed fields only — never overwrite role/tenant_id
+            setProfile(prev => {
+              if (!prev) return prev;
+              const allowed = ['subscription_tier', 'subscription_status', 'nome_completo', 'avatar_url', 'telefone', 'oab_number'] as const;
+              const updates: Record<string, unknown> = {};
+              const newData = payload.new as Record<string, unknown>;
+              for (const key of allowed) {
+                if (key in newData) updates[key] = newData[key];
+              }
+              return { ...prev, ...updates } as typeof prev;
+            });
           })
           .subscribe();
       } else {

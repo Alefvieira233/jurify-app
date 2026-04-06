@@ -8,8 +8,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
+import { useToast } from '@/hooks/use-toast';
 import { toUserMessage } from '@/lib/errorMessages';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -79,6 +79,7 @@ interface ContactForm {
 }
 
 const ContactModal = ({ open, onOpenChange }: { open: boolean; onOpenChange: (open: boolean) => void }) => {
+  const { toast } = useToast();
   const [form, setForm] = useState<ContactForm>({
     nome: '',
     email: '',
@@ -90,8 +91,10 @@ const ContactModal = ({ open, onOpenChange }: { open: boolean; onOpenChange: (op
 
   const handleSubmit = () => {
     if (!form.nome.trim() || !form.email.trim()) {
-      toast.error('Preencha os campos obrigatórios', {
+      toast({
+        title: 'Preencha os campos obrigatórios',
         description: 'Nome e email são obrigatórios.',
+        variant: 'destructive',
       });
       return;
     }
@@ -104,7 +107,7 @@ const ContactModal = ({ open, onOpenChange }: { open: boolean; onOpenChange: (op
     const salesPhone = import.meta.env.VITE_SALES_WHATSAPP || '5596981419460';
     window.open(`https://wa.me/${salesPhone}?text=${text}`, '_blank');
 
-    toast.success('Entraremos em contato em até 24h úteis');
+    toast({ title: 'Entraremos em contato em até 24h úteis' });
     setForm({ nome: '', email: '', escritorio: '', tamanho: '', mensagem: '' });
     setSubmitting(false);
     onOpenChange(false);
@@ -182,6 +185,7 @@ const ContactModal = ({ open, onOpenChange }: { open: boolean; onOpenChange: (op
 
 const Pricing = () => {
   const { user, profile } = useAuth();
+  const { toast } = useToast();
   const [loading, setLoading] = useState<string | null>(null);
   const [contactOpen, setContactOpen] = useState(false);
 
@@ -196,11 +200,9 @@ const Pricing = () => {
     }
 
     if (!user) {
-      toast.error('Faça login para assinar um plano.', {
-        action: {
-          label: 'Fazer login',
-          onClick: () => { window.location.href = '/auth'; },
-        },
+      toast({
+        title: 'Faça login para assinar um plano.',
+        variant: 'destructive',
       });
       return;
     }
@@ -215,8 +217,10 @@ const Pricing = () => {
       const priceId = priceIds[planId];
 
       if (!priceId) {
-        toast.error('Plano não disponível no momento.', {
-          description: 'Entre em contato com o suporte.'
+        toast({
+          title: 'Plano não disponível no momento.',
+          description: 'Entre em contato com o suporte.',
+          variant: 'destructive',
         });
         return;
       }
@@ -239,7 +243,7 @@ const Pricing = () => {
       }
 
       if (data.url) {
-        toast.success('Redirecionando para o pagamento seguro...');
+        toast({ title: 'Redirecionando para o pagamento seguro...' });
 
         setTimeout(() => {
           window.location.href = data.url;
@@ -249,8 +253,10 @@ const Pricing = () => {
       }
 
     } catch (err: unknown) {
-      toast.error('Erro ao iniciar pagamento', {
-        description: toUserMessage(err)
+      toast({
+        title: 'Erro ao iniciar pagamento',
+        description: toUserMessage(err),
+        variant: 'destructive',
       });
     } finally {
       setLoading(null);
@@ -298,7 +304,7 @@ const Pricing = () => {
 
             <CardHeader>
               <CardTitle className="text-2xl">{plan.name}</CardTitle>
-              <div className="mt-4 flex items-baseline text-gray-900 dark:text-gray-100">
+              <div className="mt-4 flex items-baseline text-foreground">
                 <span className="text-4xl font-extrabold tracking-tight">{plan.price}</span>
                 {plan.period && <span className="ml-1 text-xl font-semibold text-muted-foreground">{plan.period}</span>}
               </div>
@@ -343,17 +349,17 @@ const Pricing = () => {
       <div className="mt-16 grid grid-cols-1 gap-8 md:grid-cols-3 text-center">
         <div className="p-6 bg-card rounded-lg border">
           <Shield className="h-12 w-12 mx-auto text-primary mb-4" />
-          <h3 className="text-lg font-semibold mb-2">Segurança Jurídica</h3>
+          <h2 className="text-lg font-semibold mb-2">Segurança Jurídica</h2>
           <p className="text-muted-foreground">Seus dados protegidos com criptografia de ponta a ponta e compliance com LGPD.</p>
         </div>
         <div className="p-6 bg-card rounded-lg border">
           <Zap className="h-12 w-12 mx-auto text-primary mb-4" />
-          <h3 className="text-lg font-semibold mb-2">IA de Alta Performance</h3>
+          <h2 className="text-lg font-semibold mb-2">IA de Alta Performance</h2>
           <p className="text-muted-foreground">Agentes treinados especificamente para o direito brasileiro e processual.</p>
         </div>
         <div className="p-6 bg-card rounded-lg border">
           <CreditCard className="h-12 w-12 mx-auto text-primary mb-4" />
-          <h3 className="text-lg font-semibold mb-2">Pagamento Seguro</h3>
+          <h2 className="text-lg font-semibold mb-2">Pagamento Seguro</h2>
           <p className="text-muted-foreground">Processamento via Stripe com garantia de segurança e cancelamento a qualquer momento.</p>
         </div>
       </div>

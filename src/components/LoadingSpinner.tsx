@@ -1,7 +1,6 @@
 
 
 import { Scale } from 'lucide-react';
-import { useTranslation } from 'react-i18next';
 
 interface LoadingSpinnerProps {
   size?: 'sm' | 'md' | 'lg';
@@ -14,8 +13,7 @@ const LoadingSpinner = ({
   text,
   fullScreen = false
 }: LoadingSpinnerProps) => {
-  const { t } = useTranslation();
-  const displayText = text ?? t('common.loading');
+  const displayText = text ?? 'Carregando...';
   const sizeClasses = {
     sm: 'h-4 w-4',
     md: 'h-8 w-8',

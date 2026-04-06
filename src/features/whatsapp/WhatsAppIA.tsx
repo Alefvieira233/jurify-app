@@ -13,6 +13,9 @@ import {
 import { useWhatsAppConversations } from '@/hooks/useWhatsAppConversations';
 import type { WhatsAppConversation, WhatsAppMessage } from '@/hooks/useWhatsAppConversations';
 import WhatsAppSetup from './WhatsAppSetup';
+import { createLogger } from '@/lib/logger';
+
+const log = createLogger('WhatsAppIA');
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -168,7 +171,7 @@ const WhatsAppIA = () => {
           return parsed.data?.state === 'connected';
         }
       }
-    } catch (err) { console.warn('[WhatsAppIA] session restore failed:', err); }
+    } catch (err) { log.warn('session restore failed', { error: String(err) }); }
     return false;
   });
   const { members } = useTeamMembers();

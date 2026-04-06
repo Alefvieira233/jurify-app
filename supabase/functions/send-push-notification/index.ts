@@ -12,6 +12,7 @@
 
 import { getCorsHeaders } from "../_shared/cors.ts";
 import { applyRateLimit } from "../_shared/rate-limiter.ts";
+import { isServiceRole } from "../_shared/supabase-client.ts";
 
 const FCM_URL = "https://fcm.googleapis.com/fcm/send";
 const FCM_SERVER_KEY = Deno.env.get("FCM_SERVER_KEY") ?? "";
@@ -38,11 +39,7 @@ Deno.serve(async (req) => {
   }
 
   // Require service-role key — push notifications are internal/server-side only
-  const authHeader = req.headers.get("Authorization");
-  const token = authHeader?.replace("Bearer ", "") ?? "";
-  const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
-
-  if (!token || token !== serviceRoleKey) {
+  if (!isServiceRole(req)) {
     return new Response(JSON.stringify({ error: "Unauthorized" }), {
       status: 401,
       headers: { ...corsHeaders, "Content-Type": "application/json" },

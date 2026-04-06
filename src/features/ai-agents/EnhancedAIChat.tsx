@@ -8,6 +8,9 @@ import { supabase } from '@/integrations/supabase/client';
 import ThinkingIndicator from '@/components/ui/thinking-indicator';
 import TypingText from '@/components/ui/typing-text';
 import { useAuth } from '@/contexts/AuthContext';
+import { createLogger } from '@/lib/logger';
+
+const log = createLogger('EnhancedAIChat');
 
 interface Message {
     id: string;
@@ -92,7 +95,7 @@ const EnhancedAIChat: React.FC<EnhancedAIChatProps> = ({
                         const body = await ctx.json() as { error?: string };
                         throw new Error(body?.error || functionError.message);
                     } catch (err) {
-                        console.warn('[EnhancedAIChat] error body extraction failed:', err);
+                        log.warn('error body extraction failed', { error: String(err) });
                     }
                 }
                 throw new Error(functionError.message);
@@ -141,9 +144,9 @@ const EnhancedAIChat: React.FC<EnhancedAIChatProps> = ({
     };
 
     return (
-        <div className="flex flex-col h-[600px] bg-gradient-to-br from-gray-50 to-blue-50 rounded-lg border shadow-sm">
+        <div className="flex flex-col h-[600px] bg-gradient-to-br from-muted/50 to-blue-50/50 dark:from-muted/30 dark:to-blue-950/20 rounded-lg border shadow-sm">
             {/* Header */}
-            <div className="flex items-center justify-between p-4 border-b bg-white/80 backdrop-blur-sm rounded-t-lg">
+            <div className="flex items-center justify-between p-4 border-b bg-card/80 backdrop-blur-sm rounded-t-lg">
                 <div className="flex items-center space-x-3">
                     <div className="relative">
                         <div className="absolute inset-0 bg-blue-400 rounded-full animate-ping opacity-75"></div>
@@ -171,7 +174,7 @@ const EnhancedAIChat: React.FC<EnhancedAIChatProps> = ({
             <div className="flex-1 overflow-y-auto p-4 space-y-4">
                 {messages.length === 0 && (
                     <div className="flex flex-col items-center justify-center h-full text-center space-y-4">
-                        <div className="bg-gradient-to-br from-blue-100 to-purple-100 p-6 rounded-full">
+                        <div className="bg-gradient-to-br from-blue-100 to-purple-100 dark:from-blue-900/30 dark:to-purple-900/30 p-6 rounded-full">
                             <Bot className="h-12 w-12 text-blue-600" />
                         </div>
                         <div>
@@ -202,7 +205,7 @@ const EnhancedAIChat: React.FC<EnhancedAIChatProps> = ({
                             </div>
 
                             {/* Message Bubble */}
-                            <div className={`${message.role === 'user' ? 'bg-gradient-to-br from-amber-500 to-orange-500 text-white' : 'bg-white border shadow-sm'} px-4 py-3 rounded-2xl`}>
+                            <div className={`${message.role === 'user' ? 'bg-gradient-to-br from-amber-500 to-orange-500 text-white' : 'bg-card border shadow-sm'} px-4 py-3 rounded-2xl`}>
                                 {message.isTyping ? (
                                     <TypingText
                                         text={message.content}
@@ -246,7 +249,7 @@ const EnhancedAIChat: React.FC<EnhancedAIChatProps> = ({
             </div>
 
             {/* Input */}
-            <div className="p-4 border-t bg-white/80 backdrop-blur-sm rounded-b-lg">
+            <div className="p-4 border-t bg-card/80 backdrop-blur-sm rounded-b-lg">
                 <div className="flex items-end space-x-2">
                     <Textarea
                         value={input}

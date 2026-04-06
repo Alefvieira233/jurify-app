@@ -1,5 +1,8 @@
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { createLogger } from '@/lib/logger';
+
+const log = createLogger('systemValidator');
 
 export interface ValidationResult {
   success: boolean;
@@ -126,7 +129,7 @@ export class SystemValidator {
 
           rlsStatus[table] = !error;
         } catch (err) {
-          console.warn('[systemValidator] RLS check failed for table:', table, err);
+          log.warn('RLS check failed for table', { table, error: String(err) });
           rlsStatus[table] = false;
         }
       }
@@ -161,7 +164,7 @@ export class SystemValidator {
         const { data, error } = await supabase.functions.invoke('health-check');
         integrations.healthCheck = !error && data?.status === 'ok';
       } catch (err) {
-        console.warn('[systemValidator] health-check invocation failed:', err);
+        log.warn('health-check invocation failed', { error: String(err) });
         integrations.healthCheck = false;
       }
 

@@ -1,5 +1,6 @@
 import { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
+import { queryKeys } from '@/lib/queryKeys';
 import { supabaseUntyped as supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRBAC } from '@/hooks/useRBAC';
@@ -110,7 +111,7 @@ export function useReportMetrics(periodRange: PeriodRange) {
 
   /* ── Agendamentos query for "por área" chart ── */
   const { data: agendamentosList = [] } = useQuery({
-    queryKey: ['agendamentos-report', tenantId],
+    queryKey: queryKeys.agendamentosReport.list(tenantId),
     queryFn: async () => {
       if (!tenantId) return [];
       const { data } = await supabase
@@ -134,7 +135,7 @@ export function useReportMetrics(periodRange: PeriodRange) {
   const deptoIds = getUserDepartamentos();
 
   const { data: clientsList = [] } = useQuery({
-    queryKey: ['clients-report', tenantId, visibilityScope],
+    queryKey: queryKeys.clientsReport.list(tenantId, visibilityScope),
     queryFn: async () => {
       if (!tenantId) return [];
       let query = supabase

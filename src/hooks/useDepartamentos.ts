@@ -20,7 +20,7 @@ export function useDepartamentos() {
     queryFn: async (): Promise<Departamento[]> => {
       const { data, error } = await supabase
         .from('departamentos')
-        .select('*')
+        .select('id, tenant_id, nome, descricao, cor, ordem, ativo, responsavel_padrao_id, agente_ia_padrao_id, created_at, updated_at')
         .eq('tenant_id', tenantId!)
         .order('ordem', { ascending: true });
       if (error) throw error;

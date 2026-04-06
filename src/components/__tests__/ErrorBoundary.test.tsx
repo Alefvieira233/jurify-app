@@ -16,20 +16,6 @@ vi.mock('lucide-react', () => ({
   RefreshCw: () => null,
 }));
 
-vi.mock('react-i18next', () => ({
-  Translation: ({ children }: { children: (t: (key: string) => string) => React.ReactNode }) =>
-    children((key: string) => {
-      const map: Record<string, string> = {
-        'errors.somethingWentWrong': 'Ops! Algo deu errado',
-        'errors.unexpectedError': 'Ocorreu um erro inesperado. Nossa equipe foi notificada automaticamente.',
-        'common.tryAgain': 'Tentar Novamente',
-        'errors.reloadPage': 'Recarregar Página',
-        'errors.errorDetails': 'Detalhes do erro (desenvolvimento)',
-      };
-      return map[key] || key;
-    }),
-}));
-
 import { ErrorBoundary } from '../ErrorBoundary';
 
 // Component that throws an error on demand
@@ -68,7 +54,7 @@ describe('ErrorBoundary', () => {
     expect(
       screen.getByText('Ocorreu um erro inesperado. Nossa equipe foi notificada automaticamente.')
     ).toBeInTheDocument();
-    expect(screen.getByText('Tentar Novamente')).toBeInTheDocument();
+    expect(screen.getByText('Tentar novamente')).toBeInTheDocument();
     expect(screen.getByText('Recarregar Página')).toBeInTheDocument();
   });
 
@@ -108,7 +94,7 @@ describe('ErrorBoundary', () => {
     );
   });
 
-  it('should reset error state when "Tentar Novamente" button is clicked', () => {
+  it('should reset error state when "Tentar novamente" button is clicked', () => {
     const TestWrapper = () => {
       const [shouldThrow, setShouldThrow] = React.useState(true);
 
@@ -132,8 +118,8 @@ describe('ErrorBoundary', () => {
     // Fix the child so it won't throw again
     fireEvent.click(screen.getByTestId('toggle'));
 
-    // Click "Tentar Novamente" to reset the error boundary
-    fireEvent.click(screen.getByText('Tentar Novamente'));
+    // Click "Tentar novamente" to reset the error boundary
+    fireEvent.click(screen.getByText('Tentar novamente'));
 
     // Child should render again
     expect(screen.getByTestId('child')).toHaveTextContent('Child content');

@@ -282,7 +282,7 @@ export const useFollowUps = () => {
           };
         });
 
-        queryClient.setQueryData(['crm-followups', tenantId], enriched);
+        queryClient.setQueryData(queryKeys.crmFollowups.list(tenantId), enriched);
       } catch (error) {
         log.error('Failed to fetch follow-ups', error);
       }
@@ -297,7 +297,7 @@ export const useFollowUps = () => {
       await createMutation.mutateAsync(data);
       return true;
     } catch (err) {
-      console.error('[useFollowUps] createFollowUp failed:', err);
+      log.error('createFollowUp failed', err);
       return false;
     }
   }, [user, tenantId, createMutation]);
@@ -308,7 +308,7 @@ export const useFollowUps = () => {
       await completeMutation.mutateAsync({ id, notes });
       return true;
     } catch (err) {
-      console.error('[useFollowUps] completeFollowUp failed:', err);
+      log.error('completeFollowUp failed', err);
       return false;
     }
   }, [user, completeMutation]);
@@ -318,7 +318,7 @@ export const useFollowUps = () => {
       await cancelMutation.mutateAsync(id);
       return true;
     } catch (err) {
-      console.error('[useFollowUps] cancelFollowUp failed:', err);
+      log.error('cancelFollowUp failed', err);
       return false;
     }
   }, [cancelMutation]);
@@ -328,7 +328,7 @@ export const useFollowUps = () => {
       await snoozeMutation.mutateAsync({ id, until });
       return true;
     } catch (err) {
-      console.error('[useFollowUps] snoozeFollowUp failed:', err);
+      log.error('snoozeFollowUp failed', err);
       return false;
     }
   }, [snoozeMutation]);
@@ -338,7 +338,7 @@ export const useFollowUps = () => {
       await rescheduleMutation.mutateAsync({ id, newDate });
       return true;
     } catch (err) {
-      console.error('[useFollowUps] rescheduleFollowUp failed:', err);
+      log.error('rescheduleFollowUp failed', err);
       return false;
     }
   }, [rescheduleMutation]);

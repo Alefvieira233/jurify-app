@@ -2,6 +2,9 @@
 
 import { Capacitor } from '@capacitor/core';
 import { Share } from '@capacitor/share';
+import { createLogger } from '@/lib/logger';
+
+const log = createLogger('nativeShare');
 
 interface ShareOptions {
   title: string;
@@ -17,7 +20,7 @@ export async function nativeShare(options: ShareOptions): Promise<boolean> {
         await navigator.share({ title: options.title, text: options.text, url: options.url });
         return true;
       } catch (err) {
-        console.warn('[nativeShare] navigator.share failed:', err);
+        log.warn('navigator.share failed', { error: String(err) });
         return false;
       }
     }
@@ -32,7 +35,7 @@ export async function nativeShare(options: ShareOptions): Promise<boolean> {
     });
     return true;
   } catch (err) {
-    console.warn('[nativeShare] Share.share failed:', err);
+    log.warn('Share.share failed', { error: String(err) });
     return false;
   }
 }

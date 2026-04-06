@@ -5,6 +5,9 @@ import { Capacitor } from '@capacitor/core';
 import { LocalNotifications } from '@capacitor/local-notifications';
 import { useAuth } from '@/contexts/AuthContext';
 import { usePrazosProcessuais } from '@/hooks/usePrazosProcessuais';
+import { createLogger } from '@/lib/logger';
+
+const log = createLogger('useLocalPrazosNotifications');
 
 export function useLocalPrazosNotifications() {
   const { user } = useAuth();
@@ -59,7 +62,7 @@ export function useLocalPrazosNotifications() {
 
         await LocalNotifications.schedule({ notifications });
       } catch (err) {
-        console.warn('[useLocalPrazosNotifications] schedule failed:', err);
+        log.warn('schedule failed', { error: String(err) });
       }
     })();
   }, [user, prazos]);

@@ -2,6 +2,9 @@
 
 import { useState, useCallback } from 'react';
 import { Capacitor } from '@capacitor/core';
+import { createLogger } from '@/lib/logger';
+
+const log = createLogger('useBiometrics');
 
 export interface BiometricsResult {
   isAvailable: boolean;
@@ -24,7 +27,7 @@ export function useBiometrics(): BiometricsResult {
       });
       return true;
     } catch (err) {
-      console.warn('[useBiometrics] authenticate failed:', err);
+      log.warn('authenticate failed', { error: String(err) });
       return false;
     }
   }, []);

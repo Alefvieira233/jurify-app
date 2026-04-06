@@ -67,7 +67,7 @@ export function useConexoes() {
     queryFn: async (): Promise<ConexaoWhatsApp[]> => {
       const { data, error } = await supabase
         .from('conexoes_whatsapp')
-        .select('*')
+        .select('id, tenant_id, nome, telefone, tipo, provider, instance_name, status, status_padrao, departamento_id, responsavel_id, avatar_url, last_heartbeat, last_sync, last_error, reconnect_attempts, config, created_at, updated_at')
         .eq('tenant_id', tenantId!)
         .order('created_at', { ascending: false });
 
@@ -159,7 +159,7 @@ export function useConexaoLogs(conexaoId: string | null) {
     queryFn: async (): Promise<ConexaoLog[]> => {
       const { data, error } = await supabase
         .from('conexoes_logs')
-        .select('*')
+        .select('id, conexao_id, tenant_id, evento, severidade, descricao, origem, metadata, created_at')
         .eq('conexao_id', conexaoId!)
         .order('created_at', { ascending: false })
         .limit(100);
@@ -176,7 +176,7 @@ export function useConexaoAlertas(conexaoId: string | null) {
     queryFn: async (): Promise<ConexaoAlerta[]> => {
       const { data, error } = await supabase
         .from('conexoes_alertas')
-        .select('*')
+        .select('id, conexao_id, tenant_id, tipo, mensagem, severidade, lido, resolvido, created_at')
         .eq('conexao_id', conexaoId!)
         .order('created_at', { ascending: false })
         .limit(50);

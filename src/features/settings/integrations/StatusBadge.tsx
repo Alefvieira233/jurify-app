@@ -1,6 +1,6 @@
 import { Badge } from '@/components/ui/badge';
 import { CheckCircle2, AlertCircle } from 'lucide-react';
-import type { IntegrationStatus } from '@/components/configuracoes/IntegrationCard';
+import type { IntegrationStatus } from '../configuracoes/IntegrationCard';
 
 const STATUS_STYLE: Record<IntegrationStatus, { label: string; color: string }> = {
   connected:      { label: 'Conectado',       color: 'text-emerald-600 border-emerald-400/60 bg-emerald-50 dark:bg-emerald-900/20' },

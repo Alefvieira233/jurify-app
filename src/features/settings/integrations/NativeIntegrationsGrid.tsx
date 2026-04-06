@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { MessageSquare, CreditCard, Mail, Bot, ExternalLink } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { StatusBadge } from './StatusBadge';
-import type { IntegrationStatus } from '@/components/configuracoes/IntegrationCard';
+import type { IntegrationStatus } from '../configuracoes/IntegrationCard';
 
 interface NativeIntegrationsGridProps {
   waStatus: IntegrationStatus;

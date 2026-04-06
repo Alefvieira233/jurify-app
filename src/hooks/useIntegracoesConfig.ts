@@ -27,7 +27,7 @@ export type IntegracaoConfig = {
 export type CreateIntegracaoData = {
   nome_integracao: string;
   status: IntegracaoConfig['status'];
-  api_key: string;
+  api_key_encrypted: string;
   endpoint_url: string;
   observacoes?: string | null;
 };
@@ -127,7 +127,7 @@ export const useIntegracoesConfig = () => {
       await createMutation.mutateAsync(data);
       return true;
     } catch (err) {
-      console.error('[useIntegracoesConfig] createIntegracao failed:', err);
+      log.error('createIntegracao failed', err);
       return false;
     }
   };
@@ -138,7 +138,7 @@ export const useIntegracoesConfig = () => {
       await updateMutation.mutateAsync({ id, data });
       return true;
     } catch (err) {
-      console.error('[useIntegracoesConfig] updateIntegracao failed:', err);
+      log.error('updateIntegracao failed', err);
       return false;
     }
   };
@@ -160,7 +160,7 @@ export const useIntegracoesConfig = () => {
       await deleteMutation.mutateAsync(id);
       return true;
     } catch (err) {
-      console.error('[useIntegracoesConfig] deleteIntegracao failed:', err);
+      log.error('deleteIntegracao failed', err);
       return false;
     }
   };

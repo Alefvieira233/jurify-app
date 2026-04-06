@@ -101,7 +101,7 @@ export function useAgentPipeline(executionId: string | null) {
     try {
       const { data, error: fetchError } = await supabase
         .from('agent_executions')
-        .select('*')
+        .select('id, execution_id, status, current_agent, current_stage, agents_involved, total_agents_used, total_tokens, estimated_cost_usd, final_result, error_message, started_at, completed_at, total_duration_ms')
         .eq('execution_id', execId)
         .single();
 

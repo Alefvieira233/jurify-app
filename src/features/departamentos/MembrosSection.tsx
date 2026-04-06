@@ -19,7 +19,7 @@ const ROLE_LABELS: Record<string, string> = {
 const ROLE_COLORS: Record<string, string> = {
   gestor: 'bg-purple-500/10 text-purple-600',
   lider: 'bg-blue-500/10 text-blue-600',
-  membro: 'bg-slate-500/10 text-slate-600',
+  membro: 'bg-slate-500/10 text-slate-600 dark:text-slate-400',
 };
 
 interface PermissionField {

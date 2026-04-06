@@ -6,6 +6,10 @@ import { ChevronLeft } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabaseUntyped } from '@/integrations/supabase/client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { queryKeys } from '@/lib/queryKeys';
+import { createLogger } from '@/lib/logger';
+
+const log = createLogger('OnboardingWizard');
 import { WelcomeStep, WhatsAppStep, AgentsStep, DoneStep } from './steps';
 
 const TOTAL_STEPS = 4;
@@ -25,7 +29,7 @@ const OnboardingWizard = () => {
   const [dismissed, setDismissed] = useState(false);
 
   const { data: shouldShow, isLoading } = useQuery({
-    queryKey: ['onboarding-wizard-completed', tenantId],
+    queryKey: queryKeys.onboardingWizard.detail(tenantId),
     queryFn: async (): Promise<boolean> => {
       if (!tenantId) return false;
       const { data } = await supabaseUntyped
@@ -53,10 +57,10 @@ const OnboardingWizard = () => {
       });
     },
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ['onboarding-wizard-completed'] });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.onboardingWizard.all });
     },
     onError: (err) => {
-      console.error('[OnboardingWizard] complete failed:', err);
+      log.error('complete failed', err);
     },
   });
 

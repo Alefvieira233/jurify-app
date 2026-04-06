@@ -4,6 +4,9 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { Upload, FileText, X } from 'lucide-react';
 import { Camera, CameraResultType, CameraSource } from '@capacitor/camera';
 import { Capacitor } from '@capacitor/core';
+import { createLogger } from '@/lib/logger';
+
+const log = createLogger('UploadDocumentoForm');
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -51,7 +54,7 @@ const UploadDocumentoForm = ({ onSubmit, onCancel, loading, processoId }: Upload
       const file = new File([blob], fileName, { type: 'image/jpeg' });
       handleFileSelect(file);
     } catch (err) {
-      console.warn('[UploadDocumentoForm] camera capture cancelled or failed:', err);
+      log.warn('camera capture cancelled or failed', { error: String(err) });
     }
   };
 

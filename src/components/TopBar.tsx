@@ -19,6 +19,9 @@ interface TopBarProps {
   onMenuToggle: () => void;
 }
 
+const isMac = typeof navigator !== 'undefined' && navigator.platform.toUpperCase().indexOf('MAC') >= 0;
+const shortcutKey = isMac ? '⌘' : 'Ctrl';
+
 export default function TopBar({ onMenuToggle }: TopBarProps) {
   const { profile, signOut } = useAuth();
   const { unreadCount } = useRealtimeNotifications();
@@ -64,7 +67,7 @@ export default function TopBar({ onMenuToggle }: TopBarProps) {
       >
         <Search className="h-3.5 w-3.5" />
         <span className="text-xs">Buscar...</span>
-        <kbd className="ml-auto text-[10px] font-mono bg-muted px-1 py-0.5 rounded">⌘K</kbd>
+        <kbd className="ml-auto text-xs font-mono bg-muted px-1 py-0.5 rounded">{shortcutKey}+K</kbd>
       </button>
 
       <ThemeToggle />

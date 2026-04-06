@@ -10,6 +10,9 @@ import { useToast } from '@/hooks/use-toast';
 import { GoogleOAuthService, type CalendarEvent } from '@/lib/google/GoogleOAuthService';
 import { queryKeys } from '@/lib/queryKeys';
 import { toUserMessage } from '@/lib/errorMessages';
+import { createLogger } from '@/lib/logger';
+
+const log = createLogger('useGoogleCalendar');
 
 export type GoogleCalendarSettings = {
   id?: string;
@@ -48,7 +51,7 @@ export const useGoogleCalendar = () => {
     queryFn: async () => {
       const { data, error } = await supabaseAny
         .from('google_calendar_settings')
-        .select('*')
+        .select('id, tenant_id, user_id, calendar_enabled, auto_sync, sync_direction, notification_enabled, calendar_id, created_at, updated_at')
         .eq('tenant_id', tenantId!)
         .eq('user_id', user!.id)
         .single();
@@ -103,7 +106,7 @@ export const useGoogleCalendar = () => {
       return data as GoogleCalendarSettings;
     },
     onSuccess: (data) => {
-      queryClient.setQueryData(['google-calendar-settings', tenantId, user?.id], data);
+      queryClient.setQueryData(queryKeys.googleCalendarSettings.detail(tenantId, user?.id), data);
       toast({ title: 'Sucesso', description: 'Configuracoes do Google Calendar atualizadas!' });
     },
     onError: () => {
@@ -117,7 +120,7 @@ export const useGoogleCalendar = () => {
       await updateSettingsMutation.mutateAsync(updates);
       return true;
     } catch (err) {
-      console.error('[useGoogleCalendar] updateSettings failed:', err);
+      log.error('updateSettings failed', err);
       return false;
     }
   }, [user?.id, tenantId, settings, updateSettingsMutation]);

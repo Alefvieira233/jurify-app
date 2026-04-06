@@ -7,7 +7,7 @@
  */
 
  
-import DOMPurify from 'isomorphic-dompurify';
+import DOMPurify from 'dompurify';
 
 // Helper function for safe array access
 const safeCharAt = (str: string, index: number): string => str.charAt(index) || '0';

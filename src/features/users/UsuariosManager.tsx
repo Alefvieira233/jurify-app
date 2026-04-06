@@ -1,5 +1,6 @@
 import { useState, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { queryKeys } from '@/lib/queryKeys';
 import { supabaseUntyped as supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -13,9 +14,9 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { useRBAC } from '@/hooks/useRBAC';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import NovoUsuarioForm from '@/components/NovoUsuarioForm';
-import EditarUsuarioForm from '@/components/EditarUsuarioForm';
-import GerenciarPermissoesForm from '@/components/GerenciarPermissoesForm';
+import NovoUsuarioForm from './components/NovoUsuarioForm';
+import EditarUsuarioForm from './components/EditarUsuarioForm';
+import GerenciarPermissoesForm from './components/GerenciarPermissoesForm';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import { usePageTitle } from '@/hooks/usePageTitle';
 import { getAvatarHex, getInitials } from '@/utils/formatting';
@@ -66,7 +67,7 @@ const UsuariosManager = () => {
   const canCreate = can('usuarios', 'create');
 
   const { data: usuarios = [], isLoading, isError, refetch } = useQuery({
-    queryKey: ['usuarios'],
+    queryKey: queryKeys.usuarios.all,
     queryFn: async () => {
       let query = supabase
         .from('profiles')
@@ -97,7 +98,7 @@ const UsuariosManager = () => {
       if (error) throw error;
     },
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ['usuarios'] });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.usuarios.all });
       toast({ title: "Membro desativado", description: "O acesso deste usuário foi revogado." });
     },
     onError: () => {
@@ -322,9 +323,9 @@ const UsuariosManager = () => {
                 </div>
 
                 <div className="space-y-1">
-                  <h3 className="font-bold text-foreground text-lg leading-tight truncate" title={usuario.nome_completo}>
+                  <h2 className="font-bold text-foreground text-lg leading-tight truncate" title={usuario.nome_completo}>
                     {usuario.nome_completo}
-                  </h3>
+                  </h2>
                   <p className="text-sm font-medium text-muted-foreground truncate" title={usuario.email}>
                     {usuario.email}
                   </p>

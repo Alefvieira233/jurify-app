@@ -1,5 +1,6 @@
 import { useState, useMemo, useCallback } from 'react';
 import { useQuery } from '@tanstack/react-query';
+import { queryKeys } from '@/lib/queryKeys';
 import { supabaseUntyped } from '@/integrations/supabase/client';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -38,7 +39,7 @@ const ROLE_BADGE_CONFIG: Record<string, { bg: string; text: string; label: strin
   pos_venda: { bg: 'bg-amber-500/10', text: 'text-amber-500', label: 'Pós-venda' },
   suporte: { bg: 'bg-slate-500/10', text: 'text-slate-500', label: 'Suporte' },
   user: { bg: 'bg-sky-500/10', text: 'text-sky-500', label: 'Usuário' },
-  viewer: { bg: 'bg-gray-500/10', text: 'text-gray-400', label: 'Visualizador' },
+  viewer: { bg: 'bg-muted/50', text: 'text-muted-foreground', label: 'Visualizador' },
 };
 
 function getRoleBadge(role: string | null) {
@@ -73,7 +74,7 @@ const EquipeManager = () => {
 
   // Fetch all department memberships for the tenant's members
   const { data: allMemberships = [] } = useQuery({
-    queryKey: ['all_department_memberships', tenantId],
+    queryKey: queryKeys.allDepartmentMemberships.list(tenantId),
     queryFn: async (): Promise<DepartmentMembership[]> => {
       const { data, error } = await supabaseUntyped
         .from('departamento_membros')

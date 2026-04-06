@@ -1,29 +1,31 @@
 import React from 'react';
+import { type UseFormReturn } from 'react-hook-form';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { ArrowRight, Fingerprint } from 'lucide-react';
-import ForgotPasswordDialog from '@/components/ForgotPasswordDialog';
+import ForgotPasswordDialog from './ForgotPasswordDialog';
+import {
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from '@/components/ui/form';
+import { type LoginFormData } from '../schemas';
 
 interface LoginFormProps {
-  email: string;
-  password: string;
+  form: UseFormReturn<LoginFormData>;
   loading: boolean;
   isBiometricsAvailable: boolean;
-  onEmailChange: (value: string) => void;
-  onPasswordChange: (value: string) => void;
   onSubmit: (e: React.FormEvent) => void;
   onBiometricLogin: () => void;
   onSwitchToRegister: () => void;
 }
 
 const LoginForm: React.FC<LoginFormProps> = ({
-  email,
-  password,
+  form,
   loading,
   isBiometricsAvailable,
-  onEmailChange,
-  onPasswordChange,
   onSubmit,
   onBiometricLogin,
   onSwitchToRegister,
@@ -31,38 +33,50 @@ const LoginForm: React.FC<LoginFormProps> = ({
   return (
     <>
       <form onSubmit={onSubmit} className="space-y-5" aria-label="Formulário de login">
-        <div className="space-y-2">
-          <Label htmlFor="email" className="text-sm font-semibold text-[hsl(var(--foreground))]">
-            Email Profissional
-          </Label>
-          <Input
-            id="email"
-            type="email"
-            value={email}
-            onChange={(e) => onEmailChange(e.target.value)}
-            required
-            placeholder="seu@escritorio.com.br"
-            className="h-12 border-[hsl(var(--border))] focus:border-[hsl(var(--accent))] focus:ring-[hsl(var(--accent))] transition-all"
-          />
-        </div>
+        <FormField
+          control={form.control}
+          name="email"
+          render={({ field }) => (
+            <FormItem className="space-y-2">
+              <FormLabel className="text-sm font-semibold text-[hsl(var(--foreground))]">
+                Email Profissional
+              </FormLabel>
+              <FormControl>
+                <Input
+                  type="email"
+                  placeholder="seu@escritorio.com.br"
+                  className="h-12 border-[hsl(var(--border))] focus:border-[hsl(var(--accent))] focus:ring-[hsl(var(--accent))] transition-all"
+                  {...field}
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
 
-        <div className="space-y-2">
-          <div className="flex items-center justify-between">
-            <Label htmlFor="password" className="text-sm font-semibold text-[hsl(var(--foreground))]">
-              Senha
-            </Label>
-            <ForgotPasswordDialog />
-          </div>
-          <Input
-            id="password"
-            type="password"
-            value={password}
-            onChange={(e) => onPasswordChange(e.target.value)}
-            required
-            placeholder="••••••••"
-            className="h-12 border-[hsl(var(--border))] focus:border-[hsl(var(--accent))] focus:ring-[hsl(var(--accent))] transition-all"
-          />
-        </div>
+        <FormField
+          control={form.control}
+          name="password"
+          render={({ field }) => (
+            <FormItem className="space-y-2">
+              <div className="flex items-center justify-between">
+                <FormLabel className="text-sm font-semibold text-[hsl(var(--foreground))]">
+                  Senha
+                </FormLabel>
+                <ForgotPasswordDialog />
+              </div>
+              <FormControl>
+                <Input
+                  type="password"
+                  placeholder="••••••••"
+                  className="h-12 border-[hsl(var(--border))] focus:border-[hsl(var(--accent))] focus:ring-[hsl(var(--accent))] transition-all"
+                  {...field}
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
 
         {/* Premium Submit Button */}
         <div className="relative group">

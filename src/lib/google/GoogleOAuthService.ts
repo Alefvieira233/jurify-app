@@ -123,8 +123,8 @@ export class GoogleOAuthService {
       .from('google_calendar_tokens')
       .upsert({
         user_id: userId,
-        access_token: token.access_token,
-        refresh_token: token.refresh_token || null,
+        access_token_encrypted: token.access_token,
+        refresh_token_encrypted: token.refresh_token || null,
         expires_at: new Date(token.expires_at).toISOString(),
         token_type: token.token_type,
         scope: token.scope,
@@ -142,7 +142,7 @@ export class GoogleOAuthService {
   static async loadTokens(userId: string): Promise<GoogleOAuthToken | null> {
     const { data, error } = await supabase
       .from('google_calendar_tokens')
-      .select('*')
+      .select('access_token_encrypted, refresh_token_encrypted, expires_at, token_type, scope')
       .eq('user_id', userId)
       .single();
 
@@ -151,8 +151,8 @@ export class GoogleOAuthService {
     }
 
     return {
-      access_token: data.access_token,
-      refresh_token: data.refresh_token || undefined,
+      access_token: data.access_token_encrypted,
+      refresh_token: data.refresh_token_encrypted || undefined,
       expires_at: new Date(data.expires_at).getTime(),
       token_type: data.token_type,
       scope: data.scope,

@@ -94,8 +94,8 @@ describe('Dashboard', () => {
     expect(screen.getAllByText('3 leads').length).toBe(2);
   });
 
-  it('renders sankey chart section', () => {
+  it('renders sankey chart section', async () => {
     render(<Dashboard />, { wrapper: createWrapper() });
-    expect(screen.getByText('Fluxo do Pipeline')).toBeInTheDocument();
+    expect(await screen.findByText('Fluxo do Pipeline')).toBeInTheDocument();
   });
 });

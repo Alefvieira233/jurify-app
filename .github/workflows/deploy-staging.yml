@@ -1,4 +1,6 @@
 name: 🧪 Deploy to Staging
+# ⚠️ WARNING: Staging currently shares the PRODUCTION Supabase database.
+# TODO: Create separate Supabase project for staging to prevent data corruption.
 
 on:
   push:
@@ -35,6 +37,9 @@ jobs:
 
       - name: 📦 Install dependencies
         run: npm ci --prefer-offline --no-audit
+
+      - name: 🛡️ Validate secrets config
+        run: node scripts/validate-secrets.cjs --ci
 
       - name: 🔍 Type check
         run: npm run type-check

@@ -56,7 +56,7 @@ export const useLogsExecucao = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('agent_ai_logs')
-        .select('*')
+        .select('agent_name, user_prompt, result_preview, status, latency_ms, error_message, model, total_tokens, created_at')
         .eq('tenant_id', tenantId!)
         .order('created_at', { ascending: false })
         .limit(50);
@@ -82,7 +82,7 @@ export const useLogsExecucao = () => {
     try {
       const { data, error } = await supabase
         .from('agent_ai_logs')
-        .select('*')
+        .select('agent_name, user_prompt, result_preview, status, latency_ms, error_message, model, total_tokens, created_at')
         .eq('tenant_id', tenantId)
         .order('created_at', { ascending: false })
         .limit(limite);
@@ -95,7 +95,7 @@ export const useLogsExecucao = () => {
         tempo_execucao: log.latency_ms,
       }));
 
-      queryClient.setQueryData(['logs-execucao', tenantId], transformedData);
+      queryClient.setQueryData(queryKeys.logsExecucao.list(tenantId), transformedData);
     } catch (error) {
       logger.error('Erro ao buscar logs', error);
       toast({
@@ -112,7 +112,7 @@ export const useLogsExecucao = () => {
     try {
       const { data, error } = await supabase
         .from('agent_ai_logs')
-        .select('*')
+        .select('agent_name, user_prompt, result_preview, status, latency_ms, error_message, model, total_tokens, created_at')
         .eq('tenant_id', tenantId)
         .eq('agent_name', agenteId)
         .order('created_at', { ascending: false })

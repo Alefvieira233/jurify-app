@@ -1,9 +1,13 @@
 /**
  * Monitoring & Error Tracking Service
- * 
+ *
  * Centraliza logging de erros e métricas
  * Versão simplificada sem JSX para evitar conflitos
  */
+
+import { createLogger } from '@/lib/logger';
+
+const log = createLogger('MonitoringService');
 
 interface ErrorContext {
   userId?: string;
@@ -48,11 +52,8 @@ class MonitoringService {
     if (this.isProduction) {
       this.sendToMonitoring(errorData);
     } else {
-      // Dev: console com contexto rico
-      console.group(`🔴 Error: ${error.message}`);
-      console.error(error);
-      console.log('Context:', context);
-      console.groupEnd();
+      // Dev: structured log com contexto rico
+      log.error(`Error: ${error.message}`, error, context as unknown as Record<string, unknown>);
     }
   }
 
@@ -63,7 +64,7 @@ class MonitoringService {
     if (this.isProduction) {
       this.sendMetric(metric);
     } else {
-      console.log(`📊 ${name}: ${value}`, tags || '');
+      log.info(`${name}: ${value}`, tags as unknown as Record<string, unknown>);
     }
   }
 
@@ -100,7 +101,7 @@ class MonitoringService {
         // Sentry not available — silent fallback
       });
     } catch (err) {
-      console.warn('[MonitoringService] sendError failed:', err);
+      log.warn('sendError failed', { error: String(err) });
     }
   }
 

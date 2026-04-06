@@ -80,7 +80,7 @@ export const useActivityLogs = () => {
 
     try {
       const result = await fetchLogsRpc(limite, offset, filtros);
-      queryClient.setQueryData(['activity-logs', tenantId], result);
+      queryClient.setQueryData(queryKeys.activityLogs.list(tenantId), result);
     } catch (error) {
       log.error('Erro ao buscar logs', error);
       toast({

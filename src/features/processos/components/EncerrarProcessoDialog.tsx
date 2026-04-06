@@ -4,8 +4,12 @@ import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import { useQueryClient } from '@tanstack/react-query';
+import { queryKeys } from '@/lib/queryKeys';
 import { supabaseUntyped as supabase } from '@/integrations/supabase/client';
 import { useRBAC } from '@/hooks/useRBAC';
+import { createLogger } from '@/lib/logger';
+
+const log = createLogger('EncerrarProcessoDialog');
 
 interface Props {
   processoId: string;
@@ -39,11 +43,11 @@ export function EncerrarProcessoDialog({ processoId, processoNumero, open, onClo
         .eq('id', processoId);
       if (error) throw error;
       toast({ title: 'Processo encerrado', description: `Processo ${processoNumero} encerrado com sucesso.` });
-      void queryClient.invalidateQueries({ queryKey: ['processos'] });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.processos.all });
       onSuccess();
       onClose();
     } catch (err) {
-      console.error('[EncerrarProcessoDialog] encerrar failed:', err);
+      log.error('encerrar failed', err);
       toast({ title: 'Erro', description: 'Não foi possível encerrar o processo.', variant: 'destructive' });
     } finally {
       setLoading(false);

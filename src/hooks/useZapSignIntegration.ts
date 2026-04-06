@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { toast } from 'sonner';
+import { useToast } from '@/hooks/use-toast';
 import { createLogger } from '@/lib/logger';
 
 const log = createLogger('ZapSign');
@@ -50,6 +50,7 @@ interface UseZapSignIntegrationReturn {
 }
 
 export const useZapSignIntegration = (): UseZapSignIntegrationReturn => {
+  const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
 
   const gerarLinkAssinatura = async (contratoId: string, contractData: ContractData): Promise<boolean> => {
@@ -73,11 +74,11 @@ export const useZapSignIntegration = (): UseZapSignIntegrationReturn => {
         return data;
       }, 3, 1000);
 
-      toast.success('Link de assinatura gerado com sucesso!');
+      toast({ title: 'Link de assinatura gerado com sucesso!' });
       return true;
     } catch (error) {
-      log.error('Erro ao gerar link ZapSign apÃ³s 3 tentativas', error);
-      toast.error("Erro ao gerar link");
+      log.error('Erro ao gerar link ZapSign após 3 tentativas', error);
+      toast({ title: 'Erro ao gerar link', variant: 'destructive' });
       return false;
     } finally {
       setIsLoading(false);
@@ -100,7 +101,7 @@ export const useZapSignIntegration = (): UseZapSignIntegrationReturn => {
       }
     } catch (error) {
       log.error('Erro ao verificar status', error);
-      toast.error("Erro ao verificar status");
+      toast({ title: 'Erro ao verificar status', variant: 'destructive' });
     }
   };
 
@@ -130,11 +131,11 @@ export const useZapSignIntegration = (): UseZapSignIntegrationReturn => {
         return data;
       }, 3, 1000);
 
-      toast.success('Link enviado via WhatsApp com sucesso!');
+      toast({ title: 'Link enviado via WhatsApp com sucesso!' });
       return true;
     } catch (error) {
-      log.error('Erro ao enviar via WhatsApp apÃ³s 3 tentativas', error);
-      toast.error("Erro ao enviar");
+      log.error('Erro ao enviar via WhatsApp após 3 tentativas', error);
+      toast({ title: 'Erro ao enviar', variant: 'destructive' });
       return false;
     } finally {
       setIsLoading(false);

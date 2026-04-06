@@ -32,25 +32,57 @@ export interface Tarefa {
   updated_at: string;
 }
 
-export function useTarefas() {
+export interface UseTarefasOptions {
+  /** Page number (0-based). Defaults to 0. */
+  page?: number;
+  /** Items per page. Defaults to 50. */
+  pageSize?: number;
+  /** Server-side status filter (exact match). */
+  status?: string;
+  /** Server-side search on titulo (ilike). */
+  search?: string;
+}
+
+type TarefasQueryData = { items: Tarefa[]; total: number };
+
+export function useTarefas(options?: UseTarefasOptions) {
   const { profile } = useAuth();
   const { toast } = useToast();
   const qc = useQueryClient();
   const tenantId = profile?.tenant_id;
 
-  const { data: tarefas, isLoading, isError, error, refetch } = useQuery({
-    queryKey: queryKeys.tarefas.list(tenantId),
+  const page = options?.page ?? 0;
+  const pageSize = options?.pageSize ?? 50;
+  const status = options?.status;
+  const search = options?.search;
+
+  const qKey = queryKeys.tarefas.list(tenantId, page, status, search);
+
+  const { data: queryData, isLoading, isError, error, refetch } = useQuery<TarefasQueryData>({
+    queryKey: qKey,
     enabled: !!tenantId,
     queryFn: async () => {
-      const { data, error } = await supabase
+      let query = supabase
         .from('tarefas')
-        .select('*')
+        .select('id, tenant_id, titulo, descricao, prazo, pontos, responsavel_id, criador_id, lead_id, status, prioridade, created_at, updated_at', { count: 'exact' })
         .eq('tenant_id', tenantId!)
         .order('created_at', { ascending: false });
+
+      if (status) query = query.eq('status', status);
+      if (search) query = query.ilike('titulo', `%${search}%`);
+
+      query = query.range(page * pageSize, (page + 1) * pageSize - 1);
+
+      const { data, error, count } = await query;
       if (error) throw error;
-      return data as Tarefa[];
+      return { items: (data ?? []) as Tarefa[], total: count ?? 0 };
     },
   });
+
+  const tarefas = queryData?.items ?? [];
+  const total = queryData?.total ?? 0;
+  const totalPages = Math.max(1, Math.ceil(total / pageSize));
+  const hasMore = (page + 1) * pageSize < total;
 
   const createTarefa = useMutation({
     mutationFn: async (values: Record<string, unknown>) => {
@@ -94,5 +126,20 @@ export function useTarefas() {
     },
   });
 
-  return { tarefas: tarefas ?? [], isLoading, isError, error, refetch, createTarefa, updateTarefa, deleteTarefa };
+  return {
+    tarefas,
+    isLoading,
+    isError,
+    error,
+    refetch,
+    createTarefa,
+    updateTarefa,
+    deleteTarefa,
+    // Pagination metadata
+    total,
+    page,
+    pageSize,
+    totalPages,
+    hasMore,
+  };
 }

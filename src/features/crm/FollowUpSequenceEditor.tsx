@@ -351,7 +351,7 @@ const FollowUpSequenceEditor: React.FC = () => {
                   <CardTitle className="text-sm font-semibold truncate">{seq.name}</CardTitle>
                   <Badge
                     variant="outline"
-                    className={`text-[9px] px-1.5 ${seq.is_active
+                    className={`text-xs px-1.5 ${seq.is_active
                       ? 'border-emerald-300 text-emerald-600 bg-emerald-50 dark:bg-emerald-950/30'
                       : 'border-muted text-muted-foreground'
                     }`}

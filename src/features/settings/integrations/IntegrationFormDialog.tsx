@@ -79,8 +79,8 @@ const IntegrationFormDialog: React.FC<IntegrationFormDialogProps> = ({
             <Input
               id={isEdit ? 'edit-apikey' : 'apikey'}
               type="password"
-              value={formData.api_key}
-              onChange={(e) => onFormDataChange({ ...formData, api_key: e.target.value })}
+              value={formData.api_key_encrypted}
+              onChange={(e) => onFormDataChange({ ...formData, api_key_encrypted: e.target.value })}
               className="col-span-3"
               placeholder="Sua API Key"
               required

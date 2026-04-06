@@ -16,7 +16,7 @@ const TIPO_CONFIG: Record<string, { label: string; className: string } | undefin
   edicao:   { label: 'Edição',   className: 'bg-blue-500/15 text-blue-700 border-blue-200' },
   exclusao: { label: 'Exclusão', className: 'bg-red-500/15 text-red-700 border-red-200' },
   login:    { label: 'Login',    className: 'bg-violet-500/15 text-violet-700 border-violet-200' },
-  logout:   { label: 'Logout',   className: 'bg-slate-500/15 text-slate-700 border-slate-200' },
+  logout:   { label: 'Logout',   className: 'bg-slate-500/15 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700' },
   erro:     { label: 'Erro',     className: 'bg-orange-500/15 text-orange-700 border-orange-200' },
   outro:    { label: 'Outro',    className: 'bg-muted text-muted-foreground' },
 };

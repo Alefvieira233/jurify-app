@@ -224,7 +224,7 @@ const KnowledgeBaseSection = () => {
                   <div className={`h-10 w-10 rounded-lg flex items-center justify-center flex-shrink-0 ${
                     doc.file_type === 'pdf' ? 'bg-red-100 text-red-600' :
                     doc.file_type === 'docx' ? 'bg-blue-100 text-blue-600' :
-                    'bg-gray-100 text-gray-600'
+                    'bg-muted text-muted-foreground'
                   }`}>
                     <FileText className="h-5 w-5" />
                   </div>

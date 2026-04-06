@@ -10,7 +10,7 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
-import { toast } from 'sonner';
+import { useToast } from '@/hooks/use-toast';
 import type { RealtimeChannel } from '@supabase/supabase-js';
 import { createLogger } from '@/lib/logger';
 
@@ -25,6 +25,7 @@ const NOTIFICATION_ICONS: Record<string, string> = {
 
 export function useRealtimeNotifications() {
   const { user, profile } = useAuth();
+  const { toast } = useToast();
   const tenantId = profile?.tenant_id;
   const userId = user?.id;
   const channelRef = useRef<RealtimeChannel | null>(null);
@@ -37,7 +38,7 @@ export function useRealtimeNotifications() {
       const { data, error } = await supabase.rpc('contar_nao_lidas', { user_id: userId });
       if (!error && data !== null) setUnreadCount(data as unknown as number);
     } catch (err) {
-      console.warn('[useRealtimeNotifications] fetchUnreadCount failed:', err);
+      log.warn('fetchUnreadCount failed', { error: String(err) });
     }
   }, [userId]);
 
@@ -84,16 +85,9 @@ export function useRealtimeNotifications() {
             const mensagem = (record.mensagem as string) || '';
             const icon = NOTIFICATION_ICONS[tipo] || 'ℹ️';
 
-            toast(`${icon} ${titulo}`, {
+            toast({
+              title: `${icon} ${titulo}`,
               description: mensagem.length > 120 ? `${mensagem.slice(0, 120)}…` : mensagem,
-              duration: 5000,
-              action: {
-                label: 'Ver',
-                onClick: () => {
-                  window.location.hash = '';
-                  window.location.pathname = '/notificacoes';
-                },
-              },
             });
           }
 
@@ -147,7 +141,7 @@ export function useRealtimeNotifications() {
         channelRef.current = null;
       }
     };
-  }, [tenantId, userId, fetchUnreadCount]);
+  }, [tenantId, userId, fetchUnreadCount, toast]);
 
   const decrementUnread = useCallback((count = 1) => {
     setUnreadCount((prev) => Math.max(0, prev - count));

@@ -4,8 +4,8 @@
 // encrypt/decrypt delegate to server-side Edge Functions.
 // VITE_ENCRYPTION_KEY is NO LONGER used — the key lives only in Supabase Secrets.
 // hashPassword, hashData, generateToken, anonymizeData remain client-side (no secret needed).
+// All hashing uses the native Web Crypto API (zero bundle cost).
 
-import CryptoJS from 'crypto-js';
 import { supabase } from '@/integrations/supabase/client';
 import { createLogger } from '@/lib/logger';
 
@@ -41,36 +41,31 @@ class EncryptionService {
   }
 
   /**
-   * @deprecated NÃO chamar no browser em produção — PBKDF2 com 600k iterações
-   * bloqueia a UI thread por vários segundos. Hashing de senha deve ser feito
-   * server-side via Supabase Auth. Esta função existe apenas para testes unitários.
+   * Hash a password using PBKDF2 via the native Web Crypto API.
+   * @deprecated Hashing de senha deve ser feito server-side via Supabase Auth.
+   * Esta função existe apenas para testes unitários.
    */
-  hashPassword(password: string): string {
-    const salt = CryptoJS.lib.WordArray.random(128 / 8);
-    const hash = CryptoJS.PBKDF2(password, salt, {
-      keySize: 256 / 32,
-      iterations: 600000,
-      hasher: CryptoJS.algo.SHA256,
-    });
-
-    return salt.toString() + ':' + hash.toString();
+  async hashPassword(password: string, salt?: string): Promise<{ hash: string; salt: string }> {
+    const actualSalt = salt || crypto.getRandomValues(new Uint8Array(16))
+      .reduce((s, b) => s + b.toString(16).padStart(2, '0'), '');
+    const encoder = new TextEncoder();
+    const keyMaterial = await crypto.subtle.importKey(
+      'raw', encoder.encode(password), 'PBKDF2', false, ['deriveBits']
+    );
+    const bits = await crypto.subtle.deriveBits(
+      { name: 'PBKDF2', salt: encoder.encode(actualSalt), iterations: 10000, hash: 'SHA-256' },
+      keyMaterial, 256
+    );
+    const hash = Array.from(new Uint8Array(bits))
+      .map(b => b.toString(16).padStart(2, '0')).join('');
+    return { hash, salt: actualSalt };
   }
 
   /** @deprecated Ver nota em hashPassword — não usar em produção no browser. */
-  verifyPassword(password: string, storedHash: string): boolean {
+  async verifyPassword(password: string, storedHash: string, salt: string): Promise<boolean> {
     try {
-      const [salt, originalHash] = storedHash.split(':');
-      const computedHash = CryptoJS.PBKDF2(
-        password,
-        CryptoJS.enc.Hex.parse(salt ?? ''),
-        {
-          keySize: 256 / 32,
-          iterations: 600000,
-          hasher: CryptoJS.algo.SHA256,
-        }
-      );
-
-      return computedHash.toString() === originalHash;
+      const { hash } = await this.hashPassword(password, salt);
+      return hash === storedHash;
     } catch (error) {
       log.error('Password verification error', error);
       return false;
@@ -84,9 +79,13 @@ class EncryptionService {
     return Array.from(array, (b) => b.toString(16).padStart(2, '0')).join('');
   }
 
-  // Hash data for integrity checks
-  hashData(data: string): string {
-    return CryptoJS.SHA256(data).toString();
+  // Hash data for integrity checks (native Web Crypto — zero bundle cost)
+  async hashData(data: string): Promise<string> {
+    const encoded = new TextEncoder().encode(data);
+    const hashBuffer = await crypto.subtle.digest('SHA-256', encoded);
+    return Array.from(new Uint8Array(hashBuffer))
+      .map(b => b.toString(16).padStart(2, '0'))
+      .join('');
   }
 
   // Encrypt sensitive fields in objects (async)
@@ -195,7 +194,7 @@ class EncryptionService {
     const timestamp = Date.now();
     const payload = JSON.stringify({ ...data, timestamp });
     const encrypted = await this.encrypt(payload);
-    const checksum = this.hashData(encrypted);
+    const checksum = await this.hashData(encrypted);
 
     return { payload: encrypted, checksum, timestamp };
   }
@@ -206,7 +205,7 @@ class EncryptionService {
     checksum: string;
     timestamp: number;
   }): Promise<Record<string, unknown>> {
-    const computedChecksum = this.hashData(transmission.payload);
+    const computedChecksum = await this.hashData(transmission.payload);
     if (computedChecksum !== transmission.checksum) {
       throw new Error('Data integrity check failed');
     }

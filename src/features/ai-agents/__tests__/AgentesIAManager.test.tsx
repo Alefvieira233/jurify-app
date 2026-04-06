@@ -63,16 +63,16 @@ vi.mock('@/utils/monitoring', () => ({
 }));
 
 // Mock heavy child components
-vi.mock('@/components/NovoAgenteForm', () => ({
+vi.mock('../components/NovoAgenteForm', () => ({
   default: () => <div data-testid="novo-agente-form">Form</div>,
 }));
-vi.mock('@/components/DetalhesAgente', () => ({
+vi.mock('../components/DetalhesAgente', () => ({
   default: () => <div data-testid="detalhes-agente">Detalhes</div>,
 }));
-vi.mock('@/components/ApiKeysManager', () => ({
+vi.mock('../components/ApiKeysManager', () => ({
   default: () => <div data-testid="api-keys-manager">ApiKeys</div>,
 }));
-vi.mock('@/components/LogsMonitoramento', () => ({
+vi.mock('../components/LogsMonitoramento', () => ({
   default: () => <div data-testid="logs-monitoramento">Logs</div>,
 }));
 

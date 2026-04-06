@@ -130,7 +130,7 @@ Analisar dados de leads, conversões, receita, performance de agentes e pipeline
     // Busca dados do Supabase
     const { data: leads } = await supabase
       .from('leads')
-      .select('*')
+      .select('id, nome, email, telefone, area_juridica, status, origem, lead_score, temperature, expected_value, pipeline_stage_id, created_at, updated_at')
       .gte('created_at', new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString());
 
     const analysis = await this.processWithAI(

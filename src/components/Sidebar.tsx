@@ -127,6 +127,9 @@ const ALL_LEAVES = allLeaves();
 /* ─────────────────────────────────────────────────────────────────────────
    Component
 ───────────────────────────────────────────────────────────────────────── */
+const isMac = typeof navigator !== 'undefined' && navigator.platform.toUpperCase().indexOf('MAC') >= 0;
+const shortcutKey = isMac ? '⌘' : 'Ctrl';
+
 const Sidebar = ({ activeSection, onSectionChange }: SidebarProps) => {
   const { signOut, profile, user, hasPermission } = useAuth();
   const { isAdmin, isManager } = useRBAC();
@@ -248,7 +251,7 @@ const Sidebar = ({ activeSection, onSectionChange }: SidebarProps) => {
           <span className="flex-1 truncate tracking-wide">{item.label}</span>
 
           {isDisabled && (
-            <span className="text-[9px] text-sidebar-foreground/30 font-bold uppercase tracking-widest bg-sidebar-border/20 px-1.5 py-0.5 rounded-sm">
+            <span className="text-xs text-sidebar-foreground/30 font-bold uppercase tracking-widest bg-sidebar-border/20 px-1.5 py-0.5 rounded-sm">
               Em breve
             </span>
           )}
@@ -350,8 +353,8 @@ const Sidebar = ({ activeSection, onSectionChange }: SidebarProps) => {
         >
           <Search className="h-4 w-4 flex-shrink-0" />
           <span className="flex-1 text-left text-xs font-medium">Buscar...</span>
-          <kbd className="hidden sm:inline text-[9px] font-mono px-1.5 py-0.5 rounded bg-muted text-muted-foreground border border-border">
-            ⌘K
+          <kbd className="hidden sm:inline text-xs font-mono px-1.5 py-0.5 rounded bg-muted text-muted-foreground border border-border">
+            {shortcutKey}+K
           </kbd>
         </button>
       </div>
@@ -359,7 +362,7 @@ const Sidebar = ({ activeSection, onSectionChange }: SidebarProps) => {
       {/* ── Navigation ── */}
       <nav className="flex-1 px-3 pb-4 overflow-y-auto scrollbar-thin" role="navigation">
         <ul className="space-y-1 mt-2" role="list">
-          <li className="px-3 pb-2 pt-1 text-[10px] font-bold tracking-widest text-sidebar-foreground/40 uppercase">Acesso Principal</li>
+          <li className="px-3 pb-2 pt-1 text-xs font-bold tracking-widest text-sidebar-foreground/40 uppercase">Acesso Principal</li>
           {MAIN_NAV.map(renderNavEntry)}
         </ul>
       </nav>
@@ -369,8 +372,8 @@ const Sidebar = ({ activeSection, onSectionChange }: SidebarProps) => {
         <div className="flex items-center gap-2 text-xs text-muted-foreground cursor-pointer hover:text-foreground transition-colors">
           <Gift className="h-3.5 w-3.5 shrink-0" />
           <div>
-            <div className="font-medium text-foreground text-[11px]">Indique Jurify</div>
-            <div className="text-[10px]">Ganhe R$200 por indicação</div>
+            <div className="font-medium text-foreground text-xs">Indique Jurify</div>
+            <div className="text-xs">Ganhe R$200 por indicação</div>
           </div>
         </div>
       </div>
@@ -382,8 +385,8 @@ const Sidebar = ({ activeSection, onSectionChange }: SidebarProps) => {
             <span className="text-[10px] font-bold text-white">{userInitial}</span>
           </div>
           <div className="flex-1 min-w-0">
-            <p className="text-[11px] font-medium text-sidebar-foreground truncate leading-none">{userName}</p>
-            <p className="text-[10px] text-muted-foreground/50 truncate leading-none mt-1">{userRoleLabel}</p>
+            <p className="text-xs font-medium text-sidebar-foreground truncate leading-none">{userName}</p>
+            <p className="text-xs text-muted-foreground/50 truncate leading-none mt-1">{userRoleLabel}</p>
           </div>
           <button
             type="button"
@@ -397,6 +400,7 @@ const Sidebar = ({ activeSection, onSectionChange }: SidebarProps) => {
           <button
             type="button"
             onClick={() => { void signOut(); }}
+            aria-label="Sair"
             title="Sair"
             className="h-7 w-7 flex items-center justify-center rounded-md text-muted-foreground/35 hover:text-destructive hover:bg-destructive/10 active:bg-accent/80 transition-colors flex-shrink-0"
           >

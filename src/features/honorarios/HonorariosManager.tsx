@@ -1,30 +1,24 @@
-import { useState, useMemo, useCallback, memo } from 'react';
-import { Plus, Search, DollarSign, Edit, Trash2, TrendingUp, MoreVertical } from 'lucide-react';
+import { useState, useCallback, memo } from 'react';
+import { Plus, DollarSign, Edit, Trash2, TrendingUp, MoreVertical } from 'lucide-react';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { MobileCard } from '@/components/ui/MobileCard';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { useDebounce } from '@/hooks/useDebounce';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Skeleton } from '@/components/ui/skeleton';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { CRUDManagerLayout } from '@/components/CRUDManagerLayout';
 import { useHonorarios } from '@/hooks/useHonorarios';
 import type { HonorarioWithOverdue } from '@/hooks/useHonorarios';
-import PaginationControls from '@/components/PaginationControls';
 import { useToast } from '@/hooks/use-toast';
 import { toUserMessage } from '@/lib/errorMessages';
 import { useAuth } from '@/contexts/AuthContext';
 import { createLogger } from '@/lib/logger';
-import { usePageTitle } from '@/hooks/usePageTitle';
 import { useRBAC } from '@/hooks/useRBAC';
 import { supabaseUntyped as supabase } from '@/integrations/supabase/client';
 import { useQueryClient } from '@tanstack/react-query';
-import ConfirmDialog from '@/components/ConfirmDialog';
-import EmptyState from '@/components/EmptyState';
-import ErrorState from '@/components/ErrorState';
+import { queryKeys } from '@/lib/queryKeys';
 import NovoHonorarioForm from './components/NovoHonorarioForm';
 import type { HonorarioFormData } from '@/schemas/honorarioSchema';
 import { HONORARIO_STATUS_LABELS } from '@/schemas/honorarioSchema';
@@ -35,13 +29,13 @@ const log = createLogger('HonorariosManager');
 const TIPO_LABELS: Record<string, string> = {
   fixo: 'Fixo',
   hora: 'Por Hora',
-  contingencia: 'Contingência',
+  contingencia: 'Contingencia',
   misto: 'Misto',
   retainer: 'Retainer',
 };
 
 const fmt = (v: number | null | undefined) =>
-  v != null ? v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }) : '—';
+  v != null ? v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }) : '\u2014';
 
 interface HonorarioCardProps {
   honorario: HonorarioWithOverdue;
@@ -49,7 +43,7 @@ interface HonorarioCardProps {
   canDelete: boolean;
   onMarcarInadimplente: (id: string) => void | Promise<void>;
   onEdit: (h: HonorarioWithOverdue) => void;
-  onDelete: (id: string) => void;
+  onDelete: (id: string, label: string) => void;
 }
 
 const HonorarioCard = memo(({ honorario: h, canUpdate, canDelete, onMarcarInadimplente, onEdit, onDelete }: HonorarioCardProps) => (
@@ -75,24 +69,19 @@ const HonorarioCard = memo(({ honorario: h, canUpdate, canDelete, onMarcarInadim
         </div>
         <div className="flex items-center gap-1 flex-shrink-0">
           {h.overdue && canUpdate && (
-            <Button
-              size="sm"
-              variant="destructive"
-              onClick={() => { void onMarcarInadimplente(h.id); }}
-            >
+            <Button size="sm" variant="destructive" onClick={() => { void onMarcarInadimplente(h.id); }}>
               Marcar Inadimplente
             </Button>
           )}
           {canUpdate && (
-            <Button size="sm" variant="ghost" title="Editar"
-              onClick={() => onEdit(h)}>
+            <Button size="sm" variant="ghost" title="Editar" onClick={() => onEdit(h)}>
               <Edit className="w-4 h-4" />
             </Button>
           )}
           {canDelete && (
             <Button size="sm" variant="ghost" title="Excluir"
               className="text-destructive hover:text-destructive"
-              onClick={() => onDelete(h.id)}>
+              onClick={() => onDelete(h.id, TIPO_LABELS[h.tipo] ?? h.tipo)}>
               <Trash2 className="w-4 h-4" />
             </Button>
           )}
@@ -104,15 +93,10 @@ const HonorarioCard = memo(({ honorario: h, canUpdate, canDelete, onMarcarInadim
 HonorarioCard.displayName = 'HonorarioCard';
 
 const HonorariosManager = () => {
-  usePageTitle('Honorários');
   const isMobile = useIsMobile();
-  const [searchTerm, setSearchTerm] = useState('');
-  const debouncedSearch = useDebounce(searchTerm, 300);
   const [filterStatus, setFilterStatus] = useState('all');
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [selectedHonorario, setSelectedHonorario] = useState<HonorarioWithOverdue | null>(null);
-  const [confirmDelete, setConfirmDelete] = useState<{ open: boolean; id: string }>({ open: false, id: '' });
-  const [deleteLoading, setDeleteLoading] = useState(false);
   const [formLoading, setFormLoading] = useState(false);
   const [page, setPage] = useState(1);
 
@@ -131,30 +115,18 @@ const HonorariosManager = () => {
     setIsFormOpen(true);
   }, []);
 
-  const handleRequestDeleteHonorario = useCallback((id: string) => {
-    setConfirmDelete({ open: true, id });
-  }, []);
-
   const handleMarcarInadimplente = useCallback(async (id: string) => {
     const { error: updateError } = await supabase
       .from('honorarios')
       .update({ status: 'inadimplente' })
       .eq('id', id);
     if (updateError) {
-      toast({ title: 'Erro', description: 'Não foi possível atualizar.', variant: 'destructive' });
+      toast({ title: 'Erro', description: 'Nao foi possivel atualizar.', variant: 'destructive' });
     } else {
-      toast({ title: 'Status atualizado', description: 'Honorário marcado como inadimplente.' });
-      void queryClient.invalidateQueries({ queryKey: ['honorarios'] });
+      toast({ title: 'Status atualizado', description: 'Honorario marcado como inadimplente.' });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.honorarios.all });
     }
   }, [toast, queryClient]);
-
-  const filteredHonorarios = useMemo(() => honorarios.filter(h => {
-    const matchSearch = !debouncedSearch ||
-      TIPO_LABELS[h.tipo]?.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
-      h.observacoes?.toLowerCase().includes(debouncedSearch.toLowerCase());
-    const matchStatus = !filterStatus || filterStatus === 'all' || h.status === filterStatus;
-    return matchSearch && matchStatus;
-  }), [honorarios, debouncedSearch, filterStatus]);
 
   const handleSubmitForm = async (data: HonorarioFormData): Promise<boolean> => {
     setFormLoading(true);
@@ -172,233 +144,207 @@ const HonorariosManager = () => {
     }
   };
 
-  const handleDelete = async () => {
-    setDeleteLoading(true);
-    try {
-      if (!tenantId) throw new Error('Tenant não encontrado');
-      const { error: deleteError } = await supabase
-        .from('honorarios')
-        .delete()
-        .eq('id', confirmDelete.id)
-        .eq('tenant_id', tenantId);
-      if (deleteError) throw deleteError;
-      toast({ title: 'Honorário excluído' });
-      fetchHonorarios();
-    } catch (err: unknown) {
-      log.error('Erro ao excluir honorário', err);
-      toast({ title: 'Erro', description: toUserMessage(err), variant: 'destructive' });
-    } finally {
-      setDeleteLoading(false);
-      setConfirmDelete({ open: false, id: '' });
-    }
+  const handleDelete = async (id: string) => {
+    if (!tenantId) throw new Error('Tenant nao encontrado');
+    const { error: deleteError } = await supabase
+      .from('honorarios')
+      .delete()
+      .eq('id', id)
+      .eq('tenant_id', tenantId);
+    if (deleteError) throw deleteError;
+    toast({ title: 'Honorario excluido' });
+    fetchHonorarios();
   };
 
-  if (loading) {
-    return (
-      <div className="p-6 space-y-6">
-        <Card><CardHeader><CardTitle className="text-2xl">Honorários</CardTitle></CardHeader></Card>
-        <div className="grid gap-4">
-          {[1, 2, 3].map(i => (
-            <Card key={i}><CardContent className="p-6"><Skeleton className="h-6 w-64" /></CardContent></Card>
-          ))}
-        </div>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="p-6">
-        <ErrorState title="Erro ao carregar honorários" message={error} onRetry={fetchHonorarios} />
-      </div>
-    );
-  }
-
-  if (isEmpty) {
-    return (
-      <div className="p-6">
-        <EmptyState
-          icon={DollarSign}
-          title="Nenhum Honorário"
-          description="Não há honorários cadastrados. Adicione o primeiro honorário para controlar a receita do escritório."
-          action={can('honorarios', 'create') ? {
-            label: 'Novo Honorário',
-            onClick: () => { setSelectedHonorario(null); setIsFormOpen(true); },
-          } : undefined}
-        />
-        <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
-          <DialogContent className="max-w-lg">
-            <DialogHeader><DialogTitle>Novo Honorário</DialogTitle></DialogHeader>
-            <NovoHonorarioForm onSubmit={handleSubmitForm} onCancel={() => setIsFormOpen(false)} loading={formLoading} />
-          </DialogContent>
-        </Dialog>
-      </div>
-    );
-  }
+  // Filter function: search + status
+  const filterFn = (h: HonorarioWithOverdue, search: string) => {
+    const matchSearch = !search ||
+      TIPO_LABELS[h.tipo]?.toLowerCase().includes(search.toLowerCase()) ||
+      h.observacoes?.toLowerCase().includes(search.toLowerCase());
+    const matchStatus = !filterStatus || filterStatus === 'all' || h.status === filterStatus;
+    return (matchSearch ?? true) && matchStatus;
+  };
 
   return (
-    <div className="p-6 space-y-6">
-      {/* Header */}
-      <Card>
-        <CardHeader>
-          <div className="flex justify-between items-center">
-            <div>
-              <CardTitle className="text-2xl">Honorários</CardTitle>
-              <p className="text-muted-foreground">{filteredHonorarios.length} honorário{filteredHonorarios.length !== 1 ? 's' : ''}</p>
-            </div>
-            {can('honorarios', 'create') && (
-              <Button onClick={() => { setSelectedHonorario(null); setIsFormOpen(true); }}>
-                <Plus className="w-4 h-4 mr-2" />
-                Novo Honorário
-              </Button>
-            )}
-          </div>
-        </CardHeader>
-      </Card>
-
-      {/* P&L Summary */}
-      <div className="grid grid-cols-3 gap-4">
-        <Card>
-          <CardContent className="p-4">
-            <p className="text-xs text-muted-foreground">Total Acordado</p>
-            <p className="text-lg font-bold mt-1">{fmt(totalAcordado)}</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4">
-            <p className="text-xs text-muted-foreground">Total Recebido</p>
-            <p className="text-lg font-bold text-emerald-600 dark:text-emerald-400 mt-1">{fmt(totalRecebido)}</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-1">
-              <TrendingUp className="w-3.5 h-3.5 text-muted-foreground" />
-              <p className="text-xs text-muted-foreground">A Receber</p>
-            </div>
-            <p className="text-lg font-bold text-amber-600 dark:text-amber-400 mt-1">
-              {fmt(totalAcordado - totalRecebido)}
-            </p>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Filters */}
-      <Card>
-        <CardContent className="p-4">
-          <div className="flex gap-3 flex-wrap">
-            <div className="relative flex-1 min-w-[200px]">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-              <Input
-                placeholder="Buscar..."
-                value={searchTerm}
-                onChange={e => setSearchTerm(e.target.value)}
-                className="pl-9"
-              />
-            </div>
-            <Select value={filterStatus} onValueChange={setFilterStatus}>
-              <SelectTrigger className="w-[180px] h-9">
-                <SelectValue placeholder="Todos os status" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Todos os status</SelectItem>
-                {Object.entries(HONORARIO_STATUS_LABELS).map(([v, l]) => (
-                  <SelectItem key={v} value={v}>{l}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* List */}
-      {isMobile ? (
-        <div className="space-y-3">
-          {filteredHonorarios.map(h => (
-            <MobileCard
-              key={h.id}
-              title={TIPO_LABELS[h.tipo] ?? h.tipo}
-              subtitle={h.observacoes ?? undefined}
-              badge={
-                <div className="flex gap-1">
-                  <Badge className={getStatusClasses('honorarios', h.status)}>{HONORARIO_STATUS_LABELS[h.status] ?? h.status}</Badge>
-                  {h.overdue && <Badge variant="destructive" className="text-xs">Vencido</Badge>}
-                </div>
-              }
-              details={[
-                { label: 'Acordado', value: fmt(h.valor_total_acordado) },
-                { label: 'Recebido', value: <span className="text-emerald-600 dark:text-emerald-400">{fmt(h.valor_recebido)}</span> },
-                ...(h.data_vencimento ? [{ label: 'Vencimento', value: new Date(h.data_vencimento).toLocaleDateString('pt-BR') }] : []),
-              ]}
-              actions={
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button size="sm" variant="outline" className="w-full">
-                      <MoreVertical className="w-4 h-4 mr-2" />
-                      Ações
+    <>
+      <CRUDManagerLayout<HonorarioWithOverdue>
+        pageTitle="Honorarios"
+        items={honorarios}
+        isLoading={loading}
+        error={error}
+        onRetry={fetchHonorarios}
+        isEmpty={isEmpty}
+        emptyStateProps={{
+          icon: DollarSign,
+          title: 'Nenhum Honorario',
+          description: 'Nao ha honorarios cadastrados. Adicione o primeiro honorario para controlar a receita do escritorio.',
+          action: can('honorarios', 'create') ? {
+            label: 'Novo Honorario',
+            onClick: () => { setSelectedHonorario(null); setIsFormOpen(true); },
+          } : undefined,
+        }}
+        searchPlaceholder="Buscar..."
+        filterFn={filterFn}
+        pagination={{
+          currentPage: page,
+          totalPages,
+          totalCount,
+          hasPrevPage,
+          hasNextPage,
+          onPrev: () => setPage((p) => Math.max(1, p - 1)),
+          onNext: () => setPage((p) => p + 1),
+          label: 'honorarios',
+        }}
+        deleteConfig={{
+          title: 'Excluir Honorario',
+          description: 'Tem certeza que deseja excluir este honorario?',
+          onConfirm: async (id) => {
+            try {
+              await handleDelete(id);
+            } catch (err: unknown) {
+              log.error('Erro ao excluir honorario', err);
+              toast({ title: 'Erro', description: toUserMessage(err), variant: 'destructive' });
+            }
+          },
+        }}
+        renderHeader={(ctx) => (
+          <>
+            {/* Header */}
+            <Card>
+              <CardHeader>
+                <div className="flex justify-between items-center">
+                  <div>
+                    <CardTitle className="text-2xl">Honorarios</CardTitle>
+                    <p className="text-muted-foreground">{ctx.filteredItems.length} honorario{ctx.filteredItems.length !== 1 ? 's' : ''}</p>
+                  </div>
+                  {can('honorarios', 'create') && (
+                    <Button onClick={() => { setSelectedHonorario(null); setIsFormOpen(true); }}>
+                      <Plus className="w-4 h-4 mr-2" />
+                      Novo Honorario
                     </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end">
-                    {canUpdateHonorarios && (
-                      <DropdownMenuItem onClick={() => handleEditHonorario(h)}>
-                        <Edit className="w-4 h-4 mr-2" /> Editar
-                      </DropdownMenuItem>
-                    )}
-                    {h.overdue && canUpdateHonorarios && (
-                      <DropdownMenuItem onClick={() => { void handleMarcarInadimplente(h.id); }} className="text-destructive">
-                        Marcar Inadimplente
-                      </DropdownMenuItem>
-                    )}
-                    {canDeleteHonorarios && (
-                      <DropdownMenuItem onClick={() => handleRequestDeleteHonorario(h.id)} className="text-destructive">
-                        <Trash2 className="w-4 h-4 mr-2" /> Excluir
-                      </DropdownMenuItem>
-                    )}
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              }
-            />
-          ))}
-        </div>
-      ) : (
-      <div className="grid gap-3">
-        {filteredHonorarios.map(h => (
-          <HonorarioCard
-            key={h.id}
-            honorario={h}
-            canUpdate={canUpdateHonorarios}
-            canDelete={canDeleteHonorarios}
-            onMarcarInadimplente={handleMarcarInadimplente}
-            onEdit={handleEditHonorario}
-            onDelete={handleRequestDeleteHonorario}
-          />
-        ))}
-      </div>
-      )}
+                  )}
+                </div>
+              </CardHeader>
+            </Card>
 
-      <PaginationControls
-        currentPage={page}
-        totalPages={totalPages}
-        totalCount={totalCount}
-        hasPrevPage={hasPrevPage}
-        hasNextPage={hasNextPage}
-        onPrev={() => setPage(p => Math.max(1, p - 1))}
-        onNext={() => setPage(p => p + 1)}
-        label="honorários"
+            {/* P&L Summary */}
+            <div className="grid grid-cols-3 gap-4">
+              <Card>
+                <CardContent className="p-4">
+                  <p className="text-xs text-muted-foreground">Total Acordado</p>
+                  <p className="text-lg font-bold mt-1">{fmt(totalAcordado)}</p>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardContent className="p-4">
+                  <p className="text-xs text-muted-foreground">Total Recebido</p>
+                  <p className="text-lg font-bold text-emerald-600 dark:text-emerald-400 mt-1">{fmt(totalRecebido)}</p>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardContent className="p-4">
+                  <div className="flex items-center gap-1">
+                    <TrendingUp className="w-3.5 h-3.5 text-muted-foreground" />
+                    <p className="text-xs text-muted-foreground">A Receber</p>
+                  </div>
+                  <p className="text-lg font-bold text-amber-600 dark:text-amber-400 mt-1">
+                    {fmt(totalAcordado - totalRecebido)}
+                  </p>
+                </CardContent>
+              </Card>
+            </div>
+          </>
+        )}
+        renderFilters={() => (
+          <Select value={filterStatus} onValueChange={setFilterStatus}>
+            <SelectTrigger className="w-[180px] h-9">
+              <SelectValue placeholder="Todos os status" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todos os status</SelectItem>
+              {Object.entries(HONORARIO_STATUS_LABELS).map(([v, l]) => (
+                <SelectItem key={v} value={v}>{l}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        )}
+        renderItems={(filteredHonorarios, ctx) => isMobile ? (
+          <div className="space-y-3">
+            {filteredHonorarios.map((h) => (
+              <MobileCard
+                key={h.id}
+                title={TIPO_LABELS[h.tipo] ?? h.tipo}
+                subtitle={h.observacoes ?? undefined}
+                badge={
+                  <div className="flex gap-1">
+                    <Badge className={getStatusClasses('honorarios', h.status)}>{HONORARIO_STATUS_LABELS[h.status] ?? h.status}</Badge>
+                    {h.overdue && <Badge variant="destructive" className="text-xs">Vencido</Badge>}
+                  </div>
+                }
+                details={[
+                  { label: 'Acordado', value: fmt(h.valor_total_acordado) },
+                  { label: 'Recebido', value: <span className="text-emerald-600 dark:text-emerald-400">{fmt(h.valor_recebido)}</span> },
+                  ...(h.data_vencimento ? [{ label: 'Vencimento', value: new Date(h.data_vencimento).toLocaleDateString('pt-BR') }] : []),
+                ]}
+                actions={
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button size="sm" variant="outline" className="w-full">
+                        <MoreVertical className="w-4 h-4 mr-2" />
+                        Acoes
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      {canUpdateHonorarios && (
+                        <DropdownMenuItem onClick={() => handleEditHonorario(h)}>
+                          <Edit className="w-4 h-4 mr-2" /> Editar
+                        </DropdownMenuItem>
+                      )}
+                      {h.overdue && canUpdateHonorarios && (
+                        <DropdownMenuItem onClick={() => { void handleMarcarInadimplente(h.id); }} className="text-destructive">
+                          Marcar Inadimplente
+                        </DropdownMenuItem>
+                      )}
+                      {canDeleteHonorarios && (
+                        <DropdownMenuItem onClick={() => ctx.requestDelete(h.id, TIPO_LABELS[h.tipo] ?? h.tipo)} className="text-destructive">
+                          <Trash2 className="w-4 h-4 mr-2" /> Excluir
+                        </DropdownMenuItem>
+                      )}
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                }
+              />
+            ))}
+          </div>
+        ) : (
+          <div className="grid gap-3">
+            {filteredHonorarios.map((h) => (
+              <HonorarioCard
+                key={h.id}
+                honorario={h}
+                canUpdate={canUpdateHonorarios}
+                canDelete={canDeleteHonorarios}
+                onMarcarInadimplente={handleMarcarInadimplente}
+                onEdit={handleEditHonorario}
+                onDelete={(id, label) => ctx.requestDelete(id, label)}
+              />
+            ))}
+          </div>
+        )}
+        renderNoResults={() => (
+          <Card>
+            <CardContent className="p-8 text-center">
+              <p className="text-muted-foreground">Nenhum honorario encontrado para os filtros aplicados.</p>
+            </CardContent>
+          </Card>
+        )}
       />
 
-      {filteredHonorarios.length === 0 && (
-        <Card>
-          <CardContent className="p-8 text-center">
-            <p className="text-muted-foreground">Nenhum honorário encontrado para os filtros aplicados.</p>
-          </CardContent>
-        </Card>
-      )}
-
+      {/* Form Dialog */}
       <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
         <DialogContent className="max-w-lg">
           <DialogHeader>
-            <DialogTitle>{selectedHonorario ? 'Editar Honorário' : 'Novo Honorário'}</DialogTitle>
+            <DialogTitle>{selectedHonorario ? 'Editar Honorario' : 'Novo Honorario'}</DialogTitle>
           </DialogHeader>
           <NovoHonorarioForm
             onSubmit={handleSubmitForm}
@@ -408,17 +354,7 @@ const HonorariosManager = () => {
           />
         </DialogContent>
       </Dialog>
-
-      <ConfirmDialog
-        open={confirmDelete.open}
-        onOpenChange={v => !deleteLoading && setConfirmDelete({ ...confirmDelete, open: v })}
-        title="Excluir Honorário"
-        description="Tem certeza que deseja excluir este honorário?"
-        onConfirm={() => { void handleDelete(); }}
-        loading={deleteLoading}
-        destructive
-      />
-    </div>
+    </>
   );
 };
 

@@ -20,10 +20,10 @@ import type { AgenteIA } from '@/hooks/useAgentesIA';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import { useAgentesIA } from '@/hooks/useAgentesIA';
 import { useAgentesMetrics } from '@/hooks/useAgentesMetrics';
-import NovoAgenteForm from '@/components/NovoAgenteForm';
-import DetalhesAgente from '@/components/DetalhesAgente';
-import ApiKeysManager from '@/components/ApiKeysManager';
-import LogsMonitoramento from '@/components/LogsMonitoramento';
+import NovoAgenteForm from './components/NovoAgenteForm';
+import DetalhesAgente from './components/DetalhesAgente';
+import ApiKeysManager from './components/ApiKeysManager';
+import LogsMonitoramento from './components/LogsMonitoramento';
 import KnowledgeBaseSection from './KnowledgeBaseSection';
 
 // Monitoring
@@ -267,7 +267,7 @@ const AgentesIAManager = () => {
               <div className="w-20 h-20 rounded-[20px] bg-primary/10 flex items-center justify-center mb-6 shadow-inner border border-primary/20">
                 <Bot className="h-10 w-10 text-primary" />
               </div>
-              <h3 className="text-2xl font-bold text-foreground mb-2">Sem Agentes Ativos</h3>
+              <h2 className="text-2xl font-bold text-foreground mb-2">Sem Agentes Ativos</h2>
               <p className="text-base text-muted-foreground mb-8 max-w-md">
                 Configure equipes de inteligência artificial para ler documentos, qualificar leads ou disparar mensagens de acompanhamento.
               </p>

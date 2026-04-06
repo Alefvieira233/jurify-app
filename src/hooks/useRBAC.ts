@@ -89,7 +89,7 @@ export const useRBAC = () => {
     queryFn: async (): Promise<DepartamentoMembro[]> => {
       const { data, error } = await supabase
         .from('departamento_membros')
-        .select('*')
+        .select('id, departamento_id, profile_id, role_no_depto, pode_ver_todos_leads, pode_atribuir_responsavel, pode_mover_leads, pode_editar_propriedades, pode_arquivar, pode_ver_metricas, pode_gerenciar, receber_notificacoes, created_at')
         .eq('profile_id', profile!.id);
       if (error) throw error;
       return (data ?? []) as DepartamentoMembro[];

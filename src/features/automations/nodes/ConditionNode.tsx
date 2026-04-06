@@ -87,10 +87,10 @@ function ConditionNodeComponent({ data, selected }: NodeProps & { data: Conditio
       />
 
       {/* Handle labels */}
-      <div className="absolute -bottom-5 left-[30%] -translate-x-1/2 text-[9px] text-emerald-400 font-bold">
+      <div className="absolute -bottom-5 left-[30%] -translate-x-1/2 text-xs text-emerald-400 font-bold">
         SIM
       </div>
-      <div className="absolute -bottom-5 left-[70%] -translate-x-1/2 text-[9px] text-red-400 font-bold">
+      <div className="absolute -bottom-5 left-[70%] -translate-x-1/2 text-xs text-red-400 font-bold">
         NÃO
       </div>
     </div>

@@ -20,19 +20,20 @@ import ConfirmDialog from '@/components/ConfirmDialog';
 import NovaTarefaForm from './NovaTarefaForm';
 import EditTarefaDialog from './EditTarefaDialog';
 import EmptyState from '@/components/EmptyState';
+import { ScreenReaderAnnounce } from '@/components/ui/ScreenReaderAnnounce';
 
 const STATUS_CONFIG: Record<string, { label: string; color: string; icon: typeof CheckCircle }> = {
-  pendente: { label: 'Pendente', color: 'bg-amber-100 text-amber-700', icon: Clock },
-  em_andamento: { label: 'Em Andamento', color: 'bg-blue-100 text-blue-700', icon: AlertTriangle },
-  concluida: { label: 'Concluída', color: 'bg-emerald-100 text-emerald-700', icon: CheckCircle },
-  cancelada: { label: 'Cancelada', color: 'bg-gray-100 text-gray-500', icon: Clock },
+  pendente: { label: 'Pendente', color: 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300', icon: Clock },
+  em_andamento: { label: 'Em Andamento', color: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300', icon: AlertTriangle },
+  concluida: { label: 'Concluída', color: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300', icon: CheckCircle },
+  cancelada: { label: 'Cancelada', color: 'bg-muted text-muted-foreground', icon: Clock },
 };
 
 const PRIORIDADE_COLORS: Record<string, string> = {
-  baixa: 'bg-gray-100 text-gray-600',
-  media: 'bg-blue-100 text-blue-600',
-  alta: 'bg-orange-100 text-orange-700',
-  urgente: 'bg-red-100 text-red-700',
+  baixa: 'bg-muted text-muted-foreground',
+  media: 'bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-300',
+  alta: 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-300',
+  urgente: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300',
 };
 
 export default function TarefasPage() {
@@ -100,8 +101,14 @@ export default function TarefasPage() {
     );
   }
 
+  const hasFilter = search || (statusFilter && statusFilter !== 'all') || (prioridadeFilter && prioridadeFilter !== 'all');
+  const filterAnnouncement = hasFilter
+    ? `${filtered.length} tarefa${filtered.length !== 1 ? 's' : ''} encontrada${filtered.length !== 1 ? 's' : ''}`
+    : '';
+
   return (
     <div className="p-6 space-y-4">
+      {filterAnnouncement && <ScreenReaderAnnounce message={filterAnnouncement} />}
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>

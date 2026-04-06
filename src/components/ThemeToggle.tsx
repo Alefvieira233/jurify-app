@@ -1,6 +1,9 @@
 import { useEffect, useState } from 'react';
 import { Moon, Sun } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { createLogger } from '@/lib/logger';
+
+const log = createLogger('ThemeToggle');
 
 export const ThemeToggle = () => {
   const [theme, setTheme] = useState<'light' | 'dark'>('light');
@@ -10,7 +13,7 @@ export const ThemeToggle = () => {
     let savedTheme: 'light' | 'dark' | null = null;
     try {
       savedTheme = localStorage.getItem('theme') as 'light' | 'dark' | null;
-    } catch (err) { console.warn('[ThemeToggle] reading theme from storage failed:', err); }
+    } catch (err) { log.warn('reading theme from storage failed', { error: String(err) }); }
     const systemPrefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
 
     const initialTheme = savedTheme || (systemPrefersDark ? 'dark' : 'light');
@@ -31,7 +34,7 @@ export const ThemeToggle = () => {
     const newTheme = theme === 'light' ? 'dark' : 'light';
     setTheme(newTheme);
     applyTheme(newTheme);
-    try { localStorage.setItem('theme', newTheme); } catch (err) { console.warn('[ThemeToggle] saving theme to storage failed:', err); }
+    try { localStorage.setItem('theme', newTheme); } catch (err) { log.warn('saving theme to storage failed', { error: String(err) }); }
   };
 
   return (

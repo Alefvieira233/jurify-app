@@ -10,7 +10,6 @@ import {
 } from '@/components/ui/alert-dialog';
 import { buttonVariants } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
-import { useTranslation } from 'react-i18next';
 
 interface ConfirmDialogProps {
   open: boolean;
@@ -31,8 +30,6 @@ export const ConfirmDialog = ({
   loading = false,
   destructive = false,
 }: ConfirmDialogProps) => {
-  const { t } = useTranslation();
-
   return (
     <AlertDialog open={open} onOpenChange={onOpenChange}>
       <AlertDialogContent>
@@ -41,7 +38,7 @@ export const ConfirmDialog = ({
           <AlertDialogDescription>{description}</AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
-          <AlertDialogCancel disabled={loading}>{t('common.cancel')}</AlertDialogCancel>
+          <AlertDialogCancel disabled={loading}>Cancelar</AlertDialogCancel>
           <AlertDialogAction
             onClick={(e) => {
               e.preventDefault();
@@ -52,7 +49,7 @@ export const ConfirmDialog = ({
               destructive && buttonVariants({ variant: 'destructive' })
             )}
           >
-            {loading ? t('common.pleaseWait') : t('common.confirm')}
+            {loading ? 'Aguarde...' : 'Confirmar'}
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>
