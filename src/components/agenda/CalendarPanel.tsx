@@ -25,6 +25,7 @@ import { cn } from '@/lib/utils';
 import { AgendaIntelligenceDashboard } from './AgendaIntelligenceDashboard';
 import { createLogger } from '@/lib/logger';
 import { useToast } from '@/hooks/use-toast';
+import { toUserMessage } from '@/lib/errorMessages';
 import { QuickAddModal } from './QuickAddModal';
 import { supabaseUntyped as supabase } from '@/integrations/supabase/client';
 
@@ -284,7 +285,7 @@ const CalendarPanel = ({ onNewAgendamento }: CalendarPanelProps) => {
         });
         if (fnError) {
           log.error('Error updating Google event', fnError);
-          toast({ title: 'Erro ao atualizar evento Google', description: fnError.message, variant: 'destructive' });
+          toast({ title: 'Erro ao atualizar evento Google', description: toUserMessage(fnError), variant: 'destructive' });
           info.revert();
         }
       } catch (error) {

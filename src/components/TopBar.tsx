@@ -27,7 +27,7 @@ export default function TopBar({ onMenuToggle }: TopBarProps) {
   return (
     <header className="h-14 border-b border-border bg-background flex items-center px-4 gap-3 shrink-0 z-10">
       {/* Mobile hamburger */}
-      <Button variant="ghost" size="icon" className="lg:hidden" onClick={onMenuToggle}>
+      <Button variant="ghost" size="icon" className="lg:hidden" onClick={onMenuToggle} aria-label="Abrir menu">
         <Menu className="h-5 w-5" />
       </Button>
 

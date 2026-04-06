@@ -5,6 +5,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabaseUntyped as supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
+import { toUserMessage } from '@/lib/errorMessages';
 import { createLogger } from '@/lib/logger';
 import { queryKeys } from '@/lib/queryKeys';
 
@@ -99,8 +100,7 @@ export const useWhatsAppConversations = (): UseWhatsAppConversationsReturn => {
     staleTime: 5 * 60 * 1000,
     meta: {
       onError: (err: unknown) => {
-        const message = err instanceof Error ? err.message : 'Erro ao carregar conversas';
-        setError(message);
+        setError(toUserMessage(err));
       },
     },
   });
@@ -133,11 +133,10 @@ export const useWhatsAppConversations = (): UseWhatsAppConversationsReturn => {
       setHasMoreMessages(msgs.length === MESSAGE_PAGE_SIZE);
       log.debug(`${data?.length || 0} mensagens carregadas`);
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : 'Erro ao carregar mensagens';
       log.error('Erro ao carregar mensagens', err);
       toast({
         title: 'Erro ao carregar mensagens',
-        description: message,
+        description: toUserMessage(err),
         variant: 'destructive',
       });
     }
@@ -213,11 +212,10 @@ export const useWhatsAppConversations = (): UseWhatsAppConversationsReturn => {
 
       return true;
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : 'Erro ao processar mensagem';
       log.error('Erro ao enviar mensagem', err);
       toast({
         title: 'Erro ao enviar mensagem',
-        description: message,
+        description: toUserMessage(err),
         variant: 'destructive',
       });
       return false;
@@ -291,11 +289,10 @@ export const useWhatsAppConversations = (): UseWhatsAppConversationsReturn => {
       void fetchMessages(conversationId);
       return true;
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : 'Erro ao enviar mídia';
       log.error('Erro ao enviar mídia', err);
       toast({
         title: 'Erro ao enviar mídia',
-        description: message,
+        description: toUserMessage(err),
         variant: 'destructive',
       });
       return false;
@@ -469,12 +466,12 @@ export const useWhatsAppConversations = (): UseWhatsAppConversationsReturn => {
     try {
       await queryClient.invalidateQueries({ queryKey: queryKeys.whatsappConversations.list(profile?.tenant_id) });
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : 'Erro ao carregar conversas';
+      const sanitized = toUserMessage(err);
       log.error('Erro ao carregar conversas', err);
-      setError(message);
+      setError(sanitized);
       toast({
         title: 'Erro ao carregar conversas',
-        description: message,
+        description: sanitized,
         variant: 'destructive',
       });
     }

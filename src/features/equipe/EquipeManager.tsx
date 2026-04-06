@@ -279,6 +279,7 @@ const EquipeManager = () => {
                         className="h-8 w-8 text-muted-foreground hover:text-foreground"
                         onClick={() => handleStartEdit(member)}
                         title="Editar membro"
+                        aria-label="Editar membro"
                       >
                         <Pencil className="h-4 w-4" />
                       </Button>
@@ -292,6 +293,7 @@ const EquipeManager = () => {
                           onClick={handleSaveEdit}
                           disabled={isUpdating}
                           title="Salvar"
+                          aria-label="Salvar edição"
                         >
                           <Check className="h-4 w-4" />
                         </Button>
@@ -301,6 +303,7 @@ const EquipeManager = () => {
                           className="h-8 w-8 text-muted-foreground hover:text-foreground"
                           onClick={handleCancelEdit}
                           title="Cancelar"
+                          aria-label="Cancelar edição"
                         >
                           <X className="h-4 w-4" />
                         </Button>

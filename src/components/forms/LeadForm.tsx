@@ -22,6 +22,7 @@ import { leadFormSchema, type LeadFormData } from '@/schemas/leadSchema';
 import { useDepartamentos } from '@/hooks/useDepartamentos';
 import { useTeamMembers } from '@/hooks/useTeamMembers';
 import { useToast } from '@/hooks/use-toast';
+import { toUserMessage } from '@/lib/errorMessages';
 import LeadBasicInfo from './lead/LeadBasicInfo';
 import LeadJuridicalInfo from './lead/LeadJuridicalInfo';
 import LeadCRMInfo from './lead/LeadCRMInfo';
@@ -190,7 +191,7 @@ const LeadForm: React.FC<LeadFormProps> = ({
     } catch (error) {
       toast({
         title: 'Erro ao salvar',
-        description: error instanceof Error ? error.message : 'Não foi possível salvar o lead.',
+        description: toUserMessage(error),
         variant: 'destructive',
       });
     }

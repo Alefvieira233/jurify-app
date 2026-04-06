@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
 import { useToast } from '@/hooks/use-toast';
+import { toUserMessage } from '@/lib/errorMessages';
 import { supabase } from '@/integrations/supabase/client';
 import { createLogger } from '@/lib/logger';
 
@@ -69,10 +70,9 @@ const NovoUsuarioForm = ({ onClose }: NovoUsuarioFormProps) => {
       onClose();
     },
     onError: (error: unknown) => {
-      const message = error instanceof Error ? error.message : "Erro ao criar usuário.";
       toast({
         title: "Erro",
-        description: message,
+        description: toUserMessage(error),
         variant: "destructive",
       });
       log.error('Erro ao criar usuario', error);

@@ -14,6 +14,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabaseUntyped as supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
+import { toUserMessage } from '@/lib/errorMessages';
 import { createLogger } from '@/lib/logger';
 import { queryKeys } from '@/lib/queryKeys';
 
@@ -159,11 +160,10 @@ export const useAgentesIA = () => {
 
       return true;
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : 'Nao foi possivel criar o agente IA.';
       log.error('erro ao criar agente', err);
       toast({
         title: 'Erro',
-        description: message,
+        description: toUserMessage(err),
         variant: 'destructive',
       });
       return false;
@@ -201,11 +201,10 @@ export const useAgentesIA = () => {
 
       return true;
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : 'Nao foi possivel atualizar o agente IA.';
       log.error('erro ao atualizar agente', err);
       toast({
         title: 'Erro',
-        description: message,
+        description: toUserMessage(err),
         variant: 'destructive',
       });
       return false;
@@ -234,11 +233,10 @@ export const useAgentesIA = () => {
 
       return true;
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : 'Nao foi possivel remover o agente IA.';
       log.error('erro ao remover agente', err);
       toast({
         title: 'Erro',
-        description: message,
+        description: toUserMessage(err),
         variant: 'destructive',
       });
       return false;
@@ -287,12 +285,11 @@ export const useAgentesIA = () => {
       return data;
     } catch (err: unknown) {
       const executionTime = Date.now() - startTime;
-      const message = err instanceof Error ? err.message : 'Nao foi possivel executar o agente IA.';
       log.error('erro ao executar agente IA', err, { executionTime });
 
       toast({
         title: 'Erro',
-        description: message,
+        description: toUserMessage(err),
         variant: 'destructive',
       });
       return null;

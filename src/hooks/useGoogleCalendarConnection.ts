@@ -2,6 +2,7 @@
 
 import { useState, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { toUserMessage } from '@/lib/errorMessages';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { queryKeys } from '@/lib/queryKeys';
@@ -61,7 +62,7 @@ export function useGoogleCalendarConnection() {
       void queryClient.invalidateQueries({ queryKey: queryKeys.googleCalendarStatus.all });
     },
     onError: (err: Error) => {
-      setError(err.message);
+      setError(toUserMessage(err));
     },
   });
 
@@ -82,8 +83,7 @@ export function useGoogleCalendarConnection() {
 
       window.location.href = authUrl;
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Erro ao iniciar conexão';
-      setError(message);
+      setError(toUserMessage(err));
       setIsConnecting(false);
     }
   }, []);
@@ -104,8 +104,7 @@ export function useGoogleCalendarConnection() {
       sessionStorage.removeItem('gcal_redirect_uri');
       return result;
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Erro ao conectar Google Calendar';
-      setError(message);
+      setError(toUserMessage(err));
       throw err;
     } finally {
       setIsConnecting(false);

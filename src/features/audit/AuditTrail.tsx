@@ -7,7 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useActivityLogs, type FiltrosLog } from '@/hooks/useActivityLogs';
-import { useAuth } from '@/contexts/AuthContext';
+import { useRBAC } from '@/hooks/useRBAC';
 import { usePageTitle } from '@/hooks/usePageTitle';
 import ConfirmDialog from '@/components/ConfirmDialog';
 
@@ -25,8 +25,7 @@ const TIPO_OPTIONS = ['all', 'criacao', 'edicao', 'exclusao', 'login', 'logout',
 
 const AuditTrail = () => {
   usePageTitle('Trilha de Auditoria');
-  const { profile } = useAuth();
-  const isAdmin = profile?.role === 'admin';
+  const { isAdmin } = useRBAC();
 
   const [filtros, setFiltros] = useState<FiltrosLog>({});
   const [dataInicio, setDataInicio] = useState('');

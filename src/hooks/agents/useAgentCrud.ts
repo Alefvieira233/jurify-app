@@ -2,6 +2,7 @@
 
 import { useState, useCallback } from 'react';
 import { useToast } from '@/hooks/use-toast';
+import { toUserMessage } from '@/lib/errorMessages';
 import { supabaseUntyped as supabase } from '@/integrations/supabase/client';
 import { AgentType } from '@/lib/multiagents/types';
 
@@ -113,10 +114,9 @@ export const useAgentCrud = (tenantId: string | null, onSuccess?: () => void | P
 
       return true;
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Erro ao criar agente';
       toast({
         title: 'Erro',
-        description: errorMessage,
+        description: toUserMessage(err),
         variant: 'destructive',
       });
       return false;
@@ -172,10 +172,9 @@ export const useAgentCrud = (tenantId: string | null, onSuccess?: () => void | P
 
       return true;
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Erro ao atualizar agente';
       toast({
         title: 'Erro',
-        description: errorMessage,
+        description: toUserMessage(err),
         variant: 'destructive',
       });
       return false;
@@ -207,10 +206,9 @@ export const useAgentCrud = (tenantId: string | null, onSuccess?: () => void | P
 
       return true;
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Erro ao alterar status';
       toast({
         title: 'Erro',
-        description: errorMessage,
+        description: toUserMessage(err),
         variant: 'destructive',
       });
       return false;
@@ -252,10 +250,9 @@ export const useAgentCrud = (tenantId: string | null, onSuccess?: () => void | P
 
       return true;
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Erro ao remover agente';
       toast({
         title: 'Erro',
-        description: errorMessage,
+        description: toUserMessage(err),
         variant: 'destructive',
       });
       return false;

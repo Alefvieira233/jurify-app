@@ -10,6 +10,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
+import { toUserMessage } from '@/lib/errorMessages';
 import { supabase } from '@/integrations/supabase/client';
 
 const plans = [
@@ -248,9 +249,8 @@ const Pricing = () => {
       }
 
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : 'Tente novamente mais tarde.';
       toast.error('Erro ao iniciar pagamento', {
-        description: message
+        description: toUserMessage(err)
       });
     } finally {
       setLoading(null);

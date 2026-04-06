@@ -22,6 +22,7 @@ import { DetalhesContrato } from '@/components/DetalhesContrato';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import { supabaseUntyped as supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { toUserMessage } from '@/lib/errorMessages';
 import { useAuth } from '@/contexts/AuthContext';
 import { createLogger } from '@/lib/logger';
 import { usePageTitle } from '@/hooks/usePageTitle';
@@ -105,9 +106,8 @@ const ContratosManager = () => {
       toast({ title: 'Sucesso', description: 'Contrato excluído com sucesso!' });
       fetchContratos();
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : 'Não foi possível excluir o contrato.';
       log.error('Erro ao excluir contrato', err);
-      toast({ title: 'Erro', description: message, variant: 'destructive' });
+      toast({ title: 'Erro', description: toUserMessage(err), variant: 'destructive' });
     } finally {
       setDeleteLoading(false);
       setConfirmDelete({ open: false, id: '', nome: '' });

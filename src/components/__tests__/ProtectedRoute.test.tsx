@@ -28,6 +28,39 @@ vi.mock('@/contexts/AuthContext', () => ({
   useAuth: () => mockAuth,
 }));
 
+vi.mock('@/hooks/useRBAC', () => ({
+  useRBAC: () => {
+    const DB_ROLE_TO_RBAC: Record<string, string> = {
+      administrador: 'admin', advogado: 'user', comercial: 'user',
+      pos_venda: 'user', suporte: 'viewer',
+      admin: 'admin', manager: 'manager', user: 'user', viewer: 'viewer',
+    };
+    const role = DB_ROLE_TO_RBAC[mockAuth.profile?.role ?? ''] ?? 'viewer';
+    return {
+      userRole: role,
+      isAdmin: role === 'admin',
+      isManager: role === 'manager',
+      isUser: role === 'user',
+      isViewer: role === 'viewer',
+      can: () => false,
+      canAccessResource: () => false,
+      canAll: () => false,
+      canAny: () => false,
+      canManageUsers: role === 'admin',
+      canDeleteUsers: role === 'admin',
+      canManageConfig: role === 'admin',
+      canViewLogs: role === 'admin' || role === 'manager',
+      canExecuteAgents: false,
+      canManageIntegrations: false,
+      canInDepartment: () => false,
+      getUserDepartamentos: () => [],
+      getLeadVisibilityScope: () => 'own' as const,
+      user: mockAuth.user,
+      profile: mockAuth.profile,
+    };
+  },
+}));
+
 function renderRoute(requiredRoles?: string[]) {
   return render(
     <MemoryRouter>

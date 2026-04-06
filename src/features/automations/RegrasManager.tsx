@@ -434,6 +434,7 @@ export const RegrasManager = () => {
                       size="icon"
                       className="h-8 w-8 rounded-[10px] hover:bg-muted/30"
                       onClick={() => handleEditRule(rule)}
+                      aria-label="Editar regra"
                     >
                       <Edit className="w-4 h-4" />
                     </Button>
@@ -444,6 +445,7 @@ export const RegrasManager = () => {
                       onClick={() =>
                         setConfirmDelete({ open: true, id: rule.id, label: rule.nome })
                       }
+                      aria-label="Excluir regra"
                     >
                       <Trash2 className="w-4 h-4" />
                     </Button>

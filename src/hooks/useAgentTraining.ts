@@ -5,6 +5,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
+import { toUserMessage } from '@/lib/errorMessages';
 import { createLogger } from '@/lib/logger';
 import { queryKeys } from '@/lib/queryKeys';
 
@@ -220,11 +221,10 @@ export const useAgentTraining = () => {
       log.info(`Documento ${file.name} processado: ${chunksCount} chunks`);
       return true;
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Erro ao processar documento';
       log.error('Erro no upload de treinamento', err);
       toast({
         title: 'Erro ao processar documento',
-        description: message,
+        description: toUserMessage(err),
         variant: 'destructive',
       });
       return false;
@@ -279,9 +279,8 @@ export const useAgentTraining = () => {
       });
     },
     onError: (err) => {
-      const message = err instanceof Error ? err.message : 'Erro ao remover documento';
       log.error('Erro ao deletar documento de treinamento', err);
-      toast({ title: 'Erro ao remover', description: message, variant: 'destructive' });
+      toast({ title: 'Erro ao remover', description: toUserMessage(err), variant: 'destructive' });
     },
   });
 

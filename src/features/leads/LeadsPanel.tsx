@@ -96,7 +96,7 @@ const LeadsPanel = () => {
           </p>
         </div>
         <div className="flex items-center gap-3">
-          <Button variant="outline" onClick={() => void fetchLeads()} size="icon" className="h-11 w-11 rounded-[12px] border-border/20 shadow-sm">
+          <Button variant="outline" onClick={() => void fetchLeads()} size="icon" className="h-11 w-11 rounded-[12px] border-border/20 shadow-sm" aria-label="Atualizar lista">
             <RefreshCw className="h-4 w-4 text-muted-foreground" />
           </Button>
           <Button onClick={() => setShowFormModal(true)} size="lg" className="gap-2 shadow-lg shadow-primary/20 rounded-[12px]">
@@ -206,7 +206,7 @@ const LeadsPanel = () => {
                   <div className="absolute top-4 right-4">
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
-                        <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded-[8px]">
+                        <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded-[8px]" aria-label="Ações do lead">
                           <AlignLeft className="h-4 w-4" />
                         </Button>
                       </DropdownMenuTrigger>
@@ -304,7 +304,7 @@ const LeadsPanel = () => {
                   Histórico de Conversação <span className="text-muted-foreground opacity-50 text-sm font-normal"># {selectedLead.slice(0, 8)}</span>
                 </h2>
               </div>
-              <Button size="icon" variant="ghost" className="h-8 w-8 rounded-full" onClick={() => { setSelectedLead(null); setShowTimeline(false); }}>
+              <Button size="icon" variant="ghost" className="h-8 w-8 rounded-full" onClick={() => { setSelectedLead(null); setShowTimeline(false); }} aria-label="Fechar timeline">
                 ✕
               </Button>
             </div>

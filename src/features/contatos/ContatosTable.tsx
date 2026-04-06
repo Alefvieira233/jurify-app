@@ -256,6 +256,7 @@ export default function ContatosTable() {
               className="h-7 w-7"
               disabled={page === 0}
               onClick={() => setPage(p => p - 1)}
+              aria-label="Página anterior"
             >
               <ChevronLeft className="h-3.5 w-3.5" />
             </Button>
@@ -268,6 +269,7 @@ export default function ContatosTable() {
               className="h-7 w-7"
               disabled={page >= totalPages - 1}
               onClick={() => setPage(p => p + 1)}
+              aria-label="Próxima página"
             >
               <ChevronRight className="h-3.5 w-3.5" />
             </Button>

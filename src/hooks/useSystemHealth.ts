@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { toUserMessage } from '@/lib/errorMessages';
 import { createLogger } from '@/lib/logger';
 
 const log = createLogger('SystemHealth');
@@ -72,8 +73,7 @@ export function useSystemHealth(options: UseSystemHealthOptions = {}) {
         log.debug('Health check completed', { status: (data as HealthStatus).status });
       }
     } catch (err) {
-      const msg = err instanceof Error ? err.message : 'Falha ao verificar saúde do sistema';
-      setError(msg);
+      setError(toUserMessage(err));
       log.error('Health check failed', err);
       setHealth(prev => ({ ...prev, status: 'error' }));
     } finally {

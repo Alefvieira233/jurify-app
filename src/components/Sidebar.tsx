@@ -26,6 +26,7 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/contexts/AuthContext';
+import { useRBAC } from '@/hooks/useRBAC';
 import { Badge } from '@/components/ui/badge';
 import { useRealtimeNotifications } from '@/hooks/useRealtimeNotifications';
 import KeyboardShortcutsHelp from '@/components/KeyboardShortcutsHelp';
@@ -128,6 +129,7 @@ const ALL_LEAVES = allLeaves();
 ───────────────────────────────────────────────────────────────────────── */
 const Sidebar = ({ activeSection, onSectionChange }: SidebarProps) => {
   const { signOut, profile, user, hasPermission } = useAuth();
+  const { isAdmin, isManager } = useRBAC();
   const { unreadCount } = useRealtimeNotifications();
   const [visibleIds, setVisibleIds]     = useState<Set<string>>(new Set());
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
@@ -169,9 +171,9 @@ const Sidebar = ({ activeSection, onSectionChange }: SidebarProps) => {
 
     for (const item of ALL_LEAVES) {
       if (item.disabled) { ids.add(item.id); continue; }
-      if (profile.role === 'admin') { ids.add(item.id); continue; }
+      if (isAdmin) { ids.add(item.id); continue; }
       if (item.adminOnly) continue;
-      if (item.managerOk && profile.role !== 'manager') continue;
+      if (item.managerOk && !isManager) continue;
       if (hasPermission(item.resource, item.action)) ids.add(item.id);
     }
 
@@ -182,7 +184,7 @@ const Sidebar = ({ activeSection, onSectionChange }: SidebarProps) => {
     }
 
     setVisibleIds(ids);
-  }, [user, profile, hasPermission]);
+  }, [user, profile, hasPermission, isAdmin, isManager]);
 
   /* ── Auto-expand sections if active route is inside ── */
   useEffect(() => {
@@ -204,8 +206,8 @@ const Sidebar = ({ activeSection, onSectionChange }: SidebarProps) => {
     || user?.email?.charAt(0).toUpperCase()
     || 'U';
   const userName = profile?.nome_completo || user?.email || 'Usuário';
-  const userRoleLabel = profile?.role === 'admin'   ? 'Admin'
-    : profile?.role === 'manager' ? 'Gestor'
+  const userRoleLabel = isAdmin   ? 'Admin'
+    : isManager ? 'Gestor'
     : 'Usuário';
 
   /* ── Render a single leaf nav item ── */

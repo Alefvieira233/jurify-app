@@ -474,6 +474,7 @@ export function FluxosManager() {
                       setEditingFlowId(flow.id);
                       setEditorMode('edit');
                     }}
+                    aria-label="Editar fluxo"
                   >
                     <Edit className="h-3.5 w-3.5" />
                   </Button>
@@ -485,6 +486,7 @@ export function FluxosManager() {
                       e.stopPropagation();
                       setConfirmDelete({ open: true, id: flow.id, label: flow.nome });
                     }}
+                    aria-label="Excluir fluxo"
                   >
                     <Trash2 className="h-3.5 w-3.5" />
                   </Button>

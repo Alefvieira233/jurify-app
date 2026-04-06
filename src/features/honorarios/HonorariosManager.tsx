@@ -15,6 +15,7 @@ import { useHonorarios } from '@/hooks/useHonorarios';
 import type { HonorarioWithOverdue } from '@/hooks/useHonorarios';
 import PaginationControls from '@/components/PaginationControls';
 import { useToast } from '@/hooks/use-toast';
+import { toUserMessage } from '@/lib/errorMessages';
 import { useAuth } from '@/contexts/AuthContext';
 import { createLogger } from '@/lib/logger';
 import { usePageTitle } from '@/hooks/usePageTitle';
@@ -184,9 +185,8 @@ const HonorariosManager = () => {
       toast({ title: 'Honorário excluído' });
       fetchHonorarios();
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : 'Erro ao excluir.';
       log.error('Erro ao excluir honorário', err);
-      toast({ title: 'Erro', description: message, variant: 'destructive' });
+      toast({ title: 'Erro', description: toUserMessage(err), variant: 'destructive' });
     } finally {
       setDeleteLoading(false);
       setConfirmDelete({ open: false, id: '' });

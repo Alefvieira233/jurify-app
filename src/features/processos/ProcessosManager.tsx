@@ -16,6 +16,7 @@ import { useProcessos } from '@/hooks/useProcessos';
 import type { Processo } from '@/hooks/useProcessos';
 import { usePrazosProcessuais } from '@/hooks/usePrazosProcessuais';
 import { useToast } from '@/hooks/use-toast';
+import { toUserMessage } from '@/lib/errorMessages';
 import { useAuth } from '@/contexts/AuthContext';
 import { createLogger } from '@/lib/logger';
 import { usePageTitle } from '@/hooks/usePageTitle';
@@ -170,9 +171,8 @@ const ProcessosManager = () => {
       toast({ title: 'Processo excluído', description: 'Processo removido com sucesso!' });
       fetchProcessos();
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : 'Não foi possível excluir o processo.';
       log.error('Erro ao excluir processo', err);
-      toast({ title: 'Erro', description: message, variant: 'destructive' });
+      toast({ title: 'Erro', description: toUserMessage(err), variant: 'destructive' });
     } finally {
       setDeleteLoading(false);
       setConfirmDelete({ open: false, id: '', label: '' });

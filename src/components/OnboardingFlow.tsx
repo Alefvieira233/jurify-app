@@ -6,6 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { CheckCircle2, ArrowRight, X, Sparkles, PartyPopper } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
+import { useRBAC } from '@/hooks/useRBAC';
 import { supabaseUntyped } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -83,7 +84,8 @@ interface OnboardingData {
 
 const OnboardingFlow = () => {
   const navigate = useNavigate();
-  const { user, profile, hasRole } = useAuth();
+  const { user, profile } = useAuth();
+  const { isAdmin } = useRBAC();
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const tenantId = profile?.tenant_id || null;
@@ -91,7 +93,7 @@ const OnboardingFlow = () => {
   const [showCelebration, setShowCelebration] = useState(false);
   const [dismissed, setDismissed] = useState(false);
 
-  const isAdmin = user && profile && hasRole('admin');
+  const isAdminWithAuth = isAdmin && !!user && !!profile;
 
   const { data: onboardingData, isLoading: loading } = useQuery<OnboardingData>({
     queryKey: ['onboarding-status', tenantId, user?.id],
@@ -161,7 +163,7 @@ const OnboardingFlow = () => {
 
       return { visible: true, completionMap, allComplete };
     },
-    enabled: !!isAdmin && !!tenantId,
+    enabled: !!isAdminWithAuth && !!tenantId,
     staleTime: 5 * 60 * 1000,
     refetchOnWindowFocus: false,
   });

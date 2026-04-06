@@ -12,6 +12,7 @@ import { Bot } from 'lucide-react';
 import { multiAgentSystem } from '@/lib/multiagents';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
+import { toUserMessage } from '@/lib/errorMessages';
 import { usePageTitle } from '@/hooks/usePageTitle';
 import PlaygroundExamples from '@/features/agents/components/PlaygroundExamples';
 import PlaygroundInput from '@/features/agents/components/PlaygroundInput';
@@ -120,7 +121,7 @@ export default function AgentsPlayground() {
 
       toast({
         title: 'Erro no processamento',
-        description: errorMsg || 'Tente novamente.',
+        description: toUserMessage(error),
         variant: 'destructive'
       });
     } finally {
