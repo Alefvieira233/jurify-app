@@ -83,8 +83,8 @@ export const useGoogleCalendar = () => {
       }
 
       // Check auth tokens
-      const token = await GoogleOAuthService.loadTokens(user!.id);
-      setIsAuthenticated(!!token);
+      const hasToken = await GoogleOAuthService.hasValidToken(user!.id);
+      setIsAuthenticated(hasToken);
 
       return settingsResult as GoogleCalendarSettings;
     },

@@ -49,7 +49,17 @@ Deno.serve(async (req) => {
     const method = body.action || body.method
     const data = body.data
 
-    const ALLOWED_METHODS = ['listEvents', 'createEvent', 'updateEvent', 'deleteEvent', 'syncEvents']
+    const ALLOWED_METHODS = [
+      'listEvents',
+      'createEvent',
+      'updateEvent',
+      'deleteEvent',
+      'syncEvents',
+      'exchange_code',
+      'refresh_token',
+      'listCalendars',
+      'revokeTokens'
+    ]
     if (!ALLOWED_METHODS.includes(method)) {
       return new Response(
         JSON.stringify({ error: 'Invalid method' }),
@@ -103,6 +113,46 @@ Deno.serve(async (req) => {
           status: 'success',
         })
 
+        return new Response(JSON.stringify({ success: true }), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        })
+      }
+
+      case 'exchange_code': {
+        const { code, redirect_uri } = body
+        const tokens = await googleService.exchangeCode(code, redirect_uri)
+
+        // SECURITY: Never return refresh_token to the client
+        // @ts-ignore: We want to exclude it
+        const { refresh_token, ...safeTokens } = tokens
+
+        return new Response(JSON.stringify(safeTokens), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        })
+      }
+
+      case 'refresh_token': {
+        const { refresh_token } = body
+        const tokens = await googleService.refreshToken(refresh_token)
+
+        // SECURITY: Never return refresh_token to the client
+        // @ts-ignore: We want to exclude it
+        const { refresh_token: _, ...safeTokens } = tokens
+
+        return new Response(JSON.stringify(safeTokens), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        })
+      }
+
+      case 'listCalendars': {
+        const calendars = await googleService.listCalendars()
+        return new Response(JSON.stringify({ calendars }), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        })
+      }
+
+      case 'revokeTokens': {
+        await googleService.revokeTokens()
         return new Response(JSON.stringify({ success: true }), {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         })
