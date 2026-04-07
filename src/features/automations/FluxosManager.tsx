@@ -109,10 +109,12 @@ export function FluxosManager() {
 
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
+      if (!tenantId) throw new Error('Tenant não encontrado');
       const { error: err } = await supabase
         .from('automation_flows')
         .delete()
-        .eq('id', id);
+        .eq('id', id)
+        .eq('tenant_id', tenantId);
       if (err) throw err;
     },
     onSuccess: () => {
@@ -166,8 +168,8 @@ export function FluxosManager() {
         }
 
         await Promise.all([
-          supabase.from('automation_flow_nodes').delete().eq('flow_id', flowId),
-          supabase.from('automation_flow_edges').delete().eq('flow_id', flowId),
+          supabase.from('automation_flow_nodes').delete().eq('flow_id', flowId).eq('tenant_id', tenantId),
+          supabase.from('automation_flow_edges').delete().eq('flow_id', flowId).eq('tenant_id', tenantId),
         ]);
 
         const resolvedFlowId = flowId ?? '';

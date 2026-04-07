@@ -178,12 +178,14 @@ export const RegrasManager = () => {
 
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
+      const tenantId = profile?.tenant_id;
+      if (!tenantId) throw new Error('Tenant não encontrado');
       // Delete conditions and actions first (cascade should handle, but be explicit)
       await Promise.all([
-        supabase.from('automation_rule_conditions').delete().eq('rule_id', id),
-        supabase.from('automation_rule_actions').delete().eq('rule_id', id),
+        supabase.from('automation_rule_conditions').delete().eq('rule_id', id).eq('tenant_id', tenantId),
+        supabase.from('automation_rule_actions').delete().eq('rule_id', id).eq('tenant_id', tenantId),
       ]);
-      const { error } = await supabase.from('automation_rules').delete().eq('id', id);
+      const { error } = await supabase.from('automation_rules').delete().eq('id', id).eq('tenant_id', tenantId);
       if (error) throw error;
     },
     onSuccess: () => {

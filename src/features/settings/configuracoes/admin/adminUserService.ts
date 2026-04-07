@@ -30,7 +30,7 @@ export const ensureUserProfile = async (userId: string, adminData: AdminData, te
     .select('id, nome_completo, email, tenant_id')
     .eq('tenant_id', tenantId)
     .eq('id', userId)
-    .single();
+    .maybeSingle();
 
   if (profileError && profileError.code !== 'PGRST116') {
     log.error('erro ao verificar perfil', profileError);

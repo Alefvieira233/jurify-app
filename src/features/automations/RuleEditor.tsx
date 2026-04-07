@@ -168,8 +168,8 @@ const RuleEditor = ({ open, rule, onClose, onSaved }: RuleEditorProps) => {
 
         // Delete old conditions and actions, then re-insert
         await Promise.all([
-          supabase.from('automation_rule_conditions').delete().eq('rule_id', rule.id),
-          supabase.from('automation_rule_actions').delete().eq('rule_id', rule.id),
+          supabase.from('automation_rule_conditions').delete().eq('rule_id', rule.id).eq('tenant_id', profile.tenant_id),
+          supabase.from('automation_rule_actions').delete().eq('rule_id', rule.id).eq('tenant_id', profile.tenant_id),
         ]);
 
         // Insert conditions
