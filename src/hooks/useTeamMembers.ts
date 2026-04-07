@@ -36,18 +36,18 @@ export function useTeamMembers() {
     queryFn: async (): Promise<TeamMember[]> => {
       const { data, error } = await supabase
         .from('profiles')
-        .select('id, nome_completo, email, avatar_url, ativo, cargo, telefone, role, departamento')
+        .select('id, nome_completo, email, avatar_url, ativo, cargo, telefone, role')
         .eq('tenant_id', tenantId!)
         .eq('ativo', true)
         .order('nome_completo');
       if (error) throw error;
-      return ((data ?? []) as TeamMember[]).map((m: TeamMember) => ({
+      return (data ?? []).map((m) => ({
         ...m,
         cargo: m.cargo ?? null,
         telefone: m.telefone ?? null,
         role: m.role ?? null,
-        departamento: m.departamento ?? null,
-      }));
+        departamento: null, // profiles table doesn't have departamento; use departamento_membros join if needed
+      })) as TeamMember[];
     },
     enabled: !!tenantId,
     staleTime: 5 * 60 * 1000,
@@ -61,10 +61,10 @@ export function useTeamMembers() {
         .update(updates)
         .eq('id', id)
         .eq('tenant_id', tenantId)
-        .select('id, nome_completo, email, avatar_url, ativo, cargo, telefone, role, departamento')
+        .select('id, nome_completo, email, avatar_url, ativo, cargo, telefone, role')
         .single();
       if (error) throw error;
-      return data as TeamMember;
+      return { ...data, departamento: null } as TeamMember;
     },
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: queryKeys.teamMembers.all });

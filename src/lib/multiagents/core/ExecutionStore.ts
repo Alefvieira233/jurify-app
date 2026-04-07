@@ -7,7 +7,7 @@
  * @version 1.0.0
  */
 
-import { supabaseUntyped as supabase } from '@/integrations/supabase/client';
+import { supabase } from '@/integrations/supabase/client';
 import type { ExecutionStatus, StageResult } from '../types';
 import { createLogger } from '@/lib/logger';
 
@@ -25,17 +25,12 @@ export interface ExecutionRecord {
   current_agent: string | null;
   current_stage: string | null;
   started_at: string;
-  completed_at: string | null;
+  updated_at: string;
   total_duration_ms: number | null;
-  agents_involved: string[];
-  total_agents_used: number;
-  total_prompt_tokens: number;
-  total_completion_tokens: number;
-  total_tokens: number;
-  estimated_cost_usd: number;
-  final_result: Record<string, unknown> | null;
-  error_message: string | null;
-  metadata: Record<string, unknown>;
+  agents_involved: string[] | null;
+  total_agents_used: number | null;
+  total_tokens: number | null;
+  estimated_cost_usd: number | null;
 }
 
 export class ExecutionStore {
@@ -61,12 +56,9 @@ export class ExecutionStore {
           current_stage: 'new',
           agents_involved: [],
           total_agents_used: 0,
-          total_prompt_tokens: 0,
-          total_completion_tokens: 0,
           total_tokens: 0,
           estimated_cost_usd: 0,
           started_at: new Date().toISOString(),
-          metadata: {},
         })
         .select('id')
         .single();
@@ -125,7 +117,7 @@ export class ExecutionStore {
       // Busca execução atual para acumular valores
       const { data: current, error: fetchError } = await supabase
         .from('agent_executions')
-        .select('agents_involved, total_tokens, total_prompt_tokens, total_completion_tokens, estimated_cost_usd')
+        .select('agents_involved, total_tokens, estimated_cost_usd')
         .eq('execution_id', executionId)
         .single();
 
@@ -166,7 +158,7 @@ export class ExecutionStore {
    */
   static async completeExecution(
     executionId: string,
-    finalResult: Record<string, unknown>,
+    _finalResult: Record<string, unknown>,
     totalTokens: number
   ): Promise<void> {
     try {
@@ -187,11 +179,9 @@ export class ExecutionStore {
         .from('agent_executions')
         .update({
           status: 'completed',
-          completed_at: completedAt.toISOString(),
           total_duration_ms: durationMs,
           total_tokens: totalTokens,
           estimated_cost_usd: estimatedCost,
-          final_result: finalResult,
         })
         .eq('execution_id', executionId);
 
@@ -208,15 +198,13 @@ export class ExecutionStore {
    */
   static async failExecution(
     executionId: string,
-    errorMessage: string
+    _errorMessage: string
   ): Promise<void> {
     try {
       const { error } = await supabase
         .from('agent_executions')
         .update({
           status: 'failed',
-          completed_at: new Date().toISOString(),
-          error_message: errorMessage,
         })
         .eq('execution_id', executionId);
 
@@ -235,7 +223,7 @@ export class ExecutionStore {
     try {
       const { data, error } = await supabase
         .from('agent_executions')
-        .select('id, execution_id, lead_id, tenant_id, user_id, status, current_agent, current_stage, started_at, completed_at, total_duration_ms, agents_involved, total_agents_used, total_prompt_tokens, total_completion_tokens, total_tokens, estimated_cost_usd, final_result, error_message, metadata')
+        .select('id, execution_id, lead_id, tenant_id, user_id, status, current_agent, current_stage, started_at, updated_at, total_duration_ms, agents_involved, total_agents_used, total_tokens, estimated_cost_usd')
         .eq('execution_id', executionId)
         .single();
 
@@ -243,7 +231,7 @@ export class ExecutionStore {
         return null;
       }
 
-      return data as ExecutionRecord;
+      return data as unknown as ExecutionRecord;
     } catch (_error) {
       log.warn('getExecution failed', { error: String(_error) });
       return null;

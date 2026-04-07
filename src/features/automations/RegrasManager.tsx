@@ -125,7 +125,7 @@ export const RegrasManager = () => {
       if (error) throw error;
 
       // Fetch conditions and actions for all rules
-      const ruleIds = (data ?? []).map((r: AutomationRule) => r.id);
+      const ruleIds = (data ?? []).map((r) => r.id);
       if (ruleIds.length === 0) return [];
 
       const [conditionsRes, actionsRes] = await Promise.all([

@@ -73,10 +73,18 @@ export function usePlans() {
       const { data: subData } = await supabase
         .from('subscriptions')
         .select('id, plan_id, status, current_period_end, cancel_at_period_end')
-        .eq('tenant_id', profile.tenant_id)
+        .eq('tenant_id', profile.tenant_id!)
         .maybeSingle();
 
-      if (subData) setSubscription(subData);
+      if (subData) {
+        setSubscription({
+          id: subData.id,
+          plan_id: subData.plan_id ?? 'free',
+          status: subData.status ?? 'active',
+          current_period_end: subData.current_period_end,
+          cancel_at_period_end: subData.cancel_at_period_end ?? false,
+        });
+      }
 
       const tenantId = profile.tenant_id;
       if (!tenantId) return;

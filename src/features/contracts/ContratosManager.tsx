@@ -292,7 +292,7 @@ const ContratosManager = () => {
                     </Badge>
                   }
                   details={[
-                    { label: 'Responsável', value: contrato.responsavel ?? '—' },
+                    { label: 'Responsável', value: contrato.responsavel_id ?? '—' },
                     { label: 'Valor', value: fmtCurrency(Number(contrato.valor_causa)) },
                     ...(contrato.data_envio ? [{ label: 'Envio', value: fmtDate(contrato.data_envio) }] : []),
                   ]}

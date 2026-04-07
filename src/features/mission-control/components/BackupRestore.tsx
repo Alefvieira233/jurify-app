@@ -152,6 +152,7 @@ const BackupRestore = () => {
 
   const executeImport = async () => {
     setConfirmImport(false);
+    if (!tenantId) return;
     setLoading(true);
     try {
       const parsedData = JSON.parse(backupData) as { data?: Record<string, BackupRecord[]> };
@@ -176,9 +177,11 @@ const BackupRestore = () => {
             tenant_id: tenantId
           }));
 
-          const { error } = await supabase
-            .from(table)
-            .insert(payload);
+          // Dynamic table name requires type widening for the insert payload
+          const tableClient = supabase.from(table);
+          const { error } = await tableClient.insert(
+            payload as Parameters<typeof tableClient.insert>[0]
+          );
 
           if (error) {
             log.error(`Erro ao importar ${table}`, error);

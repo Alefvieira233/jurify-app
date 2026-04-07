@@ -111,7 +111,7 @@ const ProcessosManager = () => {
       const { count, error: err } = await supabase
         .from('processos')
         .select('*', { count: 'exact', head: true })
-        .eq('tenant_id', tenantId)
+        .eq('tenant_id', tenantId!)
         .eq('status', 'ativo');
       if (err) throw err;
       return count ?? 0;
@@ -129,7 +129,7 @@ const ProcessosManager = () => {
           const { count, error: err } = await supabase
             .from('processos')
             .select('*', { count: 'exact', head: true })
-            .eq('tenant_id', tenantId)
+            .eq('tenant_id', tenantId!)
             .eq('status', s);
           if (err) throw err;
           return count ?? 0;

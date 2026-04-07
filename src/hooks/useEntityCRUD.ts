@@ -39,6 +39,12 @@
 import { useCallback, useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabaseUntyped as supabase } from '@/integrations/supabase/client';
+
+// useEntityCRUD is a generic factory that works with dynamic table names.
+// The typed Supabase client expects literal table names, so we use a loosely-typed
+// wrapper for the dynamic `.from(table)` calls in this file only.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const dynamicSupabase = supabase as any;
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { createLogger } from '@/lib/logger';
@@ -185,7 +191,7 @@ export function useEntityCRUD<
         tenantId ??
         ((user?.user_metadata as Record<string, unknown>)?.tenant_id as string | undefined);
 
-      let query = supabase
+      let query = dynamicSupabase
         .from(table)
         .select(listColumns, { count: 'exact' })
         .order(sortColumn, { ascending: sortAscending });
@@ -247,7 +253,7 @@ export function useEntityCRUD<
 
   const createMutation = useMutation({
     mutationFn: async (input: TInput) => {
-      const { data: created, error } = await supabase
+      const { data: created, error } = await dynamicSupabase
         .from(table)
         .insert([{ ...(input as Record<string, unknown>), tenant_id: tenantId ?? null }])
         .select()
@@ -282,7 +288,7 @@ export function useEntityCRUD<
   const updateMutation = useMutation({
     mutationFn: async ({ id, updateData }: { id: string; updateData: Partial<TInput> }) => {
       if (!tenantId) throw new Error('Tenant não identificado');
-      const { data: updated, error } = await supabase
+      const { data: updated, error } = await dynamicSupabase
         .from(table)
         .update({
           ...(updateData as Record<string, unknown>),
@@ -320,7 +326,7 @@ export function useEntityCRUD<
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
       if (!tenantId) throw new Error('Tenant não identificado');
-      const { error } = await supabase
+      const { error } = await dynamicSupabase
         .from(table)
         .delete()
         .eq('id', id)

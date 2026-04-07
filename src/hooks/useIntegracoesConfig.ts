@@ -59,9 +59,17 @@ export const useIntegracoesConfig = () => {
 
   const createMutation = useMutation({
     mutationFn: async (data: CreateIntegracaoData) => {
+      if (!tenantId) throw new Error('Tenant não identificado');
       const { error } = await supabase
         .from('configuracoes_integracoes')
-        .insert([{ ...data, tenant_id: tenantId }]);
+        .insert([{
+          nome_integracao: data.nome_integracao,
+          status: data.status,
+          api_key_encrypted: data.api_key_encrypted,
+          endpoint_url: data.endpoint_url,
+          observacoes: data.observacoes ?? null,
+          tenant_id: tenantId,
+        }]);
 
       if (error) throw error;
     },
@@ -77,9 +85,10 @@ export const useIntegracoesConfig = () => {
 
   const updateMutation = useMutation({
     mutationFn: async ({ id, data }: { id: string; data: Partial<IntegracaoConfig> }) => {
+      const { id: _id, tenant_id: _t, criado_em: _c, ...dbUpdates } = data;
       const { error } = await supabase
         .from('configuracoes_integracoes')
-        .update({ ...data, atualizado_em: new Date().toISOString() })
+        .update({ ...dbUpdates, atualizado_em: new Date().toISOString() })
         .eq('id', id)
         .eq('tenant_id', tenantId!);
 

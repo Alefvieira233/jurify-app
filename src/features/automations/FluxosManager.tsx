@@ -17,6 +17,7 @@ const FlowEditor = React.lazy(() => import('./FlowEditor').then(m => ({ default:
 import { createLogger } from '@/lib/logger';
 import type { Node, Edge } from '@xyflow/react';
 import { FlowCard, type AutomationFlow, type FlowNode, type FlowEdge } from './FlowCard';
+import type { Json } from '@/integrations/supabase/types';
 
 const logger = createLogger('FluxosManager');
 
@@ -139,8 +140,8 @@ export function FluxosManager() {
               descricao: data.descricao ?? null,
               status: data.status,
               trigger_type: data.trigger_type,
-              trigger_config: data.trigger_config ?? {},
-              viewport: data.viewport ?? { x: 0, y: 0, zoom: 1 },
+              trigger_config: (data.trigger_config ?? {}) as Json,
+              viewport: (data.viewport ?? { x: 0, y: 0, zoom: 1 }) as Json,
             })
             .eq('id', flowId);
           if (updateErr) throw updateErr;
@@ -153,8 +154,8 @@ export function FluxosManager() {
               descricao: data.descricao ?? null,
               status: data.status,
               trigger_type: data.trigger_type,
-              trigger_config: data.trigger_config ?? {},
-              viewport: data.viewport ?? { x: 0, y: 0, zoom: 1 },
+              trigger_config: (data.trigger_config ?? {}) as Json,
+              viewport: (data.viewport ?? { x: 0, y: 0, zoom: 1 }) as Json,
               created_by: profile.id,
             })
             .select('id')
@@ -178,9 +179,10 @@ export function FluxosManager() {
             return {
               id: n.id,
               flow_id: resolvedFlowId,
+              tenant_id: tenantId,
               tipo: n.type ?? 'action',
               label: typeof nodeLabel === 'string' ? nodeLabel : '',
-              config,
+              config: config as Json,
               position_x: n.position.x,
               position_y: n.position.y,
             };
@@ -195,6 +197,7 @@ export function FluxosManager() {
           const dbEdges = data.edges.map((e) => ({
             id: e.id,
             flow_id: resolvedFlowId,
+            tenant_id: tenantId,
             source_node: e.source,
             target_node: e.target,
             source_handle: e.sourceHandle ?? null,

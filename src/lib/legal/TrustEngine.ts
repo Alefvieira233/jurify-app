@@ -11,7 +11,7 @@
  * via Edge Function generate-embedding.
  */
 
-import { supabase, supabaseUntyped } from '@/integrations/supabase/client';
+import { supabase } from '@/integrations/supabase/client';
 import { createLogger } from '@/lib/logger';
 
 const log = createLogger('TrustEngine');
@@ -66,7 +66,7 @@ export const TRUST_ENGINE_FALLBACK =
  */
 export async function retrieveLegalContext(
   query: string,
-  filter?: RetrievalFilter,
+  _filter?: RetrievalFilter,
   options?: { threshold?: number; maxDocs?: number }
 ): Promise<RetrievalResult> {
   const emptyResult: RetrievalResult = {
@@ -91,12 +91,11 @@ export async function retrieveLegalContext(
       return emptyResult;
     }
 
-    // 2. Call RPC match_legal_documents (untyped — new migration not in generated types)
-    const { data, error } = await supabaseUntyped.rpc('match_legal_documents', {
-      query_embedding: embData.embedding,
+    // 2. Call RPC match_legal_documents
+    const { data, error } = await supabase.rpc('match_legal_documents', {
+      query_embedding: JSON.stringify(embData.embedding),
       match_threshold: options?.threshold ?? DEFAULT_MATCH_THRESHOLD,
       match_count: options?.maxDocs ?? DEFAULT_MATCH_COUNT,
-      filter: filter ? (filter as Record<string, unknown>) : {},
     });
 
     if (error) {

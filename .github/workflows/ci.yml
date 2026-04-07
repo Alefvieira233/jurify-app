@@ -5,6 +5,7 @@ on:
     branches: [master, main, develop]
     paths:
       - 'src/**'
+      - 'supabase/**'
       - 'package.json'
       - 'tsconfig.json'
       - 'eslint.config.js'

@@ -9,14 +9,14 @@ import { queryKeys } from '@/lib/queryKeys';
 
 const log = createLogger('SystemSettings');
 
-interface SystemSetting {
+export interface SystemSetting {
   id: string;
   key: string;
-  value: string;
+  value: string | null;
   category: string;
-  description: string;
-  is_sensitive: boolean;
-  tenant_id?: string;
+  description: string | null;
+  is_sensitive: boolean | null;
+  tenant_id?: string | null;
 }
 
 export const useSystemSettings = () => {
@@ -33,7 +33,7 @@ export const useSystemSettings = () => {
       const { data, error } = await supabase
         .from('system_settings')
         .select('id, key, value, category, description, is_sensitive, tenant_id')
-        .eq('tenant_id', tenantId)
+        .eq('tenant_id', tenantId!)
         .order('category', { ascending: true });
 
       if (error) throw error;
@@ -48,8 +48,7 @@ export const useSystemSettings = () => {
       const { data, error } = await supabase.rpc('update_system_setting', {
         _key: key,
         _value: value,
-        _user_id: user?.id,
-        _tenant_id: tenantId,
+        _user_id: user?.id ?? '',
       });
 
       if (error) throw error;

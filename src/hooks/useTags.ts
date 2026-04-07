@@ -33,7 +33,7 @@ export function useTags() {
     mutationFn: async (input: Partial<Tag>) => {
       const { data, error } = await supabase
         .from('tags')
-        .insert({ ...input, tenant_id: tenantId! })
+        .insert({ ...input, tenant_id: tenantId!, nome: input.nome ?? '' } as { nome: string; tenant_id: string })
         .select()
         .single();
       if (error) throw error;

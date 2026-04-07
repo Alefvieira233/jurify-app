@@ -48,7 +48,7 @@ const log = createLogger('AnalyticsDashboard');
 // Tipos para dados do banco
 interface LeadRecord {
     id: string;
-    created_at: string;
+    created_at: string | null;
     area_juridica?: string | null;
     origem?: string | null;
     status?: string | null;
@@ -56,7 +56,7 @@ interface LeadRecord {
 
 interface ContractRecord {
     id: string;
-    created_at: string;
+    created_at: string | null;
     area_juridica?: string | null;
     status?: string | null;
     valor_causa?: number | null;
@@ -105,8 +105,8 @@ function generateTimeSeriesData(leads: LeadRecord[], contracts: ContractRecord[]
         date.setDate(date.getDate() - i);
         const dateStr = date.toISOString().split('T')[0] ?? '';
 
-        const leadsOnDay = leads.filter(l => l.created_at.startsWith(dateStr)).length;
-        const conversionsOnDay = contracts.filter(c => c.created_at.startsWith(dateStr)).length;
+        const leadsOnDay = leads.filter(l => l.created_at?.startsWith(dateStr)).length;
+        const conversionsOnDay = contracts.filter(c => c.created_at?.startsWith(dateStr)).length;
 
         data.push({
             date: date.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' }),

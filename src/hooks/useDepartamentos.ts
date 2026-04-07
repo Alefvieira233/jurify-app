@@ -33,7 +33,7 @@ export function useDepartamentos() {
     mutationFn: async (input: Partial<Departamento>) => {
       const { data, error } = await supabase
         .from('departamentos')
-        .insert({ ...input, tenant_id: tenantId! })
+        .insert({ ...input, tenant_id: tenantId!, nome: input.nome ?? '' } as { nome: string; tenant_id: string })
         .select()
         .single();
       if (error) throw error;
@@ -96,8 +96,10 @@ export function useDepartamentos() {
 }
 
 export function useDepartamentoMembros(departamentoId: string | null) {
+  const { profile } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const tenantId = profile?.tenant_id;
 
   const membrosQuery = useQuery({
     queryKey: queryKeys.departamentos.membros(departamentoId ?? undefined),
@@ -114,9 +116,10 @@ export function useDepartamentoMembros(departamentoId: string | null) {
 
   const addMembro = useMutation({
     mutationFn: async ({ departamentoId: dId, profileId, roleNoDepto }: { departamentoId: string; profileId: string; roleNoDepto?: string }) => {
+      if (!tenantId) throw new Error('Tenant não encontrado');
       const { data, error } = await supabase
         .from('departamento_membros')
-        .insert({ departamento_id: dId, profile_id: profileId, role_no_depto: roleNoDepto ?? 'membro' })
+        .insert({ departamento_id: dId, profile_id: profileId, role_no_depto: roleNoDepto ?? 'membro', tenant_id: tenantId })
         .select('*, profile:profile_id(id, nome_completo, email, avatar_url)')
         .single();
       if (error) throw error;

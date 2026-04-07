@@ -25,7 +25,7 @@ const log = createLogger('Contratos');
 type ContratoRow = {
   id: string;
   lead_id: string | null;
-  tenant_id: string | null;
+  tenant_id: string;
   nome_cliente: string | null;
   area_juridica: string | null;
   valor_causa: number | null;
@@ -37,11 +37,11 @@ type ContratoRow = {
   zapsign_document_id: string | null;
   data_geracao_link: string | null;
   data_envio_whatsapp: string | null;
-  responsavel: string | null;
+  responsavel_id: string | null;
   data_envio: string | null;
   data_assinatura: string | null;
   observacoes: string | null;
-  created_at: string;
+  created_at: string | null;
   updated_at: string | null;
 };
 
@@ -49,7 +49,7 @@ export type Contrato = ContratoRow;
 
 export type ContratoInput = Partial<Contrato>;
 
-const LIST_COLUMNS = 'id,lead_id,tenant_id,nome_cliente,area_juridica,valor_causa,status,status_assinatura,link_assinatura_zapsign,zapsign_document_id,data_geracao_link,data_envio_whatsapp,responsavel,data_envio,data_assinatura,observacoes,created_at,updated_at';
+const LIST_COLUMNS = 'id,lead_id,tenant_id,nome_cliente,area_juridica,valor_causa,status,status_assinatura,link_assinatura_zapsign,zapsign_document_id,data_geracao_link,data_envio_whatsapp,responsavel_id,data_envio,data_assinatura,observacoes,created_at,updated_at';
 
 function normalizeContrato(row: ContratoRow): Contrato { return { ...row }; }
 
@@ -122,10 +122,12 @@ export const useContratos = (options?: UseContratosOptions) => {
   // ── Mutations ──────────────────────────────────────────────────────────────
   const createMutation = useMutation({
     mutationFn: async (data: ContratoInput) => {
-      const payload = { ...data, tenant_id: data.tenant_id ?? tenantId ?? null };
-      const { data: row, error } = await supabase.from('contratos').insert([payload]).select().single();
+      const effectiveTenantId = data.tenant_id ?? tenantId;
+      if (!effectiveTenantId) throw new Error('Tenant não identificado');
+      const payload = { ...data, tenant_id: effectiveTenantId, titulo: data.nome_cliente ?? 'Contrato' };
+      const { data: row, error } = await supabase.from('contratos').insert([payload as Record<string, unknown>]).select().single();
       if (error) throw error;
-      return normalizeContrato(row as ContratoRow);
+      return normalizeContrato(row as unknown as ContratoRow);
     },
     onSuccess: (newContrato) => {
       addSentryBreadcrumb(`Contrato criado: ${newContrato.id}`, 'contratos', 'info');
@@ -148,13 +150,13 @@ export const useContratos = (options?: UseContratosOptions) => {
       if (!tenantId) throw new Error('Tenant não identificado');
       const { data: row, error } = await supabase
         .from('contratos')
-        .update({ ...updateData, updated_at: new Date().toISOString() })
+        .update({ ...updateData, updated_at: new Date().toISOString() } as Record<string, unknown>)
         .eq('id', id)
         .eq('tenant_id', tenantId)
         .select()
         .single();
       if (error) throw error;
-      return normalizeContrato(row as ContratoRow);
+      return normalizeContrato(row as unknown as ContratoRow);
     },
     onSuccess: (updated, { updateData }) => {
       addSentryBreadcrumb(`Contrato atualizado: ${updated.id}`, 'contratos', 'info');

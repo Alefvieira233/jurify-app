@@ -12,6 +12,7 @@ import type { Agendamento } from '@/hooks/useAgendamentos';
  * Creates two email reminders for an agendamento: one 24h before and one 2h before.
  */
 export async function createReminders(agendamento: Agendamento, userId: string) {
+  if (!agendamento.tenant_id) throw new Error('Agendamento sem tenant_id');
   const reminders = [
     {
       tenant_id: agendamento.tenant_id,
@@ -19,6 +20,7 @@ export async function createReminders(agendamento: Agendamento, userId: string) 
       lead_id: agendamento.lead_id,
       agendamento_id: agendamento.id,
       type: 'email',
+      title: 'Lembrete: Agendamento amanhã',
       scheduled_for: new Date(new Date(agendamento.data_hora).getTime() - 24 * 60 * 60 * 1000).toISOString(), // 24h antes
       message: 'Lembrete: Agendamento amanhã',
       status: 'scheduled',
@@ -29,6 +31,7 @@ export async function createReminders(agendamento: Agendamento, userId: string) 
       lead_id: agendamento.lead_id,
       agendamento_id: agendamento.id,
       type: 'email',
+      title: 'Lembrete: Agendamento em 2 horas',
       scheduled_for: new Date(new Date(agendamento.data_hora).getTime() - 2 * 60 * 60 * 1000).toISOString(), // 2h antes
       message: 'Lembrete: Agendamento em 2 horas',
       status: 'scheduled',

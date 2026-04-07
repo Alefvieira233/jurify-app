@@ -10,7 +10,8 @@
  * @architecture Enterprise Grade
  */
 
-import { supabaseUntyped as supabase } from '@/integrations/supabase/client';
+import { supabase } from '@/integrations/supabase/client';
+import type { Json } from '@/integrations/supabase/types';
 import { createLogger } from '@/lib/logger';
 
 const log = createLogger('WorkflowQueue');
@@ -103,7 +104,7 @@ export class WorkflowQueueService {
         .insert({
           tenant_id: options.tenantId,
           job_type: options.jobType,
-          payload: options.payload,
+          payload: options.payload as unknown as Json,
           priority: Math.max(1, Math.min(10, options.priority ?? 5)),
           max_attempts: options.maxAttempts ?? 3,
           idempotency_key: options.idempotencyKey || null,

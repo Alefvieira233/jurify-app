@@ -11,7 +11,8 @@
  * @architecture Enterprise Grade - Inspired by MCP
  */
 
-import { supabaseUntyped as supabase } from '@/integrations/supabase/client';
+import { supabase } from '@/integrations/supabase/client';
+import type { Json } from '@/integrations/supabase/types';
 import { createLogger } from '@/lib/logger';
 
 const log = createLogger('AgentMemory');
@@ -91,9 +92,9 @@ export class AgentMemoryService {
           agent_name: entry.agent_name,
           memory_type: entry.memory_type,
           content: entry.content,
-          embedding,
+          embedding: embedding ? JSON.stringify(embedding) : null,
           importance: Math.max(1, Math.min(10, entry.importance)),
-          metadata: entry.metadata || {},
+          metadata: (entry.metadata || {}) as Json,
           expires_at: entry.expires_at || null,
         })
         .select('id')
@@ -142,13 +143,13 @@ export class AgentMemoryService {
 
       // Busca semântica via RPC
       const { data, error } = await supabase.rpc('search_agent_memory', {
-        query_embedding: embData.embedding,
+        query_embedding: JSON.stringify(embData.embedding),
         p_tenant_id: tenantId,
-        p_lead_id: options?.leadId || null,
-        p_agent_name: options?.agentName || null,
-        p_memory_type: options?.memoryType || null,
-        p_limit: options?.limit || 10,
-        p_threshold: options?.threshold || 0.7,
+        p_lead_id: options?.leadId,
+        p_agent_name: options?.agentName,
+        p_memory_type: options?.memoryType,
+        p_limit: options?.limit ?? 10,
+        p_threshold: options?.threshold ?? 0.7,
       });
 
       if (error) {

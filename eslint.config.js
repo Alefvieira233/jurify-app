@@ -91,6 +91,13 @@ export default tseslint.config(
       }],
       "@typescript-eslint/no-unused-expressions": "warn",
       "@typescript-eslint/no-explicit-any": "warn", // CRÍTICO: Detectar uso de 'any'
+      "no-restricted-imports": ["error", {
+        "paths": [{
+          "name": "@/integrations/supabase/client",
+          "importNames": ["supabaseUntyped"],
+          "message": "supabaseUntyped is deprecated. Use 'supabase' (typed) instead."
+        }]
+      }],
       "@typescript-eslint/no-unsafe-assignment": "off", // Gradual
       "@typescript-eslint/no-unsafe-member-access": "off", // Gradual
       "@typescript-eslint/no-unsafe-call": "off", // Gradual

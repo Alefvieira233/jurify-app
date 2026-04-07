@@ -4,11 +4,9 @@ import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { Eye, EyeOff, FileSignature, MessageSquare, Bot, CreditCard, Mail, CheckCircle2, AlertCircle } from 'lucide-react';
-import { useSystemSettings } from '@/hooks/useSystemSettings';
+import { useSystemSettings, type SystemSetting } from '@/hooks/useSystemSettings';
 import { GoogleCalendarCard } from './GoogleCalendarCard';
 import { IntegrationCard, type IntegrationStatus } from './IntegrationCard';
-
-type IntegrationSetting = { key: string; description: string; is_sensitive?: boolean };
 
 const IntegracoesSection = () => {
   const { getSettingsByCategory, updateSetting, isUpdating, getSettingValue } = useSystemSettings();
@@ -31,7 +29,7 @@ const IntegracoesSection = () => {
     setShowSensitive((prev) => ({ ...prev, [key]: !prev[key] }));
   };
 
-  const renderSettingField = (setting: IntegrationSetting) => {
+  const renderSettingField = (setting: SystemSetting) => {
     const currentValue = formData[setting.key] !== undefined ? formData[setting.key] : getSettingValue(setting.key);
     const isVisible = showSensitive[setting.key];
 
@@ -45,7 +43,7 @@ const IntegracoesSection = () => {
               type={setting.is_sensitive && !isVisible ? 'password' : 'text'}
               value={currentValue}
               onChange={(e) => handleInputChange(setting.key, e.target.value)}
-              placeholder={setting.is_sensitive ? '••••••••••••' : `Digite ${setting.description.toLowerCase()}`}
+              placeholder={setting.is_sensitive ? '••••••••••••' : `Digite ${(setting.description ?? '').toLowerCase()}`}
             />
             {setting.is_sensitive && (
               <Button

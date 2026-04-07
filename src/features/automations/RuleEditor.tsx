@@ -21,6 +21,7 @@ import type { AutomationRule } from './RegrasManager';
 import { EVENT_TYPE_LABELS } from './RegrasManager';
 import type { ConditionDraft, ActionDraft } from './types';
 import { NO_VALUE_OPERATORS, nextKey } from './types';
+import type { Json } from '@/integrations/supabase/types';
 import RuleConditionEditor from './RuleConditionEditor';
 import RuleActionEditor from './RuleActionEditor';
 
@@ -177,6 +178,7 @@ const RuleEditor = ({ open, rule, onClose, onSaved }: RuleEditorProps) => {
             .from('automation_rule_conditions')
             .insert(
               conditions.map((c, i) => ({
+                tenant_id: profile.tenant_id,
                 rule_id: rule.id,
                 campo: c.campo,
                 operador: c.operador,
@@ -193,9 +195,10 @@ const RuleEditor = ({ open, rule, onClose, onSaved }: RuleEditorProps) => {
             .from('automation_rule_actions')
             .insert(
               actions.map((a, i) => ({
+                tenant_id: profile.tenant_id,
                 rule_id: rule.id,
                 tipo: a.tipo,
-                config: a.config,
+                config: a.config as Json,
                 ordem: i,
               }))
             );
@@ -227,6 +230,7 @@ const RuleEditor = ({ open, rule, onClose, onSaved }: RuleEditorProps) => {
             .from('automation_rule_conditions')
             .insert(
               conditions.map((c, i) => ({
+                tenant_id: profile.tenant_id,
                 rule_id: ruleId,
                 campo: c.campo,
                 operador: c.operador,
@@ -243,9 +247,10 @@ const RuleEditor = ({ open, rule, onClose, onSaved }: RuleEditorProps) => {
             .from('automation_rule_actions')
             .insert(
               actions.map((a, i) => ({
+                tenant_id: profile.tenant_id,
                 rule_id: ruleId,
                 tipo: a.tipo,
-                config: a.config,
+                config: a.config as Json,
                 ordem: i,
               }))
             );

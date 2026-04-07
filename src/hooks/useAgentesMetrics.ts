@@ -76,13 +76,13 @@ export const useAgentesMetrics = () => {
       const execucoesMesCount = allMesRows.length;
 
       // Tempo medio de resposta (em ms)
-      const temposExecucao = allMesRows.map(row => row.latency_ms).filter(Boolean);
+      const temposExecucao = allMesRows.map(row => row.latency_ms).filter((v): v is number => v != null);
       const tempoMedioResposta = temposExecucao.length > 0
-        ? Math.round(temposExecucao.reduce((a: number, b: number) => a + b, 0) / temposExecucao.length)
+        ? Math.round(temposExecucao.reduce((a, b) => a + b, 0) / temposExecucao.length)
         : 0;
 
       // Taxa de sucesso
-      const execucoesSucesso = allMesRows.filter(row => ['success', 'completed'].includes(row.status)).length;
+      const execucoesSucesso = allMesRows.filter(row => ['success', 'completed'].includes(row.status ?? '')).length;
       const sucessoRate = execucoesMesCount > 0
         ? Math.round((execucoesSucesso / execucoesMesCount) * 100)
         : 0;

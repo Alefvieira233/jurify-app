@@ -117,9 +117,10 @@ export const useDocumentosJuridicos = (options?: { processoId?: string; leadId?:
 
   const createMutation = useMutation({
     mutationFn: async (data: DocumentoInput) => {
+      if (!tenantId) throw new Error('Tenant não identificado');
       const { data: created, error } = await supabase
         .from('documentos_juridicos')
-        .insert([{ ...data, tenant_id: tenantId ?? null }])
+        .insert([{ ...data, tenant_id: tenantId } as Record<string, unknown>])
         .select()
         .single();
       if (error) throw error;

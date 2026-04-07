@@ -7,7 +7,7 @@
  * @version 1.0.0
  */
 
-import { supabaseUntyped as supabase } from '@/integrations/supabase/client';
+import { supabase } from '@/integrations/supabase/client';
 
 // Configuração OAuth do Google
 // NOTE: Only CLIENT_ID is in the browser (public). CLIENT_SECRET lives server-side
@@ -151,11 +151,11 @@ export class GoogleOAuthService {
     }
 
     return {
-      access_token: data.access_token_encrypted,
-      refresh_token: data.refresh_token_encrypted || undefined,
+      access_token: data.access_token_encrypted ?? '',
+      refresh_token: data.refresh_token_encrypted ?? undefined,
       expires_at: new Date(data.expires_at).getTime(),
-      token_type: data.token_type,
-      scope: data.scope,
+      token_type: data.token_type ?? 'Bearer',
+      scope: data.scope ?? '',
     };
   }
 

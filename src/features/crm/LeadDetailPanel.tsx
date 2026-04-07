@@ -83,9 +83,9 @@ const LeadDetailPanel = () => {
     queryKey: queryKeys.leads.byId(leadId),
     queryFn: async () => {
       const { data, error } = await supabase
-        .from('leads').select('id, nome_completo, nome, email, telefone, area_juridica, status, origem, valor_causa, lead_score, temperature, expected_value, probability, company_name, cpf_cnpj, pipeline_stage_id, last_activity_at, next_followup_at, followup_count, created_at, updated_at').eq('id', leadId!).single();
+        .from('leads').select('id, nome, email, telefone, area_juridica, status, origem, valor_causa, lead_score, temperature, expected_value, probability, company_name, cpf_cnpj, pipeline_stage_id, last_activity_at, next_followup_at, followup_count, created_at, updated_at').eq('id', leadId!).single();
       if (error) throw error;
-      return data as LeadDetail;
+      return { ...data, nome_completo: data.nome, created_at: data.created_at ?? '' } as LeadDetail;
     },
     enabled: !!leadId,
   });

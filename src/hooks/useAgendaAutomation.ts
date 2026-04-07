@@ -186,7 +186,7 @@ export function useAgendaAutomation() {
                     .from('agendamentos')
                     .update({ google_event_id: eventId })
                     .eq('id', agendamento.id)
-                    .eq('tenant_id', agendamento.tenant_id);
+                    .eq('tenant_id', agendamento.tenant_id!);
                 } else {
                   throw new Error('Google Calendar não conectado ou sync falhou');
                 }
@@ -231,7 +231,7 @@ export function useAgendaAutomation() {
             .from('automation_tasks')
             .update({
               status: 'failed',
-              error: error instanceof Error ? error.message : 'Unknown error',
+              error_message: error instanceof Error ? error.message : 'Unknown error',
             })
             .eq('id', task.id);
 
@@ -305,29 +305,33 @@ export function useAgendaAutomation() {
   const getAutomationStatus = useCallback(async (agendamentoId: string) => {
     const { data, error } = await supabase
       .from('automation_tasks')
-      .select('id, type, status, payload, error, created_at, completed_at')
+      .select('id, type, status, payload, error_message, created_at, completed_at')
       .eq('payload->>agendamento_id', agendamentoId)
       .order('created_at', { ascending: false });
 
     if (error) throw error;
-    return data as AutomationTask[];
+    return (data || []).map(row => ({
+      ...row,
+      error: row.error_message ?? undefined,
+    })) as unknown as AutomationTask[];
   }, []);
 
   const retryFailedTask = useCallback(async (taskId: string) => {
-    const { data: task } = await supabase
+    const { data: taskRow } = await supabase
       .from('automation_tasks')
-      .select('id, type, status, payload, error, created_at, completed_at')
+      .select('id, type, status, payload, error_message, created_at, completed_at')
       .eq('id', taskId)
       .single();
 
-    if (!task || task.status !== 'failed') return;
+    if (!taskRow || taskRow.status !== 'failed') return;
+    const task = { ...taskRow, error: taskRow.error_message } as unknown as AutomationTask;
 
     // Reset status to pending
     await supabase
       .from('automation_tasks')
       .update({
         status: 'pending',
-        error: null,
+        error_message: null,
         completed_at: null,
       })
       .eq('id', taskId);

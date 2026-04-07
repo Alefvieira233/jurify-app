@@ -137,7 +137,13 @@ export const useAgendamentos = (options?: UseAgendamentosOptions) => {
   // ── Mutations ──────────────────────────────────────────────────────────────
   const createMutation = useMutation({
     mutationFn: async (data: AgendamentoInput) => {
-      const payload = { ...data, tenant_id: data.tenant_id ?? tenantId ?? null };
+      const effectiveTenantId = data.tenant_id ?? tenantId;
+      if (!effectiveTenantId) throw new Error('Tenant não identificado');
+      const payload = {
+        ...data,
+        tenant_id: effectiveTenantId,
+        titulo: data.area_juridica ? `${data.area_juridica} - ${data.responsavel}` : `Agendamento - ${data.responsavel}`,
+      };
       const { data: row, error } = await supabase.from('agendamentos').insert([payload]).select().single();
       if (error) throw error;
       return normalizeAgendamento(row as AgendamentoRow);
@@ -167,9 +173,18 @@ export const useAgendamentos = (options?: UseAgendamentosOptions) => {
   const updateMutation = useMutation({
     mutationFn: async ({ id, updateData }: { id: string; updateData: Partial<AgendamentoInput> }) => {
       if (!tenantId) throw new Error('Tenant não identificado');
+      const { lead_id, area_juridica, data_hora, responsavel, observacoes, google_event_id, status: updateStatus } = updateData;
+      const updatePayload: Record<string, unknown> = { updated_at: new Date().toISOString() };
+      if (lead_id !== undefined) updatePayload.lead_id = lead_id;
+      if (area_juridica !== undefined) updatePayload.area_juridica = area_juridica;
+      if (data_hora !== undefined) updatePayload.data_hora = data_hora;
+      if (responsavel !== undefined) updatePayload.responsavel = responsavel;
+      if (observacoes !== undefined) updatePayload.observacoes = observacoes;
+      if (google_event_id !== undefined) updatePayload.google_event_id = google_event_id;
+      if (updateStatus !== undefined) updatePayload.status = updateStatus;
       const { data: row, error } = await supabase
         .from('agendamentos')
-        .update({ ...updateData, updated_at: new Date().toISOString() })
+        .update(updatePayload)
         .eq('id', id)
         .eq('tenant_id', tenantId)
         .select()

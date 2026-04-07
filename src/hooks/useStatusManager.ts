@@ -78,6 +78,7 @@ export function useStatusManager() {
     }) => {
       const maxPosition =
         stages.length > 0 ? Math.max(...stages.map((s) => s.position)) + 1 : 0;
+      if (!tenantId) throw new Error('Tenant não identificado');
       const { error } = await supabase.from('crm_pipeline_stages').insert({
         tenant_id: tenantId,
         name: values.name,

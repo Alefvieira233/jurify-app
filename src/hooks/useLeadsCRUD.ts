@@ -43,7 +43,7 @@ export function useLeadsCRUD({ qKey, queryData: _queryData, tenantId, queryClien
       };
       const { data: newLead, error } = await supabase
         .from('leads')
-        .insert([payload])
+        .insert([payload as typeof payload & { nome: string; tenant_id: string }])
         .select()
         .single();
       if (error) throw error;

@@ -137,16 +137,17 @@ interface ActiveExecutionsListProps {
 }
 
 function ActiveExecutionsList({ executions }: ActiveExecutionsListProps) {
-  const statusBadge = (status: AgentExecution['status']) => {
-    const config = {
-      pending: { variant: 'secondary' as const, label: 'Pendente' },
-      processing: { variant: 'default' as const, label: 'Processando' },
-      completed: { variant: 'default' as const, label: 'Completo' },
-      failed: { variant: 'destructive' as const, label: 'Falhou' },
-      cancelled: { variant: 'outline' as const, label: 'Cancelado' }
+  const statusBadge = (status: string) => {
+    const config: Record<string, { variant: 'secondary' | 'default' | 'destructive' | 'outline'; label: string }> = {
+      pending: { variant: 'secondary', label: 'Pendente' },
+      processing: { variant: 'default', label: 'Processando' },
+      completed: { variant: 'default', label: 'Completo' },
+      failed: { variant: 'destructive', label: 'Falhou' },
+      cancelled: { variant: 'outline', label: 'Cancelado' }
     };
 
-    return <Badge variant={config[status].variant}>{config[status].label}</Badge>;
+    const entry = config[status] ?? { variant: 'secondary', label: status };
+    return <Badge variant={entry.variant}>{entry.label}</Badge>;
   };
 
   if (executions.length === 0) {
@@ -200,11 +201,11 @@ function ActiveExecutionsList({ executions }: ActiveExecutionsListProps) {
                 </div>
                 <div>
                   <div className="text-muted-foreground">Tokens</div>
-                  <div className="font-semibold">{execution.total_tokens.toLocaleString()}</div>
+                  <div className="font-semibold">{(execution.total_tokens ?? 0).toLocaleString()}</div>
                 </div>
                 <div>
                   <div className="text-muted-foreground">Custo</div>
-                  <div className="font-semibold">${execution.estimated_cost_usd.toFixed(4)}</div>
+                  <div className="font-semibold">${(execution.estimated_cost_usd ?? 0).toFixed(4)}</div>
                 </div>
               </div>
               {execution.agents_involved && execution.agents_involved.length > 0 && (
@@ -216,9 +217,9 @@ function ActiveExecutionsList({ executions }: ActiveExecutionsListProps) {
                   ))}
                 </div>
               )}
-              {execution.error_message && (
+              {execution.status === 'failed' && (
                 <div className="mt-2 p-2 bg-destructive/10 rounded text-xs text-destructive">
-                  {execution.error_message}
+                  Execução falhou
                 </div>
               )}
             </CardContent>
@@ -291,7 +292,7 @@ function RealTimeTerminal({ logs }: RealTimeTerminalProps) {
                     log.status === 'processing' && 'text-blue-500',
                     log.status === 'pending' && 'text-yellow-500'
                   )}>
-                    [{log.status.toUpperCase()}]
+                    [{(log.status ?? 'unknown').toUpperCase()}]
                   </span>
                   {' '}
                   {log.result_preview && (

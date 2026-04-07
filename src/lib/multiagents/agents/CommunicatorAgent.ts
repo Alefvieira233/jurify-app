@@ -8,7 +8,8 @@
  * Responsável por marcar a execução como completa.
  */
 
-import { supabaseUntyped as supabase } from '@/integrations/supabase/client';
+import { supabase } from '@/integrations/supabase/client';
+import type { Json } from '@/integrations/supabase/types';
 import { BaseAgent } from '../core/BaseAgent';
 import { AgentMessage, AGENT_CONFIG } from '../types';
 import { createLogger } from '@/lib/logger';
@@ -254,25 +255,35 @@ Tom: executivo e objetivo. Ir direto ao ponto. Valorize: agilidade e objetividad
       }
 
       // Busca telefone do lead para enviar via WhatsApp
+      const leadId = payload.leadId;
+      if (!leadId) {
+        throw new Error('leadId is required to send proposal');
+      }
+
       const { data: lead } = await supabase
         .from('leads')
         .select('telefone, nome, tenant_id')
-        .eq('id', payload.leadId)
+        .eq('id', leadId)
         .single();
 
       // Salva no banco
+      const tenantId = lead?.tenant_id || (this.context?.metadata?.tenantId as string);
+      if (!tenantId) {
+        throw new Error('tenant_id is required to save interaction');
+      }
+
       const { error: insertError } = await supabase.from('lead_interactions').insert({
-        lead_id: payload.leadId,
+        lead_id: leadId,
         message: 'Proposta enviada',
         response: messageToSend,
-        tenant_id: lead?.tenant_id || this.context?.metadata?.tenantId,
-        channel: this.context?.metadata?.channel || 'whatsapp',
+        tenant_id: tenantId,
+        channel: (this.context?.metadata?.channel as string) || 'whatsapp',
         tipo: 'message',
         metadata: {
           agent_id: this.agentId,
           agent_name: this.name,
           stage: 'proposal_sent',
-        },
+        } as unknown as Json,
       });
       if (insertError) {
         log.error('Failed to save interaction', insertError.message);

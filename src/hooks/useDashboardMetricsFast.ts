@@ -75,9 +75,33 @@ const DEFAULT_METRICS: DashboardMetrics = {
   refreshedAt: null,
 };
 
+/** Shape returned by the get_dashboard_metrics RPC (not in generated types yet) */
+interface DashboardMetricsRow {
+  total_leads: number;
+  leads_novo_mes: number;
+  total_contratos: number;
+  contratos_assinados: number;
+  total_agendamentos: number;
+  agendamentos_hoje: number;
+  agendamentos_semana: number;
+  agentes_ativos: number;
+  execucoes_hoje: number;
+  total_execucoes: number;
+  execucoes_sucesso: number;
+  execucoes_erro: number;
+  status_novo: number;
+  status_em_contato: number;
+  status_em_qualificacao: number;
+  status_proposta: number;
+  status_negociacao: number;
+  status_ganho: number;
+  status_perdido: number;
+  refreshed_at: string | null;
+}
+
 async function fetchFromMaterializedView(tenantId: string): Promise<DashboardMetrics> {
-  // 1. Dashboard consolidado via RPC
-  const { data: dashData, error: dashError } = await supabase
+  // 1. Dashboard consolidado via RPC (not in generated types — cast needed)
+  const { data: dashData, error: dashError } = await (supabase as unknown as { rpc: (fn: string, args: Record<string, unknown>) => Promise<{ data: DashboardMetricsRow[] | null; error: { message: string } | null }> })
     .rpc('get_dashboard_metrics', { _tenant_id: tenantId });
 
   if (dashError || !dashData || (Array.isArray(dashData) && dashData.length === 0)) {
@@ -87,8 +111,8 @@ async function fetchFromMaterializedView(tenantId: string): Promise<DashboardMet
   const row = Array.isArray(dashData) ? dashData[0] : dashData;
   if (!row) throw new Error('No data returned');
 
-  // 2. Leads por área via RPC
-  const { data: areaData } = await supabase
+  // 2. Leads por área via RPC (not in generated types — cast needed)
+  const { data: areaData } = await (supabase as unknown as { rpc: (fn: string, args: Record<string, unknown>) => Promise<{ data: Array<{ area: string; total: number }> | null; error: unknown }> })
     .rpc('get_leads_por_area', { _tenant_id: tenantId });
 
   const leadsPorArea = (areaData || []).map((r: { area: string; total: number }) => ({
@@ -133,7 +157,7 @@ async function fetchFromMaterializedView(tenantId: string): Promise<DashboardMet
     leadsPorStatus: {
       novo: Number(row.status_novo) || 0,
       em_contato: Number(row.status_em_contato) || 0,
-      qualificado: Number(row.status_qualificado) || 0,
+      qualificado: Number(row.status_em_qualificacao) || 0,
       proposta: Number(row.status_proposta) || 0,
       negociacao: Number(row.status_negociacao) || 0,
       ganho: Number(row.status_ganho) || 0,

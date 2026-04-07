@@ -83,9 +83,9 @@ export default function GlobalSearch() {
       // Search leads (with visibility scope filtering)
       let leadsQuery = supabase
         .from('leads')
-        .select('id, nome_completo, email, status')
+        .select('id, nome, email, status')
         .eq('tenant_id', tenantId)
-        .or(`nome_completo.ilike.%${term}%,email.ilike.%${term}%`);
+        .or(`nome.ilike.%${term}%,email.ilike.%${term}%`);
 
       const visibilityScope = getLeadVisibilityScope();
       if (visibilityScope === 'own') {
@@ -105,7 +105,7 @@ export default function GlobalSearch() {
         searchResults.push({
           id: l.id,
           type: 'lead',
-          title: l.nome_completo || 'Sem nome',
+          title: l.nome || 'Sem nome',
           subtitle: `${l.email || ''} · ${l.status || 'novo'}`,
           route: '/leads',
         });

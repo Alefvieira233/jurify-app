@@ -3,6 +3,7 @@
 import { useCallback } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabaseUntyped as supabase } from '@/integrations/supabase/client';
+import type { Json } from '@/integrations/supabase/types';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { createLogger } from '@/lib/logger';
@@ -46,11 +47,11 @@ export const useActivityLogs = () => {
     const { data, error } = await supabase.rpc('buscar_logs_atividades', {
       _limite: limite,
       _offset: offset,
-      _usuario_id: filtros.usuario_id || null,
-      _tipo_acao: (filtros.tipo_acao as 'criacao' | 'edicao' | 'exclusao' | 'login' | 'logout' | 'erro' | 'outro') || null,
-      _modulo: filtros.modulo || null,
-      _data_inicio: filtros.data_inicio ? new Date(filtros.data_inicio).toISOString() : null,
-      _data_fim: filtros.data_fim ? new Date(filtros.data_fim).toISOString() : null
+      _usuario_id: filtros.usuario_id ?? undefined,
+      _tipo_acao: (filtros.tipo_acao as 'criacao' | 'edicao' | 'exclusao' | 'login' | 'logout' | 'erro' | 'outro') ?? undefined,
+      _modulo: filtros.modulo ?? undefined,
+      _data_inicio: filtros.data_inicio ? new Date(filtros.data_inicio).toISOString() : undefined,
+      _data_fim: filtros.data_fim ? new Date(filtros.data_fim).toISOString() : undefined,
     });
 
     if (error) throw error;
@@ -107,7 +108,7 @@ export const useActivityLogs = () => {
         _modulo: modulo,
         _descricao: descricao,
         _ip_usuario: 'client-side',
-        _detalhes_adicionais: detalhes_adicionais
+        _detalhes_adicionais: (detalhes_adicionais ?? undefined) as Json | undefined
       });
 
       if (error) throw error;
@@ -156,11 +157,11 @@ export const useActivityLogs = () => {
       const { data, error } = await supabase.rpc('buscar_logs_atividades', {
         _limite: 10000,
         _offset: 0,
-        _usuario_id: filtros.usuario_id || null,
-        _tipo_acao: (filtros.tipo_acao as 'criacao' | 'edicao' | 'exclusao' | 'login' | 'logout' | 'erro' | 'outro') || null,
-        _modulo: filtros.modulo || null,
-        _data_inicio: filtros.data_inicio ? new Date(filtros.data_inicio).toISOString() : null,
-        _data_fim: filtros.data_fim ? new Date(filtros.data_fim).toISOString() : null
+        _usuario_id: filtros.usuario_id ?? undefined,
+        _tipo_acao: (filtros.tipo_acao as 'criacao' | 'edicao' | 'exclusao' | 'login' | 'logout' | 'erro' | 'outro') ?? undefined,
+        _modulo: filtros.modulo ?? undefined,
+        _data_inicio: filtros.data_inicio ? new Date(filtros.data_inicio).toISOString() : undefined,
+        _data_fim: filtros.data_fim ? new Date(filtros.data_fim).toISOString() : undefined,
       });
 
       if (error) throw error;

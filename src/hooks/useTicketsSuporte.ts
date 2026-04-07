@@ -51,10 +51,11 @@ export function useTicketsSuporte() {
 
   const createTicket = useMutation({
     mutationFn: async (values: { tipo: string; conteudo: string }) => {
+      if (!tenantId || !profile?.id) throw new Error('Autenticação necessária');
       const { error } = await supabase.from('tickets_suporte').insert({
         ...values,
         tenant_id: tenantId,
-        criador_id: profile?.id,
+        criador_id: profile.id,
       });
       if (error) throw error;
     },

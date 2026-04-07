@@ -3,6 +3,11 @@
 import { useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabaseUntyped as supabase } from '@/integrations/supabase/client';
+
+// crm_followup_sequences and crm_followup_queue tables are not yet in the
+// generated types. Use a loosely-typed wrapper until types are regenerated.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const dynamicSupabase = supabase as any;
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { toUserMessage } from '@/lib/errorMessages';
@@ -72,7 +77,7 @@ export function useFollowUpSequences() {
     queryFn: async () => {
       if (!tenantId) return [];
 
-      const { data, error } = await supabase
+      const { data, error } = await dynamicSupabase
         .from('crm_followup_sequences')
         .select('id,tenant_id,name,description,trigger_event,is_active,steps,total_triggered,total_completed,created_at,updated_at')
         .eq('tenant_id', tenantId)
@@ -92,7 +97,7 @@ export function useFollowUpSequences() {
     mutationFn: async (input: CreateSequenceInput) => {
       if (!tenantId) throw new Error('Tenant não identificado');
 
-      const { data, error } = await supabase
+      const { data, error } = await dynamicSupabase
         .from('crm_followup_sequences')
         .insert([{
           tenant_id: tenantId,
@@ -131,7 +136,7 @@ export function useFollowUpSequences() {
       if (input.steps !== undefined) payload.steps = JSON.stringify(input.steps);
       if (input.is_active !== undefined) payload.is_active = input.is_active;
 
-      const { data, error } = await supabase
+      const { data, error } = await dynamicSupabase
         .from('crm_followup_sequences')
         .update(payload)
         .eq('id', id)
@@ -159,7 +164,7 @@ export function useFollowUpSequences() {
     mutationFn: async (id: string) => {
       if (!tenantId) throw new Error('Tenant não identificado');
 
-      const { error } = await supabase
+      const { error } = await dynamicSupabase
         .from('crm_followup_sequences')
         .delete()
         .eq('id', id)
@@ -210,7 +215,7 @@ export function useFollowUpSequences() {
       scheduled_at: new Date(now.getTime() + step.delay_hours * 60 * 60 * 1000).toISOString(),
     }));
 
-    const { error } = await supabase.from('crm_followup_queue').insert(queueItems);
+    const { error } = await dynamicSupabase.from('crm_followup_queue').insert(queueItems);
     if (error) {
       log.error('Erro ao enfileirar follow-ups', error);
       toast({ title: 'Erro', description: 'Falha ao programar follow-ups automáticos.', variant: 'destructive' });
@@ -218,7 +223,7 @@ export function useFollowUpSequences() {
     }
 
     // Update trigger count
-    await supabase
+    await dynamicSupabase
       .from('crm_followup_sequences')
       .update({ total_triggered: (sequence.total_triggered || 0) + 1 })
       .eq('id', sequenceId)

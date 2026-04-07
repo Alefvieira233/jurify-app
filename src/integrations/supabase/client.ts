@@ -11,7 +11,7 @@
  */
 
 import { createClient } from '@supabase/supabase-js';
-import type { Database } from './types';
+import type { Database } from './database-extended';
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
@@ -43,13 +43,13 @@ export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey, {
 export const supabaseTyped = supabase;
 
 /**
- * Untyped client for modules that reference tables not present in the
- * auto-generated Database type (e.g. agent_memories, workflow_queue).
- * Prefer `supabase` for all standard CRUD operations.
+ * @deprecated Use `supabase` directly — types were regenerated and cover all tables.
+ * This alias now points to the TYPED client. It exists only for backwards compatibility
+ * and will be removed in a future cleanup pass.
  */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export const supabaseUntyped = supabase as unknown as ReturnType<typeof createClient<any>>;
+export const supabaseUntyped = supabase;
 
 /** Re-export Database type for consumers that need it */
 export type { Database };
+export type { Json } from './types';
 

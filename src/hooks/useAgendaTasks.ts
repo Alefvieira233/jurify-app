@@ -18,6 +18,7 @@ import type { WorkflowConfig } from './useAgendaAutomation';
 export interface LeadData {
   email: string | null;
   nome: string | null;
+  /** Phone number used for WhatsApp — maps to leads.telefone */
   whatsapp: string | null;
   cpf_cnpj: string | null;
 }
@@ -32,12 +33,17 @@ export interface LeadData {
 export async function fetchLeadForAutomation(leadId: string): Promise<LeadData> {
   const { data: lead, error } = await supabase
     .from('leads')
-    .select('email, nome, whatsapp, cpf_cnpj')
+    .select('email, nome, telefone, cpf_cnpj')
     .eq('id', leadId)
     .single();
 
   if (error || !lead) throw new Error('Lead não encontrado');
-  return lead as LeadData;
+  return {
+    email: lead.email,
+    nome: lead.nome,
+    whatsapp: lead.telefone, // telefone is used for WhatsApp
+    cpf_cnpj: lead.cpf_cnpj,
+  };
 }
 
 /**
@@ -111,19 +117,19 @@ Escritório Jurídico
  * Creates a preparation task in the pipeline, due 1 day before the agendamento.
  */
 export async function createTask(agendamento: Agendamento, userId: string) {
+  if (!agendamento.tenant_id) throw new Error('Agendamento sem tenant_id');
   const task = {
     tenant_id: agendamento.tenant_id,
-    title: `Preparar ${agendamento.area_juridica} - ${agendamento.responsavel}`,
-    description: `Agendamento para ${new Date(agendamento.data_hora).toLocaleString('pt-BR')}`,
+    titulo: `Preparar ${agendamento.area_juridica ?? 'Consulta'} - ${agendamento.responsavel ?? 'Responsável'}`,
+    descricao: `Agendamento para ${new Date(agendamento.data_hora).toLocaleString('pt-BR')}`,
     lead_id: agendamento.lead_id,
-    assigned_to: agendamento.responsavel,
-    due_date: new Date(new Date(agendamento.data_hora).getTime() - 24 * 60 * 60 * 1000).toISOString(), // 1 dia antes
-    priority: 'high',
-    status: 'pending',
-    created_by: userId,
+    prazo: new Date(new Date(agendamento.data_hora).getTime() - 24 * 60 * 60 * 1000).toISOString(), // 1 dia antes
+    prioridade: 'alta',
+    status: 'pendente',
+    criador_id: userId,
   };
 
-  const { error } = await supabase.from('tasks').insert([task]);
+  const { error } = await supabase.from('tarefas').insert([task]);
   if (error) throw error;
 }
 

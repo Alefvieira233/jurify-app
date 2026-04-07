@@ -71,7 +71,7 @@ export const useFollowUps = () => {
 
       if (error) throw error;
 
-      return (data || []).map((f: FollowUp & { leads?: { nome?: string; telefone?: string; status?: string } | null }) => {
+      return (data || []).map((f) => {
         const lead = f.leads;
         return {
           ...f,
@@ -79,7 +79,7 @@ export const useFollowUps = () => {
           lead_phone: lead?.telefone || '',
           lead_status: lead?.status || '',
         };
-      });
+      }) as unknown as (FollowUp & { lead_name: string; lead_phone: string; lead_status: string })[];
     },
     enabled: !!user && !!tenantId,
     staleTime: 5 * 60 * 1000,
@@ -272,7 +272,7 @@ export const useFollowUps = () => {
         const { data, error } = await query;
         if (error) throw error;
 
-        const enriched = (data || []).map((f: FollowUp & { leads?: { nome?: string; telefone?: string; status?: string } | null }) => {
+        const enriched = (data || []).map((f) => {
           const lead = f.leads;
           return {
             ...f,
@@ -280,7 +280,7 @@ export const useFollowUps = () => {
             lead_phone: lead?.telefone || '',
             lead_status: lead?.status || '',
           };
-        });
+        }) as unknown as FollowUp[];
 
         queryClient.setQueryData(queryKeys.crmFollowups.list(tenantId), enriched);
       } catch (error) {

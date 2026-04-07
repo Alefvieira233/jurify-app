@@ -44,11 +44,11 @@ export function useUsuariosPermissoes() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('profiles')
-        .select('id, nome_completo, email, telefone, cargo, departamento, ativo, user_roles(role, ativo)')
-        .eq('tenant_id', tenantId)
+        .select('id, nome_completo, email, telefone, cargo, ativo, user_roles(role, ativo)')
+        .eq('tenant_id', tenantId!)
         .order('nome_completo');
       if (error) throw error;
-      return (data ?? []) as Membro[];
+      return (data ?? []) as unknown as Membro[];
     },
   });
 

@@ -30,31 +30,29 @@ export interface AgentStatus {
 export interface AgentExecution {
   id: string;
   execution_id: string;
-  lead_id?: string;
-  status: 'pending' | 'processing' | 'completed' | 'failed' | 'cancelled';
-  current_agent?: string;
-  current_stage?: string;
+  lead_id?: string | null;
+  status: string;
+  current_agent?: string | null;
+  current_stage?: string | null;
   started_at: string;
-  completed_at?: string;
-  total_duration_ms?: number;
-  agents_involved: string[];
-  total_agents_used?: number;
-  total_tokens: number;
-  estimated_cost_usd: number;
-  error_message?: string;
+  updated_at: string;
+  total_duration_ms?: number | null;
+  agents_involved: string[] | null;
+  total_agents_used?: number | null;
+  total_tokens: number | null;
+  estimated_cost_usd: number | null;
 }
 
 export interface AgentLog {
   id: string;
-  execution_id?: string;
   agent_name: string;
-  status: 'pending' | 'processing' | 'completed' | 'failed';
-  latency_ms?: number;
-  total_tokens: number;
-  model: string;
-  input_preview?: string;
-  result_preview?: string;
-  error_message?: string;
+  user_prompt: string | null;
+  result_preview: string | null;
+  status: string | null;
+  latency_ms: number | null;
+  error_message: string | null;
+  model: string | null;
+  total_tokens: number | null;
   created_at: string;
 }
 
@@ -140,7 +138,7 @@ export function useRealtimeAgents(tenantId?: string) {
       // Buscar execuÃ§Ãµes ativas
       const { data: executions, error: execError } = await supabase
         .from('agent_executions')
-        .select('id, execution_id, status, current_agent, current_stage, agents_involved, total_agents_used, total_tokens, estimated_cost_usd, error_message, started_at, completed_at, total_duration_ms')
+        .select('id, execution_id, status, current_agent, current_stage, agents_involved, total_agents_used, total_tokens, estimated_cost_usd, started_at, updated_at, total_duration_ms')
         .eq('tenant_id', tenantId)
         .in('status', ['pending', 'processing'])
         .order('started_at', { ascending: false })
@@ -169,7 +167,7 @@ export function useRealtimeAgents(tenantId?: string) {
     try {
       const { data: executions, error: execError } = await supabase
         .from('agent_executions')
-        .select('id, execution_id, status, current_agent, current_stage, agents_involved, total_agents_used, total_tokens, estimated_cost_usd, error_message, started_at, completed_at, total_duration_ms')
+        .select('id, execution_id, status, current_agent, current_stage, agents_involved, total_agents_used, total_tokens, estimated_cost_usd, started_at, updated_at, total_duration_ms')
         .eq('tenant_id', tenantId)
         .in('status', ['pending', 'processing'])
         .order('started_at', { ascending: false })
@@ -236,7 +234,7 @@ export function useRealtimeAgents(tenantId?: string) {
                     ...agent,
                     status: 'processing',
                     lastActivity: new Date(),
-                    currentTask: execution.current_stage
+                    currentTask: execution.current_stage ?? undefined
                   });
                 }
                 return newMap;
@@ -266,7 +264,7 @@ export function useRealtimeAgents(tenantId?: string) {
                     ...agent,
                     status: newStatus,
                     lastActivity: new Date(),
-                    currentTask: execution.current_stage
+                    currentTask: execution.current_stage ?? undefined
                   });
                 }
                 return newMap;
@@ -356,7 +354,7 @@ export function useRealtimeAgents(tenantId?: string) {
                 metrics: {
                   ...agent.metrics,
                   totalExecutions: agent.metrics.totalExecutions + 1,
-                  totalTokens: agent.metrics.totalTokens + logEntry.total_tokens
+                  totalTokens: agent.metrics.totalTokens + (logEntry.total_tokens ?? 0)
                 }
               });
 

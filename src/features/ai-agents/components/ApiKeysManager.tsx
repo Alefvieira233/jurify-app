@@ -47,7 +47,7 @@ const ApiKeysManager = () => {
       const { data, error } = await supabase
         .from('api_keys')
         .select('*')
-        .eq('tenant_id', tenantId)
+        .eq('tenant_id', tenantId!)
         .order('created_at', { ascending: false });
 
       if (error) throw error;

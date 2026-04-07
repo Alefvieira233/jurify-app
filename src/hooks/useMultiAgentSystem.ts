@@ -14,7 +14,7 @@
 import { useState, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { multiAgentSystem } from '@/lib/multiagents/MultiAgentSystem';
-import { MessageType, Priority } from '@/lib/multiagents/types';
+import { MessageType, Priority, type LeadData as MultiAgentLeadData } from '@/lib/multiagents/types';
 import { supabaseUntyped as supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
@@ -70,12 +70,12 @@ export const useMultiAgentSystem = () => {
 
       const { data: activity } = await supabase
         .from('lead_interactions')
-        .select('id, tenant_id, lead_id, interaction_type, metadata, created_at')
+        .select('id, tenant_id, lead_id, tipo, metadata, created_at')
         .eq('tenant_id', tenantId!)
         .order('created_at', { ascending: false })
         .limit(10);
 
-      return { systemStats: stats, recentActivity: (activity || []) as Record<string, unknown>[] };
+      return { systemStats: stats, recentActivity: (activity || []) as unknown as Record<string, unknown>[] };
     },
     enabled: !!tenantId,
     staleTime: 30 * 1000, // 30s to match previous interval
@@ -111,7 +111,7 @@ export const useMultiAgentSystem = () => {
         {
           name: 'Coordenador',
           specialization: 'Orquestracao',
-          messages_processed: interactions?.filter((i) => i.metadata?.agent_id === 'coordenador').length || 0,
+          messages_processed: interactions?.filter((i) => (i.metadata as Record<string, unknown> | null)?.agent_id === 'coordenador').length || 0,
           success_rate: 95,
           avg_response_time: 1.2,
           current_status: 'active',
@@ -119,7 +119,7 @@ export const useMultiAgentSystem = () => {
         {
           name: 'Qualificador',
           specialization: 'Qualificacao de Leads',
-          messages_processed: interactions?.filter((i) => i.metadata?.agent_id === 'qualificador').length || 0,
+          messages_processed: interactions?.filter((i) => (i.metadata as Record<string, unknown> | null)?.agent_id === 'qualificador').length || 0,
           success_rate: 88,
           avg_response_time: 2.1,
           current_status: 'active',
@@ -127,7 +127,7 @@ export const useMultiAgentSystem = () => {
         {
           name: 'Juridico',
           specialization: 'Analise Legal',
-          messages_processed: interactions?.filter((i) => i.metadata?.agent_id === 'juridico').length || 0,
+          messages_processed: interactions?.filter((i) => (i.metadata as Record<string, unknown> | null)?.agent_id === 'juridico').length || 0,
           success_rate: 92,
           avg_response_time: 3.5,
           current_status: 'active',
@@ -135,7 +135,7 @@ export const useMultiAgentSystem = () => {
         {
           name: 'Comercial',
           specialization: 'Vendas',
-          messages_processed: interactions?.filter((i) => i.metadata?.agent_id === 'comercial').length || 0,
+          messages_processed: interactions?.filter((i) => (i.metadata as Record<string, unknown> | null)?.agent_id === 'comercial').length || 0,
           success_rate: 75,
           avg_response_time: 2.8,
           current_status: 'active',
@@ -143,7 +143,7 @@ export const useMultiAgentSystem = () => {
         {
           name: 'Analista',
           specialization: 'Dados e Insights',
-          messages_processed: interactions?.filter((i) => i.metadata?.agent_id === 'analista').length || 0,
+          messages_processed: interactions?.filter((i) => (i.metadata as Record<string, unknown> | null)?.agent_id === 'analista').length || 0,
           success_rate: 98,
           avg_response_time: 4.2,
           current_status: 'idle',
@@ -151,7 +151,7 @@ export const useMultiAgentSystem = () => {
         {
           name: 'Comunicador',
           specialization: 'Comunicacao',
-          messages_processed: interactions?.filter((i) => i.metadata?.agent_id === 'comunicador').length || 0,
+          messages_processed: interactions?.filter((i) => (i.metadata as Record<string, unknown> | null)?.agent_id === 'comunicador').length || 0,
           success_rate: 94,
           avg_response_time: 1.8,
           current_status: 'active',
@@ -159,7 +159,7 @@ export const useMultiAgentSystem = () => {
         {
           name: 'Customer Success',
           specialization: 'Sucesso do Cliente',
-          messages_processed: interactions?.filter((i) => i.metadata?.agent_id === 'customer_success').length || 0,
+          messages_processed: interactions?.filter((i) => (i.metadata as Record<string, unknown> | null)?.agent_id === 'customer_success').length || 0,
           success_rate: 91,
           avg_response_time: 2.5,
           current_status: 'active',
@@ -210,7 +210,7 @@ export const useMultiAgentSystem = () => {
 
       const channel: Exclude<LeadSource, 'form'> =
         leadData.source === 'form' ? 'chat' : leadData.source;
-      await multiAgentSystem.processLead(savedLead, leadData.message, channel);
+      await multiAgentSystem.processLead(savedLead as unknown as MultiAgentLeadData, leadData.message, channel);
 
       return savedLead;
     },

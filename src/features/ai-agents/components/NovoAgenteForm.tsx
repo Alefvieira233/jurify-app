@@ -201,9 +201,14 @@ const NovoAgenteForm: React.FC<NovoAgenteFormProps> = ({ agente, defaultType, op
           description: "As configurações do agente foram atualizadas com sucesso",
         });
       } else {
+        if (!tenantId) throw new Error('Tenant não encontrado');
         const { error } = await supabase
           .from('agentes_ia')
-          .insert([sanitizedData]);
+          .insert([{
+            ...sanitizedData,
+            tenant_id: tenantId,
+            tipo: sanitizedData.tipo_agente || 'chat_interno',
+          }]);
 
         if (error) throw error;
 

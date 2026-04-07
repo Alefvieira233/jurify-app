@@ -37,14 +37,12 @@ interface AgentExecutionRow {
   status: string;
   current_agent: string | null;
   current_stage: string | null;
-  agents_involved: string[];
-  total_agents_used: number;
-  total_tokens: number;
-  estimated_cost_usd: number;
-  final_result: Record<string, unknown> | null;
-  error_message: string | null;
+  agents_involved: string[] | null;
+  total_agents_used: number | null;
+  total_tokens: number | null;
+  estimated_cost_usd: number | null;
   started_at: string;
-  completed_at: string | null;
+  completed_at?: string | null;
   total_duration_ms: number | null;
 }
 
@@ -76,10 +74,10 @@ function mapRowToState(row: AgentExecutionRow): PipelineState {
     totalAgentsUsed: row.total_agents_used || 0,
     totalTokens: row.total_tokens || 0,
     estimatedCostUsd: row.estimated_cost_usd || 0,
-    finalResult: row.final_result,
-    errorMessage: row.error_message,
+    finalResult: null,
+    errorMessage: null,
     startedAt: row.started_at,
-    completedAt: row.completed_at,
+    completedAt: row.completed_at ?? null,
     totalDurationMs: row.total_duration_ms,
   };
 }
@@ -101,7 +99,7 @@ export function useAgentPipeline(executionId: string | null) {
     try {
       const { data, error: fetchError } = await supabase
         .from('agent_executions')
-        .select('id, execution_id, status, current_agent, current_stage, agents_involved, total_agents_used, total_tokens, estimated_cost_usd, final_result, error_message, started_at, completed_at, total_duration_ms')
+        .select('id, execution_id, status, current_agent, current_stage, agents_involved, total_agents_used, total_tokens, estimated_cost_usd, started_at, total_duration_ms')
         .eq('execution_id', execId)
         .single();
 

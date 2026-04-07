@@ -85,9 +85,12 @@ export function useConexoes() {
 
   const createMutation = useMutation({
     mutationFn: async (input: Partial<ConexaoWhatsApp>) => {
+      // Strip joined/computed fields before inserting
+      const { departamento: _d, responsavel: _r, ...dbFields } = input;
+      const payload = { ...dbFields, tenant_id: tenantId! };
       const { data, error } = await supabase
         .from('conexoes_whatsapp')
-        .insert({ ...input, tenant_id: tenantId! })
+        .insert(payload as typeof payload & { nome: string })
         .select()
         .single();
       if (error) throw error;
@@ -104,9 +107,11 @@ export function useConexoes() {
 
   const updateMutation = useMutation({
     mutationFn: async ({ id, ...updates }: Partial<ConexaoWhatsApp> & { id: string }) => {
+      // Strip joined/computed fields before updating
+      const { departamento: _d, responsavel: _r, ...dbUpdates } = updates;
       const { data, error } = await supabase
         .from('conexoes_whatsapp')
-        .update(updates)
+        .update(dbUpdates)
         .eq('id', id)
         .eq('tenant_id', tenantId!)
         .select()

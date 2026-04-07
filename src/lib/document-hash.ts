@@ -9,7 +9,7 @@
  * @architecture Enterprise Grade
  */
 
-import { supabaseUntyped as supabase } from '@/integrations/supabase/client';
+import { supabase } from '@/integrations/supabase/client';
 import { createLogger } from '@/lib/logger';
 
 const log = createLogger('DocumentHash');
@@ -144,12 +144,20 @@ export class DocumentHashService {
 
       if (data && data.length > 0) {
         const record = data[0];
-        log.info('Document verified', { id: record.id, filename: record.original_filename });
-        return {
-          verified: true,
-          record: record as HashRecord,
-          message: `Documento autêntico. Registrado em ${new Date(record.created_at).toLocaleDateString('pt-BR')}.`,
-        };
+        if (record) {
+          log.info('Document verified', { id: record.id, filename: record.original_filename });
+          return {
+            verified: true,
+            record: {
+              id: record.id,
+              document_type: record.document_type as DocumentType,
+              original_filename: record.original_filename,
+              signed_by: record.signed_by,
+              created_at: record.created_at,
+            } as HashRecord,
+            message: `Documento autêntico. Registrado em ${new Date(record.created_at).toLocaleDateString('pt-BR')}.`,
+          };
+        }
       }
 
       log.warn('Document hash not found', { hash: contentHash.substring(0, 16) });

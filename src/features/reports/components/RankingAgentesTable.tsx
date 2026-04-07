@@ -6,6 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Bot, User } from 'lucide-react';
 import { supabaseUntyped as supabase } from '@/integrations/supabase/client';
+import type { Json } from '@/integrations/supabase/types';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRBAC } from '@/hooks/useRBAC';
 
@@ -23,24 +24,20 @@ interface AgenteStats {
 }
 
 
-type LeadMetadata = {
-  responsavel_nome?: string | null;
-};
-
 type LeadRow = {
-  area_juridica?: string | null;
-  metadata?: LeadMetadata | null;
-  valor_causa?: number | null;
-  status?: string | null;
-  created_at?: string | null;
+  area_juridica: string | null;
+  metadata: Json | null;
+  valor_causa: number | null;
+  status: string | null;
+  created_at: string | null;
 };
 
 type ContractRow = {
-  responsavel?: string | null;
-  valor_causa?: number | null;
-  status?: string | null;
-  status_assinatura?: string | null;
-  created_at?: string | null;
+  responsavel_id: string | null;
+  valor_causa: number | null;
+  status: string | null;
+  status_assinatura: string | null;
+  created_at: string | null;
 };
 
 const normalizeLabel = (value: string) => value.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
@@ -107,7 +104,7 @@ const RankingAgentesTable: React.FC<RankingAgentesTableProps> = ({ periodo }) =>
         leadsQuery,
         supabase
           .from('contratos')
-          .select('responsavel, valor_causa, status, status_assinatura, created_at')
+          .select('responsavel_id, valor_causa, status, status_assinatura, created_at')
           .eq('tenant_id', tenantId!)
           .gte('created_at', dataInicio),
       ]);
@@ -126,7 +123,7 @@ const RankingAgentesTable: React.FC<RankingAgentesTableProps> = ({ periodo }) =>
           if (agente && agente.nome && agente.area_juridica) {
             const leadsDoAgente = leadRows.filter(lead => lead?.area_juridica === agente.area_juridica);
             const contratosDoAgente = contractRows.filter(contrato =>
-              normalizeLabel(contrato?.responsavel || '') === iaResponsavel &&
+              normalizeLabel(contrato?.responsavel_id || '') === iaResponsavel &&
               (contrato?.status === 'assinado' || contrato?.status_assinatura === 'assinado')
             ) || [];
 
@@ -142,18 +139,26 @@ const RankingAgentesTable: React.FC<RankingAgentesTableProps> = ({ periodo }) =>
         });
       }
 
+      const getMetadataResponsavel = (meta: Json | null): string | null => {
+        if (meta && typeof meta === 'object' && !Array.isArray(meta)) {
+          const val = (meta as Record<string, Json | undefined>).responsavel_nome;
+          return typeof val === 'string' ? val : null;
+        }
+        return null;
+      };
+
       const responsaveisHumanos = leadRows.length > 0 ?
         [...new Set(leadRows
-          .map(lead => lead?.metadata?.responsavel_nome)
-          .filter(resp => resp && normalizeLabel(resp) !== iaResponsavel && typeof resp === 'string')
+          .map(lead => getMetadataResponsavel(lead?.metadata))
+          .filter((resp): resp is string => !!resp && normalizeLabel(resp) !== iaResponsavel)
         )] : [];
 
       if (responsaveisHumanos.length > 0) {
         responsaveisHumanos.forEach(responsavel => {
           if (responsavel && typeof responsavel === 'string') {
-            const leadsDoResponsavel = leadRows.filter(lead => lead?.metadata?.responsavel_nome === responsavel);
+            const leadsDoResponsavel = leadRows.filter(lead => getMetadataResponsavel(lead?.metadata) === responsavel);
             const contratosDoResponsavel = contractRows.filter(contrato =>
-              contrato?.responsavel === responsavel &&
+              contrato?.responsavel_id === responsavel &&
               (contrato?.status === 'assinado' || contrato?.status_assinatura === 'assinado')
             ) || [];
 

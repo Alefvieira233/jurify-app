@@ -86,11 +86,13 @@ export function useTarefas(options?: UseTarefasOptions) {
 
   const createTarefa = useMutation({
     mutationFn: async (values: Record<string, unknown>) => {
+      if (!tenantId || !profile?.id) throw new Error('Autenticação necessária');
       const { error } = await supabase.from('tarefas').insert({
         ...values,
         tenant_id: tenantId,
-        criador_id: profile?.id,
-      });
+        criador_id: profile.id,
+        titulo: (values.titulo as string) ?? '',
+      } as Record<string, unknown> & { tenant_id: string; criador_id: string; titulo: string });
       if (error) throw error;
     },
     onSuccess: () => {

@@ -88,7 +88,7 @@ export const useAgentesIA = () => {
     return {
       ...rest,
       tipo_agente: tipo_agente ?? null,
-      status: status ?? undefined,
+      status: status ?? null,
     };
   }, []);
 
@@ -142,7 +142,8 @@ export const useAgentesIA = () => {
     }
 
     try {
-      const payload = { ...mapAgenteInputToDb(data), tenant_id: tenantId };
+      const mapped = mapAgenteInputToDb(data);
+      const payload = { ...mapped, tenant_id: tenantId, tipo: mapped.tipo_agente ?? 'generico' };
       const { data: newAgente, error } = await supabase
         .from('agentes_ia')
         .insert([payload])
@@ -175,9 +176,15 @@ export const useAgentesIA = () => {
     if (!user || !tenantId) return false;
 
     try {
+      const dbData = mapAgenteInputToDb(updateData as CreateAgenteData);
+      const { parametros_avancados, ...restDbData } = dbData;
+      const updatePayload: Record<string, unknown> = { ...restDbData, updated_at: new Date().toISOString() };
+      if (parametros_avancados !== undefined) {
+        updatePayload.parametros_avancados = parametros_avancados;
+      }
       let query = supabase
         .from('agentes_ia')
-        .update({ ...mapAgenteInputToDb(updateData as CreateAgenteData), updated_at: new Date().toISOString() })
+        .update(updatePayload)
         .eq('id', id);
 
       query = query.eq('tenant_id', tenantId);

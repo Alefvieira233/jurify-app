@@ -7,6 +7,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { queryKeys } from '@/lib/queryKeys';
 import { useAgendaAutomation } from '@/hooks/useAgendaAutomation';
+import type { Agendamento } from '@/hooks/useAgendamentos';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -84,7 +85,8 @@ export const NovoAgendamentoForm = ({ onClose }: NovoAgendamentoFormProps) => {
         .from('agendamentos')
         .insert([
           {
-            tenant_id: tenantId,
+            tenant_id: tenantId!,
+            titulo: `${data.area_juridica} - ${data.responsavel}`,
             lead_id: data.lead_id || null,
             area_juridica: data.area_juridica,
             data_hora: data.data_hora,
@@ -110,7 +112,8 @@ export const NovoAgendamentoForm = ({ onClose }: NovoAgendamentoFormProps) => {
           ...result,
           tenant_id: tenantId!,
           user_id: user?.id || '',
-        };
+          created_at: result.created_at ?? new Date().toISOString(),
+        } as Agendamento & { user_id: string };
 
         try {
           await runAutomation(agendamento, automationConfig);

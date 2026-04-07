@@ -48,7 +48,7 @@ const LogsMonitoramento = () => {
     return log.status === statusFilter;
   });
 
-  const getStatusIcon = (status: string) => {
+  const getStatusIcon = (status: string | null) => {
     switch (status) {
       case 'success':
         return <CheckCircle className="h-4 w-4 text-green-500" />;
@@ -61,7 +61,7 @@ const LogsMonitoramento = () => {
     }
   };
 
-  const getStatusColor = (status: string) => getStatusClasses('logs', status);
+  const getStatusColor = (status: string | null) => getStatusClasses('logs', status ?? '');
 
   const formatTempo = (tempo: number | null) => {
     if (!tempo) return '-';

@@ -5,6 +5,7 @@
 import { useState, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabaseUntyped as supabase } from '@/integrations/supabase/client';
+import type { Json } from '@/integrations/supabase/types';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { GoogleOAuthService, type CalendarEvent } from '@/lib/google/GoogleOAuthService';
@@ -32,10 +33,8 @@ export const useGoogleCalendar = () => {
   const tenantId = profile?.tenant_id || null;
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  // Cast needed: google_calendar_settings table may not be in generated types yet
-  const supabaseAny = supabase as unknown as {
-    from: (table: string) => ReturnType<typeof supabase.from>;
-  };
+  // google_calendar_settings is in the types but doesn't have tenant_id.
+  // We scope by user_id instead (one settings row per user).
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   interface GoogleCalendar {
     id: string;
@@ -49,10 +48,9 @@ export const useGoogleCalendar = () => {
   const { data: settings = null, isLoading: loading } = useQuery({
     queryKey: queryKeys.googleCalendarSettings.detail(tenantId, user?.id),
     queryFn: async () => {
-      const { data, error } = await supabaseAny
+      const { data, error } = await supabase
         .from('google_calendar_settings')
-        .select('id, tenant_id, user_id, calendar_enabled, auto_sync, sync_direction, notification_enabled, calendar_id, created_at, updated_at')
-        .eq('tenant_id', tenantId!)
+        .select('id, user_id, calendar_enabled, auto_sync, sync_direction, notification_enabled, calendar_id, created_at, updated_at')
         .eq('user_id', user!.id)
         .single();
 
@@ -64,15 +62,14 @@ export const useGoogleCalendar = () => {
 
       if (!settingsResult) {
         const defaultSettings = {
-          tenant_id: tenantId!,
           user_id: user!.id,
           calendar_enabled: false,
           auto_sync: true,
-          sync_direction: 'jurify_to_google' as const,
+          sync_direction: 'jurify_to_google',
           notification_enabled: true,
         };
 
-        const { data: newSettings, error: createError } = await supabaseAny
+        const { data: newSettings, error: createError } = await supabase
           .from('google_calendar_settings')
           .insert([defaultSettings])
           .select()
@@ -86,7 +83,7 @@ export const useGoogleCalendar = () => {
       const token = await GoogleOAuthService.loadTokens(user!.id);
       setIsAuthenticated(!!token);
 
-      return settingsResult as GoogleCalendarSettings;
+      return { ...settingsResult, tenant_id: tenantId!, user_id: user!.id } as GoogleCalendarSettings;
     },
     enabled: !!user?.id && !!tenantId,
     staleTime: 5 * 60 * 1000,
@@ -94,16 +91,16 @@ export const useGoogleCalendar = () => {
 
   const updateSettingsMutation = useMutation({
     mutationFn: async (updates: Partial<GoogleCalendarSettings>) => {
-      const { data, error } = await supabaseAny
+      const { tenant_id: _t, user_id: _u, id: _i, created_at: _c, ...dbUpdates } = updates;
+      const { data, error } = await supabase
         .from('google_calendar_settings')
-        .update({ ...updates, updated_at: new Date().toISOString() })
-        .eq('tenant_id', tenantId!)
+        .update({ ...dbUpdates, updated_at: new Date().toISOString() })
         .eq('user_id', user!.id)
         .select()
         .single();
 
       if (error) throw error;
-      return data as GoogleCalendarSettings;
+      return { ...data, tenant_id: tenantId!, user_id: user!.id } as GoogleCalendarSettings;
     },
     onSuccess: (data) => {
       queryClient.setQueryData(queryKeys.googleCalendarSettings.detail(tenantId, user?.id), data);
@@ -282,13 +279,12 @@ export const useGoogleCalendar = () => {
       );
 
       await supabase.from('google_calendar_sync_logs').insert([{
-        tenant_id: tenantId,
         user_id: user.id,
         action: 'create',
         agendamento_id: agendamentoId,
         google_event_id: googleEvent.id,
         status: 'success',
-        sync_data: calendarEvent,
+        sync_data: calendarEvent as unknown as Json,
       }]);
 
       // Invalidate agendamentos cache so UI reflects sync status
@@ -297,7 +293,6 @@ export const useGoogleCalendar = () => {
       return googleEvent.id;
     } catch (error: unknown) {
       await supabase.from('google_calendar_sync_logs').insert([{
-        tenant_id: tenantId,
         user_id: user.id,
         action: 'create',
         agendamento_id: agendamentoId,
@@ -338,13 +333,12 @@ export const useGoogleCalendar = () => {
       );
 
       await supabase.from('google_calendar_sync_logs').insert([{
-        tenant_id: tenantId,
         user_id: user.id,
         action: 'update',
         agendamento_id: agendamentoId,
         google_event_id: googleEventId,
         status: 'success',
-        sync_data: calendarEvent,
+        sync_data: calendarEvent as unknown as Json,
       }]);
 
       // Invalidate agendamentos cache so UI reflects sync status
@@ -353,7 +347,6 @@ export const useGoogleCalendar = () => {
       return true;
     } catch (error: unknown) {
       await supabase.from('google_calendar_sync_logs').insert([{
-        tenant_id: tenantId,
         user_id: user.id,
         action: 'update',
         agendamento_id: agendamentoId,
@@ -379,7 +372,6 @@ export const useGoogleCalendar = () => {
       );
 
       await supabase.from('google_calendar_sync_logs').insert([{
-        tenant_id: tenantId,
         user_id: user.id,
         action: 'delete',
         agendamento_id: agendamentoId,
@@ -390,7 +382,6 @@ export const useGoogleCalendar = () => {
       return true;
     } catch (error: unknown) {
       await supabase.from('google_calendar_sync_logs').insert([{
-        tenant_id: tenantId,
         user_id: user.id,
         action: 'delete',
         agendamento_id: agendamentoId,

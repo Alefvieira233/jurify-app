@@ -39,7 +39,7 @@ const ContratoCard = memo(({ contrato, onOpenDetails, onDelete, getStatusColor, 
               <span className="font-medium">Area Juridica:</span> {contrato.area_juridica}
             </div>
             <div>
-              <span className="font-medium">Responsavel:</span> {contrato.responsavel}
+              <span className="font-medium">Responsavel:</span> {contrato.responsavel_id ?? 'N/A'}
             </div>
             <div>
               <span className="font-medium">Valor da Causa:</span> {fmtCurrency(Number(contrato.valor_causa))}
@@ -63,7 +63,7 @@ const ContratoCard = memo(({ contrato, onOpenDetails, onDelete, getStatusColor, 
           )}
 
           <div className="text-xs text-[hsl(var(--muted-foreground))]">
-            Criado em: {fmtDate(contrato.created_at)}
+            Criado em: {fmtDate(contrato.created_at ?? '')}
           </div>
         </div>
 

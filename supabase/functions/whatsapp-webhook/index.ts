@@ -463,13 +463,28 @@ Deno.serve(async (req) => {
 
       const { data } = await supabase
         .from("configuracoes_integracoes")
-        .select("id")
+        .select("id, verify_token_encrypted")
         .eq("nome_integracao", INTEGRATION_NAME_META)
-        .eq("verify_token", token)
-        .limit(1)
-        .maybeSingle();
+        .eq("status", "ativa")
+        .not("verify_token_encrypted", "is", null)
+        .limit(10);
 
-      if (data) {
+      // Compare token against each tenant's encrypted verify_token
+      let tokenMatch = false;
+      if (data && data.length > 0) {
+        const { decrypt } = await import("../_shared/crypto.ts");
+        for (const cfg of data) {
+          try {
+            const decrypted = await decrypt(cfg.verify_token_encrypted);
+            if (decrypted === token) {
+              tokenMatch = true;
+              break;
+            }
+          } catch { /* skip invalid entries */ }
+        }
+      }
+
+      if (tokenMatch) {
         return new Response(challenge, {
           headers: { "Content-Type": "text/plain" },
           status: 200,
@@ -563,14 +578,17 @@ Deno.serve(async (req) => {
                   .maybeSingle();
 
                 if (profile?.tenant_id) {
+                  // Auto-repair: create placeholder config (tenant must configure real key via UI)
+                  const { encrypt } = await import("../_shared/crypto.ts");
+                  const placeholderEncrypted = await encrypt("kapso_managed");
                   const { error: insertErr } = await supabase
                     .from("configuracoes_integracoes")
                     .insert({
                       nome_integracao: INTEGRATION_NAME_KAPSO,
-                      status: "ativa",
-                      api_key: "kapso_managed",
+                      status: "inativa",
+                      api_key_encrypted: placeholderEncrypted,
                       endpoint_url: Deno.env.get("KAPSO_API_URL") || "https://api.kapso.ai",
-                      observacoes: `Instance: ${instanceName}`,
+                      observacoes: JSON.stringify({ instance: instanceName }),
                       tenant_id: profile.tenant_id,
                     });
                   if (insertErr) {
@@ -1458,20 +1476,25 @@ async function sendViaMeta(to: string, text: string, tenantId: string, supabase:
   let phoneNumberId = Deno.env.get("WHATSAPP_PHONE_NUMBER_ID") || "";
 
   // Tenta buscar credenciais da integração Meta scoped by tenant
-  let configQuery = supabase
-    .from("configuracoes_integracoes")
-    .select("api_key, endpoint_url")
-    .eq("nome_integracao", INTEGRATION_NAME_META)
-    .eq("status", "ativa");
-
   if (tenantId) {
-    configQuery = configQuery.eq("tenant_id", tenantId);
+    const { data: config } = await supabase
+      .from("configuracoes_integracoes")
+      .select("api_key_encrypted, endpoint_url")
+      .eq("nome_integracao", INTEGRATION_NAME_META)
+      .eq("status", "ativa")
+      .eq("tenant_id", tenantId)
+      .maybeSingle();
+
+    if (config?.api_key_encrypted) {
+      try {
+        const { decrypt } = await import("../_shared/crypto.ts");
+        accessToken = await decrypt(config.api_key_encrypted);
+      } catch (err) {
+        console.error("[webhook:meta] Failed to decrypt Meta access token:", err instanceof Error ? err.message : err);
+      }
+    }
+    if (config?.endpoint_url) phoneNumberId = config.endpoint_url;
   }
-
-  const { data: config } = await configQuery.maybeSingle();
-
-  if (config?.api_key) accessToken = config.api_key;
-  if (config?.endpoint_url) phoneNumberId = config.endpoint_url;
 
   if (!accessToken || !phoneNumberId) {
     console.error("[webhook:meta] Missing credentials for sending");

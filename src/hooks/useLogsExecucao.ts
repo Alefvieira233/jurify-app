@@ -23,7 +23,7 @@ interface LogExecucao {
   agent_name: string;
   user_prompt: string | null;
   result_preview: string | null;
-  status: string;
+  status: string | null;
   latency_ms: number | null;
   error_message: string | null;
   model: string | null;
@@ -36,8 +36,8 @@ interface LogExecucao {
 
 function computeStats(logs: LogExecucao[]) {
   const total = logs.length;
-  const sucessos = logs.filter(l => l.status === 'success').length;
-  const erros = logs.filter(l => l.status === 'error').length;
+  const sucessos = logs.filter(l => l.status === 'success' || l.status === 'completed').length;
+  const erros = logs.filter(l => l.status === 'error' || l.status === 'failed').length;
   const temposValidos = logs.filter(l => l.latency_ms).map(l => l.latency_ms!);
   const tempoMedio = temposValidos.length > 0
     ? temposValidos.reduce((acc, t) => acc + t, 0) / temposValidos.length

@@ -2,6 +2,7 @@
 
 import { useCallback } from 'react';
 import { supabaseUntyped as supabase } from '@/integrations/supabase/client';
+import type { Json } from '@/integrations/supabase/types';
 import { useAuth } from '@/contexts/AuthContext';
 import { createLogger } from '@/lib/logger';
 
@@ -38,7 +39,7 @@ export function useConsentLog() {
         accepted,
         ip_address: null, // collected server-side if needed
         user_agent: navigator.userAgent,
-        metadata: metadata || {},
+        metadata: (metadata || {}) as Json,
       }]);
 
       if (error) {

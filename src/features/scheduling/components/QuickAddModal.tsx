@@ -48,7 +48,8 @@ export const QuickAddModal = ({ open, onClose, date, onSuccess }: QuickAddModalP
       const { data: result, error } = await supabase
         .from('agendamentos')
         .insert({
-          tenant_id: tenantId,
+          tenant_id: tenantId!,
+          titulo: data.title || `${data.area_juridica || 'Consulta'} - ${data.responsavel || 'A definir'}`,
           lead_id: null, // Quick add sem lead inicialmente
           area_juridica: data.area_juridica || 'Consulta',
           data_hora: startDateTime.toISOString(),

@@ -4,6 +4,7 @@ import { useState, useCallback } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { toUserMessage } from '@/lib/errorMessages';
 import { supabaseUntyped as supabase } from '@/integrations/supabase/client';
+import type { Json } from '@/integrations/supabase/types';
 import { AgentType } from '@/lib/multiagents/types';
 
 export interface CreateAgentRequest {
@@ -86,6 +87,7 @@ export const useAgentCrud = (tenantId: string | null, onSuccess?: () => void | P
         .from('agentes_ia')
         .insert({
           nome: agentData.name,
+          tipo: agentData.type,
           tipo_agente: agentData.type,
           area_juridica: agentData.area_juridica,
           prompt_base: agentData.prompt_base,
@@ -95,7 +97,7 @@ export const useAgentCrud = (tenantId: string | null, onSuccess?: () => void | P
             specialization: agentData.specialization,
             max_interactions: agentData.max_interactions,
             escalation_rules: escalationRules,
-          },
+          } as unknown as Json,
           ativo: true,
           tenant_id: tenantId,
           created_at: new Date().toISOString(),
@@ -145,7 +147,7 @@ export const useAgentCrud = (tenantId: string | null, onSuccess?: () => void | P
           .eq('tenant_id', tenantId)
           .single();
 
-        const currentParams = currentAgent?.parametros_avancados || {};
+        const currentParams = (currentAgent?.parametros_avancados as Record<string, unknown>) || {};
 
         updateData.parametros_avancados = {
           ...currentParams,
@@ -226,7 +228,7 @@ export const useAgentCrud = (tenantId: string | null, onSuccess?: () => void | P
         .gte('created_at', new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString());
 
       const recentAgentInteractions = (activeConversations || []).filter((interaction) =>
-        interaction?.metadata?.agent_id === agentId
+        (interaction?.metadata as Record<string, unknown> | null)?.agent_id === agentId
       );
 
       if (recentAgentInteractions.length > 0) {

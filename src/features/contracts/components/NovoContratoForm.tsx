@@ -29,15 +29,16 @@ interface NovoContratoFormProps {
 
 type ContratoInsert = {
   tenant_id: string;
+  titulo: string;
   lead_id: string | null;
   nome_cliente: string;
   area_juridica: string;
   valor_causa: number;
-  responsavel: string;
+  responsavel_id: string | null;
   texto_contrato: string;
   clausulas_customizadas: string | null;
   data_assinatura: string | null;
-  status: 'rascunho';
+  status: string;
   created_at: string;
 };
 
@@ -241,15 +242,16 @@ export const NovoContratoForm = ({ onClose }: NovoContratoFormProps) => {
 
     const contratoData: ContratoInsert = {
       tenant_id: tenantId,
+      titulo: `Contrato - ${data.nome_cliente.trim().substring(0, 150)}`,
       lead_id: data.lead_id || null,
       nome_cliente: data.nome_cliente.trim().substring(0, 200),
       area_juridica: data.area_juridica.trim(),
       valor_causa: Math.max(0, Math.min(999999999, Number(data.valor_causa))),
-      responsavel: data.responsavel.trim(),
+      responsavel_id: null,
       texto_contrato: data.texto_contrato.trim().substring(0, 10000),
       clausulas_customizadas: data.clausulas_customizadas?.trim().substring(0, 5000) || null,
       data_assinatura: data.data_assinatura ? new Date(data.data_assinatura).toISOString() : null,
-      status: 'rascunho' as const,
+      status: 'rascunho',
       created_at: new Date().toISOString(),
     };
 

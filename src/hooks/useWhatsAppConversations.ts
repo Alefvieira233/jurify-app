@@ -128,7 +128,7 @@ export const useWhatsAppConversations = (): UseWhatsAppConversationsReturn => {
       if (fetchError) throw fetchError;
 
       // Reverse to show oldest first in UI
-      const msgs = data || [];
+      const msgs = (data || []) as unknown as WhatsAppMessage[];
       setMessages(msgs.reverse());
       setHasMoreMessages(msgs.length === MESSAGE_PAGE_SIZE);
       log.debug(`${data?.length || 0} mensagens carregadas`);

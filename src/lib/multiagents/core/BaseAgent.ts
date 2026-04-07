@@ -8,7 +8,8 @@
  * @security Enterprise Grade - API keys protegidas
  */
 
-import { supabaseUntyped as supabase } from '@/integrations/supabase/client';
+import { supabase } from '@/integrations/supabase/client';
+import type { Json } from '@/integrations/supabase/types';
 import { DEFAULT_OPENAI_MODEL } from '@/lib/ai/model';
 import { ExecutionTracker } from './ExecutionTracker';
 import { agentMemory } from './AgentMemory';
@@ -254,20 +255,20 @@ export abstract class BaseAgent implements IAgent {
         ? SanitizerEngine.rehydrate(data.result, piiLookup) as string
         : data.result;
 
-      if (this.context?.leadId) {
+      if (this.context?.leadId && tenantId) {
         const { error: logError } = await supabase
           .from('lead_interactions')
           .insert({
             lead_id: this.context.leadId,
             message: prompt,
             response: rehydratedResult,
-            tenant_id: this.context.metadata?.tenantId || null,
-            channel: this.context.metadata?.channel || 'chat',
+            tenant_id: tenantId,
+            channel: (this.context.metadata?.channel as string) || 'chat',
             tipo: 'message',
             metadata: {
               agent_id: this.agentId,
               agent_name: this.name,
-            },
+            } as unknown as Json,
           });
 
         if (logError) {

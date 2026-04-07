@@ -34,7 +34,7 @@ export const useNotificationTemplates = () => {
       const { data, error } = await supabase
         .from('notification_templates')
         .select('id, name, title, template, event_type, is_active, roles_enabled, tenant_id')
-        .eq('tenant_id', tenantId)
+        .eq('tenant_id', tenantId!)
         .order('event_type');
 
       if (error) throw error;
@@ -50,7 +50,7 @@ export const useNotificationTemplates = () => {
         .from('notification_templates')
         .update(template)
         .eq('id', template.id)
-        .eq('tenant_id', tenantId);
+        .eq('tenant_id', tenantId!);
 
       if (error) throw error;
     },

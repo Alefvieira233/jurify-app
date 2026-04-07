@@ -33,6 +33,7 @@ const SystemHealthCheck = () => {
   const [overallScore, setOverallScore] = useState(0);
 
   const performHealthCheck = useCallback(async () => {
+    if (!tenantId) return;
     setIsLoading(true);
     const checks: HealthCheck[] = [];
     let score = 0;
@@ -104,7 +105,7 @@ const SystemHealthCheck = () => {
         const { error } = await supabase
           .from('profiles')
           .select('id')
-          .eq('tenant_id', tenantId)
+          .eq('tenant_id', tenantId!)
           .eq('id', user?.id || '')
           .limit(1);
 
@@ -136,7 +137,7 @@ const SystemHealthCheck = () => {
         const { data: workflows } = await supabase
           .from('n8n_workflows')
           .select('id')
-          .eq('tenant_id', tenantId)
+          .eq('tenant_id', tenantId!)
           .eq('ativo', true)
           .limit(1);
 
@@ -174,7 +175,7 @@ const SystemHealthCheck = () => {
         const { error } = await supabase
           .from('logs_atividades')
           .select('count')
-          .eq('tenant_id', tenantId)
+          .eq('tenant_id', tenantId!)
           .limit(1);
 
         if (!error) {

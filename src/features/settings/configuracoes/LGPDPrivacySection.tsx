@@ -29,7 +29,7 @@ const LGPDPrivacySection = () => {
     addSentryBreadcrumb('LGPD data export requested', 'lgpd', 'info');
 
     try {
-      const tables = ['profiles', 'leads', 'contratos', 'agendamentos', 'notifications', 'activity_logs'];
+      const tables = ['profiles', 'leads', 'contratos', 'agendamentos'] as const;
       const exportData: Record<string, unknown> = {
         exportDate: new Date().toISOString(),
         userId: user.id,
@@ -42,7 +42,7 @@ const LGPDPrivacySection = () => {
           const { data, error } = await supabase
             .from(table)
             .select('*')
-            .eq('tenant_id', tenantId)
+            .eq('tenant_id', tenantId!)
             .limit(10000);
           if (!error && data) {
             exportData[table] = data;

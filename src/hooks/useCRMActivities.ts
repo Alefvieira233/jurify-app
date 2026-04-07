@@ -3,6 +3,7 @@
 import { useCallback, useState } from 'react';
 import { useMutation } from '@tanstack/react-query';
 import { supabaseUntyped as supabase } from '@/integrations/supabase/client';
+import type { Json } from '@/integrations/supabase/types';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { createLogger } from '@/lib/logger';
@@ -62,7 +63,7 @@ export const useCRMActivities = () => {
 
       const { data, error } = await query;
       if (error) throw error;
-      setActivities(data || []);
+      setActivities((data || []) as unknown as Activity[]);
     } catch (error) {
       log.error('Failed to fetch activities', error);
     } finally {
@@ -83,7 +84,7 @@ export const useCRMActivities = () => {
           activity_type: data.activity_type,
           title: data.title,
           description: data.description || null,
-          metadata: data.metadata || {},
+          metadata: (data.metadata || {}) as Json,
           scheduled_at: data.scheduled_at || null,
         });
       if (error) throw error;

@@ -43,7 +43,7 @@ export const useCRMPipeline = () => {
 
       if (error) throw error;
 
-      const stageIds = (data || []).map((s: PipelineStage) => s.id);
+      const stageIds = (data || []).map((s) => s.id);
 
       // Bulk query: get all leads for these stages in ONE call (not N+1)
       const { data: allLeads } = stageIds.length > 0
@@ -65,11 +65,15 @@ export const useCRMPipeline = () => {
         }
       }
 
-      return (data || []).map((stage: PipelineStage) => ({
+      return (data || []).map((stage) => ({
         ...stage,
+        color: stage.color ?? '#3B82F6',
+        is_won: stage.is_won ?? false,
+        is_lost: stage.is_lost ?? false,
+        created_at: stage.created_at ?? new Date().toISOString(),
         lead_count: countMap.get(stage.id) || 0,
         total_value: valueMap.get(stage.id) || 0,
-      }));
+      })) as PipelineStage[];
     },
     enabled: !!user && !!tenantId,
     staleTime: 5 * 60 * 1000,
@@ -83,11 +87,12 @@ export const useCRMPipeline = () => {
     mutationFn: async (data: Partial<PipelineStage>) => {
       const currentStages = queryClient.getQueryData<PipelineStage[]>(queryKeys.crmPipeline.list(tenantId)) || [];
       const maxPosition = currentStages.length > 0 ? Math.max(...currentStages.map(s => s.position)) + 1 : 0;
+      if (!tenantId) throw new Error('Tenant não identificado');
       const { error } = await supabase
         .from('crm_pipeline_stages')
         .insert({
           tenant_id: tenantId,
-          name: data.name,
+          name: data.name ?? '',
           slug: data.slug || data.name?.toLowerCase().replace(/\s+/g, '_'),
           color: data.color || '#3B82F6',
           position: data.position ?? maxPosition,
@@ -185,7 +190,7 @@ export const useCRMPipeline = () => {
   const reorderStages = useCallback(async (stageIds: string[]): Promise<boolean> => {
     try {
       const updates = stageIds.map((id, index) =>
-        supabase.from('crm_pipeline_stages').update({ position: index }).eq('id', id).eq('tenant_id', tenantId)
+        supabase.from('crm_pipeline_stages').update({ position: index }).eq('id', id).eq('tenant_id', tenantId!)
       );
       await Promise.all(updates);
       invalidate();
