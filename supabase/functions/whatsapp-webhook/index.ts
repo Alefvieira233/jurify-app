@@ -533,7 +533,8 @@ Deno.serve(async (req) => {
           return new Response("Service misconfigured", { status: 503, headers: corsHeaders });
         }
 
-        const hmacSignature = req.headers.get("x-kapso-signature");
+        // Kapso sends signature as X-Webhook-Signature (not x-kapso-signature)
+        const hmacSignature = req.headers.get("x-webhook-signature") || req.headers.get("x-kapso-signature");
         const webhookSecret = req.headers.get("x-webhook-secret");
 
         if (hmacSignature) {
