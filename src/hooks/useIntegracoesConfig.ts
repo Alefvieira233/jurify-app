@@ -19,8 +19,6 @@ export type IntegracaoConfig = {
   observacoes: string | null;
   criado_em: string;
   atualizado_em?: string | null;
-  phone_number_id?: string | null;
-  webhook_url?: string | null;
   data_ultima_sincronizacao?: string | null;
 };
 
@@ -44,7 +42,7 @@ export const useIntegracoesConfig = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('configuracoes_integracoes')
-        .select('id, nome_integracao, status, endpoint_url, observacoes, tenant_id, criado_em, atualizado_em, phone_number_id, webhook_url')
+        .select('id, nome_integracao, status, endpoint_url, observacoes, tenant_id, criado_em, atualizado_em, data_ultima_sincronizacao')
         .eq('tenant_id', tenantId!)
         .order('criado_em', { ascending: false });
 

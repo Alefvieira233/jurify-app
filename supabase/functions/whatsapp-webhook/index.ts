@@ -724,46 +724,54 @@ async function processNormalizedMessage(supabase: ReturnType<typeof createClient
     // --- RESOLVE TENANT (multi-tenant: each tenant has own Kapso account) ---
     let tenantId: string | null = null;
 
-    // 1. PRIMARY: Resolve by phone_number_id stored in configuracoes_integracoes
-    //    This is the most reliable method in multi-tenant model
-    if (from) {
-      const { data: configByPhone } = await supabase
+    // 1. PRIMARY: Resolve tenant by instance name match in configuracoes_integracoes
+    //    phone_number_id is stored as JSON in observacoes: {"phone_number_id":"..."}
+    if (from && instanceName) {
+      const { data: configByInstance } = await supabase
         .from("configuracoes_integracoes")
         .select("tenant_id")
         .eq("nome_integracao", INTEGRATION_NAME_KAPSO)
+        .eq("status", "ativa")
         .not("tenant_id", "is", null)
-        .not("phone_number_id", "is", null)
-        .limit(10);
+        .ilike("observacoes", `%${escapeLike(instanceName)}%`)
+        .maybeSingle();
 
-      // Match by checking if any tenant's conexoes_whatsapp has this phone
-      if (!tenantId && configByPhone && configByPhone.length > 0) {
-        for (const cfg of configByPhone) {
-          const { data: conn } = await supabase
-            .from("conexoes_whatsapp")
-            .select("id")
-            .eq("tenant_id", cfg.tenant_id)
-            .eq("status", "connected")
-            .limit(1)
-            .maybeSingle();
-          if (conn) {
-            tenantId = cfg.tenant_id;
-            break;
-          }
-        }
+      if (configByInstance?.tenant_id) {
+        tenantId = configByInstance.tenant_id;
       }
     }
 
-    // 2. Resolve by instance name (Kapso sends instance = customer external_id)
-    if (!tenantId && instanceName) {
-      const { data: config } = await supabase
+    // 1b. FALLBACK: Match by connected conexao_whatsapp with matching phone
+    if (!tenantId && from) {
+      const cleanFrom = from.replace(/\D/g, "");
+      const { data: connMatch } = await supabase
+        .from("conexoes_whatsapp")
+        .select("tenant_id")
+        .eq("status", "connected")
+        .or(`telefone.eq.${cleanFrom},telefone.eq.+${cleanFrom}`)
+        .limit(1)
+        .maybeSingle();
+
+      if (connMatch?.tenant_id) {
+        tenantId = connMatch.tenant_id;
+      }
+    }
+
+    // 2. Resolve by tenant with single active Kapso config (single-tenant shortcut)
+    if (!tenantId) {
+      const { data: singleConfig, error: scErr } = await supabase
         .from("configuracoes_integracoes")
         .select("tenant_id")
         .eq("nome_integracao", INTEGRATION_NAME_KAPSO)
-        .ilike("observacoes", `%${escapeLike(instanceName)}%`)
+        .eq("status", "ativa")
         .not("tenant_id", "is", null)
-        .maybeSingle();
+        .limit(2);
 
-      if (config?.tenant_id) tenantId = config.tenant_id;
+      // Only use this if there's exactly ONE active Kapso tenant (unambiguous)
+      if (!scErr && singleConfig && singleConfig.length === 1) {
+        tenantId = singleConfig[0].tenant_id;
+        console.log(`[processMsg:${provider}] Tenant resolved via single-config shortcut: ${tenantId}`);
+      }
     }
 
     // 3. Resolve by existing conversation (phone number match)

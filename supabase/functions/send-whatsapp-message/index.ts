@@ -96,6 +96,7 @@ async function sendViaKapso(
 // 📤 Envia mídia via Kapso API
 async function sendMediaViaKapso(
   supabase: ReturnType<typeof createClient>,
+  config: KapsoTenantConfig,
   to: string,
   mediaType: "image" | "audio" | "document",
   mediaBase64: string,
@@ -104,7 +105,7 @@ async function sendMediaViaKapso(
   caption?: string,
 ): Promise<{ success: boolean; messageId?: string; error?: string }> {
   try {
-    // Upload to Supabase Storage to get a public URL
+    // Upload to Supabase Storage to get a signed URL
     const ext = (mimeType || "application/octet-stream").split("/").pop() || "bin";
     const storagePath = `whatsapp-media/${crypto.randomUUID()}.${ext}`;
     const binaryData = Uint8Array.from(atob(mediaBase64), (c) => c.charCodeAt(0));
@@ -120,14 +121,16 @@ async function sendMediaViaKapso(
       throw new Error(`Storage upload failed: ${uploadError.message}`);
     }
 
-    const { data: urlData } = supabase.storage
+    // Use signed URL (1h expiry) instead of public URL for security
+    const { data: signedData, error: signedError } = await supabase.storage
       .from("media")
-      .getPublicUrl(storagePath);
+      .createSignedUrl(storagePath, 3600);
 
-    const publicUrl = urlData.publicUrl;
-    // Note: sendMediaViaKapso needs config passed in — caller must provide it
-    const kapsoConfig = { apiKey: '', apiUrl: 'https://api.kapso.ai', phoneNumberId: '' } as KapsoTenantConfig;
-    const result = await kapsoSendMedia(kapsoConfig, to, mediaType, publicUrl, caption, fileName);
+    if (signedError || !signedData?.signedUrl) {
+      throw new Error(`Failed to create signed URL: ${signedError?.message || "unknown"}`);
+    }
+
+    const result = await kapsoSendMedia(config, to, mediaType, signedData.signedUrl, caption, fileName);
     return { success: true, messageId: result.messageId };
   } catch (error) {
     console.error("Kapso Media Error:", error);
@@ -248,53 +251,39 @@ async function getWhatsAppCredentials(
   supabase: ReturnType<typeof createClient>,
   tenantId?: string
 ): Promise<WhatsAppCredentials | null> {
-  // 1. Tenta Kapso API (prioridade — env vars globais)
-  const kapsoKey = Deno.env.get("KAPSO_API_KEY");
-  const kapsoPhoneId = Deno.env.get("KAPSO_PHONE_NUMBER_ID");
-  if (kapsoKey && kapsoPhoneId) {
-    // Verify tenant has active kapso config
-    if (tenantId) {
-      const { data: kapsoConfig } = await supabase
-        .from("configuracoes_integracoes")
-        .select("status")
-        .eq("tenant_id", tenantId)
-        .eq("nome_integracao", "whatsapp_kapso")
-        .eq("status", "ativa")
-        .maybeSingle();
-
-      if (kapsoConfig) {
-        return { provider: "kapso" };
-      }
-    } else {
-      // No tenant — use global Kapso config
-      return { provider: "kapso" };
-    }
+  if (!tenantId) {
+    console.error("❌ No tenant ID provided for WhatsApp credentials");
+    return null;
   }
 
-  // 2. Tenta Meta Official API (direct)
-  if (tenantId) {
-    const { data: metaConfig } = await supabase
-      .from("configuracoes_integracoes")
-      .select("api_key, endpoint_url")
-      .eq("tenant_id", tenantId)
-      .eq("nome_integracao", "whatsapp_oficial")
-      .eq("status", "ativa")
-      .maybeSingle();
+  // 1. Tenta Kapso API (per-tenant encrypted config — always preferred)
+  const kapsoConfig = await getTenantKapsoConfig(supabase, tenantId);
+  if (kapsoConfig) {
+    return { provider: "kapso" };
+  }
 
-    if (metaConfig?.api_key && metaConfig?.endpoint_url) {
+  // 2. Tenta Meta Official API (per-tenant encrypted config)
+  const { data: metaConfig } = await supabase
+    .from("configuracoes_integracoes")
+    .select("api_key_encrypted, endpoint_url")
+    .eq("tenant_id", tenantId)
+    .eq("nome_integracao", "whatsapp_oficial")
+    .eq("status", "ativa")
+    .maybeSingle();
+
+  if (metaConfig?.api_key_encrypted && metaConfig?.endpoint_url) {
+    // Decrypt Meta access token
+    try {
+      const { decrypt } = await import("../_shared/crypto.ts");
+      const accessToken = await decrypt(metaConfig.api_key_encrypted);
       return {
         provider: "meta",
         phoneNumberId: metaConfig.endpoint_url,
-        accessToken: metaConfig.api_key,
+        accessToken,
       };
+    } catch (err) {
+      console.error("❌ Failed to decrypt Meta access token:", err instanceof Error ? err.message : err);
     }
-  }
-
-  // 3. Fallback para credenciais globais Meta
-  const phoneNumberId = Deno.env.get("WHATSAPP_PHONE_NUMBER_ID");
-  const accessToken = Deno.env.get("WHATSAPP_ACCESS_TOKEN");
-  if (phoneNumberId && accessToken) {
-    return { provider: "meta", phoneNumberId, accessToken };
   }
 
   console.error("❌ No WhatsApp credentials found for tenant:", tenantId);
@@ -410,11 +399,15 @@ Deno.serve(async (req) => {
       }
 
       if (isMedia) {
-        // TODO: refactor sendMediaViaKapso to accept config
-        result = await sendViaKapso(
+        result = await sendMediaViaKapso(
+          supabase,
           tenantKapsoConfig,
           messageRequest.to,
-          messageRequest.caption || messageRequest.text || "[Mídia]",
+          messageRequest.mediaType!,
+          messageRequest.mediaBase64!,
+          messageRequest.mimeType,
+          messageRequest.fileName,
+          messageRequest.caption,
         );
       } else {
         result = await sendViaKapso(

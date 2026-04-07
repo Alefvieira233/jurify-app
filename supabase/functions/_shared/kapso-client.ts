@@ -3,9 +3,11 @@
  *
  * MULTI-TENANT MODEL:
  * Each Jurify tenant has their OWN Kapso account and API key.
- * The key is stored in configuracoes_integracoes per tenant.
+ * The key is stored encrypted in configuracoes_integracoes.api_key_encrypted per tenant.
  * There is NO global API key — each request uses the tenant's key.
  */
+
+import { encrypt, decrypt } from "./crypto.ts";
 
 export interface KapsoTenantConfig {
   apiKey: string;
@@ -65,19 +67,43 @@ export async function getTenantKapsoConfig(
   const client = supabase as any;
   const { data } = await client
     .from("configuracoes_integracoes")
-    .select("api_key, endpoint_url, phone_number_id, observacoes")
+    .select("api_key_encrypted, endpoint_url, observacoes")
     .eq("nome_integracao", "whatsapp_kapso")
     .eq("tenant_id", tenantId)
     .maybeSingle();
 
-  if (!data?.api_key || data.api_key === "kapso_managed" || data.api_key === "pending_setup") {
+  if (!data?.api_key_encrypted) {
     return null;
   }
 
+  // Decrypt the API key
+  let apiKey: string;
+  try {
+    apiKey = await decrypt(data.api_key_encrypted);
+  } catch (err) {
+    console.error("[kapso-client] Failed to decrypt API key:", err instanceof Error ? err.message : err);
+    return null;
+  }
+
+  if (!apiKey || apiKey === "kapso_managed" || apiKey === "pending_setup") {
+    return null;
+  }
+
+  // phone_number_id is stored as JSON in observacoes: {"phone_number_id":"...","display_phone":"..."}
+  let phoneNumberId: string | null = null;
+  if (data.observacoes) {
+    try {
+      const obs = JSON.parse(data.observacoes);
+      phoneNumberId = obs.phone_number_id || null;
+    } catch {
+      // Legacy format: "phone:+55..." — no phone_number_id
+    }
+  }
+
   return {
-    apiKey: data.api_key,
+    apiKey,
     apiUrl: data.endpoint_url || "https://api.kapso.ai",
-    phoneNumberId: data.phone_number_id || null,
+    phoneNumberId,
   };
 }
 

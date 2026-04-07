@@ -19,6 +19,7 @@ import {
   getTenantKapsoConfig,
   checkKapsoHealth,
 } from "../_shared/kapso-client.ts";
+import { encrypt } from "../_shared/crypto.ts";
 import { applyRateLimit } from "../_shared/rate-limiter.ts";
 
 // ---------------------------------------------------------------------------
@@ -128,20 +129,35 @@ async function upsertKapsoConfig(
     .eq("tenant_id", tenantId)
     .maybeSingle();
 
+  // Encrypt the API key before storing
+  const encryptedKey = await encrypt(apiKey);
+
+  // Store phone_number_id in observacoes as JSON (column phone_number_id doesn't exist in table)
+  const observacoes = (phoneNumberId || phoneDisplay)
+    ? JSON.stringify({ phone_number_id: phoneNumberId ?? null, display_phone: phoneDisplay ?? null })
+    : null;
+
   const record = {
     nome_integracao: "whatsapp_kapso",
     status: "ativa" as const,
-    api_key: apiKey,
+    api_key_encrypted: encryptedKey,
     endpoint_url: "https://api.kapso.ai",
-    phone_number_id: phoneNumberId ?? null,
-    observacoes: phoneDisplay ? `phone:${phoneDisplay}` : null,
+    observacoes,
     tenant_id: tenantId,
   };
 
   if (existing) {
-    await supabase.from("configuracoes_integracoes").update(record).eq("id", existing.id);
+    const { error } = await supabase.from("configuracoes_integracoes").update(record).eq("id", existing.id);
+    if (error) {
+      console.error("[kapso-manager] upsertKapsoConfig update error:", error.message);
+      throw new Error(`Erro ao salvar configuração: ${error.message}`);
+    }
   } else {
-    await supabase.from("configuracoes_integracoes").insert(record);
+    const { error } = await supabase.from("configuracoes_integracoes").insert(record);
+    if (error) {
+      console.error("[kapso-manager] upsertKapsoConfig insert error:", error.message);
+      throw new Error(`Erro ao salvar configuração: ${error.message}`);
+    }
   }
 }
 
@@ -385,7 +401,7 @@ Deno.serve(async (req) => {
 
         if (cfg) {
           await supabase.from("configuracoes_integracoes")
-            .update({ phone_number_id: null, observacoes: null })
+            .update({ observacoes: null })
             .eq("id", cfg.id);
         }
 

@@ -110,7 +110,7 @@ const OnboardingFlow = () => {
         .select('value')
         .eq('tenant_id', tenantId)
         .eq('key', 'onboarding_completed')
-        .single();
+        .maybeSingle();
 
       if (completedSetting?.value === 'true') {
         return { visible: false, completionMap: {}, allComplete: true };
@@ -122,7 +122,7 @@ const OnboardingFlow = () => {
         .select('value, updated_at')
         .eq('tenant_id', tenantId)
         .eq('key', 'onboarding_dismissed')
-        .single();
+        .maybeSingle();
 
       if (dismissedSetting?.value === 'true' && dismissedSetting.updated_at) {
         const dismissedAt = new Date(dismissedSetting.updated_at as string).getTime();
