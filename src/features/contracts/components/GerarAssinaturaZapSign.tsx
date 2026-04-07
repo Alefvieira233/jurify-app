@@ -42,7 +42,7 @@ export const GerarAssinaturaZapSign = ({ contrato, onSuccess }: GerarAssinaturaZ
         .select('email, telefone')
         .eq('tenant_id', tenantId)
         .eq('id', contrato.lead_id)
-        .single();
+        .maybeSingle();
 
       if (error) throw error;
       return data;

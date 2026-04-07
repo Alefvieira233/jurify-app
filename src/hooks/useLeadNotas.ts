@@ -69,10 +69,12 @@ export function useLeadNotas(leadId: string | null) {
 
   const updateNota = useMutation({
     mutationFn: async ({ id, ...updates }: Partial<LeadNota> & { id: string }) => {
+      if (!tenantId) throw new Error('Tenant não encontrado');
       const { data, error } = await supabase
         .from('lead_notas')
         .update({ ...updates, updated_at: new Date().toISOString() })
         .eq('id', id)
+        .eq('tenant_id', tenantId)
         .select()
         .single();
       if (error) throw error;

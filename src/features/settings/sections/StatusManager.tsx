@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Plus, MoreHorizontal, Search, Users, Columns3, Loader2, ArrowUp, ArrowDown } from 'lucide-react';
+import { Plus, MoreHorizontal, Search, Users, Loader2, ArrowUp, ArrowDown } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import {
   DropdownMenu,
@@ -85,9 +85,6 @@ export default function StatusManager() {
             className="h-8 text-sm pl-8"
           />
         </div>
-        <Button variant="outline" size="sm" className="text-xs h-8 gap-1">
-          <Columns3 className="h-3 w-3" /> Colunas
-        </Button>
       </div>
 
       <div className="border rounded-lg overflow-hidden">

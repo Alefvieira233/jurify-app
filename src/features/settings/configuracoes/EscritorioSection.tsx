@@ -56,7 +56,7 @@ const EscritorioSection = () => {
           .from('tenants')
           .select('nome, email, telefone, logo_url, configuracoes')
           .eq('id', tenantId)
-          .single();
+          .maybeSingle();
 
         if (error) throw error;
         if (data) {

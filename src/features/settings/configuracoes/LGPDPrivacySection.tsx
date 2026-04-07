@@ -59,7 +59,7 @@ const LGPDPrivacySection = () => {
           .from('profiles')
           .select('*')
           .eq('id', user.id)
-          .single();
+          .maybeSingle();
         if (data) exportData['meu_perfil'] = data;
       } catch (err) {
         log.warn('export profile failed', { error: String(err) });

@@ -91,11 +91,12 @@ export function FluxosManager() {
     queryFn: async () => {
       if (!editingFlowId) return null;
       const [flowRes, nodesRes, edgesRes] = await Promise.all([
-        supabase.from('automation_flows').select('id, tenant_id, nome, descricao, status, trigger_type, trigger_config, viewport, execucoes_total, ultima_execucao, created_by, created_at, updated_at').eq('id', editingFlowId).single(),
+        supabase.from('automation_flows').select('id, tenant_id, nome, descricao, status, trigger_type, trigger_config, viewport, execucoes_total, ultima_execucao, created_by, created_at, updated_at').eq('id', editingFlowId).maybeSingle(),
         supabase.from('automation_flow_nodes').select('id, flow_id, tipo, label, config, position_x, position_y').eq('flow_id', editingFlowId),
         supabase.from('automation_flow_edges').select('id, flow_id, source_node, target_node, source_handle, label').eq('flow_id', editingFlowId),
       ]);
       if (flowRes.error) throw flowRes.error;
+      if (!flowRes.data) return null;
       const flow = flowRes.data as AutomationFlow;
       const nodes = dbNodesToReactFlow((nodesRes.data ?? []) as FlowNode[]);
       const edges = dbEdgesToReactFlow((edgesRes.data ?? []) as FlowEdge[]);

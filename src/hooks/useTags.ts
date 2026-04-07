@@ -50,10 +50,12 @@ export function useTags() {
 
   const updateTag = useMutation({
     mutationFn: async ({ id, ...updates }: Partial<Tag> & { id: string }) => {
+      if (!tenantId) throw new Error('Tenant não encontrado');
       const { data, error } = await supabase
         .from('tags')
         .update(updates)
         .eq('id', id)
+        .eq('tenant_id', tenantId)
         .select()
         .single();
       if (error) throw error;

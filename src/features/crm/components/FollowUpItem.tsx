@@ -25,8 +25,7 @@ const FollowUpItem = memo(({ fu }: FollowUpItemProps) => (
     }`}
   >
     <span
-      className="w-2 h-2 rounded-full flex-shrink-0"
-      style={{ background: fu.status === 'overdue' ? '#e11d48' : '#d97706' }}
+      className={`w-2 h-2 rounded-full flex-shrink-0 ${fu.status === 'overdue' ? 'bg-rose-600 dark:bg-rose-500' : 'bg-amber-600 dark:bg-amber-500'}`}
     />
     <div className="flex-1 min-w-0">
       <p className="text-xs font-medium text-foreground truncate">{fu.title}</p>

@@ -449,11 +449,16 @@ Deno.serve(async (req) => {
         return new Response("Forbidden", { status: 403 });
       }
 
-      if (WHATSAPP_VERIFY_TOKEN && token === WHATSAPP_VERIFY_TOKEN) {
-        return new Response(challenge, {
-          headers: { "Content-Type": "text/plain" },
-          status: 200,
-        });
+      if (WHATSAPP_VERIFY_TOKEN) {
+        const encoder = new TextEncoder();
+        const a = encoder.encode(token);
+        const b = encoder.encode(WHATSAPP_VERIFY_TOKEN);
+        if (a.byteLength === b.byteLength && crypto.subtle.timingSafeEqual(a, b)) {
+          return new Response(challenge, {
+            headers: { "Content-Type": "text/plain" },
+            status: 200,
+          });
+        }
       }
 
       const supabase = createClient(
@@ -476,7 +481,10 @@ Deno.serve(async (req) => {
         for (const cfg of data) {
           try {
             const decrypted = await decrypt(cfg.verify_token_encrypted);
-            if (decrypted === token) {
+            const encoder = new TextEncoder();
+            const a = encoder.encode(decrypted);
+            const b = encoder.encode(token);
+            if (a.byteLength === b.byteLength && crypto.subtle.timingSafeEqual(a, b)) {
               tokenMatch = true;
               break;
             }

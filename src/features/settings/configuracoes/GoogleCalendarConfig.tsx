@@ -39,7 +39,7 @@ const GoogleCalendarConfig = () => {
       .from('google_calendar_tokens')
       .select('id')
       .eq('user_id', user.id)
-      .single();
+      .maybeSingle();
 
     setIsConnected(!!data);
   }, [user?.id]);
