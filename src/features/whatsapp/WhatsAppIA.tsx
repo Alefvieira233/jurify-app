@@ -13,9 +13,6 @@ import {
 import { useWhatsAppConversations } from '@/hooks/useWhatsAppConversations';
 import type { WhatsAppConversation, WhatsAppMessage } from '@/hooks/useWhatsAppConversations';
 import WhatsAppSetup from './WhatsAppSetup';
-import { createLogger } from '@/lib/logger';
-
-const log = createLogger('WhatsAppIA');
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -161,37 +158,24 @@ const WhatsAppIA = () => {
   const debouncedSearch = useDebounce(searchQuery, SEARCH_DEBOUNCE_MS);
   const [convFilter, setConvFilter] = useState<ConversationFilterState>(EMPTY_CONV_FILTERS);
   const [showMobileChat, setShowMobileChat] = useState(false);
-  const [isWhatsAppConnected, setIsWhatsAppConnected] = useState(() => {
-    // Restaura do sessionStorage se disponível
-    try {
-      const saved = sessionStorage.getItem('whatsapp_kapso_instance');
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        if (parsed.timestamp && Date.now() - parsed.timestamp < 2 * 60 * 60 * 1000) {
-          return parsed.data?.state === 'connected';
-        }
-      }
-    } catch (err) { log.warn('session restore failed', { error: String(err) }); }
-    return false;
-  });
+  const [isWhatsAppConnected, setIsWhatsAppConnected] = useState(false);
   const { members } = useTeamMembers();
   const connectedManuallyRef = useRef(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { profile } = useAuth();
   const { toast } = useToast();
 
-  // Verifica se o WhatsApp está conectado (configuracoes_integracoes) — apenas no mount
+  // Verifica conexão WhatsApp via conexoes_whatsapp (mesma fonte que aba Conexões)
   useEffect(() => {
-    if (!profile?.tenant_id || connectedManuallyRef.current) return;
+    if (!profile?.tenant_id) return;
     const checkConnection = async () => {
       const { data } = await supabase
-        .from('configuracoes_integracoes')
-        .select('status')
-        .eq('nome_integracao', 'whatsapp_kapso')
-        .maybeSingle();
-      if (data?.status === 'ativa') {
-        setIsWhatsAppConnected(true);
-      }
+        .from('conexoes_whatsapp')
+        .select('id')
+        .eq('tenant_id', profile.tenant_id)
+        .eq('status', 'connected')
+        .limit(1);
+      setIsWhatsAppConnected(Array.isArray(data) && data.length > 0);
     };
     void checkConnection();
   }, [profile?.tenant_id]);
