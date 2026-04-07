@@ -72,17 +72,103 @@ async function validateKapsoKey(apiKey: string): Promise<boolean> {
   }
 }
 
-/** Generate a setup link using the tenant's own Kapso API key. */
-async function createSetupLink(
+/**
+ * Ensure a Kapso "customer" exists for this tenant.
+ * Kapso requires a customer_id for setup links and phone management.
+ * We store the customer_id in observacoes JSON alongside phone_number_id.
+ */
+async function ensureKapsoCustomer(
+  supabase: ReturnType<typeof createClient>,
   apiKey: string,
+  tenantId: string,
+): Promise<string> {
+  // Check if we already have a customer_id stored
+  const { data: config } = await supabase
+    .from("configuracoes_integracoes")
+    .select("observacoes")
+    .eq("nome_integracao", "whatsapp_kapso")
+    .eq("tenant_id", tenantId)
+    .maybeSingle();
+
+  if (config?.observacoes) {
+    try {
+      const obs = JSON.parse(config.observacoes);
+      if (obs.kapso_customer_id) return obs.kapso_customer_id;
+    } catch { /* not valid JSON */ }
+  }
+
+  // Check if customer already exists in Kapso by external_customer_id
+  const listRes = await kapsoFetchWithKey(apiKey, `/platform/v1/customers?external_customer_id=${tenantId}`);
+  const listData = await listRes.json().catch(() => ({ data: [] }));
+  const existing = listData?.data?.[0];
+
+  if (existing?.id) {
+    // Store it
+    await saveCustomerId(supabase, tenantId, existing.id, config?.observacoes);
+    return existing.id;
+  }
+
+  // Fetch tenant name
+  const { data: tenant } = await supabase.from("tenants").select("nome").eq("id", tenantId).maybeSingle();
+
+  // Create new Kapso customer
+  const createRes = await kapsoFetchWithKey(apiKey, "/platform/v1/customers", {
+    method: "POST",
+    body: JSON.stringify({
+      customer: {
+        name: tenant?.nome || `Jurify Tenant ${tenantId.slice(0, 8)}`,
+        external_customer_id: tenantId,
+      },
+    }),
+  });
+
+  const createData = await createRes.json().catch(() => ({}));
+
+  if (!createRes.ok || !createData?.data?.id) {
+    console.error("[kapso-manager] Failed to create Kapso customer:", createRes.status, createData);
+    throw new Error("Falha ao criar conta na Kapso. Verifique sua API key.");
+  }
+
+  const customerId = createData.data.id;
+  await saveCustomerId(supabase, tenantId, customerId, config?.observacoes);
+  return customerId;
+}
+
+async function saveCustomerId(
+  supabase: ReturnType<typeof createClient>,
+  tenantId: string,
+  customerId: string,
+  currentObservacoes?: string | null,
+) {
+  let obs: Record<string, unknown> = {};
+  if (currentObservacoes) {
+    try { obs = JSON.parse(currentObservacoes); } catch { /* */ }
+  }
+  obs.kapso_customer_id = customerId;
+
+  await supabase
+    .from("configuracoes_integracoes")
+    .update({ observacoes: JSON.stringify(obs) })
+    .eq("nome_integracao", "whatsapp_kapso")
+    .eq("tenant_id", tenantId);
+}
+
+/** Generate a setup link using the tenant's Kapso customer. */
+async function createSetupLink(
+  supabase: ReturnType<typeof createClient>,
+  apiKey: string,
+  tenantId: string,
   frontendUrl: string,
 ): Promise<{ url: string }> {
-  const res = await kapsoFetchWithKey(apiKey, "/platform/v1/setup_links", {
+  const customerId = await ensureKapsoCustomer(supabase, apiKey, tenantId);
+
+  const res = await kapsoFetchWithKey(apiKey, `/platform/v1/customers/${customerId}/setup_links`, {
     method: "POST",
     body: JSON.stringify({
       setup_link: {
         success_redirect_url: `${frontendUrl}/conexoes?setup=success`,
         failure_redirect_url: `${frontendUrl}/conexoes?setup=failed`,
+        language: "pt",
       },
     }),
   });
@@ -90,12 +176,16 @@ async function createSetupLink(
   const data = await res.json().catch(() => ({}));
 
   if (!res.ok) {
+    console.error("[kapso-manager] createSetupLink failed:", res.status, JSON.stringify(data).slice(0, 500));
     const msg = data?.message || data?.error || data?.detail || `Setup link failed (${res.status})`;
     throw new Error(msg);
   }
 
-  const url = data?.data?.url || data?.url || data?.data?.setup_url;
-  if (!url) throw new Error("Kapso não retornou URL de setup.");
+  const url = data?.data?.url || data?.url;
+  if (!url) {
+    console.error("[kapso-manager] createSetupLink: no URL in response:", JSON.stringify(data));
+    throw new Error("Kapso não retornou URL de setup.");
+  }
 
   return { url };
 }
@@ -304,7 +394,7 @@ Deno.serve(async (req) => {
         }
 
         try {
-          const { url } = await createSetupLink(config.apiKey, frontendUrl);
+          const { url } = await createSetupLink(supabase, config.apiKey, tenantId, frontendUrl);
           return json({
             success: true,
             setupUrl: url,
@@ -314,7 +404,7 @@ Deno.serve(async (req) => {
           console.error("[kapso-manager] createSetupLink failed:", err instanceof Error ? err.message : err);
           return json({
             success: false,
-            error: "Falha ao gerar link de conexão. Verifique sua API key no dashboard da Kapso.",
+            error: err instanceof Error ? err.message : "Falha ao gerar link de conexão. Verifique sua API key.",
           }, 422);
         }
       }
