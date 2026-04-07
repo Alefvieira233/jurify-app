@@ -4,7 +4,7 @@ import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { ChevronLeft } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
-import { supabaseUntyped } from '@/integrations/supabase/client';
+import { supabase } from '@/integrations/supabase/client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { queryKeys } from '@/lib/queryKeys';
 import { createLogger } from '@/lib/logger';
@@ -32,7 +32,7 @@ const OnboardingWizard = () => {
     queryKey: queryKeys.onboardingWizard.detail(tenantId),
     queryFn: async (): Promise<boolean> => {
       if (!tenantId) return false;
-      const { data } = await supabaseUntyped
+      const { data } = await supabase
         .from('system_settings')
         .select('value')
         .eq('tenant_id', tenantId)
@@ -48,7 +48,7 @@ const OnboardingWizard = () => {
   const completeMutation = useMutation({
     mutationFn: async () => {
       if (!tenantId) return;
-      await supabaseUntyped.from('system_settings').upsert({
+      await supabase.from('system_settings').upsert({
         tenant_id: tenantId,
         key: 'onboarding_wizard_completed',
         value: 'true',

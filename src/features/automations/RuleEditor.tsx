@@ -16,7 +16,7 @@ import {
 import { useToast } from '@/hooks/use-toast';
 import { toUserMessage } from '@/lib/errorMessages';
 import { useAuth } from '@/contexts/AuthContext';
-import { supabaseUntyped as supabase } from '@/integrations/supabase/client';
+import { supabase } from '@/integrations/supabase/client';
 import type { AutomationRule } from './RegrasManager';
 import { EVENT_TYPE_LABELS } from './RegrasManager';
 import type { ConditionDraft, ActionDraft } from './types';

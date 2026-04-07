@@ -2,7 +2,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Activity, Lock, Brain, Database, Server, Shield, BarChart3 } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { queryKeys } from '@/lib/queryKeys';
-import { supabaseUntyped } from '@/integrations/supabase/client';
+import { supabase } from '@/integrations/supabase/client';
 import { useRBAC } from '@/hooks/useRBAC';
 import BackupRestore from '@/features/mission-control/components/BackupRestore';
 import SystemStatus from '@/features/mission-control/components/SystemStatus';
@@ -108,7 +108,7 @@ function AIUsageStats() {
     queryFn: async () => {
       const sevenDaysAgo = new Date();
       sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-      const { data, error } = await supabaseUntyped
+      const { data, error } = await supabase
         .from('ai_usage')
         .select('usage_date, tokens_used, budget_limit')
         .gte('usage_date', sevenDaysAgo.toISOString().split('T')[0])

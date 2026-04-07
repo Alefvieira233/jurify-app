@@ -16,7 +16,7 @@ import { toUserMessage } from '@/lib/errorMessages';
 import { useAuth } from '@/contexts/AuthContext';
 import { createLogger } from '@/lib/logger';
 import { useRBAC } from '@/hooks/useRBAC';
-import { supabaseUntyped as supabase } from '@/integrations/supabase/client';
+import { supabase } from '@/integrations/supabase/client';
 import { useQueryClient } from '@tanstack/react-query';
 import { queryKeys } from '@/lib/queryKeys';
 import NovoHonorarioForm from './components/NovoHonorarioForm';

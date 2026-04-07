@@ -38,7 +38,7 @@
  */
 import { useCallback, useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { supabaseUntyped as supabase } from '@/integrations/supabase/client';
+import { supabase } from '@/integrations/supabase/client';
 
 // useEntityCRUD is a generic factory that works with dynamic table names.
 // The typed Supabase client expects literal table names, so we use a loosely-typed

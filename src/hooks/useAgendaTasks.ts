@@ -6,7 +6,7 @@
  *
  * @internal Used by useAgendaAutomation facade — do not import directly in components.
  */
-import { supabaseUntyped as supabase } from '@/integrations/supabase/client';
+import { supabase } from '@/integrations/supabase/client';
 import type { Agendamento } from '@/hooks/useAgendamentos';
 import type { WorkflowConfig } from './useAgendaAutomation';
 

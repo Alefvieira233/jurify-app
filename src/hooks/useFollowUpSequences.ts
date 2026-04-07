@@ -2,7 +2,7 @@
 
 import { useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { supabaseUntyped as supabase } from '@/integrations/supabase/client';
+import { supabase } from '@/integrations/supabase/client';
 
 // crm_followup_sequences and crm_followup_queue tables are not yet in the
 // generated types. Use a loosely-typed wrapper until types are regenerated.

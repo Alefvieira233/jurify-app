@@ -20,7 +20,7 @@ import UploadContratos from './components/UploadContratos';
 import { NovoContratoForm } from './components/NovoContratoForm';
 import { DetalhesContrato } from './components/DetalhesContrato';
 import ConfirmDialog from '@/components/ConfirmDialog';
-import { supabaseUntyped as supabase } from '@/integrations/supabase/client';
+import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { toUserMessage } from '@/lib/errorMessages';
 import { useAuth } from '@/contexts/AuthContext';

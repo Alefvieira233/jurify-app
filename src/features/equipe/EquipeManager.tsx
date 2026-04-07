@@ -1,7 +1,7 @@
 import { useState, useMemo, useCallback } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { queryKeys } from '@/lib/queryKeys';
-import { supabaseUntyped } from '@/integrations/supabase/client';
+import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -76,7 +76,7 @@ const EquipeManager = () => {
   const { data: allMemberships = [] } = useQuery({
     queryKey: queryKeys.allDepartmentMemberships.list(tenantId),
     queryFn: async (): Promise<DepartmentMembership[]> => {
-      const { data, error } = await supabaseUntyped
+      const { data, error } = await supabase
         .from('departamento_membros')
         .select('departamento_id, profile_id, role_no_depto, receber_notificacoes')
         .in('profile_id', members.map((m: TeamMember) => m.id));

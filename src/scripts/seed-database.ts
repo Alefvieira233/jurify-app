@@ -1,4 +1,4 @@
-import { supabaseUntyped as supabase } from '@/integrations/supabase/client';
+import { supabase } from '@/integrations/supabase/client';
 
 /**
  * seedDatabase — Popula o banco com dados realistas de demonstração.

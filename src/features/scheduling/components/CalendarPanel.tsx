@@ -27,7 +27,7 @@ import { createLogger } from '@/lib/logger';
 import { useToast } from '@/hooks/use-toast';
 import { toUserMessage } from '@/lib/errorMessages';
 import { QuickAddModal } from './QuickAddModal';
-import { supabaseUntyped as supabase } from '@/integrations/supabase/client';
+import { supabase } from '@/integrations/supabase/client';
 
 const log = createLogger('CalendarPanel');
 

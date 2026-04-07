@@ -1,7 +1,7 @@
 /** Fetches AI agent execution statistics: success rates, response times, and usage trends. */
 
 import { useState, useCallback } from 'react';
-import { supabaseUntyped as supabase } from '@/integrations/supabase/client';
+import { supabase } from '@/integrations/supabase/client';
 import { createLogger } from '@/lib/logger';
 
 const log = createLogger('AgentStats');

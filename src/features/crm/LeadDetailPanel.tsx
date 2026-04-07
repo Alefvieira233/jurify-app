@@ -11,7 +11,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { supabaseUntyped as supabase } from '@/integrations/supabase/client';
+import { supabase } from '@/integrations/supabase/client';
 import { useCRMActivities, type Activity as CRMActivity } from '@/hooks/useCRMActivities';
 import { useFollowUps } from '@/hooks/useFollowUps';
 import { useLeadTags } from '@/hooks/useTags';
