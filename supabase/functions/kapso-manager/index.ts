@@ -273,7 +273,15 @@ Deno.serve(async (req) => {
           }, 400);
         }
 
-        await upsertKapsoConfig(supabase, tenantId, apiKey);
+        try {
+          await upsertKapsoConfig(supabase, tenantId, apiKey);
+        } catch (err) {
+          console.error("[kapso-manager] save-key failed:", err instanceof Error ? err.message : err);
+          return json({
+            success: false,
+            error: "Erro ao salvar API key. Tente novamente.",
+          }, 500);
+        }
 
         return json({
           success: true,
@@ -295,13 +303,20 @@ Deno.serve(async (req) => {
           }, 400);
         }
 
-        const { url } = await createSetupLink(config.apiKey, frontendUrl);
-
-        return json({
-          success: true,
-          setupUrl: url,
-          hasApiKey: true,
-        });
+        try {
+          const { url } = await createSetupLink(config.apiKey, frontendUrl);
+          return json({
+            success: true,
+            setupUrl: url,
+            hasApiKey: true,
+          });
+        } catch (err) {
+          console.error("[kapso-manager] createSetupLink failed:", err instanceof Error ? err.message : err);
+          return json({
+            success: false,
+            error: "Falha ao gerar link de conexão. Verifique sua API key no dashboard da Kapso.",
+          }, 422);
+        }
       }
 
       // ────────────────────────────────────────────────────────────────────
@@ -412,8 +427,16 @@ Deno.serve(async (req) => {
         return json({ success: false, error: `Ação desconhecida: ${body.action}` }, 400);
     }
   } catch (error) {
-    console.error("[kapso-manager] Error:", error instanceof Error ? error.message : error);
-    const msg = error instanceof Error ? error.message : "Erro interno";
-    return json({ success: false, error: msg }, msg.includes("Unauthorized") ? 401 : 500);
+    console.error("[kapso-manager] Error:", error instanceof Error ? `${error.message}\n${error.stack}` : error);
+    const raw = error instanceof Error ? error.message : "Erro interno";
+
+    if (raw.includes("Unauthorized") || raw.includes("Missing authorization")) {
+      return json({ success: false, error: raw }, 401);
+    }
+    if (raw.includes("ENCRYPTION_KEY")) {
+      return json({ success: false, error: "Erro de configuração do servidor. Contate o suporte." }, 500);
+    }
+    // Sanitize — don't leak DB errors
+    return json({ success: false, error: "Erro interno. Tente novamente ou contate o suporte." }, 500);
   }
 });
