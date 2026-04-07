@@ -88,7 +88,7 @@ async function sendViaKapso(
     console.error("❌ Kapso API Error:", error);
     return {
       success: false,
-      error: error instanceof Error ? error.message : "Kapso API error",
+      error: "Falha ao enviar mensagem. Tente novamente.",
     };
   }
 }
@@ -133,10 +133,10 @@ async function sendMediaViaKapso(
     const result = await kapsoSendMedia(config, to, mediaType, signedData.signedUrl, caption, fileName);
     return { success: true, messageId: result.messageId };
   } catch (error) {
-    console.error("Kapso Media Error:", error);
+    console.error("❌ Kapso Media Error:", error);
     return {
       success: false,
-      error: error instanceof Error ? error.message : "Kapso media error",
+      error: "Falha ao enviar mídia. Tente novamente.",
     };
   }
 }
@@ -172,7 +172,7 @@ async function sendViaMeta(
       console.error("❌ Meta API Error:", data);
       return {
         success: false,
-        error: data.error?.message || `WhatsApp API error: ${response.status}`,
+        error: "Falha ao enviar mensagem. Tente novamente.",
       };
     }
 
@@ -183,7 +183,7 @@ async function sendViaMeta(
     console.error("❌ Network error (Meta):", error);
     return {
       success: false,
-      error: error instanceof Error ? error.message : "Network error",
+      error: "Falha ao enviar mensagem. Tente novamente.",
     };
   }
 }
@@ -452,12 +452,34 @@ Deno.serve(async (req) => {
     console.error("❌ Error in send-whatsapp-message:", error);
 
     const errorMessage = error instanceof Error ? error.message : "Unknown error occurred";
-    const statusCode = errorMessage.includes("Unauthorized") ? 401 :
-                       errorMessage.includes("obrigatório") || errorMessage.includes("inválido") ? 400 : 500;
+
+    // Only expose safe, user-facing messages; keep internal details in logs
+    const isAuthError = errorMessage.includes("Unauthorized") || errorMessage.includes("Missing authorization");
+    const isValidationError = errorMessage.includes("obrigatório") || errorMessage.includes("inválido") ||
+                              errorMessage.includes("muito longa") || errorMessage.includes("muito grande");
+    const isConfigError = errorMessage.includes("não configurada") || errorMessage.includes("não conectado") ||
+                          errorMessage.includes("Complete o setup") || errorMessage.includes("contact support");
+
+    let statusCode: number;
+    let userMessage: string;
+
+    if (isAuthError) {
+      statusCode = 401;
+      userMessage = errorMessage;
+    } else if (isValidationError) {
+      statusCode = 400;
+      userMessage = errorMessage;
+    } else if (isConfigError) {
+      statusCode = 422;
+      userMessage = errorMessage;
+    } else {
+      statusCode = 500;
+      userMessage = "Falha ao enviar mensagem. Tente novamente.";
+    }
 
     const response: SendMessageResponse = {
       success: false,
-      error: errorMessage,
+      error: userMessage,
       timestamp: new Date().toISOString(),
     };
 

@@ -158,7 +158,7 @@ export const useFollowUps = () => {
         .select('metadata')
         .eq('id', id)
         .eq('tenant_id', tenantId)
-        .single();
+        .maybeSingle();
 
       const mergedMetadata = {
         ...((existing?.metadata as Record<string, unknown>) || {}),

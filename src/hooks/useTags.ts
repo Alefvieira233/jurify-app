@@ -69,7 +69,8 @@ export function useTags() {
 
   const deleteTag = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase.from('tags').delete().eq('id', id);
+      if (!tenantId) throw new Error('Tenant não encontrado');
+      const { error } = await supabase.from('tags').delete().eq('id', id).eq('tenant_id', tenantId);
       if (error) throw error;
     },
     onSuccess: () => {

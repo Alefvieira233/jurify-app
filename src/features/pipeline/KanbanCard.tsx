@@ -53,8 +53,8 @@ export const KanbanCard = memo(({ lead, onClick, provided, tags, conexaoNome }: 
   const initials = useMemo(() => getInitials(lead.nome_completo ?? '?'), [lead.nome_completo]);
   const bgColor = useMemo(() => getAvatarHex(lead.nome_completo ?? ''), [lead.nome_completo]);
   const relTime = useMemo(
-    () => formatRelativeTime(lead.ultima_interacao ?? lead.created_at),
-    [lead.ultima_interacao, lead.created_at],
+    () => formatRelativeTime(lead.last_activity_at ?? lead.ultima_interacao ?? lead.created_at),
+    [lead.last_activity_at, lead.ultima_interacao, lead.created_at],
   );
   const prioridade = PRIORIDADE_STYLE[lead.prioridade];
 

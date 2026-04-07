@@ -108,7 +108,7 @@ export const useContratos = (options?: UseContratosOptions) => {
       log.debug(`${data?.length ?? 0} contratos encontrados (total: ${count})`);
       return { items: (data || []).map(normalizeContrato), total: count ?? 0 };
     },
-    enabled: !!user,
+    enabled: !!user && !!tenantId,
     staleTime: 2 * 60 * 1000,
     refetchOnWindowFocus: false,
   });

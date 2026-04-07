@@ -4,9 +4,11 @@
  * Refactored to use {@link useEntityCRUD} for all CRUD boilerplate.
  * Custom logic: multi-column OR search across numero_processo, tribunal, comarca.
  */
-import { useMemo } from 'react';
+import { useMemo, useCallback } from 'react';
 import { useEntityCRUD, type EntityCRUDOptions } from '@/hooks/useEntityCRUD';
 import { queryKeys } from '@/lib/queryKeys';
+import { usePlanLimits } from '@/hooks/usePlanLimits';
+import { useToast } from '@/hooks/use-toast';
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -95,11 +97,26 @@ export const useProcessos = (options?: {
       table: 'processos',
       queryKeyPrefix: 'processos',
       displayName: 'Processo',
-      listColumns: '*',
+      listColumns: 'id,tenant_id,lead_id,numero_processo,tribunal,vara,comarca,tipo_acao,area_juridica,fase_processual,posicao,responsavel_id,valor_causa,valor_honorario_acordado,tipo_honorario,data_distribuicao,data_encerramento,status,observacoes,partes_contrarias,tags,created_at,updated_at',
       pageSize: options?.pageSize,
     },
     crudOptions,
   );
+
+  const { canUse: canUsePlan, limits: planLimits } = usePlanLimits();
+  const { toast } = useToast();
+
+  const createProcesso = useCallback(async (input: ProcessoInput): Promise<boolean> => {
+    if (!canUsePlan('leads')) {
+      toast({
+        title: 'Limite do plano atingido',
+        description: `Seu plano permite ${planLimits.leads} registros. Faça upgrade para criar mais processos.`,
+        variant: 'destructive',
+      });
+      return false;
+    }
+    return crud.createEntity(input);
+  }, [canUsePlan, planLimits.leads, toast, crud]);
 
   return {
     processos: crud.data,
@@ -107,7 +124,7 @@ export const useProcessos = (options?: {
     error: crud.error,
     isEmpty: crud.isEmpty,
     fetchProcessos: crud.refetch,
-    createProcesso: crud.createEntity,
+    createProcesso,
     updateProcesso: crud.updateEntity,
     deleteProcesso: crud.deleteEntity,
     currentPage: crud.currentPage,

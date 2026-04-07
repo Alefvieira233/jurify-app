@@ -140,8 +140,9 @@ export async function sendTextMessage(
   );
 
   if (!response.ok) {
-    const error = await response.text();
-    throw new Error(`Kapso sendTextMessage failed (${response.status}): ${error}`);
+    const errorBody = await response.text();
+    console.error(`[kapso] sendTextMessage failed (${response.status}):`, errorBody);
+    throw new Error("Falha ao enviar mensagem. Tente novamente.");
   }
 
   const data = await response.json();
@@ -183,8 +184,9 @@ export async function sendMediaMessage(
   );
 
   if (!response.ok) {
-    const error = await response.text();
-    throw new Error(`Kapso sendMediaMessage failed (${response.status}): ${error}`);
+    const errorBody = await response.text();
+    console.error(`[kapso] sendMediaMessage failed (${response.status}):`, errorBody);
+    throw new Error("Falha ao enviar mídia. Tente novamente.");
   }
 
   const data = await response.json();

@@ -8,6 +8,7 @@ import { useToast } from '@/hooks/use-toast';
 import { toUserMessage } from '@/lib/errorMessages';
 import { queryKeys } from '@/lib/queryKeys';
 import { createLogger } from '@/lib/logger';
+import { usePlanLimits } from '@/hooks/usePlanLimits';
 
 const log = createLogger('useAgendamentos');
 
@@ -84,6 +85,7 @@ export const useAgendamentos = (options?: UseAgendamentosOptions) => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const tenantId = profile?.tenant_id;
+  const { canUse: canUsePlan, limits: planLimits } = usePlanLimits();
 
   const page = options?.page ?? 0;
   const pageSize = options?.pageSize ?? 50;
@@ -123,7 +125,7 @@ export const useAgendamentos = (options?: UseAgendamentosOptions) => {
         total: count ?? 0,
       };
     },
-    enabled: !!user,
+    enabled: !!user && !!tenantId,
     staleTime: 2 * 60 * 1000,
     refetchOnWindowFocus: false,
   });
@@ -139,6 +141,14 @@ export const useAgendamentos = (options?: UseAgendamentosOptions) => {
     mutationFn: async (data: AgendamentoInput) => {
       const effectiveTenantId = data.tenant_id ?? tenantId;
       if (!effectiveTenantId) throw new Error('Tenant não identificado');
+      if (!canUsePlan('leads')) {
+        toast({
+          title: 'Limite do plano atingido',
+          description: `Seu plano permite ${planLimits.leads} registros. Faça upgrade para criar mais agendamentos.`,
+          variant: 'destructive',
+        });
+        throw new Error('Limite do plano atingido');
+      }
       const payload = {
         ...data,
         tenant_id: effectiveTenantId,

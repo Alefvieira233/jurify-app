@@ -163,7 +163,7 @@ export const useWhatsAppConversations = (): UseWhatsAppConversationsReturn => {
         .from('whatsapp_conversations')
         .select('phone_number, lead_id, tenant_id')
         .eq('id', conversationId)
-        .single();
+        .maybeSingle();
 
       if (convError || !conversation) {
         throw new Error('Conversa não encontrada');
@@ -233,7 +233,7 @@ export const useWhatsAppConversations = (): UseWhatsAppConversationsReturn => {
         .from('whatsapp_conversations')
         .select('phone_number, lead_id, tenant_id')
         .eq('id', conversationId)
-        .single();
+        .maybeSingle();
 
       if (convError || !conversation) {
         throw new Error('Conversa não encontrada');

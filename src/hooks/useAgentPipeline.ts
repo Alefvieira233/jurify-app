@@ -101,7 +101,7 @@ export function useAgentPipeline(executionId: string | null) {
         .from('agent_executions')
         .select('id, execution_id, status, current_agent, current_stage, agents_involved, total_agents_used, total_tokens, estimated_cost_usd, started_at, total_duration_ms')
         .eq('execution_id', execId)
-        .single();
+        .maybeSingle();
 
       if (fetchError) throw fetchError;
       if (!data) throw new Error('Execution not found');

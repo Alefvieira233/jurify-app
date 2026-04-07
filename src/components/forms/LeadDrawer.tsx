@@ -231,7 +231,7 @@ export const LeadDrawer: React.FC<LeadDrawerProps> = ({ open, onOpenChange, lead
               <div className="bg-muted/20 p-4 rounded-[16px] border border-border/5 space-y-1">
                 <p className="text-[10px] text-muted-foreground font-bold uppercase">Última Interação</p>
                 <p className="text-sm font-medium flex items-center gap-2">
-                  <Clock className="w-4 h-4 text-primary/50" /> {lead.ultima_interacao ? fmtDate(lead.ultima_interacao) : 'Nenhuma'}
+                  <Clock className="w-4 h-4 text-primary/50" /> {(lead.last_activity_at ?? lead.ultima_interacao) ? fmtDate(lead.last_activity_at ?? lead.ultima_interacao!) : 'Nenhuma'}
                 </p>
               </div>
               <div className="bg-muted/20 p-4 rounded-[16px] border border-border/5 space-y-1 col-span-2">

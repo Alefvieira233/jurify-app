@@ -261,7 +261,7 @@ export const useAgentesIA = () => {
         .select('nome, area_juridica, objetivo, script_saudacao, prompt_base')
         .eq('id', agenteId)
         .eq('tenant_id', tenantId)
-        .single();
+        .maybeSingle();
 
       if (agenteError || !agente) {
         throw agenteError || new Error('Agente não encontrado');

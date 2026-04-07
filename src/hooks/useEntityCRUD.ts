@@ -60,7 +60,7 @@ export interface EntityCRUDConfig<T> {
   queryKeyPrefix: string;
   /** Human-readable name used in toast messages (e.g. "Processo", "Honorário") */
   displayName: string;
-  /** Column selection string passed to .select() (usually '*') */
+  /** Column selection string passed to .select(). Prefer explicit columns over '*' to avoid overfetching. */
   listColumns: string;
   /** Default sort column and direction */
   defaultSort?: { column: keyof T & string; ascending?: boolean };

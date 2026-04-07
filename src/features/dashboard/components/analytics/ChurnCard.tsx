@@ -42,8 +42,7 @@ export const ChurnCard: React.FC<ChurnCardProps> = memo(({
         <div>
           <div className="flex items-center gap-2 mb-1">
             <span
-              className="text-3xl font-bold tabular-nums"
-              style={{ color: isHealthy ? '#059669' : '#e11d48' }}
+              className={`text-3xl font-bold tabular-nums ${isHealthy ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`}
             >
               {churnRate.toFixed(1)}%
             </span>

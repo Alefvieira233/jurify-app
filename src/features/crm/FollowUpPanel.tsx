@@ -9,40 +9,41 @@ import { useFollowUps, type FollowUp, type FollowUpStatus } from '@/hooks/useFol
 import { useDebounce } from '@/hooks/useDebounce';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
-/* ── Status config ── */
+/* ── Status config (dark-mode aware Tailwind classes) ── */
 const STATUS_CFG: Record<FollowUpStatus, {
   label: string;
-  icon:  React.ComponentType<{ className?: string; style?: React.CSSProperties }>;
-  hex:   string;
+  icon:  React.ComponentType<{ className?: string }>;
+  iconClass: string;
+  bg: string;
+  text: string;
 }> = {
-  pending:   { label: 'Pendente',  icon: Clock,         hex: '#d97706' },
-  completed: { label: 'Concluído', icon: CheckCircle2,  hex: '#059669' },
-  cancelled: { label: 'Cancelado', icon: XCircle,       hex: '#6b7280' },
-  overdue:   { label: 'Atrasado',  icon: AlertTriangle, hex: '#e11d48' },
-  snoozed:   { label: 'Adiado',    icon: Pause,         hex: '#2563eb' },
+  pending:   { label: 'Pendente',  icon: Clock,         iconClass: 'text-amber-600 dark:text-amber-400',   bg: 'bg-amber-600/10 dark:bg-amber-400/10',   text: 'text-amber-700 dark:text-amber-400'   },
+  completed: { label: 'Concluído', icon: CheckCircle2,  iconClass: 'text-emerald-600 dark:text-emerald-400', bg: 'bg-emerald-600/10 dark:bg-emerald-400/10', text: 'text-emerald-700 dark:text-emerald-400' },
+  cancelled: { label: 'Cancelado', icon: XCircle,       iconClass: 'text-gray-500 dark:text-gray-400',     bg: 'bg-gray-600/10 dark:bg-gray-400/10',     text: 'text-gray-700 dark:text-gray-400'     },
+  overdue:   { label: 'Atrasado',  icon: AlertTriangle, iconClass: 'text-rose-600 dark:text-rose-400',     bg: 'bg-rose-600/10 dark:bg-rose-400/10',     text: 'text-rose-700 dark:text-rose-400'     },
+  snoozed:   { label: 'Adiado',    icon: Pause,         iconClass: 'text-blue-600 dark:text-blue-400',     bg: 'bg-blue-600/10 dark:bg-blue-400/10',     text: 'text-blue-700 dark:text-blue-400'     },
 };
 
-/* ── Priority config ── */
-const PRIORITY_CFG: Record<string, { label: string; hex: string }> = {
-  low:    { label: 'Baixa',   hex: '#6b7280' },
-  medium: { label: 'Média',   hex: '#2563eb' },
-  high:   { label: 'Alta',    hex: '#ea580c' },
-  urgent: { label: 'Urgente', hex: '#e11d48' },
+/* ── Priority config (dark-mode aware Tailwind classes) ── */
+const PRIORITY_CFG: Record<string, { label: string; bg: string; text: string }> = {
+  low:    { label: 'Baixa',   bg: 'bg-gray-600/10 dark:bg-gray-400/10',   text: 'text-gray-700 dark:text-gray-400'   },
+  medium: { label: 'Média',   bg: 'bg-blue-600/10 dark:bg-blue-400/10',   text: 'text-blue-700 dark:text-blue-400'   },
+  high:   { label: 'Alta',    bg: 'bg-orange-600/10 dark:bg-orange-400/10', text: 'text-orange-700 dark:text-orange-400' },
+  urgent: { label: 'Urgente', bg: 'bg-rose-600/10 dark:bg-rose-400/10',   text: 'text-rose-700 dark:text-rose-400'   },
 };
 
 import { fmtDateTime } from '@/utils/formatting';
 
 /* ── Section heading ── */
 function SectionHeading({
-  icon, title, count, hex,
-}: { icon: React.ReactNode; title: string; count: number; hex: string }) {
+  icon, title, count, bg, text,
+}: { icon: React.ReactNode; title: string; count: number; bg: string; text: string }) {
   return (
     <div className="flex items-center gap-2 px-5 py-2 bg-muted/20 border-y border-border/50">
       {icon}
       <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">{title}</span>
       <span
-        className="text-[10px] font-bold tabular-nums px-1.5 py-0.5 rounded-full"
-        style={{ background: hex + '1a', color: hex }}
+        className={`text-[10px] font-bold tabular-nums px-1.5 py-0.5 rounded-full ${bg} ${text}`}
       >
         {count}
       </span>
@@ -64,7 +65,7 @@ const FollowUpRow = React.memo(function FollowUpRow({ fu, onComplete, onSnooze, 
   return (
     <div className="group flex items-center gap-3 px-5 py-3 hover:bg-muted/30 transition-colors border-b border-border/40 last:border-b-0">
       {/* Status icon */}
-      <StatusIcon className="h-4 w-4 flex-shrink-0" style={{ color: cfg.hex }} />
+      <StatusIcon className={`h-4 w-4 flex-shrink-0 ${cfg.iconClass}`} />
 
       {/* Info */}
       <div className="flex-1 min-w-0">
@@ -73,8 +74,7 @@ const FollowUpRow = React.memo(function FollowUpRow({ fu, onComplete, onSnooze, 
             {fu.title}
           </p>
           <span
-            className="text-[10px] font-medium px-1.5 py-0.5 rounded-full flex-shrink-0"
-            style={{ background: prio.hex + '1a', color: prio.hex }}
+            className={`text-[10px] font-medium px-1.5 py-0.5 rounded-full flex-shrink-0 ${prio.bg} ${prio.text}`}
           >
             {prio.label}
           </span>
@@ -283,10 +283,11 @@ const FollowUpPanel = () => {
         {grouped.overdue.length > 0 && (
           <section>
             <SectionHeading
-              icon={<AlertTriangle className="h-3.5 w-3.5" style={{ color: '#e11d48' }} />}
+              icon={<AlertTriangle className="h-3.5 w-3.5 text-rose-600 dark:text-rose-400" />}
               title="Atrasados"
               count={grouped.overdue.length}
-              hex="#e11d48"
+              bg="bg-rose-600/10 dark:bg-rose-400/10"
+              text="text-rose-700 dark:text-rose-400"
             />
             {grouped.overdue.map(fu => (
               <FollowUpRow
@@ -304,10 +305,11 @@ const FollowUpPanel = () => {
         {grouped.today.length > 0 && (
           <section>
             <SectionHeading
-              icon={<Clock className="h-3.5 w-3.5" style={{ color: '#d97706' }} />}
+              icon={<Clock className="h-3.5 w-3.5 text-amber-600 dark:text-amber-400" />}
               title="Hoje"
               count={grouped.today.length}
-              hex="#d97706"
+              bg="bg-amber-600/10 dark:bg-amber-400/10"
+              text="text-amber-700 dark:text-amber-400"
             />
             {grouped.today.map(fu => (
               <FollowUpRow
@@ -328,7 +330,8 @@ const FollowUpPanel = () => {
               icon={<CalendarClock className="h-3.5 w-3.5 text-primary" />}
               title="Próximos"
               count={grouped.upcoming.length}
-              hex="#2563eb"
+              bg="bg-blue-600/10 dark:bg-blue-400/10"
+              text="text-blue-700 dark:text-blue-400"
             />
             {grouped.upcoming.map(fu => (
               <FollowUpRow
@@ -346,10 +349,11 @@ const FollowUpPanel = () => {
         {grouped.completed.length > 0 && (
           <section>
             <SectionHeading
-              icon={<CheckCircle2 className="h-3.5 w-3.5" style={{ color: '#059669' }} />}
+              icon={<CheckCircle2 className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />}
               title="Concluídos"
               count={grouped.completed.length}
-              hex="#059669"
+              bg="bg-emerald-600/10 dark:bg-emerald-400/10"
+              text="text-emerald-700 dark:text-emerald-400"
             />
             {grouped.completed.map(fu => (
               <FollowUpRow
@@ -370,7 +374,8 @@ const FollowUpPanel = () => {
               icon={<Pause className="h-3.5 w-3.5 text-muted-foreground" />}
               title="Outros"
               count={grouped.rest.length}
-              hex="#6b7280"
+              bg="bg-gray-600/10 dark:bg-gray-400/10"
+              text="text-gray-700 dark:text-gray-400"
             />
             {grouped.rest.map(fu => (
               <FollowUpRow

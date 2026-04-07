@@ -141,8 +141,8 @@ const OnboardingFlow = () => {
         { data: userRoles },
         { data: departamentos },
       ] = await Promise.all([
-        supabaseUntyped.from('profiles').select('nome_completo').eq('id', user.id).single(),
-        supabaseUntyped.from('tenants').select('nome').eq('id', tenantId).single(),
+        supabaseUntyped.from('profiles').select('nome_completo').eq('id', user.id).maybeSingle(),
+        supabaseUntyped.from('tenants').select('nome').eq('id', tenantId).maybeSingle(),
         supabaseUntyped.from('conexoes_whatsapp').select('id').eq('tenant_id', tenantId).eq('status', 'connected').limit(1),
         supabaseUntyped.from('leads').select('id').eq('tenant_id', tenantId).limit(1),
         supabaseUntyped.from('agentes_ia').select('id').eq('tenant_id', tenantId).limit(1),

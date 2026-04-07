@@ -72,6 +72,15 @@ Deno.serve(async (req) => {
       });
     }
 
+    // Max 1MB plaintext to prevent DoS via large payloads
+    const MAX_PLAINTEXT_BYTES = 1_048_576; // 1MB
+    if (new TextEncoder().encode(plaintext).byteLength > MAX_PLAINTEXT_BYTES) {
+      return new Response(JSON.stringify({ error: "Payload too large (max 1MB)" }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     // Derive key from ENCRYPTION_KEY using PBKDF2
     const encoder = new TextEncoder();
     const keyMaterial = await crypto.subtle.importKey(

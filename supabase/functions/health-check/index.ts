@@ -46,7 +46,22 @@ Deno.serve(async (req) => {
     }
 
     const bearer = authHeader?.replace("Bearer ", "");
-    if (tokenHeader !== healthToken && bearer !== healthToken) {
+
+    // Timing-safe token comparison to prevent timing attacks
+    const encoder = new TextEncoder();
+    const expectedBytes = encoder.encode(healthToken);
+
+    const tokenHeaderBytes = encoder.encode(tokenHeader ?? "");
+    const bearerBytes = encoder.encode(bearer ?? "");
+
+    const tokenHeaderMatch =
+      tokenHeaderBytes.byteLength === expectedBytes.byteLength &&
+      crypto.subtle.timingSafeEqual(tokenHeaderBytes, expectedBytes);
+    const bearerMatch =
+      bearerBytes.byteLength === expectedBytes.byteLength &&
+      crypto.subtle.timingSafeEqual(bearerBytes, expectedBytes);
+
+    if (!tokenHeaderMatch && !bearerMatch) {
       return new Response(JSON.stringify({ error: "Unauthorized" }), {
         status: 401,
         headers: { ...corsHeaders, "Content-Type": "application/json" },

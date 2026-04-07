@@ -52,11 +52,9 @@ export const useGoogleCalendar = () => {
         .from('google_calendar_settings')
         .select('id, user_id, calendar_enabled, auto_sync, sync_direction, notification_enabled, calendar_id, created_at, updated_at')
         .eq('user_id', user!.id)
-        .single();
+        .maybeSingle();
 
-      if (error && error.code !== 'PGRST116') {
-        throw error;
-      }
+      if (error) throw error;
 
       let settingsResult = data;
 

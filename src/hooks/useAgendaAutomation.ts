@@ -321,7 +321,7 @@ export function useAgendaAutomation() {
       .from('automation_tasks')
       .select('id, type, status, payload, error_message, created_at, completed_at')
       .eq('id', taskId)
-      .single();
+      .maybeSingle();
 
     if (!taskRow || taskRow.status !== 'failed') return;
     const task = { ...taskRow, error: taskRow.error_message } as unknown as AutomationTask;
@@ -351,7 +351,7 @@ export function useAgendaAutomation() {
       .from('agendamentos')
       .select('id, lead_id, tenant_id, area_juridica, data_hora, responsavel, observacoes, google_event_id, status, created_at, updated_at')
       .eq('id', agendamentoId)
-      .single();
+      .maybeSingle();
 
     if (!agendamento) {
       toast({

@@ -72,6 +72,15 @@ Deno.serve(async (req) => {
       });
     }
 
+    // Max 2MB ciphertext to prevent DoS (base64 is ~33% larger than plaintext)
+    const MAX_CIPHERTEXT_BYTES = 2_097_152; // 2MB
+    if (new TextEncoder().encode(ciphertext).byteLength > MAX_CIPHERTEXT_BYTES) {
+      return new Response(JSON.stringify({ error: "Payload too large (max 2MB)" }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     // Parse base64: salt:iv:ciphertext
     const parts = ciphertext.split(":");
     if (parts.length !== 3) {

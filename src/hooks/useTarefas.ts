@@ -15,6 +15,7 @@ import { supabaseUntyped as supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { queryKeys } from '@/lib/queryKeys';
+import { usePlanLimits } from '@/hooks/usePlanLimits';
 
 export interface Tarefa {
   id: string;
@@ -56,6 +57,8 @@ export function useTarefas(options?: UseTarefasOptions) {
   const status = options?.status;
   const search = options?.search;
 
+  const { canUse: canUsePlan, limits: planLimits } = usePlanLimits();
+
   const qKey = queryKeys.tarefas.list(tenantId, page, status, search);
 
   const { data: queryData, isLoading, isError, error, refetch } = useQuery<TarefasQueryData>({
@@ -87,6 +90,14 @@ export function useTarefas(options?: UseTarefasOptions) {
   const createTarefa = useMutation({
     mutationFn: async (values: Record<string, unknown>) => {
       if (!tenantId || !profile?.id) throw new Error('Autenticação necessária');
+      if (!canUsePlan('leads')) {
+        toast({
+          title: 'Limite do plano atingido',
+          description: `Seu plano permite ${planLimits.leads} registros. Faça upgrade para criar mais tarefas.`,
+          variant: 'destructive',
+        });
+        return;
+      }
       const { error } = await supabase.from('tarefas').insert({
         ...values,
         tenant_id: tenantId,
@@ -119,7 +130,8 @@ export function useTarefas(options?: UseTarefasOptions) {
 
   const deleteTarefa = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase.from('tarefas').delete().eq('id', id);
+      if (!tenantId) throw new Error('Tenant não encontrado');
+      const { error } = await supabase.from('tarefas').delete().eq('id', id).eq('tenant_id', tenantId);
       if (error) throw error;
     },
     onSuccess: () => {

@@ -94,7 +94,7 @@ export default function LeadDrawerAtendimento({ lead }: LeadDrawerAtendimentoPro
         </Field>
 
         <Field label="Última interação">
-          {formatDate(lead.ultima_interacao)}
+          {formatDate(lead.last_activity_at ?? lead.ultima_interacao)}
         </Field>
 
         <Field label="Atribuído em">

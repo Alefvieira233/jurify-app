@@ -341,7 +341,7 @@ export default function LeadDrawerOperacional({ lead }: LeadDrawerOperacionalPro
           </ReadOnlyField>
 
           <ReadOnlyField label="Última interação">
-            {formatDate(lead.ultima_interacao)}
+            {formatDate(lead.last_activity_at ?? lead.ultima_interacao)}
           </ReadOnlyField>
 
           <ReadOnlyField label="Atribuído em">

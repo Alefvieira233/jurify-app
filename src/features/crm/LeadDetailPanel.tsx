@@ -43,29 +43,29 @@ type LeadDetail = {
   updated_at:         string | null;
 };
 
-/* ── Status palette ── */
-const STATUS_COLORS: Record<string, { hex: string; textColor: string; label: string }> = {
-  novo:        { hex: '#2563eb', textColor: '#1d4ed8', label: 'Novo'        },
-  em_contato:  { hex: '#0891b2', textColor: '#0e7490', label: 'Em Contato'  },
-  qualificado: { hex: '#d97706', textColor: '#b45309', label: 'Qualificado' },
-  proposta:    { hex: '#4f46e5', textColor: '#4338ca', label: 'Proposta'    },
-  negociacao:  { hex: '#7c3aed', textColor: '#6d28d9', label: 'Negociação'  },
-  ganho:       { hex: '#059669', textColor: '#047857', label: 'Ganho'       },
-  perdido:     { hex: '#e11d48', textColor: '#be123c', label: 'Perdido'     },
+/* ── Status palette (dark-mode aware Tailwind classes) ── */
+const STATUS_COLORS: Record<string, { bg: string; text: string; label: string }> = {
+  novo:        { bg: 'bg-blue-600/10 dark:bg-blue-400/10',     text: 'text-blue-700 dark:text-blue-400',      label: 'Novo'        },
+  em_contato:  { bg: 'bg-cyan-600/10 dark:bg-cyan-400/10',     text: 'text-cyan-700 dark:text-cyan-400',      label: 'Em Contato'  },
+  qualificado: { bg: 'bg-amber-600/10 dark:bg-amber-400/10',   text: 'text-amber-700 dark:text-amber-400',    label: 'Qualificado' },
+  proposta:    { bg: 'bg-indigo-600/10 dark:bg-indigo-400/10', text: 'text-indigo-700 dark:text-indigo-400',  label: 'Proposta'    },
+  negociacao:  { bg: 'bg-violet-600/10 dark:bg-violet-400/10', text: 'text-violet-700 dark:text-violet-400',  label: 'Negociação'  },
+  ganho:       { bg: 'bg-emerald-600/10 dark:bg-emerald-400/10', text: 'text-emerald-700 dark:text-emerald-400', label: 'Ganho'    },
+  perdido:     { bg: 'bg-rose-600/10 dark:bg-rose-400/10',     text: 'text-rose-700 dark:text-rose-400',      label: 'Perdido'     },
 };
 
-const ACTIVITY_CFG: Record<string, { label: string; hex: string }> = {
-  call:               { label: 'Ligação',   hex: '#2563eb' },
-  email:              { label: 'E-mail',    hex: '#059669' },
-  meeting:            { label: 'Reunião',   hex: '#7c3aed' },
-  note:               { label: 'Nota',      hex: '#6b7280' },
-  whatsapp:           { label: 'WhatsApp',  hex: '#059669' },
-  task:               { label: 'Tarefa',    hex: '#ea580c' },
-  status_change:      { label: 'Status',    hex: '#d97706' },
-  followup_scheduled: { label: 'Follow-up', hex: '#0284c7' },
-  followup_completed: { label: 'Concluído', hex: '#059669' },
-  document_sent:      { label: 'Documento', hex: '#4f46e5' },
-  proposal_sent:      { label: 'Proposta',  hex: '#db2777' },
+const ACTIVITY_CFG: Record<string, { label: string; bg: string; text: string; iconText: string }> = {
+  call:               { label: 'Ligação',   bg: 'bg-blue-600/10 dark:bg-blue-400/10',     text: 'text-blue-700 dark:text-blue-400',      iconText: 'text-blue-600 dark:text-blue-400'    },
+  email:              { label: 'E-mail',    bg: 'bg-emerald-600/10 dark:bg-emerald-400/10', text: 'text-emerald-700 dark:text-emerald-400', iconText: 'text-emerald-600 dark:text-emerald-400' },
+  meeting:            { label: 'Reunião',   bg: 'bg-violet-600/10 dark:bg-violet-400/10', text: 'text-violet-700 dark:text-violet-400',  iconText: 'text-violet-600 dark:text-violet-400' },
+  note:               { label: 'Nota',      bg: 'bg-gray-600/10 dark:bg-gray-400/10',     text: 'text-gray-700 dark:text-gray-400',      iconText: 'text-gray-500 dark:text-gray-400'    },
+  whatsapp:           { label: 'WhatsApp',  bg: 'bg-emerald-600/10 dark:bg-emerald-400/10', text: 'text-emerald-700 dark:text-emerald-400', iconText: 'text-emerald-600 dark:text-emerald-400' },
+  task:               { label: 'Tarefa',    bg: 'bg-orange-600/10 dark:bg-orange-400/10', text: 'text-orange-700 dark:text-orange-400',  iconText: 'text-orange-600 dark:text-orange-400' },
+  status_change:      { label: 'Status',    bg: 'bg-amber-600/10 dark:bg-amber-400/10',   text: 'text-amber-700 dark:text-amber-400',    iconText: 'text-amber-600 dark:text-amber-400'  },
+  followup_scheduled: { label: 'Follow-up', bg: 'bg-sky-600/10 dark:bg-sky-400/10',       text: 'text-sky-700 dark:text-sky-400',        iconText: 'text-sky-600 dark:text-sky-400'      },
+  followup_completed: { label: 'Concluído', bg: 'bg-emerald-600/10 dark:bg-emerald-400/10', text: 'text-emerald-700 dark:text-emerald-400', iconText: 'text-emerald-600 dark:text-emerald-400' },
+  document_sent:      { label: 'Documento', bg: 'bg-indigo-600/10 dark:bg-indigo-400/10', text: 'text-indigo-700 dark:text-indigo-400',  iconText: 'text-indigo-600 dark:text-indigo-400' },
+  proposal_sent:      { label: 'Proposta',  bg: 'bg-pink-600/10 dark:bg-pink-400/10',     text: 'text-pink-700 dark:text-pink-400',      iconText: 'text-pink-600 dark:text-pink-400'    },
 };
 
 
@@ -104,9 +104,10 @@ const LeadDetailPanel = () => {
   const initials = useMemo(() => getInitials(lead?.nome_completo ?? null), [lead?.nome_completo]);
   const bg       = useMemo(() => getAvatarHex(lead?.nome_completo ?? ''), [lead?.nome_completo]);
 
-  const scoreColor = score >= 80 ? '#059669' : score >= 50 ? '#d97706' : '#e11d48';
+  const scoreClass = score >= 80 ? 'text-emerald-600 dark:text-emerald-400' : score >= 50 ? 'text-amber-600 dark:text-amber-400' : 'text-rose-600 dark:text-rose-400';
   const tempLabel  = lead?.temperature === 'hot' ? 'Quente' : lead?.temperature === 'warm' ? 'Morno' : 'Frio';
-  const tempHex    = lead?.temperature === 'hot' ? '#e11d48' : lead?.temperature === 'warm' ? '#ea580c' : '#2563eb';
+  const tempBg     = lead?.temperature === 'hot' ? 'bg-rose-600/10 dark:bg-rose-400/10' : lead?.temperature === 'warm' ? 'bg-orange-600/10 dark:bg-orange-400/10' : 'bg-blue-600/10 dark:bg-blue-400/10';
+  const tempText   = lead?.temperature === 'hot' ? 'text-rose-700 dark:text-rose-400' : lead?.temperature === 'warm' ? 'text-orange-700 dark:text-orange-400' : 'text-blue-700 dark:text-blue-400';
 
   /* ── Loading ── */
   if (loading) {
@@ -176,16 +177,14 @@ const LeadDetailPanel = () => {
               </h1>
               {sc && (
                 <span
-                  className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full"
-                  style={{ background: sc.hex + '1a', color: sc.textColor }}
+                  className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${sc.bg} ${sc.text}`}
                 >
                   {sc.label}
                 </span>
               )}
               {lead.temperature && (
                 <span
-                  className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full"
-                  style={{ background: tempHex + '1a', color: tempHex }}
+                  className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${tempBg} ${tempText}`}
                 >
                   {tempLabel}
                 </span>
@@ -247,12 +246,12 @@ const LeadDetailPanel = () => {
           <div className="flex items-center gap-4 flex-shrink-0">
             <div className="text-center">
               <p className="text-[10px] text-muted-foreground mb-0.5">Score</p>
-              <p className="text-2xl font-bold tabular-nums" style={{ color: scoreColor }}>{score}</p>
+              <p className={`text-2xl font-bold tabular-nums ${scoreClass}`}>{score}</p>
             </div>
             {lead.expected_value && (
               <div className="text-center">
                 <p className="text-[10px] text-muted-foreground mb-0.5">Valor esperado</p>
-                <p className="text-sm font-bold" style={{ color: '#059669' }}>
+                <p className="text-sm font-bold text-emerald-600 dark:text-emerald-400">
                   {fmtCurrency(lead.expected_value)}
                 </p>
                 {lead.probability != null && (
@@ -306,12 +305,11 @@ const LeadDetailPanel = () => {
                 <div className="absolute left-[32px] top-4 bottom-4 w-px bg-border" />
                 <div className="space-y-4">
                   {activities.map((act: CRMActivity) => {
-                    const cfg = ACTIVITY_CFG[act.activity_type] ?? { label: act.activity_type, hex: '#6b7280' };
+                    const cfg = ACTIVITY_CFG[act.activity_type] ?? { label: act.activity_type, bg: 'bg-gray-600/10 dark:bg-gray-400/10', text: 'text-gray-700 dark:text-gray-400', iconText: 'text-gray-500 dark:text-gray-400' };
                     return (
                       <div key={act.id} className="flex items-start gap-4 relative">
                         <div
-                          className="w-8 h-8 rounded-full border border-border bg-card flex items-center justify-center z-10 flex-shrink-0"
-                          style={{ color: cfg.hex }}
+                          className={`w-8 h-8 rounded-full border border-border bg-card flex items-center justify-center z-10 flex-shrink-0 ${cfg.iconText}`}
                         >
                           <Activity className="h-3.5 w-3.5" />
                         </div>
@@ -319,8 +317,7 @@ const LeadDetailPanel = () => {
                           <div className="flex items-center gap-2 mb-0.5">
                             <p className="text-xs font-semibold text-foreground truncate">{act.title}</p>
                             <span
-                              className="text-[10px] font-medium px-1.5 py-0.5 rounded-full flex-shrink-0"
-                              style={{ background: cfg.hex + '1a', color: cfg.hex }}
+                              className={`text-[10px] font-medium px-1.5 py-0.5 rounded-full flex-shrink-0 ${cfg.bg} ${cfg.text}`}
                             >
                               {cfg.label}
                             </span>
@@ -351,11 +348,13 @@ const LeadDetailPanel = () => {
                 {leadFollowUps.map(fu => {
                   const isOverdue   = fu.status === 'overdue';
                   const isCompleted = fu.status === 'completed';
-                  const hex = isOverdue ? '#e11d48' : isCompleted ? '#059669' : '#d97706';
+                  const iconClass = isOverdue ? 'text-rose-600 dark:text-rose-400' : isCompleted ? 'text-emerald-600 dark:text-emerald-400' : 'text-amber-600 dark:text-amber-400';
+                  const badgeBg   = isOverdue ? 'bg-rose-600/10 dark:bg-rose-400/10' : isCompleted ? 'bg-emerald-600/10 dark:bg-emerald-400/10' : 'bg-amber-600/10 dark:bg-amber-400/10';
+                  const badgeText = isOverdue ? 'text-rose-700 dark:text-rose-400' : isCompleted ? 'text-emerald-700 dark:text-emerald-400' : 'text-amber-700 dark:text-amber-400';
                   const label = isOverdue ? 'Atrasado' : isCompleted ? 'Concluído' : 'Pendente';
                   return (
                     <div key={fu.id} className="flex items-center gap-3 px-5 py-3 hover:bg-muted/30 transition-colors">
-                      <Clock className="h-4 w-4 flex-shrink-0" style={{ color: hex }} />
+                      <Clock className={`h-4 w-4 flex-shrink-0 ${iconClass}`} />
                       <div className="flex-1 min-w-0">
                         <p className="text-xs font-semibold text-foreground truncate">{fu.title}</p>
                         <p className="text-[10px] text-muted-foreground/60">
@@ -363,8 +362,7 @@ const LeadDetailPanel = () => {
                         </p>
                       </div>
                       <span
-                        className="text-[10px] font-medium px-1.5 py-0.5 rounded-full flex-shrink-0"
-                        style={{ background: hex + '1a', color: hex }}
+                        className={`text-[10px] font-medium px-1.5 py-0.5 rounded-full flex-shrink-0 ${badgeBg} ${badgeText}`}
                       >
                         {label}
                       </span>

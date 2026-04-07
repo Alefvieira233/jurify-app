@@ -35,7 +35,7 @@ export async function fetchLeadForAutomation(leadId: string): Promise<LeadData> 
     .from('leads')
     .select('email, nome, telefone, cpf_cnpj')
     .eq('id', leadId)
-    .single();
+    .maybeSingle();
 
   if (error || !lead) throw new Error('Lead não encontrado');
   return {

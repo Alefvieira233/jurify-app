@@ -58,13 +58,11 @@ export const useAgentesMetrics = () => {
           .eq('tenant_id', profile.tenant_id)
           .order('created_at', { ascending: false })
           .limit(1)
-          .single(),
+          .maybeSingle(),
       ]);
 
       if (mesResult.error) throw mesResult.error;
-      if (ultimaResult.error && ultimaResult.error.code !== 'PGRST116') {
-        throw ultimaResult.error;
-      }
+      if (ultimaResult.error) throw ultimaResult.error;
 
       const allMesRows = mesResult.data || [];
       const inicioHojeISO = inicioHoje.toISOString();

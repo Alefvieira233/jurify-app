@@ -145,7 +145,7 @@ export const useAgentCrud = (tenantId: string | null, onSuccess?: () => void | P
           .select('parametros_avancados')
           .eq('id', agentId)
           .eq('tenant_id', tenantId)
-          .single();
+          .maybeSingle();
 
         const currentParams = (currentAgent?.parametros_avancados as Record<string, unknown>) || {};
 
