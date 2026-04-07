@@ -360,7 +360,7 @@ const Auth = () => {
                   form={loginForm}
                   loading={loading}
                   isBiometricsAvailable={isBiometricsAvailable}
-                  onSubmit={loginForm.handleSubmit((data) => void handleLoginSubmit(data))}
+                  onSubmit={(e) => { e.preventDefault(); void loginForm.handleSubmit((data) => void handleLoginSubmit(data))(e); }}
                   onBiometricLogin={() => { void handleBiometricLogin(); }}
                   onSwitchToRegister={() => setIsLogin(false)}
                 />
@@ -372,7 +372,7 @@ const Auth = () => {
                   lgpdConsent={lgpdConsent}
                   loading={loading}
                   onLgpdConsentChange={setLgpdConsent}
-                  onSubmit={registerForm.handleSubmit((data) => void handleRegisterSubmit(data))}
+                  onSubmit={(e) => { e.preventDefault(); void registerForm.handleSubmit((data) => void handleRegisterSubmit(data))(e); }}
                   onSwitchToLogin={() => setIsLogin(true)}
                 />
               </Form>

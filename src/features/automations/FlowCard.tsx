@@ -41,7 +41,7 @@ export interface FlowEdge {
 
 // ─── Constants ───────────────────────────────────────────────────────────────
 
-export const TRIGGER_LABELS: Record<string, string> = {
+const TRIGGER_LABELS: Record<string, string> = {
   novo: 'Novo Lead',
   status_alterado: 'Status Alterado',
   departamento_alterado: 'Dept. Alterado',
@@ -53,7 +53,7 @@ export const TRIGGER_LABELS: Record<string, string> = {
   timer: 'Timer',
 };
 
-export const STATUS_BADGES: Record<string, { label: string; className: string }> = {
+const STATUS_BADGES: Record<string, { label: string; className: string }> = {
   rascunho: {
     label: 'Rascunho',
     className: 'bg-slate-500/10 text-slate-600 dark:text-slate-400 border-slate-500/20',
@@ -74,7 +74,7 @@ export const STATUS_BADGES: Record<string, { label: string; className: string }>
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
-export function formatDate(iso: string | null): string {
+function formatDate(iso: string | null): string {
   if (!iso) return 'Nunca';
   return new Date(iso).toLocaleDateString('pt-BR', {
     day: '2-digit',

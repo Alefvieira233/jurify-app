@@ -11,7 +11,7 @@ import { supabaseUntyped as supabase } from '@/integrations/supabase/client';
 
 // Configuração OAuth do Google
 // NOTE: Only CLIENT_ID is in the browser (public). CLIENT_SECRET lives server-side
-// in the `google-oauth-exchange` Edge Function.
+// in the `google-calendar` Edge Function.
 const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID || '';
 const GOOGLE_REDIRECT_URI = import.meta.env.VITE_GOOGLE_REDIRECT_URI || `${window.location.origin}/auth/google/callback`;
 
@@ -21,7 +21,6 @@ const GOOGLE_SCOPES = [
 ].join(' ');
 
 const GOOGLE_AUTH_URL = 'https://accounts.google.com/o/oauth2/v2/auth';
-const GOOGLE_CALENDAR_API = 'https://www.googleapis.com/calendar/v3';
 
 export interface GoogleOAuthToken {
   access_token: string;
@@ -87,153 +86,52 @@ export class GoogleOAuthService {
 
   /**
    * Troca o código de autorização por tokens de acesso
+   * Persistência ocorre server-side na Edge Function.
    */
-  static async exchangeCodeForTokens(code: string, userId: string): Promise<GoogleOAuthToken> {
+  static async exchangeCodeForTokens(code: string, _userId: string): Promise<GoogleOAuthToken> {
     // Token exchange happens server-side via Edge Function (CLIENT_SECRET never in browser)
-    const { data: fnData, error: fnError } = await supabase.functions.invoke(
+    const { data, error } = await supabase.functions.invoke(
       'google-calendar',
       { body: { action: 'exchange_code', code, redirect_uri: GOOGLE_REDIRECT_URI } }
     );
 
-    if (fnError || !fnData) {
-      throw new Error(`Erro OAuth: ${fnError?.message || 'Token exchange failed'}`);
-    }
-
-    const data = fnData;
-
-    const token: GoogleOAuthToken = {
-      access_token: data.access_token,
-      refresh_token: data.refresh_token,
-      expires_at: Date.now() + (data.expires_in * 1000),
-      token_type: data.token_type,
-      scope: data.scope,
-    };
-
-    // Salvar tokens no banco
-    await this.saveTokens(userId, token);
-
-    return token;
-  }
-
-  /**
-   * Salva tokens no banco de dados
-   */
-  static async saveTokens(userId: string, token: GoogleOAuthToken): Promise<void> {
-    const { error } = await supabase
-      .from('google_calendar_tokens')
-      .upsert({
-        user_id: userId,
-        access_token_encrypted: token.access_token,
-        refresh_token_encrypted: token.refresh_token || null,
-        expires_at: new Date(token.expires_at).toISOString(),
-        token_type: token.token_type,
-        scope: token.scope,
-        updated_at: new Date().toISOString(),
-      });
-
-    if (error) {
-      throw new Error(`Erro ao salvar tokens: ${error.message}`);
-    }
-  }
-
-  /**
-   * Carrega tokens do banco de dados
-   */
-  static async loadTokens(userId: string): Promise<GoogleOAuthToken | null> {
-    const { data, error } = await supabase
-      .from('google_calendar_tokens')
-      .select('access_token_encrypted, refresh_token_encrypted, expires_at, token_type, scope')
-      .eq('user_id', userId)
-      .single();
-
     if (error || !data) {
-      return null;
+      throw new Error(`Erro OAuth: ${error?.message || 'Token exchange failed'}`);
     }
 
     return {
-      access_token: data.access_token_encrypted,
-      refresh_token: data.refresh_token_encrypted || undefined,
-      expires_at: new Date(data.expires_at).getTime(),
-      token_type: data.token_type,
-      scope: data.scope,
-    };
-  }
-
-  /**
-   * Verifica se o token expirou
-   */
-  static isTokenExpired(token: GoogleOAuthToken): boolean {
-    // Considera expirado se falta menos de 5 minutos
-    return token.expires_at - Date.now() < 5 * 60 * 1000;
-  }
-
-  /**
-   * Atualiza access_token usando refresh_token
-   */
-  static async refreshAccessToken(userId: string, refreshToken: string): Promise<GoogleOAuthToken> {
-    // Refresh happens server-side via Edge Function (CLIENT_SECRET never in browser)
-    const { data: fnData, error: fnError } = await supabase.functions.invoke(
-      'google-calendar',
-      { body: { action: 'refresh_token', refresh_token: refreshToken } }
-    );
-
-    if (fnError || !fnData) {
-      throw new Error(`Erro ao refresh: ${fnError?.message || 'Token refresh failed'}`);
-    }
-
-    const data = fnData;
-
-    const token: GoogleOAuthToken = {
       access_token: data.access_token,
-      refresh_token: refreshToken, // Mantém o refresh_token original
+      refresh_token: data.refresh_token, // Omitido se a Edge Function seguiu a recomendação de segurança
       expires_at: Date.now() + (data.expires_in * 1000),
       token_type: data.token_type,
       scope: data.scope,
     };
-
-    await this.saveTokens(userId, token);
-
-    return token;
   }
 
   /**
-   * Obtém um token válido (refresh automático se necessário)
+   * Verifica se o usuário tem tokens válidos no banco (sem chamada de API externa)
    */
-  static async getValidToken(userId: string): Promise<string> {
-    let token = await this.loadTokens(userId);
-
-    if (!token) {
-      throw new Error('Usuário não autenticado com Google. Execute initializeGoogleAuth() primeiro.');
-    }
-
-    // Se expirou e temos refresh_token, atualizar
-    if (this.isTokenExpired(token) && token.refresh_token) {
-      token = await this.refreshAccessToken(userId, token.refresh_token);
-    } else if (this.isTokenExpired(token)) {
-      throw new Error('Token expirado e sem refresh_token. Reautentique.');
-    }
-
-    return token.access_token;
-  }
-
-  /**
-   * Revoga os tokens e desconecta do Google
-   */
-  static async revokeTokens(userId: string): Promise<void> {
-    const token = await this.loadTokens(userId);
-
-    if (token) {
-      // Revogar token no Google
-      await fetch(`https://oauth2.googleapis.com/revoke?token=${token.access_token}`, {
-        method: 'POST',
-      });
-    }
-
-    // Deletar do banco
-    await supabase
+  static async hasValidToken(userId: string): Promise<boolean> {
+    const { data, error } = await supabase
       .from('google_calendar_tokens')
-      .delete()
-      .eq('user_id', userId);
+      .select('user_id')
+      .eq('user_id', userId)
+      .single();
+
+    return !!data && !error;
+  }
+
+  /**
+   * Revoga os tokens e desconecta do Google via Edge Function
+   */
+  static async revokeTokens(_userId: string): Promise<void> {
+    const { error } = await supabase.functions.invoke('google-calendar', {
+      body: { action: 'revokeTokens' }
+    });
+
+    if (error) {
+      throw new Error(`Erro ao revogar tokens: ${error.message}`);
+    }
   }
 
   // ==========================================
@@ -241,124 +139,92 @@ export class GoogleOAuthService {
   // ==========================================
 
   /**
-   * Lista calendários do usuário
+   * Lista calendários do usuário via Edge Function
    */
-  static async listCalendars(userId: string): Promise<Record<string, unknown>[]> {
-    const accessToken = await this.getValidToken(userId);
-
-    const response = await fetch(`${GOOGLE_CALENDAR_API}/users/me/calendarList`, {
-      headers: {
-        'Authorization': `Bearer ${accessToken}`,
-      },
+  static async listCalendars(_userId: string): Promise<Record<string, unknown>[]> {
+    const { data, error } = await supabase.functions.invoke('google-calendar', {
+      body: { action: 'listCalendars' }
     });
 
-    if (!response.ok) {
-      throw new Error('Erro ao listar calendários');
+    if (error) {
+      throw new Error(`Erro ao listar calendários: ${error.message}`);
     }
 
-    const data = await response.json();
-    return data.items || [];
+    return data.calendars || [];
   }
 
   /**
-   * Lista eventos de um calendário dentro de um intervalo de datas
+   * Lista eventos de um calendário dentro de um intervalo de datas via Edge Function
    */
   static async listEvents(
-    userId: string,
+    _userId: string,
     calendarId: string,
     timeMin: string,
     timeMax: string
   ): Promise<Record<string, unknown>[]> {
-    const accessToken = await this.getValidToken(userId);
-
-    const params = new URLSearchParams({
-      timeMin,
-      timeMax,
-      singleEvents: 'true',
-      orderBy: 'startTime',
-      maxResults: '250',
+    const { data, error } = await supabase.functions.invoke('google-calendar', {
+      body: {
+        action: 'listEvents',
+        data: { calendarId, timeMin, timeMax }
+      }
     });
 
-    const response = await fetch(
-      `${GOOGLE_CALENDAR_API}/calendars/${encodeURIComponent(calendarId)}/events?${params.toString()}`,
-      { headers: { Authorization: `Bearer ${accessToken}` } }
-    );
-
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(`Erro ao listar eventos: ${error.error?.message || 'Desconhecido'}`);
+    if (error) {
+      throw new Error(`Erro ao listar eventos: ${error.message}`);
     }
 
-    const data = await response.json();
-    return data.items || [];
+    return data.events || [];
   }
 
   /**
-   * Cria evento no Google Calendar
+   * Cria evento no Google Calendar via Edge Function
    */
-  static async createEvent(userId: string, calendarId: string, event: CalendarEvent): Promise<Record<string, unknown>> {
-    const accessToken = await this.getValidToken(userId);
-
-    const response = await fetch(`${GOOGLE_CALENDAR_API}/calendars/${calendarId}/events`, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${accessToken}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(event),
+  static async createEvent(_userId: string, calendarId: string, event: CalendarEvent): Promise<Record<string, unknown>> {
+    const { data, error } = await supabase.functions.invoke('google-calendar', {
+      body: {
+        action: 'createEvent',
+        data: { calendarId, eventData: event }
+      }
     });
 
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(`Erro ao criar evento: ${error.error?.message || 'Desconhecido'}`);
+    if (error) {
+      throw new Error(`Erro ao criar evento: ${error.message}`);
     }
 
-    const data = await response.json();
-
-    return data;
+    return data.event;
   }
 
   /**
-   * Atualiza evento no Google Calendar
+   * Atualiza evento no Google Calendar via Edge Function
    */
-  static async updateEvent(userId: string, calendarId: string, eventId: string, event: Partial<CalendarEvent>): Promise<Record<string, unknown>> {
-    const accessToken = await this.getValidToken(userId);
-
-    const response = await fetch(`${GOOGLE_CALENDAR_API}/calendars/${calendarId}/events/${eventId}`, {
-      method: 'PATCH',
-      headers: {
-        'Authorization': `Bearer ${accessToken}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(event),
+  static async updateEvent(_userId: string, calendarId: string, eventId: string, event: Partial<CalendarEvent>): Promise<Record<string, unknown>> {
+    const { data, error } = await supabase.functions.invoke('google-calendar', {
+      body: {
+        action: 'updateEvent',
+        data: { calendarId, eventId, eventData: event }
+      }
     });
 
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(`Erro ao atualizar evento: ${error.error?.message || 'Desconhecido'}`);
+    if (error) {
+      throw new Error(`Erro ao atualizar evento: ${error.message}`);
     }
 
-    const data = await response.json();
-
-    return data;
+    return data.event;
   }
 
   /**
-   * Deleta evento do Google Calendar
+   * Deleta evento do Google Calendar via Edge Function
    */
-  static async deleteEvent(userId: string, calendarId: string, eventId: string): Promise<void> {
-    const accessToken = await this.getValidToken(userId);
-
-    const response = await fetch(`${GOOGLE_CALENDAR_API}/calendars/${calendarId}/events/${eventId}`, {
-      method: 'DELETE',
-      headers: {
-        'Authorization': `Bearer ${accessToken}`,
-      },
+  static async deleteEvent(_userId: string, calendarId: string, eventId: string): Promise<void> {
+    const { error } = await supabase.functions.invoke('google-calendar', {
+      body: {
+        action: 'deleteEvent',
+        data: { calendarId, eventId }
+      }
     });
 
-    if (!response.ok && response.status !== 410) { // 410 = Already deleted
-      const error = await response.json();
-      throw new Error(`Erro ao deletar evento: ${error.error?.message || 'Desconhecido'}`);
+    if (error) {
+      throw new Error(`Erro ao deletar evento: ${error.message}`);
     }
   }
 }

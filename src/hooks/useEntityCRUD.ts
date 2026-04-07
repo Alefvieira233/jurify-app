@@ -386,7 +386,7 @@ export function useEntityCRUD<
         return false;
       }
     },
-    [user, createMutation, toast],
+    [user, createMutation, toast, log],
   );
 
   const updateEntity = useCallback(
@@ -400,7 +400,7 @@ export function useEntityCRUD<
         return false;
       }
     },
-    [user, tenantId, updateMutation],
+    [user, tenantId, updateMutation, log],
   );
 
   const deleteEntity = useCallback(
@@ -414,7 +414,7 @@ export function useEntityCRUD<
         return false;
       }
     },
-    [user, tenantId, deleteMutation],
+    [user, tenantId, deleteMutation, log],
   );
 
   const refetch = useCallback(() => {
