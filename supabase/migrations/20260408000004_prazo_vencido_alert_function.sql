@@ -89,16 +89,16 @@ COMMENT ON FUNCTION public.check_prazos_vencendo IS
   'Daily job: creates notifications for legal deadlines due within 3 days or overdue. Idempotent per day.';
 
 -- Schedule daily at 07:00 UTC (04:00 BRT)
-DO $$
+DO $cron$
 BEGIN
   IF EXISTS (SELECT 1 FROM pg_extension WHERE extname = 'pg_cron') THEN
     PERFORM cron.unschedule('check-prazos-vencendo');
     PERFORM cron.schedule(
       'check-prazos-vencendo',
       '0 7 * * *',
-      $$SELECT * FROM public.check_prazos_vencendo()$$
+      'SELECT * FROM public.check_prazos_vencendo()'
     );
   END IF;
 EXCEPTION WHEN OTHERS THEN
   RAISE NOTICE 'pg_cron not available — schedule check_prazos_vencendo manually';
-END $$;
+END $cron$;

@@ -1,5 +1,7 @@
 -- Dashboard metrics RPC — single optimized query for all dashboard data.
 -- Replaces multiple client-side queries with one server-side aggregation.
+-- Drop existing function first (return type may differ from previous version)
+DROP FUNCTION IF EXISTS public.get_dashboard_metrics(uuid);
 
 CREATE OR REPLACE FUNCTION public.get_dashboard_metrics(_tenant_id uuid)
 RETURNS TABLE(
@@ -71,6 +73,8 @@ END;
 $$;
 
 -- Also create the leads_por_area RPC used by the dashboard
+DROP FUNCTION IF EXISTS public.get_leads_por_area(uuid);
+
 CREATE OR REPLACE FUNCTION public.get_leads_por_area(_tenant_id uuid)
 RETURNS TABLE(area text, total bigint)
 LANGUAGE sql

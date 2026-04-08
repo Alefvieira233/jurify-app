@@ -34,35 +34,35 @@ DROP POLICY IF EXISTS "Usuários autenticados têm acesso total às configuraç�
 -- 8. API_KEYS
 DROP POLICY IF EXISTS "Usuários autenticados têm acesso total às API keys" ON public.api_keys;
 
--- 9. LOGS_EXECUCAO_AGENTES
-DROP POLICY IF EXISTS "Usuários autenticados têm acesso total aos logs de execução" ON public.logs_execucao_agentes;
+-- 9. LOGS_EXECUCAO_AGENTES (table may not exist — wrapped in DO block)
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM pg_class WHERE relname = 'logs_execucao_agentes') THEN
+    EXECUTE 'DROP POLICY IF EXISTS "Usuários autenticados têm acesso total aos logs de execução" ON public.logs_execucao_agentes';
+  END IF;
+END $$;
 
--- 10. GOOGLE_CALENDAR_TOKENS
-DROP POLICY IF EXISTS "Usuários autenticados têm acesso total aos tokens Google" ON public.google_calendar_tokens;
-
--- 11. GOOGLE_CALENDAR_SETTINGS
-DROP POLICY IF EXISTS "Usuários autenticados têm acesso total às configurações Google" ON public.google_calendar_settings;
-
--- 12. GOOGLE_CALENDAR_SYNC_LOGS
-DROP POLICY IF EXISTS "Usuários autenticados têm acesso total aos logs de sincronização" ON public.google_calendar_sync_logs;
-
--- 13. ZAPSIGN_LOGS
-DROP POLICY IF EXISTS "Usuários autenticados têm acesso total aos logs ZapSign" ON public.zapsign_logs;
-
--- 14. SYSTEM_SETTINGS
-DROP POLICY IF EXISTS "Usuários autenticados têm acesso total às configurações do sistema" ON public.system_settings;
-
--- 15. NOTIFICATION_TEMPLATES
-DROP POLICY IF EXISTS "Usuários autenticados têm acesso total aos templates de notificação" ON public.notification_templates;
-
--- 16. API_RATE_LIMITS
-DROP POLICY IF EXISTS "Usuários autenticados têm acesso total aos rate limits" ON public.api_rate_limits;
-
--- 17. PROFILES
-DROP POLICY IF EXISTS "Usuários autenticados têm acesso total aos perfis" ON public.profiles;
-
--- 18. USER_ROLES
-DROP POLICY IF EXISTS "Usuários autenticados têm acesso total aos roles" ON public.user_roles;
-
--- 19. ROLE_PERMISSIONS
-DROP POLICY IF EXISTS "Usuários autenticados têm acesso total às permissões" ON public.role_permissions;
+-- 10-19: Tables that may or may not exist — use safe DO blocks
+DO $$
+DECLARE
+  _drops text[] := ARRAY[
+    'DROP POLICY IF EXISTS "Usuários autenticados têm acesso total aos tokens Google" ON public.google_calendar_tokens',
+    'DROP POLICY IF EXISTS "Usuários autenticados têm acesso total às configurações Google" ON public.google_calendar_settings',
+    'DROP POLICY IF EXISTS "Usuários autenticados têm acesso total aos logs de sincronização" ON public.google_calendar_sync_logs',
+    'DROP POLICY IF EXISTS "Usuários autenticados têm acesso total aos logs ZapSign" ON public.zapsign_logs',
+    'DROP POLICY IF EXISTS "Usuários autenticados têm acesso total às configurações do sistema" ON public.system_settings',
+    'DROP POLICY IF EXISTS "Usuários autenticados têm acesso total aos templates de notificação" ON public.notification_templates',
+    'DROP POLICY IF EXISTS "Usuários autenticados têm acesso total aos rate limits" ON public.api_rate_limits',
+    'DROP POLICY IF EXISTS "Usuários autenticados têm acesso total aos perfis" ON public.profiles',
+    'DROP POLICY IF EXISTS "Usuários autenticados têm acesso total aos roles" ON public.user_roles',
+    'DROP POLICY IF EXISTS "Usuários autenticados têm acesso total às permissões" ON public.role_permissions'
+  ];
+  _sql text;
+BEGIN
+  FOREACH _sql IN ARRAY _drops LOOP
+    BEGIN
+      EXECUTE _sql;
+    EXCEPTION WHEN undefined_table THEN
+      -- Table doesn't exist, skip silently
+    END;
+  END LOOP;
+END $$;
