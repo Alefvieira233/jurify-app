@@ -225,7 +225,8 @@ export const useAgentCrud = (tenantId: string | null, onSuccess?: () => void | P
         .from('lead_interactions')
         .select('id, metadata, created_at')
         .eq('tenant_id', tenantId)
-        .gte('created_at', new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString());
+        .gte('created_at', new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString())
+        .limit(500);
 
       const recentAgentInteractions = (activeConversations || []).filter((interaction) =>
         (interaction?.metadata as Record<string, unknown> | null)?.agent_id === agentId

@@ -51,7 +51,8 @@ export const useAgentesMetrics = () => {
           .from('agent_ai_logs')
           .select('agent_name, status, latency_ms, created_at')
           .eq('tenant_id', profile.tenant_id)
-          .gte('created_at', inicioMes.toISOString()),
+          .gte('created_at', inicioMes.toISOString())
+          .limit(5000),
         supabase
           .from('agent_ai_logs')
           .select('created_at')

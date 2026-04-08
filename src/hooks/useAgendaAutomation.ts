@@ -307,7 +307,8 @@ export function useAgendaAutomation() {
       .from('automation_tasks')
       .select('id, type, status, payload, error_message, created_at, completed_at')
       .eq('payload->>agendamento_id', agendamentoId)
-      .order('created_at', { ascending: false });
+      .order('created_at', { ascending: false })
+      .limit(100);
 
     if (error) throw error;
     return (data || []).map(row => ({

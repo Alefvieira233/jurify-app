@@ -40,7 +40,8 @@ export const useAgentStats = (tenantId: string | null) => {
         const { data: interactions } = await supabase
           .from('lead_interactions')
           .select('id, metadata, created_at')
-          .eq('tenant_id', tenantId);
+          .eq('tenant_id', tenantId)
+          .limit(1000);
 
         const filteredInteractions = interactions?.filter((interaction) =>
           (interaction?.metadata as Record<string, unknown> | null)?.agent_id === agentId
@@ -50,7 +51,8 @@ export const useAgentStats = (tenantId: string | null) => {
           .from('leads')
           .select('id, status')
           .eq('responsavel_id', agentId)
-          .eq('tenant_id', tenantId);
+          .eq('tenant_id', tenantId)
+          .limit(1000);
 
         const stats: AgentStats = {
           totalInteractions: filteredInteractions.length,

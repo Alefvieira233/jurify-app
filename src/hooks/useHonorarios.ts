@@ -62,7 +62,7 @@ export const useHonorarios = (options?: { processoId?: string; page?: number }) 
       table: 'honorarios',
       queryKeyPrefix: 'honorarios',
       displayName: 'Honorario',
-      listColumns: '*',
+      listColumns: 'id, tenant_id, processo_id, lead_id, tipo, valor_fixo, valor_hora, taxa_contingencia, horas_estimadas, valor_total_acordado, valor_adiantamento, valor_recebido, data_vencimento, status, observacoes, created_at, updated_at',
     },
     crudOptions,
   );

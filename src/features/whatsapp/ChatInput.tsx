@@ -190,7 +190,9 @@ const ChatInput = ({
           <textarea
             value={newMessage}
             onChange={(e) => {
-              setNewMessage(e.target.value);
+              if (e.target.value.length <= 4096) {
+                setNewMessage(e.target.value);
+              }
               e.target.style.height = 'auto';
               e.target.style.height = Math.min(e.target.scrollHeight, 120) + 'px';
             }}
@@ -201,6 +203,8 @@ const ChatInput = ({
               }
             }}
             placeholder="Digite uma mensagem..."
+            maxLength={4096}
+            aria-label="Mensagem WhatsApp"
             className="flex-1 min-h-[40px] max-h-[120px] py-2.5 px-3 text-sm rounded-md border border-input bg-background resize-none overflow-y-auto focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
             rows={1}
           />

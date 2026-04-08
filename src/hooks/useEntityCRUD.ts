@@ -22,7 +22,7 @@
  *     table: 'widgets',
  *     queryKeyPrefix: 'widgets',
  *     displayName: 'Widget',
- *     listColumns: '*',
+ *     listColumns: 'id, name, tenant_id, created_at',  // Always specify columns — never use '*'
  *   }, opts);
  * ```
  *

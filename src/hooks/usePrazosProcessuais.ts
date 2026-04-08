@@ -75,7 +75,7 @@ export const usePrazosProcessuais = (options?: {
       table: 'prazos_processuais',
       queryKeyPrefix: 'prazos_processuais',
       displayName: 'Prazo',
-      listColumns: '*',
+      listColumns: 'id, tenant_id, processo_id, lead_id, tipo, descricao, data_prazo, alertas_dias, responsavel_id, status, data_cumprimento, observacoes, created_at, updated_at',
       defaultSort: { column: 'data_prazo', ascending: true },
       pageSize: options?.pageSize,
     },

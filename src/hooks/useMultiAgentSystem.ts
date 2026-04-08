@@ -95,13 +95,15 @@ export const useMultiAgentSystem = () => {
         .from('leads')
         .select('id, status, created_at')
         .eq('tenant_id', tenantId!)
-        .gte('created_at', since);
+        .gte('created_at', since)
+        .limit(1000);
 
       const { data: interactions } = await supabase
         .from('lead_interactions')
         .select('id, metadata, created_at')
         .eq('tenant_id', tenantId!)
-        .gte('created_at', since);
+        .gte('created_at', since)
+        .limit(1000);
 
       const totalLeads = leads?.length || 0;
       const convertedLeads = leads?.filter((l) => l.status === 'ganho').length || 0;
