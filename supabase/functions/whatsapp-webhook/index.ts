@@ -695,15 +695,6 @@ Deno.serve(async (req) => {
       const sigHeader = req.headers.get("x-webhook-signature") ? "present" : "absent";
       console.log(`[webhook] Received: type=${typeof parsed} isArray=${Array.isArray(parsed)} keys=${rawKeys} batch=${batchHeader} event=${eventHeader} sig=${sigHeader} size=${rawBody.length}`);
 
-      // PERSIST raw payload for debugging (fire-and-forget)
-      // webhook_events table has: event_id (text), source (text), created_at
-      void supabase.from("webhook_events").insert({
-        event_id: `debug_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
-        source: `kapso_debug|size=${rawBody.length}|keys=${rawKeys}|body=${rawBody.substring(0, 200)}`,
-      }).then(({ error: dbErr }) => {
-        if (dbErr) console.warn("[webhook] Failed to persist debug:", dbErr.message);
-      });
-
       // ============================================
       // 🔀 ROTEAMENTO: Kapso ou Meta?
       // ============================================
@@ -734,31 +725,30 @@ Deno.serve(async (req) => {
       const firstPayload = (eventList[0] || parsed) as WebhookPayload;
 
       if (isKapsoPayload(firstPayload) || isBatch) {
-        // Verify Kapso webhook signature (log but don't reject for debugging)
+        // Verify Kapso webhook signature
+        if (!KAPSO_WEBHOOK_SECRET) {
+          console.error("[webhook:kapso] CRITICAL: KAPSO_WEBHOOK_SECRET not configured — rejecting");
+          return new Response("Service misconfigured", { status: 503, headers: corsHeaders });
+        }
+
         const hmacSignature = req.headers.get("x-webhook-signature") || req.headers.get("x-kapso-signature");
         const webhookSecret = req.headers.get("x-webhook-secret");
-        let sigValid = false;
 
-        if (KAPSO_WEBHOOK_SECRET) {
-          if (hmacSignature) {
-            sigValid = await verifyHmacSignature(rawBody, hmacSignature, KAPSO_WEBHOOK_SECRET);
-            if (!sigValid) {
-              console.error(`[webhook:kapso] HMAC MISMATCH — sig=${hmacSignature.substring(0, 16)}... secret_len=${KAPSO_WEBHOOK_SECRET.length}`);
-              // TODO: re-enable rejection after debugging
-              // return new Response("Unauthorized", { status: 401, headers: corsHeaders });
-            }
-          } else if (webhookSecret) {
-            sigValid = timingSafeCompare(webhookSecret, KAPSO_WEBHOOK_SECRET);
-            if (!sigValid) {
-              console.error("[webhook:kapso] Secret header mismatch");
-            }
-          } else {
-            console.warn("[webhook:kapso] No signature headers — processing anyway for debugging");
+        if (hmacSignature) {
+          const valid = await verifyHmacSignature(rawBody, hmacSignature, KAPSO_WEBHOOK_SECRET);
+          if (!valid) {
+            console.error("[webhook:kapso] SECURITY: Invalid HMAC signature — rejecting");
+            return new Response("Unauthorized", { status: 401, headers: corsHeaders });
+          }
+        } else if (webhookSecret) {
+          if (!timingSafeCompare(webhookSecret, KAPSO_WEBHOOK_SECRET)) {
+            console.error("[webhook:kapso] SECURITY: Invalid webhook secret — rejecting");
+            return new Response("Unauthorized", { status: 401, headers: corsHeaders });
           }
         } else {
-          console.warn("[webhook:kapso] KAPSO_WEBHOOK_SECRET not set — skipping verification");
+          // Kapso v2 may not send signature on all event types — allow if payload has valid structure
+          console.warn("[webhook:kapso] No signature headers — processing with caution");
         }
-        console.log(`[webhook:kapso] Signature valid: ${sigValid} | HMAC: ${hmacSignature ? "present" : "absent"} | Secret header: ${webhookSecret ? "present" : "absent"}`);
 
         // Process each event (single or batch)
         for (const rawEvent of eventList) {
