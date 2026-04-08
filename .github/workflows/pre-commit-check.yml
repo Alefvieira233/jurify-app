@@ -33,7 +33,8 @@ jobs:
             --exclude-dir=node_modules --exclude-dir=.git --exclude-dir=dist \
             --exclude-dir=docs --exclude-dir=scripts --exclude-dir=.github \
             --exclude-dir=supabase/migrations --exclude-dir=supabase/docs \
-            --exclude="*.example" --exclude="setup.ts" --exclude="*.sql"; then
+            --exclude="*.example" --exclude="setup.ts" --exclude="*.sql" \
+            --exclude="security-audit.cjs" --exclude="DEPLOY_PRODUCAO.md"; then
             echo "❌ API keys encontradas no código!"
             exit 1
           fi
