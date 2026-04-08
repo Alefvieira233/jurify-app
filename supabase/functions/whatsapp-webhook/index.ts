@@ -7,6 +7,7 @@ import { buildLegalContext } from "../_shared/legal-context.ts";
 import { DEFAULT_OPENAI_MODEL } from "../_shared/ai-model.ts";
 import { checkBudgetBeforeCall, recordTokenUsage } from "../_shared/ai-budget.ts";
 import { sanitizeInput } from "../_shared/security.ts";
+import { getWebhookSecretByPhoneId } from "../_shared/kapso-client.ts";
 
 // whatsapp-webhook: Kapso Cloud API + Meta Official API webhook handler
 
@@ -725,9 +726,22 @@ Deno.serve(async (req) => {
       const firstPayload = (eventList[0] || parsed) as WebhookPayload;
 
       if (isKapsoPayload(firstPayload) || isBatch) {
-        // Verify Kapso webhook signature
-        if (!KAPSO_WEBHOOK_SECRET) {
-          console.error("[webhook:kapso] CRITICAL: KAPSO_WEBHOOK_SECRET not configured — rejecting");
+        // ── Multi-tenant HMAC verification ──
+        // 1. Try per-tenant secret (from DB, encrypted) using phone_number_id
+        // 2. Fallback to global KAPSO_WEBHOOK_SECRET env var
+        // deno-lint-ignore no-explicit-any
+        const payloadPhoneId = (firstPayload as any)?.phone_number_id
+          || (firstPayload as any)?.conversation?.phone_number_id
+          || (firstPayload as any)?.instance;
+
+        let tenantSecret: string | null = null;
+        if (payloadPhoneId) {
+          tenantSecret = await getWebhookSecretByPhoneId(supabase, payloadPhoneId);
+        }
+        const effectiveSecret = tenantSecret || KAPSO_WEBHOOK_SECRET;
+
+        if (!effectiveSecret) {
+          console.error("[webhook:kapso] No webhook secret available (neither per-tenant nor global)");
           return new Response("Service misconfigured", { status: 503, headers: corsHeaders });
         }
 
@@ -735,20 +749,27 @@ Deno.serve(async (req) => {
         const webhookSecret = req.headers.get("x-webhook-secret");
 
         if (hmacSignature) {
-          const valid = await verifyHmacSignature(rawBody, hmacSignature, KAPSO_WEBHOOK_SECRET);
-          if (!valid) {
+          const valid = await verifyHmacSignature(rawBody, hmacSignature, effectiveSecret);
+          if (!valid && tenantSecret && KAPSO_WEBHOOK_SECRET) {
+            // Retry with global secret as fallback (tenant secret might be stale)
+            const validGlobal = await verifyHmacSignature(rawBody, hmacSignature, KAPSO_WEBHOOK_SECRET);
+            if (!validGlobal) {
+              console.error("[webhook:kapso] SECURITY: HMAC invalid with both per-tenant and global secrets");
+              return new Response("Unauthorized", { status: 401, headers: corsHeaders });
+            }
+          } else if (!valid) {
             console.error("[webhook:kapso] SECURITY: Invalid HMAC signature — rejecting");
             return new Response("Unauthorized", { status: 401, headers: corsHeaders });
           }
         } else if (webhookSecret) {
-          if (!timingSafeCompare(webhookSecret, KAPSO_WEBHOOK_SECRET)) {
+          if (!timingSafeCompare(webhookSecret, effectiveSecret)) {
             console.error("[webhook:kapso] SECURITY: Invalid webhook secret — rejecting");
             return new Response("Unauthorized", { status: 401, headers: corsHeaders });
           }
         } else {
-          // Kapso v2 may not send signature on all event types — allow if payload has valid structure
           console.warn("[webhook:kapso] No signature headers — processing with caution");
         }
+        console.log(`[webhook:kapso] Auth: ${tenantSecret ? "per-tenant" : "global"} secret | phone=${payloadPhoneId}`);
 
         // Process each event (single or batch)
         for (const rawEvent of eventList) {

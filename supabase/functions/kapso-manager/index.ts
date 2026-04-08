@@ -651,25 +651,15 @@ Deno.serve(async (req) => {
           await logEvent(supabase, result.conexaoId ?? null, tenantId, "webhook_registration_failed", "warning",
             `Webhook não registrado: ${webhookResult.error}. Mensagens podem não ser recebidas.`);
         } else {
-          // If Kapso returned a secret_key, store it for reference
+          // Store webhook secret encrypted (per-tenant HMAC verification)
           if (webhookResult.secretKey) {
-            const obs = { webhook_secret_hint: webhookResult.secretKey.slice(0, 8) + "..." };
-            const { data: cfg } = await supabase
-              .from("configuracoes_integracoes")
-              .select("observacoes")
-              .eq("nome_integracao", "whatsapp_kapso")
-              .eq("tenant_id", tenantId)
-              .maybeSingle();
-            let merged: Record<string, unknown> = {};
-            if (cfg?.observacoes) {
-              try { merged = JSON.parse(cfg.observacoes); } catch { /* */ }
-            }
-            Object.assign(merged, obs);
+            const encryptedSecret = await encrypt(webhookResult.secretKey);
             await supabase
               .from("configuracoes_integracoes")
-              .update({ observacoes: JSON.stringify(merged) })
+              .update({ webhook_secret_encrypted: encryptedSecret })
               .eq("nome_integracao", "whatsapp_kapso")
               .eq("tenant_id", tenantId);
+            console.log(`[kapso-manager] Webhook secret stored encrypted for tenant ${tenantId}`);
           }
           await logEvent(supabase, result.conexaoId ?? null, tenantId, "webhook_registered", "info",
             `Webhook registrado para ${phoneDisplay}`);
@@ -701,6 +691,15 @@ Deno.serve(async (req) => {
 
         const result = await registerWebhook(config.apiKey, config.phoneNumberId, custId);
         if (result.success) {
+          // Store webhook secret encrypted (per-tenant)
+          if (result.secretKey) {
+            const encryptedSecret = await encrypt(result.secretKey);
+            await supabase
+              .from("configuracoes_integracoes")
+              .update({ webhook_secret_encrypted: encryptedSecret })
+              .eq("nome_integracao", "whatsapp_kapso")
+              .eq("tenant_id", tenantId);
+          }
           await logEvent(supabase, null, tenantId, "webhook_registered", "info",
             `Webhook registrado manualmente para ${config.phoneNumberId}`);
         }

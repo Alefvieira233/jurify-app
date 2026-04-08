@@ -13,6 +13,7 @@ export interface KapsoTenantConfig {
   apiKey: string;
   apiUrl: string;
   phoneNumberId?: string | null;
+  webhookSecret?: string | null;
 }
 
 /**
@@ -67,7 +68,7 @@ export async function getTenantKapsoConfig(
   const client = supabase as any;
   const { data } = await client
     .from("configuracoes_integracoes")
-    .select("api_key_encrypted, endpoint_url, observacoes")
+    .select("api_key_encrypted, webhook_secret_encrypted, endpoint_url, observacoes")
     .eq("nome_integracao", "whatsapp_kapso")
     .eq("tenant_id", tenantId)
     .maybeSingle();
@@ -100,11 +101,50 @@ export async function getTenantKapsoConfig(
     }
   }
 
+  // Decrypt webhook secret if available (per-tenant HMAC verification)
+  let webhookSecret: string | null = null;
+  if (data.webhook_secret_encrypted) {
+    try {
+      webhookSecret = await decrypt(data.webhook_secret_encrypted);
+    } catch {
+      // Non-critical — fallback to global KAPSO_WEBHOOK_SECRET
+    }
+  }
+
   return {
     apiKey,
     apiUrl: data.endpoint_url || "https://api.kapso.ai",
     phoneNumberId,
+    webhookSecret,
   };
+}
+
+/**
+ * Look up the webhook secret for a phone_number_id (used by webhook handler).
+ * Returns the decrypted secret or null if not found.
+ */
+export async function getWebhookSecretByPhoneId(
+  supabase: { from: (table: string) => unknown },
+  phoneNumberId: string
+): Promise<string | null> {
+  // deno-lint-ignore no-explicit-any
+  const client = supabase as any;
+  const exactMatch = `"phone_number_id":"${phoneNumberId}"`;
+  const { data } = await client
+    .from("configuracoes_integracoes")
+    .select("webhook_secret_encrypted")
+    .eq("nome_integracao", "whatsapp_kapso")
+    .not("webhook_secret_encrypted", "is", null)
+    .ilike("observacoes", `%${exactMatch}%`)
+    .maybeSingle();
+
+  if (!data?.webhook_secret_encrypted) return null;
+
+  try {
+    return await decrypt(data.webhook_secret_encrypted);
+  } catch {
+    return null;
+  }
 }
 
 // ─── Message sending ─────────────────────────────────────────────────────────
