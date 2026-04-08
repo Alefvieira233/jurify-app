@@ -32,7 +32,7 @@ const ConnectionConfigTab = ({ conexao, copyToClipboard }: ConnectionConfigTabPr
           <div className="flex items-center gap-2">
             <code className="text-sm bg-muted px-2 py-1 rounded font-mono">{conexao.instance_name || '\u2014'}</code>
             {conexao.instance_name && (
-              <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => copyToClipboard(conexao.instance_name!)}>
+              <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => copyToClipboard(conexao.instance_name!)} aria-label="Copiar instance name">
                 <Copy className="h-3.5 w-3.5" />
               </Button>
             )}

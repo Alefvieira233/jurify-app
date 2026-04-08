@@ -3,7 +3,7 @@
  * Must match the PostgreSQL trigger in 20260408000002_lead_status_state_machine.sql
  */
 
-export const LEAD_STATUSES = ['novo', 'em_contato', 'qualificado', 'proposta', 'ganho', 'perdido'] as const;
+export const LEAD_STATUSES = ['novo', 'em_contato', 'qualificado', 'proposta', 'negociacao', 'ganho', 'perdido'] as const;
 export type LeadStatus = (typeof LEAD_STATUSES)[number];
 
 export const LEAD_STATUS_LABELS: Record<LeadStatus, string> = {
@@ -11,6 +11,7 @@ export const LEAD_STATUS_LABELS: Record<LeadStatus, string> = {
   em_contato: 'Em Contato',
   qualificado: 'Qualificado',
   proposta: 'Proposta',
+  negociacao: 'Negociação',
   ganho: 'Ganho',
   perdido: 'Perdido',
 };
@@ -20,7 +21,8 @@ const VALID_TRANSITIONS: Record<LeadStatus, readonly LeadStatus[]> = {
   novo:        ['em_contato', 'qualificado', 'perdido'],
   em_contato:  ['qualificado', 'proposta', 'perdido'],
   qualificado: ['proposta', 'perdido', 'em_contato'],
-  proposta:    ['ganho', 'perdido', 'qualificado'],
+  proposta:    ['negociacao', 'ganho', 'perdido', 'qualificado'],
+  negociacao:  ['ganho', 'perdido', 'proposta'],
   ganho:       [],
   perdido:     ['novo'],
 };

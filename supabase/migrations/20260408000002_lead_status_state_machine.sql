@@ -12,7 +12,8 @@ DECLARE
     "novo":        ["em_contato", "qualificado", "perdido"],
     "em_contato":  ["qualificado", "proposta", "perdido"],
     "qualificado": ["proposta", "perdido", "em_contato"],
-    "proposta":    ["ganho", "perdido", "qualificado"],
+    "proposta":    ["negociacao", "ganho", "perdido", "qualificado"],
+    "negociacao":  ["ganho", "perdido", "proposta"],
     "ganho":       [],
     "perdido":     ["novo"]
   }'::jsonb;

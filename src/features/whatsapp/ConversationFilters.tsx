@@ -71,7 +71,7 @@ const ConversationFilters = ({ value, onChange, stats, members, areasJuridicas }
             })
           }
         >
-          <SelectTrigger className="h-8 text-xs flex-1 min-w-0">
+          <SelectTrigger className="h-8 text-xs flex-1 min-w-0" aria-label="Filtrar por responsável">
             <SelectValue placeholder="Todos responsáveis" />
           </SelectTrigger>
           <SelectContent>
@@ -99,7 +99,7 @@ const ConversationFilters = ({ value, onChange, stats, members, areasJuridicas }
             })
           }
         >
-          <SelectTrigger className="h-8 text-xs flex-1 min-w-0">
+          <SelectTrigger className="h-8 text-xs flex-1 min-w-0" aria-label="Filtrar por status">
             <SelectValue placeholder="Todos os status" />
           </SelectTrigger>
           <SelectContent>
@@ -147,7 +147,7 @@ const ConversationFilters = ({ value, onChange, stats, members, areasJuridicas }
                     })
                   }
                 >
-                  <SelectTrigger className="h-8 text-xs">
+                  <SelectTrigger className="h-8 text-xs" aria-label="Filtrar por área jurídica">
                     <SelectValue placeholder="Todas as áreas" />
                   </SelectTrigger>
                   <SelectContent>
