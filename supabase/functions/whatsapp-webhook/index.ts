@@ -728,7 +728,9 @@ Deno.serve(async (req) => {
       if (isKapsoPayload(firstPayload) || isBatch) {
         // ── Multi-tenant HMAC verification ──
         // 1. Try per-tenant secret (from DB, encrypted) using phone_number_id
-        // 2. Fallback to global KAPSO_WEBHOOK_SECRET env var
+        // 2. Only use global KAPSO_WEBHOOK_SECRET if NO per-tenant secret exists
+        //    (backward compat for tenants who haven't re-registered webhook yet)
+        // 3. If per-tenant secret exists but HMAC fails → reject (do NOT try global)
         // deno-lint-ignore no-explicit-any
         const payloadPhoneId = (firstPayload as any)?.phone_number_id
           || (firstPayload as any)?.conversation?.phone_number_id
@@ -738,7 +740,15 @@ Deno.serve(async (req) => {
         if (payloadPhoneId) {
           tenantSecret = await getWebhookSecretByPhoneId(supabase, payloadPhoneId);
         }
+
+        // If per-tenant secret found, use it exclusively (no global fallback)
+        // Only fall back to global when no per-tenant secret is configured
+        const useGlobalFallback = !tenantSecret;
         const effectiveSecret = tenantSecret || KAPSO_WEBHOOK_SECRET;
+
+        if (useGlobalFallback && effectiveSecret) {
+          console.warn(`[webhook:kapso] WARNING: Using global fallback — tenant should re-register webhook | phone=${payloadPhoneId}`);
+        }
 
         if (!effectiveSecret) {
           console.error("[webhook:kapso] No webhook secret available (neither per-tenant nor global)");
@@ -750,15 +760,8 @@ Deno.serve(async (req) => {
 
         if (hmacSignature) {
           const valid = await verifyHmacSignature(rawBody, hmacSignature, effectiveSecret);
-          if (!valid && tenantSecret && KAPSO_WEBHOOK_SECRET) {
-            // Retry with global secret as fallback (tenant secret might be stale)
-            const validGlobal = await verifyHmacSignature(rawBody, hmacSignature, KAPSO_WEBHOOK_SECRET);
-            if (!validGlobal) {
-              console.error("[webhook:kapso] SECURITY: HMAC invalid with both per-tenant and global secrets");
-              return new Response("Unauthorized", { status: 401, headers: corsHeaders });
-            }
-          } else if (!valid) {
-            console.error("[webhook:kapso] SECURITY: Invalid HMAC signature — rejecting");
+          if (!valid) {
+            console.error(`[webhook:kapso] SECURITY: Invalid HMAC signature — rejecting | secret=${tenantSecret ? "per-tenant" : "global"} | phone=${payloadPhoneId}`);
             return new Response("Unauthorized", { status: 401, headers: corsHeaders });
           }
         } else if (webhookSecret) {
@@ -769,7 +772,7 @@ Deno.serve(async (req) => {
         } else {
           console.warn("[webhook:kapso] No signature headers — processing with caution");
         }
-        console.log(`[webhook:kapso] Auth: ${tenantSecret ? "per-tenant" : "global"} secret | phone=${payloadPhoneId}`);
+        console.log(`[webhook:kapso] Auth: ${tenantSecret ? "per-tenant" : "global-fallback"} secret | phone=${payloadPhoneId}`);
 
         // Process each event (single or batch)
         for (const rawEvent of eventList) {
@@ -994,6 +997,7 @@ async function processNormalizedMessage(supabase: ReturnType<typeof createClient
       if (connByInstance?.tenant_id) {
         tenantId = connByInstance.tenant_id;
         resolvedVia = "conexoes_whatsapp.instance_name";
+        console.warn(`[processMsg:${provider}] Tenant resolved via fallback method 1b (conexoes_whatsapp.instance_name) — consider adding phone_number_id to observacoes`);
       }
     }
 
@@ -1011,25 +1015,14 @@ async function processNormalizedMessage(supabase: ReturnType<typeof createClient
       if (connMatch?.tenant_id) {
         tenantId = connMatch.tenant_id;
         resolvedVia = "conexoes_whatsapp.telefone";
+        console.warn(`[processMsg:${provider}] Tenant resolved via fallback method 1c (telefone match) — less reliable for multi-tenant`);
       }
     }
 
-    // 2. Resolve by tenant with single active Kapso config (single-tenant shortcut)
-    if (!tenantId) {
-      const { data: singleConfig, error: scErr } = await supabase
-        .from("configuracoes_integracoes")
-        .select("tenant_id")
-        .eq("nome_integracao", INTEGRATION_NAME_KAPSO)
-        .not("tenant_id", "is", null)
-        .limit(2);
+    // NOTE: Method 2 (single-config-shortcut) was REMOVED — it's dangerous for multi-tenant
+    // because it assigns messages to a tenant based on being the only config, not on actual match.
 
-      if (!scErr && singleConfig && singleConfig.length === 1) {
-        tenantId = singleConfig[0].tenant_id;
-        resolvedVia = "single-config-shortcut";
-      }
-    }
-
-    // 3. Resolve by existing conversation (phone number match)
+    // 3. LAST RESORT: Resolve by existing conversation (phone number match)
     if (!tenantId) {
       const { data: existingConv } = await supabase
         .from("whatsapp_conversations")
@@ -1042,6 +1035,7 @@ async function processNormalizedMessage(supabase: ReturnType<typeof createClient
       if (existingConv) {
         tenantId = existingConv.tenant_id;
         resolvedVia = "whatsapp_conversations.phone_number";
+        console.warn(`[processMsg:${provider}] Tenant resolved via last-resort method 3 (existing conversation) — primary resolution methods failed`);
       }
     }
 
@@ -1147,6 +1141,25 @@ async function processNormalizedMessage(supabase: ReturnType<typeof createClient
 
       await supabase.rpc("increment_unread_count", { conversation_id: conversationId });
     } else {
+      // Auto-assign: find first admin/manager in the tenant to own this conversation
+      let responsavelId: string | null = null;
+      try {
+        const { data: firstManager } = await supabase
+          .from("user_roles")
+          .select("user_id")
+          .eq("tenant_id", tenantId)
+          .in("role", ["admin", "administrador", "manager", "gerente"])
+          .eq("ativo", true)
+          .limit(1)
+          .maybeSingle();
+        if (firstManager?.user_id) {
+          responsavelId = firstManager.user_id;
+          console.log(`[processMsg:${provider}] Auto-assigned responsavel: ${responsavelId}`);
+        }
+      } catch (assignErr) {
+        console.warn(`[processMsg:${provider}] Failed to auto-assign responsavel:`, assignErr);
+      }
+
       const { data: newConv, error: convError } = await supabase
         .from("whatsapp_conversations")
         .insert({
@@ -1158,6 +1171,7 @@ async function processNormalizedMessage(supabase: ReturnType<typeof createClient
           last_message_at: new Date().toISOString(),
           status: "ativo",
           unread_count: 1,
+          responsavel_id: responsavelId,
         })
         .select("id")
         .single();

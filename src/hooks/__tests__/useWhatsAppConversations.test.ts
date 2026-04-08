@@ -45,6 +45,13 @@ vi.mock('@/hooks/use-toast', () => ({
   useToast: () => ({ toast: vi.fn() }),
 }));
 
+vi.mock('@/hooks/useRBAC', () => ({
+  useRBAC: () => ({
+    getLeadVisibilityScope: () => 'all',
+    getUserDepartamentos: () => [],
+  }),
+}));
+
 vi.mock('@/lib/logger', () => ({
   createLogger: () => ({ debug: vi.fn(), info: vi.fn(), warn: vi.fn(), error: vi.fn() }),
 }));

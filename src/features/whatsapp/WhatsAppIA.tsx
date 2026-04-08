@@ -109,21 +109,22 @@ const ChatPanel = ({
           </p>
         </div>
 
-        <div className="flex items-center gap-1">
+        <div className="flex items-center gap-2">
           <button
             onClick={onToggleIA}
-            className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-[10px] font-semibold transition-colors cursor-pointer hover:opacity-80 ${
+            className={`inline-flex items-center rounded-full border-2 px-3 py-1.5 text-xs font-semibold transition-colors cursor-pointer shadow-sm ${
               selectedConversation.ia_active
-                ? 'border-emerald-300 text-emerald-600 bg-emerald-50 dark:bg-emerald-950/20'
-                : 'border-orange-300 text-orange-600 bg-orange-50 dark:bg-orange-950/20'
+                ? 'border-emerald-400 text-emerald-700 bg-emerald-100 hover:bg-emerald-200 dark:bg-emerald-900/40 dark:text-emerald-300 dark:hover:bg-emerald-900/60'
+                : 'border-orange-400 text-orange-700 bg-orange-100 hover:bg-orange-200 dark:bg-orange-900/40 dark:text-orange-300 dark:hover:bg-orange-900/60'
             }`}
             title={selectedConversation.ia_active ? 'Clique para desativar IA e assumir conversa' : 'Clique para reativar IA automática'}
+            aria-label={selectedConversation.ia_active ? 'Desativar IA automática' : 'Ativar IA automática'}
             data-testid="btn-toggle-ia"
           >
             {selectedConversation.ia_active ? (
-              <><Bot className="h-3 w-3 mr-1" />IA Ativa</>
+              <><Bot className="h-4 w-4 mr-1.5" />IA Ativa</>
             ) : (
-              <><User className="h-3 w-3 mr-1" />Atendimento Manual</>
+              <><User className="h-4 w-4 mr-1.5" />Manual</>
             )}
           </button>
         </div>

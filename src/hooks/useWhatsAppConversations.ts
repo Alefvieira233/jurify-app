@@ -1,9 +1,10 @@
 /** Manages WhatsApp conversations: listing, filtering, real-time updates, and message sending. */
 
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { useRBAC } from '@/hooks/useRBAC';
 import { useToast } from '@/hooks/use-toast';
 import { toUserMessage } from '@/lib/errorMessages';
 import { createLogger } from '@/lib/logger';
@@ -73,8 +74,28 @@ export const useWhatsAppConversations = (): UseWhatsAppConversationsReturn => {
   const { user, profile } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const { getLeadVisibilityScope, getUserDepartamentos } = useRBAC();
 
-  const { data: conversations = [], isLoading: loading } = useQuery({
+  const visibilityScope = getLeadVisibilityScope();
+  const userDepartmentIds = getUserDepartamentos();
+
+  // Fetch profile_ids of all members in the user's departments (for 'department' scope filtering)
+  const { data: departmentMemberIds = [] } = useQuery({
+    queryKey: ['department-member-ids', ...userDepartmentIds],
+    queryFn: async (): Promise<string[]> => {
+      if (userDepartmentIds.length === 0) return [];
+      const { data, error } = await supabase
+        .from('departamento_membros')
+        .select('profile_id')
+        .in('departamento_id', userDepartmentIds);
+      if (error) throw error;
+      return (data ?? []).map((m: { profile_id: string }) => m.profile_id);
+    },
+    enabled: visibilityScope === 'department' && userDepartmentIds.length > 0,
+    staleTime: 5 * 60 * 1000,
+  });
+
+  const { data: rawConversations = [], isLoading: loading } = useQuery({
     queryKey: queryKeys.whatsappConversations.list(profile?.tenant_id),
     queryFn: async () => {
       log.debug('Carregando conversas');
@@ -88,6 +109,11 @@ export const useWhatsAppConversations = (): UseWhatsAppConversationsReturn => {
 
       if (profile?.tenant_id) {
         query = query.eq('tenant_id', profile.tenant_id);
+      }
+
+      // For 'own' scope, filter at query level: only conversations assigned to the current user or unassigned
+      if (visibilityScope === 'own' && user?.id) {
+        query = query.or(`user_id.eq.${user.id},responsavel_id.eq.${user.id},user_id.is.null`);
       }
 
       const { data, error: fetchError } = await query;
@@ -105,6 +131,35 @@ export const useWhatsAppConversations = (): UseWhatsAppConversationsReturn => {
       },
     },
   });
+
+  // Apply visibility filtering (covers both initial fetch and realtime inserts):
+  // - 'all': no filtering (admin/manager sees everything in tenant)
+  // - 'own': only conversations assigned to the current user or unassigned
+  // - 'department': conversations where responsavel_id or user_id belongs to a department
+  //   colleague, or the conversation is unassigned
+  const conversations = useMemo(() => {
+    if (visibilityScope === 'all') return rawConversations;
+
+    if (visibilityScope === 'own') {
+      const uid = user?.id;
+      if (!uid) return rawConversations;
+      return rawConversations.filter((conv) =>
+        conv.user_id === uid || conv.responsavel_id === uid || (!conv.user_id && !conv.responsavel_id)
+      );
+    }
+
+    // 'department' scope
+    if (departmentMemberIds.length === 0) return rawConversations;
+    const memberSet = new Set(departmentMemberIds);
+    return rawConversations.filter((conv) => {
+      // Unassigned conversations are visible to department members
+      if (!conv.user_id && !conv.responsavel_id) return true;
+      // Conversations assigned to a department colleague
+      if (conv.user_id && memberSet.has(conv.user_id)) return true;
+      if (conv.responsavel_id && memberSet.has(conv.responsavel_id)) return true;
+      return false;
+    });
+  }, [rawConversations, visibilityScope, departmentMemberIds, user?.id]);
 
   const MESSAGE_PAGE_SIZE = 50;
 
