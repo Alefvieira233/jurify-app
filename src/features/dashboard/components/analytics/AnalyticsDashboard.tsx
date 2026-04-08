@@ -4,48 +4,27 @@
  * Enterprise analytics dashboard with real-time metrics, charts, and insights.
  * Provides comprehensive view of business performance.
  *
- * Migrated to React Query for proper caching, deduplication, and background refetch.
+ * Orchestrator: delegates rendering to AnalyticsFilters, AnalyticsSummaryCards, AnalyticsChartTabs.
  *
- * @version 1.1.0
+ * @version 2.0.0
  */
 
-import { useState, useCallback, useMemo } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { useState, useCallback } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRBAC } from '@/hooks/useRBAC';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery } from '@tanstack/react-query';
 import { queryKeys } from '@/lib/queryKeys';
-import {
-    BarChart,
-    Bar,
-    XAxis,
-    YAxis,
-    CartesianGrid,
-    Tooltip,
-    ResponsiveContainer,
-    PieChart,
-    Pie,
-    Cell,
-    Area,
-    AreaChart,
-} from 'recharts';
-import {
-    TrendingUp,
-    Users,
-    FileText,
-    Brain,
-    ArrowUpRight,
-    ArrowDownRight,
-    RefreshCw,
-} from 'lucide-react';
+import { RefreshCw } from 'lucide-react';
 import { createLogger } from '@/lib/logger';
+import { AnalyticsFilters, type Period } from './AnalyticsFilters';
+import { AnalyticsSummaryCards, type DashboardMetrics } from './AnalyticsSummaryCards';
+import { AnalyticsChartTabs, type ChartData } from './AnalyticsChartTabs';
 
 const log = createLogger('AnalyticsDashboard');
 
-// Tipos para dados do banco
+// -- Types for DB records ---------------------------------------------------
+
 interface LeadRecord {
     id: string;
     created_at: string | null;
@@ -69,34 +48,12 @@ interface AiLogRecord {
     created_at: string;
 }
 
-interface DashboardMetrics {
-    totalLeads: number;
-    leadsThisMonth: number;
-    leadsGrowth: number;
-    totalContracts: number;
-    contractsThisMonth: number;
-    contractsGrowth: number;
-    conversionRate: number;
-    avgResponseTime: number;
-    aiCallsToday: number;
-    totalRevenue: number;
-}
-
-interface ChartData {
-    leadsOverTime: { date: string; leads: number; conversions: number }[];
-    leadsByArea: { name: string; value: number }[];
-    leadsBySource: { name: string; value: number }[];
-    agentPerformance: { agent: string; calls: number; successRate: number }[];
-}
-
 interface AnalyticsData {
     metrics: DashboardMetrics;
     chartData: ChartData;
 }
 
-const COLORS = ['#8884d8', '#82ca9d', '#ffc658', '#ff7c43', '#a4de6c', '#d0ed57'];
-
-// ── Helper functions (pure, outside component) ─────────────────────────────
+// -- Helper functions (pure, outside component) -----------------------------
 
 function generateTimeSeriesData(leads: LeadRecord[], contracts: ContractRecord[], days: number) {
     const data = [];
@@ -140,12 +97,12 @@ function generateAgentMetrics(logs: AiLogRecord[]) {
     });
 }
 
-// ── Component ───────────────────────────────────────────────────────────────
+// -- Component (orchestrator) -----------------------------------------------
 
 export const AnalyticsDashboard = () => {
     const { profile } = useAuth();
     const { getLeadVisibilityScope, getUserDepartamentos } = useRBAC();
-    const [selectedPeriod, setSelectedPeriod] = useState<'7d' | '30d' | '90d'>('30d');
+    const [selectedPeriod, setSelectedPeriod] = useState<Period>('30d');
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const applyLeadVisibilityFilter = useCallback((query: any) => {
@@ -169,13 +126,11 @@ export const AnalyticsDashboard = () => {
         queryFn: async () => {
             if (!tenantId) return null;
 
-            // Calculate date ranges
             const now = new Date();
             const periodDays = selectedPeriod === '7d' ? 7 : selectedPeriod === '30d' ? 30 : 90;
             const startDate = new Date(now.getTime() - periodDays * 24 * 60 * 60 * 1000);
             const prevStartDate = new Date(startDate.getTime() - periodDays * 24 * 60 * 60 * 1000);
 
-            // Fetch all data in parallel (leads filtered by visibility scope)
             const [
                 { data: currentLeads },
                 { data: prevLeads },
@@ -192,7 +147,6 @@ export const AnalyticsDashboard = () => {
                 applyLeadVisibilityFilter(supabase.from('leads').select('id, created_at, area_juridica, origem, status').eq('tenant_id', tenantId)),
             ]);
 
-            // Calculate metrics
             const currentLeadsCount = currentLeads?.length || 0;
             const prevLeadsCount = prevLeads?.length || 0;
             const leadsGrowth = prevLeadsCount > 0 ? ((currentLeadsCount - prevLeadsCount) / prevLeadsCount) * 100 : 0;
@@ -216,17 +170,11 @@ export const AnalyticsDashboard = () => {
                 totalRevenue: currentContractsCount * 5000,
             };
 
-            // Generate chart data
-            const leadsOverTime = generateTimeSeriesData(currentLeads || [], currentContracts || [], periodDays);
-            const leadsByArea = groupByField(allLeads || [], 'area_juridica');
-            const leadsBySource = groupByField(allLeads || [], 'origem');
-            const agentPerformance = generateAgentMetrics(aiLogs || []);
-
             const chartData: ChartData = {
-                leadsOverTime,
-                leadsByArea,
-                leadsBySource,
-                agentPerformance,
+                leadsOverTime: generateTimeSeriesData(currentLeads || [], currentContracts || [], periodDays),
+                leadsByArea: groupByField(allLeads || [], 'area_juridica'),
+                leadsBySource: groupByField(allLeads || [], 'origem'),
+                agentPerformance: generateAgentMetrics(aiLogs || []),
             };
 
             return { metrics, chartData };
@@ -244,28 +192,6 @@ export const AnalyticsDashboard = () => {
     const metrics = analyticsData?.metrics ?? null;
     const chartData = analyticsData?.chartData ?? null;
 
-    const MetricCard = useMemo(() => {
-        const Component = ({ title, value, change, icon: Icon }: { title: string; value: string | number; change?: number; icon: React.ComponentType<{ className?: string }> }) => (
-            <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                    <CardTitle className="text-sm font-medium text-muted-foreground">{title}</CardTitle>
-                    <Icon className="h-4 w-4 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                    <div className="text-2xl font-bold">{value}</div>
-                    {change !== undefined && (
-                        <div className={`flex items-center text-xs ${change >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                            {change >= 0 ? <ArrowUpRight className="h-3 w-3" /> : <ArrowDownRight className="h-3 w-3" />}
-                            {Math.abs(change).toFixed(1)}% vs periodo anterior
-                        </div>
-                    )}
-                </CardContent>
-            </Card>
-        );
-        Component.displayName = 'MetricCard';
-        return Component;
-    }, []);
-
     if (loading) {
         return (
             <div className="flex items-center justify-center min-h-[400px]">
@@ -276,160 +202,15 @@ export const AnalyticsDashboard = () => {
 
     return (
         <div className="space-y-6">
-            {/* Header */}
-            <div className="flex items-center justify-between">
-                <div>
-                    <h2 className="text-3xl font-bold tracking-tight">Analytics</h2>
-                    <p className="text-muted-foreground">Visao completa do seu escritorio</p>
-                </div>
-                <div className="flex items-center gap-2">
-                    <div className="flex items-center bg-muted rounded-lg p-1">
-                        {(['7d', '30d', '90d'] as const).map((period) => (
-                            <Button
-                                key={period}
-                                variant={selectedPeriod === period ? 'default' : 'ghost'}
-                                size="sm"
-                                onClick={() => setSelectedPeriod(period)}
-                            >
-                                {period === '7d' ? '7 dias' : period === '30d' ? '30 dias' : '90 dias'}
-                            </Button>
-                        ))}
-                    </div>
-                    <Button variant="outline" size="sm" onClick={() => { void refetch(); }}>
-                        <RefreshCw className="h-4 w-4 mr-2" />
-                        Atualizar
-                    </Button>
-                </div>
-            </div>
+            <AnalyticsFilters
+                selectedPeriod={selectedPeriod}
+                onPeriodChange={setSelectedPeriod}
+                onRefresh={() => { void refetch(); }}
+            />
 
-            {/* Metrics Grid */}
-            {metrics && (
-                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-                    <MetricCard
-                        title="Total de Clientes"
-                        value={metrics.leadsThisMonth}
-                        change={metrics.leadsGrowth}
-                        icon={Users}
-                    />
-                    <MetricCard
-                        title="Contratos"
-                        value={metrics.contractsThisMonth}
-                        change={metrics.contractsGrowth}
-                        icon={FileText}
-                    />
-                    <MetricCard
-                        title="Taxa de Conversao"
-                        value={`${metrics.conversionRate.toFixed(1)}%`}
-                        icon={TrendingUp}
-                    />
-                    <MetricCard
-                        title="Chamadas IA Hoje"
-                        value={metrics.aiCallsToday}
-                        icon={Brain}
-                    />
-                </div>
-            )}
+            {metrics && <AnalyticsSummaryCards metrics={metrics} />}
 
-            {/* Charts */}
-            {chartData && (
-                <Tabs defaultValue="overview" className="space-y-4">
-                    <TabsList>
-                        <TabsTrigger value="overview">Visao Geral</TabsTrigger>
-                        <TabsTrigger value="leads">Clientes</TabsTrigger>
-                        <TabsTrigger value="agents">Agentes IA</TabsTrigger>
-                    </TabsList>
-
-                    <TabsContent value="overview" className="space-y-4">
-                        <Card>
-                            <CardHeader>
-                                <CardTitle>Clientes e Conversoes ao Longo do Tempo</CardTitle>
-                            </CardHeader>
-                            <CardContent>
-                                <ResponsiveContainer width="100%" height={300}>
-                                    <AreaChart data={chartData.leadsOverTime}>
-                                        <CartesianGrid strokeDasharray="3 3" />
-                                        <XAxis dataKey="date" fontSize={12} />
-                                        <YAxis fontSize={12} />
-                                        <Tooltip />
-                                        <Area type="monotone" dataKey="leads" stackId="1" stroke="#8884d8" fill="#8884d8" fillOpacity={0.6} name="Leads" />
-                                        <Area type="monotone" dataKey="conversions" stackId="2" stroke="#82ca9d" fill="#82ca9d" fillOpacity={0.6} name="Conversoes" />
-                                    </AreaChart>
-                                </ResponsiveContainer>
-                            </CardContent>
-                        </Card>
-                    </TabsContent>
-
-                    <TabsContent value="leads" className="space-y-4">
-                        <div className="grid gap-4 md:grid-cols-2">
-                            <Card>
-                                <CardHeader>
-                                    <CardTitle>Clientes por Area Juridica</CardTitle>
-                                </CardHeader>
-                                <CardContent>
-                                    <ResponsiveContainer width="100%" height={300}>
-                                        <PieChart>
-                                            <Pie
-                                                data={chartData.leadsByArea}
-                                                cx="50%"
-                                                cy="50%"
-                                                labelLine={false}
-                                                label={({ name, percent }) => `${name} (${(percent * 100).toFixed(0)}%)`}
-                                                outerRadius={80}
-                                                fill="#8884d8"
-                                                dataKey="value"
-                                            >
-                                                {chartData.leadsByArea.map((_, index) => (
-                                                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                                                ))}
-                                            </Pie>
-                                            <Tooltip />
-                                        </PieChart>
-                                    </ResponsiveContainer>
-                                </CardContent>
-                            </Card>
-
-                            <Card>
-                                <CardHeader>
-                                    <CardTitle>Clientes por Origem</CardTitle>
-                                </CardHeader>
-                                <CardContent>
-                                    <ResponsiveContainer width="100%" height={300}>
-                                        <BarChart data={chartData.leadsBySource} layout="vertical">
-                                            <CartesianGrid strokeDasharray="3 3" />
-                                            <XAxis type="number" />
-                                            <YAxis dataKey="name" type="category" width={100} fontSize={12} />
-                                            <Tooltip />
-                                            <Bar dataKey="value" fill="#8884d8" />
-                                        </BarChart>
-                                    </ResponsiveContainer>
-                                </CardContent>
-                            </Card>
-                        </div>
-                    </TabsContent>
-
-                    <TabsContent value="agents" className="space-y-4">
-                        <Card>
-                            <CardHeader>
-                                <CardTitle>Performance dos Agentes de IA</CardTitle>
-                                <CardDescription>Chamadas e taxa de sucesso por agente</CardDescription>
-                            </CardHeader>
-                            <CardContent>
-                                <ResponsiveContainer width="100%" height={300}>
-                                    <BarChart data={chartData.agentPerformance}>
-                                        <CartesianGrid strokeDasharray="3 3" />
-                                        <XAxis dataKey="agent" fontSize={12} />
-                                        <YAxis yAxisId="left" orientation="left" stroke="#8884d8" />
-                                        <YAxis yAxisId="right" orientation="right" stroke="#82ca9d" />
-                                        <Tooltip />
-                                        <Bar yAxisId="left" dataKey="calls" fill="#8884d8" name="Chamadas" />
-                                        <Bar yAxisId="right" dataKey="successRate" fill="#82ca9d" name="Taxa de Sucesso (%)" />
-                                    </BarChart>
-                                </ResponsiveContainer>
-                            </CardContent>
-                        </Card>
-                    </TabsContent>
-                </Tabs>
-            )}
+            {chartData && <AnalyticsChartTabs chartData={chartData} />}
         </div>
     );
 };
