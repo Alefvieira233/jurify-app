@@ -595,12 +595,27 @@ Deno.serve(async (req) => {
 
       // Read raw body for HMAC verification, then parse JSON
       const rawBody = await req.text();
-      const payload = JSON.parse(rawBody);
+      const parsed = JSON.parse(rawBody);
 
       // ============================================
       // 🔀 ROTEAMENTO: Kapso ou Meta?
       // ============================================
-      if (isKapsoPayload(payload)) {
+
+      // Kapso with buffering enabled may send an array of events
+      // Headers: X-Webhook-Batch: true, X-Batch-Size: N
+      const isBatch = req.headers.get("x-webhook-batch") === "true" || Array.isArray(parsed);
+      const payloads: WebhookPayload[] = isBatch
+        ? (Array.isArray(parsed) ? parsed : (parsed.events || parsed.data || [parsed]))
+        : [parsed];
+
+      if (isBatch) {
+        console.log(`[webhook:kapso] BATCH received: ${payloads.length} event(s)`);
+      }
+
+      // Use first payload to detect provider
+      const firstPayload = payloads[0] || parsed;
+
+      if (isKapsoPayload(firstPayload) || isBatch) {
         // Verify Kapso webhook signature
         if (!KAPSO_WEBHOOK_SECRET) {
           console.error("[webhook:kapso] CRITICAL: KAPSO_WEBHOOK_SECRET not configured — rejecting");
@@ -629,10 +644,13 @@ Deno.serve(async (req) => {
           return new Response("Unauthorized", { status: 401, headers: corsHeaders });
         }
 
+        // Process each event in the batch (or single event)
+        for (const payload of payloads) {
+
         // --- KAPSO API ---
         const event = payload.event;
         const instanceName = payload.instance;
-        console.log(`[webhook:kapso] Event: ${event} | Instance: ${instanceName}`);
+        console.log(`[webhook:kapso] Event: ${event} | Instance: ${instanceName} | Keys: ${Object.keys(payload).join(",")}`);
 
         // Eventos de conexão (QR Code, status)
         if (event === "connection.update") {
@@ -680,14 +698,14 @@ Deno.serve(async (req) => {
             }
           }
 
-          return new Response("OK", { status: 200, headers: corsHeaders });
+          continue;
         }
 
         // QR Code atualizado — do NOT overwrite observacoes (contains phone_number_id + customer_id)
         if (event === "qrcode.updated") {
           const instanceName = payload.instance;
           console.log(`[webhook:kapso] qrcode.updated for ${instanceName}`);
-          return new Response("OK", { status: 200, headers: corsHeaders });
+          continue;
         }
 
         // Mensagem recebida (Kapso: whatsapp.message.received | Legacy: messages.upsert)
@@ -696,20 +714,23 @@ Deno.serve(async (req) => {
           console.log(`[webhook:kapso] Message ID: ${msgId} | fromMe: ${payload.data?.key?.fromMe}`);
           if (msgId && await isDuplicate(msgId, supabase)) {
             console.log(`[webhook:kapso] Duplicate message ${msgId}, skipping`);
-            return new Response("OK", { status: 200, headers: corsHeaders });
+            continue;
           }
           const normalized = normalizeKapsoMessage(payload);
           if (normalized) {
             console.log(`[webhook:kapso] Processing message from ${normalized.from}: "${normalized.text.substring(0, 50)}"`);
             await processNormalizedMessage(supabase, normalized);
           } else {
-            console.warn(`[webhook:kapso] Could not normalize message (fromMe or empty)`);
+            console.warn(`[webhook:kapso] Could not normalize message (fromMe or empty) | payload keys: ${Object.keys(payload.data || {}).join(",")}`);
           }
-          return new Response("OK", { status: 200, headers: corsHeaders });
+          continue;
         }
 
         // Outros eventos
         console.log(`[webhook:kapso] Ignoring event: ${event}`);
+
+        } // end for (batch loop)
+
         return new Response("OK", { status: 200, headers: corsHeaders });
 
       } else {
