@@ -605,7 +605,19 @@ Deno.serve(async (req) => {
 
       // Log raw payload structure for debugging
       const rawKeys = typeof parsed === "object" && parsed !== null ? Object.keys(parsed as Record<string, unknown>).join(",") : typeof parsed;
-      console.log(`[webhook] Received: type=${typeof parsed} isArray=${Array.isArray(parsed)} keys=${rawKeys} batch=${req.headers.get("x-webhook-batch")} size=${rawBody.length}`);
+      const batchHeader = req.headers.get("x-webhook-batch");
+      const eventHeader = req.headers.get("x-webhook-event");
+      const sigHeader = req.headers.get("x-webhook-signature") ? "present" : "absent";
+      console.log(`[webhook] Received: type=${typeof parsed} isArray=${Array.isArray(parsed)} keys=${rawKeys} batch=${batchHeader} event=${eventHeader} sig=${sigHeader} size=${rawBody.length}`);
+
+      // PERSIST raw payload to webhook_events for debugging (fire-and-forget)
+      void supabase.from("webhook_events").insert({
+        event_id: `debug_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+        payload: rawBody.substring(0, 4000),
+        status: "debug_raw",
+      }).then(({ error: dbErr }) => {
+        if (dbErr) console.warn("[webhook] Failed to persist debug payload:", dbErr.message);
+      });
 
       // ============================================
       // 🔀 ROTEAMENTO: Kapso ou Meta?
