@@ -220,90 +220,148 @@ async function listPhoneNumbers(apiKey: string, customerId?: string): Promise<Ar
 /**
  * Register webhook URL with Kapso for a phone number.
  * This is CRITICAL — without it, Kapso has nowhere to send incoming messages.
- * Endpoint: POST /platform/v1/whatsapp/phone_numbers/{phone_number_id}/webhooks
+ * Endpoint: POST /platform/v1/whatsapp/phone_numbers/{id}/webhooks
+ *
+ * IMPORTANT: The {id} in the URL is Kapso's internal phone number ID,
+ * NOT the Meta phone_number_id. We try both and resolve the correct one.
  */
 async function registerWebhook(
   apiKey: string,
   phoneNumberId: string,
+  customerId?: string,
 ): Promise<{ success: boolean; secretKey?: string; error?: string }> {
   const supabaseUrl = Deno.env.get("SUPABASE_URL");
   if (!supabaseUrl) {
-    return { success: false, error: "SUPABASE_URL not configured" };
+    return { success: false, error: "SUPABASE_URL não configurado no servidor" };
   }
 
   const webhookUrl = `${supabaseUrl}/functions/v1/whatsapp-webhook`;
 
-  // First, check if webhook already exists for this phone number
+  // Resolve the Kapso internal phone ID (may differ from Meta phone_number_id)
+  const idsToTry: string[] = [phoneNumberId];
+
+  // Fetch phone list to get the Kapso internal ID
   try {
-    const listRes = await kapsoFetchWithKey(apiKey, `/platform/v1/whatsapp/phone_numbers/${phoneNumberId}/webhooks`);
-    if (listRes.ok) {
-      const listData = await listRes.json().catch(() => ({ data: [] }));
-      const existing = (listData?.data || []) as Array<{ url?: string; active?: boolean }>;
-      const alreadyRegistered = existing.some(
-        (wh) => wh.url === webhookUrl && wh.active !== false
-      );
-      if (alreadyRegistered) {
-        console.log(`[kapso-manager] Webhook already registered for phone ${phoneNumberId}`);
-        return { success: true };
+    const params = new URLSearchParams();
+    if (customerId) params.set("customer_id", customerId);
+    const qs = params.toString() ? `?${params.toString()}` : "";
+    const phonesRes = await kapsoFetchWithKey(apiKey, `/platform/v1/whatsapp/phone_numbers${qs}`);
+    if (phonesRes.ok) {
+      const phonesData = await phonesRes.json().catch(() => ({ data: [] }));
+      const phones = (phonesData?.data || []) as Array<{ id: string; phone_number_id?: string }>;
+      for (const p of phones) {
+        // If the Meta phone_number_id matches, use the Kapso internal id
+        if (p.phone_number_id === phoneNumberId && p.id !== phoneNumberId) {
+          idsToTry.unshift(p.id); // Try Kapso ID first
+        }
+        // Also add the Kapso id if not already there
+        if (!idsToTry.includes(p.id)) {
+          idsToTry.push(p.id);
+        }
       }
     }
   } catch {
-    // If list fails, try to create anyway
+    // Continue with original ID
   }
 
-  // Register webhook with all message events
-  try {
-    const res = await kapsoFetchWithKey(apiKey, `/platform/v1/whatsapp/phone_numbers/${phoneNumberId}/webhooks`, {
-      method: "POST",
-      body: JSON.stringify({
-        whatsapp_webhook: {
-          kind: "kapso",
-          url: webhookUrl,
-          events: [
-            "whatsapp.message.received",
-            "whatsapp.message.sent",
-            "whatsapp.message.delivered",
-            "whatsapp.message.read",
-            "whatsapp.message.failed",
-          ],
-        },
-      }),
-    });
+  const webhookBody = JSON.stringify({
+    whatsapp_webhook: {
+      kind: "kapso",
+      url: webhookUrl,
+      events: [
+        "whatsapp.message.received",
+        "whatsapp.message.sent",
+        "whatsapp.message.delivered",
+        "whatsapp.message.read",
+        "whatsapp.message.failed",
+      ],
+    },
+  });
 
-    const data = await res.json().catch(() => ({}));
+  let lastError = "";
 
-    if (!res.ok) {
-      const msg = data?.message || data?.error || `HTTP ${res.status}`;
-      console.error(`[kapso-manager] registerWebhook failed: ${res.status}`, JSON.stringify(data).slice(0, 500));
-      return { success: false, error: msg };
+  for (const id of idsToTry) {
+    // Check if webhook already exists
+    try {
+      const listRes = await kapsoFetchWithKey(apiKey, `/platform/v1/whatsapp/phone_numbers/${id}/webhooks`);
+      if (listRes.ok) {
+        const listData = await listRes.json().catch(() => ({ data: [] }));
+        const existing = (listData?.data || []) as Array<{ url?: string; active?: boolean }>;
+        const alreadyRegistered = existing.some(
+          (wh) => wh.url === webhookUrl && wh.active !== false
+        );
+        if (alreadyRegistered) {
+          console.log(`[kapso-manager] Webhook already registered for phone ID=${id}`);
+          return { success: true };
+        }
+      }
+    } catch {
+      // Continue to register
     }
 
-    // Kapso auto-generates the secret_key — store it for signature verification
-    const secretKey = data?.data?.secret_key || data?.secret_key;
-    console.log(`[kapso-manager] Webhook registered for phone ${phoneNumberId} → ${webhookUrl}`);
-    return { success: true, secretKey };
-  } catch (err) {
-    const msg = err instanceof Error ? err.message : "Network error";
-    console.error("[kapso-manager] registerWebhook exception:", err);
-    return { success: false, error: msg };
+    // Try to register
+    try {
+      const res = await kapsoFetchWithKey(apiKey, `/platform/v1/whatsapp/phone_numbers/${id}/webhooks`, {
+        method: "POST",
+        body: webhookBody,
+      });
+
+      const data = await res.json().catch(() => ({}));
+
+      if (res.ok) {
+        const secretKey = data?.data?.secret_key || data?.secret_key;
+        console.log(`[kapso-manager] Webhook registered for phone ID=${id} → ${webhookUrl}`);
+        return { success: true, secretKey };
+      }
+
+      lastError = `ID=${id}: ${data?.message || data?.error || data?.detail || `HTTP ${res.status}`}`;
+      console.warn(`[kapso-manager] registerWebhook attempt with ID=${id} failed: ${res.status}`, JSON.stringify(data).slice(0, 500));
+    } catch (err) {
+      lastError = `ID=${id}: ${err instanceof Error ? err.message : "Network error"}`;
+      console.error(`[kapso-manager] registerWebhook exception for ID=${id}:`, err);
+    }
   }
+
+  return { success: false, error: `Falha ao registrar webhook. ${lastError}` };
 }
 
 /**
  * List existing webhooks for a phone number (for diagnostics).
+ * Tries both the given ID and the Kapso internal ID.
  */
 async function listWebhooks(
   apiKey: string,
   phoneNumberId: string,
+  customerId?: string,
 ): Promise<Array<{ url: string; active: boolean; events?: string[] }>> {
+  const idsToTry = [phoneNumberId];
+
+  // Resolve Kapso internal ID
   try {
-    const res = await kapsoFetchWithKey(apiKey, `/platform/v1/whatsapp/phone_numbers/${phoneNumberId}/webhooks`);
-    if (!res.ok) return [];
-    const data = await res.json().catch(() => ({ data: [] }));
-    return data?.data || [];
-  } catch {
-    return [];
+    const params = new URLSearchParams();
+    if (customerId) params.set("customer_id", customerId);
+    const qs = params.toString() ? `?${params.toString()}` : "";
+    const phonesRes = await kapsoFetchWithKey(apiKey, `/platform/v1/whatsapp/phone_numbers${qs}`);
+    if (phonesRes.ok) {
+      const phonesData = await phonesRes.json().catch(() => ({ data: [] }));
+      for (const p of (phonesData?.data || []) as Array<{ id: string; phone_number_id?: string }>) {
+        if (p.phone_number_id === phoneNumberId && !idsToTry.includes(p.id)) {
+          idsToTry.unshift(p.id);
+        }
+      }
+    }
+  } catch { /* */ }
+
+  for (const id of idsToTry) {
+    try {
+      const res = await kapsoFetchWithKey(apiKey, `/platform/v1/whatsapp/phone_numbers/${id}/webhooks`);
+      if (!res.ok) continue;
+      const data = await res.json().catch(() => ({ data: [] }));
+      const webhooks = data?.data || [];
+      if (webhooks.length > 0) return webhooks;
+    } catch { /* */ }
   }
+  return [];
 }
 
 /** Save or update Kapso config for a tenant. Merges observacoes to preserve kapso_customer_id. */
@@ -637,7 +695,11 @@ Deno.serve(async (req) => {
         if (!config) return json({ success: false, error: "API key não configurada" }, 400);
         if (!config.phoneNumberId) return json({ success: false, error: "Nenhum número conectado" }, 400);
 
-        const result = await registerWebhook(config.apiKey, config.phoneNumberId);
+        // Get customer_id for better phone resolution
+        let custId: string | undefined;
+        try { custId = await ensureKapsoCustomer(supabase, config.apiKey, tenantId); } catch { /* */ }
+
+        const result = await registerWebhook(config.apiKey, config.phoneNumberId, custId);
         if (result.success) {
           await logEvent(supabase, null, tenantId, "webhook_registered", "info",
             `Webhook registrado manualmente para ${config.phoneNumberId}`);
@@ -755,7 +817,7 @@ Deno.serve(async (req) => {
               try {
                 const { decrypt: dec } = await import("../_shared/crypto.ts");
                 const key = await dec(cfg.api_key_encrypted);
-                const webhooks = await listWebhooks(key, obs.phone_number_id as string);
+                const webhooks = await listWebhooks(key, obs.phone_number_id as string, obs.kapso_customer_id as string | undefined);
                 const supabaseUrl = Deno.env.get("SUPABASE_URL") || "";
                 const expectedUrl = `${supabaseUrl}/functions/v1/whatsapp-webhook`;
                 const registered = webhooks.some(
