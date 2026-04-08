@@ -99,6 +99,7 @@ export const useProcessos = (options?: {
       displayName: 'Processo',
       listColumns: 'id,tenant_id,lead_id,numero_processo,tribunal,vara,comarca,tipo_acao,area_juridica,fase_processual,posicao,responsavel_id,valor_causa,valor_honorario_acordado,tipo_honorario,data_distribuicao,data_encerramento,status,observacoes,partes_contrarias,tags,created_at,updated_at',
       pageSize: options?.pageSize,
+      queryKeyFactory: (tenantId, page) => queryKeys.processos.list(tenantId, page),
     },
     crudOptions,
   );

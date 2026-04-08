@@ -65,11 +65,10 @@ export const useDocumentosJuridicos = (options?: { processoId?: string; leadId?:
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const tenantId = profile?.tenant_id;
-  const qKey = documentosQueryKey(tenantId);
   const page = options?.page ?? 1;
 
   const { data: queryData, isLoading: loading, error: queryError, refetch } = useQuery({
-    queryKey: [...qKey, options?.processoId, options?.leadId, page],
+    queryKey: [...queryKeys.documentosJuridicos.list(tenantId), options?.processoId, options?.leadId, page],
     queryFn: async () => {
       let query = supabase
         .from('documentos_juridicos')

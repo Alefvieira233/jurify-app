@@ -107,10 +107,10 @@ export function useDepartamentoMembros(departamentoId: string | null) {
     queryFn: async (): Promise<DepartamentoMembro[]> => {
       const { data, error } = await supabase
         .from('departamento_membros')
-        .select('*, profile:profile_id(id, nome_completo, email, avatar_url)')
+        .select('id, departamento_id, profile_id, role_no_depto, pode_ver_todos_leads, pode_atribuir_responsavel, pode_mover_leads, pode_editar_propriedades, pode_arquivar, pode_ver_metricas, pode_gerenciar, receber_notificacoes, created_at, profile:profile_id(id, nome_completo, email, avatar_url)')
         .eq('departamento_id', departamentoId!);
       if (error) throw error;
-      return (data ?? []) as DepartamentoMembro[];
+      return (data ?? []) as unknown as DepartamentoMembro[];
     },
     enabled: !!departamentoId,
   });
@@ -121,7 +121,7 @@ export function useDepartamentoMembros(departamentoId: string | null) {
       const { data, error } = await supabase
         .from('departamento_membros')
         .insert({ departamento_id: dId, profile_id: profileId, role_no_depto: roleNoDepto ?? 'membro', tenant_id: tenantId })
-        .select('*, profile:profile_id(id, nome_completo, email, avatar_url)')
+        .select('id, departamento_id, profile_id, role_no_depto, pode_ver_todos_leads, pode_atribuir_responsavel, pode_mover_leads, pode_editar_propriedades, pode_arquivar, pode_ver_metricas, pode_gerenciar, receber_notificacoes, created_at, profile:profile_id(id, nome_completo, email, avatar_url)')
         .single();
       if (error) throw error;
       return data;

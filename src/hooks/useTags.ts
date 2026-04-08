@@ -106,10 +106,10 @@ export function useLeadTags(leadId: string | null) {
     queryFn: async (): Promise<LeadTag[]> => {
       const { data, error } = await supabase
         .from('lead_tags')
-        .select('*, tag:tag_id(*)')
+        .select('id, lead_id, tag_id, created_at, created_by, tag:tag_id(id, tenant_id, nome, cor, categoria, ordem, ativo, created_at)')
         .eq('lead_id', leadId!);
       if (error) throw error;
-      return (data ?? []) as LeadTag[];
+      return (data ?? []) as unknown as LeadTag[];
     },
     enabled: !!leadId,
   });
@@ -119,7 +119,7 @@ export function useLeadTags(leadId: string | null) {
       const { data, error } = await supabase
         .from('lead_tags')
         .insert({ lead_id: lid, tag_id: tagId, created_by: userId ?? null })
-        .select('*, tag:tag_id(*)')
+        .select('id, lead_id, tag_id, created_at, created_by, tag:tag_id(id, tenant_id, nome, cor, categoria, ordem, ativo, created_at)')
         .single();
       if (error) throw error;
       return data;

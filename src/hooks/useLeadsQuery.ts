@@ -132,7 +132,7 @@ export function useLeadsQuery(options?: { enablePagination?: boolean; pageSize?:
 
   const [currentPage, setCurrentPage] = useState(1);
 
-  const qKey = leadsQueryKey(tenantId, enablePagination ? currentPage : undefined, visibilityScope);
+  const qKey = queryKeys.leads.list(tenantId, enablePagination ? currentPage : undefined, visibilityScope);
 
   const {
     data: queryData,

@@ -41,16 +41,14 @@ import type { DocumentoFormData } from '../schemas/documentoSchema';
 
 // ─── Hook type / key imports ────────────────────────────────────────────────
 
-import { processosQueryKey } from '../hooks/useProcessos';
+import { queryKeys } from '../lib/queryKeys';
+
 import type { Processo, ProcessoInput } from '../hooks/useProcessos';
 
-import { prazosQueryKey } from '../hooks/usePrazosProcessuais';
 import type { PrazoProcessual, PrazoInput } from '../hooks/usePrazosProcessuais';
 
-import { honorariosQueryKey } from '../hooks/useHonorarios';
 import type { Honorario, HonorarioInput, HonorarioWithOverdue } from '../hooks/useHonorarios';
 
-import { documentosQueryKey } from '../hooks/useDocumentosJuridicos';
 import type { DocumentoJuridico, DocumentoInput, DocumentoWithSignedUrl } from '../hooks/useDocumentosJuridicos';
 
 // ═══════════════════════════════════════════════════════════════════════════

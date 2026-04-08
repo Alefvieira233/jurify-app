@@ -65,14 +65,14 @@ export const useFollowUps = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('crm_followups')
-        .select('*, leads:lead_id(id, nome, telefone, status)')
+        .select('id, tenant_id, lead_id, created_by, assigned_to, title, description, followup_type, status, priority, scheduled_at, completed_at, snoozed_until, reminder_minutes, recurrence_rule, recurrence_end_at, auto_message_template, metadata, created_at, updated_at, leads:lead_id(id, nome, telefone, status)')
         .eq('tenant_id', tenantId!)
         .order('scheduled_at', { ascending: true });
 
       if (error) throw error;
 
       return (data || []).map((f) => {
-        const lead = f.leads;
+        const lead = f.leads as unknown as { id: string; nome: string; telefone: string; status: string } | null;
         return {
           ...f,
           lead_name: lead?.nome || 'Lead desconhecido',
@@ -261,7 +261,7 @@ export const useFollowUps = () => {
       try {
         let query = supabase
           .from('crm_followups')
-          .select('*, leads:lead_id(id, nome, telefone, status)')
+          .select('id, tenant_id, lead_id, created_by, assigned_to, title, description, followup_type, status, priority, scheduled_at, completed_at, snoozed_until, reminder_minutes, recurrence_rule, recurrence_end_at, auto_message_template, metadata, created_at, updated_at, leads:lead_id(id, nome, telefone, status)')
           .eq('tenant_id', tenantId)
           .order('scheduled_at', { ascending: true });
 
@@ -273,7 +273,7 @@ export const useFollowUps = () => {
         if (error) throw error;
 
         const enriched = (data || []).map((f) => {
-          const lead = f.leads;
+          const lead = f.leads as unknown as { id: string; nome: string; telefone: string; status: string } | null;
           return {
             ...f,
             lead_name: lead?.nome || 'Lead desconhecido',

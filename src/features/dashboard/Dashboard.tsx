@@ -4,11 +4,13 @@ const SankeyChart = React.lazy(() => import('./components/SankeyChart'));
 import AgentActivityWidget from './components/AgentActivityWidget';
 import {
   MessageSquare, Search, CheckCircle, FileText, Trophy, XCircle,
-  TrendingUp, Calendar, HelpCircle,
+  TrendingUp, Calendar, HelpCircle, AlertTriangle,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { usePageTitle } from '@/hooks/usePageTitle';
 import { useLeads } from '@/hooks/useLeads';
+import { useDashboardMetricsFast } from '@/hooks/useDashboardMetricsFast';
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend,
 } from 'recharts';
@@ -89,6 +91,7 @@ function MiniSparkline({ data, color }: { data: number[]; color: string }) {
 const Dashboard = () => {
   usePageTitle('Dashboard');
   const { leads, error: leadsError } = useLeads();
+  const { isViewFallback } = useDashboardMetricsFast();
   const [periodo, setPeriodo] = useState('semana');
 
   const range = useMemo(() => getDateRange(periodo), [periodo]);
@@ -153,6 +156,16 @@ const Dashboard = () => {
   return (
     <div className="p-6 space-y-6 max-w-[1400px] mx-auto">
       {announceMessage && <ScreenReaderAnnounce message={announceMessage} />}
+
+      {isViewFallback && (
+        <Alert className="border-yellow-500/50 bg-yellow-50 dark:bg-yellow-950/20">
+          <AlertTriangle className="h-4 w-4 text-yellow-600 dark:text-yellow-500" />
+          <AlertDescription className="text-xs text-yellow-700 dark:text-yellow-400">
+            Metricas podem estar desatualizadas. Dados em tempo real indisponiveis.
+          </AlertDescription>
+        </Alert>
+      )}
+
       {/* Header */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>

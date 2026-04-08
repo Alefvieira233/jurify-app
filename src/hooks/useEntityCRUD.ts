@@ -68,6 +68,18 @@ export interface EntityCRUDConfig<T> {
   normalize?: (row: unknown) => T;
   /** Items per page when pagination is enabled (default 25) */
   pageSize?: number;
+  /**
+   * Query key factory function from `@/lib/queryKeys`.
+   * When provided, replaces the inline `[queryKeyPrefix, tenantId, ...]` array
+   * with a centralized factory key. The returned array is used as the base key;
+   * extraQueryKey values are still appended.
+   *
+   * @example
+   * ```ts
+   * queryKeyFactory: (tenantId, page) => queryKeys.honorarios.list(tenantId)
+   * ```
+   */
+  queryKeyFactory?: (tenantId: string | undefined, page: number) => readonly unknown[];
 }
 
 export interface EntityCRUDOptions {
@@ -166,10 +178,12 @@ export function useEntityCRUD<
 
   // ── Query key ──────────────────────────────────────────────────────────────
 
+  const baseKey = config.queryKeyFactory
+    ? [...config.queryKeyFactory(tenantId ?? undefined, enablePagination ? currentPage : 1)]
+    : [queryKeyPrefix, tenantId, enablePagination ? currentPage : 1];
+
   const qKey = [
-    queryKeyPrefix,
-    tenantId,
-    enablePagination ? currentPage : 1,
+    ...baseKey,
     filters ? JSON.stringify(filters) : '',
     search ? `${search.column}:${search.term}` : '',
     ...(extraQueryKey ?? []),

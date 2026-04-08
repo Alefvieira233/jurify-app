@@ -11,7 +11,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import type { RealtimeChannel } from '@supabase/supabase-js';
 import { createLogger } from '@/lib/logger';
-// queryKeys factory available at @/lib/queryKeys for future migration
+import { queryKeys } from '@/lib/queryKeys';
 
 const log = createLogger('RealtimeSync');
 
@@ -24,14 +24,16 @@ interface RealtimeConfig {
 
 const DEFAULT_TABLES: TableName[] = ['leads', 'contratos', 'agendamentos', 'agent_executions', 'notificacoes'];
 
-// Map table names to their React Query cache keys
-const TABLE_QUERY_KEY_MAP: Record<TableName, string[]> = {
-  leads: ['leads', 'dashboard-metrics-fast'],
-  contratos: ['contratos', 'dashboard-metrics-fast'],
-  agendamentos: ['agendamentos', 'calendar-events', 'dashboard-metrics-fast'],
-  agent_executions: ['agent-executions', 'dashboard-metrics-fast'],
-  whatsapp_messages: ['whatsapp-messages'],
-  notificacoes: ['notificacoes'],
+// Map table names to their React Query cache key prefixes (from queryKeys factory).
+// First entry is the entity's own key (used for optimistic cache updates).
+// Subsequent entries are related keys that should be invalidated.
+const TABLE_QUERY_KEY_MAP: Record<TableName, readonly (readonly string[])[]> = {
+  leads: [queryKeys.leads.all, queryKeys.dashboardMetrics.all],
+  contratos: [queryKeys.contratos.all, queryKeys.dashboardMetrics.all],
+  agendamentos: [queryKeys.agendamentos.all, queryKeys.googleCalendarEvents.all, queryKeys.dashboardMetrics.all],
+  agent_executions: [queryKeys.agentExecutions.all, queryKeys.dashboardMetrics.all],
+  whatsapp_messages: [queryKeys.whatsappConversations.all],
+  notificacoes: [queryKeys.notifications.all],
 };
 
 export function useRealtimeSync(config: RealtimeConfig = {}) {
@@ -73,12 +75,15 @@ export function useRealtimeSync(config: RealtimeConfig = {}) {
           filter: `tenant_id=eq.${tenantId}`,
         },
         (payload) => {
-          const queryKeys = TABLE_QUERY_KEY_MAP[table] || [table];
+          const tableKeys = TABLE_QUERY_KEY_MAP[table] || [[table]];
 
           // Invalidate all related query keys
-          for (const key of queryKeys) {
-            void queryClient.invalidateQueries({ queryKey: [key] });
+          for (const key of tableKeys) {
+            void queryClient.invalidateQueries({ queryKey: [...key] });
           }
+
+          // Use the primary (first) key for optimistic cache updates
+          const primaryKey = tableKeys[0] ?? [table];
 
           // For INSERT/UPDATE, optimistically update cache if possible
           if (payload.eventType === 'INSERT' || payload.eventType === 'UPDATE') {
@@ -88,7 +93,7 @@ export function useRealtimeSync(config: RealtimeConfig = {}) {
             // Only do optimistic update if record has an id field
             const recordId = record.id;
             queryClient.setQueriesData(
-              { queryKey: [table] },
+              { queryKey: [...primaryKey] },
               (oldData: unknown) => {
                 if (!Array.isArray(oldData)) return oldData;
 
@@ -110,7 +115,7 @@ export function useRealtimeSync(config: RealtimeConfig = {}) {
             const deletedId = payload.old?.id;
             if (deletedId) {
               queryClient.setQueriesData(
-                { queryKey: [table] },
+                { queryKey: [...primaryKey] },
                 (oldData: unknown) => {
                   if (!Array.isArray(oldData)) return oldData;
                   return oldData.filter((item: Record<string, unknown>) => item.id !== deletedId);
