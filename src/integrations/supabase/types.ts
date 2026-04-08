@@ -12,31 +12,6 @@ export type Database = {
   __InternalSupabase: {
     PostgrestVersion: "12.2.3 (519615d)"
   }
-  graphql_public: {
-    Tables: {
-      [_ in never]: never
-    }
-    Views: {
-      [_ in never]: never
-    }
-    Functions: {
-      graphql: {
-        Args: {
-          extensions?: Json
-          operationName?: string
-          query?: string
-          variables?: Json
-        }
-        Returns: Json
-      }
-    }
-    Enums: {
-      [_ in never]: never
-    }
-    CompositeTypes: {
-      [_ in never]: never
-    }
-  }
   public: {
     Tables: {
       agendamentos: {
@@ -5048,6 +5023,13 @@ export type Database = {
           usuario_id: string
         }[]
       }
+      check_prazos_vencendo: {
+        Args: never
+        Returns: {
+          prazos_alertados: number
+          tenant_id: string
+        }[]
+      }
       check_rate_limit: {
         Args: {
           _identifier: string
@@ -5168,12 +5150,13 @@ export type Database = {
           execucoes_sucesso: number
           leads_novo_mes: number
           refreshed_at: string
-          status_contrato_assinado: number
-          status_em_atendimento: number
+          status_em_contato: number
           status_em_qualificacao: number
-          status_lead_perdido: number
-          status_novo_lead: number
-          status_proposta_enviada: number
+          status_ganho: number
+          status_negociacao: number
+          status_novo: number
+          status_perdido: number
+          status_proposta: number
           total_agendamentos: number
           total_contratos: number
           total_execucoes: number
@@ -5506,9 +5489,6 @@ export type CompositeTypes<
     : never
 
 export const Constants = {
-  graphql_public: {
-    Enums: {},
-  },
   public: {
     Enums: {
       app_module: [
