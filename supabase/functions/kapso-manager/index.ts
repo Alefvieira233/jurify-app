@@ -27,7 +27,7 @@ import { applyRateLimit } from "../_shared/rate-limiter.ts";
 // ---------------------------------------------------------------------------
 
 interface KapsoRequest {
-  action: "save-key" | "setup" | "setup-link" | "status" | "finalize" | "health" | "disconnect" | "diagnose";
+  action: "save-key" | "setup" | "setup-link" | "status" | "finalize" | "health" | "disconnect" | "diagnose" | "register-webhook";
   apiKey?: string;       // Only for save-key action
   phoneNumberId?: string; // From success_redirect_url params
   displayPhone?: string;  // From success_redirect_url params
@@ -215,6 +215,95 @@ async function listPhoneNumbers(apiKey: string, customerId?: string): Promise<Ar
       // Fallback: use phone_number_id if display_phone_number is missing
       display_phone_number: p.display_phone_number || p.phone_number_id || p.id,
     }));
+}
+
+/**
+ * Register webhook URL with Kapso for a phone number.
+ * This is CRITICAL — without it, Kapso has nowhere to send incoming messages.
+ * Endpoint: POST /platform/v1/whatsapp/phone_numbers/{phone_number_id}/webhooks
+ */
+async function registerWebhook(
+  apiKey: string,
+  phoneNumberId: string,
+): Promise<{ success: boolean; secretKey?: string; error?: string }> {
+  const supabaseUrl = Deno.env.get("SUPABASE_URL");
+  if (!supabaseUrl) {
+    return { success: false, error: "SUPABASE_URL not configured" };
+  }
+
+  const webhookUrl = `${supabaseUrl}/functions/v1/whatsapp-webhook`;
+
+  // First, check if webhook already exists for this phone number
+  try {
+    const listRes = await kapsoFetchWithKey(apiKey, `/platform/v1/whatsapp/phone_numbers/${phoneNumberId}/webhooks`);
+    if (listRes.ok) {
+      const listData = await listRes.json().catch(() => ({ data: [] }));
+      const existing = (listData?.data || []) as Array<{ url?: string; active?: boolean }>;
+      const alreadyRegistered = existing.some(
+        (wh) => wh.url === webhookUrl && wh.active !== false
+      );
+      if (alreadyRegistered) {
+        console.log(`[kapso-manager] Webhook already registered for phone ${phoneNumberId}`);
+        return { success: true };
+      }
+    }
+  } catch {
+    // If list fails, try to create anyway
+  }
+
+  // Register webhook with all message events
+  try {
+    const res = await kapsoFetchWithKey(apiKey, `/platform/v1/whatsapp/phone_numbers/${phoneNumberId}/webhooks`, {
+      method: "POST",
+      body: JSON.stringify({
+        whatsapp_webhook: {
+          kind: "kapso",
+          url: webhookUrl,
+          events: [
+            "whatsapp.message.received",
+            "whatsapp.message.sent",
+            "whatsapp.message.delivered",
+            "whatsapp.message.read",
+            "whatsapp.message.failed",
+          ],
+        },
+      }),
+    });
+
+    const data = await res.json().catch(() => ({}));
+
+    if (!res.ok) {
+      const msg = data?.message || data?.error || `HTTP ${res.status}`;
+      console.error(`[kapso-manager] registerWebhook failed: ${res.status}`, JSON.stringify(data).slice(0, 500));
+      return { success: false, error: msg };
+    }
+
+    // Kapso auto-generates the secret_key — store it for signature verification
+    const secretKey = data?.data?.secret_key || data?.secret_key;
+    console.log(`[kapso-manager] Webhook registered for phone ${phoneNumberId} → ${webhookUrl}`);
+    return { success: true, secretKey };
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : "Network error";
+    console.error("[kapso-manager] registerWebhook exception:", err);
+    return { success: false, error: msg };
+  }
+}
+
+/**
+ * List existing webhooks for a phone number (for diagnostics).
+ */
+async function listWebhooks(
+  apiKey: string,
+  phoneNumberId: string,
+): Promise<Array<{ url: string; active: boolean; events?: string[] }>> {
+  try {
+    const res = await kapsoFetchWithKey(apiKey, `/platform/v1/whatsapp/phone_numbers/${phoneNumberId}/webhooks`);
+    if (!res.ok) return [];
+    const data = await res.json().catch(() => ({ data: [] }));
+    return data?.data || [];
+  } catch {
+    return [];
+  }
 }
 
 /** Save or update Kapso config for a tenant. Merges observacoes to preserve kapso_customer_id. */
@@ -470,7 +559,7 @@ Deno.serve(async (req) => {
       }
 
       // ────────────────────────────────────────────────────────────────────
-      // FINALIZE: Persist connection after user confirms setup done
+      // FINALIZE: Persist connection + register webhook with Kapso
       // ────────────────────────────────────────────────────────────────────
       case "finalize": {
         const config = await getTenantKapsoConfig(supabase, tenantId);
@@ -480,24 +569,80 @@ Deno.serve(async (req) => {
         let customerId: string | undefined;
         try { customerId = await ensureKapsoCustomer(supabase, config.apiKey, tenantId); } catch { /* */ }
         const phones = await listPhoneNumbers(config.apiKey, customerId);
-        if (phones.length === 0) {
-          // Check if phoneNumberId was provided via redirect params
-          if (body.phoneNumberId && body.displayPhone) {
-            await upsertKapsoConfig(supabase, tenantId, config.apiKey, body.phoneNumberId, body.displayPhone);
-            const result = await finalizeConnection(supabase, tenantId, body.phoneNumberId, body.displayPhone);
-            return json({ success: true, ...result });
-          }
+
+        let phoneNumberId: string;
+        let phoneDisplay: string;
+
+        if (phones.length > 0) {
+          phoneNumberId = phones[0].phone_number_id;
+          phoneDisplay = phones[0].display_phone_number;
+        } else if (body.phoneNumberId && body.displayPhone) {
+          phoneNumberId = body.phoneNumberId;
+          phoneDisplay = body.displayPhone;
+        } else {
           return json({ success: false, error: "Nenhum número conectado encontrado." }, 400);
         }
 
-        const phone = phones[0];
-        await upsertKapsoConfig(supabase, tenantId, config.apiKey, phone.phone_number_id, phone.display_phone_number);
-        const result = await finalizeConnection(supabase, tenantId, phone.phone_number_id, phone.display_phone_number);
+        await upsertKapsoConfig(supabase, tenantId, config.apiKey, phoneNumberId, phoneDisplay);
+        const result = await finalizeConnection(supabase, tenantId, phoneNumberId, phoneDisplay);
+
+        // CRITICAL: Register webhook URL with Kapso so messages arrive
+        const webhookResult = await registerWebhook(config.apiKey, phoneNumberId);
+        if (!webhookResult.success) {
+          console.error(`[kapso-manager] Webhook registration failed for ${phoneNumberId}: ${webhookResult.error}`);
+          await logEvent(supabase, result.conexaoId ?? null, tenantId, "webhook_registration_failed", "warning",
+            `Webhook não registrado: ${webhookResult.error}. Mensagens podem não ser recebidas.`);
+        } else {
+          // If Kapso returned a secret_key, store it for reference
+          if (webhookResult.secretKey) {
+            const obs = { webhook_secret_hint: webhookResult.secretKey.slice(0, 8) + "..." };
+            const { data: cfg } = await supabase
+              .from("configuracoes_integracoes")
+              .select("observacoes")
+              .eq("nome_integracao", "whatsapp_kapso")
+              .eq("tenant_id", tenantId)
+              .maybeSingle();
+            let merged: Record<string, unknown> = {};
+            if (cfg?.observacoes) {
+              try { merged = JSON.parse(cfg.observacoes); } catch { /* */ }
+            }
+            Object.assign(merged, obs);
+            await supabase
+              .from("configuracoes_integracoes")
+              .update({ observacoes: JSON.stringify(merged) })
+              .eq("nome_integracao", "whatsapp_kapso")
+              .eq("tenant_id", tenantId);
+          }
+          await logEvent(supabase, result.conexaoId ?? null, tenantId, "webhook_registered", "info",
+            `Webhook registrado para ${phoneDisplay}`);
+        }
 
         await logEvent(supabase, result.conexaoId ?? null, tenantId, "whatsapp_connected", "info",
-          `Número ${phone.display_phone_number} conectado via Kapso`);
+          `Número ${phoneDisplay} conectado via Kapso`);
 
-        return json({ success: true, ...result, phone: phone.display_phone_number });
+        return json({
+          success: true,
+          ...result,
+          phone: phoneDisplay,
+          webhookRegistered: webhookResult.success,
+          webhookError: webhookResult.error || null,
+        });
+      }
+
+      // ────────────────────────────────────────────────────────────────────
+      // REGISTER-WEBHOOK: Force webhook registration for existing connection
+      // ────────────────────────────────────────────────────────────────────
+      case "register-webhook": {
+        const config = await getTenantKapsoConfig(supabase, tenantId);
+        if (!config) return json({ success: false, error: "API key não configurada" }, 400);
+        if (!config.phoneNumberId) return json({ success: false, error: "Nenhum número conectado" }, 400);
+
+        const result = await registerWebhook(config.apiKey, config.phoneNumberId);
+        if (result.success) {
+          await logEvent(supabase, null, tenantId, "webhook_registered", "info",
+            `Webhook registrado manualmente para ${config.phoneNumberId}`);
+        }
+        return json({ success: result.success, error: result.error || null });
       }
 
       // ────────────────────────────────────────────────────────────────────
@@ -603,6 +748,28 @@ Deno.serve(async (req) => {
               };
             } catch (err) {
               checks.kapso_phones = { ok: false, detail: `Erro ao consultar Kapso: ${err instanceof Error ? err.message : "unknown"}` };
+            }
+
+            // 4b. Check webhook is registered for this phone number
+            if (obs.phone_number_id) {
+              try {
+                const { decrypt: dec } = await import("../_shared/crypto.ts");
+                const key = await dec(cfg.api_key_encrypted);
+                const webhooks = await listWebhooks(key, obs.phone_number_id as string);
+                const supabaseUrl = Deno.env.get("SUPABASE_URL") || "";
+                const expectedUrl = `${supabaseUrl}/functions/v1/whatsapp-webhook`;
+                const registered = webhooks.some(
+                  (wh) => wh.url === expectedUrl && wh.active !== false
+                );
+                checks.webhook_registered = {
+                  ok: registered,
+                  detail: registered
+                    ? `Webhook ativo → ${expectedUrl}`
+                    : `Webhook NÃO registrado na Kapso. Use "Registrar Webhook" nas Ações.`,
+                };
+              } catch {
+                checks.webhook_registered = { ok: false, detail: "Erro ao verificar webhooks na Kapso" };
+              }
             }
           }
         }

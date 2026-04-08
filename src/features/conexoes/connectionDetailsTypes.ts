@@ -27,6 +27,7 @@ export const DIAGNOSE_CHECK_LABELS: Record<string, { label: string; icon: string
   kapso_customer_id:  { label: 'Customer ID Kapso',      icon: 'user' },
   kapso_phones:       { label: 'Números na Kapso',       icon: 'signal' },
   conexao:            { label: 'Conexão Local',          icon: 'database' },
+  webhook_registered: { label: 'Webhook Registrado',     icon: 'signal' },
   webhook_events:     { label: 'Webhook Events',         icon: 'activity' },
   env_reminder:       { label: 'Variáveis de Ambiente',  icon: 'shield' },
 };

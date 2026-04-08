@@ -31,6 +31,7 @@ const ConnectionDetailsDrawer = ({ conexao, open, onOpenChange }: ConnectionDeta
   const [activeTab, setActiveTab] = useState('geral');
   const [isReconnecting, setIsReconnecting] = useState(false);
   const [isTesting, setIsTesting] = useState(false);
+  const [isRegisteringWebhook, setIsRegisteringWebhook] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [diagLoading, setDiagLoading] = useState(false);
   const [diagResult, setDiagResult] = useState<DiagnosticoResult | null>(null);
@@ -141,6 +142,28 @@ const ConnectionDetailsDrawer = ({ conexao, open, onOpenChange }: ConnectionDeta
     }
   };
 
+  const handleRegisterWebhook = async () => {
+    setIsRegisteringWebhook(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('kapso-manager', {
+        body: { action: 'register-webhook' },
+      });
+      if (error) throw error;
+      if (data?.success) {
+        toast({ title: 'Webhook registrado', description: 'Mensagens devem começar a chegar em instantes.' });
+        // Re-run diagnostics to update the panel
+        setDiagRanOnce(false);
+      } else {
+        toast({ title: 'Falha ao registrar webhook', description: data?.error || 'Tente novamente.', variant: 'destructive' });
+      }
+    } catch (err) {
+      log.error('handleRegisterWebhook failed', err);
+      toast({ title: 'Erro ao registrar webhook', variant: 'destructive' });
+    } finally {
+      setIsRegisteringWebhook(false);
+    }
+  };
+
   const handleDelete = async () => {
     try {
       await deleteConexao(conexao.id);
@@ -238,10 +261,12 @@ const ConnectionDetailsDrawer = ({ conexao, open, onOpenChange }: ConnectionDeta
                 canDelete={canDelete}
                 isTesting={isTesting}
                 isReconnecting={isReconnecting}
+                isRegisteringWebhook={isRegisteringWebhook}
                 onTestConnection={() => { void handleTestConnection(); }}
                 onReconnect={() => { void handleReconnect(); }}
                 onDisconnect={() => { void handleDisconnect(); }}
                 onDeleteClick={() => setConfirmDelete(true)}
+                onRegisterWebhook={() => { void handleRegisterWebhook(); }}
               />
             </TabsContent>
 

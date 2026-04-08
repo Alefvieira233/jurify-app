@@ -1,4 +1,4 @@
-import { WifiOff, RefreshCw, Trash2, Zap, Loader2 } from 'lucide-react';
+import { WifiOff, RefreshCw, Trash2, Zap, Loader2, Radio } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import type { ConexaoWhatsApp } from '@/hooks/useConexoes';
@@ -9,10 +9,12 @@ interface ConnectionAcoesTabProps {
   canDelete: boolean;
   isTesting: boolean;
   isReconnecting: boolean;
+  isRegisteringWebhook?: boolean;
   onTestConnection: () => void;
   onReconnect: () => void;
   onDisconnect: () => void;
   onDeleteClick: () => void;
+  onRegisterWebhook?: () => void;
 }
 
 const ConnectionAcoesTab = ({
@@ -21,10 +23,12 @@ const ConnectionAcoesTab = ({
   canDelete,
   isTesting,
   isReconnecting,
+  isRegisteringWebhook,
   onTestConnection,
   onReconnect,
   onDisconnect,
   onDeleteClick,
+  onRegisterWebhook,
 }: ConnectionAcoesTabProps) => {
   return (
     <div className="space-y-3">
@@ -35,8 +39,20 @@ const ConnectionAcoesTab = ({
         disabled={isTesting}
       >
         {isTesting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Zap className="h-4 w-4" />}
-        {`Testar conex\u00e3o`}
+        Testar conexão
       </Button>
+
+      {canManage && onRegisterWebhook && (
+        <Button
+          variant="outline"
+          className="w-full justify-start gap-2"
+          onClick={onRegisterWebhook}
+          disabled={isRegisteringWebhook}
+        >
+          {isRegisteringWebhook ? <Loader2 className="h-4 w-4 animate-spin" /> : <Radio className="h-4 w-4" />}
+          Registrar Webhook
+        </Button>
+      )}
 
       {canManage && conexao.status === 'disconnected' && (
         <Button
@@ -46,7 +62,7 @@ const ConnectionAcoesTab = ({
           disabled={isReconnecting}
         >
           {isReconnecting ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
-          {`Reconectar inst\u00e2ncia`}
+          Reconectar instância
         </Button>
       )}
 
@@ -57,7 +73,7 @@ const ConnectionAcoesTab = ({
           onClick={onDisconnect}
         >
           <WifiOff className="h-4 w-4" />
-          {`Desconectar sess\u00e3o`}
+          Desconectar sessão
         </Button>
       )}
 
@@ -70,7 +86,7 @@ const ConnectionAcoesTab = ({
             onClick={onDeleteClick}
           >
             <Trash2 className="h-4 w-4" />
-            {`Excluir conex\u00e3o`}
+            Excluir conexão
           </Button>
         </>
       )}

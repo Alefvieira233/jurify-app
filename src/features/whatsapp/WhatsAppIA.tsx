@@ -26,6 +26,7 @@ import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 
 import ConversationList from './ConversationList';
 import MessageView from './MessageView';
@@ -164,6 +165,7 @@ const WhatsAppIA = () => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { profile } = useAuth();
   const { toast } = useToast();
+  const navigate = useNavigate();
 
   // Verifica conexão WhatsApp via conexoes_whatsapp (mesma fonte que aba Conexões)
   useEffect(() => {
@@ -367,7 +369,7 @@ const WhatsAppIA = () => {
         isConnected={isWhatsAppConnected}
         onSelectConversation={handleSelectConversation}
         onRefresh={() => void fetchConversations()}
-        onSetup={() => setShowSetup(true)}
+        onSetup={() => isWhatsAppConnected ? navigate('/conexoes') : setShowSetup(true)}
         members={members}
         areasJuridicas={uniqueAreas}
       />
@@ -381,7 +383,7 @@ const WhatsAppIA = () => {
         onSendMessage={handleSendMessage}
         onSendMedia={handleSendMedia}
         messagesEndRef={messagesEndRef}
-        onSetup={() => setShowSetup(true)}
+        onSetup={() => isWhatsAppConnected ? navigate('/conexoes') : setShowSetup(true)}
         onToggleIA={() => selectedConversation && void toggleIA(selectedConversation.id)}
       />
     </main>
