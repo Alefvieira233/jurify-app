@@ -627,13 +627,24 @@ Deno.serve(async (req) => {
       const isBatch = req.headers.get("x-webhook-batch") === "true" || Array.isArray(parsed);
       // deno-lint-ignore no-explicit-any
       const parsedObj = parsed as any;
-      const eventList: unknown[] = Array.isArray(parsed)
-        ? parsed
-        : (parsedObj?.events || parsedObj?.data && Array.isArray(parsedObj.data) ? parsedObj.data : [parsed]);
 
-      if (isBatch) {
-        console.log(`[webhook:kapso] BATCH: ${eventList.length} event(s)`);
+      // Resolve event list — handle all known Kapso payload shapes
+      let eventList: unknown[];
+      if (Array.isArray(parsed)) {
+        // Direct array: [{event: ...}, {event: ...}]
+        eventList = parsed;
+      } else if (Array.isArray(parsedObj?.events)) {
+        // Wrapper: {events: [{event: ...}, ...]}
+        eventList = parsedObj.events;
+      } else if (Array.isArray(parsedObj?.data)) {
+        // Wrapper: {data: [{event: ...}, ...]}
+        eventList = parsedObj.data;
+      } else {
+        // Single event: {event: "...", data: {...}}
+        eventList = [parsed];
       }
+
+      console.log(`[webhook] eventList: ${eventList.length} item(s) | isBatch=${isBatch} | firstKeys=${typeof eventList[0] === "object" && eventList[0] ? Object.keys(eventList[0] as Record<string, unknown>).join(",") : "N/A"}`);
 
       const firstPayload = (eventList[0] || parsed) as WebhookPayload;
 
