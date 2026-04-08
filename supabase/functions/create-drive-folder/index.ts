@@ -122,6 +122,7 @@ async function createDriveFolder(accessToken: string, name: string, parentId?: s
         'Content-Type': 'application/json',
       },
       body: JSON.stringify(metadata),
+      signal: AbortSignal.timeout(15_000),
     }
   )
 
@@ -135,7 +136,8 @@ async function createDriveFolder(accessToken: string, name: string, parentId?: s
   const detailResponse = await fetch(
     `https://www.googleapis.com/drive/v3/files/${folder.id}?fields=webViewLink`,
     {
-      headers: { 'Authorization': `Bearer ${accessToken}` }
+      headers: { 'Authorization': `Bearer ${accessToken}` },
+      signal: AbortSignal.timeout(15_000),
     }
   )
 

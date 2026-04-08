@@ -13,6 +13,7 @@ import { getCache, setCache, CACHE_TTL } from "../_shared/cache.ts";
 import { sanitizeInput, redactPII, auditLog } from "../_shared/security.ts";
 import { applyRateLimit } from "../_shared/rate-limiter.ts";
 import { checkBudgetBeforeCall, recordTokenUsage } from "../_shared/ai-budget.ts";
+import { DEFAULT_OPENAI_MODEL } from "../_shared/ai-model.ts";
 
 // SEC-03: Escape LIKE wildcards in user-derived query values
 function escapeLike(value: string): string {
@@ -443,7 +444,7 @@ async function callOpenAIWithRetry(
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "gpt-4o-mini",
+        model: DEFAULT_OPENAI_MODEL,
         messages,
         temperature: 0.6,
         max_tokens: 1000,

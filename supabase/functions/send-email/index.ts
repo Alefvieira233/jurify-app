@@ -387,6 +387,7 @@ Deno.serve(async (req) => {
       "X-Postmark-Server-Token": POSTMARK_TOKEN,
     },
     body: JSON.stringify(postmarkPayload),
+    signal: AbortSignal.timeout(15_000),
   });
 
   const result = await response.json().catch(() => ({}));

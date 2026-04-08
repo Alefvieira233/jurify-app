@@ -109,6 +109,7 @@ Deno.serve(async (req) => {
 
     const openai = new OpenAI({
       apiKey,
+      timeout: 30_000,
     });
 
 

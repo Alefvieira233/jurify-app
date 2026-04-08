@@ -163,6 +163,7 @@ async function sendViaMeta(
           type: "text",
           text: { body: text },
         }),
+        signal: AbortSignal.timeout(15_000),
       }
     );
 

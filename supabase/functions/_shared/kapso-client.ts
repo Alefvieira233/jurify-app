@@ -33,7 +33,7 @@ export async function kapsoFetchWithKey(
     headers.set("Content-Type", "application/json");
   }
 
-  return fetch(url, { ...options, headers });
+  return fetch(url, { ...options, headers, signal: options.signal ?? AbortSignal.timeout(15_000) });
 }
 
 /**

@@ -126,6 +126,7 @@ Deno.serve(async (req) => {
               lang: 'pt-br'
             }]
           }),
+          signal: AbortSignal.timeout(15_000),
         });
 
         if (!response.ok) {
@@ -182,6 +183,7 @@ Deno.serve(async (req) => {
           headers: {
             'Authorization': `Api-Key ${zapSignApiKey}`,
           },
+          signal: AbortSignal.timeout(15_000),
         });
 
         if (!response.ok) {

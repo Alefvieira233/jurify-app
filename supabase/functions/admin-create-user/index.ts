@@ -170,6 +170,7 @@ Deno.serve(async (req) => {
           template: "welcome",
           data: { name: nome_completo },
         }),
+        signal: AbortSignal.timeout(15_000),
       });
     } catch {
       // Email failure must never block user creation
