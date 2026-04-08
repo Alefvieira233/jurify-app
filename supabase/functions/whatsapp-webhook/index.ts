@@ -242,38 +242,124 @@ interface NormalizedMessage {
   provider: "kapso" | "meta";
 }
 
-// Kapso sends structured events starting with "whatsapp."
+// Detect Kapso payload — supports both old format (event field) and v2 (message/conversation)
 function isKapsoPayload(payload: WebhookPayload): boolean {
-  const event = (payload as Record<string, unknown>)?.event;
+  // deno-lint-ignore no-explicit-any
+  const p = payload as any;
+  // v2 format: {message: {...}, conversation: {...}, phone_number_id: "..."}
+  if (p?.message && p?.conversation) return true;
+  if (p?.message && p?.phone_number_id) return true;
+  // Old format: {event: "whatsapp.message.received", data: {...}}
+  const event = p?.event;
   if (typeof event === "string" && event.startsWith("whatsapp.")) return true;
-  // Kapso legacy format (messages.upsert event)
-  return !!(payload?.event || payload?.instance || payload?.data?.key);
+  // Legacy format (messages.upsert)
+  return !!(p?.event || p?.instance || p?.data?.key);
 }
 
-function normalizeKapsoMessage(payload: WebhookPayload): NormalizedMessage | null {
-  const event = payload.event;
+function normalizeKapsoMessage(payload: WebhookPayload, eventHeader?: string | null): NormalizedMessage | null {
+  // deno-lint-ignore no-explicit-any
+  const raw = payload as any;
 
-  // Kapso uses "whatsapp.message.received" or legacy "messages.upsert"
+  // ══════════════════════════════════════════════════════════════════════
+  // KAPSO v2 REAL FORMAT (2025+):
+  // The event type comes in X-Webhook-Event header, NOT in the body.
+  // Body: { message: { id, type, text, kapso: { direction, content } },
+  //         conversation: { phone_number, kapso: { contact_name } },
+  //         phone_number_id: "..." }
+  // ══════════════════════════════════════════════════════════════════════
+  if (raw?.message && (raw?.conversation || raw?.phone_number_id)) {
+    const msg = raw.message;
+    const conv = raw.conversation;
+    const kapso = msg?.kapso || {};
+
+    // Ignore outbound messages
+    if (kapso.direction === "outbound") return null;
+
+    const phoneNumber = (conv?.phone_number || "").replace(/\D/g, "");
+    if (!phoneNumber) {
+      console.warn("[webhook:kapso] v2-real: no phone_number in conversation");
+      return null;
+    }
+
+    const contactName = conv?.kapso?.contact_name || "Unknown";
+    const msgType = (msg.type || "text") as string;
+    let text = "";
+    let mediaUrl: string | null = null;
+
+    // Extract text/media from the message object
+    switch (msgType) {
+      case "text":
+        text = msg.text?.body || kapso.content || "";
+        break;
+      case "image":
+        text = msg.image?.caption || kapso.content || "[Imagem recebida]";
+        mediaUrl = kapso.media_url || kapso.media_data?.url || msg.image?.id || null;
+        break;
+      case "document":
+        text = msg.document?.caption || kapso.content || `[Documento: ${kapso.media_data?.filename || "arquivo"}]`;
+        mediaUrl = kapso.media_url || kapso.media_data?.url || msg.document?.id || null;
+        break;
+      case "audio":
+        text = kapso.transcript?.text || kapso.content || "[Audio recebido]";
+        mediaUrl = kapso.media_url || kapso.media_data?.url || msg.audio?.id || null;
+        break;
+      case "video":
+        text = msg.video?.caption || kapso.content || "[Video recebido]";
+        mediaUrl = kapso.media_url || kapso.media_data?.url || msg.video?.id || null;
+        break;
+      case "sticker":
+        text = "[Sticker recebido]";
+        break;
+      case "location":
+        text = `[Localizacao: ${msg.location?.latitude || "?"},${msg.location?.longitude || "?"}]`;
+        break;
+      case "interactive":
+        text = msg.interactive?.button_reply?.title || msg.interactive?.list_reply?.title || kapso.content || "[Resposta interativa]";
+        break;
+      case "reaction":
+        text = msg.reaction?.emoji || "[Reação]";
+        break;
+      default:
+        text = kapso.content || msg.text?.body || `[${msgType} recebido]`;
+        break;
+    }
+
+    if (!text) return null;
+
+    const instanceName = raw.phone_number_id || conv?.phone_number_id || null;
+
+    console.log(`[webhook:kapso] v2-real normalized: from=${phoneNumber} name=${contactName} type=${msgType} text="${text.substring(0, 50)}" instance=${instanceName}`);
+
+    return {
+      from: phoneNumber,
+      name: contactName,
+      text,
+      messageType: msgType === "text" ? "text" : msgType,
+      mediaUrl,
+      instanceName,
+      provider: "kapso",
+    };
+  }
+
+  // ══════════════════════════════════════════════════════════════════════
+  // KAPSO OLD FORMAT: { event: "whatsapp.message.received", data: { from, type, text } }
+  // ══════════════════════════════════════════════════════════════════════
+  const event = raw?.event || eventHeader;
+
   if (event !== "messages.upsert" && event !== "whatsapp.message.received") return null;
 
   const data = payload.data;
   if (!data) return null;
 
-  // deno-lint-ignore no-explicit-any
-  const raw = payload as any;
-
-  // ── Kapso v2 format (Meta Cloud API style) ──
-  // v2 sends: { event: "whatsapp.message.received", phone_number_id: "...", data: { from: "55...", type: "text", text: { body: "..." }, contact: { name: "..." } } }
+  // ── Old v2 format (with event + data.from) ──
   const v2From = data.from as string | undefined;
   if (v2From || (data.type && !data.key)) {
-    // This is Kapso v2 format (no data.key, uses data.from directly)
     const from = (v2From || "").replace(/\D/g, "");
     if (!from) {
-      console.warn("[webhook:kapso] v2 message has no 'from' field");
+      console.warn("[webhook:kapso] old-v2 message has no 'from' field");
       return null;
     }
 
-    // Ignore outgoing messages
     const direction = (data.direction || raw.direction || "") as string;
     if (direction === "outbound" || direction === "sent" || data.fromMe === true) return null;
 
@@ -320,7 +406,6 @@ function normalizeKapsoMessage(payload: WebhookPayload): NormalizedMessage | nul
 
     if (!text) return null;
 
-    // v2 may send phone_number_id at top level or in metadata
     const instanceName = raw.phone_number_id || raw.metadata?.phone_number_id || payload.instance || null;
 
     return {
@@ -494,7 +579,7 @@ function getMessageId(payload: WebhookPayload, provider: "kapso" | "meta"): stri
     // Legacy format: data.key.id | v2 format: data.message_id or data.id
     // deno-lint-ignore no-explicit-any
     const raw = payload as any;
-    return payload?.data?.key?.id || raw?.data?.message_id || raw?.data?.id || raw?.message_id || null;
+    return raw?.message?.id || payload?.data?.key?.id || raw?.data?.message_id || raw?.data?.id || raw?.message_id || null;
   }
   for (const entry of payload?.entry || []) {
     for (const change of entry?.changes || []) {
@@ -680,14 +765,13 @@ Deno.serve(async (req) => {
         const payload = rawEvent as WebhookPayload;
 
         // --- KAPSO API ---
-        const event = payload?.event;
-        const instanceName = payload?.instance;
-        console.log(`[webhook:kapso] Event: ${event} | Instance: ${instanceName} | Keys: ${typeof payload === "object" && payload ? Object.keys(payload).join(",") : "N/A"}`);
-
-        if (!event) {
-          console.warn(`[webhook:kapso] Skipping event with no 'event' field:`, JSON.stringify(rawEvent).substring(0, 300));
-          continue;
-        }
+        // deno-lint-ignore no-explicit-any
+        const payloadAny = payload as any;
+        // v2-real format has no "event" in body — it comes from X-Webhook-Event header
+        const event = payload?.event || eventHeader || (payloadAny?.message ? "whatsapp.message.received" : null);
+        const instanceName = payload?.instance || payloadAny?.phone_number_id;
+        const payloadKeys = typeof payload === "object" && payload ? Object.keys(payload).join(",") : "N/A";
+        console.log(`[webhook:kapso] Event: ${event} | Instance: ${instanceName} | Keys: ${payloadKeys}`);
 
         // Eventos de conexão (QR Code, status)
         if (event === "connection.update") {
@@ -753,12 +837,12 @@ Deno.serve(async (req) => {
             console.log(`[webhook:kapso] Duplicate message ${msgId}, skipping`);
             continue;
           }
-          const normalized = normalizeKapsoMessage(payload);
+          const normalized = normalizeKapsoMessage(payload, eventHeader);
           if (normalized) {
             console.log(`[webhook:kapso] Processing message from ${normalized.from}: "${normalized.text.substring(0, 50)}"`);
             await processNormalizedMessage(supabase, normalized);
           } else {
-            console.warn(`[webhook:kapso] Could not normalize message (fromMe or empty) | payload keys: ${Object.keys(payload.data || {}).join(",")}`);
+            console.warn(`[webhook:kapso] Could not normalize message | keys: ${payloadKeys} | event: ${event}`);
           }
           continue;
         }
