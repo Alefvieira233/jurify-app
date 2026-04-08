@@ -73,7 +73,7 @@ export const useDocumentosJuridicos = (options?: { processoId?: string; leadId?:
     queryFn: async () => {
       let query = supabase
         .from('documentos_juridicos')
-        .select('*', { count: 'exact' })
+        .select('id, tenant_id, processo_id, lead_id, nome_arquivo, nome_original, storage_path, url_publica, tipo_mime, tamanho_bytes, tipo_documento, content_hash, descricao, tags, uploaded_by, created_at, updated_at', { count: 'exact' })
         .order('created_at', { ascending: false })
         .range((page - 1) * PAGE_SIZE, page * PAGE_SIZE - 1);
 
