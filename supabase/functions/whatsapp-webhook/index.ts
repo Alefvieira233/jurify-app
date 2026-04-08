@@ -201,15 +201,12 @@ const KAPSO_WEBHOOK_SECRET = Deno.env.get("KAPSO_WEBHOOK_SECRET");
 
 /** Timing-safe string comparison to prevent timing attacks on webhook secrets */
 function timingSafeCompare(a: string, b: string): boolean {
-  const encoder = new TextEncoder();
-  const bufA = encoder.encode(a);
-  const bufB = encoder.encode(b);
-  if (bufA.length !== bufB.length) {
-    // Compare against self to keep constant time, then return false
-    crypto.subtle.timingSafeEqual(bufA, bufA);
-    return false;
+  if (a.length !== b.length) return false;
+  let mismatch = 0;
+  for (let i = 0; i < a.length; i++) {
+    mismatch |= a.charCodeAt(i) ^ b.charCodeAt(i);
   }
-  return crypto.subtle.timingSafeEqual(bufA, bufB);
+  return mismatch === 0;
 }
 
 /** Verify HMAC-SHA256 signature of a payload */
@@ -533,10 +530,7 @@ Deno.serve(async (req) => {
       }
 
       if (WHATSAPP_VERIFY_TOKEN) {
-        const encoder = new TextEncoder();
-        const a = encoder.encode(token);
-        const b = encoder.encode(WHATSAPP_VERIFY_TOKEN);
-        if (a.byteLength === b.byteLength && crypto.subtle.timingSafeEqual(a, b)) {
+        if (timingSafeCompare(token, WHATSAPP_VERIFY_TOKEN)) {
           return new Response(challenge, {
             headers: { "Content-Type": "text/plain" },
             status: 200,
@@ -564,10 +558,7 @@ Deno.serve(async (req) => {
         for (const cfg of data) {
           try {
             const decrypted = await decrypt(cfg.verify_token_encrypted);
-            const encoder = new TextEncoder();
-            const a = encoder.encode(decrypted);
-            const b = encoder.encode(token);
-            if (a.byteLength === b.byteLength && crypto.subtle.timingSafeEqual(a, b)) {
+            if (timingSafeCompare(decrypted, token)) {
               tokenMatch = true;
               break;
             }
@@ -767,7 +758,7 @@ Deno.serve(async (req) => {
 
     return new Response("Method not allowed", { status: 405 });
   } catch (error) {
-    console.error("[webhook] Error:", error);
+    console.error("[webhook] Error:", error instanceof Error ? `${error.message}\n${error.stack}` : error);
     return new Response(JSON.stringify({ error: "Internal server error" }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
       status: 500,
