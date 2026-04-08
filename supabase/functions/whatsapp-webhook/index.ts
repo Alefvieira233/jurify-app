@@ -595,25 +595,35 @@ Deno.serve(async (req) => {
 
       // Read raw body for HMAC verification, then parse JSON
       const rawBody = await req.text();
-      const parsed = JSON.parse(rawBody);
+      let parsed: unknown;
+      try {
+        parsed = JSON.parse(rawBody);
+      } catch {
+        console.error("[webhook] Invalid JSON body:", rawBody.substring(0, 500));
+        return new Response("Bad Request", { status: 400, headers: corsHeaders });
+      }
+
+      // Log raw payload structure for debugging
+      const rawKeys = typeof parsed === "object" && parsed !== null ? Object.keys(parsed as Record<string, unknown>).join(",") : typeof parsed;
+      console.log(`[webhook] Received: type=${typeof parsed} isArray=${Array.isArray(parsed)} keys=${rawKeys} batch=${req.headers.get("x-webhook-batch")} size=${rawBody.length}`);
 
       // ============================================
       // 🔀 ROTEAMENTO: Kapso ou Meta?
       // ============================================
 
-      // Kapso with buffering enabled may send an array of events
-      // Headers: X-Webhook-Batch: true, X-Batch-Size: N
+      // Kapso with buffering may send an array of events or a wrapper object
       const isBatch = req.headers.get("x-webhook-batch") === "true" || Array.isArray(parsed);
-      const payloads: WebhookPayload[] = isBatch
-        ? (Array.isArray(parsed) ? parsed : (parsed.events || parsed.data || [parsed]))
-        : [parsed];
+      // deno-lint-ignore no-explicit-any
+      const parsedObj = parsed as any;
+      const eventList: unknown[] = Array.isArray(parsed)
+        ? parsed
+        : (parsedObj?.events || parsedObj?.data && Array.isArray(parsedObj.data) ? parsedObj.data : [parsed]);
 
       if (isBatch) {
-        console.log(`[webhook:kapso] BATCH received: ${payloads.length} event(s)`);
+        console.log(`[webhook:kapso] BATCH: ${eventList.length} event(s)`);
       }
 
-      // Use first payload to detect provider
-      const firstPayload = payloads[0] || parsed;
+      const firstPayload = (eventList[0] || parsed) as WebhookPayload;
 
       if (isKapsoPayload(firstPayload) || isBatch) {
         // Verify Kapso webhook signature
@@ -622,19 +632,16 @@ Deno.serve(async (req) => {
           return new Response("Service misconfigured", { status: 503, headers: corsHeaders });
         }
 
-        // Kapso sends signature as X-Webhook-Signature (not x-kapso-signature)
         const hmacSignature = req.headers.get("x-webhook-signature") || req.headers.get("x-kapso-signature");
         const webhookSecret = req.headers.get("x-webhook-secret");
 
         if (hmacSignature) {
-          // Preferred: HMAC-SHA256 verification of the raw payload
           const valid = await verifyHmacSignature(rawBody, hmacSignature, KAPSO_WEBHOOK_SECRET);
           if (!valid) {
             console.error("[webhook:kapso] SECURITY: Invalid HMAC signature — rejecting");
             return new Response("Unauthorized", { status: 401, headers: corsHeaders });
           }
         } else if (webhookSecret) {
-          // Fallback: timing-safe comparison of shared secret header
           if (!timingSafeCompare(webhookSecret, KAPSO_WEBHOOK_SECRET)) {
             console.error("[webhook:kapso] SECURITY: Invalid webhook secret — rejecting");
             return new Response("Unauthorized", { status: 401, headers: corsHeaders });
@@ -644,13 +651,19 @@ Deno.serve(async (req) => {
           return new Response("Unauthorized", { status: 401, headers: corsHeaders });
         }
 
-        // Process each event in the batch (or single event)
-        for (const payload of payloads) {
+        // Process each event (single or batch)
+        for (const rawEvent of eventList) {
+        const payload = rawEvent as WebhookPayload;
 
         // --- KAPSO API ---
-        const event = payload.event;
-        const instanceName = payload.instance;
-        console.log(`[webhook:kapso] Event: ${event} | Instance: ${instanceName} | Keys: ${Object.keys(payload).join(",")}`);
+        const event = payload?.event;
+        const instanceName = payload?.instance;
+        console.log(`[webhook:kapso] Event: ${event} | Instance: ${instanceName} | Keys: ${typeof payload === "object" && payload ? Object.keys(payload).join(",") : "N/A"}`);
+
+        if (!event) {
+          console.warn(`[webhook:kapso] Skipping event with no 'event' field:`, JSON.stringify(rawEvent).substring(0, 300));
+          continue;
+        }
 
         // Eventos de conexão (QR Code, status)
         if (event === "connection.update") {
