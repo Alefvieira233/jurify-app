@@ -1517,9 +1517,19 @@ async function processNormalizedMessage(supabase: ReturnType<typeof createClient
         .then(({ error }) => { if (error) console.error("[webhook] execution fail error:", error.message); });
     }
 
-    const aiText = aiError
-      ? `Olá! Recebi sua mensagem e em breve um de nossos advogados entrará em contato. Obrigado pelo contato com ${officeName}!`
-      : (aiResponse?.result || "Desculpe, não consegui processar sua mensagem no momento.");
+    let aiText: string;
+    if (aiError) {
+      aiText = `Olá! Recebi sua mensagem e em breve um de nossos advogados entrará em contato. Obrigado pelo contato com ${officeName}!`;
+      console.error(`[processMsg:${provider}] AI FAILED: ${aiError.message}`);
+    } else if (budgetExceeded) {
+      aiText = `Olá! Recebi sua mensagem. No momento nosso assistente virtual está indisponível, mas um de nossos advogados entrará em contato em breve. Obrigado pelo contato com ${officeName}!`;
+      console.warn(`[processMsg:${provider}] AI budget exceeded — sending fallback`);
+    } else if (aiResponse?.result) {
+      aiText = aiResponse.result;
+    } else {
+      aiText = `Olá! Recebi sua mensagem e vou encaminhar para nossa equipe. Obrigado pelo contato com ${officeName}!`;
+      console.warn(`[processMsg:${provider}] AI returned empty result — sending fallback`);
+    }
 
     // --- HUMAN HANDOFF: detect uncertainty ---
     const HANDOFF_PATTERNS = [
