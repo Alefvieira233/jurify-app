@@ -14,7 +14,7 @@
  * const { leads, loading, fetchLeads, createLead, updateLead } = useLeads({ enablePagination: true });
  * ```
  */
-import { useLeadsQuery, leadsQueryKey } from './useLeadsQuery';
+import { useLeadsQuery } from './useLeadsQuery';
 import { useLeadsCRUD } from './useLeadsCRUD';
 
 // ─── Re-exported types & utilities ──────────────────────────────────────────
@@ -96,8 +96,7 @@ export type CreateLeadData = {
 
 export type LeadInput = CreateLeadData;
 
-/** @deprecated Use `queryKeys.leads.list(tenantId, page, scope)` from `@/lib/queryKeys` instead. */
-export { leadsQueryKey };
+// NOTE: leadsQueryKey deprecated wrapper removed. Use queryKeys.leads.list() from @/lib/queryKeys.
 
 // ─── Facade Hook ────────────────────────────────────────────────────────────
 

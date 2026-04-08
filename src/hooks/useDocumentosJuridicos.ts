@@ -46,10 +46,6 @@ export type DocumentoJuridico = {
 
 export type DocumentoInput = Partial<Omit<DocumentoJuridico, 'id' | 'created_at' | 'updated_at'>>;
 
-/** @deprecated Use `queryKeys.documentosJuridicos.list(tenantId)` from `@/lib/queryKeys` instead. */
-export const documentosQueryKey = (tenantId: string | undefined) =>
-  queryKeys.documentosJuridicos.list(tenantId);
-
 function normalizeDocumento(row: Record<string, unknown>): DocumentoJuridico {
   return { ...(row as DocumentoJuridico) };
 }
@@ -66,9 +62,10 @@ export const useDocumentosJuridicos = (options?: { processoId?: string; leadId?:
   const queryClient = useQueryClient();
   const tenantId = profile?.tenant_id;
   const page = options?.page ?? 1;
+  const qKey = [...queryKeys.documentosJuridicos.list(tenantId), options?.processoId, options?.leadId, page];
 
   const { data: queryData, isLoading: loading, error: queryError, refetch } = useQuery({
-    queryKey: [...queryKeys.documentosJuridicos.list(tenantId), options?.processoId, options?.leadId, page],
+    queryKey: qKey,
     queryFn: async () => {
       let query = supabase
         .from('documentos_juridicos')

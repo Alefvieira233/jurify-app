@@ -32,10 +32,6 @@ export type Honorario = {
 
 export type HonorarioInput = Partial<Omit<Honorario, 'id' | 'created_at' | 'updated_at'>>;
 
-/** @deprecated Use `queryKeys.honorarios.list(tenantId)` from `@/lib/queryKeys` instead. */
-export const honorariosQueryKey = (tenantId: string | undefined) =>
-  queryKeys.honorarios.list(tenantId);
-
 export type HonorarioWithOverdue = Honorario & { overdue: boolean };
 
 // ─── Hook ────────────────────────────────────────────────────────────────────

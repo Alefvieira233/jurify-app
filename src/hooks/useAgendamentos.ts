@@ -61,10 +61,6 @@ function sortByDataHora(list: Agendamento[]): Agendamento[] {
 
 // ─── Query key factory ───────────────────────────────────────────────────────
 
-/** @deprecated Use `queryKeys.agendamentos.list(tenantId)` from `@/lib/queryKeys` instead. */
-export const agendamentosQueryKey = (tenantId: string | undefined) =>
-  queryKeys.agendamentos.list(tenantId);
-
 // ─── Hook ────────────────────────────────────────────────────────────────────
 
 export interface UseAgendamentosOptions {

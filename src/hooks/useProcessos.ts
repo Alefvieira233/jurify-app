@@ -43,16 +43,6 @@ export type ProcessoInput = Partial<Omit<Processo, 'id' | 'created_at' | 'update
 
 // ─── Query key factory ───────────────────────────────────────────────────────
 
-/** @deprecated Use `queryKeys.processos.list(...)` from `@/lib/queryKeys` instead. */
-export const processosQueryKey = (
-  tenantId: string | undefined,
-  page?: number,
-  filterStatus?: string,
-  filterTipo?: string,
-  search?: string,
-) =>
-  queryKeys.processos.list(tenantId, page, filterStatus, filterTipo, search);
-
 // ─── Hook ────────────────────────────────────────────────────────────────────
 
 export const useProcessos = (options?: {

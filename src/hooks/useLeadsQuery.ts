@@ -108,10 +108,6 @@ export function mapLeadInputToDb(data: Partial<Record<string, unknown>>): Record
   return payload;
 }
 
-/** @deprecated Use `queryKeys.leads.list(tenantId, page, scope)` from `@/lib/queryKeys` instead. */
-export const leadsQueryKey = (tenantId: string | undefined, page?: number, scope?: string) =>
-  queryKeys.leads.list(tenantId, page, scope);
-
 export interface LeadQueryData {
   leads: Lead[];
   totalCount: number;

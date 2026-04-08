@@ -523,52 +523,52 @@ describe('Legal module constants', () => {
 // Section 3: Query key factories
 // ═══════════════════════════════════════════════════════════════════════════
 
-describe('Query key factories', () => {
-  describe('processosQueryKey', () => {
+describe('Query key factories (queryKeys)', () => {
+  describe('queryKeys.processos', () => {
     it('returns correct key with tenant only', () => {
-      const key = processosQueryKey('tenant-1');
+      const key = queryKeys.processos.list('tenant-1');
       expect(key).toEqual(['processos', 'tenant-1', 1, '', '', '']);
     });
 
     it('returns correct key with all parameters', () => {
-      const key = processosQueryKey('tenant-1', 3, 'ativo', 'civel', 'teste');
+      const key = queryKeys.processos.list('tenant-1', 3, 'ativo', 'civel', 'teste');
       expect(key).toEqual(['processos', 'tenant-1', 3, 'ativo', 'civel', 'teste']);
     });
 
     it('handles undefined tenant', () => {
-      const key = processosQueryKey(undefined);
+      const key = queryKeys.processos.list(undefined);
       expect(key[0]).toBe('processos');
       expect(key[1]).toBeUndefined();
     });
   });
 
-  describe('prazosQueryKey', () => {
+  describe('queryKeys.prazosProcessuais', () => {
     it('returns correct key with tenant only', () => {
-      const key = prazosQueryKey('tenant-1');
+      const key = queryKeys.prazosProcessuais.list('tenant-1');
       expect(key).toEqual(['prazos_processuais', 'tenant-1', 1]);
     });
 
     it('returns correct key with page', () => {
-      const key = prazosQueryKey('tenant-1', 5);
+      const key = queryKeys.prazosProcessuais.list('tenant-1', 5);
       expect(key).toEqual(['prazos_processuais', 'tenant-1', 5]);
     });
   });
 
-  describe('honorariosQueryKey', () => {
+  describe('queryKeys.honorarios', () => {
     it('returns correct key', () => {
-      const key = honorariosQueryKey('tenant-1');
+      const key = queryKeys.honorarios.list('tenant-1');
       expect(key).toEqual(['honorarios', 'tenant-1']);
     });
 
     it('handles undefined tenant', () => {
-      const key = honorariosQueryKey(undefined);
+      const key = queryKeys.honorarios.list(undefined);
       expect(key).toEqual(['honorarios', undefined]);
     });
   });
 
-  describe('documentosQueryKey', () => {
+  describe('queryKeys.documentosJuridicos', () => {
     it('returns correct key', () => {
-      const key = documentosQueryKey('tenant-1');
+      const key = queryKeys.documentosJuridicos.list('tenant-1');
       expect(key).toEqual(['documentos_juridicos', 'tenant-1']);
     });
   });

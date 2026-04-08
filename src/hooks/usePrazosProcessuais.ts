@@ -29,10 +29,6 @@ export type PrazoProcessual = {
 
 export type PrazoInput = Partial<Omit<PrazoProcessual, 'id' | 'created_at' | 'updated_at'>>;
 
-/** @deprecated Use `queryKeys.prazosProcessuais.list(tenantId, page)` from `@/lib/queryKeys` instead. */
-export const prazosQueryKey = (tenantId: string | undefined, page?: number) =>
-  queryKeys.prazosProcessuais.list(tenantId, page);
-
 // ─── Hook ────────────────────────────────────────────────────────────────────
 
 export const usePrazosProcessuais = (options?: {

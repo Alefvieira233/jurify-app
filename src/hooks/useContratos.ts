@@ -53,10 +53,6 @@ const LIST_COLUMNS = 'id,lead_id,tenant_id,nome_cliente,area_juridica,valor_caus
 
 function normalizeContrato(row: ContratoRow): Contrato { return { ...row }; }
 
-/** @deprecated Use `queryKeys.contratos.list(tenantId)` from `@/lib/queryKeys` instead. */
-export const contratosQueryKey = (tenantId: string | undefined) =>
-  queryKeys.contratos.list(tenantId);
-
 export interface UseContratosOptions {
   /** Page number (0-based). Defaults to 0. */
   page?: number;
