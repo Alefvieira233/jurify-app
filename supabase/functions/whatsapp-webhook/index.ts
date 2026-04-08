@@ -610,13 +610,13 @@ Deno.serve(async (req) => {
       const sigHeader = req.headers.get("x-webhook-signature") ? "present" : "absent";
       console.log(`[webhook] Received: type=${typeof parsed} isArray=${Array.isArray(parsed)} keys=${rawKeys} batch=${batchHeader} event=${eventHeader} sig=${sigHeader} size=${rawBody.length}`);
 
-      // PERSIST raw payload to webhook_events for debugging (fire-and-forget)
+      // PERSIST raw payload for debugging (fire-and-forget)
+      // webhook_events table has: event_id (text), source (text), created_at
       void supabase.from("webhook_events").insert({
         event_id: `debug_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
-        payload: rawBody.substring(0, 4000),
-        status: "debug_raw",
+        source: `kapso_debug|size=${rawBody.length}|keys=${rawKeys}|body=${rawBody.substring(0, 200)}`,
       }).then(({ error: dbErr }) => {
-        if (dbErr) console.warn("[webhook] Failed to persist debug payload:", dbErr.message);
+        if (dbErr) console.warn("[webhook] Failed to persist debug:", dbErr.message);
       });
 
       // ============================================
@@ -943,8 +943,7 @@ async function processNormalizedMessage(supabase: ReturnType<typeof createClient
       // Persist failed resolution for diagnostics
       void supabase.from("webhook_events").insert({
         event_id: `unresolved_${Date.now()}_${from}`,
-        payload: JSON.stringify({ from, instanceName, provider, messageType, text: text.substring(0, 200) }),
-        status: "unresolved_tenant",
+        source: `unresolved|from=${from}|instance=${instanceName}|type=${messageType}`,
       }).then(({ error }) => {
         if (error) console.warn("[processMsg] Failed to log unresolved event:", error.message);
       });

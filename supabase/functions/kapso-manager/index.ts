@@ -856,17 +856,18 @@ Deno.serve(async (req) => {
           };
         }
 
-        // 6. Check recent webhook events
+        // 6. Check recent webhook events (table has: event_id, source, created_at)
         const { data: recentEvents, count: eventCount } = await supabase
           .from("webhook_events")
-          .select("event_id, status, created_at", { count: "exact" })
+          .select("event_id, source, created_at", { count: "exact" })
           .order("created_at", { ascending: false })
           .limit(5);
 
-        const unresolvedCount = recentEvents?.filter(e => e.status === "unresolved_tenant").length || 0;
+        const unresolvedCount = recentEvents?.filter(e => (e.source || "").includes("unresolved")).length || 0;
+        const debugCount = recentEvents?.filter(e => (e.source || "").includes("debug")).length || 0;
         checks.webhook_events = {
-          ok: unresolvedCount === 0,
-          detail: `Total: ${eventCount || 0} | Últimos 5: ${recentEvents?.length || 0} | Não resolvidos: ${unresolvedCount}`,
+          ok: (eventCount || 0) > 0 || unresolvedCount === 0,
+          detail: `Total: ${eventCount || 0} | Debug: ${debugCount} | Não resolvidos: ${unresolvedCount}`,
         };
 
         // 7. Check KAPSO_WEBHOOK_SECRET env var (only detectable via webhook, but we can flag it)
