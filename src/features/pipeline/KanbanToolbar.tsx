@@ -89,7 +89,7 @@ export function KanbanToolbar({
         <Input
           value={search}
           onChange={(e) => onSearchChange(e.target.value)}
-          placeholder="Buscar por nome ou telefone..."
+          aria-label="Buscar por nome ou telefone..." placeholder="Buscar por nome ou telefone..."
           className="pl-8 h-8 text-xs"
         />
       </div>

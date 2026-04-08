@@ -256,7 +256,7 @@ const ContratosManager = () => {
                 <div className="relative flex-1">
                   <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-[hsl(var(--muted-foreground))] h-4 w-4" />
                   <Input
-                    placeholder="Buscar por nome do cliente..."
+                    aria-label="Buscar por nome do cliente..." placeholder="Buscar por nome do cliente..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                     className="pl-10 bg-background/50 border border-border/30 rounded-md text-[hsl(var(--foreground))] focus:ring-1 focus:ring-[hsl(var(--accent))] transition-all"

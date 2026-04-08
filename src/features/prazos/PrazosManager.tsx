@@ -245,7 +245,7 @@ const PrazosManager = () => {
             <div className="relative flex-1 min-w-[200px]">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
               <Input
-                placeholder="Buscar por descrição ou tipo..."
+                aria-label="Buscar por descrição ou tipo..." placeholder="Buscar por descrição ou tipo..."
                 value={searchTerm}
                 onChange={e => setSearchTerm(e.target.value)}
                 className="pl-9"

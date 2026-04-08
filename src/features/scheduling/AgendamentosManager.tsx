@@ -227,7 +227,7 @@ const AgendamentosManager = () => {
           <div className="relative flex-1 w-full">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground/50 h-4 w-4" />
             <Input
-              placeholder="Buscar por responsável, nome..."
+              aria-label="Buscar por responsável, nome..." placeholder="Buscar por responsável, nome..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="pl-9 h-11 bg-background/50 border-border/20 rounded-[12px] focus-visible:ring-1 focus-visible:ring-primary shadow-sm"

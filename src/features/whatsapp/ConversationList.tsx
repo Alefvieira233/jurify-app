@@ -131,7 +131,7 @@ const ConversationList = ({
       <div className="relative mb-3">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[hsl(var(--muted-foreground))]" />
         <Input
-          placeholder="Buscar conversa..."
+          aria-label="Buscar conversa..." placeholder="Buscar conversa..."
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
           className="pl-9 h-9 text-sm"
