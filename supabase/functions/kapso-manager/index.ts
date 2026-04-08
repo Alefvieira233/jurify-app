@@ -190,18 +190,25 @@ async function createSetupLink(
   return { url };
 }
 
-/** List phone numbers connected to tenant's Kapso account. */
-async function listPhoneNumbers(apiKey: string): Promise<Array<{
+/** List phone numbers connected to tenant's Kapso account. Filters out sandbox. */
+async function listPhoneNumbers(apiKey: string, customerId?: string): Promise<Array<{
   id: string;
   display_phone_number: string;
   phone_number_id: string;
   quality_rating?: string;
   status?: string;
 }>> {
-  const res = await kapsoFetchWithKey(apiKey, "/platform/v1/whatsapp/phone_numbers");
+  const params = new URLSearchParams();
+  if (customerId) params.set("customer_id", customerId);
+  const qs = params.toString() ? `?${params.toString()}` : "";
+  const res = await kapsoFetchWithKey(apiKey, `/platform/v1/whatsapp/phone_numbers${qs}`);
   if (!res.ok) return [];
   const data = await res.json().catch(() => ({ data: [] }));
-  return data?.data || [];
+  const all = data?.data || [];
+  // Filter: only production numbers with CONNECTED status, exclude sandbox
+  return all.filter((p: { kind?: string; status?: string; display_phone_number?: string }) =>
+    p.kind !== "sandbox" && p.status === "CONNECTED" && p.display_phone_number
+  );
 }
 
 /** Save or update Kapso config for a tenant. */
@@ -418,7 +425,10 @@ Deno.serve(async (req) => {
           return json({ success: true, connected: false, needsApiKey: true });
         }
 
-        const phones = await listPhoneNumbers(config.apiKey);
+        // Get customer_id for filtering phone numbers to this tenant only
+        let customerId: string | undefined;
+        try { customerId = await ensureKapsoCustomer(supabase, config.apiKey, tenantId); } catch { /* */ }
+        const phones = await listPhoneNumbers(config.apiKey, customerId);
         const connected = phones.length > 0;
 
         // Auto-finalize if connected but no conexoes_whatsapp record
@@ -456,8 +466,10 @@ Deno.serve(async (req) => {
         const config = await getTenantKapsoConfig(supabase, tenantId);
         if (!config) return json({ success: false, error: "API key não configurada" }, 400);
 
-        // Get phone numbers from Kapso
-        const phones = await listPhoneNumbers(config.apiKey);
+        // Get phone numbers from Kapso (filtered by customer)
+        let customerId: string | undefined;
+        try { customerId = await ensureKapsoCustomer(supabase, config.apiKey, tenantId); } catch { /* */ }
+        const phones = await listPhoneNumbers(config.apiKey, customerId);
         if (phones.length === 0) {
           // Check if phoneNumberId was provided via redirect params
           if (body.phoneNumberId && body.displayPhone) {
