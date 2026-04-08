@@ -640,69 +640,53 @@ Deno.serve(async (req) => {
           const instanceName = payload.instance;
 
           if (instanceName && state) {
-            const dbStatus = state === "open" ? "ativa" : "inativa";
+            // Only update status on EXISTING configs — never create placeholder configs
+            // Use exact JSON match to avoid false positives
+            const exactMatch = `"phone_number_id":"${escapeLike(instanceName)}"`;
 
-            // Tenta UPDATE primeiro
-            const { count } = await supabase
-              .from("configuracoes_integracoes")
-              .update({ status: dbStatus })
-              .eq("nome_integracao", INTEGRATION_NAME_KAPSO)
-              .ilike("observacoes", `%${escapeLike(instanceName)}%`);
+            if (state === "open") {
+              // Connection restored — mark as active
+              await supabase
+                .from("configuracoes_integracoes")
+                .update({ status: "ativa" })
+                .eq("nome_integracao", INTEGRATION_NAME_KAPSO)
+                .ilike("observacoes", `%${exactMatch}%`);
 
-            // Se não atualizou nenhum registro, cria um novo (auto-repair)
-            if ((count ?? 0) === 0 && state === "open") {
-              const tenantPrefix = instanceName.replace("jurify_", "");
-              if (tenantPrefix) {
-                const { data: profile } = await supabase
-                  .from("profiles")
-                  .select("tenant_id")
-                  .ilike("tenant_id", `${escapeLike(tenantPrefix)}%`)
-                  .limit(1)
-                  .maybeSingle();
+              // Also update conexoes_whatsapp status + heartbeat
+              await supabase
+                .from("conexoes_whatsapp")
+                .update({
+                  status: "connected",
+                  last_heartbeat: new Date().toISOString(),
+                  reconnect_attempts: 0,
+                })
+                .eq("instance_name", instanceName);
 
-                if (profile?.tenant_id) {
-                  // Auto-repair: create placeholder config (tenant must configure real key via UI)
-                  const { encrypt } = await import("../_shared/crypto.ts");
-                  const placeholderEncrypted = await encrypt("kapso_managed");
-                  const { error: insertErr } = await supabase
-                    .from("configuracoes_integracoes")
-                    .insert({
-                      nome_integracao: INTEGRATION_NAME_KAPSO,
-                      status: "inativa",
-                      api_key_encrypted: placeholderEncrypted,
-                      endpoint_url: Deno.env.get("KAPSO_API_URL") || "https://api.kapso.ai",
-                      observacoes: JSON.stringify({ instance: instanceName }),
-                      tenant_id: profile.tenant_id,
-                    });
-                  if (insertErr) {
-                    console.error("[webhook] Auto-repair insert error:", insertErr.message);
-                  } else {
-                    console.log("[webhook] Auto-repaired missing configuracoes_integracoes for", instanceName);
-                  }
-                }
-              }
+              console.log(`[webhook:kapso] connection.update: ${instanceName} → OPEN (ativa)`);
+            } else {
+              // Connection lost — log but do NOT immediately mark as inativa
+              // Temporary disconnects are common; only mark if sustained
+              // Instead, increment reconnect_attempts as a signal
+              await supabase
+                .from("conexoes_whatsapp")
+                .update({
+                  reconnect_attempts: 1, // Will be reset to 0 on next "open"
+                  updated_at: new Date().toISOString(),
+                })
+                .eq("instance_name", instanceName)
+                .eq("status", "connected");
+
+              console.warn(`[webhook:kapso] connection.update: ${instanceName} → ${state} (keeping status, incremented reconnect_attempts)`);
             }
           }
 
           return new Response("OK", { status: 200, headers: corsHeaders });
         }
 
-        // QR Code atualizado
+        // QR Code atualizado — do NOT overwrite observacoes (contains phone_number_id + customer_id)
         if (event === "qrcode.updated") {
           const instanceName = payload.instance;
-          const qrCode = payload.data?.qrcode?.base64 || payload.data?.qrcode;
-
-          if (instanceName && qrCode) {
-            await supabase
-              .from("configuracoes_integracoes")
-              .update({
-                status: "inativa",
-                observacoes: `Instance: ${instanceName} | QR: pending`,
-              })
-              .eq("nome_integracao", INTEGRATION_NAME_KAPSO)
-              .ilike("observacoes", `%${escapeLike(instanceName)}%`);
-          }
-
+          console.log(`[webhook:kapso] qrcode.updated for ${instanceName}`);
           return new Response("OK", { status: 200, headers: corsHeaders });
         }
 
@@ -824,21 +808,24 @@ async function processNormalizedMessage(supabase: ReturnType<typeof createClient
 
     // --- RESOLVE TENANT (multi-tenant: each tenant has own Kapso account) ---
     let tenantId: string | null = null;
+    let resolvedVia = "";
 
-    // 1. PRIMARY: Resolve tenant by instance name match in configuracoes_integracoes
-    //    phone_number_id is stored as JSON in observacoes: {"phone_number_id":"..."}
-    if (from && instanceName) {
+    // 1. PRIMARY: Match by exact phone_number_id in observacoes JSON
+    //    Format stored: {"phone_number_id":"<id>", ...}
+    //    Do NOT filter by status — temporary disconnects must not break resolution
+    if (instanceName) {
+      const exactMatch = `"phone_number_id":"${escapeLike(instanceName)}"`;
       const { data: configByInstance } = await supabase
         .from("configuracoes_integracoes")
         .select("tenant_id")
         .eq("nome_integracao", INTEGRATION_NAME_KAPSO)
-        .eq("status", "ativa")
         .not("tenant_id", "is", null)
-        .ilike("observacoes", `%${escapeLike(instanceName)}%`)
+        .ilike("observacoes", `%${exactMatch}%`)
         .maybeSingle();
 
       if (configByInstance?.tenant_id) {
         tenantId = configByInstance.tenant_id;
+        resolvedVia = "configuracoes_integracoes.observacoes(exact)";
       }
     }
 
@@ -847,14 +834,13 @@ async function processNormalizedMessage(supabase: ReturnType<typeof createClient
       const { data: connByInstance } = await supabase
         .from("conexoes_whatsapp")
         .select("tenant_id")
-        .eq("status", "connected")
         .eq("instance_name", instanceName)
         .limit(1)
         .maybeSingle();
 
       if (connByInstance?.tenant_id) {
         tenantId = connByInstance.tenant_id;
-        console.log(`[processMsg:${provider}] Tenant resolved via conexoes_whatsapp.instance_name: ${tenantId}`);
+        resolvedVia = "conexoes_whatsapp.instance_name";
       }
     }
 
@@ -871,6 +857,7 @@ async function processNormalizedMessage(supabase: ReturnType<typeof createClient
 
       if (connMatch?.tenant_id) {
         tenantId = connMatch.tenant_id;
+        resolvedVia = "conexoes_whatsapp.telefone";
       }
     }
 
@@ -880,14 +867,12 @@ async function processNormalizedMessage(supabase: ReturnType<typeof createClient
         .from("configuracoes_integracoes")
         .select("tenant_id")
         .eq("nome_integracao", INTEGRATION_NAME_KAPSO)
-        .eq("status", "ativa")
         .not("tenant_id", "is", null)
         .limit(2);
 
-      // Only use this if there's exactly ONE active Kapso tenant (unambiguous)
       if (!scErr && singleConfig && singleConfig.length === 1) {
         tenantId = singleConfig[0].tenant_id;
-        console.log(`[processMsg:${provider}] Tenant resolved via single-config shortcut: ${tenantId}`);
+        resolvedVia = "single-config-shortcut";
       }
     }
 
@@ -901,30 +886,55 @@ async function processNormalizedMessage(supabase: ReturnType<typeof createClient
         .limit(1)
         .maybeSingle();
 
-      if (existingConv) tenantId = existingConv.tenant_id;
+      if (existingConv) {
+        tenantId = existingConv.tenant_id;
+        resolvedVia = "whatsapp_conversations.phone_number";
+      }
     }
 
     if (!tenantId) {
-      console.error(`[processMsg:${provider}] FAILED: No tenant found for ${from} (instance=${instanceName})`);
+      console.error(`[processMsg:${provider}] TENANT RESOLUTION FAILED | from=${from} | instance=${instanceName} | type=${messageType} | text="${text.substring(0, 80)}"`);
+      // Persist failed resolution for diagnostics
+      void supabase.from("webhook_events").insert({
+        event_id: `unresolved_${Date.now()}_${from}`,
+        payload: JSON.stringify({ from, instanceName, provider, messageType, text: text.substring(0, 200) }),
+        status: "unresolved_tenant",
+      }).then(({ error }) => {
+        if (error) console.warn("[processMsg] Failed to log unresolved event:", error.message);
+      });
       return;
     }
 
-    console.log(`[processMsg:${provider}] Tenant resolved: ${tenantId}`);
+    console.log(`[processMsg:${provider}] Tenant resolved: ${tenantId} via ${resolvedVia}`);
 
-    // --- AUTO-REPAIR: update conexoes_whatsapp if telefone is NULL or last_sync missing ---
+    // --- HEARTBEAT + AUTO-REPAIR: update last_heartbeat on every message, fix telefone if NULL ---
     if (instanceName) {
+      const now = new Date().toISOString();
+      // Always update heartbeat to confirm connection is alive
       void supabase
         .from("conexoes_whatsapp")
         .update({
-          last_sync: new Date().toISOString(),
-          ...(from ? { telefone: from } : {}),
+          last_heartbeat: now,
+          last_sync: now,
+          status: "connected",
         })
         .eq("tenant_id", tenantId)
         .eq("instance_name", instanceName)
-        .is("telefone", null)
         .then(({ error }) => {
-          if (error) console.warn("[processMsg] auto-repair conexoes_whatsapp error:", error.message);
+          if (error) console.warn("[processMsg] heartbeat update error:", error.message);
         });
+      // Auto-repair: fill telefone if missing
+      if (from) {
+        void supabase
+          .from("conexoes_whatsapp")
+          .update({ telefone: from })
+          .eq("tenant_id", tenantId)
+          .eq("instance_name", instanceName)
+          .is("telefone", null)
+          .then(({ error }) => {
+            if (error) console.warn("[processMsg] auto-repair telefone error:", error.message);
+          });
+      }
     }
 
     // --- RESOLVE/CREATE LEAD ---

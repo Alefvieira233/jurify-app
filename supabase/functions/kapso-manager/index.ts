@@ -27,7 +27,7 @@ import { applyRateLimit } from "../_shared/rate-limiter.ts";
 // ---------------------------------------------------------------------------
 
 interface KapsoRequest {
-  action: "save-key" | "setup" | "setup-link" | "status" | "finalize" | "health" | "disconnect";
+  action: "save-key" | "setup" | "setup-link" | "status" | "finalize" | "health" | "disconnect" | "diagnose";
   apiKey?: string;       // Only for save-key action
   phoneNumberId?: string; // From success_redirect_url params
   displayPhone?: string;  // From success_redirect_url params
@@ -217,7 +217,7 @@ async function listPhoneNumbers(apiKey: string, customerId?: string): Promise<Ar
     }));
 }
 
-/** Save or update Kapso config for a tenant. */
+/** Save or update Kapso config for a tenant. Merges observacoes to preserve kapso_customer_id. */
 async function upsertKapsoConfig(
   supabase: ReturnType<typeof createClient>,
   tenantId: string,
@@ -227,7 +227,7 @@ async function upsertKapsoConfig(
 ) {
   const { data: existing } = await supabase
     .from("configuracoes_integracoes")
-    .select("id")
+    .select("id, observacoes")
     .eq("nome_integracao", "whatsapp_kapso")
     .eq("tenant_id", tenantId)
     .maybeSingle();
@@ -235,10 +235,14 @@ async function upsertKapsoConfig(
   // Encrypt the API key before storing
   const encryptedKey = await encrypt(apiKey);
 
-  // Store phone_number_id in observacoes as JSON (column phone_number_id doesn't exist in table)
-  const observacoes = (phoneNumberId || phoneDisplay)
-    ? JSON.stringify({ phone_number_id: phoneNumberId ?? null, display_phone: phoneDisplay ?? null })
-    : null;
+  // Merge new fields into existing observacoes (preserves kapso_customer_id and other data)
+  let obs: Record<string, unknown> = {};
+  if (existing?.observacoes) {
+    try { obs = JSON.parse(existing.observacoes); } catch { /* not valid JSON, start fresh */ }
+  }
+  if (phoneNumberId !== undefined) obs.phone_number_id = phoneNumberId;
+  if (phoneDisplay !== undefined) obs.display_phone = phoneDisplay;
+  const observacoes = Object.keys(obs).length > 0 ? JSON.stringify(obs) : null;
 
   const record = {
     nome_integracao: "whatsapp_kapso",
@@ -529,6 +533,127 @@ Deno.serve(async (req) => {
         }
 
         return json({ success: true, message: "WhatsApp desconectado." });
+      }
+
+      // ────────────────────────────────────────────────────────────────────
+      // DIAGNOSE: Full diagnostic check of WhatsApp integration health
+      // ────────────────────────────────────────────────────────────────────
+      case "diagnose": {
+        const checks: Record<string, { ok: boolean; detail: string }> = {};
+
+        // 1. Check configuracoes_integracoes record
+        const { data: cfg } = await supabase
+          .from("configuracoes_integracoes")
+          .select("id, status, api_key_encrypted, endpoint_url, observacoes")
+          .eq("nome_integracao", "whatsapp_kapso")
+          .eq("tenant_id", tenantId)
+          .maybeSingle();
+
+        if (!cfg) {
+          checks.config = { ok: false, detail: "Nenhuma configuração Kapso encontrada. Execute o setup." };
+        } else {
+          checks.config = { ok: true, detail: `Status: ${cfg.status}` };
+
+          // 2. Check API key is real (not placeholder)
+          let apiKeyValid = false;
+          if (cfg.api_key_encrypted) {
+            try {
+              const { decrypt } = await import("../_shared/crypto.ts");
+              const decrypted = await decrypt(cfg.api_key_encrypted);
+              const isPlaceholder = !decrypted || decrypted === "kapso_managed" || decrypted === "pending_setup";
+              if (isPlaceholder) {
+                checks.api_key = { ok: false, detail: "API key é placeholder — configure uma key real no dashboard Kapso." };
+              } else {
+                const valid = await validateKapsoKey(decrypted);
+                checks.api_key = { ok: valid, detail: valid ? "API key válida" : "API key rejeitada pela Kapso" };
+                apiKeyValid = valid;
+              }
+            } catch {
+              checks.api_key = { ok: false, detail: "Erro ao descriptografar API key" };
+            }
+          } else {
+            checks.api_key = { ok: false, detail: "API key não encontrada" };
+          }
+
+          // 3. Check observacoes has phone_number_id and kapso_customer_id
+          let obs: Record<string, unknown> = {};
+          if (cfg.observacoes) {
+            try { obs = JSON.parse(cfg.observacoes); } catch { /* */ }
+          }
+          checks.phone_number_id = {
+            ok: !!obs.phone_number_id,
+            detail: obs.phone_number_id ? `phone_number_id: ${obs.phone_number_id}` : "Sem phone_number_id — conexão incompleta",
+          };
+          checks.kapso_customer_id = {
+            ok: !!obs.kapso_customer_id,
+            detail: obs.kapso_customer_id ? `customer_id: ${obs.kapso_customer_id}` : "Sem customer_id — será criado no próximo setup",
+          };
+
+          // 4. Check Kapso API health + phone numbers
+          if (apiKeyValid) {
+            try {
+              const { decrypt } = await import("../_shared/crypto.ts");
+              const decrypted = await decrypt(cfg.api_key_encrypted);
+              const phones = await listPhoneNumbers(decrypted, obs.kapso_customer_id as string | undefined);
+              checks.kapso_phones = {
+                ok: phones.length > 0,
+                detail: phones.length > 0
+                  ? `${phones.length} número(s) conectado(s): ${phones.map(p => p.display_phone_number).join(", ")}`
+                  : "Nenhum número conectado na Kapso",
+              };
+            } catch (err) {
+              checks.kapso_phones = { ok: false, detail: `Erro ao consultar Kapso: ${err instanceof Error ? err.message : "unknown"}` };
+            }
+          }
+        }
+
+        // 5. Check conexoes_whatsapp record
+        const { data: conn } = await supabase
+          .from("conexoes_whatsapp")
+          .select("id, status, instance_name, telefone, last_heartbeat, reconnect_attempts")
+          .eq("tenant_id", tenantId)
+          .limit(1)
+          .maybeSingle();
+
+        if (!conn) {
+          checks.conexao = { ok: false, detail: "Nenhum registro em conexoes_whatsapp" };
+        } else {
+          const heartbeatAge = conn.last_heartbeat
+            ? Math.round((Date.now() - new Date(conn.last_heartbeat).getTime()) / 60000)
+            : null;
+          checks.conexao = {
+            ok: conn.status === "connected",
+            detail: `Status: ${conn.status} | Instance: ${conn.instance_name || "N/A"} | Heartbeat: ${heartbeatAge !== null ? `${heartbeatAge}min atrás` : "nunca"} | Reconnects: ${conn.reconnect_attempts || 0}`,
+          };
+        }
+
+        // 6. Check recent webhook events
+        const { data: recentEvents, count: eventCount } = await supabase
+          .from("webhook_events")
+          .select("event_id, status, created_at", { count: "exact" })
+          .order("created_at", { ascending: false })
+          .limit(5);
+
+        const unresolvedCount = recentEvents?.filter(e => e.status === "unresolved_tenant").length || 0;
+        checks.webhook_events = {
+          ok: unresolvedCount === 0,
+          detail: `Total: ${eventCount || 0} | Últimos 5: ${recentEvents?.length || 0} | Não resolvidos: ${unresolvedCount}`,
+        };
+
+        // 7. Check KAPSO_WEBHOOK_SECRET env var (only detectable via webhook, but we can flag it)
+        checks.env_reminder = {
+          ok: true,
+          detail: "Verifique que KAPSO_WEBHOOK_SECRET está configurado nos secrets do Supabase Edge Functions",
+        };
+
+        const allOk = Object.values(checks).every(c => c.ok);
+
+        return json({
+          success: true,
+          healthy: allOk,
+          checks,
+          timestamp: new Date().toISOString(),
+        });
       }
 
       default:
