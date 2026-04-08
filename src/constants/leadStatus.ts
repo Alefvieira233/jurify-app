@@ -4,6 +4,8 @@
  */
 
 export const LEAD_STATUSES = ['novo', 'em_contato', 'qualificado', 'proposta', 'negociacao', 'ganho', 'perdido'] as const;
+/** Legacy statuses accepted by DB but not shown in pipeline UI */
+export const LEGACY_STATUSES = ['em_proposta', 'contratado'] as const;
 export type LeadStatus = (typeof LEAD_STATUSES)[number];
 
 export const LEAD_STATUS_LABELS: Record<LeadStatus, string> = {
