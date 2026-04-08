@@ -58,21 +58,22 @@ const ConnectionDetailsDrawer = ({ conexao, open, onOpenChange }: ConnectionDeta
     try {
       const [statusRes, healthRes] = await Promise.all([
         supabase.functions.invoke('kapso-manager', { body: { action: 'status' } }),
-        supabase.functions.invoke('health-check', { body: {} }),
+        supabase.functions.invoke('kapso-manager', { body: { action: 'health' } }),
       ]);
 
       const statusData = statusRes.data;
       const healthData = healthRes.data;
       const connected = statusData?.connected ?? false;
-      const kapsoOk = healthData?.services?.whatsapp_kapso?.status === 'connected'
-        || healthData?.services?.whatsapp_kapso === 'connected';
+      // kapso-manager health action returns { success: bool, status: "connected"|"error"|"not_configured" }
+      const kapsoOk = healthData?.success === true
+        || healthData?.status === 'connected';
 
       setDiagResult({
         sessaoConectada: connected,
-        ultimoHeartbeat: conexao?.last_heartbeat ?? null,
+        ultimoHeartbeat: conexao?.last_sync ?? conexao?.last_heartbeat ?? null,
         reconexoes: conexao?.reconnect_attempts ?? 0,
         ultimoErro: conexao?.last_error ?? null,
-        kapsoReachable: statusRes.error ? false : (kapsoOk ?? !healthRes.error),
+        kapsoReachable: statusRes.error ? false : kapsoOk,
       });
     } catch (err) {
       log.error('runDiagnostico failed', err);
@@ -87,7 +88,7 @@ const ConnectionDetailsDrawer = ({ conexao, open, onOpenChange }: ConnectionDeta
     } finally {
       setDiagLoading(false);
     }
-  }, [conexao?.last_heartbeat, conexao?.reconnect_attempts, conexao?.last_error, toast]);
+  }, [conexao?.last_heartbeat, conexao?.last_sync, conexao?.reconnect_attempts, conexao?.last_error, toast]);
 
   // Auto-run diagnostic when tab opens
   useEffect(() => {

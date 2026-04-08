@@ -239,7 +239,7 @@ const WhatsAppIA = () => {
       // Search filter (debounced to avoid re-filtering on every keystroke)
       const searchMatch = !debouncedSearch.trim() ||
         (conv.contact_name ?? '').toLowerCase().includes(debouncedSearch.toLowerCase()) ||
-        conv.phone_number.includes(debouncedSearch);
+        (conv.phone_number ?? '').includes(debouncedSearch);
       return tabMatch && statusMatch && searchMatch && respMatch && areaMatch;
     });
   }, [conversations, convFilter, debouncedSearch]);

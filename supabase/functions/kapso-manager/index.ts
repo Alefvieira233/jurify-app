@@ -206,9 +206,15 @@ async function listPhoneNumbers(apiKey: string, customerId?: string): Promise<Ar
   const data = await res.json().catch(() => ({ data: [] }));
   const all = data?.data || [];
   // Filter: only production numbers with CONNECTED status, exclude sandbox
-  return all.filter((p: { kind?: string; status?: string; display_phone_number?: string }) =>
-    p.kind !== "sandbox" && p.status === "CONNECTED" && p.display_phone_number
-  );
+  return all
+    .filter((p: { kind?: string; status?: string }) =>
+      p.kind !== "sandbox" && p.status === "CONNECTED"
+    )
+    .map((p: { id: string; display_phone_number?: string; phone_number_id?: string; verified_name?: string; quality_rating?: string; status?: string }) => ({
+      ...p,
+      // Fallback: use phone_number_id if display_phone_number is missing
+      display_phone_number: p.display_phone_number || p.phone_number_id || p.id,
+    }));
 }
 
 /** Save or update Kapso config for a tenant. */

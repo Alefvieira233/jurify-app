@@ -262,6 +262,83 @@ function normalizeKapsoMessage(payload: WebhookPayload): NormalizedMessage | nul
   const data = payload.data;
   if (!data) return null;
 
+  // deno-lint-ignore no-explicit-any
+  const raw = payload as any;
+
+  // ── Kapso v2 format (Meta Cloud API style) ──
+  // v2 sends: { event: "whatsapp.message.received", phone_number_id: "...", data: { from: "55...", type: "text", text: { body: "..." }, contact: { name: "..." } } }
+  const v2From = data.from as string | undefined;
+  if (v2From || (data.type && !data.key)) {
+    // This is Kapso v2 format (no data.key, uses data.from directly)
+    const from = (v2From || "").replace(/\D/g, "");
+    if (!from) {
+      console.warn("[webhook:kapso] v2 message has no 'from' field");
+      return null;
+    }
+
+    // Ignore outgoing messages
+    const direction = (data.direction || raw.direction || "") as string;
+    if (direction === "outbound" || direction === "sent" || data.fromMe === true) return null;
+
+    const contactName = (data.contact?.name || data.contact?.profile?.name || data.pushName || data.name || "Unknown") as string;
+    const msgType = (data.type || "text") as string;
+    let text = "";
+    let mediaUrl: string | null = null;
+
+    // deno-lint-ignore no-explicit-any
+    const d = data as any;
+    switch (msgType) {
+      case "text":
+        text = d.text?.body || d.body || d.content || "";
+        break;
+      case "image":
+        text = d.image?.caption || "[Imagem recebida]";
+        mediaUrl = d.image?.url || d.image?.id || null;
+        break;
+      case "document":
+        text = d.document?.caption || `[Documento: ${d.document?.filename || "arquivo"}]`;
+        mediaUrl = d.document?.url || d.document?.id || null;
+        break;
+      case "audio":
+        text = "[Audio recebido]";
+        mediaUrl = d.audio?.url || d.audio?.id || null;
+        break;
+      case "video":
+        text = d.video?.caption || "[Video recebido]";
+        mediaUrl = d.video?.url || d.video?.id || null;
+        break;
+      case "sticker":
+        text = "[Sticker recebido]";
+        break;
+      case "contacts":
+        text = `[Contato recebido]`;
+        break;
+      case "location":
+        text = `[Localizacao: ${d.location?.latitude || "?"},${d.location?.longitude || "?"}]`;
+        break;
+      default:
+        text = d.text?.body || d.body || `[${msgType} recebido]`;
+        break;
+    }
+
+    if (!text) return null;
+
+    // v2 may send phone_number_id at top level or in metadata
+    const instanceName = raw.phone_number_id || raw.metadata?.phone_number_id || payload.instance || null;
+
+    return {
+      from,
+      name: contactName,
+      text,
+      messageType: msgType === "text" ? "text" : msgType,
+      mediaUrl,
+      instanceName,
+      provider: "kapso",
+    };
+  }
+
+  // ── Legacy format (Evolution API style) ──
+  // Legacy sends: { event: "messages.upsert", instance: "...", data: { key: { remoteJid: "...@s.whatsapp.net", fromMe: false }, message: { conversation: "..." } } }
   const key = data.key;
   // Ignora mensagens enviadas por nós (fromMe = true)
   if (key?.fromMe) return null;
@@ -270,7 +347,10 @@ function normalizeKapsoMessage(payload: WebhookPayload): NormalizedMessage | nul
   // Extrai número do JID (formato: 5511999999999@s.whatsapp.net)
   const from = remoteJid.replace("@s.whatsapp.net", "").replace("@g.us", "");
 
-  if (!from) return null;
+  if (!from) {
+    console.warn("[webhook:kapso] Legacy message has no remoteJid in data.key");
+    return null;
+  }
 
   const name = data.pushName || "Unknown";
   const messageType = data.messageType || "conversation";
@@ -414,7 +494,10 @@ async function isDuplicate(
 
 function getMessageId(payload: WebhookPayload, provider: "kapso" | "meta"): string | null {
   if (provider === "kapso") {
-    return payload?.data?.key?.id || null;
+    // Legacy format: data.key.id | v2 format: data.message_id or data.id
+    // deno-lint-ignore no-explicit-any
+    const raw = payload as any;
+    return payload?.data?.key?.id || raw?.data?.message_id || raw?.data?.id || raw?.message_id || null;
   }
   for (const entry of payload?.entry || []) {
     for (const change of entry?.changes || []) {
@@ -768,7 +851,23 @@ async function processNormalizedMessage(supabase: ReturnType<typeof createClient
       }
     }
 
-    // 1b. FALLBACK: Match by connected conexao_whatsapp with matching phone
+    // 1b. FALLBACK: Match by instance_name (phone_number_id) in conexoes_whatsapp
+    if (!tenantId && instanceName) {
+      const { data: connByInstance } = await supabase
+        .from("conexoes_whatsapp")
+        .select("tenant_id")
+        .eq("status", "connected")
+        .eq("instance_name", instanceName)
+        .limit(1)
+        .maybeSingle();
+
+      if (connByInstance?.tenant_id) {
+        tenantId = connByInstance.tenant_id;
+        console.log(`[processMsg:${provider}] Tenant resolved via conexoes_whatsapp.instance_name: ${tenantId}`);
+      }
+    }
+
+    // 1c. FALLBACK: Match by connected conexao_whatsapp with matching phone
     if (!tenantId && from) {
       const cleanFrom = from.replace(/\D/g, "");
       const { data: connMatch } = await supabase
@@ -820,6 +919,22 @@ async function processNormalizedMessage(supabase: ReturnType<typeof createClient
     }
 
     console.log(`[processMsg:${provider}] Tenant resolved: ${tenantId}`);
+
+    // --- AUTO-REPAIR: update conexoes_whatsapp if telefone is NULL or last_sync missing ---
+    if (instanceName) {
+      void supabase
+        .from("conexoes_whatsapp")
+        .update({
+          last_sync: new Date().toISOString(),
+          ...(from ? { telefone: from } : {}),
+        })
+        .eq("tenant_id", tenantId)
+        .eq("instance_name", instanceName)
+        .is("telefone", null)
+        .then(({ error }) => {
+          if (error) console.warn("[processMsg] auto-repair conexoes_whatsapp error:", error.message);
+        });
+    }
 
     // --- RESOLVE/CREATE LEAD ---
     const { data: lead } = await supabase
