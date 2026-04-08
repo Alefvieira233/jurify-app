@@ -217,13 +217,19 @@ export async function checkKapsoHealth(
 
   try {
     if (tenantConfig?.phoneNumberId) {
+      // Check if phone number exists and is active via Kapso API
       const response = await kapsoFetchWithKey(
         apiKey,
-        `/meta/whatsapp/v24.0/${tenantConfig.phoneNumberId}`,
+        `/platform/v1/whatsapp/phone_numbers?phone_number_id=${tenantConfig.phoneNumberId}`,
         { method: "GET", signal: AbortSignal.timeout(8000) },
         apiUrl
       );
-      if (response.ok) return { status: "connected" };
+      if (response.ok) {
+        const body = await response.json().catch(() => ({ data: [] }));
+        const phones = body?.data || [];
+        if (phones.length > 0) return { status: "connected" };
+        return { status: "error", detail: "Número não encontrado na Kapso" };
+      }
       if (response.status === 401 || response.status === 403) {
         return { status: "error", detail: "API key inválida" };
       }
