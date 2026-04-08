@@ -1110,7 +1110,7 @@ async function processNormalizedMessage(supabase: ReturnType<typeof createClient
     let conversationId = null;
     const { data: conversation } = await supabase
       .from("whatsapp_conversations")
-      .select("id, ia_active")
+      .select("id, ia_active, updated_at")
       .eq("lead_id", leadId)
       .eq("tenant_id", tenantId)
       .maybeSingle();
@@ -1177,7 +1177,24 @@ async function processNormalizedMessage(supabase: ReturnType<typeof createClient
     // --- CHECK ia_active BEFORE INVOKING AI ---
     // For existing conversations, respect the ia_active flag.
     // New conversations (just created) default to ia_active = true.
-    const iaEnabled = conversation ? (conversation.ia_active !== false) : true;
+    // AUTO-REACTIVATE: If ia_active=false for >2 hours and new message arrives, reactivate.
+    let iaEnabled = conversation ? (conversation.ia_active !== false) : true;
+
+    if (!iaEnabled && conversation?.updated_at) {
+      const hoursSinceUpdate = (Date.now() - new Date(conversation.updated_at).getTime()) / (1000 * 60 * 60);
+      if (hoursSinceUpdate >= 2) {
+        console.log(`[processMsg:${provider}] Auto-reactivating IA for conversation ${conversationId} (inactive ${Math.round(hoursSinceUpdate)}h)`);
+        iaEnabled = true;
+        void supabase
+          .from("whatsapp_conversations")
+          .update({ ia_active: true, updated_at: new Date().toISOString() })
+          .eq("id", conversationId)
+          .eq("tenant_id", tenantId)
+          .then(({ error: reactivateErr }) => {
+            if (reactivateErr) console.error("[processMsg] ia_active reactivation error:", reactivateErr.message);
+          });
+      }
+    }
 
     if (!iaEnabled) {
       console.log(`[processMsg:${provider}] IA disabled for conversation ${conversationId}, skipping AI`);
