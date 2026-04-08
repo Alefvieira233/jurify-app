@@ -14,6 +14,9 @@ import { DEFAULT_OPENAI_MODEL } from '@/lib/ai/model';
 // 🎯 SCHEMAS DE ENUMS
 export const MessageTypeSchema = z.nativeEnum(MessageType);
 export const PrioritySchema = z.nativeEnum(Priority);
+// NOTE: These agent stages differ from the CRM statuses (novo, em_contato,
+// qualificado, proposta, negociacao, ganho, perdido). Use the mapping utilities
+// in ./statusMapping.ts (crmToAgentStage / agentStageToCrm) to convert between them.
 export const LeadStageSchema = z.enum([
   'new',
   'analyzing',

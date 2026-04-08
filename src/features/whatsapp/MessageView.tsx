@@ -91,6 +91,7 @@ const MessageRow = memo(function MessageRow({
               {message.content || 'Documento'}
             </a>
           ) : null}
+          {/* XSS-safe: React escapes message.content as a text node — HTML/JS in AI responses is rendered as literal text, not interpreted */}
           <p className="text-sm whitespace-pre-line leading-relaxed">{message.content}</p>
           {!isLead && message.send_status === 'failed' && message.send_error && (
             <p className="text-[10px] mt-1 text-red-500 dark:text-red-400">Falha no envio</p>
