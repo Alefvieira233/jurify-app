@@ -60,7 +60,7 @@ vi.mock('@/components/NovoAgendamentoForm', () => ({
 vi.mock('@/components/DetalhesAgendamento', () => ({
   DetalhesAgendamento: ({ open }: { open: boolean }) => open ? <div data-testid="detalhes-agendamento">Detalhes</div> : null,
 }));
-vi.mock('@/components/agenda/CalendarPanel', () => ({
+vi.mock('@/features/scheduling/components/CalendarPanel', () => ({
   default: () => <div data-testid="calendar-panel">Calendar</div>,
 }));
 
