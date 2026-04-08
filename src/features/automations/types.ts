@@ -1,7 +1,78 @@
-// ── Automation Rule Editor Types & Constants ──
+// ── Automation Rule Types & Constants ──
 
 import { STATUS_LEAD, LEAD_STATUS_LABELS } from '@/schemas/leadSchema';
 import { PRIORIDADES } from '@/types/crm-operacional';
+
+// ── Shared Rule Types ──
+
+export interface RuleCondition {
+  id: string;
+  rule_id: string;
+  campo: string;
+  operador: string;
+  valor: string | null;
+  ordem: number;
+}
+
+export interface RuleAction {
+  id: string;
+  rule_id: string;
+  tipo: string;
+  config: Record<string, unknown>;
+  ordem: number;
+}
+
+export interface AutomationRule {
+  id: string;
+  tenant_id: string;
+  nome: string;
+  descricao: string | null;
+  status: 'ativo' | 'inativo' | 'rascunho';
+  evento: string;
+  match_logic: 'todos' | 'qualquer';
+  prioridade: number;
+  execucoes_total: number;
+  ultima_execucao: string | null;
+  created_by: string | null;
+  created_at: string;
+  updated_at: string;
+  conditions?: RuleCondition[];
+  actions?: RuleAction[];
+}
+
+// ── Event Constants ──
+
+export const EVENT_TYPE_LABELS: Record<string, string> = {
+  lead_criado: 'Lead Criado',
+  lead_atualizado: 'Lead Atualizado',
+  status_alterado: 'Status Alterado',
+  departamento_alterado: 'Departamento Alterado',
+  prioridade_alterada: 'Prioridade Alterada',
+  tag_adicionada: 'Tag Adicionada',
+  tag_removida: 'Tag Removida',
+  lead_arquivado: 'Lead Arquivado',
+  lead_reativado: 'Lead Reativado',
+  agendamento_criado: 'Agendamento Criado',
+  ganho: 'Contrato Assinado',
+  temperatura_alterada: 'Temperatura Alterada',
+  inatividade: 'Inatividade do Lead',
+};
+
+export const EVENT_TYPE_COLORS: Record<string, string> = {
+  lead_criado: 'bg-emerald-500/15 text-emerald-400 border-emerald-500/20',
+  lead_atualizado: 'bg-blue-500/15 text-blue-400 border-blue-500/20',
+  status_alterado: 'bg-amber-500/15 text-amber-400 border-amber-500/20',
+  departamento_alterado: 'bg-purple-500/15 text-purple-400 border-purple-500/20',
+  prioridade_alterada: 'bg-red-500/15 text-red-400 border-red-500/20',
+  tag_adicionada: 'bg-teal-500/15 text-teal-400 border-teal-500/20',
+  tag_removida: 'bg-slate-500/15 text-slate-600 dark:text-slate-400 border-slate-500/20',
+  lead_arquivado: 'bg-rose-500/15 text-rose-400 border-rose-500/20',
+  lead_reativado: 'bg-cyan-500/15 text-cyan-400 border-cyan-500/20',
+  agendamento_criado: 'bg-indigo-500/15 text-indigo-400 border-indigo-500/20',
+  ganho: 'bg-green-500/15 text-green-400 border-green-500/20',
+  temperatura_alterada: 'bg-orange-500/15 text-orange-400 border-orange-500/20',
+  inatividade: 'bg-muted/50 text-muted-foreground border-border',
+};
 
 export interface ConditionDraft {
   _key: string;

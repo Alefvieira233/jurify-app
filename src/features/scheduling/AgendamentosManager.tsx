@@ -1,5 +1,5 @@
 
-import { useState, useMemo, lazy, Suspense } from 'react';
+import { memo, useState, useCallback, useMemo, lazy, Suspense } from 'react';
 import { Plus, Search, Calendar, RefreshCw, Eye, Edit, Trash2, LayoutGrid, CalendarDays } from 'lucide-react';
 import { useDebounce } from '@/hooks/useDebounce';
 import { Button } from '@/components/ui/button';
@@ -26,6 +26,70 @@ const CalendarPanel = lazy(() => import('./components/CalendarPanel'));
 
 type ViewMode = 'list' | 'calendar';
 
+/* ── Memoized card for the agendamento list ── */
+interface AgendamentoCardProps {
+  agendamento: Agendamento;
+  statusColor: string;
+  statusLabel: string;
+  onOpenDetails: (agendamento: Agendamento) => void;
+  onConfirmDelete: (id: string, label: string) => void;
+}
+
+const AgendamentoCard = memo(({ agendamento, statusColor, statusLabel, onOpenDetails, onConfirmDelete }: AgendamentoCardProps) => (
+  <div className="group flex items-center gap-5 p-5 rounded-[20px] border border-border/10 bg-background hover:bg-card hover:shadow-xl hover:shadow-primary/5 hover:border-border/30 transition-all duration-300 hover:-translate-y-0.5 relative overflow-hidden">
+    {/* Glow status */}
+    <div className={`absolute -left-10 -top-10 w-24 h-24 blur-[40px] opacity-20 pointer-events-none transition-opacity group-hover:opacity-30 ${statusColor.split(' ')[0]?.replace('/10', '') || ''}`} />
+
+    {/* Left: date badge */}
+    <div className="w-16 h-16 rounded-[16px] bg-primary/10 flex flex-col items-center justify-center flex-shrink-0 border border-primary/20 shadow-inner z-10">
+      <span className="text-xl font-black text-primary leading-none tracking-tighter">
+        {fmtDay(agendamento.data_hora)}
+      </span>
+      <span className="text-[10px] text-primary/70 font-bold uppercase tracking-widest mt-1">
+        {fmtMonth(agendamento.data_hora)}
+      </span>
+    </div>
+
+    {/* Middle: info */}
+    <div className="flex-1 min-w-0 z-10 py-1">
+      <div className="flex items-center gap-2 mb-1">
+        <span className={cn('text-[10px] font-bold uppercase tracking-widest px-2 py-0.5 rounded-full flex-shrink-0', statusColor)}>
+          {statusLabel}
+        </span>
+        <span className="text-xs font-bold text-muted-foreground bg-muted/50 px-2 py-0.5 rounded-full">
+          {fmtMessageTime(agendamento.data_hora)}
+        </span>
+      </div>
+      <p className="text-[15px] font-bold text-foreground truncate max-w-[85%]">
+        {agendamento.responsavel || 'Reunião sem responsável'}
+      </p>
+      <p className="text-sm text-muted-foreground truncate max-w-[85%] mt-1">
+        {agendamento.area_juridica ? <span className="mr-2 opacity-60 font-medium">[{agendamento.area_juridica}]</span> : ''}
+        {agendamento.observacoes || 'Sem detalhes adiconados.'}
+      </p>
+    </div>
+
+    {/* Right: actions */}
+    <div className="flex flex-col items-center gap-2 flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity z-10 bg-background/80 backdrop-blur-md rounded-[12px] p-2 border border-border/10 shadow-sm absolute right-4">
+      <button type="button" onClick={() => onOpenDetails(agendamento)} className="h-8 w-8 flex items-center justify-center rounded-[8px] text-muted-foreground hover:text-primary hover:bg-primary/10 transition-colors" title="Ver Detalhes">
+        <Eye className="h-4 w-4" />
+      </button>
+      <button type="button" onClick={() => onOpenDetails(agendamento)} className="h-8 w-8 flex items-center justify-center rounded-[8px] text-muted-foreground hover:text-foreground hover:bg-muted transition-colors" title="Editar">
+        <Edit className="h-4 w-4" />
+      </button>
+      <button
+        type="button"
+        onClick={() => onConfirmDelete(agendamento.id, agendamento.responsavel ?? fmtMessageTime(agendamento.data_hora))}
+        className="h-8 w-8 flex items-center justify-center rounded-[8px] text-red-400 hover:text-red-500 hover:bg-red-500/10 transition-colors"
+        title="Excluir"
+      >
+        <Trash2 className="h-4 w-4" />
+      </button>
+    </div>
+  </div>
+));
+AgendamentoCard.displayName = 'AgendamentoCard';
+
 const AgendamentosManager = () => {
   usePageTitle('Agenda');
   const [searchTerm, setSearchTerm] = useState('');
@@ -51,16 +115,20 @@ const AgendamentosManager = () => {
     fetchAgendamentos();
   };
 
-  const handleOpenDetails = (agendamento: Agendamento) => {
+  const handleOpenDetails = useCallback((agendamento: Agendamento) => {
     setSelectedAgendamento(agendamento);
     setIsDetalhesOpen(true);
-  };
+  }, []);
 
-  const handleCloseDetails = () => {
+  const handleCloseDetails = useCallback(() => {
     setIsDetalhesOpen(false);
     setSelectedAgendamento(null);
     fetchAgendamentos();
-  };
+  }, [fetchAgendamentos]);
+
+  const handleConfirmDelete = useCallback((id: string, label: string) => {
+    setConfirmDelete({ open: true, id, label });
+  }, []);
 
   // Loading State
   if (loading) {
@@ -253,64 +321,16 @@ const AgendamentosManager = () => {
       {/* Body List */}
       <div className="flex-1 overflow-y-auto px-8 pb-12">
         <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
-          {filteredAgendamentos.map((agendamento) => {
-            const scColor = getStatusColor(agendamento.status ?? '');
-            const scLabel = getAgendamentoLabel(agendamento.status ?? '');
-            
-            return (
-              <div key={agendamento.id} className="group flex items-center gap-5 p-5 rounded-[20px] border border-border/10 bg-background hover:bg-card hover:shadow-xl hover:shadow-primary/5 hover:border-border/30 transition-all duration-300 hover:-translate-y-0.5 relative overflow-hidden">
-                {/* Glow status */}
-                <div className={`absolute -left-10 -top-10 w-24 h-24 blur-[40px] opacity-20 pointer-events-none transition-opacity group-hover:opacity-30 ${scColor.split(' ')[0]?.replace('/10', '') || ''}`} />
-                
-                {/* Left: date badge */}
-                <div className="w-16 h-16 rounded-[16px] bg-primary/10 flex flex-col items-center justify-center flex-shrink-0 border border-primary/20 shadow-inner z-10">
-                  <span className="text-xl font-black text-primary leading-none tracking-tighter">
-                    {fmtDay(agendamento.data_hora)}
-                  </span>
-                  <span className="text-[10px] text-primary/70 font-bold uppercase tracking-widest mt-1">
-                    {fmtMonth(agendamento.data_hora)}
-                  </span>
-                </div>
-
-                {/* Middle: info */}
-                <div className="flex-1 min-w-0 z-10 py-1">
-                  <div className="flex items-center gap-2 mb-1">
-                    <span className={cn('text-[10px] font-bold uppercase tracking-widest px-2 py-0.5 rounded-full flex-shrink-0', scColor)}>
-                      {scLabel}
-                    </span>
-                    <span className="text-xs font-bold text-muted-foreground bg-muted/50 px-2 py-0.5 rounded-full">
-                      {fmtMessageTime(agendamento.data_hora)}
-                    </span>
-                  </div>
-                  <p className="text-[15px] font-bold text-foreground truncate max-w-[85%]">
-                    {agendamento.responsavel || 'Reunião sem responsável'}
-                  </p>
-                  <p className="text-sm text-muted-foreground truncate max-w-[85%] mt-1">
-                    {agendamento.area_juridica ? <span className="mr-2 opacity-60 font-medium">[{agendamento.area_juridica}]</span> : ''}
-                    {agendamento.observacoes || 'Sem detalhes adiconados.'}
-                  </p>
-                </div>
-
-                {/* Right: actions */}
-                <div className="flex flex-col items-center gap-2 flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity z-10 bg-background/80 backdrop-blur-md rounded-[12px] p-2 border border-border/10 shadow-sm absolute right-4">
-                  <button type="button" onClick={() => handleOpenDetails(agendamento)} className="h-8 w-8 flex items-center justify-center rounded-[8px] text-muted-foreground hover:text-primary hover:bg-primary/10 transition-colors" title="Ver Detalhes">
-                    <Eye className="h-4 w-4" />
-                  </button>
-                  <button type="button" onClick={() => handleOpenDetails(agendamento)} className="h-8 w-8 flex items-center justify-center rounded-[8px] text-muted-foreground hover:text-foreground hover:bg-muted transition-colors" title="Editar">
-                    <Edit className="h-4 w-4" />
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setConfirmDelete({ open: true, id: agendamento.id, label: agendamento.responsavel ?? fmtMessageTime(agendamento.data_hora) })}
-                    className="h-8 w-8 flex items-center justify-center rounded-[8px] text-red-400 hover:text-red-500 hover:bg-red-500/10 transition-colors"
-                    title="Excluir"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </button>
-                </div>
-              </div>
-            );
-          })}
+          {filteredAgendamentos.map((agendamento) => (
+              <AgendamentoCard
+                key={agendamento.id}
+                agendamento={agendamento}
+                statusColor={getStatusColor(agendamento.status ?? '')}
+                statusLabel={getAgendamentoLabel(agendamento.status ?? '')}
+                onOpenDetails={handleOpenDetails}
+                onConfirmDelete={handleConfirmDelete}
+              />
+          ))}
         </div>
 
         {filteredAgendamentos.length === 0 && searchTerm && (

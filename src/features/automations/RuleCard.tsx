@@ -1,32 +1,15 @@
+import { memo } from 'react';
 import { Edit, Trash2 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
-import type { AutomationRule } from './RegrasManager';
-import { EVENT_TYPE_LABELS } from './RegrasManager';
-
-// ── Constants ──
-
-const EVENT_TYPE_COLORS: Record<string, string> = {
-  lead_criado: 'bg-emerald-500/15 text-emerald-400 border-emerald-500/20',
-  lead_atualizado: 'bg-blue-500/15 text-blue-400 border-blue-500/20',
-  status_alterado: 'bg-amber-500/15 text-amber-400 border-amber-500/20',
-  departamento_alterado: 'bg-purple-500/15 text-purple-400 border-purple-500/20',
-  prioridade_alterada: 'bg-red-500/15 text-red-400 border-red-500/20',
-  tag_adicionada: 'bg-teal-500/15 text-teal-400 border-teal-500/20',
-  tag_removida: 'bg-slate-500/15 text-slate-600 dark:text-slate-400 border-slate-500/20',
-  lead_arquivado: 'bg-rose-500/15 text-rose-400 border-rose-500/20',
-  lead_reativado: 'bg-cyan-500/15 text-cyan-400 border-cyan-500/20',
-  agendamento_criado: 'bg-indigo-500/15 text-indigo-400 border-indigo-500/20',
-  ganho: 'bg-green-500/15 text-green-400 border-green-500/20',
-  temperatura_alterada: 'bg-orange-500/15 text-orange-400 border-orange-500/20',
-  inatividade: 'bg-muted/50 text-muted-foreground border-border',
-};
+import type { AutomationRule } from './types';
+import { EVENT_TYPE_LABELS, EVENT_TYPE_COLORS } from './types';
 
 // ── Helpers ──
 
 function formatDate(dateStr: string | null) {
-  if (!dateStr) return '—';
+  if (!dateStr) return '\u2014';
   return new Intl.DateTimeFormat('pt-BR', {
     day: '2-digit',
     month: '2-digit',
@@ -46,7 +29,7 @@ interface RuleCardProps {
   togglePending: boolean;
 }
 
-export function RuleCard({ rule, onEdit, onDelete, onToggleStatus, togglePending }: RuleCardProps) {
+export const RuleCard = memo(function RuleCard({ rule, onEdit, onDelete, onToggleStatus, togglePending }: RuleCardProps) {
   const condCount = rule.conditions?.length ?? 0;
   const actCount = rule.actions?.length ?? 0;
   const isActive = rule.status === 'ativo';
@@ -90,21 +73,21 @@ export function RuleCard({ rule, onEdit, onDelete, onToggleStatus, togglePending
 
           <div className="flex items-center gap-4 text-[10px] uppercase font-bold text-muted-foreground tracking-wider">
             <span>
-              {condCount} {condCount === 1 ? 'condição' : 'condições'} • Quando{' '}
+              {condCount} {condCount === 1 ? 'condi\u00e7\u00e3o' : 'condi\u00e7\u00f5es'} \u2022 Quando{' '}
               {rule.match_logic === 'todos' ? 'TODAS' : 'QUALQUER'}
             </span>
             <span className="text-border/30">|</span>
             <span>
-              {actCount} {actCount === 1 ? 'ação' : 'ações'}
+              {actCount} {actCount === 1 ? 'a\u00e7\u00e3o' : 'a\u00e7\u00f5es'}
             </span>
             <span className="text-border/30">|</span>
             <span>
-              {rule.execucoes_total} {rule.execucoes_total === 1 ? 'execução' : 'execuções'}
+              {rule.execucoes_total} {rule.execucoes_total === 1 ? 'execu\u00e7\u00e3o' : 'execu\u00e7\u00f5es'}
             </span>
             {rule.ultima_execucao && (
               <>
                 <span className="text-border/30">|</span>
-                <span>Última: {formatDate(rule.ultima_execucao)}</span>
+                <span>\u00daltima: {formatDate(rule.ultima_execucao)}</span>
               </>
             )}
           </div>
@@ -139,4 +122,6 @@ export function RuleCard({ rule, onEdit, onDelete, onToggleStatus, togglePending
       )}
     </div>
   );
-}
+});
+
+export default RuleCard;

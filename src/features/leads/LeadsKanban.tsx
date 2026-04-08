@@ -1,5 +1,5 @@
 
-import { memo, useMemo } from 'react';
+import { memo, useCallback, useMemo } from 'react';
 import { DragDropContext, Droppable, Draggable, type DropResult } from '@hello-pangea/dnd';
 import { type Lead } from '@/hooks/useLeads';
 import { Phone, Scale, User, Calendar, GripVertical, Inbox } from 'lucide-react';
@@ -47,8 +47,8 @@ const KanbanCard = memo(({ lead, index, hex, textColor, onEdit, onTimeline: _onT
   index:      number;
   hex:        string;
   textColor:  string;
-  onEdit:     () => void;
-  onTimeline: () => void;
+  onEdit:     (lead: Lead) => void;
+  onTimeline: (leadId: string, leadName: string) => void;
 }) => {
   const initials = getInitials(lead.nome_completo ?? '?');
   const bg       = avatarColor(lead.nome_completo ?? '');
@@ -92,7 +92,7 @@ const KanbanCard = memo(({ lead, index, hex, textColor, onEdit, onTimeline: _onT
               <button
                 type="button"
                 className="w-5 h-5 flex items-center justify-center rounded text-muted-foreground/30 hover:text-foreground hover:bg-muted transition-colors opacity-0 group-hover:opacity-100 flex-shrink-0 text-[10px]"
-                onClick={e => { e.stopPropagation(); onEdit(); }}
+                onClick={e => { e.stopPropagation(); onEdit(lead); }}
                 onPointerDown={e => e.stopPropagation()}
                 aria-label="Editar lead"
               >
@@ -165,6 +165,14 @@ const LeadsKanban = ({ leads, onDragEnd, onEditLead, onViewTimeline }: LeadsKanb
     }, {} as Record<string, Lead[]>),
   [leads]);
 
+  const handleEditLead = useCallback((lead: Lead) => {
+    onEditLead(lead);
+  }, [onEditLead]);
+
+  const handleViewTimeline = useCallback((leadId: string, leadName: string) => {
+    onViewTimeline(leadId, leadName);
+  }, [onViewTimeline]);
+
   return (
     <DragDropContext onDragEnd={onDragEnd}>
       <div className="flex h-full overflow-x-auto overflow-y-hidden">
@@ -223,8 +231,8 @@ const LeadsKanban = ({ leads, onDragEnd, onEditLead, onViewTimeline }: LeadsKanb
                         index={idx}
                         hex={col.hex}
                         textColor={col.textColor}
-                        onEdit={() => onEditLead(lead)}
-                        onTimeline={() => onViewTimeline(lead.id, lead.nome_completo ?? '')}
+                        onEdit={handleEditLead}
+                        onTimeline={handleViewTimeline}
                       />
                     ))}
 
