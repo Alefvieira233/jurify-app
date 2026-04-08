@@ -42,7 +42,7 @@ const LGPDPrivacySection = () => {
           const { data, error } = await supabase
             .from(table)
             .select('*')
-            .eq('tenant_id', tenantId!)
+            .eq('tenant_id', tenantId)
             .limit(10000);
           if (!error && data) {
             exportData[table] = data;

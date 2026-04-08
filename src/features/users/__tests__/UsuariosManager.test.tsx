@@ -35,8 +35,8 @@ vi.mock('@/lib/queryKeys', () => ({
 }));
 
 const mockSupabaseData = vi.fn();
-vi.mock('@/integrations/supabase/client', () => ({
-  supabaseUntyped: {
+vi.mock('@/integrations/supabase/client', () => {
+  const mockObj = {
     from: () => ({
       select: () => ({
         order: () => ({
@@ -49,8 +49,9 @@ vi.mock('@/integrations/supabase/client', () => ({
         }),
       }),
     }),
-  },
-}));
+  };
+  return { supabase: mockObj, supabaseUntyped: mockObj };
+});
 
 vi.mock('@/utils/formatting', () => ({
   getInitials: (name: string) => name.charAt(0),

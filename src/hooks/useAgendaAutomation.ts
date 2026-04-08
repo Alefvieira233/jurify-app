@@ -337,7 +337,7 @@ export function useAgendaAutomation() {
       .eq('id', taskId);
 
     // Re-execute the task based on its type
-    const agendamentoId = (task.payload as Record<string, unknown>)?.agendamento_id as string;
+    const agendamentoId = task.payload?.agendamento_id as string;
     if (!agendamentoId || !user?.id) {
       toast({
         title: 'Erro ao reexecutar',
@@ -374,7 +374,7 @@ export function useAgendaAutomation() {
         ? await fetchLeadForAutomation((agendamento as Agendamento).lead_id as string)
         : null;
 
-      switch (task.type as AutomationTask['type']) {
+      switch (task.type) {
         case 'email':
           await createEmailInvite(agendamento as Agendamento, { send_email_invite: true } as WorkflowConfig, retryLead!);
           break;

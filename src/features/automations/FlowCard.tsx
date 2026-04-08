@@ -1,3 +1,4 @@
+/* eslint-disable react-refresh/only-export-components */
 import { Activity, Clock, Edit, Trash2, Zap } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';

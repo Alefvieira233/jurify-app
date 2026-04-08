@@ -58,11 +58,12 @@ vi.mock('@/integrations/supabase/client', () => {
   chain.single       = () => Promise.resolve(resolved);
   chain.maybeSingle  = () => Promise.resolve(resolved);
 
-  return {
-    supabaseUntyped: {
+  const mockObj = {
       from: () => chain,
       functions: { invoke: mockInvoke },
-    },
+    };
+  return {
+    supabase: mockObj, supabaseUntyped: mockObj,
   };
 });
 

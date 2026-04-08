@@ -50,7 +50,7 @@ export const useNotificationTemplates = () => {
         .from('notification_templates')
         .update(template)
         .eq('id', template.id)
-        .eq('tenant_id', tenantId!);
+        .eq('tenant_id', tenantId);
 
       if (error) throw error;
     },

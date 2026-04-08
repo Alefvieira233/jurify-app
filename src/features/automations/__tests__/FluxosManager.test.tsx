@@ -69,7 +69,7 @@ mockSupabase.from = vi.fn(() => ({
 }));
 
 vi.mock('@/integrations/supabase/client', () => ({
-  supabaseUntyped: mockSupabase,
+  supabase: mockSupabase, supabaseUntyped: mockSupabase,
 }));
 
 // We need to mock the FlowEditor lazy import

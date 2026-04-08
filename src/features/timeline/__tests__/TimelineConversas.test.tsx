@@ -26,11 +26,12 @@ function createChainMock() {
   return chain;
 }
 
-vi.mock('@/integrations/supabase/client', () => ({
-  supabaseUntyped: {
+vi.mock('@/integrations/supabase/client', () => {
+  const mockObj = {
     from: vi.fn(() => createChainMock()),
-  },
-}));
+  };
+  return { supabase: mockObj, supabaseUntyped: mockObj };
+});
 
 import TimelineConversas from '../TimelineConversas';
 

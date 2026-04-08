@@ -22,8 +22,8 @@ vi.mock('@/contexts/AuthContext', () => ({
 
 // Mock supabase to control shouldShow query
 const mockMaybeSingle = vi.fn();
-vi.mock('@/integrations/supabase/client', () => ({
-  supabaseUntyped: {
+vi.mock('@/integrations/supabase/client', () => {
+  const mockObj = {
     from: vi.fn(() => ({
       select: vi.fn(() => ({
         eq: vi.fn(() => ({
@@ -34,8 +34,9 @@ vi.mock('@/integrations/supabase/client', () => ({
       })),
       upsert: vi.fn(() => Promise.resolve({ error: null })),
     })),
-  },
-}));
+  };
+  return { supabase: mockObj, supabaseUntyped: mockObj };
+});
 
 vi.mock('../steps', () => ({
   WelcomeStep: ({ onNext }: { onNext: () => void }) =>
