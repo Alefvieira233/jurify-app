@@ -6,13 +6,30 @@ export interface ConnectionDetailsDrawerProps {
   onOpenChange: (open: boolean) => void;
 }
 
-export interface DiagnosticoResult {
-  sessaoConectada: boolean | null;
-  ultimoHeartbeat: string | null;
-  reconexoes: number;
-  ultimoErro: string | null;
-  kapsoReachable: boolean | null;
+/** Single check returned by the backend diagnose action */
+export interface DiagnoseCheck {
+  ok: boolean;
+  detail: string;
 }
+
+/** Full response from kapso-manager action: "diagnose" */
+export interface DiagnosticoResult {
+  healthy: boolean;
+  checks: Record<string, DiagnoseCheck>;
+  timestamp: string;
+}
+
+/** Label map for backend check keys → user-friendly Portuguese labels */
+export const DIAGNOSE_CHECK_LABELS: Record<string, { label: string; icon: string }> = {
+  config:             { label: 'Configuração Kapso',     icon: 'settings' },
+  api_key:            { label: 'API Key',                icon: 'key' },
+  phone_number_id:    { label: 'Número do WhatsApp',     icon: 'phone' },
+  kapso_customer_id:  { label: 'Customer ID Kapso',      icon: 'user' },
+  kapso_phones:       { label: 'Números na Kapso',       icon: 'signal' },
+  conexao:            { label: 'Conexão Local',          icon: 'database' },
+  webhook_events:     { label: 'Webhook Events',         icon: 'activity' },
+  env_reminder:       { label: 'Variáveis de Ambiente',  icon: 'shield' },
+};
 
 export const SEVERITY_STYLES: Record<string, string> = {
   debug:    'text-slate-600 dark:text-slate-400 bg-slate-100 dark:bg-slate-800/40',

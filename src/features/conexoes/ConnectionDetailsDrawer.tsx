@@ -56,39 +56,27 @@ const ConnectionDetailsDrawer = ({ conexao, open, onOpenChange }: ConnectionDeta
   const runDiagnostico = useCallback(async () => {
     setDiagLoading(true);
     try {
-      const [statusRes, healthRes] = await Promise.all([
-        supabase.functions.invoke('kapso-manager', { body: { action: 'status' } }),
-        supabase.functions.invoke('kapso-manager', { body: { action: 'health' } }),
-      ]);
-
-      const statusData = statusRes.data;
-      const healthData = healthRes.data;
-      const connected = statusData?.connected ?? false;
-      // kapso-manager health action returns { success: bool, status: "connected"|"error"|"not_configured" }
-      const kapsoOk = healthData?.success === true
-        || healthData?.status === 'connected';
-
-      setDiagResult({
-        sessaoConectada: connected,
-        ultimoHeartbeat: conexao?.last_sync ?? conexao?.last_heartbeat ?? null,
-        reconexoes: conexao?.reconnect_attempts ?? 0,
-        ultimoErro: conexao?.last_error ?? null,
-        kapsoReachable: statusRes.error ? false : kapsoOk,
+      const { data, error } = await supabase.functions.invoke('kapso-manager', {
+        body: { action: 'diagnose' },
       });
+
+      if (error) throw error;
+
+      setDiagResult(data as DiagnosticoResult);
     } catch (err) {
       log.error('runDiagnostico failed', err);
       setDiagResult({
-        sessaoConectada: null,
-        ultimoHeartbeat: conexao?.last_heartbeat ?? null,
-        reconexoes: conexao?.reconnect_attempts ?? 0,
-        ultimoErro: conexao?.last_error ?? null,
-        kapsoReachable: false,
+        healthy: false,
+        checks: {
+          error: { ok: false, detail: 'Falha ao executar diagnóstico. Verifique sua conexão.' },
+        },
+        timestamp: new Date().toISOString(),
       });
-      toast({ title: 'Erro ao executar diagn\u00f3stico', variant: 'destructive' });
+      toast({ title: 'Erro ao executar diagnóstico', variant: 'destructive' });
     } finally {
       setDiagLoading(false);
     }
-  }, [conexao?.last_heartbeat, conexao?.last_sync, conexao?.reconnect_attempts, conexao?.last_error, toast]);
+  }, [toast]);
 
   // Auto-run diagnostic when tab opens
   useEffect(() => {
