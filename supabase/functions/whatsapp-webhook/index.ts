@@ -116,21 +116,27 @@ function analyzeQualification(
   if (extractedUrgency === 'alta' || (extractedName && extractedArea)) temperature = 'hot';
   else if (extractedArea || extractedUrgency === 'media') temperature = 'warm';
 
-  // Determine suggested status based on conversation progress
+  // Determine suggested status respecting DB state machine transitions:
+  // novo → [em_contato, qualificado, perdido]
+  // em_contato → [qualificado, proposta, perdido]
+  // qualificado → [proposta, perdido, em_contato]
+  // proposta → [negociacao, ganho, perdido, qualificado]
   let suggestedStatus = currentStatus;
   const messageCount = leadMessages.length;
 
-  // First message → move to qualification
-  if (currentStatus === 'novo' && messageCount >= 1) {
-    suggestedStatus = 'qualificado';
-  }
-  // 2+ messages with some data → still qualifying
-  if (messageCount >= 2 && (extractedName || extractedArea)) {
-    suggestedStatus = 'qualificado';
-  }
-  // Name AND area identified → ready for proposal
-  if (extractedName && extractedArea) {
-    suggestedStatus = 'proposta';
+  if (currentStatus === 'novo') {
+    // First contact → em_contato (respects state machine)
+    if (messageCount >= 1) suggestedStatus = 'em_contato';
+    // If already has qualifying data → qualificado (also valid from novo)
+    if (messageCount >= 2 && (extractedName || extractedArea)) suggestedStatus = 'qualificado';
+  } else if (currentStatus === 'em_contato') {
+    // Has some data → qualificado
+    if (extractedName || extractedArea) suggestedStatus = 'qualificado';
+    // Has both → proposta (valid from em_contato)
+    if (extractedName && extractedArea) suggestedStatus = 'proposta';
+  } else if (currentStatus === 'qualificado') {
+    // Name AND area → proposta (valid from qualificado)
+    if (extractedName && extractedArea) suggestedStatus = 'proposta';
   }
 
   // Don't downgrade status (never go backwards in pipeline)
@@ -1048,6 +1054,36 @@ async function processNormalizedMessage(supabase: ReturnType<typeof createClient
       }).then(({ error }) => {
         if (error) console.warn("[processMsg] Failed to log unresolved event:", error.message);
       });
+
+      // --- NOTIFY ALL ADMINS about unresolved tenant ---
+      // Find all tenants that have WhatsApp integrations and alert their admins
+      void (async () => {
+        try {
+          const { data: adminRoles } = await supabase
+            .from("user_roles")
+            .select("user_id, tenant_id")
+            .in("role", ["admin", "administrador"])
+            .eq("ativo", true)
+            .limit(20);
+
+          if (adminRoles && adminRoles.length > 0) {
+            // Get unique tenant_ids
+            const tenantIds = [...new Set(adminRoles.map(r => r.tenant_id))];
+            const notifications = tenantIds.map(tid => ({
+              tenant_id: tid,
+              tipo: "alerta" as const,
+              titulo: "⚠️ Mensagem WhatsApp não roteada",
+              mensagem: `Uma mensagem de ${from} não pôde ser direcionada a nenhum escritório. Verifique a configuração do WhatsApp em Integrações. Instância: ${instanceName || "desconhecida"}.`,
+              ativo: true,
+            }));
+            await supabase.from("notificacoes").insert(notifications);
+            console.log(`[processMsg:${provider}] Notified ${tenantIds.length} tenant(s) about unresolved message`);
+          }
+        } catch (notifErr) {
+          console.error("[processMsg] Failed to notify admins about unresolved tenant:", notifErr);
+        }
+      })();
+
       return;
     }
 
@@ -1567,8 +1603,17 @@ async function processNormalizedMessage(supabase: ReturnType<typeof createClient
       aiText = `Olá! Recebi sua mensagem e em breve um de nossos advogados entrará em contato. Obrigado pelo contato com ${officeName}!`;
       console.error(`[processMsg:${provider}] AI FAILED: ${aiError.message}`);
     } else if (budgetExceeded) {
-      aiText = `Olá! Recebi sua mensagem. No momento nosso assistente virtual está indisponível, mas um de nossos advogados entrará em contato em breve. Obrigado pelo contato com ${officeName}!`;
+      aiText = `Olá! Recebi sua mensagem. No momento nosso assistente virtual está em manutenção, mas já encaminhei para nossa equipe e um advogado entrará em contato em breve. Obrigado pelo contato com ${officeName}!`;
       console.warn(`[processMsg:${provider}] AI budget exceeded — sending fallback`);
+
+      // Notify tenant admins about budget exhaustion so they can take action
+      void supabase.from("notificacoes").insert({
+        tenant_id: tenantId,
+        tipo: "alerta",
+        titulo: "⚠️ Cota de IA esgotada — respostas automáticas pausadas",
+        mensagem: `O limite diário de tokens da IA foi atingido. Leads estão recebendo resposta genérica. Último lead afetado: ${name} (${from}). Considere aumentar o limite em Configurações > IA.`,
+        ativo: true,
+      }).then(({ error }) => { if (error) console.error("[webhook] budget notification error:", error.message); });
     } else if (aiResponse?.result) {
       aiText = aiResponse.result;
     } else {
@@ -1576,16 +1621,29 @@ async function processNormalizedMessage(supabase: ReturnType<typeof createClient
       console.warn(`[processMsg:${provider}] AI returned empty result — sending fallback`);
     }
 
-    // --- HUMAN HANDOFF: detect uncertainty ---
-    const HANDOFF_PATTERNS = [
-      "não tenho como informar",
-      "não sei informar",
-      "precisa entrar em contato",
-      "recomendo falar com um advogado",
-      "não consigo acessar",
+    // --- HUMAN HANDOFF: detect when AI can't handle the conversation ---
+    // Uses regex for flexible matching of intent patterns (not exact substrings)
+    const HANDOFF_REGEX_PATTERNS = [
+      // AI admitting it can't answer
+      /n[aã]o\s+(tenho|consigo|posso)\s+(como\s+)?(informar|responder|acessar|verificar|confirmar)/i,
+      /n[aã]o\s+sei\s+(informar|responder|dizer)/i,
+      /n[aã]o\s+tenho\s+(essa|esta|a)\s+(informa[çc][aã]o|resposta)/i,
+      /n[aã]o\s+(tenho|possuo)\s+acesso/i,
+      // AI recommending human contact
+      /recomendo\s+(falar|consultar|conversar)\s+(com\s+)?(um\s+)?(advogado|especialista|profissional|atendente)/i,
+      /precis[ao]\s+(falar|entrar\s+em\s+contato|conversar)/i,
+      /entre\s+em\s+contato\s+(com|diretamente)/i,
+      /encaminhar\s+(para|ao|à)\s+(um\s+)?(advogado|equipe|atendente)/i,
+      // AI expressing uncertainty about legal matters
+      /n[aã]o\s+(devo|posso)\s+dar\s+(um\s+)?parecer/i,
+      /fora\s+d[ao]\s+(meu|minha)\s+(escopo|alcance|capacidade)/i,
+      /somente\s+um\s+(advogado|profissional)\s+(pode|poderá)/i,
+      /essa\s+quest[aã]o\s+(exige|requer|necessita)\s+(an[aá]lise|avalia[çc][aã]o)\s+(presencial|detalhada|humana)/i,
     ];
-    const shouldHandoff = HANDOFF_PATTERNS.some((p) => aiText.toLowerCase().includes(p));
+    const lowerAiText = aiText.toLowerCase();
+    const shouldHandoff = HANDOFF_REGEX_PATTERNS.some((rx) => rx.test(lowerAiText));
     if (shouldHandoff && conversationId) {
+      console.log(`[processMsg:${provider}] HANDOFF triggered for ${from} — pausing AI`);
       void supabase
         .from("whatsapp_conversations")
         .update({ ia_active: false })
@@ -1595,8 +1653,9 @@ async function processNormalizedMessage(supabase: ReturnType<typeof createClient
       void supabase.from("notificacoes").insert({
         tenant_id: tenantId,
         tipo: "alerta",
-        titulo: "Conversa requer atenção humana",
-        mensagem: `A IA não conseguiu responder ao cliente ${name} (${from}). Conversa pausada.`,
+        titulo: "🔔 Conversa requer atenção humana",
+        mensagem: `O agente "${agentName}" detectou que não consegue atender o cliente ${name} (${from}). A IA foi pausada nesta conversa. Responda manualmente na aba WhatsApp.`,
+        ativo: true,
       }).then(({ error }) => { if (error) console.error("[webhook] notificacao insert error:", error.message); });
     }
 

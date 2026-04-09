@@ -138,13 +138,15 @@ export const AnalyticsDashboard = () => {
                 { data: prevContracts },
                 { data: aiLogs },
                 { data: allLeads },
+                { data: executions },
             ] = await Promise.all([
                 applyLeadVisibilityFilter(supabase.from('leads').select('id, created_at, area_juridica, origem, status').eq('tenant_id', tenantId).gte('created_at', startDate.toISOString())),
                 applyLeadVisibilityFilter(supabase.from('leads').select('id, created_at').eq('tenant_id', tenantId).gte('created_at', prevStartDate.toISOString()).lt('created_at', startDate.toISOString())),
-                supabase.from('contratos').select('id, created_at').eq('tenant_id', tenantId).gte('created_at', startDate.toISOString()),
+                supabase.from('contratos').select('id, created_at, valor_causa').eq('tenant_id', tenantId).gte('created_at', startDate.toISOString()),
                 supabase.from('contratos').select('id, created_at').eq('tenant_id', tenantId).gte('created_at', prevStartDate.toISOString()).lt('created_at', startDate.toISOString()),
                 supabase.from('agent_ai_logs').select('id, agent_name, status, created_at').eq('tenant_id', tenantId).gte('created_at', new Date().toISOString().split('T')[0]),
                 applyLeadVisibilityFilter(supabase.from('leads').select('id, created_at, area_juridica, origem, status').eq('tenant_id', tenantId)),
+                supabase.from('agent_executions').select('total_duration_ms').eq('tenant_id', tenantId).eq('status', 'completed').gte('started_at', startDate.toISOString()).limit(100),
             ]);
 
             const currentLeadsCount = currentLeads?.length || 0;
@@ -157,6 +159,18 @@ export const AnalyticsDashboard = () => {
 
             const conversionRate = currentLeadsCount > 0 ? Math.min((currentContractsCount / currentLeadsCount) * 100, 100) : 0;
 
+            // Calculate avg response time from real agent execution data
+            const durations = (executions || [])
+                .map((e: { total_duration_ms: number | null }) => e.total_duration_ms)
+                .filter((d): d is number => d != null && d > 0);
+            const avgResponseTime = durations.length > 0
+                ? Math.round((durations.reduce((a, b) => a + b, 0) / durations.length / 1000) * 10) / 10
+                : 0;
+
+            // Calculate real revenue from contract values
+            const totalRevenue = (currentContracts || [])
+                .reduce((sum, c: { valor_causa: number | null }) => sum + (c.valor_causa || 0), 0);
+
             const metrics: DashboardMetrics = {
                 totalLeads: allLeads?.length || 0,
                 leadsThisMonth: currentLeadsCount,
@@ -165,9 +179,9 @@ export const AnalyticsDashboard = () => {
                 contractsThisMonth: currentContractsCount,
                 contractsGrowth,
                 conversionRate,
-                avgResponseTime: 2.5,
+                avgResponseTime,
                 aiCallsToday: aiLogs?.length || 0,
-                totalRevenue: currentContractsCount * 5000,
+                totalRevenue,
             };
 
             const chartData: ChartData = {

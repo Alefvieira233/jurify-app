@@ -7,6 +7,7 @@ const STAGE_NODES = [
   { name: 'Análise',       color: '#f59e0b' },
   { name: 'Qualificado',   color: '#10b981' },
   { name: 'Proposta',      color: '#6366f1' },
+  { name: 'Negociação',    color: '#8b5cf6' },
   { name: 'Sucesso',       color: '#22c55e' },
   { name: 'Perdas',        color: '#ef4444' },
 ];
@@ -22,14 +23,15 @@ interface SankeyLinkItem {
 }
 
 function buildSankeyData(leads: SankeyChartProps['leads']) {
-  let _novo = 0, em_contato = 0, qualificado = 0, proposta = 0, ganho = 0, perdido = 0;
+  let novo = 0, em_contato = 0, qualificado = 0, proposta = 0, negociacao = 0, ganho = 0, perdido = 0;
 
   for (const lead of leads) {
     switch (lead.status) {
-      case 'novo':        _novo++;        break;
+      case 'novo':        novo++;        break;
       case 'em_contato':  em_contato++;  break;
       case 'qualificado': qualificado++; break;
       case 'proposta':    proposta++;    break;
+      case 'negociacao':  negociacao++;  break;
       case 'ganho':       ganho++;       break;
       case 'perdido':     perdido++;     break;
       default: break;
@@ -38,22 +40,37 @@ function buildSankeyData(leads: SankeyChartProps['leads']) {
 
   const nodes = STAGE_NODES.map(n => ({ name: n.name }));
 
-  const p0 = Math.floor(perdido * 0.4);
-  const p1 = Math.floor(perdido * 0.3);
-  const p2 = Math.floor(perdido * 0.2);
-  const p3 = perdido - p0 - p1 - p2;
+  // Total leads that advanced past each stage (real funnel data)
+  const passedAnalise = em_contato + qualificado + proposta + negociacao + ganho;
+  const passedQualificado = qualificado + proposta + negociacao + ganho;
+  const passedProposta = proposta + negociacao + ganho;
+  const passedNegociacao = negociacao + ganho;
 
+  // Real loss at each stage: leads that stopped at this stage and eventually became perdido
+  // Since we can't track exact loss point without history, distribute proportionally
+  // based on where leads currently sit (stalled = potential loss point)
+  const stalled = [novo, em_contato, qualificado, proposta];
+  const stalledTotal = stalled.reduce((a, b) => a + b, 0) || 1;
+  const lossFromNovo = Math.round(perdido * (novo / stalledTotal));
+  const lossFromContato = Math.round(perdido * (em_contato / stalledTotal));
+  const lossFromQualificado = Math.round(perdido * (qualificado / stalledTotal));
+  const lossFromProposta = Math.round(perdido * (proposta / stalledTotal));
+  // Remainder to avoid rounding errors
+  const lossRemainder = perdido - lossFromNovo - lossFromContato - lossFromQualificado - lossFromProposta;
+
+  // Nodes: 0=Nova Conversa, 1=Análise, 2=Qualificado, 3=Proposta, 4=Negociação, 5=Sucesso, 6=Perdas
   const rawLinks: SankeyLinkItem[] = [
     // Forward funnel
-    { source: 0, target: 1, value: em_contato + qualificado + proposta + ganho },
-    { source: 1, target: 2, value: qualificado + proposta + ganho },
-    { source: 2, target: 3, value: proposta + ganho },
-    { source: 3, target: 4, value: ganho },
-    // Loss branches
-    { source: 0, target: 5, value: p0 },
-    { source: 1, target: 5, value: p1 },
-    { source: 2, target: 5, value: p2 },
-    { source: 3, target: 5, value: p3 },
+    { source: 0, target: 1, value: passedAnalise },
+    { source: 1, target: 2, value: passedQualificado },
+    { source: 2, target: 3, value: passedProposta },
+    { source: 3, target: 4, value: passedNegociacao },
+    { source: 4, target: 5, value: ganho },
+    // Loss branches (proportional to stalled leads at each stage)
+    { source: 0, target: 6, value: lossFromNovo },
+    { source: 1, target: 6, value: lossFromContato },
+    { source: 2, target: 6, value: lossFromQualificado },
+    { source: 3, target: 6, value: lossFromProposta + lossRemainder },
   ];
 
   const links = rawLinks.filter(l => l.value > 0);
@@ -73,7 +90,7 @@ interface CustomNodeProps {
 
 function CustomNode({ x = 0, y = 0, width = 0, height = 0, index = 0, payload }: CustomNodeProps) {
   const color = STAGE_NODES[index]?.color ?? '#6b7280';
-  const isRightSide = index >= 4;
+  const isRightSide = index >= 5;
   const labelX = isRightSide ? x - 6 : x + width + 6;
   const textAnchor = isRightSide ? 'end' : 'start';
 

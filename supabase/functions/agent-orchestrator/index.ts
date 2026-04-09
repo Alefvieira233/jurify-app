@@ -83,8 +83,13 @@ Deno.serve(async (req) => {
     try {
       routing = JSON.parse(resultText);
     } catch {
-      console.warn("[orchestrator] Failed to parse routing JSON, using fallback");
-      routing = { agent: "recepcionista", reason: "JSON parse fallback" };
+      // Smart fallback: use available context instead of always defaulting to recepcionista
+      const fallbackAgent = body.hasMedia ? "analista_documentos"
+        : body.hasLegalContext ? "juridico"
+        : body.isFirstContact ? "recepcionista"
+        : "juridico";
+      console.error(`[orchestrator] JSON parse FAILED — smart fallback to "${fallbackAgent}" | raw: ${resultText.substring(0, 100)}`);
+      routing = { agent: fallbackAgent, reason: `JSON parse fallback (context: media=${body.hasMedia}, legal=${body.hasLegalContext}, first=${body.isFirstContact})` };
     }
 
     // Validate agent exists
@@ -109,10 +114,13 @@ Deno.serve(async (req) => {
     const errorMsg = error instanceof Error ? error.message : "Unknown error";
     console.error(`[orchestrator] ERROR: ${errorMsg}`);
 
+    // On total failure, fallback to juridico (most common need for a law firm)
+    // The webhook caller also has its own fallback using legalCtx
+    const fallbackAgent = "juridico";
     return new Response(
       JSON.stringify({
-        agent: "recepcionista",
-        agentDefinition: AGENTS.recepcionista,
+        agent: fallbackAgent,
+        agentDefinition: AGENTS[fallbackAgent] || AGENTS.recepcionista,
         reason: `Orchestrator error fallback: ${errorMsg}`,
         durationMs: Date.now() - startTime,
       }),
