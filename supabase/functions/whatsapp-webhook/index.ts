@@ -1491,6 +1491,9 @@ async function processNormalizedMessage(supabase: ReturnType<typeof createClient
       }
 
       const resultText = completion.choices[0]?.message?.content || "";
+      if (!resultText) {
+        console.error(`[processMsg:${provider}] OpenAI returned EMPTY content. Model: ${DEFAULT_OPENAI_MODEL} | Choices: ${completion.choices?.length || 0} | FinishReason: ${completion.choices?.[0]?.finish_reason || "N/A"} | Usage: ${JSON.stringify(completion.usage)}`);
+      }
       aiResponse = {
         result: resultText,
         usage: completion.usage

@@ -26,8 +26,10 @@ export async function checkBudgetBeforeCall(
     .maybeSingle();
 
   if (error) {
-    console.warn("[ai-budget] Budget check failed, denying request (fail-closed):", error.message);
-    return { allowed: false, tokensUsed: 0, budgetLimit: 0 };
+    // FAIL-OPEN: allow AI calls even if budget check fails (DB error, RLS, etc.)
+    // Better to serve the customer than block AI due to infrastructure issue
+    console.error("[ai-budget] Budget check FAILED — allowing request (fail-open):", error.message);
+    return { allowed: true, tokensUsed: 0, budgetLimit: 100000 };
   }
 
   if (!data) {
@@ -60,8 +62,9 @@ export async function recordTokenUsage(
   });
 
   if (error) {
-    console.warn("[ai-budget] Token usage recording failed, denying further requests (fail-closed):", error.message);
-    return { allowed: false, tokensUsed: 0, budgetLimit: 0, thresholdReached: false };
+    // FAIL-OPEN: don't block future AI calls just because recording failed
+    console.error("[ai-budget] Token usage recording FAILED (fail-open):", error.message);
+    return { allowed: true, tokensUsed: 0, budgetLimit: 100000, thresholdReached: false };
   }
 
   const result = data?.[0] ?? data;
