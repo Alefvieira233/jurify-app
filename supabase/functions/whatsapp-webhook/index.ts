@@ -1796,7 +1796,6 @@ async function processNormalizedMessage(supabase: ReturnType<typeof createClient
             ativo: true,
           }).then(({ error }) => { if (error) console.error("[webhook] consultation notification error:", error.message); });
         }
-      }
     }
 
     // --- HUMAN HANDOFF: detect when AI can't handle the conversation ---
