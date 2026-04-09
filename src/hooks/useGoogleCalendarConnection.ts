@@ -15,7 +15,7 @@ interface GoogleCalendarStatus {
   connectedAt: string | null;
 }
 
-const FUNCTION_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/google-calendar/oauth`;
+const FUNCTION_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/google-calendar`;
 const REDIRECT_PATH = '/auth/google/callback';
 
 async function callOAuthFunction(method: string, data: Record<string, unknown>, token: string) {
