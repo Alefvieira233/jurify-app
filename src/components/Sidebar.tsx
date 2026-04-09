@@ -71,9 +71,10 @@ const MAIN_NAV: NavEntry[] = [
     label: 'Atendimento',
     icon: MessageSquare,
     children: [
-      { id: 'whatsapp',  label: 'Conversas', icon: MessageCircle, resource: 'whatsapp', action: 'read' },
-      { id: 'crm',       label: 'Contatos',  icon: Users,         resource: 'leads',    action: 'read' },
-      { id: 'pipeline',  label: 'Kanban',    icon: KanbanSquare,  resource: 'leads',    action: 'read' },
+      { id: 'whatsapp',      label: 'Conversas',    icon: MessageCircle, resource: 'whatsapp',      action: 'read' },
+      { id: 'crm',           label: 'Contatos',     icon: Users,         resource: 'leads',         action: 'read' },
+      { id: 'pipeline',      label: 'Kanban',       icon: KanbanSquare,  resource: 'leads',         action: 'read' },
+      { id: 'agendamentos',  label: 'Agendamentos', icon: Calendar,      resource: 'agendamentos',  action: 'read' },
     ],
   },
   {
