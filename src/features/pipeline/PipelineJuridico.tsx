@@ -75,10 +75,28 @@ const PipelineJuridico = () => {
     const fromStage = PIPELINE_STAGES.find(s => s.id === fromStatus)?.title ?? fromStatus;
     const toStage   = PIPELINE_STAGES.find(s => s.id === toStatus)?.title ?? toStatus;
     void (async () => {
-      const ok = await updateLead(draggableId, { status: toStatus });
-      if (ok) {
-        void triggerHaptic('success');
-        toast({ title: 'Lead movido', description: `${fromStage} → ${toStage}` });
+      try {
+        const ok = await updateLead(draggableId, { status: toStatus });
+        if (ok) {
+          void triggerHaptic('success');
+          toast({ title: 'Lead movido', description: `${fromStage} → ${toStage}` });
+        } else {
+          void triggerHaptic('error');
+          toast({
+            title: 'Erro ao mover lead',
+            description: `Não foi possível mover de "${fromStage}" para "${toStage}". O lead permanece na posição original.`,
+            variant: 'destructive',
+          });
+          void fetchLeads(); // Refresh to restore correct state
+        }
+      } catch {
+        void triggerHaptic('error');
+        toast({
+          title: 'Erro de conexão',
+          description: 'Falha ao atualizar o lead. Verifique sua conexão e tente novamente.',
+          variant: 'destructive',
+        });
+        void fetchLeads();
       }
     })();
   };
