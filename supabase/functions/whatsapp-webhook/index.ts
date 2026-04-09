@@ -1361,18 +1361,20 @@ async function processNormalizedMessage(supabase: ReturnType<typeof createClient
     // Legal context
     const legalCtx = await buildLegalContext(supabase, leadId, tenantId, processedText);
 
-    // Command detection
-    const COMMANDS: Record<string, string> = {
-      "/prazos": "liste os prazos processuais do cliente",
-      "/processos": "liste os processos ativos do cliente",
-      "/documentos": "informe quantos documentos o cliente tem no sistema",
-      "/honorarios": "informe o status dos honorários do cliente",
-      "/status": "dê um resumo completo dos casos do cliente",
+    // Command detection — maps slash commands to intents and routing agents
+    const COMMANDS: Record<string, { intent: string; agent: string }> = {
+      "/prazos": { intent: "liste os prazos processuais do cliente com datas e urgência", agent: "juridico" },
+      "/processos": { intent: "liste os processos ativos do cliente com número, fase e tribunal", agent: "juridico" },
+      "/documentos": { intent: "informe quantos documentos o cliente tem no sistema e quais tipos", agent: "analista_documentos" },
+      "/honorarios": { intent: "informe o status dos honorários do cliente: valores acordados, pagos e pendentes", agent: "juridico" },
+      "/status": { intent: "dê um resumo completo e organizado de todos os casos, prazos e pendências do cliente", agent: "juridico" },
+      "/audiencias": { intent: "liste as audiências e compromissos agendados do cliente nos próximos 60 dias", agent: "juridico" },
+      "/andamento": { intent: "descreva o andamento cronológico dos processos do cliente, do mais recente ao mais antigo", agent: "juridico" },
     };
     const commandKey = Object.keys(COMMANDS).find((cmd) =>
       processedText.trim().toLowerCase().startsWith(cmd)
     );
-    const commandIntent = commandKey ? COMMANDS[commandKey] : null;
+    const commandIntent = commandKey ? COMMANDS[commandKey]!.intent : null;
 
     // Conversation history — smart context: summarize old messages, keep recent ones verbatim
     let conversationHistory = "";
@@ -1474,7 +1476,7 @@ async function processNormalizedMessage(supabase: ReturnType<typeof createClient
     let agentMaxTokens: number;
 
     if (commandKey) {
-      agentType = "juridico";
+      agentType = COMMANDS[commandKey]!.agent;
     } else {
       try {
         const routing = await callEdgeFunction<{
@@ -1509,11 +1511,11 @@ async function processNormalizedMessage(supabase: ReturnType<typeof createClient
       .maybeSingle();
 
     if (dbAgent?.prompt_sistema) {
-      // Use the tenant's customized prompt
+      // Use the tenant's customized prompt (sanitize to prevent prompt injection)
       agentName = dbAgent.nome || agentType;
-      agentPrompt = dbAgent.prompt_sistema;
-      agentTemp = dbAgent.temperatura ?? 0.5;
-      agentMaxTokens = dbAgent.max_tokens ?? 500;
+      agentPrompt = sanitizeInput(dbAgent.prompt_sistema).substring(0, 4000); // Cap custom prompts
+      agentTemp = Math.min(Math.max(dbAgent.temperatura ?? 0.5, 0), 1); // Clamp 0-1
+      agentMaxTokens = Math.min(dbAgent.max_tokens ?? 500, 2000); // Cap at 2000
       console.log(`[processMsg:${provider}] Using tenant's custom agent: ${agentName}`);
     } else {
       // Fallback to hardcoded defaults (agent-prompts.ts)
