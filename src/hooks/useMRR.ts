@@ -21,11 +21,12 @@ export interface MRRData {
   ltv: number;
   canceledThisMonth: number;
   netNewMRR: number;
+  targetMRR: number;
 }
 
 const DEFAULT_MRR: MRRData = {
   currentMRR: 0, previousMRR: 0, avgTicket: 0, activeSubscriptions: 0,
-  growth: 0, churnRate: 0, ltv: 0, canceledThisMonth: 0, netNewMRR: 0,
+  growth: 0, churnRate: 0, ltv: 0, canceledThisMonth: 0, netNewMRR: 0, targetMRR: 0,
 };
 
 async function fetchMRR(tenantId: string | undefined): Promise<MRRData> {
@@ -82,9 +83,12 @@ async function fetchMRR(tenantId: string | undefined): Promise<MRRData> {
   // Net new MRR = current - previous
   const netNewMRR = currentMRR - previousMRR;
 
+  // Target MRR: 120% of current or minimum 10k (aspirational but grounded)
+  const targetMRR = Math.max(currentMRR * 1.2, 10000);
+
   return {
     currentMRR, previousMRR, avgTicket, activeSubscriptions: activeCount,
-    growth, churnRate, ltv, canceledThisMonth: canceledCount, netNewMRR,
+    growth, churnRate, ltv, canceledThisMonth: canceledCount, netNewMRR, targetMRR,
   };
 }
 

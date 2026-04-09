@@ -195,9 +195,18 @@ Deno.serve(async (req) => {
           await kapsoSendText(kapsoConfig, phone, message);
 
           // Update lead updated_at to prevent re-sending tomorrow
-          void supabase.from("leads").update({
+          // Use RPC-style JSONB merge to preserve existing metadata
+          const { data: currentLead } = await supabase
+            .from("leads")
+            .select("metadata")
+            .eq("id", lead.id)
+            .eq("tenant_id", tenantId)
+            .maybeSingle();
+
+          const existingMeta = (currentLead?.metadata ?? {}) as Record<string, unknown>;
+          await supabase.from("leads").update({
             updated_at: new Date().toISOString(),
-            metadata: { last_followup: new Date().toISOString(), followup_type: "auto" },
+            metadata: { ...existingMeta, last_followup: new Date().toISOString(), followup_type: "auto", followup_count: ((existingMeta.followup_count as number) || 0) + 1 },
           }).eq("id", lead.id).eq("tenant_id", tenantId);
 
           // Save message in conversation (if exists)

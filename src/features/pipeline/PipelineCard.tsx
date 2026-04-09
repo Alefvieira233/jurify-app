@@ -117,34 +117,33 @@ export const PipelineCard = memo(({ lead, index, stageColor, onUpdateLead, onRef
             </div>
 
             {/* ── Score bar + Temperature ── */}
-            {((lead as Record<string, unknown>).lead_score as number > 0 || (lead as Record<string, unknown>).temperature) && (
+            {(lead.lead_score > 0 || lead.temperature) && (
               <div className="flex items-center gap-2 mt-1">
                 {/* Temperature badge */}
-                {(lead as Record<string, unknown>).temperature && (
+                {lead.temperature && (
                   <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full uppercase tracking-wider ${
-                    (lead as Record<string, unknown>).temperature === 'hot' ? 'bg-rose-500/15 text-rose-600' :
-                    (lead as Record<string, unknown>).temperature === 'warm' ? 'bg-amber-500/15 text-amber-600' :
+                    lead.temperature === 'hot' ? 'bg-rose-500/15 text-rose-600' :
+                    lead.temperature === 'warm' ? 'bg-amber-500/15 text-amber-600' :
                     'bg-blue-500/15 text-blue-600'
                   }`}>
-                    {(lead as Record<string, unknown>).temperature === 'hot' ? '🔥 Quente' :
-                     (lead as Record<string, unknown>).temperature === 'warm' ? '🟡 Morno' : '❄️ Frio'}
+                    {lead.temperature === 'hot' ? '🔥 Quente' :
+                     lead.temperature === 'warm' ? '🟡 Morno' : '❄️ Frio'}
                   </span>
                 )}
                 {/* Score bar */}
-                {((lead as Record<string, unknown>).lead_score as number) > 0 && (
+                {lead.lead_score > 0 && (
                   <div className="flex-1 flex items-center gap-1.5">
                     <div className="flex-1 h-1.5 bg-muted/40 rounded-full overflow-hidden">
                       <div
                         className="h-full rounded-full transition-all duration-500"
                         style={{
-                          width: `${Math.min((lead as Record<string, unknown>).lead_score as number, 100)}%`,
-                          background: ((lead as Record<string, unknown>).lead_score as number) >= 70 ? '#059669' :
-                                      ((lead as Record<string, unknown>).lead_score as number) >= 40 ? '#d97706' : '#6b7280',
+                          width: `${Math.min(lead.lead_score, 100)}%`,
+                          background: lead.lead_score >= 70 ? '#059669' : lead.lead_score >= 40 ? '#d97706' : '#6b7280',
                         }}
                       />
                     </div>
                     <span className="text-[9px] font-bold tabular-nums text-muted-foreground">
-                      {(lead as Record<string, unknown>).lead_score as number}
+                      {lead.lead_score}
                     </span>
                   </div>
                 )}

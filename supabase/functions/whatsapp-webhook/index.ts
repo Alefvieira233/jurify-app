@@ -1190,7 +1190,7 @@ async function processNormalizedMessage(supabase: ReturnType<typeof createClient
     // --- RESOLVE/CREATE LEAD ---
     const { data: lead } = await supabase
       .from("leads")
-      .select("id, status, area_juridica, departamento_id, responsavel_id")
+      .select("id, status, area_juridica, departamento_id, responsavel_id, temperature, lead_score")
       .eq("telefone", from)
       .eq("tenant_id", tenantId)
       .maybeSingle();
@@ -1532,7 +1532,8 @@ async function processNormalizedMessage(supabase: ReturnType<typeof createClient
     if (dbAgent?.prompt_sistema) {
       // Use the tenant's customized prompt (sanitize to prevent prompt injection)
       agentName = dbAgent.nome || agentType;
-      agentPrompt = sanitizeInput(dbAgent.prompt_sistema).substring(0, 4000); // Cap custom prompts
+      const sanitizedPrompt = sanitizeInput(dbAgent.prompt_sistema, 4000);
+      agentPrompt = sanitizedPrompt.safe ? sanitizedPrompt.text : dbAgent.prompt_sistema.trim().slice(0, 4000);
       agentTemp = Math.min(Math.max(dbAgent.temperatura ?? 0.5, 0), 1); // Clamp 0-1
       agentMaxTokens = Math.min(dbAgent.max_tokens ?? 500, 2000); // Cap at 2000
       console.log(`[processMsg:${provider}] Using tenant's custom agent: ${agentName}`);
@@ -1747,20 +1748,19 @@ async function processNormalizedMessage(supabase: ReturnType<typeof createClient
       console.warn(`[processMsg:${provider}] AI returned empty result — sending fallback`);
     }
 
-    // --- CONSULTATION SCHEDULING: detect when AI suggests and client accepts ---
+    // --- CONSULTATION SCHEDULING: detect when client accepts AI's scheduling suggestion ---
     const AI_SUGGESTS_CONSULTATION = /posso agendar|gostaria de agendar|agendar uma consulta|horários disponíveis|marcar um horário/i;
-    const CLIENT_ACCEPTS_CONSULTATION = /sim|quero|pode agendar|gostaria|por favor|vamos|claro|bora|ok|pode ser|quero sim|gostaria sim/i;
+    // Client acceptance: must be short affirmative response (not embedded in longer text)
+    const CLIENT_ACCEPTS = /^(sim|quero|pode agendar|gostaria|por favor|vamos|claro|bora|ok|pode ser|quero sim|gostaria sim|vamos sim|pode marcar|marca|agende)[!?.]*$/i;
 
-    if (AI_SUGGESTS_CONSULTATION.test(aiText) || CLIENT_ACCEPTS_CONSULTATION.test(text.toLowerCase())) {
-      // Check if AI is suggesting OR client is accepting a consultation
-      const aiSuggested = AI_SUGGESTS_CONSULTATION.test(aiText);
-      const clientAccepted = CLIENT_ACCEPTS_CONSULTATION.test(text.toLowerCase()) &&
-        // Only if previous AI message suggested scheduling
-        (recentMessages || []).some(m =>
-          m.sender === 'agent' && AI_SUGGESTS_CONSULTATION.test(m.content)
-        );
+    // Only trigger if: (1) client message is a SHORT acceptance AND (2) the IMMEDIATELY PREVIOUS agent message suggested scheduling
+    const clientText = text.trim().toLowerCase();
+    const isShortAcceptance = clientText.length < 40 && CLIENT_ACCEPTS.test(clientText);
+    const lastAgentMessage = (recentMessages || []).filter(m => m.sender === 'agent')[0]; // Most recent agent msg (array is reversed)
+    const previousAISuggestedScheduling = lastAgentMessage && AI_SUGGESTS_CONSULTATION.test(lastAgentMessage.content);
+    const clientAcceptedConsultation = isShortAcceptance && previousAISuggestedScheduling;
 
-      if (clientAccepted && leadId) {
+    if (clientAcceptedConsultation && leadId) {
         // Client accepted! Create a preliminary agendamento
         const nextBusinessDay = new Date();
         nextBusinessDay.setDate(nextBusinessDay.getDate() + 1);
@@ -1874,11 +1874,20 @@ async function processNormalizedMessage(supabase: ReturnType<typeof createClient
     if (qualification.extractedArea) {
       leadUpdate.area_juridica = qualification.extractedArea;
     }
+    // Only ESCALATE temperature (never downgrade — respect manual admin overrides)
     if (qualification.temperature) {
-      leadUpdate.temperature = qualification.temperature;
+      const tempOrder: Record<string, number> = { cold: 0, warm: 1, hot: 2 };
+      const currentTemp = (lead?.temperature as string) || 'cold';
+      if ((tempOrder[qualification.temperature] ?? 0) > (tempOrder[currentTemp] ?? 0)) {
+        leadUpdate.temperature = qualification.temperature;
+      }
     }
+    // Only increase score (never decrease — scores represent accumulated qualification)
     if (qualification.leadScore > 0) {
-      leadUpdate.lead_score = qualification.leadScore;
+      const currentScore = (lead?.lead_score as number) || 0;
+      if (qualification.leadScore > currentScore) {
+        leadUpdate.lead_score = qualification.leadScore;
+      }
     }
     if (!conversation) {
       leadUpdate.descricao = `[WhatsApp] Primeiro contato: "${text.substring(0, 200)}"`;
