@@ -30,9 +30,10 @@ interface AgendamentoDetalhes {
 interface DetalhesAgendamentoProps {
   agendamento: AgendamentoDetalhes;
   onClose: () => void;
+  onEdit?: (agendamento: AgendamentoDetalhes) => void;
 }
 
-export const DetalhesAgendamento = ({ agendamento, onClose }: DetalhesAgendamentoProps) => {
+export const DetalhesAgendamento = ({ agendamento, onClose, onEdit }: DetalhesAgendamentoProps) => {
   const { settings, createCalendarEvent } = useGoogleCalendar();
   const [syncingToGoogle, setSyncingToGoogle] = useState(false);
 
@@ -229,7 +230,10 @@ Agendamento criado via Jurify
         <Button variant="outline" onClick={onClose}>
           Fechar
         </Button>
-        <Button className="bg-amber-500 hover:bg-amber-600">
+        <Button
+          className="bg-amber-500 hover:bg-amber-600"
+          onClick={() => onEdit?.(agendamento)}
+        >
           Editar Agendamento
         </Button>
       </div>

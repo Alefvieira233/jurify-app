@@ -98,6 +98,7 @@ const AgendamentosManager = () => {
   const [viewMode, setViewMode] = useState<ViewMode>('list');
   const [isNovoAgendamentoOpen, setIsNovoAgendamentoOpen] = useState(false);
   const [isDetalhesOpen, setIsDetalhesOpen] = useState(false);
+  const [isEditMode, setIsEditMode] = useState(false);
   const [selectedAgendamento, setSelectedAgendamento] = useState<Agendamento | null>(null);
   const { agendamentos, loading, error, isEmpty, fetchAgendamentos, deleteAgendamento } = useAgendamentos();
   const [confirmDelete, setConfirmDelete] = useState<{ open: boolean; id: string; label: string }>({ open: false, id: '', label: '' });
@@ -122,9 +123,17 @@ const AgendamentosManager = () => {
 
   const handleCloseDetails = useCallback(() => {
     setIsDetalhesOpen(false);
+    setIsEditMode(false);
     setSelectedAgendamento(null);
     fetchAgendamentos();
   }, [fetchAgendamentos]);
+
+  const handleEditFromDetails = useCallback((agendamento: unknown) => {
+    setIsDetalhesOpen(false);
+    setSelectedAgendamento(agendamento as Agendamento);
+    setIsEditMode(true);
+    setIsNovoAgendamentoOpen(true);
+  }, []);
 
   const handleConfirmDelete = useCallback((id: string, label: string) => {
     setConfirmDelete({ open: true, id, label });
@@ -221,12 +230,17 @@ const AgendamentosManager = () => {
         <Dialog open={isNovoAgendamentoOpen} onOpenChange={setIsNovoAgendamentoOpen}>
           <DialogContent className="w-[95vw] max-w-3xl">
             <DialogHeader>
-              <DialogTitle>Novo Agendamento</DialogTitle>
+              <DialogTitle>{isEditMode ? 'Editar Agendamento' : 'Novo Agendamento'}</DialogTitle>
             </DialogHeader>
-            <NovoAgendamentoForm onClose={() => {
-              setIsNovoAgendamentoOpen(false);
-              fetchAgendamentos();
-            }} />
+            <NovoAgendamentoForm
+              editData={isEditMode ? selectedAgendamento : null}
+              onClose={() => {
+                setIsNovoAgendamentoOpen(false);
+                setIsEditMode(false);
+                setSelectedAgendamento(null);
+                fetchAgendamentos();
+              }}
+            />
           </DialogContent>
         </Dialog>
       </div>
@@ -360,7 +374,7 @@ const AgendamentosManager = () => {
             <DialogTitle>Detalhes do Agendamento</DialogTitle>
           </DialogHeader>
           {selectedAgendamento && (
-            <DetalhesAgendamento agendamento={selectedAgendamento as unknown as Parameters<typeof DetalhesAgendamento>[0]['agendamento']} onClose={handleCloseDetails} />
+            <DetalhesAgendamento agendamento={selectedAgendamento as unknown as Parameters<typeof DetalhesAgendamento>[0]['agendamento']} onClose={handleCloseDetails} onEdit={handleEditFromDetails} />
           )}
         </DialogContent>
       </Dialog>

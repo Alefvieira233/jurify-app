@@ -34,20 +34,30 @@ type AgendamentoFormData = z.infer<typeof agendamentoSchema>;
 
 interface NovoAgendamentoFormProps {
   onClose: () => void;
+  editData?: {
+    id: string;
+    lead_id?: string | null;
+    area_juridica?: string | null;
+    data_hora?: string;
+    responsavel?: string | null;
+    observacoes?: string | null;
+    status?: string | null;
+  } | null;
 }
 
-export const NovoAgendamentoForm = ({ onClose }: NovoAgendamentoFormProps) => {
+export const NovoAgendamentoForm = ({ onClose, editData }: NovoAgendamentoFormProps) => {
   const { user, profile } = useAuth();
   const { toast } = useToast();
   const tenantId = profile?.tenant_id || null;
   const queryClient = useQueryClient();
+  const isEditing = !!editData?.id;
   const { register, handleSubmit, setValue, formState: { errors } } = useForm<AgendamentoFormData>({
     resolver: zodResolver(agendamentoSchema),
     defaultValues: {
-      lead_id: '',
-      area_juridica: '',
-      responsavel: '',
-      observacoes: '',
+      lead_id: editData?.lead_id ?? '',
+      area_juridica: editData?.area_juridica ?? '',
+      responsavel: editData?.responsavel ?? '',
+      observacoes: editData?.observacoes ?? '',
     },
   });
   const { runAutomation } = useAgendaAutomation();
@@ -61,8 +71,12 @@ export const NovoAgendamentoForm = ({ onClose }: NovoAgendamentoFormProps) => {
     create_drive_folder: false,
   });
 
-  const [selectedDate, setSelectedDate] = React.useState<Date>();
-  const [selectedTime, setSelectedTime] = React.useState('');
+  const [selectedDate, setSelectedDate] = React.useState<Date | undefined>(
+    editData?.data_hora ? new Date(editData.data_hora) : undefined
+  );
+  const [selectedTime, setSelectedTime] = React.useState(
+    editData?.data_hora ? new Date(editData.data_hora).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }) : ''
+  );
 
   const { data: leads = [] } = useQuery({
     queryKey: queryKeys.leads.list(tenantId),
@@ -81,21 +95,28 @@ export const NovoAgendamentoForm = ({ onClose }: NovoAgendamentoFormProps) => {
 
   const createAgendamentoMutation = useMutation({
     mutationFn: async (data: AgendamentoFormData & { data_hora: string }) => {
-      const { data: result, error } = await supabase
-        .from('agendamentos')
-        .insert([
-          {
-            tenant_id: tenantId!,
-            titulo: `${data.area_juridica} - ${data.responsavel}`,
-            lead_id: data.lead_id || null,
-            area_juridica: data.area_juridica,
-            data_hora: data.data_hora,
-            status: 'agendado',
-            responsavel: data.responsavel,
-            observacoes: data.observacoes || null,
-            google_event_id: null,
-          },
-        ])
+      const payload = {
+        tenant_id: tenantId!,
+        titulo: `${data.area_juridica} - ${data.responsavel}`,
+        lead_id: data.lead_id || null,
+        area_juridica: data.area_juridica,
+        data_hora: data.data_hora,
+        responsavel: data.responsavel,
+        observacoes: data.observacoes || null,
+      };
+
+      // UPDATE if editing, INSERT if new
+      const { data: result, error } = isEditing
+        ? await supabase
+            .from('agendamentos')
+            .update(payload)
+            .eq('id', editData!.id)
+            .eq('tenant_id', tenantId!)
+            .select()
+            .single()
+        : await supabase
+            .from('agendamentos')
+            .insert([{ ...payload, status: 'agendado', google_event_id: null }])
         .select()
         .single();
 
