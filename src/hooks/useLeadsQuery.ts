@@ -154,6 +154,9 @@ export function useLeadsQuery(options?: { enablePagination?: boolean; pageSize?:
         log.warn('Sem tenant_id disponível para filtro. RLS deve atuar.');
       }
 
+      // Exclude archived leads — they should only appear in dedicated archive view
+      query = query.is('arquivado_em', null);
+
       // Defense-in-depth: filter by visibility scope (RLS is authoritative, this is UX guard)
       if (visibilityScope === 'own' && profile?.id) {
         query = query.eq('responsavel_id', profile.id);

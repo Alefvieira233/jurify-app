@@ -38,9 +38,10 @@ interface ConversationItemProps {
   conv: WhatsAppConversation;
   isSelected: boolean;
   onSelect: (id: string) => void;
+  responsavelName?: string | null;
 }
 
-const ConversationItem = memo(({ conv, isSelected, onSelect }: ConversationItemProps) => (
+const ConversationItem = memo(({ conv, isSelected, onSelect, responsavelName }: ConversationItemProps) => (
   <div
     onClick={() => onSelect(conv.id)}
     onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onSelect(conv.id); } }}
@@ -72,8 +73,14 @@ const ConversationItem = memo(({ conv, isSelected, onSelect }: ConversationItemP
           {conv.last_message_at ? relativeTime(conv.last_message_at) : ''}
         </span>
       </div>
-      <div className="flex items-center gap-1.5 mt-0.5">
+      <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
         {getStatusBadge(conv.status)}
+        {!conv.ia_active && conv.status === 'ativo' && (
+          <span className="text-[9px] px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-600 font-medium">Manual</span>
+        )}
+        {responsavelName && (
+          <span className="text-[9px] px-1.5 py-0.5 rounded bg-blue-500/10 text-blue-600 font-medium truncate max-w-[100px]">{responsavelName}</span>
+        )}
       </div>
       <p className="text-xs text-[hsl(var(--muted-foreground))] truncate mt-1">
         {conv.last_message || 'Sem mensagens'}
@@ -158,6 +165,7 @@ const ConversationList = ({
               conv={conv}
               isSelected={selectedConversation?.id === conv.id}
               onSelect={onSelectConversation}
+              responsavelName={conv.responsavel_id ? members.find(m => m.id === conv.responsavel_id)?.nome_completo : null}
             />
           ))
       )}

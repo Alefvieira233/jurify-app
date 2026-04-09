@@ -70,7 +70,7 @@ export interface DepartamentoMembro {
   receber_notificacoes: boolean;
   created_at: string;
   // Joined
-  profile?: { id: string; nome_completo: string; email: string; avatar_url: string | null };
+  profile?: { id: string; nome_completo: string; email: string; avatar_url: string | null; email_verified?: boolean };
 }
 
 // ── Lead Notas ──

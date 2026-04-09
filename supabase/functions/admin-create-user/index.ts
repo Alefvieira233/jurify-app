@@ -168,7 +168,8 @@ Deno.serve(async (req) => {
         telefone: telefone || null,
         cargo: cargo || null,
         departamento: departamento || null,
-        ativo: true, // Profile active, but auth requires email confirmation to login
+        ativo: true,
+        email_verified: false, // Requires email confirmation before login
       });
 
     if (profileInsertError) {

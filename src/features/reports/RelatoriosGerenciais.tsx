@@ -193,7 +193,7 @@ const RelatoriosGerenciais = () => {
                   previousMRR={mrrData?.previousMRR ?? 0}
                   contractsThisMonth={metrics.contratosAssinados}
                   avgTicket={mrrData?.avgTicket ?? 0}
-                  targetMRR={50000}
+                  targetMRR={mrrData?.targetMRR ?? Math.max((mrrData?.currentMRR ?? 0) * 1.2, 10000)}
                 />
                 <ChurnCard
                   churnRate={mrrData?.churnRate ?? 0}

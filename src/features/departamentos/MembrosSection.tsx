@@ -159,6 +159,11 @@ const MembrosSection = ({ departamentoId }: MembrosSectionProps) => {
                   </p>
                 </div>
                 <div className="flex items-center gap-2 flex-shrink-0">
+                  {membro.profile?.email_verified === false && (
+                    <Badge className="bg-amber-500/10 text-amber-600 text-[10px]">
+                      Email pendente
+                    </Badge>
+                  )}
                   <Badge
                     className={
                       ROLE_COLORS[membro.role_no_depto] ?? ROLE_COLORS.membro

@@ -17,6 +17,7 @@ export interface TeamMember {
   telefone: string | null;
   role: string | null;
   departamento: string | null;
+  email_verified: boolean;
 }
 
 export interface UpdateTeamMemberInput {
@@ -36,7 +37,7 @@ export function useTeamMembers() {
     queryFn: async (): Promise<TeamMember[]> => {
       const { data, error } = await supabase
         .from('profiles')
-        .select('id, nome_completo, email, avatar_url, ativo, cargo, telefone, role')
+        .select('id, nome_completo, email, avatar_url, ativo, cargo, telefone, role, email_verified')
         .eq('tenant_id', tenantId!)
         .eq('ativo', true)
         .order('nome_completo');
@@ -46,6 +47,7 @@ export function useTeamMembers() {
         cargo: m.cargo ?? null,
         telefone: m.telefone ?? null,
         role: m.role ?? null,
+        email_verified: (m as Record<string, unknown>).email_verified !== false,
         departamento: null, // profiles table doesn't have departamento; use departamento_membros join if needed
       })) as TeamMember[];
     },

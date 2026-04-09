@@ -266,13 +266,18 @@ const Pricing = () => {
   const getButtonLabel = (plan: typeof plans[number]) => {
     if (loading === plan.id) return 'Processando...';
     if (user && currentTier === plan.id) return 'Plano Ativo';
+    if (plan.id === 'pro' && !isStripeConfigured) return 'Em breve';
     return plan.buttonText;
   };
+
+  const isStripeConfigured = !!(import.meta.env.VITE_STRIPE_PRICE_PRO);
 
   const isButtonDisabled = (plan: typeof plans[number]) => {
     if (loading === plan.id) return true;
     if (plan.id === 'free' && (!user || currentTier === 'free')) return true;
     if (user && currentTier === plan.id) return true;
+    // Disable Pro button if Stripe price IDs not configured
+    if (plan.id === 'pro' && !isStripeConfigured) return true;
     return false;
   };
 

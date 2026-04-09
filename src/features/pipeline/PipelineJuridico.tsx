@@ -5,6 +5,7 @@ import { DragDropContext, DropResult } from '@hello-pangea/dnd';
 import { useToast } from '@/hooks/use-toast';
 import { useLeads, type Lead } from '@/hooks/useLeads';
 import { useDebounce } from '@/hooks/useDebounce';
+import { isValidTransition, LEAD_STATUS_LABELS } from '@/constants/leadStatus';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
@@ -53,11 +54,28 @@ const PipelineJuridico = () => {
   const handleDragEnd = (result: DropResult) => {
     const { destination, source, draggableId } = result;
     if (!destination || destination.droppableId === source.droppableId) return;
+
+    const fromStatus = source.droppableId;
+    const toStatus = destination.droppableId;
+
+    // Validate transition against state machine before attempting update
+    if (!isValidTransition(fromStatus, toStatus)) {
+      const fromLabel = LEAD_STATUS_LABELS[fromStatus as keyof typeof LEAD_STATUS_LABELS] ?? fromStatus;
+      const toLabel = LEAD_STATUS_LABELS[toStatus as keyof typeof LEAD_STATUS_LABELS] ?? toStatus;
+      void triggerHaptic('error');
+      toast({
+        title: 'Transição não permitida',
+        description: `Não é possível mover de "${fromLabel}" para "${toLabel}". Siga a ordem do pipeline.`,
+        variant: 'destructive',
+      });
+      return;
+    }
+
     void triggerHaptic('medium');
-    const fromStage = PIPELINE_STAGES.find(s => s.id === source.droppableId)?.title ?? source.droppableId;
-    const toStage   = PIPELINE_STAGES.find(s => s.id === destination.droppableId)?.title ?? destination.droppableId;
+    const fromStage = PIPELINE_STAGES.find(s => s.id === fromStatus)?.title ?? fromStatus;
+    const toStage   = PIPELINE_STAGES.find(s => s.id === toStatus)?.title ?? toStatus;
     void (async () => {
-      const ok = await updateLead(draggableId, { status: destination.droppableId });
+      const ok = await updateLead(draggableId, { status: toStatus });
       if (ok) {
         void triggerHaptic('success');
         toast({ title: 'Lead movido', description: `${fromStage} → ${toStage}` });
