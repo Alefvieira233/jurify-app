@@ -29,6 +29,8 @@ export function useWhatsAppWizard(onConnected: () => void) {
 
   useEffect(() => cleanup, [cleanup]);
 
+  const [hasExistingKey, setHasExistingKey] = useState(false);
+
   // Check if tenant already has a valid API key on mount
   useEffect(() => {
     void (async () => {
@@ -37,6 +39,7 @@ export function useWhatsAppWizard(onConnected: () => void) {
           body: { action: 'health' },
         });
         if (data?.hasApiKey && data?.success) {
+          setHasExistingKey(true);
           setStep('prepare');
         } else if (data?.hasApiKey && !data?.success) {
           setKeyError('Sua API key está inválida. Atualize abaixo.');
@@ -45,6 +48,14 @@ export function useWhatsAppWizard(onConnected: () => void) {
         // No key configured — show api-key step
       }
     })();
+  }, []);
+
+  // Allow user to go back to API key step to change the key
+  const changeApiKey = useCallback(() => {
+    setHasExistingKey(false);
+    setStep('api-key');
+    setApiKey('');
+    setKeyError(null);
   }, []);
 
   // Save API key
@@ -216,11 +227,13 @@ export function useWhatsAppWizard(onConnected: () => void) {
     savingKey,
     keyError,
     setKeyError,
+    hasExistingKey,
     handleSaveKey,
     handleConnect,
     handleFinished,
     handleBackFromConnecting,
     handleReopenSetupUrl,
     generateSetupLink,
+    changeApiKey,
   };
 }

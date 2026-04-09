@@ -89,8 +89,8 @@ function CustomNode({ x = 0, y = 0, width = 0, height = 0, index = 0, payload }:
         radius={2}
       />
       <text
-        x={labelX}
-        y={y + height / 2}
+        x={labelX || 0}
+        y={Number.isFinite(y + height / 2) ? y + height / 2 : 0}
         textAnchor={textAnchor}
         dominantBaseline="central"
         fontSize={11}

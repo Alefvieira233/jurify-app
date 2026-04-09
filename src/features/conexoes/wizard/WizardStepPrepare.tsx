@@ -1,19 +1,23 @@
-import { Loader2, AlertTriangle, ExternalLink, Shield } from 'lucide-react';
+import { Loader2, AlertTriangle, ExternalLink, Shield, Key } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import type { SetupState } from './types';
 
 interface WizardStepPrepareProps {
   setupState: SetupState;
   errorMsg: string | null;
+  hasExistingKey?: boolean;
   onConnect: () => void;
   onRetry: () => void;
+  onChangeApiKey?: () => void;
 }
 
 const WizardStepPrepare = ({
   setupState,
   errorMsg,
+  hasExistingKey,
   onConnect,
   onRetry,
+  onChangeApiKey,
 }: WizardStepPrepareProps) => {
   return (
     <div className="flex-1 flex flex-col items-center text-center">
@@ -70,6 +74,13 @@ const WizardStepPrepare = ({
       {setupState === 'error' && (
         <Button variant="ghost" size="sm" className="mt-2" onClick={onRetry}>
           Tentar novamente
+        </Button>
+      )}
+
+      {hasExistingKey && onChangeApiKey && (
+        <Button variant="ghost" size="sm" className="mt-3 text-muted-foreground" onClick={onChangeApiKey}>
+          <Key className="h-3.5 w-3.5 mr-1.5" />
+          Alterar API Key da Kapso
         </Button>
       )}
     </div>

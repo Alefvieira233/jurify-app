@@ -25,12 +25,14 @@ const WhatsAppWizard = ({ onClose, onConnected }: WhatsAppWizardProps) => {
     savingKey,
     keyError,
     setKeyError,
+    hasExistingKey,
     handleSaveKey,
     handleConnect,
     handleFinished,
     handleBackFromConnecting,
     handleReopenSetupUrl,
     generateSetupLink,
+    changeApiKey,
   } = useWhatsAppWizard(onConnected);
 
   return (
@@ -59,8 +61,10 @@ const WhatsAppWizard = ({ onClose, onConnected }: WhatsAppWizardProps) => {
         <WizardStepPrepare
           setupState={setupState}
           errorMsg={errorMsg}
+          hasExistingKey={hasExistingKey}
           onConnect={handleConnect}
           onRetry={() => { void generateSetupLink(); }}
+          onChangeApiKey={changeApiKey}
         />
       )}
 
