@@ -1055,34 +1055,37 @@ async function processNormalizedMessage(supabase: ReturnType<typeof createClient
         if (error) console.warn("[processMsg] Failed to log unresolved event:", error.message);
       });
 
-      // --- NOTIFY ALL ADMINS about unresolved tenant ---
-      // Find all tenants that have WhatsApp integrations and alert their admins
-      void (async () => {
-        try {
-          const { data: adminRoles } = await supabase
-            .from("user_roles")
-            .select("user_id, tenant_id")
-            .in("role", ["admin", "administrador"])
-            .eq("ativo", true)
-            .limit(20);
+      // --- NOTIFY only tenants with matching WhatsApp instance ---
+      if (instanceName) {
+        void (async () => {
+          try {
+            // Find tenants that own this WhatsApp instance
+            const { data: matchingConns } = await supabase
+              .from("conexoes_whatsapp")
+              .select("tenant_id")
+              .eq("instance_name", instanceName)
+              .limit(5);
 
-          if (adminRoles && adminRoles.length > 0) {
-            // Get unique tenant_ids
-            const tenantIds = [...new Set(adminRoles.map(r => r.tenant_id))];
-            const notifications = tenantIds.map(tid => ({
-              tenant_id: tid,
-              tipo: "alerta" as const,
-              titulo: "⚠️ Mensagem WhatsApp não roteada",
-              mensagem: `Uma mensagem de ${from} não pôde ser direcionada a nenhum escritório. Verifique a configuração do WhatsApp em Integrações. Instância: ${instanceName || "desconhecida"}.`,
-              ativo: true,
-            }));
-            await supabase.from("notificacoes").insert(notifications);
-            console.log(`[processMsg:${provider}] Notified ${tenantIds.length} tenant(s) about unresolved message`);
+            const affectedTenantIds = matchingConns?.map(c => c.tenant_id).filter(Boolean) ?? [];
+
+            if (affectedTenantIds.length > 0) {
+              const notifications = affectedTenantIds.map(tid => ({
+                tenant_id: tid,
+                tipo: "alerta" as const,
+                titulo: "⚠️ Mensagem WhatsApp não roteada",
+                mensagem: `Uma mensagem não pôde ser direcionada corretamente. Verifique a configuração da instância "${instanceName}" em Integrações.`,
+                ativo: true,
+              }));
+              await supabase.from("notificacoes").insert(notifications);
+              console.log(`[processMsg:${provider}] Notified ${affectedTenantIds.length} tenant(s) about unresolved message for instance ${instanceName}`);
+            } else {
+              console.warn(`[processMsg:${provider}] No tenants found for instance ${instanceName} — message dropped with no notification target`);
+            }
+          } catch (notifErr) {
+            console.error("[processMsg] Failed to notify about unresolved tenant:", notifErr);
           }
-        } catch (notifErr) {
-          console.error("[processMsg] Failed to notify admins about unresolved tenant:", notifErr);
-        }
-      })();
+        })();
+      }
 
       return;
     }
@@ -1168,7 +1171,7 @@ async function processNormalizedMessage(supabase: ReturnType<typeof createClient
     // --- RESOLVE/CREATE LEAD ---
     const { data: lead } = await supabase
       .from("leads")
-      .select("id, status, area_juridica")
+      .select("id, status, area_juridica, departamento_id, responsavel_id")
       .eq("telefone", from)
       .eq("tenant_id", tenantId)
       .maybeSingle();
@@ -1202,9 +1205,18 @@ async function processNormalizedMessage(supabase: ReturnType<typeof createClient
       leadId = newLead.id;
       console.log(`[processMsg:${provider}] Created new lead: ${leadId} (dept=${connectionDepartamentoId}, resp=${connectionResponsavelId})`);
     } else {
-      // Auto-assign department if lead exists but has no department
-      if (!lead.area_juridica || lead.area_juridica === "Nao informado") {
-        // Lead exists but may need department assignment
+      // Auto-assign department/responsável if lead exists but lacks them
+      const updates: Record<string, unknown> = {};
+      if (!lead.departamento_id && connectionDepartamentoId) {
+        updates.departamento_id = connectionDepartamentoId;
+      }
+      if (!lead.responsavel_id && connectionResponsavelId) {
+        updates.responsavel_id = connectionResponsavelId;
+      }
+      if (Object.keys(updates).length > 0) {
+        void supabase.from("leads").update(updates).eq("id", leadId).eq("tenant_id", tenantId)
+          .then(({ error }) => { if (error) console.warn("[processMsg] auto-assign lead update error:", error.message); });
+        console.log(`[processMsg:${provider}] Auto-assigned existing lead ${leadId}: dept=${updates.departamento_id ?? 'kept'}, resp=${updates.responsavel_id ?? 'kept'}`);
       }
       console.log(`[processMsg:${provider}] Found existing lead: ${leadId}`);
     }
@@ -1384,14 +1396,13 @@ async function processNormalizedMessage(supabase: ReturnType<typeof createClient
         .eq("conversation_id", conversationId);
 
       if (totalCount && totalCount > RECENT_LIMIT) {
-        // Fetch older messages for summary (skip the recent ones)
+        // Fetch oldest messages for summary context (ascending = oldest first, limit caps volume)
         const { data: olderMessages } = await supabase
           .from("whatsapp_messages")
           .select("sender, content")
           .eq("conversation_id", conversationId)
           .order("timestamp", { ascending: true })
-          .limit(OLDER_LIMIT)
-          .range(0, totalCount - RECENT_LIMIT - 1);
+          .limit(OLDER_LIMIT);
 
         if (olderMessages && olderMessages.length > 0) {
           // Build compressed summary of older messages

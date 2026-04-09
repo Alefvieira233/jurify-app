@@ -51,12 +51,11 @@ function buildSankeyData(leads: SankeyChartProps['leads']) {
   // based on where leads currently sit (stalled = potential loss point)
   const stalled = [novo, em_contato, qualificado, proposta];
   const stalledTotal = stalled.reduce((a, b) => a + b, 0) || 1;
-  const lossFromNovo = Math.round(perdido * (novo / stalledTotal));
-  const lossFromContato = Math.round(perdido * (em_contato / stalledTotal));
-  const lossFromQualificado = Math.round(perdido * (qualificado / stalledTotal));
-  const lossFromProposta = Math.round(perdido * (proposta / stalledTotal));
-  // Remainder to avoid rounding errors
-  const lossRemainder = perdido - lossFromNovo - lossFromContato - lossFromQualificado - lossFromProposta;
+  const lossFromNovo = Math.floor(perdido * (novo / stalledTotal));
+  const lossFromContato = Math.floor(perdido * (em_contato / stalledTotal));
+  const lossFromQualificado = Math.floor(perdido * (qualificado / stalledTotal));
+  // Last stage gets remainder to guarantee sum === perdido (no rounding drift)
+  const lossFromProposta = perdido - lossFromNovo - lossFromContato - lossFromQualificado;
 
   // Nodes: 0=Nova Conversa, 1=Análise, 2=Qualificado, 3=Proposta, 4=Negociação, 5=Sucesso, 6=Perdas
   const rawLinks: SankeyLinkItem[] = [
@@ -70,7 +69,7 @@ function buildSankeyData(leads: SankeyChartProps['leads']) {
     { source: 0, target: 6, value: lossFromNovo },
     { source: 1, target: 6, value: lossFromContato },
     { source: 2, target: 6, value: lossFromQualificado },
-    { source: 3, target: 6, value: lossFromProposta + lossRemainder },
+    { source: 3, target: 6, value: lossFromProposta },
   ];
 
   const links = rawLinks.filter(l => l.value > 0);

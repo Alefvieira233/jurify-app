@@ -137,7 +137,7 @@ Deno.serve(async (req) => {
     const { data: createdUser, error: createError } = await supabase.auth.admin.createUser({
       email,
       password,
-      email_confirm: false, // Require email verification
+      email_confirm: true, // Auto-confirm — admin-created users can login immediately
       user_metadata: { nome_completo },
     });
 
@@ -169,7 +169,7 @@ Deno.serve(async (req) => {
         cargo: cargo || null,
         departamento: departamento || null,
         ativo: true,
-        email_verified: false, // Requires email confirmation before login
+        email_verified: true, // Admin-created users are auto-confirmed
       });
 
     if (profileInsertError) {
@@ -221,8 +221,8 @@ Deno.serve(async (req) => {
       JSON.stringify({
         success: true,
         user_id: userId,
-        email_verified: false,
-        message: "Membro criado. Um email de verificação foi enviado.",
+        email_verified: true,
+        message: "Membro criado com sucesso.",
       }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
