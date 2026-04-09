@@ -145,7 +145,25 @@ function analyzeQualification(
   const suggestedIdx = statusOrder.indexOf(suggestedStatus);
   if (suggestedIdx < currentIdx) suggestedStatus = currentStatus;
 
-  return { suggestedStatus, extractedName, extractedArea, extractedUrgency, temperature };
+  // Lead score (0-100) — multi-factor scoring
+  let leadScore = 0;
+  // Factor 1: Engagement (up to 30 points)
+  leadScore += Math.min(messageCount * 5, 30);
+  // Factor 2: Data completeness (up to 25 points)
+  if (extractedName) leadScore += 10;
+  if (extractedArea) leadScore += 10;
+  if (extractedUrgency) leadScore += 5;
+  // Factor 3: Pipeline advancement (up to 25 points)
+  const stagePoints: Record<string, number> = { novo: 0, em_contato: 5, qualificado: 10, proposta: 15, negociacao: 20, ganho: 25 };
+  leadScore += stagePoints[suggestedStatus] ?? 0;
+  // Factor 4: Urgency (up to 20 points)
+  if (extractedUrgency === 'alta') leadScore += 20;
+  else if (extractedUrgency === 'media') leadScore += 10;
+  else if (messageCount >= 3) leadScore += 5;
+  // Cap at 100
+  leadScore = Math.min(leadScore, 100);
+
+  return { suggestedStatus, extractedName, extractedArea, extractedUrgency, temperature, leadScore };
 }
 
 // --- Typed webhook payloads ---
@@ -1858,6 +1876,9 @@ async function processNormalizedMessage(supabase: ReturnType<typeof createClient
     }
     if (qualification.temperature) {
       leadUpdate.temperature = qualification.temperature;
+    }
+    if (qualification.leadScore > 0) {
+      leadUpdate.lead_score = qualification.leadScore;
     }
     if (!conversation) {
       leadUpdate.descricao = `[WhatsApp] Primeiro contato: "${text.substring(0, 200)}"`;

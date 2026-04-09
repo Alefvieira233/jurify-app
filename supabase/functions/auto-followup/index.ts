@@ -32,30 +32,51 @@ interface InactiveLead {
   responsavel_id: string | null;
 }
 
-// Follow-up message templates by lead status
-function buildFollowUpMessage(lead: InactiveLead, officeName: string, daysInactive: number): string {
+// Follow-up message builder — uses DB templates with placeholder replacement
+async function buildFollowUpMessage(
+  supabase: ReturnType<typeof createClient>,
+  lead: InactiveLead,
+  officeName: string,
+  daysInactive: number,
+): Promise<string> {
   const nome = lead.nome || 'prezado(a)';
   const area = lead.area_juridica && lead.area_juridica !== 'Nao informado'
     ? ` sobre ${lead.area_juridica}`
     : '';
 
+  // Try to load tenant-customized template from DB
+  const { data: template } = await supabase
+    .from("message_templates")
+    .select("conteudo")
+    .eq("tenant_id", lead.tenant_id)
+    .eq("stage", lead.status)
+    .eq("channel", "whatsapp")
+    .eq("ativo", true)
+    .limit(1)
+    .maybeSingle();
+
+  if (template?.conteudo) {
+    // Replace placeholders
+    return template.conteudo
+      .replace(/\{nome\}/g, nome)
+      .replace(/\{area\}/g, area)
+      .replace(/\{escritorio\}/g, officeName)
+      .replace(/\{dias\}/g, String(daysInactive));
+  }
+
+  // Fallback: hardcoded templates (for tenants without DB templates)
   if (lead.status === 'novo' || lead.status === 'em_contato') {
     return `Olá, ${nome}! Aqui é do escritório ${officeName}. Notamos que conversamos há ${daysInactive} dias${area} e gostaríamos de saber se podemos ajudar com mais alguma orientação. Estamos à disposição para agendar uma consulta sem compromisso. 😊`;
   }
-
   if (lead.status === 'qualificado') {
     return `Olá, ${nome}! Sou do escritório ${officeName}. Já analisamos sua situação${area} e temos uma proposta que pode ajudá-lo(a). Posso agendar uma conversa rápida com o advogado responsável para apresentar? Sem compromisso.`;
   }
-
   if (lead.status === 'proposta') {
     return `Olá, ${nome}! Aqui é do escritório ${officeName}. Enviamos uma proposta${area} e gostaríamos de saber se ficou alguma dúvida. Estamos à disposição para esclarecer qualquer ponto ou ajustar as condições. Quando podemos conversar?`;
   }
-
   if (lead.status === 'negociacao') {
     return `Olá, ${nome}! Sou do escritório ${officeName}. Estamos em negociação${area} e gostaríamos de avançar. Tem alguma pendência ou dúvida que possamos resolver? Estamos prontos para fechar.`;
   }
-
-  // Generic fallback
   return `Olá, ${nome}! Aqui é do escritório ${officeName}. Entramos em contato pois notamos que faz alguns dias que não conversamos. Estamos à disposição para ajudá-lo(a). Como posso auxiliar?`;
 }
 
@@ -168,7 +189,7 @@ Deno.serve(async (req) => {
         if (phone.length < 10) continue;
 
         const daysInactive = Math.floor((Date.now() - new Date(lead.updated_at).getTime()) / (24 * 60 * 60 * 1000));
-        const message = buildFollowUpMessage(lead, officeName, daysInactive);
+        const message = await buildFollowUpMessage(supabase, lead, officeName, daysInactive);
 
         try {
           await kapsoSendText(kapsoConfig, phone, message);

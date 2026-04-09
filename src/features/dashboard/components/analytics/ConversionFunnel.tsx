@@ -15,17 +15,19 @@ interface ConversionFunnelProps {
   };
 }
 
-type StageKey = 'novo' | 'qualificado' | 'proposta' | 'ganho';
+type StageKey = 'novo' | 'em_contato' | 'qualificado' | 'proposta' | 'negociacao' | 'ganho';
 
 const STAGE_CONFIG: Record<StageKey, { label: string; hex: string; textColor: string }> = {
   novo:        { label: 'Novo',        hex: '#2563eb', textColor: '#1d4ed8' },
+  em_contato:  { label: 'Em Contato',  hex: '#06b6d4', textColor: '#0891b2' },
   qualificado: { label: 'Qualificado', hex: '#d97706', textColor: '#b45309' },
   proposta:    { label: 'Proposta',     hex: '#4f46e5', textColor: '#4338ca' },
+  negociacao:  { label: 'Negociação',   hex: '#7c3aed', textColor: '#6d28d9' },
   ganho:       { label: 'Ganho',        hex: '#059669', textColor: '#047857' },
 };
 
 const STAGE_ORDER: StageKey[] = [
-  'novo', 'qualificado', 'proposta', 'ganho',
+  'novo', 'em_contato', 'qualificado', 'proposta', 'negociacao', 'ganho',
 ];
 
 /* Rate coloring: green ≥50 · amber 30–49 · rose <30 */
