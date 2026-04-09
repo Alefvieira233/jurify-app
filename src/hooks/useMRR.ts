@@ -39,7 +39,8 @@ async function fetchMRR(tenantId: string | undefined): Promise<MRRData> {
     .from('subscriptions')
     .select('plan_id, created_at')
     .eq('status', 'active')
-    .eq('tenant_id', tenantId);
+    .eq('tenant_id', tenantId)
+    .limit(500);
 
   // Previous MRR: subscriptions that were active AND created before end of prev month
   // (approximation — a cancelled_at column would be more accurate)
@@ -48,7 +49,8 @@ async function fetchMRR(tenantId: string | undefined): Promise<MRRData> {
     .select('plan_id, created_at')
     .eq('status', 'active')
     .eq('tenant_id', tenantId)
-    .lte('created_at', endOfPrevMonth);
+    .lte('created_at', endOfPrevMonth)
+    .limit(500);
 
   const calcMRR = (subs: Array<{ plan_id: string | null }> | null) =>
     (subs ?? []).reduce((sum, s) => sum + (PLAN_PRICES[s.plan_id ?? 'free'] ?? 0), 0);

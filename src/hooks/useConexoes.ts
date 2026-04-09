@@ -76,9 +76,8 @@ export function useConexoes() {
       return (data ?? []) as unknown as ConexaoWhatsApp[];
     },
     enabled: !!tenantId,
-    refetchInterval: 30_000,
+    refetchInterval: 300_000, // 5min — connection status is stable, realtime handles changes
     refetchIntervalInBackground: false,
-    // refetchOnWindowFocus inherits global false — the 30s interval is sufficient.
     // Setting true here caused parent rerenders on every tab-return, disrupting
     // open modals/drawers/wizards across the conexoes page.
   });

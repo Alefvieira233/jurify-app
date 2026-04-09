@@ -776,7 +776,8 @@ Deno.serve(async (req) => {
             return new Response("Unauthorized", { status: 401, headers: corsHeaders });
           }
         } else {
-          console.warn("[webhook:kapso] No signature headers — processing with caution");
+          console.error("[webhook:kapso] SECURITY: No signature headers — rejecting unauthenticated request");
+          return new Response("Unauthorized: missing authentication headers", { status: 401, headers: corsHeaders });
         }
         console.log(`[webhook:kapso] Auth: ${tenantSecret ? "per-tenant" : "global-fallback"} secret | phone=${payloadPhoneId}`);
 
