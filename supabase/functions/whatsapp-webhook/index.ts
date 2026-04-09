@@ -1729,6 +1729,58 @@ async function processNormalizedMessage(supabase: ReturnType<typeof createClient
       console.warn(`[processMsg:${provider}] AI returned empty result — sending fallback`);
     }
 
+    // --- CONSULTATION SCHEDULING: detect when AI suggests and client accepts ---
+    const AI_SUGGESTS_CONSULTATION = /posso agendar|gostaria de agendar|agendar uma consulta|horários disponíveis|marcar um horário/i;
+    const CLIENT_ACCEPTS_CONSULTATION = /sim|quero|pode agendar|gostaria|por favor|vamos|claro|bora|ok|pode ser|quero sim|gostaria sim/i;
+
+    if (AI_SUGGESTS_CONSULTATION.test(aiText) || CLIENT_ACCEPTS_CONSULTATION.test(text.toLowerCase())) {
+      // Check if AI is suggesting OR client is accepting a consultation
+      const aiSuggested = AI_SUGGESTS_CONSULTATION.test(aiText);
+      const clientAccepted = CLIENT_ACCEPTS_CONSULTATION.test(text.toLowerCase()) &&
+        // Only if previous AI message suggested scheduling
+        (recentMessages || []).some(m =>
+          m.sender === 'agent' && AI_SUGGESTS_CONSULTATION.test(m.content)
+        );
+
+      if (clientAccepted && leadId) {
+        // Client accepted! Create a preliminary agendamento
+        const nextBusinessDay = new Date();
+        nextBusinessDay.setDate(nextBusinessDay.getDate() + 1);
+        // Skip weekends
+        while (nextBusinessDay.getDay() === 0 || nextBusinessDay.getDay() === 6) {
+          nextBusinessDay.setDate(nextBusinessDay.getDate() + 1);
+        }
+        nextBusinessDay.setHours(10, 0, 0, 0); // Default 10am
+
+        const responsavelNome = connectionResponsavelId
+          ? (await supabase.from("profiles").select("nome_completo").eq("id", connectionResponsavelId).maybeSingle())?.data?.nome_completo ?? "Advogado"
+          : "Advogado";
+
+        const { error: agendError } = await supabase.from("agendamentos").insert({
+          lead_id: leadId,
+          tenant_id: tenantId,
+          area_juridica: lead?.area_juridica ?? "Não especificada",
+          data_hora: nextBusinessDay.toISOString(),
+          responsavel: responsavelNome,
+          status: "agendado",
+          observacoes: `Consulta agendada automaticamente via WhatsApp. Lead aceitou sugestão da IA. Confirmar horário com o cliente.`,
+        });
+
+        if (!agendError) {
+          console.log(`[processMsg:${provider}] Auto-scheduled consultation for lead ${leadId}`);
+
+          // Notify responsible lawyer
+          void supabase.from("notificacoes").insert({
+            tenant_id: tenantId,
+            tipo: "sucesso",
+            titulo: `📅 Consulta agendada automaticamente`,
+            mensagem: `O lead "${name}" (${from}) aceitou agendar uma consulta via WhatsApp. Data sugerida: ${nextBusinessDay.toLocaleDateString("pt-BR")} às 10h. Confirme o horário com o cliente.`,
+            ativo: true,
+          }).then(({ error }) => { if (error) console.error("[webhook] consultation notification error:", error.message); });
+        }
+      }
+    }
+
     // --- HUMAN HANDOFF: detect when AI can't handle the conversation ---
     // Uses regex for flexible matching of intent patterns (not exact substrings)
     const HANDOFF_REGEX_PATTERNS = [
