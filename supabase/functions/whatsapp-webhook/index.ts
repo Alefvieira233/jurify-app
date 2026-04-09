@@ -1119,6 +1119,52 @@ async function processNormalizedMessage(supabase: ReturnType<typeof createClient
       }
     }
 
+    // --- RESOLVE DEPARTMENT + RESPONSAVEL from WhatsApp connection ---
+    let connectionDepartamentoId: string | null = null;
+    let connectionResponsavelId: string | null = null;
+    if (instanceName) {
+      const { data: whatsappConn } = await supabase
+        .from("conexoes_whatsapp")
+        .select("departamento_id, responsavel_id")
+        .eq("tenant_id", tenantId)
+        .eq("instance_name", instanceName)
+        .limit(1)
+        .maybeSingle();
+      if (whatsappConn) {
+        connectionDepartamentoId = whatsappConn.departamento_id;
+        connectionResponsavelId = whatsappConn.responsavel_id;
+      }
+    }
+
+    // If no responsável from connection, find first available member in the department
+    if (!connectionResponsavelId && connectionDepartamentoId) {
+      const { data: deptoMember } = await supabase
+        .from("departamento_membros")
+        .select("profile_id")
+        .eq("departamento_id", connectionDepartamentoId)
+        .eq("tenant_id", tenantId)
+        .limit(1)
+        .maybeSingle();
+      if (deptoMember?.profile_id) {
+        connectionResponsavelId = deptoMember.profile_id;
+      }
+    }
+
+    // Last resort: find first admin/manager in tenant
+    if (!connectionResponsavelId) {
+      const { data: firstManager } = await supabase
+        .from("user_roles")
+        .select("user_id")
+        .eq("tenant_id", tenantId)
+        .in("role", ["admin", "administrador", "manager", "gerente"])
+        .eq("ativo", true)
+        .limit(1)
+        .maybeSingle();
+      if (firstManager?.user_id) {
+        connectionResponsavelId = firstManager.user_id;
+      }
+    }
+
     // --- RESOLVE/CREATE LEAD ---
     const { data: lead } = await supabase
       .from("leads")
@@ -1142,7 +1188,9 @@ async function processNormalizedMessage(supabase: ReturnType<typeof createClient
           origem: "whatsapp",
           status: "novo",
           descricao: text,
-          metadata: { responsavel_nome: "Sistema" },
+          departamento_id: connectionDepartamentoId,
+          responsavel_id: connectionResponsavelId,
+          metadata: { responsavel_nome: "Sistema", auto_assigned: true, source_instance: instanceName },
         })
         .select("id")
         .single();
@@ -1152,8 +1200,12 @@ async function processNormalizedMessage(supabase: ReturnType<typeof createClient
         return;
       }
       leadId = newLead.id;
-      console.log(`[processMsg:${provider}] Created new lead: ${leadId}`);
+      console.log(`[processMsg:${provider}] Created new lead: ${leadId} (dept=${connectionDepartamentoId}, resp=${connectionResponsavelId})`);
     } else {
+      // Auto-assign department if lead exists but has no department
+      if (!lead.area_juridica || lead.area_juridica === "Nao informado") {
+        // Lead exists but may need department assignment
+      }
       console.log(`[processMsg:${provider}] Found existing lead: ${leadId}`);
     }
 
@@ -1177,25 +1229,7 @@ async function processNormalizedMessage(supabase: ReturnType<typeof createClient
 
       await supabase.rpc("increment_unread_count", { conversation_id: conversationId });
     } else {
-      // Auto-assign: find first admin/manager in the tenant to own this conversation
-      let responsavelId: string | null = null;
-      try {
-        const { data: firstManager } = await supabase
-          .from("user_roles")
-          .select("user_id")
-          .eq("tenant_id", tenantId)
-          .in("role", ["admin", "administrador", "manager", "gerente"])
-          .eq("ativo", true)
-          .limit(1)
-          .maybeSingle();
-        if (firstManager?.user_id) {
-          responsavelId = firstManager.user_id;
-          console.log(`[processMsg:${provider}] Auto-assigned responsavel: ${responsavelId}`);
-        }
-      } catch (assignErr) {
-        console.warn(`[processMsg:${provider}] Failed to auto-assign responsavel:`, assignErr);
-      }
-
+      // Use the same responsavel already resolved for the lead (department → member → admin fallback)
       const { data: newConv, error: convError } = await supabase
         .from("whatsapp_conversations")
         .insert({
@@ -1207,7 +1241,7 @@ async function processNormalizedMessage(supabase: ReturnType<typeof createClient
           last_message_at: new Date().toISOString(),
           status: "ativo",
           unread_count: 1,
-          responsavel_id: responsavelId,
+          responsavel_id: connectionResponsavelId,
         })
         .select("id")
         .single();
@@ -1328,18 +1362,78 @@ async function processNormalizedMessage(supabase: ReturnType<typeof createClient
     );
     const commandIntent = commandKey ? COMMANDS[commandKey] : null;
 
-    // Conversation history
+    // Conversation history — smart context: summarize old messages, keep recent ones verbatim
     let conversationHistory = "";
+    const RECENT_LIMIT = 10;
+    const OLDER_LIMIT = 40; // fetch more to build summary
+
     const { data: recentMessages } = await supabase
       .from("whatsapp_messages")
-      .select("sender, content")
+      .select("sender, content, timestamp")
       .eq("conversation_id", conversationId)
       .order("timestamp", { ascending: false })
-      .limit(10);
+      .limit(RECENT_LIMIT);
 
     if (recentMessages && recentMessages.length > 1) {
-      conversationHistory = recentMessages
-        .reverse()
+      const recentReversed = [...recentMessages].reverse();
+
+      // Check if there are older messages beyond the recent window
+      const { count: totalCount } = await supabase
+        .from("whatsapp_messages")
+        .select("id", { count: "exact", head: true })
+        .eq("conversation_id", conversationId);
+
+      if (totalCount && totalCount > RECENT_LIMIT) {
+        // Fetch older messages for summary (skip the recent ones)
+        const { data: olderMessages } = await supabase
+          .from("whatsapp_messages")
+          .select("sender, content")
+          .eq("conversation_id", conversationId)
+          .order("timestamp", { ascending: true })
+          .limit(OLDER_LIMIT)
+          .range(0, totalCount - RECENT_LIMIT - 1);
+
+        if (olderMessages && olderMessages.length > 0) {
+          // Build compressed summary of older messages
+          const clientTopics = new Set<string>();
+          const assistantActions = new Set<string>();
+          let clientName = "";
+
+          for (const m of olderMessages) {
+            const content = m.content.toLowerCase();
+            if (m.sender === "lead") {
+              // Extract key topics mentioned by client
+              if (content.length > 20) {
+                clientTopics.add(m.content.substring(0, 120));
+              }
+              // Try to capture name
+              const nameMatch = m.content.match(/(?:meu nome (?:é|e)|sou|me chamo)\s+([A-ZÀ-ÿ][a-zà-ÿ]+(?:\s+[A-ZÀ-ÿ][a-zà-ÿ]+)*)/i);
+              if (nameMatch?.[1]) clientName = nameMatch[1];
+            } else {
+              if (content.length > 20) {
+                assistantActions.add(m.content.substring(0, 120));
+              }
+            }
+          }
+
+          const summaryParts: string[] = [];
+          summaryParts.push(`[RESUMO: ${totalCount} mensagens no total, mostrando ${recentReversed.length} recentes]`);
+          if (clientName) summaryParts.push(`Cliente se identificou como: ${clientName}`);
+          if (clientTopics.size > 0) {
+            const topics = [...clientTopics].slice(0, 5).map(t => `- ${t}`).join("\n");
+            summaryParts.push(`Tópicos anteriores do cliente:\n${topics}`);
+          }
+          if (assistantActions.size > 0) {
+            const actions = [...assistantActions].slice(0, 3).map(a => `- ${a}`).join("\n");
+            summaryParts.push(`Respostas anteriores do assistente:\n${actions}`);
+          }
+
+          conversationHistory = summaryParts.join("\n") + "\n\n--- MENSAGENS RECENTES ---\n";
+        }
+      }
+
+      // Always include recent messages verbatim
+      conversationHistory += recentReversed
         .map((m: { sender: string; content: string }) => `${m.sender === "lead" ? "Cliente" : "Assistente"}: ${m.content}`)
         .join("\n");
     }

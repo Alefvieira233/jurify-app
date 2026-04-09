@@ -110,10 +110,34 @@ Deno.serve(async (req) => {
       );
     }
 
+    // Validate email format before creating
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      return new Response(
+        JSON.stringify({ error: "Formato de email inválido" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // Check if email already exists in tenant
+    const { data: existingProfile } = await supabase
+      .from("profiles")
+      .select("id")
+      .eq("email", email)
+      .eq("tenant_id", requesterProfile.tenant_id)
+      .maybeSingle();
+
+    if (existingProfile) {
+      return new Response(
+        JSON.stringify({ error: "Este email já está cadastrado no escritório" }),
+        { status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
     const { data: createdUser, error: createError } = await supabase.auth.admin.createUser({
       email,
       password,
-      email_confirm: true,
+      email_confirm: false, // Require email verification
       user_metadata: { nome_completo },
     });
 
@@ -122,6 +146,17 @@ Deno.serve(async (req) => {
     }
 
     const userId = createdUser.user.id;
+
+    // Generate email verification link
+    const { data: verificationData, error: verificationError } = await supabase.auth.admin.generateLink({
+      type: "signup",
+      email,
+      password,
+    });
+
+    if (verificationError) {
+      console.warn("[admin-create-user] Failed to generate verification link:", verificationError.message);
+    }
 
     const { error: profileInsertError } = await supabase
       .from("profiles")
@@ -133,7 +168,7 @@ Deno.serve(async (req) => {
         telefone: telefone || null,
         cargo: cargo || null,
         departamento: departamento || null,
-        ativo: true,
+        ativo: true, // Profile active, but auth requires email confirmation to login
       });
 
     if (profileInsertError) {
@@ -157,8 +192,9 @@ Deno.serve(async (req) => {
       }
     }
 
-    // Send welcome email (fire-and-forget — never block user creation)
+    // Send welcome email with verification instructions
     try {
+      const verificationUrl = verificationData?.properties?.action_link || `https://jurify-app.vercel.app/auth`;
       await fetch(`${supabaseUrl}/functions/v1/send-email`, {
         method: "POST",
         headers: {
@@ -168,16 +204,25 @@ Deno.serve(async (req) => {
         body: JSON.stringify({
           to: email,
           template: "welcome",
-          data: { name: nome_completo },
+          data: {
+            name: nome_completo,
+            reset_url: verificationUrl,
+          },
         }),
         signal: AbortSignal.timeout(15_000),
       });
     } catch {
       // Email failure must never block user creation
+      console.warn("[admin-create-user] Welcome email failed, user still created");
     }
 
     return new Response(
-      JSON.stringify({ success: true, user_id: userId }),
+      JSON.stringify({
+        success: true,
+        user_id: userId,
+        email_verified: false,
+        message: "Membro criado. Um email de verificação foi enviado.",
+      }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (error: unknown) {
