@@ -33,7 +33,6 @@ async function fetchMRR(tenantId: string | undefined): Promise<MRRData> {
   if (!tenantId) return DEFAULT_MRR;
 
   const now = new Date();
-  const targetMRR = 10000; // Placeholder for tenant-specific goal
   const endOfPrevMonth = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59).toISOString();
 
   // Current MRR: all active subscriptions for this tenant
@@ -85,7 +84,6 @@ async function fetchMRR(tenantId: string | undefined): Promise<MRRData> {
   return {
     currentMRR, previousMRR, avgTicket, activeSubscriptions: activeCount,
     growth, churnRate, ltv, canceledThisMonth: canceledCount, netNewMRR,
-    targetMRR,
   };
 }
 
