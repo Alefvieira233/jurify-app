@@ -54,7 +54,22 @@ export const useGoogleCalendar = () => {
         .eq('user_id', user!.id)
         .maybeSingle();
 
-      if (error) throw error;
+      if (error) {
+        // Graceful degradation: if settings table query fails, return defaults
+        console.warn('[useGoogleCalendar] Settings query failed (RLS or table issue):', error.message);
+        return {
+          id: '',
+          user_id: user!.id,
+          tenant_id: tenantId!,
+          calendar_enabled: false,
+          auto_sync: true,
+          sync_direction: 'jurify_to_google' as const,
+          notification_enabled: true,
+          calendar_id: null,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        } as GoogleCalendarSettings;
+      }
 
       let settingsResult = data;
 
@@ -73,7 +88,11 @@ export const useGoogleCalendar = () => {
           .select()
           .single();
 
-        if (createError) throw createError;
+        if (createError) {
+          // If insert fails (RLS), return defaults without crashing
+          console.warn('[useGoogleCalendar] Settings insert failed:', createError.message);
+          return { ...defaultSettings, id: '', tenant_id: tenantId!, calendar_id: null, created_at: new Date().toISOString(), updated_at: new Date().toISOString() } as GoogleCalendarSettings;
+        }
         settingsResult = newSettings;
       }
 
