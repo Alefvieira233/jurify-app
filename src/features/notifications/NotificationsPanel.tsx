@@ -66,10 +66,32 @@ const NotificationItem = memo(({ notification, read, onMarkAsRead }: Notificatio
             {notification.mensagem}
           </p>
         )}
-        <div className="flex items-center gap-2 mt-1.5">
+        <div className="flex items-center gap-2 mt-1.5 flex-wrap">
           <span className={cn('text-xs font-semibold uppercase tracking-wide px-1.5 py-0.5 rounded-full', cfg.bgClass, cfg.textClass)}>
             {cfg.label}
           </span>
+          {/* Contextual action buttons based on notification content */}
+          {notification.titulo?.includes('Cota de IA') && (
+            <a href="/configuracoes" className="text-[10px] font-medium text-primary hover:underline">Ajustar limite →</a>
+          )}
+          {notification.titulo?.includes('atenção humana') && (
+            <a href="/whatsapp" className="text-[10px] font-medium text-primary hover:underline">Abrir conversa →</a>
+          )}
+          {notification.titulo?.includes('follow-up') && (
+            <a href="/pipeline" className="text-[10px] font-medium text-primary hover:underline">Ver leads →</a>
+          )}
+          {notification.titulo?.includes('Contrato gerado') && (
+            <a href="/contratos" className="text-[10px] font-medium text-primary hover:underline">Ver contrato →</a>
+          )}
+          {notification.titulo?.includes('Consulta agendada') && (
+            <a href="/agendamentos" className="text-[10px] font-medium text-primary hover:underline">Ver agenda →</a>
+          )}
+          {notification.titulo?.includes('qualificado') && (
+            <a href="/pipeline" className="text-[10px] font-medium text-primary hover:underline">Ver pipeline →</a>
+          )}
+          {notification.titulo?.includes('Relatório') && (
+            <a href="/relatorios" className="text-[10px] font-medium text-primary hover:underline">Ver relatórios →</a>
+          )}
           {!read && (
             <button
               type="button"
