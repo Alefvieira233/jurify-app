@@ -21,6 +21,7 @@ export interface MRRData {
   ltv: number;
   canceledThisMonth: number;
   netNewMRR: number;
+  targetMRR?: number;
 }
 
 const DEFAULT_MRR: MRRData = {

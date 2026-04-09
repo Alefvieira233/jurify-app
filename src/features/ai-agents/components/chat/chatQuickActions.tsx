@@ -1,4 +1,3 @@
-import React from 'react';
 import { Users, FileText, TrendingUp, BarChart3 } from 'lucide-react';
 import { type QuickAction } from './chatTypes';
 
