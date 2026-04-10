@@ -1,5 +1,13 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import Stripe from "https://esm.sh/stripe@14.21.0";
+import {
+  buildSubscriptionUpsertPayload,
+  formatBrlCurrency,
+  isHandledStripeEvent,
+  planDisplayName,
+  type PriceMappingConfig,
+  type StripeSubscriptionLike,
+} from "../_shared/stripe-logic.ts";
 
 async function sendEmail(
   to: string,
@@ -33,18 +41,12 @@ const stripe = STRIPE_SECRET_KEY
 
 const cryptoProvider = Stripe.createSubtleCryptoProvider();
 
-function mapPriceToPlanId(priceId: string, metadataPlanId?: string | null) {
-    if (metadataPlanId) {
-        return metadataPlanId;
-    }
-
-    const proPriceId = Deno.env.get('STRIPE_PRICE_PRO');
-    const enterprisePriceId = Deno.env.get('STRIPE_PRICE_ENTERPRISE');
-
-    if (proPriceId && priceId === proPriceId) return 'pro';
-    if (enterprisePriceId && priceId === enterprisePriceId) return 'enterprise';
-
-    return null;
+/** Reads STRIPE_PRICE_* env vars at call time so rotation takes effect without a redeploy. */
+function currentPriceMappingConfig(): PriceMappingConfig {
+  return {
+    proPriceId: Deno.env.get("STRIPE_PRICE_PRO") ?? undefined,
+    enterprisePriceId: Deno.env.get("STRIPE_PRICE_ENTERPRISE") ?? undefined,
+  };
 }
 
 Deno.serve(async (req) => {
@@ -138,13 +140,10 @@ Deno.serve(async (req) => {
                         .eq('stripe_customer_id', customerId)
                         .maybeSingle();
                     if (paidProfile?.email) {
-                        const PLAN_NAMES: Record<string, string> = { pro: 'Profissional', enterprise: 'Enterprise', free: 'Gratuito' };
-                        const amountCents = invoice.amount_paid ?? 0;
-                        const amountFormatted = (amountCents / 100).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
                         await sendEmail(paidProfile.email, 'billing-confirmation', {
                             name: paidProfile.nome_completo ?? paidProfile.email,
-                            plan_name: PLAN_NAMES[paidProfile.subscription_tier ?? 'free'] ?? 'Profissional',
-                            amount: amountFormatted,
+                            plan_name: planDisplayName(paidProfile.subscription_tier),
+                            amount: formatBrlCurrency(invoice.amount_paid ?? 0),
                             period: 'Mensal',
                             invoice_url: invoice.hosted_invoice_url ?? undefined,
                         });
@@ -195,8 +194,7 @@ Deno.serve(async (req) => {
                     .maybeSingle();
 
                 if (refundedProfile?.email) {
-                    const amountRefundedCents = charge.amount_refunded ?? 0;
-                    const amountFormatted = (amountRefundedCents / 100).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+                    const amountFormatted = formatBrlCurrency(charge.amount_refunded ?? 0);
 
                     await sendEmail(refundedProfile.email, 'charge-refunded', {
                         name: refundedProfile.nome_completo ?? refundedProfile.email,
@@ -210,7 +208,12 @@ Deno.serve(async (req) => {
                 }
                 break;
             }
-            default:
+            default: {
+                // Event not in our handled set — log for observability.
+                if (!isHandledStripeEvent(event.type)) {
+                    console.log(`[stripe-webhook] Unhandled event type: ${event.type}`);
+                }
+            }
         }
 
         return new Response(JSON.stringify({ received: true }), {
@@ -267,40 +270,22 @@ async function manageSubscriptionStatusChange(
     }
 
     const priceId = subscription.items.data[0]?.price?.id;
-    const planId = priceId ? mapPriceToPlanId(priceId, subscription.metadata?.plan_id ?? null) : null;
-    if (!planId) {
+    const payload = buildSubscriptionUpsertPayload({
+        subscription: subscription as unknown as StripeSubscriptionLike,
+        customerId,
+        tenantId,
+        priceConfig: currentPriceMappingConfig(),
+    });
+
+    if (!payload.plan_id) {
         console.warn("Plan mapping not found for price:", priceId);
     }
 
-    // Map Stripe status to internal status, handling edge cases
-    const stripeStatus = subscription.status;
-    const statusMap: Record<string, string> = {
-        active: 'active',
-        past_due: 'past_due',
-        canceled: 'canceled',
-        unpaid: 'past_due',
-        incomplete: 'incomplete',
-        incomplete_expired: 'canceled',
-        trialing: 'trialing',
-        paused: 'paused',
-    };
-    const mappedStatus = statusMap[stripeStatus] || stripeStatus;
+    const mappedStatus = payload.status;
 
     const { error } = await supabase
         .from('subscriptions')
-        .upsert({
-            tenant_id: tenantId,
-            stripe_subscription_id: subscription.id,
-            stripe_customer_id: customerId,
-            status: mappedStatus,
-            plan_id: planId,
-            plan_tier: planId || 'free',
-            amount: subscription.items.data[0]?.price?.unit_amount ?? 0,
-            current_period_start: new Date(subscription.current_period_start * 1000).toISOString(),
-            current_period_end: new Date(subscription.current_period_end * 1000).toISOString(),
-            cancel_at_period_end: subscription.cancel_at_period_end,
-            updated_at: new Date().toISOString()
-        }, {
+        .upsert(payload, {
             onConflict: 'stripe_subscription_id'
         });
 
