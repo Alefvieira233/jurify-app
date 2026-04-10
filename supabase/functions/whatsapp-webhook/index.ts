@@ -6,7 +6,7 @@ import { applyRateLimit } from "../_shared/rate-limiter.ts";
 import { buildLegalContext } from "../_shared/legal-context.ts";
 import { DEFAULT_OPENAI_MODEL } from "../_shared/ai-model.ts";
 import { checkBudgetBeforeCall, recordTokenUsage } from "../_shared/ai-budget.ts";
-import { sanitizeInput } from "../_shared/security.ts";
+import { sanitizeInput, redactPII } from "../_shared/security.ts";
 import { getWebhookSecretByPhoneId } from "../_shared/kapso-client.ts";
 
 // whatsapp-webhook: Kapso Cloud API + Meta Official API webhook handler
@@ -1699,10 +1699,10 @@ async function processNormalizedMessage(supabase: ReturnType<typeof createClient
           prompt_tokens: aiResponse.usage?.prompt_tokens || 0,
           completion_tokens: aiResponse.usage?.completion_tokens || 0,
           total_tokens: aiResponse.usage?.total_tokens || 0,
-          result_preview: resultText.substring(0, 200),
-          system_prompt: finalSystemPrompt.substring(0, 500),
-          user_prompt: (commandIntent ?? processedText).substring(0, 500),
-          full_result: resultText.substring(0, 2000),
+          result_preview: redactPII(resultText).substring(0, 200),
+          system_prompt: redactPII(finalSystemPrompt).substring(0, 500),
+          user_prompt: redactPII(commandIntent ?? processedText).substring(0, 500),
+          full_result: redactPII(resultText).substring(0, 2000),
           context: { mediaCategory, agent: agentName, hasLegalContext: legalCtx.has_context },
           created_at: new Date().toISOString(),
         }).then(({ error }) => { if (error) console.error("[webhook] ai_log insert error:", error.message); });

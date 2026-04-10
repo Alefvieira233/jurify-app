@@ -110,7 +110,7 @@ export const NovoAgendamentoForm = ({ onClose, editData }: NovoAgendamentoFormPr
         ? await supabase
             .from('agendamentos')
             .update(payload)
-            .eq('id', editData!.id)
+            .eq('id', editData.id)
             .eq('tenant_id', tenantId!)
             .select()
             .single()
