@@ -1,176 +1,201 @@
 /**
- * Google OAuth Service for Edge Functions
+ * Google OAuth Service for Edge Functions.
+ *
+ * Tokens are stored encrypted in google_calendar_tokens.{access_token_encrypted, refresh_token_encrypted}
+ * via _shared/crypto.ts (AES-256-GCM with PBKDF2, shared with encrypt-data/decrypt-data edge functions).
+ * Plaintext columns were dropped in migration 20260406000002_drop_plaintext_secrets.sql.
  */
 
-interface GoogleToken {
-  access_token: string
-  refresh_token: string
-  expires_at: string
-  scope: string
-  token_type: string
+import { encrypt, decrypt } from "../_shared/crypto.ts";
+
+interface GoogleTokenRow {
+  access_token_encrypted: string;
+  refresh_token_encrypted: string | null;
+  expires_at: string;
+  scope: string;
+  token_type: string;
 }
 
 interface GoogleEvent {
-  id?: string
-  summary: string
-  description?: string
-  start: { dateTime?: string; date?: string }
-  end: { dateTime?: string; date?: string }
-  attendees?: Array<{ email: string; responseStatus?: string }>
+  id?: string;
+  summary: string;
+  description?: string;
+  start: { dateTime?: string; date?: string };
+  end: { dateTime?: string; date?: string };
+  attendees?: Array<{ email: string; responseStatus?: string }>;
 }
 
 export class GoogleOAuthService {
-  private supabase: any
-  private userId: string
+  // deno-lint-ignore no-explicit-any
+  private supabase: any;
+  private userId: string;
 
+  // deno-lint-ignore no-explicit-any
   constructor(supabase: any, userId: string) {
-    this.supabase = supabase
-    this.userId = userId
+    this.supabase = supabase;
+    this.userId = userId;
   }
 
   async getValidToken(): Promise<string> {
-    const { data: token } = await this.supabase
-      .from('google_calendar_tokens')
-      .select('*')
-      .eq('user_id', this.userId)
-      .single()
+    const { data: tokenRow, error } = await this.supabase
+      .from("google_calendar_tokens")
+      .select("access_token_encrypted, refresh_token_encrypted, expires_at, scope, token_type")
+      .eq("user_id", this.userId)
+      .maybeSingle();
 
-    if (!token) throw new Error('Google not connected')
+    if (error || !tokenRow) throw new Error("Google not connected");
 
-    // Check if token expired
-    const now = new Date()
-    const expiresAt = new Date(token.expires_at)
-    
-    if (now >= expiresAt) {
-      // Refresh token
-      const refreshed = await this.refreshToken(token.refresh_token)
-      return refreshed.access_token
+    const row = tokenRow as GoogleTokenRow;
+
+    // If still valid, decrypt and return
+    const now = new Date();
+    const expiresAt = new Date(row.expires_at);
+    if (now < expiresAt && row.access_token_encrypted) {
+      return await decrypt(row.access_token_encrypted);
     }
 
-    return token.access_token
+    // Expired — refresh using decrypted refresh token
+    if (!row.refresh_token_encrypted) {
+      throw new Error("Google access token expired and no refresh token available — user must reconnect");
+    }
+    const refreshToken = await decrypt(row.refresh_token_encrypted);
+    const refreshed = await this.refreshToken(refreshToken);
+    return refreshed.access_token;
   }
 
-  private async refreshToken(refreshToken: string): Promise<GoogleToken> {
-    const response = await fetch('https://oauth2.googleapis.com/token', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+  private async refreshToken(refreshToken: string): Promise<{
+    access_token: string;
+    expires_at: string;
+  }> {
+    const response = await fetch("https://oauth2.googleapis.com/token", {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
       body: new URLSearchParams({
-        client_id: Deno.env.get('GOOGLE_CLIENT_ID')!,
-        client_secret: Deno.env.get('GOOGLE_CLIENT_SECRET')!,
+        client_id: Deno.env.get("GOOGLE_CLIENT_ID")!,
+        client_secret: Deno.env.get("GOOGLE_CLIENT_SECRET")!,
         refresh_token: refreshToken,
-        grant_type: 'refresh_token',
+        grant_type: "refresh_token",
       }),
-    })
+    });
 
-    if (!response.ok) throw new Error('Failed to refresh token')
+    if (!response.ok) {
+      const err = await response.text();
+      throw new Error(`Failed to refresh token: ${err}`);
+    }
 
-    const tokenData = await response.json()
-    
-    // Update token in database
-    const expiresAt = new Date(Date.now() + tokenData.expires_in * 1000)
-    
+    const tokenData = await response.json();
+    const expiresAt = new Date(Date.now() + tokenData.expires_in * 1000).toISOString();
+
+    // Persist refreshed access token (encrypted). Google may or may not return a new refresh_token.
+    const newAccessEncrypted = await encrypt(tokenData.access_token);
+    const updatePayload: Record<string, string> = {
+      access_token_encrypted: newAccessEncrypted,
+      expires_at: expiresAt,
+    };
+    if (tokenData.refresh_token) {
+      updatePayload.refresh_token_encrypted = await encrypt(tokenData.refresh_token);
+    }
+
     await this.supabase
-      .from('google_calendar_tokens')
-      .update({
-        access_token: tokenData.access_token,
-        expires_at: expiresAt.toISOString(),
-      })
-      .eq('user_id', this.userId)
+      .from("google_calendar_tokens")
+      .update(updatePayload)
+      .eq("user_id", this.userId);
 
     return {
       access_token: tokenData.access_token,
-      refresh_token: tokenData.refresh_token || refreshToken,
-      expires_at: expiresAt.toISOString(),
-      scope: tokenData.scope,
-      token_type: tokenData.token_type,
-    }
+      expires_at: expiresAt,
+    };
   }
 
   async listEvents(calendarId: string, timeMin: string, timeMax: string): Promise<GoogleEvent[]> {
-    const accessToken = await this.getValidToken()
+    const accessToken = await this.getValidToken();
 
     const params = new URLSearchParams({
       timeMin,
       timeMax,
-      singleEvents: 'true',
-      orderBy: 'startTime',
-      maxResults: '250',
-    })
+      singleEvents: "true",
+      orderBy: "startTime",
+      maxResults: "250",
+    });
 
     const response = await fetch(
       `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(calendarId)}/events?${params.toString()}`,
-      { headers: { Authorization: `Bearer ${accessToken}` } }
-    )
+      { headers: { Authorization: `Bearer ${accessToken}` } },
+    );
 
     if (!response.ok) {
-      const error = await response.json()
-      throw new Error(`Error listing events: ${error.error?.message || 'Unknown'}`)
+      const error = await response.json();
+      throw new Error(`Error listing events: ${error.error?.message || "Unknown"}`);
     }
 
-    const data = await response.json()
-    return data.items || []
+    const data = await response.json();
+    return data.items || [];
   }
 
   async createEvent(calendarId: string, eventData: Partial<GoogleEvent>): Promise<GoogleEvent> {
-    const accessToken = await this.getValidToken()
+    const accessToken = await this.getValidToken();
 
     const response = await fetch(
       `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(calendarId)}/events`,
       {
-        method: 'POST',
+        method: "POST",
         headers: {
-          'Authorization': `Bearer ${accessToken}`,
-          'Content-Type': 'application/json',
+          "Authorization": `Bearer ${accessToken}`,
+          "Content-Type": "application/json",
         },
         body: JSON.stringify(eventData),
-      }
-    )
+      },
+    );
 
     if (!response.ok) {
-      const error = await response.json()
-      throw new Error(`Error creating event: ${error.error?.message || 'Unknown'}`)
+      const error = await response.json();
+      throw new Error(`Error creating event: ${error.error?.message || "Unknown"}`);
     }
 
-    return await response.json()
+    return await response.json();
   }
 
-  async updateEvent(calendarId: string, eventId: string, eventData: Partial<GoogleEvent>): Promise<GoogleEvent> {
-    const accessToken = await this.getValidToken()
+  async updateEvent(
+    calendarId: string,
+    eventId: string,
+    eventData: Partial<GoogleEvent>,
+  ): Promise<GoogleEvent> {
+    const accessToken = await this.getValidToken();
 
     const response = await fetch(
       `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(calendarId)}/events/${encodeURIComponent(eventId)}`,
       {
-        method: 'PATCH',
+        method: "PATCH",
         headers: {
-          'Authorization': `Bearer ${accessToken}`,
-          'Content-Type': 'application/json',
+          "Authorization": `Bearer ${accessToken}`,
+          "Content-Type": "application/json",
         },
         body: JSON.stringify(eventData),
-      }
-    )
+      },
+    );
 
     if (!response.ok) {
-      const error = await response.json()
-      throw new Error(`Error updating event: ${error.error?.message || 'Unknown'}`)
+      const error = await response.json();
+      throw new Error(`Error updating event: ${error.error?.message || "Unknown"}`);
     }
 
-    return await response.json()
+    return await response.json();
   }
 
   async deleteEvent(calendarId: string, eventId: string): Promise<void> {
-    const accessToken = await this.getValidToken()
+    const accessToken = await this.getValidToken();
 
     const response = await fetch(
       `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(calendarId)}/events/${encodeURIComponent(eventId)}`,
       {
-        method: 'DELETE',
+        method: "DELETE",
         headers: { Authorization: `Bearer ${accessToken}` },
-      }
-    )
+      },
+    );
 
     if (!response.ok) {
-      const error = await response.json()
-      throw new Error(`Error deleting event: ${error.error?.message || 'Unknown'}`)
+      const error = await response.json();
+      throw new Error(`Error deleting event: ${error.error?.message || "Unknown"}`);
     }
   }
 }

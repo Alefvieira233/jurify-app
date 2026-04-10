@@ -8,10 +8,14 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { getCorsHeaders } from "../_shared/cors.ts";
 import { applyRateLimit } from "../_shared/rate-limiter.ts";
+import { encrypt } from "../_shared/crypto.ts";
 import { GoogleOAuthService } from "./google-oauth.ts";
 
+// Least-privilege OAuth scopes.
+// calendar.events: read/write events only (no access to calendar list or settings).
+// userinfo.email/profile: to show connected account name and email in UI.
 const OAUTH_SCOPES = [
-  "https://www.googleapis.com/auth/calendar",
+  "https://www.googleapis.com/auth/calendar.events",
   "https://www.googleapis.com/auth/userinfo.email",
   "https://www.googleapis.com/auth/userinfo.profile",
 ].join(" ");
@@ -77,7 +81,16 @@ Deno.serve(async (req) => {
               { status: 503, headers: { ...corsHeaders, "Content-Type": "application/json" } }
             );
           }
-          const { redirectUri } = data as { redirectUri: string };
+          const { redirectUri, state } = data as { redirectUri: string; state?: string };
+          // CSRF protection: client must provide a crypto-random state, store it
+          // locally, and validate it matches on callback. Falling back to user.id
+          // is insecure because user.id is predictable.
+          if (!state || typeof state !== "string" || state.length < 16) {
+            return new Response(
+              JSON.stringify({ error: "Missing or weak OAuth state. Provide a crypto-random string ≥16 chars." }),
+              { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+            );
+          }
           const params = new URLSearchParams({
             client_id: clientId,
             redirect_uri: redirectUri,
@@ -85,7 +98,7 @@ Deno.serve(async (req) => {
             response_type: "code",
             access_type: "offline",
             prompt: "consent",
-            state: user.id,
+            state,
           });
           return new Response(JSON.stringify({ authUrl: `https://accounts.google.com/o/oauth2/v2/auth?${params.toString()}` }), {
             headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -118,10 +131,18 @@ Deno.serve(async (req) => {
             headers: { Authorization: `Bearer ${tokenData.access_token}` },
           });
           const userInfo = userInfoRes.ok ? await userInfoRes.json() : {};
+
+          // Encrypt OAuth tokens before persisting. The plaintext columns were dropped
+          // by migration 20260406000002; only the *_encrypted columns exist.
+          const accessTokenEncrypted = await encrypt(tokenData.access_token);
+          const refreshTokenEncrypted = tokenData.refresh_token
+            ? await encrypt(tokenData.refresh_token)
+            : null;
+
           const { error: upsertError } = await supabase.from("google_calendar_tokens").upsert({
             user_id: user.id,
-            access_token: tokenData.access_token,
-            refresh_token: tokenData.refresh_token,
+            access_token_encrypted: accessTokenEncrypted,
+            refresh_token_encrypted: refreshTokenEncrypted,
             expires_at: expiresAt,
             scope: tokenData.scope,
             token_type: tokenData.token_type,

@@ -12,6 +12,7 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { getCorsHeaders } from '../_shared/cors.ts'
 import { applyRateLimit } from '../_shared/rate-limiter.ts'
+import { decrypt, encrypt } from '../_shared/crypto.ts'
 
 Deno.serve(async (req) => {
   const corsHeaders = getCorsHeaders(req.headers.get('origin') || undefined)
@@ -46,27 +47,62 @@ Deno.serve(async (req) => {
 
     const { name, lead_id, agendamento_id } = await req.json()
 
-    const { data: token } = await supabase
+    const { data: tokenRow } = await supabase
       .from('google_calendar_tokens')
-      .select('access_token')
+      .select('access_token_encrypted, refresh_token_encrypted, expires_at')
       .eq('user_id', user.id)
-      .single()
+      .maybeSingle()
 
-    if (!token) {
+    if (!tokenRow || !tokenRow.access_token_encrypted) {
       return new Response(
         JSON.stringify({ error: 'Integration not configured' }),
         { status: 503, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
 
-    const mainFolder = await createDriveFolder(token.access_token, name)
+    // Decrypt stored token; refresh if expired.
+    let accessToken = await decrypt(tokenRow.access_token_encrypted)
+    const now = new Date()
+    const expiresAt = new Date(tokenRow.expires_at)
+
+    if (now >= expiresAt) {
+      if (!tokenRow.refresh_token_encrypted) {
+        throw new Error('Google access token expired and no refresh token available — user must reconnect')
+      }
+      const refreshToken = await decrypt(tokenRow.refresh_token_encrypted)
+      const refreshResp = await fetch('https://oauth2.googleapis.com/token', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: new URLSearchParams({
+          client_id: Deno.env.get('GOOGLE_CLIENT_ID')!,
+          client_secret: Deno.env.get('GOOGLE_CLIENT_SECRET')!,
+          refresh_token: refreshToken,
+          grant_type: 'refresh_token',
+        }),
+      })
+      if (!refreshResp.ok) {
+        throw new Error('Failed to refresh Google token')
+      }
+      const refreshed = await refreshResp.json()
+      accessToken = refreshed.access_token
+      const newExpiresAt = new Date(Date.now() + refreshed.expires_in * 1000).toISOString()
+      await supabase
+        .from('google_calendar_tokens')
+        .update({
+          access_token_encrypted: await encrypt(refreshed.access_token),
+          expires_at: newExpiresAt,
+        })
+        .eq('user_id', user.id)
+    }
+
+    const mainFolder = await createDriveFolder(accessToken, name)
 
     const subfolders = ['Documentos', 'Audiências', 'Contratos', 'Anexos']
     const createdFolders = []
 
     for (const subfolder of subfolders) {
       const folder = await createDriveFolder(
-        token.access_token,
+        accessToken,
         subfolder,
         mainFolder.id
       )
