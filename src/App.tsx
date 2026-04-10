@@ -15,7 +15,6 @@ import Layout from "./components/Layout";
 import LoadingSpinner from "./components/LoadingSpinner";
 import { ErrorBoundary } from "./components/ErrorBoundary";
 import { FeatureErrorBoundary } from "./components/FeatureErrorBoundary";
-import { initSentry } from "./lib/sentry";
 import { withSentryReactRouterV6Routing } from '@sentry/react';
 import { QUERY_STALE_TIME_MS, QUERY_GC_TIME_MS, MAX_RETRY_DELAY_MS } from "./constants/timings";
 import { useNetworkBanner } from "@/hooks/useNetworkBanner";
@@ -23,8 +22,21 @@ import { createLogger } from "@/lib/logger";
 
 const log = createLogger('App');
 
-// Inicializar Sentry ANTES de tudo
-initSentry();
+// Sentry is loaded asynchronously after first paint so its ~456 KB bundle is
+// not on the critical path. Errors thrown during the first ~50 ms (before
+// Sentry attaches) fall back to the native ErrorBoundary. Audit P0-2.
+if (typeof window !== 'undefined') {
+  const start = () => {
+    void import('./lib/sentry').then(({ initSentry }) => initSentry());
+  };
+  if ('requestIdleCallback' in window) {
+    (window as Window & { requestIdleCallback: (cb: () => void, opts?: { timeout: number }) => number })
+      .requestIdleCallback(start, { timeout: 2000 });
+  } else {
+    // Safari / older browsers: run after first paint.
+    setTimeout(start, 0);
+  }
+}
 
 // Componentes críticos - import direto (necessários no carregamento inicial)
 import Auth from "./pages/Auth";
@@ -79,13 +91,15 @@ const AdminStatus = lazyWithRetry(() => import("./pages/AdminStatus"));
 
 // WhatsApp now uses FeatureErrorBoundary (WhatsAppErrorBoundary retained for standalone use)
 
-// Prefetch rotas mais acessadas após o idle do browser
+// Prefetch rotas mais acessadas após o idle do browser.
+// Note: RelatoriosGerenciais, Dashboard and any chart-heavy route are NOT
+// prefetched here because they pull in the 460 KB recharts chunk. Those
+// routes load their chunk when the user clicks into them. Audit P1 perf.
 if (typeof window !== 'undefined' && 'requestIdleCallback' in window && !isNativePlatform) {
   window.requestIdleCallback(() => {
     void import("./features/pipeline/PipelineJuridico");
     void import("./features/scheduling/AgendamentosManager");
     void import("./features/crm/CRMDashboard");
-    void import("./features/reports/RelatoriosGerenciais");
     void import("./features/processos/ProcessosManager");
     void import("./features/prazos/PrazosManager");
   });

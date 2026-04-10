@@ -1,5 +1,5 @@
 ﻿/* eslint-disable react-refresh/only-export-components */
-import React, { createContext, useContext, useEffect, useState, ReactNode, useCallback } from 'react';
+import React, { createContext, useContext, useEffect, useState, ReactNode, useCallback, useMemo } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { Action, Resource, ROLE_PERMISSIONS, UserRole } from '@/types/rbac';
@@ -180,11 +180,16 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     };
   }, [fetchProfile]);
 
-  const signIn = (email: string, password: string) => {
+  // All callbacks are stable references so useAuth consumers don't re-render
+  // on every auth state tick. Before this change, the provider value was a
+  // fresh object literal on every render — 59 useAuth() consumers across the
+  // app re-rendered whenever ANY AuthProvider state changed. Audit P0-1.
+  const signIn = useCallback((email: string, password: string) => {
     addSentryBreadcrumb('User login attempt', 'auth', 'info');
     return supabase.auth.signInWithPassword({ email, password });
-  };
-  const signUp = (email: string, password: string, userData?: Record<string, unknown>) => {
+  }, []);
+
+  const signUp = useCallback((email: string, password: string, userData?: Record<string, unknown>) => {
     // Client-side password strength: align with UI (min 8 chars, 4 of 5 criteria)
     const score = [
       /[A-Z]/.test(password),
@@ -202,30 +207,56 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
 
     return supabase.auth.signUp({ email, password, options: { data: userData } });
-  };
-  const signOut = async () => {
+  }, []);
+
+  const signOut = useCallback(async () => {
     addSentryBreadcrumb('User logout', 'auth', 'info');
     setSentryUser(null);
     await supabase.auth.signOut();
     window.location.href = '/auth';
-  };
+  }, []);
+
   useInactivityLogout(() => void signOut(), 30 * 60 * 1000, !!user);
 
-  const hasRole = (role: string) => profile?.role === role;
-  const hasPermission = (module: string, permission: string): boolean => {
-    if (!user || !profile?.role) return false;
-    const role = profile.role as UserRole;
-    const permissions = ROLE_PERMISSIONS[role];
-    if (!permissions) return false;
+  const hasRole = useCallback(
+    (role: string) => profile?.role === role,
+    [profile?.role],
+  );
 
-    const resource = module as Resource;
-    const action = permission as Action;
-    const resourcePermission = permissions.find((p) => p.resource === resource);
-    return resourcePermission?.actions.includes(action) ?? false;
-  };
+  const hasPermission = useCallback(
+    (module: string, permission: string): boolean => {
+      if (!user || !profile?.role) return false;
+      const role = profile.role as UserRole;
+      const permissions = ROLE_PERMISSIONS[role];
+      if (!permissions) return false;
+
+      const resource = module as Resource;
+      const action = permission as Action;
+      const resourcePermission = permissions.find((p) => p.resource === resource);
+      return resourcePermission?.actions.includes(action) ?? false;
+    },
+    [user, profile?.role],
+  );
+
+  // Memoize the context value so object identity is stable whenever the
+  // underlying state (user/session/profile/loading) is stable.
+  const contextValue = useMemo<AuthContextType>(
+    () => ({
+      user,
+      session,
+      profile,
+      signIn,
+      signUp,
+      signOut,
+      loading,
+      hasRole,
+      hasPermission,
+    }),
+    [user, session, profile, loading, signIn, signUp, signOut, hasRole, hasPermission],
+  );
 
   return (
-    <AuthContext.Provider value={{ user, session, profile, signIn, signUp, signOut, loading, hasRole, hasPermission }}>
+    <AuthContext.Provider value={contextValue}>
       {children}
     </AuthContext.Provider>
   );
