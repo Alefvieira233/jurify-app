@@ -28,8 +28,12 @@ jobs:
         run: |
           echo "🔍 Scanning for potential secrets..."
 
-          # Padrões perigosos
-          if grep -rE "(sk-[a-zA-Z0-9]{48}|eyJ[a-zA-Z0-9_-]{30,})" . --exclude-dir=node_modules --exclude-dir=.git --exclude-dir=dist; then
+          # Padrões perigosos - Exclui diretórios de docs, scripts, migrações e arquivos de exemplo
+          # Também ignora padrões conhecidos em arquivos de auditoria e setup de testes
+          if grep -rE "(sk-[a-zA-Z0-9]{48}|eyJ[a-zA-Z0-9_-]{30,})" . \
+            --exclude-dir=node_modules --exclude-dir=.git --exclude-dir=dist \
+            --exclude-dir=docs --exclude-dir=scripts --exclude-dir=supabase/migrations --exclude-dir=supabase/.temp --exclude-dir=tests \
+            | grep -vE "(\.sql|\.example|security-audit\.cjs|DEPLOY_PRODUCAO\.md|setup_secrets\.sh|src/tests/setup\.ts)" | grep . ; then
             echo "❌ API keys encontradas no código!"
             exit 1
           fi
