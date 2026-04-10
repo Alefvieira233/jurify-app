@@ -3,6 +3,8 @@ name: 🔒 Pre-commit Security Check
 on:
   pull_request:
     types: [opened, synchronize, reopened]
+  push:
+    branches: [main, staging, develop]
 
 jobs:
   security-check:
@@ -16,43 +18,101 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: 🔍 Scan for secrets
+      - name: 🔍 Scan for secrets (TruffleHog — full history)
         uses: trufflesecurity/trufflehog@v3.88.0
         with:
           path: ./
-          base: ${{ github.event.pull_request.base.sha }}
-          head: ${{ github.event.pull_request.head.sha }}
-          extra_args: --only-verified --fail
+          base: ${{ github.event.pull_request.base.sha || github.event.before }}
+          head: ${{ github.event.pull_request.head.sha || github.sha }}
+          extra_args: --results=verified,unknown --fail
 
-      - name: 🔍 Check for hardcoded credentials
+      - name: 🔍 Check for hardcoded credentials (explicit patterns)
         run: |
-          echo "🔍 Scanning for potential secrets..."
+          echo "🔍 Scanning for known dangerous patterns..."
+          set -e
 
-          # Padrões perigosos
-          if grep -rE "(sk-[a-zA-Z0-9]{48}|eyJ[a-zA-Z0-9_-]{30,})" . --exclude-dir=node_modules --exclude-dir=.git --exclude-dir=dist; then
-            echo "❌ API keys encontradas no código!"
-            exit 1
+          FOUND=0
+          SCAN_DIRS="src supabase scripts .github"
+
+          # JWT tokens (Supabase anon/service role)
+          # Exclude fake test JWTs in src/tests/setup.ts
+          if grep -rEn "eyJ[a-zA-Z0-9_-]{30,}\.eyJ[a-zA-Z0-9_-]{30,}\.[a-zA-Z0-9_-]{20,}" $SCAN_DIRS \
+             --exclude-dir=node_modules --exclude-dir=.git --exclude-dir=dist \
+             | grep -v "src/tests/setup.ts" | grep -v "supabase-test"; then
+            echo "❌ JWT token encontrado no código (fora de test fixtures)"
+            FOUND=1
           fi
 
-          # Check .env files
-          if git diff --name-only ${{ github.event.pull_request.base.sha }}..${{ github.event.pull_request.head.sha }} | grep -E '\.env$'; then
-            echo "❌ Arquivo .env sendo commitado!"
+          # OpenAI keys (sk- or sk-proj-)
+          if grep -rEn "sk-[a-zA-Z0-9_-]{20,}" $SCAN_DIRS \
+             --exclude-dir=node_modules --exclude-dir=.git --exclude-dir=dist; then
+            echo "❌ OpenAI API key encontrada"
+            FOUND=1
+          fi
+
+          # Stripe keys (live + test, secret + publishable)
+          if grep -rEn "(sk|pk|rk)_(live|test)_[a-zA-Z0-9]{20,}" $SCAN_DIRS \
+             --exclude-dir=node_modules --exclude-dir=.git --exclude-dir=dist; then
+            echo "❌ Stripe key encontrada"
+            FOUND=1
+          fi
+
+          # Postmark server tokens
+          if grep -rEn "postmark[_-]?(server[_-]?token|api[_-]?key)['\"]?\s*[=:]\s*['\"][a-f0-9-]{30,}['\"]" $SCAN_DIRS \
+             --exclude-dir=node_modules --exclude-dir=.git --exclude-dir=dist -i; then
+            echo "❌ Postmark token encontrado"
+            FOUND=1
+          fi
+
+          # Google OAuth client secrets
+          if grep -rEn "GOCSPX-[a-zA-Z0-9_-]{28,}" $SCAN_DIRS \
+             --exclude-dir=node_modules --exclude-dir=.git --exclude-dir=dist; then
+            echo "❌ Google OAuth client secret encontrado"
+            FOUND=1
+          fi
+
+          # Supabase service role key literal
+          if grep -rEn "SUPABASE_SERVICE_ROLE_KEY\s*=\s*['\"]eyJ" $SCAN_DIRS \
+             --exclude-dir=node_modules --exclude-dir=.git --exclude-dir=dist; then
+            echo "❌ Supabase service role key hardcoded"
+            FOUND=1
+          fi
+
+          # Kapso API keys
+          if grep -rEn "kapso[_-]?(api[_-]?key|secret)['\"]?\s*[=:]\s*['\"][a-zA-Z0-9_-]{20,}['\"]" $SCAN_DIRS \
+             --exclude-dir=node_modules --exclude-dir=.git --exclude-dir=dist -i; then
+            echo "❌ Kapso key encontrada"
+            FOUND=1
+          fi
+
+          # ZapSign tokens
+          if grep -rEn "zapsign[_-]?(token|api[_-]?key)['\"]?\s*[=:]\s*['\"][a-zA-Z0-9._-]{30,}['\"]" $SCAN_DIRS \
+             --exclude-dir=node_modules --exclude-dir=.git --exclude-dir=dist -i; then
+            echo "❌ ZapSign token encontrado"
+            FOUND=1
+          fi
+
+          if [ $FOUND -eq 1 ]; then
+            echo ""
+            echo "❌❌❌ SECRETS DETECTADOS — commit bloqueado"
+            echo "Mova valores para env vars e use process.env/Deno.env.get"
             exit 1
           fi
 
           echo "✅ No secrets detected"
 
+      - name: 📋 Check .env not committed
+        run: |
+          if git diff --name-only ${{ github.event.pull_request.base.sha || github.event.before }}..${{ github.event.pull_request.head.sha || github.sha }} 2>/dev/null | grep -E '(^|/)\.env$'; then
+            echo "❌ Arquivo .env sendo commitado!"
+            exit 1
+          fi
+          echo "✅ .env não está sendo commitado"
+
       - name: 📋 Verify .env.example exists
         run: |
           if [ ! -f ".env.example" ]; then
             echo "⚠️ .env.example não encontrado"
-          else
-            echo "✅ .env.example existe"
+            exit 1
           fi
-
-      - name: 📝 Check commit messages
-        run: |
-          echo "📝 Verificando mensagens de commit..."
-          git log --format=%B -n 1 ${{ github.event.pull_request.head.sha }} | \
-            grep -iE "(fix|feat|chore|docs|refactor|test|perf)" || \
-            echo "⚠️ Considere usar conventional commits (fix:, feat:, etc.)"
+          echo "✅ .env.example existe"

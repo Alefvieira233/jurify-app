@@ -27,7 +27,6 @@ const STATUS_OPTIONS = [
   { value: 'pausado', label: 'Pausado', color: 'text-amber-400' },
 ];
 
-// eslint-disable-next-line react-refresh/only-export-components
 export { TRIGGER_TYPES };
 
 export interface FlowToolbarProps {

@@ -24,7 +24,6 @@ const EXAMPLE_MESSAGES = [
   }
 ];
 
-// eslint-disable-next-line react-refresh/only-export-components
 export { EXAMPLE_MESSAGES };
 
 export interface PlaygroundExamplesProps {

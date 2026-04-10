@@ -1,4 +1,3 @@
-/* eslint-disable react-refresh/only-export-components */
 import { useState, useMemo, useCallback } from 'react';
 import { Plus, GitBranch } from 'lucide-react';
 import { Button } from '@/components/ui/button';

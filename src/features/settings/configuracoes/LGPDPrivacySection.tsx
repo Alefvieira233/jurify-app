@@ -39,8 +39,10 @@ const LGPDPrivacySection = () => {
 
       for (const table of tables) {
         try {
+          // LGPD right-of-access export needs every column the user legally owns.
           const { data, error } = await supabase
             .from(table)
+            // eslint-disable-next-line no-restricted-syntax -- LGPD export needs all columns
             .select('*')
             .eq('tenant_id', tenantId)
             .limit(10000);
@@ -53,10 +55,11 @@ const LGPDPrivacySection = () => {
         }
       }
 
-      // Profile data (user-specific, not tenant-scoped)
+      // Profile data (user-specific, not tenant-scoped) — LGPD export needs all columns.
       try {
         const { data } = await supabase
           .from('profiles')
+          // eslint-disable-next-line no-restricted-syntax -- LGPD export needs all columns
           .select('*')
           .eq('id', user.id)
           .maybeSingle();

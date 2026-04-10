@@ -80,8 +80,10 @@ const BackupRestore = () => {
       };
 
       for (const table of BACKUP_TABLES) {
+        // Backup export needs every column to produce a restorable snapshot.
         const { data, error } = await supabase
           .from(table)
+          // eslint-disable-next-line no-restricted-syntax -- LGPD/backup needs all columns
           .select('*')
           .eq('tenant_id', tenantId);
 

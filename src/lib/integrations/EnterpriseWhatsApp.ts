@@ -167,18 +167,18 @@ export class EnterpriseWhatsAppIntegration {
       // Total de mensagens
       const { count: totalMessages } = await supabase
         .from('whatsapp_messages')
-        .select('*', { count: 'exact', head: true });
+        .select('id', { count: 'exact', head: true });
 
       // Mensagens deste mês
       const { count: messagesThisMonth } = await supabase
         .from('whatsapp_messages')
-        .select('*', { count: 'exact', head: true })
+        .select('id', { count: 'exact', head: true })
         .gte('created_at', startOfMonth.toISOString());
 
       // Conversas ativas
       const { count: activeConversations } = await supabase
         .from('whatsapp_conversations')
-        .select('*', { count: 'exact', head: true })
+        .select('id', { count: 'exact', head: true })
         .eq('status', 'ativo');
 
       return {

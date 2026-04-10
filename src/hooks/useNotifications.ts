@@ -114,7 +114,7 @@ export const useNotifications = () => {
 
       toast({
         title: 'Sucesso',
-        description: `${data} notificacao(oes) marcada(s) como lida(s).`,
+        description: `${String(data ?? 0)} notificacao(oes) marcada(s) como lida(s).`,
       });
     } catch (error) {
       log.error('Failed to mark all as read', error);

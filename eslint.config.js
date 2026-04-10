@@ -99,6 +99,14 @@ export default tseslint.config(
           "message": "supabaseUntyped is deprecated. Use 'supabase' (typed) instead."
         }]
       }],
+      // Block `.select('*')` — list explicit columns to keep types accurate and
+      // avoid accidentally shipping sensitive fields to the client. Legitimate
+      // exceptions (e.g. LGPD full-export, backup-restore) must disable this
+      // rule with an inline comment explaining why.
+      "no-restricted-syntax": ["error", {
+        "selector": "CallExpression[callee.property.name='select'] > Literal[value='*']",
+        "message": "Do not use .select('*'). Specify columns explicitly. If you have a legitimate need (LGPD export, backup), add an eslint-disable-next-line comment explaining why."
+      }],
       "@typescript-eslint/no-unsafe-assignment": "off", // Gradual
       "@typescript-eslint/no-unsafe-member-access": "off", // Gradual
       "@typescript-eslint/no-unsafe-call": "off", // Gradual

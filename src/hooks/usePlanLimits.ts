@@ -71,16 +71,16 @@ export const usePlanLimits = (): UsePlanLimitsReturn => {
       ] = await Promise.all([
         supabase
           .from('agent_ai_logs')
-          .select('*', { count: 'exact', head: true })
+          .select('id', { count: 'exact', head: true })
           .eq('tenant_id', tenantId)
           .gte('created_at', thirtyDaysAgo.toISOString()),
         supabase
           .from('leads')
-          .select('*', { count: 'exact', head: true })
+          .select('id', { count: 'exact', head: true })
           .eq('tenant_id', tenantId),
         supabase
           .from('profiles')
-          .select('*', { count: 'exact', head: true })
+          .select('id', { count: 'exact', head: true })
           .eq('tenant_id', tenantId),
       ]);
 

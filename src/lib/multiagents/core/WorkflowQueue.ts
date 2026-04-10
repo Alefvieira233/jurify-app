@@ -234,7 +234,7 @@ export class WorkflowQueueService {
       const promises = statuses.map(async (status) => {
         const { count } = await supabase
           .from('workflow_jobs')
-          .select('*', { count: 'exact', head: true })
+          .select('id', { count: 'exact', head: true })
           .eq('tenant_id', tenantId)
           .eq('status', status);
         return { status, count: count ?? 0 };

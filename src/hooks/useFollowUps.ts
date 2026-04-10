@@ -90,7 +90,7 @@ export const useFollowUps = () => {
     queryFn: async () => {
       const { count, error } = await supabase
         .from('crm_followups')
-        .select('*', { count: 'exact', head: true })
+        .select('id', { count: 'exact', head: true })
         .eq('tenant_id', tenantId!)
         .eq('status', 'overdue');
       if (error) throw error;

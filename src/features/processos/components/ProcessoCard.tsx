@@ -19,7 +19,6 @@ const TIPO_LABELS: Record<string, string> = {
   outro: 'Outro',
 };
 
-// eslint-disable-next-line react-refresh/only-export-components
 export { TIPO_LABELS };
 
 export interface ProcessoCardProps {

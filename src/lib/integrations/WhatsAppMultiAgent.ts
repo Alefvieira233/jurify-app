@@ -146,8 +146,8 @@ export class WhatsAppMultiAgentIntegration {
         { count: activeConversations },
         { data: recentMessages },
       ] = await Promise.all([
-        supabase.from('whatsapp_conversations').select('*', { count: 'exact', head: true }),
-        supabase.from('whatsapp_conversations').select('*', { count: 'exact', head: true }).eq('status', 'ativo'),
+        supabase.from('whatsapp_conversations').select('id', { count: 'exact', head: true }),
+        supabase.from('whatsapp_conversations').select('id', { count: 'exact', head: true }).eq('status', 'ativo'),
         supabase.from('whatsapp_messages').select('sender').gte('created_at', last24h),
       ]);
 
