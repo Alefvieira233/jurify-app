@@ -1,17 +1,20 @@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Activity, Lock, Brain, Database, Server, Shield, BarChart3 } from 'lucide-react';
+import { Activity, Lock, Database, Server, Shield, BarChart3 } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { queryKeys } from '@/lib/queryKeys';
 import { supabase } from '@/integrations/supabase/client';
 import { useRBAC } from '@/hooks/useRBAC';
-import BackupRestore from '@/features/mission-control/components/BackupRestore';
-import SystemStatus from '@/features/mission-control/components/SystemStatus';
-import PerformanceDashboard from '@/features/dashboard/components/PerformanceDashboard';
-import LogsMonitoramento from '@/features/ai-agents/components/LogsMonitoramento';
+// Feature imports go through barrel exports — keeps cross-feature coupling
+// at the module surface instead of pinning to internal file paths.
+import {
+  BackupRestore,
+  SecurityDashboard,
+  SystemHealthCheck,
+  SystemStatus,
+} from '@/features/mission-control';
+import { PerformanceDashboard } from '@/features/dashboard';
+import { LogsMonitoramento } from '@/features/ai-agents';
 import AdminUserSection from './AdminUserSection';
-import SystemHealthCheck from '@/features/mission-control/components/SystemHealthCheck';
-import SecurityDashboard from '@/features/mission-control/components/SecurityDashboard';
-import TesteRealAgenteIA from '@/features/ai-agents/components/TesteRealAgenteIA';
 
 const SistemaSection = () => {
   const { isAdmin } = useRBAC();
@@ -32,12 +35,6 @@ const SistemaSection = () => {
             <Lock className="h-3.5 w-3.5" />
             Segurança
           </TabsTrigger>
-          {isAdmin && (
-            <TabsTrigger value="teste-agente" className="flex items-center gap-1.5 text-xs shrink-0">
-              <Brain className="h-3.5 w-3.5" />
-              Teste Agente
-            </TabsTrigger>
-          )}
           <TabsTrigger value="backup" className="flex items-center gap-1.5 text-xs shrink-0">
             <Database className="h-3.5 w-3.5" />
             Backup
@@ -69,12 +66,6 @@ const SistemaSection = () => {
         <TabsContent value="security">
           <SecurityDashboard />
         </TabsContent>
-
-        {isAdmin && (
-          <TabsContent value="teste-agente">
-            <TesteRealAgenteIA />
-          </TabsContent>
-        )}
 
         <TabsContent value="backup">
           <BackupRestore />

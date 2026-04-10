@@ -1,12 +1,5 @@
 import { useState, useCallback } from 'react';
-import { Plus, Key, Power, PowerOff, Trash2, Copy, ShieldAlert } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Card, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -14,20 +7,13 @@ import { useRBAC } from '@/hooks/useRBAC';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { queryKeys } from '@/lib/queryKeys';
 import { createLogger } from '@/lib/logger';
+import { ApiKeyRevealDialog } from './api-keys/ApiKeyRevealDialog';
+import { NewApiKeyDialog } from './api-keys/NewApiKeyDialog';
+import { ApiKeysStats } from './api-keys/ApiKeysStats';
+import { ApiKeysTable } from './api-keys/ApiKeysTable';
+import type { ApiKey } from './api-keys/types';
 
 const log = createLogger('ApiKeysManager');
-
-interface ApiKey {
-  id: string;
-  nome: string;
-  key_prefix: string;
-  key_hash: string;
-  ativo: boolean;
-  created_at: string;
-  updated_at: string;
-  criado_por?: string;
-  tenant_id?: string;
-}
 
 const ApiKeysManager = () => {
   const [showNewKeyDialog, setShowNewKeyDialog] = useState(false);
@@ -46,7 +32,7 @@ const ApiKeysManager = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('api_keys')
-        .select('*')
+        .select('id, nome, key_prefix, key_hash, ativo, created_at, updated_at, criado_por, tenant_id')
         .eq('tenant_id', tenantId!)
         .order('created_at', { ascending: false });
 
@@ -230,28 +216,11 @@ const ApiKeysManager = () => {
 
   return (
     <div className="space-y-6">
-      {/* One-time key reveal dialog */}
-      <Dialog open={!!createdKeyValue} onOpenChange={(open) => { if (!open) setCreatedKeyValue(null); }}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <ShieldAlert className="h-5 w-5 text-yellow-500" />
-              Salve sua API Key
-            </DialogTitle>
-            <DialogDescription>
-              Esta chave sera exibida apenas uma vez. Copie e guarde em local seguro.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-3">
-            <code className="block bg-[hsl(var(--muted))] border border-[hsl(var(--border))] p-3 rounded text-sm font-mono break-all">
-              {createdKeyValue}
-            </code>
-            <Button className="w-full" onClick={() => { if (createdKeyValue) copyToClipboard(createdKeyValue); }}>
-              <Copy className="h-4 w-4 mr-2" /> Copiar API Key
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
+      <ApiKeyRevealDialog
+        createdKeyValue={createdKeyValue}
+        onClose={() => setCreatedKeyValue(null)}
+        onCopy={copyToClipboard}
+      />
 
       <div className="flex justify-between items-center">
         <div>
@@ -259,156 +228,26 @@ const ApiKeysManager = () => {
           <p className="text-[hsl(var(--muted-foreground))]">Gerencie as chaves de API para integração com agentes IA</p>
         </div>
 
-        <Dialog open={showNewKeyDialog} onOpenChange={setShowNewKeyDialog}>
-          <DialogTrigger asChild>
-            <Button className="bg-[hsl(var(--accent))] hover:bg-[hsl(var(--accent-hover))] text-[hsl(var(--accent-foreground))]">
-              <Plus className="h-4 w-4 mr-2" />
-              Nova API Key
-            </Button>
-          </DialogTrigger>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Criar Nova API Key</DialogTitle>
-              <DialogDescription>
-                Crie uma nova chave de API para integração com agentes IA.
-              </DialogDescription>
-            </DialogHeader>
-            <div className="space-y-4">
-              <div>
-                <Label htmlFor="keyName">Nome da API Key</Label>
-                <Input
-                  id="keyName"
-                  value={newKeyName}
-                  onChange={(e) => setNewKeyName(e.target.value)}
-                  placeholder="Ex: Agente WhatsApp, API Externa..."
-                />
-              </div>
-              <div className="flex justify-end space-x-2">
-                <Button variant="outline" className="bg-[hsl(var(--card))] border-[hsl(var(--border))] hover:bg-[hsl(var(--muted))]" onClick={() => setShowNewKeyDialog(false)}>
-                  Cancelar
-                </Button>
-                <Button onClick={handleCreateKey} disabled={createKeyMutation.isPending} className="bg-[hsl(var(--accent))] hover:bg-[hsl(var(--accent-hover))] text-[hsl(var(--accent-foreground))]">
-                  {createKeyMutation.isPending ? 'Criando...' : 'Criar API Key'}
-                </Button>
-              </div>
-            </div>
-          </DialogContent>
-        </Dialog>
+        <NewApiKeyDialog
+          open={showNewKeyDialog}
+          onOpenChange={setShowNewKeyDialog}
+          newKeyName={newKeyName}
+          onNewKeyNameChange={setNewKeyName}
+          onCreate={handleCreateKey}
+          isPending={createKeyMutation.isPending}
+        />
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-[hsl(var(--muted-foreground))]">Total de Keys</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{apiKeys?.length || 0}</div>
-          </CardContent>
-        </Card>
+      <ApiKeysStats apiKeys={apiKeys} />
 
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-[hsl(var(--muted-foreground))]">Keys Ativas</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-emerald-200">
-              {apiKeys?.filter((key) => key.ativo).length || 0}
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-[hsl(var(--muted-foreground))]">Keys Inativas</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-red-300">
-              {apiKeys?.filter((key) => !key.ativo).length || 0}
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {!apiKeys || apiKeys.length === 0 ? (
-        <div className="text-center py-8">
-          <Key className="h-12 w-12 mx-auto text-[hsl(var(--muted-foreground))] mb-4" />
-          <h3 className="text-lg font-medium text-[hsl(var(--foreground))] mb-2">Nenhuma API key encontrada</h3>
-          <p className="text-[hsl(var(--muted-foreground))] mb-4">Crie sua primeira API key para começar a usar os agentes IA.</p>
-          <Button onClick={() => setShowNewKeyDialog(true)} className="bg-[hsl(var(--accent))] hover:bg-[hsl(var(--accent-hover))] text-[hsl(var(--accent-foreground))]">
-            <Plus className="h-4 w-4 mr-2" />
-            Criar primeira API key
-          </Button>
-        </div>
-      ) : (
-        <Card>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Nome</TableHead>
-                <TableHead>API Key</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Criado em</TableHead>
-                <TableHead>Ações</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {apiKeys.map((key) => (
-                <TableRow key={key.id}>
-                  <TableCell>
-                    <div className="flex items-center space-x-2">
-                      <Key className="h-4 w-4 text-blue-300" />
-                      <span className="font-medium">{key.nome}</span>
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <code className="bg-[hsl(var(--muted))] border border-[hsl(var(--border))] px-2 py-1 rounded text-sm font-mono">
-                      {key.key_prefix}••••••••
-                    </code>
-                  </TableCell>
-                  <TableCell>
-                    <Badge
-                      variant={key.ativo ? 'default' : 'secondary'}
-                      className={key.ativo ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-400/30' : 'bg-slate-500/15 text-slate-700 dark:text-slate-300 border border-slate-400/30'}
-                    >
-                      {key.ativo ? 'Ativa' : 'Inativa'}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>
-                    <span className="text-sm text-[hsl(var(--muted-foreground))]">
-                      {new Date(key.created_at).toLocaleDateString('pt-BR')}
-                    </span>
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex items-center space-x-2">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => toggleStatusMutation.mutate({ id: key.id, ativo: key.ativo })}
-                        disabled={toggleStatusMutation.isPending}
-                      >
-                        {key.ativo ? (
-                          <PowerOff className="h-4 w-4 text-red-300" />
-                        ) : (
-                          <Power className="h-4 w-4 text-emerald-200" />
-                        )}
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => deleteKeyMutation.mutate(key.id)}
-                        disabled={deleteKeyMutation.isPending}
-                        className="hover:bg-red-500/10"
-                      >
-                        <Trash2 className="h-4 w-4 text-red-300" />
-                      </Button>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </Card>
-      )}
+      <ApiKeysTable
+        apiKeys={apiKeys}
+        onToggleStatus={(id, ativo) => toggleStatusMutation.mutate({ id, ativo })}
+        onDelete={(id) => deleteKeyMutation.mutate(id)}
+        onCreateFirst={() => setShowNewKeyDialog(true)}
+        isToggling={toggleStatusMutation.isPending}
+        isDeleting={deleteKeyMutation.isPending}
+      />
     </div>
   );
 };

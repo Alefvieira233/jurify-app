@@ -81,6 +81,13 @@ export class MultiAgentSystem implements IMessageRouter {
       this.agents.set('Comunicador', new CommunicatorAgent());
       this.agents.set('CustomerSuccess', new CustomerSuccessAgent());
 
+      // Inject self as the message router so BaseAgent.sendMessage can
+      // reach us without a circular static import. Dependency inversion
+      // across the MAS → AA → BA → (formerly) MAS cycle. Audit P1 O2.1.
+      for (const agent of this.agents.values()) {
+        agent.setRouter(this);
+      }
+
       this.isInitialized = true;
 
     } catch (error) {

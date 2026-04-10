@@ -8,7 +8,7 @@
  */
 import { supabase } from '@/integrations/supabase/client';
 import type { Agendamento } from '@/hooks/useAgendamentos';
-import type { WorkflowConfig } from './useAgendaAutomation';
+import type { WorkflowConfig } from './useAgendaAutomationTypes';
 
 // ---------------------------------------------------------------------------
 // Types

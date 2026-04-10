@@ -147,15 +147,16 @@ jobs:
           supabase functions deploy zapsign-integration --no-verify-jwt
           # Functions que requerem JWT (deploy padrão — com auth)
           for fn in admin-create-user agentes-ia-api agent-orchestrator \
-                    ai-agent-processor assistant chat-completion \
-                    cleanup-agent-memory create-checkout-session \
-                    create-drive-folder create-portal-session \
-                    data-retention-cleanup decrypt-data encrypt-data \
-                    extract-document-text generate-document generate-embedding \
-                    google-calendar ingest-document ingest-document-from-file \
+                    ai-agent-processor assistant auto-followup \
+                    chat-completion cleanup-agent-memory \
+                    create-checkout-session create-drive-folder \
+                    create-portal-session data-retention-cleanup \
+                    decrypt-data encrypt-data extract-document-text \
+                    generate-document generate-embedding google-calendar \
+                    ingest-document ingest-document-from-file \
                     kapso-manager media-processor process-followup-queue \
                     process-prazos-alerts send-email send-push-notification \
-                    send-whatsapp-message vector-search; do
+                    send-whatsapp-message vector-search weekly-report; do
             supabase functions deploy "$fn" 2>/dev/null || echo "⚠️ $fn: não encontrada, pulando"
           done
           echo "✅ Edge functions deployed"

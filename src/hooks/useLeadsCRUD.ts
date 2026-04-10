@@ -15,7 +15,7 @@ import { createLogger } from '@/lib/logger';
 import { addSentryBreadcrumb } from '@/lib/sentry';
 import { usePlanLimits } from '@/hooks/usePlanLimits';
 import { normalizeLead, mapLeadInputToDb, type LeadQueryData } from './useLeadsQuery';
-import type { Lead, LeadInput } from './useLeads';
+import type { Lead, LeadInput } from './useLeadsTypes';
 
 const log = createLogger('LeadsCRUD');
 

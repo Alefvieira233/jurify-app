@@ -12,7 +12,8 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useRBAC } from '@/hooks/useRBAC';
 import { createLogger } from '@/lib/logger';
 import { queryKeys } from '@/lib/queryKeys';
-import type { Lead, LeadTemperature } from './useLeads';
+import { LeadRowSchema } from '@/schemas/domain';
+import type { Lead, LeadTemperature } from './useLeadsTypes';
 
 const log = createLogger('LeadsQuery');
 
@@ -180,7 +181,24 @@ export function useLeadsQuery(options?: { enablePagination?: boolean; pageSize?:
       if (fetchError) throw fetchError;
 
       log.debug(`${data?.length ?? 0} leads encontrados`);
-      return { leads: ((data || []) as unknown as Record<string, unknown>[]).map(normalizeLead), totalCount: count ?? 0 };
+
+      // Zod-validate each row at the Supabase boundary. Malformed rows are
+      // dropped and logged — a single corrupt row must not break the list.
+      // See src/schemas/domain/README.md for the pattern.
+      const rawRows = (data ?? []) as unknown[];
+      const leads = rawRows.flatMap((row): Lead[] => {
+        const parsed = LeadRowSchema.safeParse(row);
+        if (!parsed.success) {
+          log.warn('Dropping malformed lead row', {
+            rowId: (row as { id?: string } | null)?.id,
+            issues: parsed.error.issues,
+          });
+          return [];
+        }
+        return [parsed.data];
+      });
+
+      return { leads, totalCount: count ?? 0 };
     },
     enabled: !!user && !!profile?.id && !!tenantId,
     staleTime: 2 * 60 * 1000,    // 2 min — leads mudam com frequência média

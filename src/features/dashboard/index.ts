@@ -1,0 +1,9 @@
+/**
+ * Public barrel for the dashboard feature.
+ *
+ * External consumers should import components from this file instead of
+ * reaching into `./components/*` directly.
+ */
+
+export { default as PerformanceDashboard } from './components/PerformanceDashboard';
+export { default as Dashboard } from './Dashboard';

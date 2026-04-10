@@ -177,13 +177,13 @@ jobs:
           done
           # Non-critical functions — warn on failure but continue
           for fn in admin-create-user agentes-ia-api \
-                    chat-completion cleanup-agent-memory \
+                    auto-followup chat-completion cleanup-agent-memory \
                     create-drive-folder data-retention-cleanup \
                     decrypt-data encrypt-data extract-document-text \
                     generate-document generate-embedding google-calendar \
                     ingest-document ingest-document-from-file kapso-manager \
                     media-processor process-followup-queue process-prazos-alerts \
-                    send-push-notification vector-search; do
+                    send-push-notification vector-search weekly-report; do
             echo "  Deploying: $fn"
             supabase functions deploy "$fn" || echo "⚠️ $fn: deploy failed (non-critical), continuing"
           done

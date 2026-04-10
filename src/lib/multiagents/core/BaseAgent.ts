@@ -26,7 +26,8 @@ import type {
   SharedContext,
   AgentAIRequest,
   AgentAIResponse,
-  IAgent
+  IAgent,
+  IMessageRouter
 } from '../types';
 
 const log = createLogger('BaseAgent');
@@ -49,10 +50,20 @@ export abstract class BaseAgent implements IAgent {
   // ðŸŽ¯ Tracking de execução
   protected lastTokensUsed: number = 0;
 
+  // ðŸ”„ Injected message router (dependency inversion — breaks the circular
+  // import with MultiAgentSystem). Set by MultiAgentSystem.setRouter() when
+  // the agent is registered.
+  private router: IMessageRouter | null = null;
+
   constructor(name: string, specialization: string, agentId?: string) {
     this.name = name;
     this.specialization = specialization;
     this.agentId = agentId || specialization;
+  }
+
+  /** Set by the orchestrator on agent registration. */
+  public setRouter(router: IMessageRouter): void {
+    this.router = router;
   }
 
   // ðŸ·ï¸ Getters pÃºblicos
@@ -95,9 +106,13 @@ export abstract class BaseAgent implements IAgent {
       requires_response: type.toString().includes('request')
     };
 
-    // Importa dinamicamente para evitar circular dependency
-    const { MultiAgentSystem } = await import('./MultiAgentSystem');
-    await MultiAgentSystem.getInstance().routeMessage(message);
+    if (!this.router) {
+      throw new Error(
+        `BaseAgent ${this.name}: no message router injected. ` +
+        `MultiAgentSystem.setRouter() must be called before sendMessage.`
+      );
+    }
+    await this.router.routeMessage(message);
   }
 
   // ðŸ”„ Processa fila de mensagens

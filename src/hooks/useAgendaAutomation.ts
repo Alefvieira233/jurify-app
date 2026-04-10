@@ -32,28 +32,10 @@ import {
   createDriveFolder,
 } from './useAgendaTasks';
 
-// ---------------------------------------------------------------------------
-// Types (re-exported for consumers)
-// ---------------------------------------------------------------------------
-
-export interface AutomationTask {
-  id: string;
-  type: 'email' | 'whatsapp' | 'task' | 'reminder' | 'drive_folder';
-  status: 'pending' | 'running' | 'completed' | 'failed';
-  payload: Record<string, unknown>;
-  error?: string;
-  created_at: string;
-  completed_at?: string;
-}
-
-export interface WorkflowConfig {
-  send_email_invite: boolean;
-  send_whatsapp: boolean;
-  create_task: boolean;
-  create_reminders: boolean;
-  create_drive_folder: boolean;
-  custom_message?: string;
-}
+// Types are defined in useAgendaAutomationTypes.ts to break circular import
+// with useAgendaTasks. Re-export here for existing consumers.
+export type { AutomationTask, WorkflowConfig } from './useAgendaAutomationTypes';
+import type { AutomationTask, WorkflowConfig } from './useAgendaAutomationTypes';
 
 // ---------------------------------------------------------------------------
 // Hook

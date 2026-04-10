@@ -9,46 +9,17 @@ import { useToast } from '@/hooks/use-toast';
 import { toUserMessage } from '@/lib/errorMessages';
 import { createLogger } from '@/lib/logger';
 import { queryKeys } from '@/lib/queryKeys';
+import { useWhatsAppMessaging } from '@/hooks/useWhatsAppMessaging';
+import type {
+  WhatsAppConversation,
+  WhatsAppMessage,
+  MessageSendStatus,
+} from '@/hooks/useWhatsAppConversationsTypes';
+
+// Re-export types so existing consumers keep working (external imports target this module).
+export type { WhatsAppConversation, WhatsAppMessage, MessageSendStatus };
 
 const log = createLogger('WhatsApp');
-
-export interface WhatsAppConversation {
-  id: string;
-  lead_id: string | null;
-  tenant_id: string;
-  user_id: string | null;
-  responsavel_id: string | null;
-  phone_number: string;
-  contact_name: string | null;
-  status: 'ativo' | 'aguardando' | 'qualificado' | 'finalizado';
-  area_juridica: string | null;
-  last_message: string | null;
-  last_message_at: string;
-  unread_count: number;
-  ia_active: boolean;
-  created_at: string;
-  updated_at: string;
-  agent_status?: 'idle' | 'processing' | 'failed' | 'waiting_human';
-  last_agent_error?: string | null;
-  agent_processed_at?: string | null;
-}
-
-export type MessageSendStatus = 'pending' | 'sent' | 'failed' | 'delivered' | 'read';
-
-export interface WhatsAppMessage {
-  id: string;
-  conversation_id: string;
-  sender: 'lead' | 'ia' | 'agent';
-  content: string;
-  message_type: 'text' | 'image' | 'document' | 'audio';
-  media_url: string | null;
-  read: boolean;
-  timestamp: string;
-  created_at: string;
-  send_status?: MessageSendStatus;
-  send_error?: string | null;
-  processed_by_agent?: boolean;
-}
 
 interface UseWhatsAppConversationsReturn {
   conversations: WhatsAppConversation[];
@@ -207,153 +178,13 @@ export const useWhatsAppConversations = (): UseWhatsAppConversationsReturn => {
     }
   }, [conversations, fetchMessages]);
 
-  // Enviar mensagem
-  const sendMessage = useCallback(async (
-    conversationId: string,
-    content: string,
-    _sender: 'agent'
-  ): Promise<boolean> => {
-    try {
-      // 1. Busca informacoes da conversa para obter o numero do lead
-      const { data: conversation, error: convError } = await supabase
-        .from('whatsapp_conversations')
-        .select('phone_number, lead_id, tenant_id')
-        .eq('id', conversationId)
-        .maybeSingle();
-
-      if (convError || !conversation) {
-        throw new Error('Conversa não encontrada');
-      }
-
-      // 2. Envia mensagem via WhatsApp API (Edge Function)
-      log.info('Enviando mensagem via WhatsApp API');
-      const { data: sendResult, error: sendError } = await supabase.functions.invoke(
-        'send-whatsapp-message',
-        {
-          body: {
-            to: conversation.phone_number,
-            text: content,
-            conversationId: conversationId,
-            leadId: conversation.lead_id,
-            tenantId: conversation.tenant_id,
-          },
-        }
-      );
-
-      if (sendError) {
-        log.error('Erro ao enviar via API', sendError);
-        throw new Error(sendError.message || 'Erro ao enviar mensagem via WhatsApp');
-      }
-
-      if (!sendResult?.success) {
-        throw new Error(sendResult?.error || 'Falha ao enviar mensagem via WhatsApp');
-      }
-
-      log.info('Mensagem enviada via WhatsApp', { messageId: sendResult.messageId });
-
-      // 3. A Edge Function ja salva a mensagem no banco, mas vamos garantir que a UI atualize
-      await supabase
-        .from('whatsapp_conversations')
-        .update({
-          last_message: content,
-          last_message_at: new Date().toISOString(),
-        })
-        .eq('id', conversationId)
-        .eq('tenant_id', conversation.tenant_id);
-
-      toast({
-        title: 'Mensagem enviada',
-        description: 'Sua mensagem foi enviada via WhatsApp com sucesso',
-      });
-
-      return true;
-    } catch (err: unknown) {
-      log.error('Erro ao enviar mensagem', err);
-      toast({
-        title: 'Erro ao enviar mensagem',
-        description: toUserMessage(err),
-        variant: 'destructive',
-      });
-      return false;
-    }
-  }, [toast]);
-
-  // Enviar midia (imagem, audio, documento)
-  const sendMedia = useCallback(async (
-    conversationId: string,
-    file: File,
-    mediaType: 'image' | 'audio' | 'document',
-  ): Promise<boolean> => {
-    try {
-      const { data: conversation, error: convError } = await supabase
-        .from('whatsapp_conversations')
-        .select('phone_number, lead_id, tenant_id')
-        .eq('id', conversationId)
-        .maybeSingle();
-
-      if (convError || !conversation) {
-        throw new Error('Conversa não encontrada');
-      }
-
-      // Convert file to base64
-      const base64 = await new Promise<string>((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = () => {
-          const result = reader.result as string;
-          // Remove data:...;base64, prefix
-          resolve(result.split(',')[1] || '');
-        };
-        reader.onerror = reject;
-        reader.readAsDataURL(file);
-      });
-
-      log.info(`Enviando ${mediaType} via WhatsApp API (${file.name}, ${(file.size / 1024).toFixed(0)}KB)`);
-
-      const { data: sendResult, error: sendError } = await supabase.functions.invoke(
-        'send-whatsapp-message',
-        {
-          body: {
-            to: conversation.phone_number,
-            text: '',
-            mediaType,
-            mediaBase64: base64,
-            mimeType: file.type,
-            fileName: file.name,
-            caption: mediaType !== 'audio' ? file.name : undefined,
-            conversationId,
-            leadId: conversation.lead_id,
-            tenantId: conversation.tenant_id,
-          },
-        }
-      );
-
-      if (sendError) {
-        throw new Error(sendError.message || 'Erro ao enviar mídia via WhatsApp');
-      }
-
-      if (!sendResult?.success) {
-        throw new Error(sendResult?.error || 'Falha ao enviar mídia');
-      }
-
-      const labelMap = { image: 'Imagem', audio: 'Áudio', document: 'Documento' };
-      toast({
-        title: `${labelMap[mediaType]} enviado(a)`,
-        description: `${file.name} enviado via WhatsApp com sucesso`,
-      });
-
-      // Refresh messages
+  // Message sending (text + media) — delegated to cohesive sub-hook.
+  // sendMedia needs to refresh messages after upload; hand it the fetcher via callback.
+  const { sendMessage, sendMedia } = useWhatsAppMessaging({
+    onMediaSent: (conversationId) => {
       void fetchMessages(conversationId);
-      return true;
-    } catch (err: unknown) {
-      log.error('Erro ao enviar mídia', err);
-      toast({
-        title: 'Erro ao enviar mídia',
-        description: toUserMessage(err),
-        variant: 'destructive',
-      });
-      return false;
-    }
-  }, [toast, fetchMessages]);
+    },
+  });
 
   // Marcar como lido
   const markAsRead = useCallback(async (conversationId: string) => {
