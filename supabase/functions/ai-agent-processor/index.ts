@@ -176,7 +176,7 @@ function generateExecutionId(): string {
   // Use cryptographic randomness for execution IDs
   const array = new Uint8Array(4);
   crypto.getRandomValues(array);
-  const random = Array.from(array, (byte) => byte.toString(36).padStart(1, "0")).join("");
+  const random = Array.from(array, (byte) => byte.toString(16).padStart(2, "0")).join("");
   return `exec_${timestamp}_${random}`;
 }
 
