@@ -107,7 +107,8 @@ export const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
     { resource: 'configuracoes', actions: ['read'] },
     { resource: 'relatorios', actions: ['read'] },
     { resource: 'logs', actions: [] },
-    { resource: 'integracoes', actions: ['read'] },
+    // integracoes: not readable by 'user' — SQL has_permission() enforces this.
+    { resource: 'integracoes', actions: [] },
     { resource: 'whatsapp', actions: ['read'] },
     { resource: 'agendamentos', actions: ['create', 'read', 'update'] },
     { resource: 'pipeline', actions: ['read'] },
@@ -132,7 +133,8 @@ export const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
     { resource: 'configuracoes', actions: [] },
     { resource: 'relatorios', actions: ['read'] },
     { resource: 'logs', actions: [] },
-    { resource: 'integracoes', actions: ['read'] },
+    // integracoes: not readable by 'viewer' — SQL has_permission() enforces this.
+    { resource: 'integracoes', actions: [] },
     { resource: 'whatsapp', actions: ['read'] },
     { resource: 'agendamentos', actions: ['read'] },
     { resource: 'pipeline', actions: ['read'] },

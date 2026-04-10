@@ -98,7 +98,8 @@ export default defineConfig({
       'dist/**',
       'e2e/**', // Playwright E2E tests
       'tests/**', // Old test structure
-      'src/__tests__/security.test.ts', // Legacy Jest file - needs migration
+      // security.test.ts exclusion removed 2026-04-10 — file was already on Vitest,
+      // only the config comment claimed otherwise. See audit task P3-17.
     ],
   },
   resolve: {

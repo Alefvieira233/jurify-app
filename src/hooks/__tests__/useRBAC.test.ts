@@ -163,10 +163,13 @@ describe('useRBAC', () => {
       expect(result.current.canManageConfig).toBe(false);
     });
 
-    it('should access integracoes (read)', () => {
+    it('should NOT access integracoes — reserved for admin/manager', () => {
+      // 2026-04-10 audit P3-14: the SQL has_permission function does not grant
+      // viewer any access to integracoes. Updated ROLE_PERMISSIONS to match.
       const { result } = renderHook(() => useRBAC(), { wrapper: createWrapper() });
 
-      expect(result.current.canManageIntegrations).toBe(true);
+      expect(result.current.can('integracoes', 'read')).toBe(false);
+      expect(result.current.canManageIntegrations).toBe(false);
     });
 
     it('should report isViewer true', () => {
@@ -240,10 +243,12 @@ describe('useRBAC', () => {
       expect(result.current.canViewLogs).toBe(false);
     });
 
-    it('should read integracoes but not manage', () => {
+    it('should NOT access integracoes — reserved for admin/manager', () => {
+      // 2026-04-10 audit P3-14: the SQL has_permission function does not grant
+      // 'user' role any access to integracoes. Updated ROLE_PERMISSIONS to match.
       const { result } = renderHook(() => useRBAC(), { wrapper: createWrapper() });
 
-      expect(result.current.can('integracoes', 'read')).toBe(true);
+      expect(result.current.can('integracoes', 'read')).toBe(false);
       expect(result.current.can('integracoes', 'manage')).toBe(false);
     });
 

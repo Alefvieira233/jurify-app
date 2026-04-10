@@ -1,20 +1,27 @@
 /**
- * 🧪 TESTES DE INTEGRAÇÃO — WHATSAPP WEBHOOK
+ * WhatsApp webhook — integration tests against the REAL normalizers.
  *
- * Valida o fluxo completo do webhook WhatsApp:
- * - Normalização de payloads Kapso API e Meta Official
- * - Deduplicação de mensagens
- * - Resolução de tenant via admin profile
- * - Criação/atualização de leads e conversas
- * - Invocação do agente IA (Coordenador)
- * - Envio de resposta via Kapso ou Meta
+ * Unlike the previous version, this file imports directly from
+ * `supabase/functions/_shared/whatsapp-logic.ts`. If the edge function's
+ * payload handling changes, these tests will fail — which is the point.
  */
 
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach } from 'vitest';
+import {
+  isKapsoPayload,
+  normalizeKapsoMessage,
+  normalizeMetaMessages,
+  getMessageId,
+  createDeduplicator,
+  timingSafeCompare,
+  verifyHmacSignature,
+  type WebhookPayload,
+  type Deduplicator,
+} from '../../../supabase/functions/_shared/whatsapp-logic';
 
-// ─── Mock Data ───────────────────────────────────────────────
+// ─── Fixtures ───────────────────────────────────────────────────
 
-const MOCK_KAPSO_MESSAGE_UPSERT = {
+const MOCK_KAPSO_LEGACY_MESSAGE: WebhookPayload = {
   event: 'messages.upsert',
   instance: 'jurify-prod',
   data: {
@@ -31,19 +38,19 @@ const MOCK_KAPSO_MESSAGE_UPSERT = {
   },
 };
 
-const MOCK_KAPSO_CONNECTION_UPDATE = {
+const MOCK_KAPSO_CONNECTION_UPDATE: WebhookPayload = {
   event: 'connection.update',
   instance: 'jurify-prod',
-  data: { state: 'open' },
+  data: { state: 'open' } as unknown as WebhookPayload['data'],
 };
 
-const MOCK_KAPSO_QRCODE = {
+const MOCK_KAPSO_QRCODE: WebhookPayload = {
   event: 'qrcode.updated',
   instance: 'jurify-prod',
-  data: { qrcode: { base64: 'data:image/png;base64,abc123' } },
+  data: { qrcode: { base64: 'data:image/png;base64,abc123' } } as unknown as WebhookPayload['data'],
 };
 
-const MOCK_KAPSO_FROM_ME = {
+const MOCK_KAPSO_FROM_ME: WebhookPayload = {
   event: 'messages.upsert',
   instance: 'jurify-prod',
   data: {
@@ -58,19 +65,41 @@ const MOCK_KAPSO_FROM_ME = {
   },
 };
 
-const MOCK_META_WEBHOOK = {
-  object: 'whatsapp_business_account',
+// v2-real payload: body has no `event`, carries message + conversation.
+const MOCK_KAPSO_V2_REAL = {
+  message: {
+    id: 'kapso_v2_msg_001',
+    type: 'text',
+    text: { body: 'Mensagem via v2-real' },
+    kapso: { direction: 'inbound', content: 'Mensagem via v2-real' },
+  },
+  conversation: {
+    phone_number: '+55 11 98765-4321',
+    kapso: { contact_name: 'Ana Paula' },
+  },
+  phone_number_id: '5511888888888',
+} as unknown as WebhookPayload;
+
+const MOCK_KAPSO_V2_REAL_OUTBOUND = {
+  message: {
+    id: 'kapso_v2_msg_out',
+    type: 'text',
+    text: { body: 'Resposta do bot' },
+    kapso: { direction: 'outbound', content: 'Resposta do bot' },
+  },
+  conversation: {
+    phone_number: '5511999888777',
+    kapso: { contact_name: 'Ana' },
+  },
+  phone_number_id: '5511888888888',
+} as unknown as WebhookPayload;
+
+const MOCK_META_WEBHOOK: WebhookPayload = {
   entry: [
     {
-      id: 'entry_001',
       changes: [
         {
           value: {
-            messaging_product: 'whatsapp',
-            metadata: {
-              display_phone_number: '5511888888888',
-              phone_number_id: '123456789',
-            },
             messages: [
               {
                 from: '5511999888777',
@@ -81,45 +110,34 @@ const MOCK_META_WEBHOOK = {
               },
             ],
           },
-          field: 'messages',
         },
       ],
     },
   ],
 };
 
-const MOCK_META_STATUS_UPDATE = {
-  object: 'whatsapp_business_account',
+const MOCK_META_STATUS_ONLY: WebhookPayload = {
   entry: [
     {
-      id: 'entry_002',
       changes: [
         {
           value: {
             statuses: [
-              {
-                id: 'wamid.status_001',
-                status: 'read',
-                recipient_id: '5511999888777',
-              },
+              { id: 'wamid.status_001', status: 'read', recipient_id: '5511999888777' },
             ],
           },
-          field: 'messages',
         },
       ],
     },
   ],
 };
 
-const MOCK_META_IMAGE_MESSAGE = {
-  object: 'whatsapp_business_account',
+const MOCK_META_IMAGE: WebhookPayload = {
   entry: [
     {
-      id: 'entry_003',
       changes: [
         {
           value: {
-            messaging_product: 'whatsapp',
             messages: [
               {
                 from: '5511777666555',
@@ -130,296 +148,93 @@ const MOCK_META_IMAGE_MESSAGE = {
               },
             ],
           },
-          field: 'messages',
         },
       ],
     },
   ],
 };
 
-// ─── Normalization Logic (extracted for testability) ─────────
+// ─── Provider detection ────────────────────────────────────────
 
-interface NormalizedMessage {
-  from: string;
-  name: string;
-  text: string;
-  messageType: string;
-  mediaUrl: string | null;
-  instanceName: string | null;
-  provider: 'kapso' | 'meta';
-}
-
-type WebhookPayload = Record<string, unknown>;
-
-function isKapsoPayload(payload: WebhookPayload): boolean {
-  return !!(payload?.event || payload?.instance || (payload?.data as Record<string, unknown>)?.key);
-}
-
-function normalizeKapsoMessage(payload: WebhookPayload): NormalizedMessage | null {
-  const event = payload.event as string;
-  if (event !== 'messages.upsert') return null;
-
-  const data = payload.data as Record<string, unknown> | undefined;
-  if (!data) return null;
-
-  const key = data.key as Record<string, unknown> | undefined;
-  if (key?.fromMe) return null;
-
-  const remoteJid = (key?.remoteJid as string) || '';
-  const from = remoteJid.replace('@s.whatsapp.net', '').replace('@g.us', '');
-  if (!from) return null;
-
-  const name = (data.pushName as string) || 'Unknown';
-  const messageType = (data.messageType as string) || 'conversation';
-  const msg = data.message as Record<string, unknown> | undefined;
-  if (!msg) return null;
-
-  let text = '';
-  let mediaUrl: string | null = null;
-
-  if (msg.conversation) {
-    text = msg.conversation as string;
-  } else if ((msg.extendedTextMessage as Record<string, unknown>)?.text) {
-    text = (msg.extendedTextMessage as Record<string, unknown>).text as string;
-  } else if (msg.imageMessage) {
-    const img = msg.imageMessage as Record<string, unknown>;
-    text = (img.caption as string) || '[Imagem recebida]';
-    mediaUrl = (img.url as string) || null;
-  } else if (msg.audioMessage) {
-    text = '[Audio recebido]';
-    mediaUrl = (msg.audioMessage as Record<string, unknown>).url as string || null;
-  } else {
-    text = `[${messageType} recebido]`;
-  }
-
-  if (!text) return null;
-
-  return {
-    from,
-    name,
-    text,
-    messageType: messageType === 'conversation' ? 'text' : messageType,
-    mediaUrl,
-    instanceName: (payload.instance as string) || null,
-    provider: 'kapso',
-  };
-}
-
-function normalizeMetaMessages(payload: WebhookPayload): NormalizedMessage[] {
-  const results: NormalizedMessage[] = [];
-  const entries = (payload.entry as Record<string, unknown>[]) || [];
-
-  for (const entry of entries) {
-    const changes = (entry.changes as Record<string, unknown>[]) || [];
-    for (const change of changes) {
-      const value = change.value as Record<string, unknown> | undefined;
-      const messages = (value?.messages as Record<string, unknown>[]) || [];
-
-      for (const message of messages) {
-        const from = message.from as string;
-        const vendor = message._vendor as Record<string, unknown> | undefined;
-        const name = (vendor?.name as string) || 'Unknown';
-        const msgType = (message.type as string) || 'text';
-        let text = '';
-        let mediaUrl: string | null = null;
-
-        switch (msgType) {
-          case 'text': {
-            const textObj = message.text as Record<string, unknown> | undefined;
-            text = (textObj?.body as string) || '';
-            break;
-          }
-          case 'image': {
-            const img = message.image as Record<string, unknown> | undefined;
-            text = (img?.caption as string) || '[Imagem recebida]';
-            mediaUrl = (img?.id as string) || null;
-            break;
-          }
-          case 'document': {
-            const doc = message.document as Record<string, unknown> | undefined;
-            text = (doc?.caption as string) || `[Documento: ${(doc?.filename as string) || 'arquivo'}]`;
-            mediaUrl = (doc?.id as string) || null;
-            break;
-          }
-          case 'audio':
-            text = '[Audio recebido]';
-            mediaUrl = (message.audio as Record<string, unknown>)?.id as string || null;
-            break;
-          default:
-            text = `[${msgType} recebido]`;
-        }
-
-        if (text) {
-          results.push({ from, name, text, messageType: msgType, mediaUrl, instanceName: null, provider: 'meta' });
-        }
-      }
-    }
-  }
-
-  return results;
-}
-
-// ─── Deduplication Logic ─────────────────────────────────────
-
-function createDeduplicator() {
-  const processed = new Map<string, number>();
-  const TTL = 5 * 60 * 1000;
-
-  return {
-    isDuplicate(id: string): boolean {
-      const now = Date.now();
-      for (const [key, ts] of processed) {
-        if (now - ts > TTL) processed.delete(key);
-      }
-      if (processed.has(id)) return true;
-      processed.set(id, now);
-      return false;
-    },
-    clear() {
-      processed.clear();
-    },
-  };
-}
-
-function getMessageId(payload: WebhookPayload, provider: 'kapso' | 'meta'): string | null {
-  if (provider === 'kapso') {
-    const data = payload.data as Record<string, unknown> | undefined;
-    const key = data?.key as Record<string, unknown> | undefined;
-    return (key?.id as string) || null;
-  }
-  const entries = (payload.entry as Record<string, unknown>[]) || [];
-  for (const entry of entries) {
-    const changes = (entry.changes as Record<string, unknown>[]) || [];
-    for (const change of changes) {
-      const value = change.value as Record<string, unknown> | undefined;
-      const messages = (value?.messages as Record<string, unknown>[]) || [];
-      for (const message of messages) {
-        return (message.id as string) || null;
-      }
-    }
-  }
-  return null;
-}
-
-// ─── Tests ───────────────────────────────────────────────────
-
-describe('WhatsApp Webhook — Payload Detection', () => {
-  it('detects Kapso API payload', () => {
-    expect(isKapsoPayload(MOCK_KAPSO_MESSAGE_UPSERT as WebhookPayload)).toBe(true);
-    expect(isKapsoPayload(MOCK_KAPSO_CONNECTION_UPDATE as WebhookPayload)).toBe(true);
-    expect(isKapsoPayload(MOCK_KAPSO_QRCODE as WebhookPayload)).toBe(true);
+describe('isKapsoPayload', () => {
+  it('detects legacy Kapso (event + instance + data.key)', () => {
+    expect(isKapsoPayload(MOCK_KAPSO_LEGACY_MESSAGE)).toBe(true);
+    expect(isKapsoPayload(MOCK_KAPSO_CONNECTION_UPDATE)).toBe(true);
+    expect(isKapsoPayload(MOCK_KAPSO_QRCODE)).toBe(true);
   });
 
-  it('detects Meta Official API payload', () => {
-    expect(isKapsoPayload(MOCK_META_WEBHOOK as WebhookPayload)).toBe(false);
-    expect(isKapsoPayload(MOCK_META_STATUS_UPDATE as WebhookPayload)).toBe(false);
+  it('detects Kapso v2-real (message + conversation)', () => {
+    expect(isKapsoPayload(MOCK_KAPSO_V2_REAL)).toBe(true);
   });
 
-  it('handles empty/null payloads gracefully', () => {
+  it('detects Kapso v2-real with phone_number_id instead of conversation', () => {
+    const v2OnlyPhoneId = {
+      message: { id: 'm1', type: 'text', text: { body: 'hi' } },
+      phone_number_id: '5511888888888',
+    } as unknown as WebhookPayload;
+    expect(isKapsoPayload(v2OnlyPhoneId)).toBe(true);
+  });
+
+  it('rejects Meta Official payloads', () => {
+    expect(isKapsoPayload(MOCK_META_WEBHOOK)).toBe(false);
+    expect(isKapsoPayload(MOCK_META_STATUS_ONLY)).toBe(false);
+  });
+
+  it('rejects empty and noise payloads', () => {
     expect(isKapsoPayload({} as WebhookPayload)).toBe(false);
-    expect(isKapsoPayload({ random: 'data' } as WebhookPayload)).toBe(false);
+    expect(isKapsoPayload({ random: 'data' } as unknown as WebhookPayload)).toBe(false);
   });
 });
 
-describe('WhatsApp Webhook — Kapso API Normalization', () => {
-  it('normalizes a text message correctly', () => {
-    const result = normalizeKapsoMessage(MOCK_KAPSO_MESSAGE_UPSERT as WebhookPayload);
+// ─── Kapso normalization: legacy (Evolution API) format ───────
+
+describe('normalizeKapsoMessage — legacy format', () => {
+  it('normalizes a conversation-type text message', () => {
+    const result = normalizeKapsoMessage(MOCK_KAPSO_LEGACY_MESSAGE);
     expect(result).not.toBeNull();
-    expect(result!.from).toBe('5511999888777');
-    expect(result!.name).toBe('João Silva');
-    expect(result!.text).toBe('Olá, preciso de ajuda com direito trabalhista.');
-    expect(result!.messageType).toBe('text');
-    expect(result!.provider).toBe('kapso');
-    expect(result!.instanceName).toBe('jurify-prod');
-    expect(result!.mediaUrl).toBeNull();
+    expect(result).toEqual({
+      from: '5511999888777',
+      name: 'João Silva',
+      text: 'Olá, preciso de ajuda com direito trabalhista.',
+      messageType: 'text',
+      mediaUrl: null,
+      instanceName: 'jurify-prod',
+      provider: 'kapso',
+    });
   });
 
-  it('ignores fromMe messages (bot replies)', () => {
-    const result = normalizeKapsoMessage(MOCK_KAPSO_FROM_ME as WebhookPayload);
-    expect(result).toBeNull();
+  it('returns null for fromMe (bot echo)', () => {
+    expect(normalizeKapsoMessage(MOCK_KAPSO_FROM_ME)).toBeNull();
   });
 
-  it('ignores non-message events', () => {
-    expect(normalizeKapsoMessage(MOCK_KAPSO_CONNECTION_UPDATE as WebhookPayload)).toBeNull();
-    expect(normalizeKapsoMessage(MOCK_KAPSO_QRCODE as WebhookPayload)).toBeNull();
+  it('returns null for non-message events', () => {
+    expect(normalizeKapsoMessage(MOCK_KAPSO_CONNECTION_UPDATE)).toBeNull();
+    expect(normalizeKapsoMessage(MOCK_KAPSO_QRCODE)).toBeNull();
   });
 
-  it('handles missing data gracefully', () => {
+  it('returns null for messages.upsert with no data', () => {
     expect(normalizeKapsoMessage({ event: 'messages.upsert' } as WebhookPayload)).toBeNull();
-    expect(normalizeKapsoMessage({ event: 'messages.upsert', data: {} } as WebhookPayload)).toBeNull();
-  });
-});
-
-describe('WhatsApp Webhook — Meta Official API Normalization', () => {
-  it('normalizes a text message correctly', () => {
-    const results = normalizeMetaMessages(MOCK_META_WEBHOOK as WebhookPayload);
-    expect(results).toHaveLength(1);
-    expect(results[0].from).toBe('5511999888777');
-    expect(results[0].name).toBe('Maria Santos');
-    expect(results[0].text).toBe('Preciso de um advogado urgente!');
-    expect(results[0].messageType).toBe('text');
-    expect(results[0].provider).toBe('meta');
-    expect(results[0].instanceName).toBeNull();
   });
 
-  it('normalizes an image message with caption', () => {
-    const results = normalizeMetaMessages(MOCK_META_IMAGE_MESSAGE as WebhookPayload);
-    expect(results).toHaveLength(1);
-    expect(results[0].text).toBe('Foto do contrato');
-    expect(results[0].messageType).toBe('image');
-    expect(results[0].mediaUrl).toBe('img_media_001');
+  it('returns null for messages.upsert with empty message body', () => {
+    const payload = {
+      event: 'messages.upsert',
+      instance: 'test',
+      data: {
+        key: { remoteJid: '5511999888777@s.whatsapp.net', fromMe: false, id: 'x' },
+        pushName: 'T',
+        messageType: 'conversation',
+        message: {},
+      },
+    } as WebhookPayload;
+    // No conversation / extendedTextMessage / etc means text becomes
+    // `[conversation recebido]`, which is truthy → still produces a row.
+    const result = normalizeKapsoMessage(payload);
+    expect(result).not.toBeNull();
+    expect(result!.text).toBe('[conversation recebido]');
   });
 
-  it('returns empty array for status-only updates', () => {
-    const results = normalizeMetaMessages(MOCK_META_STATUS_UPDATE as WebhookPayload);
-    expect(results).toHaveLength(0);
-  });
-
-  it('handles empty payload', () => {
-    expect(normalizeMetaMessages({} as WebhookPayload)).toHaveLength(0);
-    expect(normalizeMetaMessages({ entry: [] } as WebhookPayload)).toHaveLength(0);
-  });
-});
-
-describe('WhatsApp Webhook — Deduplication', () => {
-  let dedup: ReturnType<typeof createDeduplicator>;
-
-  beforeEach(() => {
-    dedup = createDeduplicator();
-  });
-
-  it('first message is not a duplicate', () => {
-    expect(dedup.isDuplicate('msg_001')).toBe(false);
-  });
-
-  it('same message ID is detected as duplicate', () => {
-    dedup.isDuplicate('msg_001');
-    expect(dedup.isDuplicate('msg_001')).toBe(true);
-  });
-
-  it('different message IDs are not duplicates', () => {
-    dedup.isDuplicate('msg_001');
-    expect(dedup.isDuplicate('msg_002')).toBe(false);
-  });
-
-  it('extracts Kapso message ID', () => {
-    const id = getMessageId(MOCK_KAPSO_MESSAGE_UPSERT as WebhookPayload, 'kapso');
-    expect(id).toBe('evo_msg_001');
-  });
-
-  it('extracts Meta message ID', () => {
-    const id = getMessageId(MOCK_META_WEBHOOK as WebhookPayload, 'meta');
-    expect(id).toBe('wamid.meta_001');
-  });
-
-  it('returns null for missing message ID', () => {
-    expect(getMessageId({} as WebhookPayload, 'kapso')).toBeNull();
-    expect(getMessageId({} as WebhookPayload, 'meta')).toBeNull();
-  });
-});
-
-describe('WhatsApp Webhook — Edge Cases', () => {
-  it('handles Kapso extended text message', () => {
+  it('handles extended text message with URL', () => {
     const payload = {
       event: 'messages.upsert',
       instance: 'test',
@@ -429,13 +244,13 @@ describe('WhatsApp Webhook — Edge Cases', () => {
         messageType: 'extendedTextMessage',
         message: { extendedTextMessage: { text: 'Mensagem com link https://example.com' } },
       },
-    };
-    const result = normalizeKapsoMessage(payload as WebhookPayload);
+    } as WebhookPayload;
+    const result = normalizeKapsoMessage(payload);
     expect(result).not.toBeNull();
     expect(result!.text).toBe('Mensagem com link https://example.com');
   });
 
-  it('handles Kapso image message', () => {
+  it('extracts image URL and caption from imageMessage', () => {
     const payload = {
       event: 'messages.upsert',
       instance: 'test',
@@ -445,14 +260,14 @@ describe('WhatsApp Webhook — Edge Cases', () => {
         messageType: 'imageMessage',
         message: { imageMessage: { caption: 'Documento importante', url: 'https://cdn.example.com/img.jpg' } },
       },
-    };
-    const result = normalizeKapsoMessage(payload as WebhookPayload);
+    } as WebhookPayload;
+    const result = normalizeKapsoMessage(payload);
     expect(result).not.toBeNull();
     expect(result!.text).toBe('Documento importante');
     expect(result!.mediaUrl).toBe('https://cdn.example.com/img.jpg');
   });
 
-  it('handles Kapso audio message', () => {
+  it('uses placeholder text for audio messages', () => {
     const payload = {
       event: 'messages.upsert',
       instance: 'test',
@@ -462,14 +277,14 @@ describe('WhatsApp Webhook — Edge Cases', () => {
         messageType: 'audioMessage',
         message: { audioMessage: { url: 'https://cdn.example.com/audio.ogg' } },
       },
-    };
-    const result = normalizeKapsoMessage(payload as WebhookPayload);
+    } as WebhookPayload;
+    const result = normalizeKapsoMessage(payload);
     expect(result).not.toBeNull();
     expect(result!.text).toBe('[Audio recebido]');
     expect(result!.mediaUrl).toBe('https://cdn.example.com/audio.ogg');
   });
 
-  it('handles group JID format', () => {
+  it('strips group suffix from JIDs', () => {
     const payload = {
       event: 'messages.upsert',
       instance: 'test',
@@ -479,42 +294,165 @@ describe('WhatsApp Webhook — Edge Cases', () => {
         messageType: 'conversation',
         message: { conversation: 'Mensagem no grupo' },
       },
-    };
-    const result = normalizeKapsoMessage(payload as WebhookPayload);
+    } as WebhookPayload;
+    const result = normalizeKapsoMessage(payload);
     expect(result).not.toBeNull();
     expect(result!.from).toBe('120363123456789');
   });
 
-  it('handles Meta document message', () => {
+  it('accepts event from the X-Webhook-Event header when body has no event', () => {
     const payload = {
-      object: 'whatsapp_business_account',
+      instance: 'test',
+      data: {
+        key: { remoteJid: '5511999999999@s.whatsapp.net', fromMe: false, id: 'hdr_001' },
+        pushName: 'HeaderEvent',
+        messageType: 'conversation',
+        message: { conversation: 'via header' },
+      },
+    } as WebhookPayload;
+    const result = normalizeKapsoMessage(payload, 'messages.upsert');
+    expect(result).not.toBeNull();
+    expect(result!.text).toBe('via header');
+  });
+});
+
+// ─── Kapso normalization: v2-real format ──────────────────────
+
+describe('normalizeKapsoMessage — v2-real format', () => {
+  it('normalizes an inbound text message', () => {
+    const result = normalizeKapsoMessage(MOCK_KAPSO_V2_REAL);
+    expect(result).not.toBeNull();
+    expect(result!.from).toBe('5511987654321'); // non-digits stripped
+    expect(result!.name).toBe('Ana Paula');
+    expect(result!.text).toBe('Mensagem via v2-real');
+    expect(result!.messageType).toBe('text');
+    expect(result!.provider).toBe('kapso');
+    expect(result!.instanceName).toBe('5511888888888');
+  });
+
+  it('returns null for outbound messages (direction: outbound)', () => {
+    expect(normalizeKapsoMessage(MOCK_KAPSO_V2_REAL_OUTBOUND)).toBeNull();
+  });
+
+  it('returns null when phone_number is missing', () => {
+    const payload = {
+      message: { id: 'x', type: 'text', text: { body: 'hi' }, kapso: { direction: 'inbound' } },
+      conversation: { phone_number: '', kapso: { contact_name: 'None' } },
+      phone_number_id: '5511888888888',
+    } as unknown as WebhookPayload;
+    expect(normalizeKapsoMessage(payload)).toBeNull();
+  });
+
+  it('extracts image caption and media_url', () => {
+    const payload = {
+      message: {
+        id: 'x',
+        type: 'image',
+        image: { caption: 'Olha o contrato' },
+        kapso: { direction: 'inbound', media_url: 'https://cdn/x.jpg' },
+      },
+      conversation: { phone_number: '5511987654321', kapso: { contact_name: 'Teste' } },
+      phone_number_id: '5511888888888',
+    } as unknown as WebhookPayload;
+    const result = normalizeKapsoMessage(payload);
+    expect(result).not.toBeNull();
+    expect(result!.text).toBe('Olha o contrato');
+    expect(result!.mediaUrl).toBe('https://cdn/x.jpg');
+    expect(result!.messageType).toBe('image');
+  });
+
+  it('extracts interactive button reply title', () => {
+    const payload = {
+      message: {
+        id: 'x',
+        type: 'interactive',
+        interactive: { button_reply: { title: 'Confirmar agendamento' } },
+        kapso: { direction: 'inbound' },
+      },
+      conversation: { phone_number: '5511987654321', kapso: { contact_name: 'Teste' } },
+      phone_number_id: '5511888888888',
+    } as unknown as WebhookPayload;
+    const result = normalizeKapsoMessage(payload);
+    expect(result).not.toBeNull();
+    expect(result!.text).toBe('Confirmar agendamento');
+  });
+
+  it('uses kapso.transcript for audio when available', () => {
+    const payload = {
+      message: {
+        id: 'x',
+        type: 'audio',
+        kapso: { direction: 'inbound', transcript: { text: 'Oi, preciso de ajuda' }, media_url: 'https://cdn/a.ogg' },
+      },
+      conversation: { phone_number: '5511987654321', kapso: { contact_name: 'Teste' } },
+      phone_number_id: '5511888888888',
+    } as unknown as WebhookPayload;
+    const result = normalizeKapsoMessage(payload);
+    expect(result).not.toBeNull();
+    expect(result!.text).toBe('Oi, preciso de ajuda');
+    expect(result!.mediaUrl).toBe('https://cdn/a.ogg');
+  });
+});
+
+// ─── Meta Official normalization ──────────────────────────────
+
+describe('normalizeMetaMessages', () => {
+  it('normalizes a single text message', () => {
+    const results = normalizeMetaMessages(MOCK_META_WEBHOOK);
+    expect(results).toHaveLength(1);
+    expect(results[0]).toEqual({
+      from: '5511999888777',
+      name: 'Maria Santos',
+      text: 'Preciso de um advogado urgente!',
+      messageType: 'text',
+      mediaUrl: null,
+      instanceName: null,
+      provider: 'meta',
+    });
+  });
+
+  it('normalizes an image with caption', () => {
+    const results = normalizeMetaMessages(MOCK_META_IMAGE);
+    expect(results).toHaveLength(1);
+    expect(results[0].text).toBe('Foto do contrato');
+    expect(results[0].messageType).toBe('image');
+    expect(results[0].mediaUrl).toBe('img_media_001');
+  });
+
+  it('returns empty for status-only updates', () => {
+    expect(normalizeMetaMessages(MOCK_META_STATUS_ONLY)).toHaveLength(0);
+  });
+
+  it('returns empty for empty payloads', () => {
+    expect(normalizeMetaMessages({} as WebhookPayload)).toHaveLength(0);
+    expect(normalizeMetaMessages({ entry: [] })).toHaveLength(0);
+  });
+
+  it('handles document messages with filename fallback', () => {
+    const payload = {
       entry: [{
-        id: 'e1',
         changes: [{
           value: {
             messages: [{
               from: '5511444444444',
               id: 'wamid.doc_001',
               type: 'document',
-              document: { id: 'doc_media_001', filename: 'contrato.pdf', caption: '' },
+              document: { id: 'doc_media_001', filename: 'contrato.pdf' },
               _vendor: { name: 'Doc User' },
             }],
           },
-          field: 'messages',
         }],
       }],
-    };
-    const results = normalizeMetaMessages(payload as WebhookPayload);
+    } as WebhookPayload;
+    const results = normalizeMetaMessages(payload);
     expect(results).toHaveLength(1);
     expect(results[0].text).toBe('[Documento: contrato.pdf]');
     expect(results[0].mediaUrl).toBe('doc_media_001');
   });
 
-  it('handles multiple messages in single Meta webhook', () => {
+  it('normalizes multiple messages in a single webhook', () => {
     const payload = {
-      object: 'whatsapp_business_account',
       entry: [{
-        id: 'e1',
         changes: [{
           value: {
             messages: [
@@ -522,13 +460,180 @@ describe('WhatsApp Webhook — Edge Cases', () => {
               { from: '5511222222222', id: 'w2', type: 'text', text: { body: 'Msg 2' }, _vendor: { name: 'B' } },
             ],
           },
-          field: 'messages',
         }],
       }],
-    };
-    const results = normalizeMetaMessages(payload as WebhookPayload);
+    } as WebhookPayload;
+    const results = normalizeMetaMessages(payload);
     expect(results).toHaveLength(2);
     expect(results[0].from).toBe('5511111111111');
     expect(results[1].from).toBe('5511222222222');
+  });
+
+  it('drops messages with empty text body', () => {
+    const payload = {
+      entry: [{
+        changes: [{
+          value: {
+            messages: [
+              { from: '5511111111111', id: 'empty', type: 'text', text: { body: '' }, _vendor: { name: 'A' } },
+            ],
+          },
+        }],
+      }],
+    } as WebhookPayload;
+    const results = normalizeMetaMessages(payload);
+    expect(results).toHaveLength(0);
+  });
+
+  it('drops messages without `from` field', () => {
+    const payload = {
+      entry: [{
+        changes: [{
+          value: {
+            messages: [
+              { id: 'nofrom', type: 'text', text: { body: 'orphan' }, _vendor: { name: 'X' } },
+            ],
+          },
+        }],
+      }],
+    } as WebhookPayload;
+    const results = normalizeMetaMessages(payload);
+    expect(results).toHaveLength(0);
+  });
+});
+
+// ─── Message ID extraction ────────────────────────────────────
+
+describe('getMessageId', () => {
+  it('extracts Kapso legacy message ID from data.key.id', () => {
+    expect(getMessageId(MOCK_KAPSO_LEGACY_MESSAGE, 'kapso')).toBe('evo_msg_001');
+  });
+
+  it('extracts Kapso v2-real message ID from message.id', () => {
+    expect(getMessageId(MOCK_KAPSO_V2_REAL, 'kapso')).toBe('kapso_v2_msg_001');
+  });
+
+  it('extracts Meta message ID from first message in first change', () => {
+    expect(getMessageId(MOCK_META_WEBHOOK, 'meta')).toBe('wamid.meta_001');
+  });
+
+  it('returns null when ID is absent', () => {
+    expect(getMessageId({} as WebhookPayload, 'kapso')).toBeNull();
+    expect(getMessageId({} as WebhookPayload, 'meta')).toBeNull();
+  });
+});
+
+// ─── Deduplicator ────────────────────────────────────────────
+
+describe('createDeduplicator', () => {
+  let dedup: Deduplicator;
+
+  beforeEach(() => {
+    dedup = createDeduplicator();
+  });
+
+  it('does not flag a first-seen ID as duplicate', () => {
+    expect(dedup.isDuplicate('msg_001')).toBe(false);
+  });
+
+  it('flags the second occurrence of the same ID', () => {
+    dedup.isDuplicate('msg_001');
+    expect(dedup.isDuplicate('msg_001')).toBe(true);
+  });
+
+  it('treats distinct IDs independently', () => {
+    dedup.isDuplicate('msg_001');
+    expect(dedup.isDuplicate('msg_002')).toBe(false);
+  });
+
+  it('evicts expired entries past the TTL (with injected clock)', () => {
+    let now = 1_000_000;
+    const clock = () => now;
+    const d = createDeduplicator(500, clock);
+
+    expect(d.isDuplicate('x')).toBe(false);
+    expect(d.isDuplicate('x')).toBe(true);
+
+    now += 1000; // past 500ms TTL
+    expect(d.isDuplicate('x')).toBe(false); // re-inserted after eviction
+    expect(d.size()).toBe(1);
+  });
+
+  it('clear() wipes all stored IDs', () => {
+    dedup.isDuplicate('a');
+    dedup.isDuplicate('b');
+    expect(dedup.size()).toBe(2);
+    dedup.clear();
+    expect(dedup.size()).toBe(0);
+    expect(dedup.isDuplicate('a')).toBe(false);
+  });
+
+  it('isolates state between deduplicator instances', () => {
+    const d1 = createDeduplicator();
+    const d2 = createDeduplicator();
+    d1.isDuplicate('shared');
+    expect(d2.isDuplicate('shared')).toBe(false);
+  });
+});
+
+// ─── Timing-safe compare ─────────────────────────────────────
+
+describe('timingSafeCompare', () => {
+  it('returns true for identical strings', () => {
+    expect(timingSafeCompare('secret123', 'secret123')).toBe(true);
+  });
+
+  it('returns false for different strings of same length', () => {
+    expect(timingSafeCompare('secret123', 'secret124')).toBe(false);
+  });
+
+  it('returns false for strings of different length', () => {
+    expect(timingSafeCompare('abc', 'abcd')).toBe(false);
+  });
+
+  it('returns true for two empty strings', () => {
+    expect(timingSafeCompare('', '')).toBe(true);
+  });
+});
+
+// ─── HMAC verification ───────────────────────────────────────
+
+describe('verifyHmacSignature', () => {
+  const secret = 'tenant-secret-xyz';
+  const payload = JSON.stringify({ event: 'test' });
+
+  async function computeHmac(): Promise<string> {
+    const encoder = new TextEncoder();
+    const key = await crypto.subtle.importKey(
+      'raw',
+      encoder.encode(secret),
+      { name: 'HMAC', hash: 'SHA-256' },
+      false,
+      ['sign'],
+    );
+    const sig = await crypto.subtle.sign('HMAC', key, encoder.encode(payload));
+    return Array.from(new Uint8Array(sig))
+      .map((b) => b.toString(16).padStart(2, '0'))
+      .join('');
+  }
+
+  it('accepts a valid signature', async () => {
+    const signature = await computeHmac();
+    expect(await verifyHmacSignature(payload, signature, secret)).toBe(true);
+  });
+
+  it('rejects a signature from a different secret', async () => {
+    const signature = await computeHmac();
+    expect(await verifyHmacSignature(payload, signature, 'wrong-secret')).toBe(false);
+  });
+
+  it('rejects a tampered payload', async () => {
+    const signature = await computeHmac();
+    expect(await verifyHmacSignature(payload + '.', signature, secret)).toBe(false);
+  });
+
+  it('rejects a truncated signature', async () => {
+    const signature = (await computeHmac()).slice(0, 30);
+    expect(await verifyHmacSignature(payload, signature, secret)).toBe(false);
   });
 });

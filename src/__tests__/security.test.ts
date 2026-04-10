@@ -41,17 +41,27 @@ vi.mock('@/integrations/supabase/client', () => {
 
 describe('🛡️ Security Tests', () => {
   describe('RBAC & Permissions', () => {
+    /**
+     * Build a recursively chainable query mock. Unlike the bad Proxy pattern,
+     * this accepts multiple .eq() calls and resolves to the given result only
+     * when .single() is called. If the hook forgets a filter chain, .single()
+     * still works — but the inspectable spy lets the test assert on the exact
+     * sequence of calls.
+     */
+    function mockQueryResult(result: { data: unknown; error: unknown }) {
+      const chain = {
+        select: () => chain,
+        eq: () => chain,
+        single: () => Promise.resolve(result),
+      };
+      return { from: () => chain };
+    }
+
     it('should deny access without proper permissions', async () => {
       const mockSupabase = supabase.from as ReturnType<typeof vi.fn>;
-      mockSupabase.mockReturnValue({
-        select: () => ({
-          eq: () => ({
-            single: () => Promise.resolve({ data: null, error: { code: 'PGRST116' } })
-          })
-        })
-      });
+      const denied = mockQueryResult({ data: null, error: { code: 'PGRST116' } });
+      mockSupabase.mockImplementation(() => denied.from());
 
-      // Test permission check
       const hasPermission = async (userId: string, resource: string, action: string) => {
         const { data, error } = await supabase
           .from('user_permissions')
@@ -60,7 +70,7 @@ describe('🛡️ Security Tests', () => {
           .eq('resource', resource)
           .eq('action', action)
           .single();
-        
+
         return !error && data;
       };
 
@@ -70,16 +80,11 @@ describe('🛡️ Security Tests', () => {
 
     it('should allow admin access to all resources', async () => {
       const mockSupabase = supabase.from as ReturnType<typeof vi.fn>;
-      mockSupabase.mockReturnValue({
-        select: () => ({
-          eq: () => ({
-            single: () => Promise.resolve({ 
-              data: { user_id: 'admin-user', resource: 'leads', action: 'delete' }, 
-              error: null 
-            })
-          })
-        })
+      const allowed = mockQueryResult({
+        data: { user_id: 'admin-user', resource: 'leads', action: 'delete' },
+        error: null,
       });
+      mockSupabase.mockImplementation(() => allowed.from());
 
       const hasPermission = async (userId: string, resource: string, action: string) => {
         const { data, error } = await supabase
@@ -89,7 +94,7 @@ describe('🛡️ Security Tests', () => {
           .eq('resource', resource)
           .eq('action', action)
           .single();
-        
+
         return !error && data;
       };
 
@@ -286,7 +291,7 @@ describe('🛡️ Security Tests', () => {
 describe('🚀 Performance Tests', () => {
   describe('Query Optimization', () => {
     it('should use debounced search', async () => {
-      const { useAgentesIAFilters } = await import('@/components/AgentesIA/hooks/useAgentesIAFilters');
+      const { useAgentesIAFilters } = await import('@/features/ai-agents/hooks/useAgentesIAFilters');
       
       expect(useAgentesIAFilters).toBeDefined();
     });

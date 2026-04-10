@@ -1,275 +1,353 @@
 /**
- * 🧪 TESTES DE INTEGRAÇÃO — STRIPE WEBHOOK
+ * Stripe webhook — integration tests against the REAL logic module.
  *
- * Valida o fluxo completo do webhook Stripe:
- * - Verificação de assinatura do webhook
- * - Mapeamento de preços para planos
- * - Gerenciamento de status de assinatura
- * - Tratamento de falhas de pagamento
- * - Mapeamento de status Stripe → interno
+ * Unlike the previous version, this file imports the exact same functions the
+ * edge function runs in production (`supabase/functions/_shared/stripe-logic.ts`).
+ * If a change in the edge function breaks mapping, pricing, or payload shape,
+ * these tests will fail.
  */
 
 import { describe, it, expect } from 'vitest';
+import {
+  mapPriceToPlanId,
+  mapStripeStatus,
+  formatBrlCurrency,
+  planDisplayName,
+  buildSubscriptionUpsertPayload,
+  isHandledStripeEvent,
+  HANDLED_STRIPE_EVENTS,
+  STRIPE_STATUS_MAP,
+  type StripeSubscriptionLike,
+} from '../../../supabase/functions/_shared/stripe-logic';
 
-// ─── Price-to-Plan Mapping Logic (extracted) ─────────────────
+// ─── Fixtures ───────────────────────────────────────────────
 
-function mapPriceToPlanId(
-  priceId: string,
-  metadataPlanId?: string | null,
-  proPriceId?: string,
-  enterprisePriceId?: string
-): string | null {
-  if (metadataPlanId) return metadataPlanId;
-  if (proPriceId && priceId === proPriceId) return 'pro';
-  if (enterprisePriceId && priceId === enterprisePriceId) return 'enterprise';
-  return null;
+const PRO_PRICE = 'price_pro_monthly';
+const ENTERPRISE_PRICE = 'price_enterprise_monthly';
+
+const priceConfig = {
+  proPriceId: PRO_PRICE,
+  enterprisePriceId: ENTERPRISE_PRICE,
+};
+
+function makeSubscription(overrides: Partial<StripeSubscriptionLike> = {}): StripeSubscriptionLike {
+  const start = 1_700_000_000;
+  const end = start + 30 * 24 * 60 * 60;
+  return {
+    id: 'sub_test_001',
+    status: 'active',
+    items: {
+      data: [{ price: { id: PRO_PRICE, unit_amount: 9900 } }],
+    },
+    metadata: {},
+    current_period_start: start,
+    current_period_end: end,
+    cancel_at_period_end: false,
+    ...overrides,
+  };
 }
 
-// ─── Status Mapping Logic (extracted) ────────────────────────
+// ─── Price-to-Plan Mapping ─────────────────────────────────
 
-const STRIPE_STATUS_MAP: Record<string, string> = {
-  active: 'active',
-  past_due: 'past_due',
-  canceled: 'canceled',
-  unpaid: 'past_due',
-  incomplete: 'incomplete',
-  incomplete_expired: 'canceled',
-  trialing: 'trialing',
-  paused: 'paused',
-};
-
-function mapStripeStatus(stripeStatus: string): string {
-  return STRIPE_STATUS_MAP[stripeStatus] || stripeStatus;
-}
-
-// ─── Mock Stripe Events ─────────────────────────────────────
-
-const MOCK_SUBSCRIPTION_CREATED = {
-  type: 'customer.subscription.created',
-  data: {
-    object: {
-      id: 'sub_test_001',
-      customer: 'cus_test_001',
-      status: 'active',
-      items: {
-        data: [{ price: { id: 'price_pro_monthly' } }],
-      },
-      metadata: {},
-      current_period_start: Math.floor(Date.now() / 1000),
-      current_period_end: Math.floor(Date.now() / 1000) + 30 * 24 * 60 * 60,
-      cancel_at_period_end: false,
-    },
-  },
-};
-
-const MOCK_SUBSCRIPTION_CANCELED = {
-  type: 'customer.subscription.deleted',
-  data: {
-    object: {
-      id: 'sub_test_002',
-      customer: 'cus_test_002',
-      status: 'canceled',
-      items: {
-        data: [{ price: { id: 'price_enterprise_monthly' } }],
-      },
-      metadata: { plan_id: 'enterprise' },
-      current_period_start: Math.floor(Date.now() / 1000) - 30 * 24 * 60 * 60,
-      current_period_end: Math.floor(Date.now() / 1000),
-      cancel_at_period_end: false,
-    },
-  },
-};
-
-const MOCK_PAYMENT_SUCCEEDED = {
-  type: 'invoice.payment_succeeded',
-  data: {
-    object: {
-      id: 'inv_test_001',
-      customer: 'cus_test_001',
-      subscription: 'sub_test_001',
-      amount_paid: 9900,
-      currency: 'brl',
-    },
-  },
-};
-
-const MOCK_PAYMENT_FAILED = {
-  type: 'invoice.payment_failed',
-  data: {
-    object: {
-      id: 'inv_test_002',
-      customer: 'cus_test_003',
-      subscription: 'sub_test_003',
-      amount_due: 29900,
-      currency: 'brl',
-    },
-  },
-};
-
-// ─── Tests ───────────────────────────────────────────────────
-
-describe('Stripe Webhook — Price-to-Plan Mapping', () => {
-  const PRO_PRICE = 'price_pro_monthly';
-  const ENTERPRISE_PRICE = 'price_enterprise_monthly';
-
-  it('maps pro price to pro plan', () => {
-    expect(mapPriceToPlanId(PRO_PRICE, null, PRO_PRICE, ENTERPRISE_PRICE)).toBe('pro');
+describe('mapPriceToPlanId', () => {
+  it('maps the pro price ID to "pro"', () => {
+    expect(mapPriceToPlanId(PRO_PRICE, priceConfig)).toBe('pro');
   });
 
-  it('maps enterprise price to enterprise plan', () => {
-    expect(mapPriceToPlanId(ENTERPRISE_PRICE, null, PRO_PRICE, ENTERPRISE_PRICE)).toBe('enterprise');
+  it('maps the enterprise price ID to "enterprise"', () => {
+    expect(mapPriceToPlanId(ENTERPRISE_PRICE, priceConfig)).toBe('enterprise');
   });
 
-  it('returns null for unknown price', () => {
-    expect(mapPriceToPlanId('price_unknown', null, PRO_PRICE, ENTERPRISE_PRICE)).toBeNull();
+  it('returns null when price is unknown', () => {
+    expect(mapPriceToPlanId('price_unknown', priceConfig)).toBeNull();
   });
 
-  it('prioritizes metadata plan_id over price mapping', () => {
-    expect(mapPriceToPlanId(PRO_PRICE, 'custom_plan', PRO_PRICE, ENTERPRISE_PRICE)).toBe('custom_plan');
+  it('prefers metadata.plan_id over the price lookup', () => {
+    expect(
+      mapPriceToPlanId(PRO_PRICE, { ...priceConfig, metadataPlanId: 'custom_plan' })
+    ).toBe('custom_plan');
   });
 
-  it('returns null when no env prices configured', () => {
-    expect(mapPriceToPlanId('price_any', null, undefined, undefined)).toBeNull();
+  it('falls back to price mapping when metadataPlanId is empty string', () => {
+    expect(mapPriceToPlanId(PRO_PRICE, { ...priceConfig, metadataPlanId: '' })).toBe('pro');
   });
 
-  it('handles empty metadata plan_id (falsy → falls through to price mapping)', () => {
-    // Empty string is falsy, so it falls through to price-based mapping
-    expect(mapPriceToPlanId(PRO_PRICE, '', PRO_PRICE, ENTERPRISE_PRICE)).toBe('pro');
+  it('falls back to price mapping when metadataPlanId is null', () => {
+    expect(mapPriceToPlanId(PRO_PRICE, { ...priceConfig, metadataPlanId: null })).toBe('pro');
   });
 
-  it('handles null metadata plan_id', () => {
-    expect(mapPriceToPlanId(PRO_PRICE, null, PRO_PRICE, ENTERPRISE_PRICE)).toBe('pro');
+  it('returns null when neither price ID is configured', () => {
+    expect(mapPriceToPlanId(PRO_PRICE, { metadataPlanId: null })).toBeNull();
+  });
+
+  it('does not accidentally match an empty configured price against an empty input', () => {
+    // If both proPriceId and priceId were '' we don't want a false match.
+    expect(mapPriceToPlanId('', { proPriceId: '' })).toBeNull();
   });
 });
 
-describe('Stripe Webhook — Status Mapping', () => {
-  it('maps active → active', () => {
-    expect(mapStripeStatus('active')).toBe('active');
+// ─── Stripe Status → Internal Status ──────────────────────
+
+describe('mapStripeStatus', () => {
+  it.each([
+    ['active', 'active'],
+    ['past_due', 'past_due'],
+    ['canceled', 'canceled'],
+    ['unpaid', 'past_due'],
+    ['incomplete', 'incomplete'],
+    ['incomplete_expired', 'canceled'],
+    ['trialing', 'trialing'],
+    ['paused', 'paused'],
+  ])('%s → %s', (input, expected) => {
+    expect(mapStripeStatus(input)).toBe(expected);
   });
 
-  it('maps past_due → past_due', () => {
-    expect(mapStripeStatus('past_due')).toBe('past_due');
+  it('passes through unknown statuses unchanged (fail-loud)', () => {
+    expect(mapStripeStatus('some_future_stripe_status')).toBe('some_future_stripe_status');
   });
 
-  it('maps canceled → canceled', () => {
-    expect(mapStripeStatus('canceled')).toBe('canceled');
+  it('covers every Stripe status we have opinions on', () => {
+    // Guards against accidental deletion of a mapping.
+    expect(Object.keys(STRIPE_STATUS_MAP).sort()).toEqual(
+      ['active', 'canceled', 'incomplete', 'incomplete_expired', 'past_due', 'paused', 'trialing', 'unpaid']
+    );
   });
 
-  it('maps unpaid → past_due (downgrade)', () => {
+  it('refuses to silently downgrade unpaid to canceled (must go to past_due)', () => {
+    // Regression guard: at one point someone argued unpaid should map to canceled.
+    // That would permanently drop customers who had a single failed payment.
+    expect(mapStripeStatus('unpaid')).not.toBe('canceled');
     expect(mapStripeStatus('unpaid')).toBe('past_due');
   });
+});
 
-  it('maps incomplete → incomplete', () => {
-    expect(mapStripeStatus('incomplete')).toBe('incomplete');
+// ─── Currency / Display Helpers ───────────────────────────
+
+describe('formatBrlCurrency', () => {
+  it('formats 0 cents as R$ 0,00', () => {
+    expect(formatBrlCurrency(0)).toMatch(/R\$\s?0,00/);
   });
 
-  it('maps incomplete_expired → canceled', () => {
-    expect(mapStripeStatus('incomplete_expired')).toBe('canceled');
+  it('formats 9900 cents as R$ 99,00', () => {
+    expect(formatBrlCurrency(9900)).toMatch(/R\$\s?99,00/);
   });
 
-  it('maps trialing → trialing', () => {
-    expect(mapStripeStatus('trialing')).toBe('trialing');
+  it('formats 299000 cents as R$ 2.990,00', () => {
+    expect(formatBrlCurrency(299000)).toMatch(/R\$\s?2\.990,00/);
   });
 
-  it('maps paused → paused', () => {
-    expect(mapStripeStatus('paused')).toBe('paused');
-  });
-
-  it('passes through unknown status unchanged', () => {
-    expect(mapStripeStatus('custom_status')).toBe('custom_status');
+  it('handles non-integer cent counts by rounding per Intl default', () => {
+    // 9999 cents = 99.99. Just assert the structure, not the exact locale glyph.
+    expect(formatBrlCurrency(9999)).toMatch(/99,99/);
   });
 });
 
-describe('Stripe Webhook — Event Structure Validation', () => {
-  it('subscription.created has required fields', () => {
-    const sub = MOCK_SUBSCRIPTION_CREATED.data.object;
-    expect(sub.id).toBeDefined();
-    expect(sub.customer).toBeDefined();
-    expect(sub.status).toBeDefined();
-    expect(sub.items.data.length).toBeGreaterThan(0);
-    expect(sub.items.data[0].price.id).toBeDefined();
-    expect(sub.current_period_start).toBeGreaterThan(0);
-    expect(sub.current_period_end).toBeGreaterThan(sub.current_period_start);
+describe('planDisplayName', () => {
+  it('returns "Profissional" for "pro"', () => {
+    expect(planDisplayName('pro')).toBe('Profissional');
   });
 
-  it('subscription.deleted has canceled status', () => {
-    expect(MOCK_SUBSCRIPTION_CANCELED.data.object.status).toBe('canceled');
+  it('returns "Enterprise" for "enterprise"', () => {
+    expect(planDisplayName('enterprise')).toBe('Enterprise');
   });
 
-  it('payment_succeeded has subscription reference', () => {
-    expect(MOCK_PAYMENT_SUCCEEDED.data.object.subscription).toBeDefined();
-    expect(MOCK_PAYMENT_SUCCEEDED.data.object.amount_paid).toBeGreaterThan(0);
+  it('returns "Gratuito" for "free"', () => {
+    expect(planDisplayName('free')).toBe('Gratuito');
   });
 
-  it('payment_failed has customer reference', () => {
-    expect(MOCK_PAYMENT_FAILED.data.object.customer).toBeDefined();
-    expect(MOCK_PAYMENT_FAILED.data.object.amount_due).toBeGreaterThan(0);
+  it('returns "Gratuito" for null/undefined', () => {
+    expect(planDisplayName(null)).toBe('Gratuito');
+    expect(planDisplayName(undefined)).toBe('Gratuito');
+  });
+
+  it('falls back to "Profissional" for unknown plans', () => {
+    // So that a user on a custom plan never sees "Unknown" in their email.
+    expect(planDisplayName('custom_plan_q4_promo')).toBe('Profissional');
   });
 });
 
-describe('Stripe Webhook — Event Routing', () => {
-  const HANDLED_EVENTS = [
-    'customer.subscription.created',
-    'customer.subscription.updated',
-    'customer.subscription.deleted',
-    'invoice.payment_succeeded',
-    'invoice.payment_failed',
-  ];
+// ─── Subscription Upsert Payload Builder ─────────────────
 
-  it('recognizes all handled event types', () => {
-    for (const eventType of HANDLED_EVENTS) {
-      expect(HANDLED_EVENTS).toContain(eventType);
-    }
+describe('buildSubscriptionUpsertPayload', () => {
+  const now = new Date('2026-04-10T12:00:00.000Z');
+
+  it('builds a complete row for an active pro subscription', () => {
+    const subscription = makeSubscription();
+    const payload = buildSubscriptionUpsertPayload({
+      subscription,
+      customerId: 'cus_abc',
+      tenantId: 'tenant_xyz',
+      priceConfig,
+      now,
+    });
+
+    expect(payload).toEqual({
+      tenant_id: 'tenant_xyz',
+      stripe_subscription_id: 'sub_test_001',
+      stripe_customer_id: 'cus_abc',
+      status: 'active',
+      plan_id: 'pro',
+      plan_tier: 'pro',
+      amount: 9900,
+      current_period_start: '2023-11-14T22:13:20.000Z',
+      current_period_end: '2023-12-14T22:13:20.000Z',
+      cancel_at_period_end: false,
+      updated_at: now.toISOString(),
+    });
   });
 
-  it('subscription events route to manageSubscriptionStatusChange', () => {
-    const subEvents = HANDLED_EVENTS.filter(e => e.startsWith('customer.subscription.'));
-    expect(subEvents).toHaveLength(3);
+  it('uses "free" as plan_tier when plan_id is null (unknown price)', () => {
+    const subscription = makeSubscription({
+      items: { data: [{ price: { id: 'price_unknown', unit_amount: 0 } }] },
+    });
+    const payload = buildSubscriptionUpsertPayload({
+      subscription,
+      customerId: 'cus_abc',
+      tenantId: 'tenant_xyz',
+      priceConfig,
+      now,
+    });
+
+    expect(payload.plan_id).toBeNull();
+    expect(payload.plan_tier).toBe('free');
   });
 
-  it('invoice events are handled separately', () => {
-    const invoiceEvents = HANDLED_EVENTS.filter(e => e.startsWith('invoice.'));
-    expect(invoiceEvents).toHaveLength(2);
+  it('honors metadata.plan_id over price lookup', () => {
+    const subscription = makeSubscription({
+      metadata: { plan_id: 'custom_enterprise_q4' },
+    });
+    const payload = buildSubscriptionUpsertPayload({
+      subscription,
+      customerId: 'cus_abc',
+      tenantId: 'tenant_xyz',
+      priceConfig,
+      now,
+    });
+
+    expect(payload.plan_id).toBe('custom_enterprise_q4');
+    expect(payload.plan_tier).toBe('custom_enterprise_q4');
+  });
+
+  it('maps Stripe status through mapStripeStatus (unpaid → past_due)', () => {
+    const subscription = makeSubscription({ status: 'unpaid' });
+    const payload = buildSubscriptionUpsertPayload({
+      subscription,
+      customerId: 'cus_abc',
+      tenantId: 'tenant_xyz',
+      priceConfig,
+      now,
+    });
+    expect(payload.status).toBe('past_due');
+  });
+
+  it('preserves cancel_at_period_end flag', () => {
+    const subscription = makeSubscription({ cancel_at_period_end: true });
+    const payload = buildSubscriptionUpsertPayload({
+      subscription,
+      customerId: 'cus_abc',
+      tenantId: 'tenant_xyz',
+      priceConfig,
+      now,
+    });
+    expect(payload.cancel_at_period_end).toBe(true);
+  });
+
+  it('converts Stripe Unix timestamps to ISO strings', () => {
+    const subscription = makeSubscription({
+      current_period_start: 1_700_000_000,
+      current_period_end: 1_702_592_000,
+    });
+    const payload = buildSubscriptionUpsertPayload({
+      subscription,
+      customerId: 'cus_abc',
+      tenantId: 'tenant_xyz',
+      priceConfig,
+      now,
+    });
+
+    expect(payload.current_period_start).toBe('2023-11-14T22:13:20.000Z');
+    expect(payload.current_period_end).toBe('2023-12-14T22:13:20.000Z');
+    expect(new Date(payload.current_period_end).getTime())
+      .toBeGreaterThan(new Date(payload.current_period_start).getTime());
+  });
+
+  it('defaults amount to 0 when price.unit_amount is missing', () => {
+    const subscription = makeSubscription({
+      items: { data: [{ price: { id: PRO_PRICE } }] },
+    });
+    const payload = buildSubscriptionUpsertPayload({
+      subscription,
+      customerId: 'cus_abc',
+      tenantId: 'tenant_xyz',
+      priceConfig,
+      now,
+    });
+    expect(payload.amount).toBe(0);
+  });
+
+  it('handles subscriptions with empty items array without throwing', () => {
+    const subscription = makeSubscription({ items: { data: [] } });
+    const payload = buildSubscriptionUpsertPayload({
+      subscription,
+      customerId: 'cus_abc',
+      tenantId: 'tenant_xyz',
+      priceConfig,
+      now,
+    });
+
+    expect(payload.plan_id).toBeNull();
+    expect(payload.plan_tier).toBe('free');
+    expect(payload.amount).toBe(0);
+  });
+
+  it('uses current time when `now` is not provided', () => {
+    const before = Date.now();
+    const payload = buildSubscriptionUpsertPayload({
+      subscription: makeSubscription(),
+      customerId: 'cus_abc',
+      tenantId: 'tenant_xyz',
+      priceConfig,
+    });
+    const after = Date.now();
+    const actual = new Date(payload.updated_at).getTime();
+    expect(actual).toBeGreaterThanOrEqual(before);
+    expect(actual).toBeLessThanOrEqual(after);
   });
 });
 
-describe('Stripe Webhook — Period Timestamps', () => {
-  it('converts Unix timestamps to ISO strings correctly', () => {
-    const unixTimestamp = 1700000000;
-    const isoString = new Date(unixTimestamp * 1000).toISOString();
-    expect(isoString).toBe('2023-11-14T22:13:20.000Z');
+// ─── Event Routing ────────────────────────────────────────
+
+describe('isHandledStripeEvent', () => {
+  it('recognizes subscription lifecycle events', () => {
+    expect(isHandledStripeEvent('customer.subscription.created')).toBe(true);
+    expect(isHandledStripeEvent('customer.subscription.updated')).toBe(true);
+    expect(isHandledStripeEvent('customer.subscription.deleted')).toBe(true);
   });
 
-  it('current_period_end is after current_period_start', () => {
-    const sub = MOCK_SUBSCRIPTION_CREATED.data.object;
-    const start = new Date(sub.current_period_start * 1000);
-    const end = new Date(sub.current_period_end * 1000);
-    expect(end.getTime()).toBeGreaterThan(start.getTime());
+  it('recognizes invoice payment events', () => {
+    expect(isHandledStripeEvent('invoice.payment_succeeded')).toBe(true);
+    expect(isHandledStripeEvent('invoice.payment_failed')).toBe(true);
   });
 
-  it('period duration is approximately 30 days', () => {
-    const sub = MOCK_SUBSCRIPTION_CREATED.data.object;
-    const durationDays = (sub.current_period_end - sub.current_period_start) / (24 * 60 * 60);
-    expect(durationDays).toBeCloseTo(30, 0);
-  });
-});
-
-describe('Stripe Webhook — Security', () => {
-  it('rejects request without signature', () => {
-    const signature = null;
-    const webhookSecret = 'whsec_test_secret';
-    expect(!signature || !webhookSecret).toBe(true);
+  it('recognizes charge.refunded', () => {
+    expect(isHandledStripeEvent('charge.refunded')).toBe(true);
   });
 
-  it('rejects request without webhook secret', () => {
-    const signature = 'v1=abc123';
-    const webhookSecret = '';
-    expect(!signature || !webhookSecret).toBe(true);
+  it('rejects unknown event types', () => {
+    expect(isHandledStripeEvent('customer.created')).toBe(false);
+    expect(isHandledStripeEvent('price.updated')).toBe(false);
+    expect(isHandledStripeEvent('nonsense.event')).toBe(false);
   });
 
-  it('accepts request with both signature and secret', () => {
-    const signature = 'v1=abc123';
-    const webhookSecret = 'whsec_test_secret';
-    expect(!signature || !webhookSecret).toBe(false);
+  it('HANDLED_STRIPE_EVENTS list stays in sync with the webhook switch statement', () => {
+    // If a developer adds a new handler to the edge function, they must also
+    // add it to HANDLED_STRIPE_EVENTS. This test guards the contract.
+    expect(HANDLED_STRIPE_EVENTS).toHaveLength(6);
+    expect(HANDLED_STRIPE_EVENTS).toContain('customer.subscription.created');
+    expect(HANDLED_STRIPE_EVENTS).toContain('customer.subscription.updated');
+    expect(HANDLED_STRIPE_EVENTS).toContain('customer.subscription.deleted');
+    expect(HANDLED_STRIPE_EVENTS).toContain('invoice.payment_succeeded');
+    expect(HANDLED_STRIPE_EVENTS).toContain('invoice.payment_failed');
+    expect(HANDLED_STRIPE_EVENTS).toContain('charge.refunded');
   });
 });
