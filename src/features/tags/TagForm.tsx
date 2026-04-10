@@ -1,9 +1,8 @@
-import { useForm, Controller } from 'react-hook-form';
+import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import {
   Select,
@@ -12,6 +11,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from '@/components/ui/form';
 import { useTags } from '@/hooks/useTags';
 import type { Tag } from '@/types/crm-operacional';
 import { TAG_CATEGORIAS } from '@/types/crm-operacional';
@@ -49,14 +56,7 @@ interface TagFormProps {
 export function TagForm({ tag, onClose }: TagFormProps) {
   const { createTag, updateTag, isCreating } = useTags();
 
-  const {
-    register,
-    handleSubmit,
-    control,
-    watch,
-    setValue,
-    formState: { errors },
-  } = useForm<TagFormValues>({
+  const form = useForm<TagFormValues>({
     resolver: zodResolver(tagFormSchema),
     defaultValues: {
       nome: tag?.nome ?? '',
@@ -66,6 +66,8 @@ export function TagForm({ tag, onClose }: TagFormProps) {
       ativo: tag?.ativo ?? true,
     },
   });
+
+  const { handleSubmit, watch, setValue } = form;
 
   const corAtual = watch('cor');
 
@@ -87,123 +89,149 @@ export function TagForm({ tag, onClose }: TagFormProps) {
   };
 
   return (
-    <form
-      onSubmit={(e) => { void handleSubmit(onSubmit)(e); }}
-      className="space-y-4"
-    >
-      {/* Nome */}
-      <div className="space-y-1.5">
-        <Label htmlFor="tag-nome">Nome</Label>
-        <Input
-          id="tag-nome"
-          placeholder="Ex: VIP, Urgente, Quente..."
-          {...register('nome')}
+    <Form {...form}>
+      <form
+        onSubmit={(e) => { void handleSubmit(onSubmit)(e); }}
+        className="space-y-4"
+      >
+        {/* Nome */}
+        <FormField
+          control={form.control}
+          name="nome"
+          render={({ field }) => (
+            <FormItem className="space-y-1.5">
+              <FormLabel>Nome</FormLabel>
+              <FormControl>
+                <Input
+                  placeholder="Ex: VIP, Urgente, Quente..."
+                  {...field}
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
         />
-        {errors.nome && (
-          <p className="text-xs text-destructive">{errors.nome.message}</p>
-        )}
-      </div>
 
-      {/* Cor */}
-      <div className="space-y-1.5">
-        <Label>Cor</Label>
-        <div className="grid grid-cols-6 gap-2">
-          {PRESET_COLORS.map((color) => (
-            <button
-              key={color}
-              type="button"
-              onClick={() => { setValue('cor', color, { shouldValidate: true }); }}
-              className="w-8 h-8 rounded-full border-2 transition-transform hover:scale-110"
-              style={{
-                backgroundColor: color,
-                borderColor: corAtual === color ? '#000' : 'transparent',
-              }}
-              aria-label={`Cor ${color}`}
-            />
-          ))}
-        </div>
-        <div className="flex items-center gap-2 mt-2">
-          <span
-            className="w-6 h-6 rounded-full border shrink-0"
-            style={{ backgroundColor: corAtual }}
-          />
-          <Input
-            placeholder="#3b82f6"
-            value={corAtual}
-            onChange={(e) => { setValue('cor', e.target.value, { shouldValidate: true }); }}
-            className="h-8 font-mono text-sm"
-          />
-        </div>
-        {errors.cor && (
-          <p className="text-xs text-destructive">{errors.cor.message}</p>
-        )}
-      </div>
+        {/* Cor */}
+        <FormField
+          control={form.control}
+          name="cor"
+          render={({ field }) => (
+            <FormItem className="space-y-1.5">
+              <FormLabel>Cor</FormLabel>
+              <div className="grid grid-cols-6 gap-2">
+                {PRESET_COLORS.map((color) => (
+                  <button
+                    key={color}
+                    type="button"
+                    onClick={() => { setValue('cor', color, { shouldValidate: true }); }}
+                    className="w-8 h-8 rounded-full border-2 transition-transform hover:scale-110"
+                    style={{
+                      backgroundColor: color,
+                      borderColor: corAtual === color ? '#000' : 'transparent',
+                    }}
+                    aria-label={`Cor ${color}`}
+                  />
+                ))}
+              </div>
+              <div className="flex items-center gap-2 mt-2">
+                <span
+                  className="w-6 h-6 rounded-full border shrink-0"
+                  style={{ backgroundColor: corAtual }}
+                />
+                <FormControl>
+                  <Input
+                    placeholder="#3b82f6"
+                    value={field.value}
+                    onChange={(e) => { setValue('cor', e.target.value, { shouldValidate: true }); }}
+                    className="h-8 font-mono text-sm"
+                  />
+                </FormControl>
+              </div>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
 
-      {/* Categoria */}
-      <div className="space-y-1.5">
-        <Label>Categoria</Label>
-        <Controller
-          control={control}
+        {/* Categoria */}
+        <FormField
+          control={form.control}
           name="categoria"
           render={({ field }) => (
-            <Select
-              value={field.value ?? '__none__'}
-              onValueChange={(v) => { field.onChange(v === '__none__' ? null : v); }}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Sem categoria" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="__none__">Sem categoria</SelectItem>
-                {TAG_CATEGORIAS.map((cat) => (
-                  <SelectItem key={cat} value={cat}>
-                    {CATEGORIA_LABELS[cat] ?? cat}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <FormItem className="space-y-1.5">
+              <FormLabel>Categoria</FormLabel>
+              <Select
+                value={field.value ?? '__none__'}
+                onValueChange={(v) => { field.onChange(v === '__none__' ? null : v); }}
+              >
+                <FormControl>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Sem categoria" />
+                  </SelectTrigger>
+                </FormControl>
+                <SelectContent>
+                  <SelectItem value="__none__">Sem categoria</SelectItem>
+                  {TAG_CATEGORIAS.map((cat) => (
+                    <SelectItem key={cat} value={cat}>
+                      {CATEGORIA_LABELS[cat] ?? cat}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <FormMessage />
+            </FormItem>
           )}
         />
-      </div>
 
-      {/* Ordem */}
-      <div className="space-y-1.5">
-        <Label htmlFor="tag-ordem">Ordem</Label>
-        <Input
-          id="tag-ordem"
-          type="number"
-          min={0}
-          {...register('ordem')}
-          className="w-24"
+        {/* Ordem */}
+        <FormField
+          control={form.control}
+          name="ordem"
+          render={({ field }) => (
+            <FormItem className="space-y-1.5">
+              <FormLabel>Ordem</FormLabel>
+              <FormControl>
+                <Input
+                  type="number"
+                  min={0}
+                  {...field}
+                  value={field.value ?? 0}
+                  className="w-24"
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
         />
-      </div>
 
-      {/* Ativo */}
-      <div className="flex items-center justify-between">
-        <Label htmlFor="tag-ativo">Ativa</Label>
-        <Controller
-          control={control}
+        {/* Ativo */}
+        <FormField
+          control={form.control}
           name="ativo"
           render={({ field }) => (
-            <Switch
-              id="tag-ativo"
-              checked={field.value}
-              onCheckedChange={field.onChange}
-            />
+            <FormItem className="flex items-center justify-between space-y-0">
+              <FormLabel>Ativa</FormLabel>
+              <FormControl>
+                <Switch
+                  checked={field.value}
+                  onCheckedChange={field.onChange}
+                />
+              </FormControl>
+            </FormItem>
           )}
         />
-      </div>
 
-      {/* Actions */}
-      <div className="flex justify-end gap-2 pt-2">
-        <Button type="button" variant="outline" onClick={onClose}>
-          Cancelar
-        </Button>
-        <Button type="submit" disabled={isCreating}>
-          {isCreating ? 'Salvando...' : tag?.id ? 'Salvar' : 'Criar Tag'}
-        </Button>
-      </div>
-    </form>
+        {/* Actions */}
+        <div className="flex justify-end gap-2 pt-2">
+          <Button type="button" variant="outline" onClick={onClose}>
+            Cancelar
+          </Button>
+          <Button type="submit" disabled={isCreating}>
+            {isCreating ? 'Salvando...' : tag?.id ? 'Salvar' : 'Criar Tag'}
+          </Button>
+        </div>
+      </form>
+    </Form>
   );
 }
 

@@ -157,8 +157,8 @@ export default function TarefasPage() {
         </Select>
       </div>
 
-      {/* Table */}
-      <div className="border border-border rounded-lg overflow-hidden">
+      {/* Table — overflow-x-auto so mobile viewports can scroll the 8 columns horizontally */}
+      <div className="border border-border rounded-lg overflow-x-auto">
         <Table>
           <TableHeader>
             <TableRow className="bg-muted/30">

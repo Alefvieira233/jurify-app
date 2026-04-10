@@ -6,6 +6,14 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from '@/components/ui/form';
 import { Separator } from '@/components/ui/separator';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { User, Lock, Loader2, CheckCircle } from 'lucide-react';
@@ -126,55 +134,59 @@ const PerfilSection = () => {
           </div>
         </CardHeader>
         <CardContent>
-          <form onSubmit={(e) => { void perfilForm.handleSubmit(handleSavePerfil)(e); }} className="space-y-4">
-            {/* Avatar */}
-            <div className="flex items-center gap-4">
-              <Avatar className="h-14 w-14">
-                <AvatarFallback className="text-lg font-semibold bg-primary/10 text-primary">
-                  {userInitial}
-                </AvatarFallback>
-              </Avatar>
-              <div className="text-xs text-muted-foreground">
-                <p className="font-medium text-foreground">{profile?.nome_completo || '—'}</p>
-                <p>{user?.email}</p>
-                <p className="mt-0.5 capitalize">{profile?.role ?? 'user'} · Plano {profile?.subscription_tier ?? 'free'}</p>
+          <Form {...perfilForm}>
+            <form onSubmit={(e) => { void perfilForm.handleSubmit(handleSavePerfil)(e); }} className="space-y-4">
+              {/* Avatar */}
+              <div className="flex items-center gap-4">
+                <Avatar className="h-14 w-14">
+                  <AvatarFallback className="text-lg font-semibold bg-primary/10 text-primary">
+                    {userInitial}
+                  </AvatarFallback>
+                </Avatar>
+                <div className="text-xs text-muted-foreground">
+                  <p className="font-medium text-foreground">{profile?.nome_completo || '—'}</p>
+                  <p>{user?.email}</p>
+                  <p className="mt-0.5 capitalize">{profile?.role ?? 'user'} · Plano {profile?.subscription_tier ?? 'free'}</p>
+                </div>
               </div>
-            </div>
 
-            <Separator />
+              <Separator />
 
-            <div className="space-y-2">
-              <Label htmlFor="nome_completo">Nome completo *</Label>
-              <Input
-                id="nome_completo"
-                placeholder="Seu nome completo"
-                {...perfilForm.register('nome_completo')}
+              <FormField
+                control={perfilForm.control}
+                name="nome_completo"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Nome completo *</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Seu nome completo" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
               />
-              {perfilForm.formState.errors.nome_completo && (
-                <p className="text-xs text-destructive">{perfilForm.formState.errors.nome_completo.message}</p>
-              )}
-            </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="email_readonly">Email</Label>
-              <Input
-                id="email_readonly"
-                value={user?.email ?? ''}
-                readOnly
-                className="bg-muted/40 cursor-not-allowed"
-              />
-              <p className="text-[11px] text-muted-foreground">
-                O email não pode ser alterado diretamente. Entre em contato com o suporte se necessário.
-              </p>
-            </div>
+              <div className="space-y-2">
+                <Label htmlFor="email_readonly">Email</Label>
+                <Input
+                  id="email_readonly"
+                  value={user?.email ?? ''}
+                  readOnly
+                  className="bg-muted/40 cursor-not-allowed"
+                />
+                <p className="text-[11px] text-muted-foreground">
+                  O email não pode ser alterado diretamente. Entre em contato com o suporte se necessário.
+                </p>
+              </div>
 
-            <div className="flex justify-end">
-              <Button type="submit" size="sm" disabled={savingPerfil} className="gap-2">
-                {savingPerfil ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <CheckCircle className="h-3.5 w-3.5" />}
-                Salvar alterações
-              </Button>
-            </div>
-          </form>
+              <div className="flex justify-end">
+                <Button type="submit" size="sm" disabled={savingPerfil} className="gap-2">
+                  {savingPerfil ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <CheckCircle className="h-3.5 w-3.5" />}
+                  Salvar alterações
+                </Button>
+              </div>
+            </form>
+          </Form>
         </CardContent>
       </Card>
 
@@ -192,56 +204,67 @@ const PerfilSection = () => {
           </div>
         </CardHeader>
         <CardContent>
-          <form onSubmit={(e) => { void senhaForm.handleSubmit(handleSaveSenha)(e); }} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="senha_atual">Senha atual *</Label>
-              <Input
-                id="senha_atual"
-                type="password"
-                placeholder="••••••••"
-                {...senhaForm.register('senha_atual')}
+          <Form {...senhaForm}>
+            <form onSubmit={(e) => { void senhaForm.handleSubmit(handleSaveSenha)(e); }} className="space-y-4">
+              <FormField
+                control={senhaForm.control}
+                name="senha_atual"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Senha atual *</FormLabel>
+                    <FormControl>
+                      <Input type="password" placeholder="••••••••" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
               />
-              {senhaForm.formState.errors.senha_atual && (
-                <p className="text-xs text-destructive">{senhaForm.formState.errors.senha_atual.message}</p>
-              )}
-            </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="nova_senha">Nova senha *</Label>
-              <Input
-                id="nova_senha"
-                type="password"
-                placeholder="••••••••"
-                {...senhaForm.register('nova_senha', {
-                  onChange: (e) => setNovaSenhaValue(e.target.value),
-                })}
+              <FormField
+                control={senhaForm.control}
+                name="nova_senha"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Nova senha *</FormLabel>
+                    <FormControl>
+                      <Input
+                        type="password"
+                        placeholder="••••••••"
+                        {...field}
+                        onChange={(e) => {
+                          field.onChange(e);
+                          setNovaSenhaValue(e.target.value);
+                        }}
+                      />
+                    </FormControl>
+                    {novaSenhaValue && <PasswordStrength password={novaSenhaValue} />}
+                    <FormMessage />
+                  </FormItem>
+                )}
               />
-              {novaSenhaValue && <PasswordStrength password={novaSenhaValue} />}
-              {senhaForm.formState.errors.nova_senha && (
-                <p className="text-xs text-destructive">{senhaForm.formState.errors.nova_senha.message}</p>
-              )}
-            </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="confirmar_senha">Confirmar nova senha *</Label>
-              <Input
-                id="confirmar_senha"
-                type="password"
-                placeholder="••••••••"
-                {...senhaForm.register('confirmar_senha')}
+              <FormField
+                control={senhaForm.control}
+                name="confirmar_senha"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Confirmar nova senha *</FormLabel>
+                    <FormControl>
+                      <Input type="password" placeholder="••••••••" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
               />
-              {senhaForm.formState.errors.confirmar_senha && (
-                <p className="text-xs text-destructive">{senhaForm.formState.errors.confirmar_senha.message}</p>
-              )}
-            </div>
 
-            <div className="flex justify-end">
-              <Button type="submit" size="sm" disabled={savingSenha} variant="outline" className="gap-2">
-                {savingSenha ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Lock className="h-3.5 w-3.5" />}
-                Alterar senha
-              </Button>
-            </div>
-          </form>
+              <div className="flex justify-end">
+                <Button type="submit" size="sm" disabled={savingSenha} variant="outline" className="gap-2">
+                  {savingSenha ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Lock className="h-3.5 w-3.5" />}
+                  Alterar senha
+                </Button>
+              </div>
+            </form>
+          </Form>
         </CardContent>
       </Card>
     </div>

@@ -5,7 +5,14 @@ import { z } from 'zod';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from '@/components/ui/form';
 import { Lock, Loader2, ShieldCheck, Smartphone } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -103,80 +110,93 @@ const SegurancaSection = () => {
           </div>
         </CardHeader>
         <CardContent>
-          <form
-            onSubmit={(e) => {
-              void form.handleSubmit(handleSave)(e);
-            }}
-            className="space-y-4"
-          >
-            <div className="space-y-2">
-              <Label htmlFor="senha_atual">Senha atual *</Label>
-              <Input
-                id="senha_atual"
-                type="password"
-                placeholder="••••••••"
-                autoComplete="current-password"
-                {...form.register('senha_atual')}
-              />
-              {form.formState.errors.senha_atual && (
-                <p className="text-xs text-destructive">
-                  {form.formState.errors.senha_atual.message}
-                </p>
-              )}
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="nova_senha">Nova senha *</Label>
-              <Input
-                id="nova_senha"
-                type="password"
-                placeholder="••••••••"
-                autoComplete="new-password"
-                {...form.register('nova_senha', {
-                  onChange: (e) => setNovaSenhaValue(e.target.value),
-                })}
-              />
-              {novaSenhaValue && <PasswordStrength password={novaSenhaValue} />}
-              {form.formState.errors.nova_senha && (
-                <p className="text-xs text-destructive">
-                  {form.formState.errors.nova_senha.message}
-                </p>
-              )}
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="confirmar_senha">Confirmar nova senha *</Label>
-              <Input
-                id="confirmar_senha"
-                type="password"
-                placeholder="••••••••"
-                autoComplete="new-password"
-                {...form.register('confirmar_senha')}
-              />
-              {form.formState.errors.confirmar_senha && (
-                <p className="text-xs text-destructive">
-                  {form.formState.errors.confirmar_senha.message}
-                </p>
-              )}
-            </div>
-
-            <div className="flex justify-end">
-              <Button
-                type="submit"
-                size="sm"
-                disabled={saving}
-                variant="outline"
-                className="gap-2"
-              >
-                {saving ? (
-                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                ) : (
-                  <Lock className="h-3.5 w-3.5" />
+          <Form {...form}>
+            <form
+              onSubmit={(e) => {
+                void form.handleSubmit(handleSave)(e);
+              }}
+              className="space-y-4"
+            >
+              <FormField
+                control={form.control}
+                name="senha_atual"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Senha atual *</FormLabel>
+                    <FormControl>
+                      <Input
+                        type="password"
+                        placeholder="••••••••"
+                        autoComplete="current-password"
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
                 )}
-                Alterar senha
-              </Button>
-            </div>
-          </form>
+              />
+
+              <FormField
+                control={form.control}
+                name="nova_senha"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Nova senha *</FormLabel>
+                    <FormControl>
+                      <Input
+                        type="password"
+                        placeholder="••••••••"
+                        autoComplete="new-password"
+                        {...field}
+                        onChange={(e) => {
+                          field.onChange(e);
+                          setNovaSenhaValue(e.target.value);
+                        }}
+                      />
+                    </FormControl>
+                    {novaSenhaValue && <PasswordStrength password={novaSenhaValue} />}
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="confirmar_senha"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Confirmar nova senha *</FormLabel>
+                    <FormControl>
+                      <Input
+                        type="password"
+                        placeholder="••••••••"
+                        autoComplete="new-password"
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <div className="flex justify-end">
+                <Button
+                  type="submit"
+                  size="sm"
+                  disabled={saving}
+                  variant="outline"
+                  className="gap-2"
+                >
+                  {saving ? (
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  ) : (
+                    <Lock className="h-3.5 w-3.5" />
+                  )}
+                  Alterar senha
+                </Button>
+              </div>
+            </form>
+          </Form>
         </CardContent>
       </Card>
 

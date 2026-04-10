@@ -6,6 +6,10 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { toUserMessage } from '@/lib/errorMessages';
 import { queryKeys } from '@/lib/queryKeys';
+import { createLogger } from '@/lib/logger';
+import { ConexaoWhatsAppSchema } from '@/schemas/domain';
+
+const log = createLogger('Conexoes');
 
 export interface ConexaoWhatsApp {
   id: string;
@@ -73,7 +77,20 @@ export function useConexoes() {
 
       if (error) throw error;
 
-      return (data ?? []) as unknown as ConexaoWhatsApp[];
+      // Zod-validate each row at the Supabase boundary. Malformed rows are
+      // dropped and logged — see src/schemas/domain/README.md for the pattern.
+      const rawRows = (data ?? []) as unknown[];
+      return rawRows.flatMap((row): ConexaoWhatsApp[] => {
+        const parsed = ConexaoWhatsAppSchema.safeParse(row);
+        if (!parsed.success) {
+          log.warn('Dropping malformed conexao_whatsapp row', {
+            rowId: (row as { id?: string } | null)?.id,
+            issues: parsed.error.issues,
+          });
+          return [];
+        }
+        return [parsed.data];
+      });
     },
     enabled: !!tenantId,
     refetchInterval: 300_000, // 5min — connection status is stable, realtime handles changes

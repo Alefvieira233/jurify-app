@@ -90,12 +90,15 @@ const CustomIntegrations: React.FC<CustomIntegrationsProps> = ({
                   />
                   <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => onEdit(integracao)}>
                     <Settings className="h-4 w-4" />
+                    <span className="sr-only">Editar integração</span>
                   </Button>
                   <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => onSync(integracao.id)}>
                     <RefreshCw className="h-4 w-4" />
+                    <span className="sr-only">Sincronizar integração</span>
                   </Button>
                   <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => onDelete(integracao.id)}>
                     <Trash2 className="h-4 w-4 text-red-500" />
+                    <span className="sr-only">Remover integração</span>
                   </Button>
                 </div>
               </div>

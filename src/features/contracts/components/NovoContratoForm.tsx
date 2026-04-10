@@ -1,5 +1,5 @@
 import { useEffect, useCallback } from 'react';
-import { useForm, Controller } from 'react-hook-form';
+import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { supabase } from '@/integrations/supabase/client';
@@ -11,6 +11,14 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from '@/components/ui/form';
 import { Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useFormDraftPersistence } from '@/hooks/useDraftPersistence';
@@ -127,16 +135,7 @@ export const NovoContratoForm = ({ onClose }: NovoContratoFormProps) => {
     tenantId,
   });
 
-  const {
-    register,
-    control,
-    handleSubmit,
-    getValues,
-    setValue,
-    watch,
-    reset,
-    formState: { errors },
-  } = useForm<ContratoFormValues>({
+  const form = useForm<ContratoFormValues>({
     resolver: zodResolver(contratoSchema),
     defaultValues: {
       lead_id: '',
@@ -149,6 +148,14 @@ export const NovoContratoForm = ({ onClose }: NovoContratoFormProps) => {
       data_assinatura: '',
     },
   });
+
+  const {
+    handleSubmit,
+    getValues,
+    setValue,
+    watch,
+    reset,
+  } = form;
 
   // Save draft on form value changes
   useEffect(() => {
@@ -259,146 +266,187 @@ export const NovoContratoForm = ({ onClose }: NovoContratoFormProps) => {
   };
 
   return (
-    <form onSubmit={(e) => { void handleSubmit(onSubmit)(e); }} className="space-y-6">
-      {/* Draft recovery banner */}
-      {hasDraft && (
-        <DraftRecoveryBanner onRestore={handleRestoreDraft} onDiscard={handleDiscardDraft} />
-      )}
+    <Form {...form}>
+      <form onSubmit={(e) => { void handleSubmit(onSubmit)(e); }} className="space-y-6">
+        {/* Draft recovery banner */}
+        {hasDraft && (
+          <DraftRecoveryBanner onRestore={handleRestoreDraft} onDiscard={handleDiscardDraft} />
+        )}
 
-      <div className="space-y-2">
-        <Label>Cliente Existente (Opcional)</Label>
-        <Controller
-          control={control}
-          name="lead_id"
+        <div className="space-y-2">
+          <Label>Cliente Existente (Opcional)</Label>
+          <FormField
+            control={form.control}
+            name="lead_id"
+            render={({ field }) => (
+              <Select
+                value={field.value ?? ''}
+                onValueChange={handleLeadSelect}
+                disabled={createContratoMutation.isPending}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione um lead existente ou preencha manualmente" />
+                </SelectTrigger>
+                <SelectContent>
+                  {leads.map(lead => (
+                    <SelectItem key={lead.id} value={lead.id}>
+                      {lead.nome} - {lead.area_juridica}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
+          />
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <FormField
+            control={form.control}
+            name="nome_cliente"
+            render={({ field }) => (
+              <FormItem className="space-y-2">
+                <FormLabel>Nome do Cliente</FormLabel>
+                <FormControl>
+                  <Input {...field} disabled={createContratoMutation.isPending} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="area_juridica"
+            render={({ field }) => (
+              <FormItem className="space-y-2">
+                <FormLabel>Área Jurídica</FormLabel>
+                <FormControl>
+                  <Input {...field} disabled={createContratoMutation.isPending} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="valor_causa"
+            render={({ field }) => (
+              <FormItem className="space-y-2">
+                <FormLabel>Valor da Causa (R$)</FormLabel>
+                <FormControl>
+                  <Input
+                    type="number"
+                    {...field}
+                    value={field.value ?? ''}
+                    disabled={createContratoMutation.isPending}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="responsavel"
+            render={({ field }) => (
+              <FormItem className="space-y-2">
+                <FormLabel>Responsável</FormLabel>
+                <FormControl>
+                  <Input {...field} disabled={createContratoMutation.isPending} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="data_assinatura"
+            render={({ field }) => (
+              <FormItem className="space-y-2">
+                <FormLabel>Data de Assinatura (Opcional)</FormLabel>
+                <FormControl>
+                  <Input
+                    type="date"
+                    {...field}
+                    value={field.value ?? ''}
+                    disabled={createContratoMutation.isPending}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </div>
+
+        <FormField
+          control={form.control}
+          name="texto_contrato"
           render={({ field }) => (
-            <Select
-              value={field.value ?? ''}
-              onValueChange={handleLeadSelect}
-              disabled={createContratoMutation.isPending}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Selecione um lead existente ou preencha manualmente" />
-              </SelectTrigger>
-              <SelectContent>
-                {leads.map(lead => (
-                  <SelectItem key={lead.id} value={lead.id}>
-                    {lead.nome} - {lead.area_juridica}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <FormItem className="space-y-2">
+              <FormLabel>Texto do Contrato</FormLabel>
+              <FormControl>
+                <Textarea
+                  rows={12}
+                  disabled={createContratoMutation.isPending}
+                  {...field}
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
           )}
         />
-      </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div className="space-y-2">
-          <Label>Nome do Cliente</Label>
-          <Input
-            {...register('nome_cliente')}
-            disabled={createContratoMutation.isPending}
-          />
-          {errors.nome_cliente && (
-            <p className="text-xs text-destructive">{errors.nome_cliente.message}</p>
+        <FormField
+          control={form.control}
+          name="clausulas_customizadas"
+          render={({ field }) => (
+            <FormItem className="space-y-2">
+              <FormLabel>Cláusulas Customizadas (Opcional)</FormLabel>
+              <FormControl>
+                <Textarea
+                  rows={4}
+                  disabled={createContratoMutation.isPending}
+                  {...field}
+                  value={field.value ?? ''}
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
           )}
-        </div>
-
-        <div className="space-y-2">
-          <Label>Área Jurídica</Label>
-          <Input
-            {...register('area_juridica')}
-            disabled={createContratoMutation.isPending}
-          />
-          {errors.area_juridica && (
-            <p className="text-xs text-destructive">{errors.area_juridica.message}</p>
-          )}
-        </div>
-
-        <div className="space-y-2">
-          <Label>Valor da Causa (R$)</Label>
-          <Input
-            type="number"
-            {...register('valor_causa')}
-            disabled={createContratoMutation.isPending}
-          />
-          {errors.valor_causa && (
-            <p className="text-xs text-destructive">{errors.valor_causa.message}</p>
-          )}
-        </div>
-
-        <div className="space-y-2">
-          <Label>Responsável</Label>
-          <Input
-            {...register('responsavel')}
-            disabled={createContratoMutation.isPending}
-          />
-          {errors.responsavel && (
-            <p className="text-xs text-destructive">{errors.responsavel.message}</p>
-          )}
-        </div>
-
-        <div className="space-y-2">
-          <Label>Data de Assinatura (Opcional)</Label>
-          <Input
-            type="date"
-            {...register('data_assinatura')}
-            disabled={createContratoMutation.isPending}
-          />
-        </div>
-      </div>
-
-      <div className="space-y-2">
-        <Label>Texto do Contrato</Label>
-        <Textarea
-          {...register('texto_contrato')}
-          rows={12}
-          disabled={createContratoMutation.isPending}
         />
-        {errors.texto_contrato && (
-          <p className="text-xs text-destructive">{errors.texto_contrato.message}</p>
-        )}
-      </div>
 
-      <div className="space-y-2">
-        <Label>Cláusulas Customizadas (Opcional)</Label>
-        <Textarea
-          {...register('clausulas_customizadas')}
-          rows={4}
-          disabled={createContratoMutation.isPending}
-        />
-        {errors.clausulas_customizadas && (
-          <p className="text-xs text-destructive">{errors.clausulas_customizadas.message}</p>
-        )}
-      </div>
-
-      <div className="flex justify-end gap-2">
-        <Button
-          type="button"
-          variant="outline"
-          onClick={onClose}
-          disabled={createContratoMutation.isPending}
-        >
-          Cancelar
-        </Button>
-        <Button
-          type="submit"
-          className="bg-amber-500 hover:bg-amber-600"
-          disabled={createContratoMutation.isPending}
-        >
-          {createContratoMutation.isPending && (
-            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-          )}
-          {createContratoMutation.isPending ? 'Salvando...' : 'Salvar Contrato'}
-        </Button>
-        <Button
-          type="button"
-          variant="outline"
-          onClick={() => setValue('texto_contrato', gerarTextoFinal())}
-          disabled={createContratoMutation.isPending}
-        >
-          Atualizar Texto
-        </Button>
-      </div>
-    </form>
+        <div className="flex justify-end gap-2">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={onClose}
+            disabled={createContratoMutation.isPending}
+          >
+            Cancelar
+          </Button>
+          <Button
+            type="submit"
+            className="bg-amber-500 hover:bg-amber-600"
+            disabled={createContratoMutation.isPending}
+          >
+            {createContratoMutation.isPending && (
+              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+            )}
+            {createContratoMutation.isPending ? 'Salvando...' : 'Salvar Contrato'}
+          </Button>
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => setValue('texto_contrato', gerarTextoFinal())}
+            disabled={createContratoMutation.isPending}
+          >
+            Atualizar Texto
+          </Button>
+        </div>
+      </form>
+    </Form>
   );
 };

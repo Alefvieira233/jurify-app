@@ -7,6 +7,14 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from '@/components/ui/form';
 import { useDepartamentos } from '@/hooks/useDepartamentos';
 import type { Departamento } from '@/types/crm-operacional';
 
@@ -39,13 +47,7 @@ const DepartamentoForm = ({ departamento, onClose }: DepartamentoFormProps) => {
   const isEditing = !!departamento;
   const { createDepto, updateDepto, isCreating } = useDepartamentos();
 
-  const {
-    register,
-    handleSubmit,
-    watch,
-    setValue,
-    formState: { errors, isSubmitting },
-  } = useForm<DepartamentoFormData>({
+  const form = useForm<DepartamentoFormData>({
     resolver: zodResolver(departamentoSchema),
     defaultValues: {
       nome: departamento?.nome ?? '',
@@ -55,8 +57,14 @@ const DepartamentoForm = ({ departamento, onClose }: DepartamentoFormProps) => {
     },
   });
 
+  const {
+    handleSubmit,
+    watch,
+    setValue,
+    formState: { isSubmitting },
+  } = form;
+
   const selectedColor = watch('cor');
-  const ativo = watch('ativo');
   const loading = isSubmitting || isCreating;
 
   const onSubmit = async (data: DepartamentoFormData) => {
@@ -92,90 +100,110 @@ const DepartamentoForm = ({ departamento, onClose }: DepartamentoFormProps) => {
         </p>
       </div>
 
-      <form
-        onSubmit={(e) => { void handleSubmit(onSubmit)(e); }}
-        className="space-y-5"
-      >
-        {/* Nome */}
-        <div className="space-y-2">
-          <Label htmlFor="nome">Nome *</Label>
-          <Input
-            id="nome"
-            placeholder="Ex: Direito Trabalhista"
-            {...register('nome')}
+      <Form {...form}>
+        <form
+          onSubmit={(e) => { void handleSubmit(onSubmit)(e); }}
+          className="space-y-5"
+        >
+          {/* Nome */}
+          <FormField
+            control={form.control}
+            name="nome"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Nome *</FormLabel>
+                <FormControl>
+                  <Input placeholder="Ex: Direito Trabalhista" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
           />
-          {errors.nome && (
-            <p className="text-sm text-destructive">{errors.nome.message}</p>
-          )}
-        </div>
 
-        {/* Descrição */}
-        <div className="space-y-2">
-          <Label htmlFor="descricao">Descrição</Label>
-          <Textarea
-            id="descricao"
-            placeholder="Descreva as responsabilidades do departamento..."
-            rows={3}
-            {...register('descricao')}
+          {/* Descrição */}
+          <FormField
+            control={form.control}
+            name="descricao"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Descrição</FormLabel>
+                <FormControl>
+                  <Textarea
+                    placeholder="Descreva as responsabilidades do departamento..."
+                    rows={3}
+                    {...field}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
           />
-          {errors.descricao && (
-            <p className="text-sm text-destructive">{errors.descricao.message}</p>
-          )}
-        </div>
 
-        {/* Cor */}
-        <div className="space-y-2">
-          <Label className="flex items-center gap-1.5">
-            <Palette className="w-4 h-4" />
-            Cor
-          </Label>
-          <div className="flex items-center gap-2 flex-wrap">
-            {PRESET_COLORS.map((color) => (
-              <button
-                key={color}
-                type="button"
-                className="w-8 h-8 rounded-full border-2 transition-all hover:scale-110"
-                style={{
-                  backgroundColor: color,
-                  borderColor: selectedColor === color ? 'hsl(var(--foreground))' : 'transparent',
-                }}
-                onClick={() => setValue('cor', color, { shouldValidate: true })}
-                aria-label={`Selecionar cor ${color}`}
-              />
-            ))}
+          {/* Cor */}
+          <FormField
+            control={form.control}
+            name="cor"
+            render={() => (
+              <FormItem>
+                <FormLabel className="flex items-center gap-1.5">
+                  <Palette className="w-4 h-4" />
+                  Cor
+                </FormLabel>
+                <div className="flex items-center gap-2 flex-wrap">
+                  {PRESET_COLORS.map((color) => (
+                    <button
+                      key={color}
+                      type="button"
+                      className="w-8 h-8 rounded-full border-2 transition-all hover:scale-110"
+                      style={{
+                        backgroundColor: color,
+                        borderColor: selectedColor === color ? 'hsl(var(--foreground))' : 'transparent',
+                      }}
+                      onClick={() => setValue('cor', color, { shouldValidate: true })}
+                      aria-label={`Selecionar cor ${color}`}
+                    />
+                  ))}
+                </div>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          {/* Ativo */}
+          <FormField
+            control={form.control}
+            name="ativo"
+            render={({ field }) => (
+              <FormItem className="flex items-center justify-between rounded-lg border p-3 space-y-0">
+                <div>
+                  <Label className="text-sm font-medium">
+                    Departamento ativo
+                  </Label>
+                  <p className="text-xs text-muted-foreground">
+                    Departamentos inativos não aparecem nas seleções
+                  </p>
+                </div>
+                <FormControl>
+                  <Switch
+                    checked={field.value}
+                    onCheckedChange={field.onChange}
+                  />
+                </FormControl>
+              </FormItem>
+            )}
+          />
+
+          {/* Actions */}
+          <div className="flex justify-end gap-2 pt-2">
+            <Button type="button" variant="outline" onClick={onClose} disabled={loading}>
+              Cancelar
+            </Button>
+            <Button type="submit" disabled={loading}>
+              {loading ? 'Salvando...' : isEditing ? 'Salvar' : 'Criar'}
+            </Button>
           </div>
-          {errors.cor && (
-            <p className="text-sm text-destructive">{errors.cor.message}</p>
-          )}
-        </div>
-
-        {/* Ativo */}
-        <div className="flex items-center justify-between rounded-lg border p-3">
-          <div>
-            <Label htmlFor="ativo" className="text-sm font-medium">
-              Departamento ativo
-            </Label>
-            <p className="text-xs text-muted-foreground">
-              Departamentos inativos não aparecem nas seleções
-            </p>
-          </div>
-          <Switch
-            id="ativo"
-            checked={ativo}
-            onCheckedChange={(checked) => setValue('ativo', checked, { shouldValidate: true })}
-          />
-        </div>
-
-        {/* Actions */}
-        <div className="flex justify-end gap-2 pt-2">
-          <Button type="button" variant="outline" onClick={onClose} disabled={loading}>
-            Cancelar
-          </Button>
-          <Button type="submit" disabled={loading}>
-            {loading ? 'Salvando...' : isEditing ? 'Salvar' : 'Criar'}
-          </Button>
-        </div>
-      </form>
+        </form>
+      </Form>
     </div>
   );
 };

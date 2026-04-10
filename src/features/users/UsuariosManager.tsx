@@ -301,6 +301,7 @@ const UsuariosManager = () => {
                     <DropdownMenuTrigger asChild>
                       <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-foreground relative z-20 shrink-0">
                         <MoreHorizontal className="h-5 w-5" />
+                        <span className="sr-only">Ações do usuário</span>
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end" className="w-48 rounded-[12px]">

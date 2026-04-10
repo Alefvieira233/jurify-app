@@ -19,31 +19,9 @@ import { createLogger } from '@/lib/logger';
 import { addSentryBreadcrumb } from '@/lib/sentry';
 import { queryKeys } from '@/lib/queryKeys';
 import { usePlanLimits } from '@/hooks/usePlanLimits';
+import { ContratoRowSchema, type ContratoRow } from '@/schemas/domain';
 
 const log = createLogger('Contratos');
-
-type ContratoRow = {
-  id: string;
-  lead_id: string | null;
-  tenant_id: string;
-  nome_cliente: string | null;
-  area_juridica: string | null;
-  valor_causa: number | null;
-  texto_contrato?: string | null;
-  clausulas_customizadas?: string | null;
-  status: string | null;
-  status_assinatura: string | null;
-  link_assinatura_zapsign: string | null;
-  zapsign_document_id: string | null;
-  data_geracao_link: string | null;
-  data_envio_whatsapp: string | null;
-  responsavel_id: string | null;
-  data_envio: string | null;
-  data_assinatura: string | null;
-  observacoes: string | null;
-  created_at: string | null;
-  updated_at: string | null;
-};
 
 export type Contrato = ContratoRow;
 
@@ -51,7 +29,44 @@ export type ContratoInput = Partial<Contrato>;
 
 const LIST_COLUMNS = 'id,lead_id,tenant_id,nome_cliente,area_juridica,valor_causa,status,status_assinatura,link_assinatura_zapsign,zapsign_document_id,data_geracao_link,data_envio_whatsapp,responsavel_id,data_envio,data_assinatura,observacoes,created_at,updated_at';
 
-function normalizeContrato(row: ContratoRow): Contrato { return { ...row }; }
+/**
+ * Parses a single mutation-returned row via Zod. Uses `.safeParse()` so a
+ * partial row (e.g. when the test mock short-circuits) does not break
+ * the optimistic-update pipeline. Malformed rows are logged and the
+ * raw row is returned as a best-effort Contrato — this preserves the
+ * legacy behavior while adding runtime observability.
+ *
+ * List queries should use `parseContratoList` which drops bad rows.
+ */
+function parseContratoSingle(row: unknown): Contrato {
+  const parsed = ContratoRowSchema.safeParse(row);
+  if (!parsed.success) {
+    log.warn('Malformed contrato row returned by Supabase mutation', {
+      rowId: (row as { id?: string } | null)?.id,
+      issues: parsed.error.issues,
+    });
+    return row as Contrato;
+  }
+  return parsed.data;
+}
+
+/**
+ * Safely parse an array of rows at the Supabase boundary. Malformed rows
+ * are dropped and logged — see src/schemas/domain/README.md.
+ */
+function parseContratoList(rows: unknown[]): Contrato[] {
+  return rows.flatMap((row): Contrato[] => {
+    const parsed = ContratoRowSchema.safeParse(row);
+    if (!parsed.success) {
+      log.warn('Dropping malformed contrato row', {
+        rowId: (row as { id?: string } | null)?.id,
+        issues: parsed.error.issues,
+      });
+      return [];
+    }
+    return [parsed.data];
+  });
+}
 
 export interface UseContratosOptions {
   /** Page number (0-based). Defaults to 0. */
@@ -102,7 +117,7 @@ export const useContratos = (options?: UseContratosOptions) => {
       const { data, error, count } = await query;
       if (error) { log.error('Erro ao buscar contratos', error); throw error; }
       log.debug(`${data?.length ?? 0} contratos encontrados (total: ${count})`);
-      return { items: (data || []).map(normalizeContrato), total: count ?? 0 };
+      return { items: parseContratoList((data ?? []) as unknown[]), total: count ?? 0 };
     },
     enabled: !!user && !!tenantId,
     staleTime: 2 * 60 * 1000,
@@ -123,7 +138,7 @@ export const useContratos = (options?: UseContratosOptions) => {
       const payload = { ...data, tenant_id: effectiveTenantId, titulo: data.nome_cliente ?? 'Contrato' };
       const { data: row, error } = await supabase.from('contratos').insert([payload as Record<string, unknown>]).select().single();
       if (error) throw error;
-      return normalizeContrato(row as unknown as ContratoRow);
+      return parseContratoSingle(row);
     },
     onSuccess: (newContrato) => {
       addSentryBreadcrumb(`Contrato criado: ${newContrato.id}`, 'contratos', 'info');
@@ -152,7 +167,7 @@ export const useContratos = (options?: UseContratosOptions) => {
         .select()
         .single();
       if (error) throw error;
-      return normalizeContrato(row as unknown as ContratoRow);
+      return parseContratoSingle(row);
     },
     onSuccess: (updated, { updateData }) => {
       addSentryBreadcrumb(`Contrato atualizado: ${updated.id}`, 'contratos', 'info');

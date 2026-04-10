@@ -14,6 +14,14 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from '@/components/ui/form';
 import { CalendarIcon, Loader2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -51,7 +59,8 @@ export const NovoAgendamentoForm = ({ onClose, editData }: NovoAgendamentoFormPr
   const tenantId = profile?.tenant_id || null;
   const queryClient = useQueryClient();
   const isEditing = !!editData?.id;
-  const { register, handleSubmit, setValue, formState: { errors } } = useForm<AgendamentoFormData>({
+
+  const form = useForm<AgendamentoFormData>({
     resolver: zodResolver(agendamentoSchema),
     defaultValues: {
       lead_id: editData?.lead_id ?? '',
@@ -60,6 +69,8 @@ export const NovoAgendamentoForm = ({ onClose, editData }: NovoAgendamentoFormPr
       observacoes: editData?.observacoes ?? '',
     },
   });
+
+  const { handleSubmit } = form;
   const { runAutomation } = useAgendaAutomation();
 
   // Automation configuration
@@ -110,7 +121,7 @@ export const NovoAgendamentoForm = ({ onClose, editData }: NovoAgendamentoFormPr
         ? await supabase
             .from('agendamentos')
             .update(payload)
-            .eq('id', editData!.id)
+            .eq('id', editData.id)
             .eq('tenant_id', tenantId!)
             .select()
             .single()
@@ -200,126 +211,170 @@ export const NovoAgendamentoForm = ({ onClose, editData }: NovoAgendamentoFormPr
   ];
 
   return (
-    <form onSubmit={(event) => { void handleSubmit(onSubmit)(event); }} className="space-y-4">
-      <input type="hidden" {...register('lead_id')} />
-      <input type="hidden" {...register('area_juridica')} />
-      <input type="hidden" {...register('responsavel')} />
-
-      <div className="space-y-2">
-        <Label htmlFor="lead_id">Cliente</Label>
-        <Select onValueChange={(value) => setValue('lead_id', value, { shouldValidate: true })} disabled={createAgendamentoMutation.isPending}>
-          <SelectTrigger>
-            <SelectValue placeholder="Selecione um cliente" />
-          </SelectTrigger>
-          <SelectContent>
-            {leads.map((lead) => (
-              <SelectItem key={lead.id} value={lead.id}>
-                {lead.nome}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        {errors.lead_id && <p className="text-red-500 text-sm">Cliente é obrigatório</p>}
-      </div>
-
-      <div className="space-y-2">
-        <Label htmlFor="area_juridica">Área Jurídica</Label>
-        <Select onValueChange={(value) => setValue('area_juridica', value, { shouldValidate: true })} disabled={createAgendamentoMutation.isPending}>
-          <SelectTrigger>
-            <SelectValue placeholder="Selecione a área jurídica" />
-          </SelectTrigger>
-          <SelectContent>
-            {areasJuridicas.map((area) => (
-              <SelectItem key={area} value={area}>
-                {area}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        {errors.area_juridica && <p className="text-red-500 text-sm">Área jurídica é obrigatória</p>}
-      </div>
-
-      <div className="grid grid-cols-2 gap-4">
-        <div className="space-y-2">
-          <Label>Data da Reunião</Label>
-          <Popover>
-            <PopoverTrigger asChild>
-              <Button
-                variant="outline"
-                className={cn(
-                  'w-full justify-start text-left font-normal',
-                  !selectedDate && 'text-muted-foreground'
-                )}
+    <Form {...form}>
+      <form onSubmit={(event) => { void handleSubmit(onSubmit)(event); }} className="space-y-4">
+        <FormField
+          control={form.control}
+          name="lead_id"
+          render={({ field }) => (
+            <FormItem className="space-y-2">
+              <FormLabel>Cliente</FormLabel>
+              <Select
+                value={field.value}
+                onValueChange={field.onChange}
+                disabled={createAgendamentoMutation.isPending}
               >
-                <CalendarIcon className="mr-2 h-4 w-4" />
-                {selectedDate ? format(selectedDate, 'dd/MM/yyyy', { locale: ptBR }) : 'Selecione a data'}
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-auto p-0">
-              <Calendar
-                mode="single"
-                selected={selectedDate}
-                onSelect={setSelectedDate}
-                disabled={(date) => date < new Date()}
-                initialFocus
-              />
-            </PopoverContent>
-          </Popover>
-        </div>
-
-        <div className="space-y-2">
-          <Label>Horário</Label>
-          <Select value={selectedTime} onValueChange={setSelectedTime} disabled={createAgendamentoMutation.isPending}>
-            <SelectTrigger>
-              <SelectValue placeholder="Selecione o horário" />
-            </SelectTrigger>
-            <SelectContent>
-              {horarios.map((horario) => (
-                <SelectItem key={horario} value={horario}>
-                  {horario}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-      </div>
-
-      <div className="space-y-2">
-        <Label htmlFor="responsavel">Advogado Responsável</Label>
-        <Select onValueChange={(value) => setValue('responsavel', value, { shouldValidate: true })} disabled={createAgendamentoMutation.isPending}>
-          <SelectTrigger>
-            <SelectValue placeholder="Selecione o responsável" />
-          </SelectTrigger>
-          <SelectContent>
-            {responsaveis.map((responsavel) => (
-              <SelectItem key={responsavel} value={responsavel}>
-                {responsavel}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        {errors.responsavel && <p className="text-red-500 text-sm">Responsável é obrigatório</p>}
-      </div>
-
-      <div className="space-y-2">
-        <Label htmlFor="observacoes">Observações</Label>
-        <Textarea
-          {...register('observacoes')}
-          placeholder="Observações sobre a reunião (opcional)"
-          rows={3}
-          disabled={createAgendamentoMutation.isPending}
+                <FormControl>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione um cliente" />
+                  </SelectTrigger>
+                </FormControl>
+                <SelectContent>
+                  {leads.map((lead) => (
+                    <SelectItem key={lead.id} value={lead.id}>
+                      {lead.nome}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <FormMessage />
+            </FormItem>
+          )}
         />
-      </div>
 
-      <div className="flex justify-end gap-2">
-        <Button type="button" variant="outline" onClick={onClose} disabled={createAgendamentoMutation.isPending}>
-          Cancelar
-        </Button>
-        <Button type="submit" className="bg-amber-500 hover:bg-amber-600" disabled={createAgendamentoMutation.isPending}>
-          {createAgendamentoMutation.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-          {createAgendamentoMutation.isPending ? 'Salvando...' : 'Agendar'}
-        </Button>
-      </div>
-    </form>
+        <FormField
+          control={form.control}
+          name="area_juridica"
+          render={({ field }) => (
+            <FormItem className="space-y-2">
+              <FormLabel>Área Jurídica</FormLabel>
+              <Select
+                value={field.value}
+                onValueChange={field.onChange}
+                disabled={createAgendamentoMutation.isPending}
+              >
+                <FormControl>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione a área jurídica" />
+                  </SelectTrigger>
+                </FormControl>
+                <SelectContent>
+                  {areasJuridicas.map((area) => (
+                    <SelectItem key={area} value={area}>
+                      {area}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <div className="grid grid-cols-2 gap-4">
+          <div className="space-y-2">
+            <Label>Data da Reunião</Label>
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  className={cn(
+                    'w-full justify-start text-left font-normal',
+                    !selectedDate && 'text-muted-foreground'
+                  )}
+                >
+                  <CalendarIcon className="mr-2 h-4 w-4" />
+                  {selectedDate ? format(selectedDate, 'dd/MM/yyyy', { locale: ptBR }) : 'Selecione a data'}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0">
+                <Calendar
+                  mode="single"
+                  selected={selectedDate}
+                  onSelect={setSelectedDate}
+                  disabled={(date) => date < new Date()}
+                  initialFocus
+                />
+              </PopoverContent>
+            </Popover>
+          </div>
+
+          <div className="space-y-2">
+            <Label>Horário</Label>
+            <Select value={selectedTime} onValueChange={setSelectedTime} disabled={createAgendamentoMutation.isPending}>
+              <SelectTrigger>
+                <SelectValue placeholder="Selecione o horário" />
+              </SelectTrigger>
+              <SelectContent>
+                {horarios.map((horario) => (
+                  <SelectItem key={horario} value={horario}>
+                    {horario}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+
+        <FormField
+          control={form.control}
+          name="responsavel"
+          render={({ field }) => (
+            <FormItem className="space-y-2">
+              <FormLabel>Advogado Responsável</FormLabel>
+              <Select
+                value={field.value}
+                onValueChange={field.onChange}
+                disabled={createAgendamentoMutation.isPending}
+              >
+                <FormControl>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione o responsável" />
+                  </SelectTrigger>
+                </FormControl>
+                <SelectContent>
+                  {responsaveis.map((responsavel) => (
+                    <SelectItem key={responsavel} value={responsavel}>
+                      {responsavel}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <FormField
+          control={form.control}
+          name="observacoes"
+          render={({ field }) => (
+            <FormItem className="space-y-2">
+              <FormLabel>Observações</FormLabel>
+              <FormControl>
+                <Textarea
+                  placeholder="Observações sobre a reunião (opcional)"
+                  rows={3}
+                  disabled={createAgendamentoMutation.isPending}
+                  {...field}
+                  value={field.value ?? ''}
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <div className="flex justify-end gap-2">
+          <Button type="button" variant="outline" onClick={onClose} disabled={createAgendamentoMutation.isPending}>
+            Cancelar
+          </Button>
+          <Button type="submit" className="bg-amber-500 hover:bg-amber-600" disabled={createAgendamentoMutation.isPending}>
+            {createAgendamentoMutation.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+            {createAgendamentoMutation.isPending ? 'Salvando...' : 'Agendar'}
+          </Button>
+        </div>
+      </form>
+    </Form>
   );
 };

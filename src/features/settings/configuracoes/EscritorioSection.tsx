@@ -5,7 +5,15 @@ import { z } from 'zod';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
+import {
+  Form,
+  FormControl,
+  FormDescription,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from '@/components/ui/form';
 import { Switch } from '@/components/ui/switch';
 import { Separator } from '@/components/ui/separator';
 import { Building2, Phone, Mail, Link2, Shield, Loader2, CheckCircle } from 'lucide-react';
@@ -137,87 +145,112 @@ const EscritorioSection = () => {
           </div>
         </CardHeader>
         <CardContent>
-          <form
-            onSubmit={(e) => { void form.handleSubmit(handleSaveEscritorio)(e); }}
-            className="space-y-4"
-          >
-            <div className="space-y-2">
-              <Label htmlFor="nome">Nome do escritório *</Label>
-              <div className="relative">
-                <Building2 className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
-                <Input
-                  id="nome"
-                  className="pl-9"
-                  placeholder="Ex: Silva & Associados Advocacia"
-                  {...form.register('nome')}
-                />
-              </div>
-              {form.formState.errors.nome && (
-                <p className="text-xs text-destructive">{form.formState.errors.nome.message}</p>
-              )}
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="email_escritorio">E-mail do escritório</Label>
-                <div className="relative">
-                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
-                  <Input
-                    id="email_escritorio"
-                    type="email"
-                    className="pl-9"
-                    placeholder="contato@escritorio.com.br"
-                    {...form.register('email')}
-                  />
-                </div>
-                {form.formState.errors.email && (
-                  <p className="text-xs text-destructive">{form.formState.errors.email.message}</p>
+          <Form {...form}>
+            <form
+              onSubmit={(e) => { void form.handleSubmit(handleSaveEscritorio)(e); }}
+              className="space-y-4"
+            >
+              <FormField
+                control={form.control}
+                name="nome"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Nome do escritório *</FormLabel>
+                    <FormControl>
+                      <div className="relative">
+                        <Building2 className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+                        <Input
+                          className="pl-9"
+                          placeholder="Ex: Silva & Associados Advocacia"
+                          {...field}
+                        />
+                      </div>
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
                 )}
-              </div>
+              />
 
-              <div className="space-y-2">
-                <Label htmlFor="telefone">Telefone</Label>
-                <div className="relative">
-                  <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
-                  <Input
-                    id="telefone"
-                    className="pl-9"
-                    placeholder="(11) 99999-9999"
-                    {...form.register('telefone')}
-                  />
-                </div>
-              </div>
-            </div>
+              <div className="grid grid-cols-2 gap-4">
+                <FormField
+                  control={form.control}
+                  name="email"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>E-mail do escritório</FormLabel>
+                      <FormControl>
+                        <div className="relative">
+                          <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+                          <Input
+                            type="email"
+                            className="pl-9"
+                            placeholder="contato@escritorio.com.br"
+                            {...field}
+                          />
+                        </div>
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
 
-            <div className="space-y-2">
-              <Label htmlFor="logo_url">URL do logotipo</Label>
-              <div className="relative">
-                <Link2 className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
-                <Input
-                  id="logo_url"
-                  type="url"
-                  className="pl-9"
-                  placeholder="https://seusite.com/logo.png"
-                  {...form.register('logo_url')}
+                <FormField
+                  control={form.control}
+                  name="telefone"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Telefone</FormLabel>
+                      <FormControl>
+                        <div className="relative">
+                          <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+                          <Input
+                            className="pl-9"
+                            placeholder="(11) 99999-9999"
+                            {...field}
+                          />
+                        </div>
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
                 />
               </div>
-              {form.formState.errors.logo_url && (
-                <p className="text-xs text-destructive">{form.formState.errors.logo_url.message}</p>
-              )}
-              <p className="text-[11px] text-muted-foreground">
-                Usado em relatórios PDF e e-mails enviados pelo sistema.
-              </p>
-            </div>
 
-            <Separator />
+              <FormField
+                control={form.control}
+                name="logo_url"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>URL do logotipo</FormLabel>
+                    <FormControl>
+                      <div className="relative">
+                        <Link2 className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+                        <Input
+                          type="url"
+                          className="pl-9"
+                          placeholder="https://seusite.com/logo.png"
+                          {...field}
+                        />
+                      </div>
+                    </FormControl>
+                    <FormDescription className="text-[11px]">
+                      Usado em relatórios PDF e e-mails enviados pelo sistema.
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
 
-            <div className="flex justify-end">
-              <Button type="submit" size="sm" disabled={saving} className="gap-2">
-                {saving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <CheckCircle className="h-3.5 w-3.5" />}
-                Salvar dados
-              </Button>
-            </div>
-          </form>
+              <Separator />
+
+              <div className="flex justify-end">
+                <Button type="submit" size="sm" disabled={saving} className="gap-2">
+                  {saving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <CheckCircle className="h-3.5 w-3.5" />}
+                  Salvar dados
+                </Button>
+              </div>
+            </form>
+          </Form>
         </CardContent>
       </Card>
 

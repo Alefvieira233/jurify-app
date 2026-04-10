@@ -236,6 +236,7 @@ const ConexoesManager = () => {
                         <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
                           <Button variant="ghost" size="icon" className="h-8 w-8">
                             <MoreHorizontal className="h-4 w-4" />
+                            <span className="sr-only">Ações da conexão</span>
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">

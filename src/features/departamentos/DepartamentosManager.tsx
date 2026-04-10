@@ -151,6 +151,7 @@ const DepartamentosManager = () => {
                     <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
                       <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-foreground">
                         <MoreHorizontal className="h-5 w-5" />
+                        <span className="sr-only">Ações do departamento</span>
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end" className="w-48 rounded-[12px]">

@@ -3,7 +3,6 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { useFormDraftPersistence } from '@/hooks/useDraftPersistence';
 import { DraftRecoveryBanner } from '@/components/ui/DraftRecoveryBanner';
@@ -15,6 +14,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from '@/components/ui/form';
 import {
   processoFormSchema,
   type ProcessoFormData,
@@ -43,6 +50,11 @@ const NEW_DEFAULTS: Partial<ProcessoFormData> = {
   status: 'ativo',
 };
 
+// Mirrors RHF's valueAsNumber: empty → NaN
+const toNumber = (v: string): number => (v === '' ? Number.NaN : Number(v));
+const displayNumber = (v: unknown): string | number =>
+  v == null || (typeof v === 'number' && Number.isNaN(v)) ? '' : (v as number);
+
 const NovoProcessoForm = ({ onSubmit, onCancel, loading, initialData }: NovoProcessoFormProps) => {
   const { profile } = useAuth();
   const isEditing = !!initialData;
@@ -53,14 +65,7 @@ const NovoProcessoForm = ({ onSubmit, onCancel, loading, initialData }: NovoProc
     tenantId: profile?.tenant_id,
   });
 
-  const {
-    register,
-    handleSubmit,
-    setValue,
-    watch,
-    reset,
-    formState: { errors, isSubmitting },
-  } = useForm<ProcessoFormData>({
+  const form = useForm<ProcessoFormData>({
     resolver: zodResolver(processoFormSchema),
     defaultValues: initialData ? {
       lead_id: initialData.lead_id,
@@ -79,6 +84,13 @@ const NovoProcessoForm = ({ onSubmit, onCancel, loading, initialData }: NovoProc
       observacoes: initialData.observacoes,
     } : NEW_DEFAULTS,
   });
+
+  const {
+    handleSubmit,
+    watch,
+    reset,
+    formState: { isSubmitting },
+  } = form;
 
   // Save draft on form value changes (only for new processos)
   useEffect(() => {
@@ -106,142 +118,241 @@ const NovoProcessoForm = ({ onSubmit, onCancel, loading, initialData }: NovoProc
   };
 
   return (
-    <form onSubmit={(e) => { void handleSubmit(handleFormSubmit)(e); }} className="space-y-4">
-      {/* Draft recovery banner */}
-      {!isEditing && hasDraft && (
-        <DraftRecoveryBanner onRestore={handleRestoreDraft} onDiscard={handleDiscardDraft} />
-      )}
+    <Form {...form}>
+      <form onSubmit={(e) => { void handleSubmit(handleFormSubmit)(e); }} className="space-y-4">
+        {/* Draft recovery banner */}
+        {!isEditing && hasDraft && (
+          <DraftRecoveryBanner onRestore={handleRestoreDraft} onDiscard={handleDiscardDraft} />
+        )}
 
-      <div className="grid grid-cols-2 gap-4">
-        <div className="space-y-1.5">
-          <Label htmlFor="numero_processo">Número do Processo</Label>
-          <Input id="numero_processo" placeholder="0000000-00.0000.0.00.0000" {...register('numero_processo')} />
-          {errors.numero_processo && <p className="text-xs text-destructive">{errors.numero_processo.message}</p>}
-        </div>
+        <div className="grid grid-cols-2 gap-4">
+          <FormField
+            control={form.control}
+            name="numero_processo"
+            render={({ field }) => (
+              <FormItem className="space-y-1.5">
+                <FormLabel>Número do Processo</FormLabel>
+                <FormControl>
+                  <Input placeholder="0000000-00.0000.0.00.0000" {...field} value={field.value ?? ''} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
 
-        <div className="space-y-1.5">
-          <Label htmlFor="tipo_acao">Tipo de Ação *</Label>
-          <Select
-            value={watch('tipo_acao')}
-            onValueChange={v => setValue('tipo_acao', v as ProcessoFormData['tipo_acao'])}
-          >
-            <SelectTrigger id="tipo_acao">
-              <SelectValue placeholder="Selecione o tipo" />
-            </SelectTrigger>
-            <SelectContent>
-              {TIPOS_ACAO.map(tipo => (
-                <SelectItem key={tipo} value={tipo}>{TIPO_ACAO_LABELS[tipo]}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          {errors.tipo_acao && <p className="text-xs text-destructive">{errors.tipo_acao.message}</p>}
-        </div>
-      </div>
-
-      <div className="grid grid-cols-2 gap-4">
-        <div className="space-y-1.5">
-          <Label htmlFor="tribunal">Tribunal</Label>
-          <Input id="tribunal" placeholder="Ex: TJSP" {...register('tribunal')} />
-        </div>
-        <div className="space-y-1.5">
-          <Label htmlFor="vara">Vara</Label>
-          <Input id="vara" placeholder="Ex: 1ª Vara Cível" {...register('vara')} />
-        </div>
-      </div>
-
-      <div className="grid grid-cols-2 gap-4">
-        <div className="space-y-1.5">
-          <Label htmlFor="comarca">Comarca</Label>
-          <Input id="comarca" placeholder="Ex: São Paulo" {...register('comarca')} />
-        </div>
-        <div className="space-y-1.5">
-          <Label htmlFor="area_juridica">Área Jurídica</Label>
-          <Input id="area_juridica" placeholder="Ex: Direito do Consumidor" {...register('area_juridica')} />
-        </div>
-      </div>
-
-      <div className="grid grid-cols-3 gap-4">
-        <div className="space-y-1.5">
-          <Label>Fase Processual</Label>
-          <Select
-            value={watch('fase_processual')}
-            onValueChange={v => setValue('fase_processual', v as ProcessoFormData['fase_processual'])}
-          >
-            <SelectTrigger><SelectValue /></SelectTrigger>
-            <SelectContent>
-              {FASES_PROCESSUAIS.map(f => (
-                <SelectItem key={f} value={f}>{FASE_LABELS[f]}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-        <div className="space-y-1.5">
-          <Label>Posição</Label>
-          <Select
-            value={watch('posicao')}
-            onValueChange={v => setValue('posicao', v as ProcessoFormData['posicao'])}
-          >
-            <SelectTrigger><SelectValue /></SelectTrigger>
-            <SelectContent>
-              {POSICOES.map(p => (
-                <SelectItem key={p} value={p}>{POSICAO_LABELS[p]}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-        <div className="space-y-1.5">
-          <Label>Status</Label>
-          <Select
-            value={watch('status')}
-            onValueChange={v => setValue('status', v as ProcessoFormData['status'])}
-          >
-            <SelectTrigger><SelectValue /></SelectTrigger>
-            <SelectContent>
-              {STATUS_PROCESSO.map(s => (
-                <SelectItem key={s} value={s}>{PROCESSO_STATUS_LABELS[s]}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-2 gap-4">
-        <div className="space-y-1.5">
-          <Label htmlFor="valor_causa">Valor da Causa (R$)</Label>
-          <Input
-            id="valor_causa"
-            type="number"
-            step="0.01"
-            min="0"
-            placeholder="0,00"
-            {...register('valor_causa', { valueAsNumber: true })}
+          <FormField
+            control={form.control}
+            name="tipo_acao"
+            render={({ field }) => (
+              <FormItem className="space-y-1.5">
+                <FormLabel>Tipo de Ação *</FormLabel>
+                <Select value={field.value} onValueChange={field.onChange}>
+                  <FormControl>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecione o tipo" />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    {TIPOS_ACAO.map(tipo => (
+                      <SelectItem key={tipo} value={tipo}>{TIPO_ACAO_LABELS[tipo]}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <FormMessage />
+              </FormItem>
+            )}
           />
         </div>
-        <div className="space-y-1.5">
-          <Label htmlFor="data_distribuicao">Data de Distribuição</Label>
-          <Input id="data_distribuicao" type="date" {...register('data_distribuicao')} />
+
+        <div className="grid grid-cols-2 gap-4">
+          <FormField
+            control={form.control}
+            name="tribunal"
+            render={({ field }) => (
+              <FormItem className="space-y-1.5">
+                <FormLabel>Tribunal</FormLabel>
+                <FormControl>
+                  <Input placeholder="Ex: TJSP" {...field} value={field.value ?? ''} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="vara"
+            render={({ field }) => (
+              <FormItem className="space-y-1.5">
+                <FormLabel>Vara</FormLabel>
+                <FormControl>
+                  <Input placeholder="Ex: 1ª Vara Cível" {...field} value={field.value ?? ''} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
         </div>
-      </div>
 
-      <div className="space-y-1.5">
-        <Label htmlFor="observacoes">Observações</Label>
-        <Textarea
-          id="observacoes"
-          placeholder="Notas sobre o processo..."
-          rows={3}
-          {...register('observacoes')}
+        <div className="grid grid-cols-2 gap-4">
+          <FormField
+            control={form.control}
+            name="comarca"
+            render={({ field }) => (
+              <FormItem className="space-y-1.5">
+                <FormLabel>Comarca</FormLabel>
+                <FormControl>
+                  <Input placeholder="Ex: São Paulo" {...field} value={field.value ?? ''} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="area_juridica"
+            render={({ field }) => (
+              <FormItem className="space-y-1.5">
+                <FormLabel>Área Jurídica</FormLabel>
+                <FormControl>
+                  <Input placeholder="Ex: Direito do Consumidor" {...field} value={field.value ?? ''} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </div>
+
+        <div className="grid grid-cols-3 gap-4">
+          <FormField
+            control={form.control}
+            name="fase_processual"
+            render={({ field }) => (
+              <FormItem className="space-y-1.5">
+                <FormLabel>Fase Processual</FormLabel>
+                <Select value={field.value} onValueChange={field.onChange}>
+                  <FormControl>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    {FASES_PROCESSUAIS.map(f => (
+                      <SelectItem key={f} value={f}>{FASE_LABELS[f]}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="posicao"
+            render={({ field }) => (
+              <FormItem className="space-y-1.5">
+                <FormLabel>Posição</FormLabel>
+                <Select value={field.value} onValueChange={field.onChange}>
+                  <FormControl>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    {POSICOES.map(p => (
+                      <SelectItem key={p} value={p}>{POSICAO_LABELS[p]}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="status"
+            render={({ field }) => (
+              <FormItem className="space-y-1.5">
+                <FormLabel>Status</FormLabel>
+                <Select value={field.value} onValueChange={field.onChange}>
+                  <FormControl>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    {STATUS_PROCESSO.map(s => (
+                      <SelectItem key={s} value={s}>{PROCESSO_STATUS_LABELS[s]}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </div>
+
+        <div className="grid grid-cols-2 gap-4">
+          <FormField
+            control={form.control}
+            name="valor_causa"
+            render={({ field }) => (
+              <FormItem className="space-y-1.5">
+                <FormLabel>Valor da Causa (R$)</FormLabel>
+                <FormControl>
+                  <Input
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    placeholder="0,00"
+                    name={field.name}
+                    ref={field.ref}
+                    onBlur={field.onBlur}
+                    value={displayNumber(field.value)}
+                    onChange={(e) => field.onChange(toNumber(e.target.value))}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="data_distribuicao"
+            render={({ field }) => (
+              <FormItem className="space-y-1.5">
+                <FormLabel>Data de Distribuição</FormLabel>
+                <FormControl>
+                  <Input type="date" {...field} value={field.value ?? ''} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </div>
+
+        <FormField
+          control={form.control}
+          name="observacoes"
+          render={({ field }) => (
+            <FormItem className="space-y-1.5">
+              <FormLabel>Observações</FormLabel>
+              <FormControl>
+                <Textarea
+                  placeholder="Notas sobre o processo..."
+                  rows={3}
+                  {...field}
+                  value={field.value ?? ''}
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
         />
-      </div>
 
-      <div className="flex gap-2 justify-end pt-2">
-        <Button type="button" variant="outline" onClick={onCancel} disabled={isSubmitting || loading}>
-          Cancelar
-        </Button>
-        <Button type="submit" disabled={isSubmitting || loading}>
-          {isSubmitting || loading ? 'Salvando...' : initialData ? 'Salvar Alterações' : 'Criar Processo'}
-        </Button>
-      </div>
-    </form>
+        <div className="flex gap-2 justify-end pt-2">
+          <Button type="button" variant="outline" onClick={onCancel} disabled={isSubmitting || loading}>
+            Cancelar
+          </Button>
+          <Button type="submit" disabled={isSubmitting || loading}>
+            {isSubmitting || loading ? 'Salvando...' : initialData ? 'Salvar Alterações' : 'Criar Processo'}
+          </Button>
+        </div>
+      </form>
+    </Form>
   );
 };
 

@@ -222,6 +222,7 @@ const NotificacoesSection = () => {
           </div>
         </CardHeader>
         <CardContent>
+          <div className="overflow-x-auto">
           <Table>
             <TableHeader>
               <TableRow>
@@ -270,6 +271,7 @@ const NotificacoesSection = () => {
               ))}
             </TableBody>
           </Table>
+          </div>
         </CardContent>
       </Card>
     </div>
