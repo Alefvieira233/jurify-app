@@ -2,16 +2,16 @@
  * Hook: Google Calendar integration.
  */
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import type { Json } from '@/integrations/supabase/types';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
-import { GoogleOAuthService, type CalendarEvent } from '@/lib/google/GoogleOAuthService';
+import { GoogleOAuthService } from '@/lib/google/GoogleOAuthService';
 import { queryKeys } from '@/lib/queryKeys';
 import { toUserMessage } from '@/lib/errorMessages';
 import { createLogger } from '@/lib/logger';
+import { useGoogleCalendarEvents } from '@/hooks/useGoogleCalendarEvents';
 
 const log = createLogger('useGoogleCalendar');
 
@@ -41,9 +41,28 @@ export const useGoogleCalendar = () => {
     summary: string;
     primary?: boolean;
   }
+  // Calendars list is no longer fetched from the browser (server-side only).
+  // Kept as state for API compatibility; effectively always a single "primary" entry.
   const [calendars, setCalendars] = useState<GoogleCalendar[]>([]);
 
   const isOAuthConfigured = GoogleOAuthService.isConfigured();
+
+  // Check connection status via edge function (never reads tokens client-side).
+  useEffect(() => {
+    if (!user?.id) return;
+    let cancelled = false;
+    void (async () => {
+      try {
+        const status = await GoogleOAuthService.getStatus();
+        if (!cancelled) setIsAuthenticated(!!status.connected);
+      } catch {
+        if (!cancelled) setIsAuthenticated(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [user?.id]);
 
   const { data: settings = null, isLoading: loading } = useQuery({
     queryKey: queryKeys.googleCalendarSettings.detail(tenantId, user?.id),
@@ -96,10 +115,6 @@ export const useGoogleCalendar = () => {
         settingsResult = newSettings;
       }
 
-      // Check auth tokens
-      const token = await GoogleOAuthService.loadTokens(user!.id);
-      setIsAuthenticated(!!token);
-
       return { ...settingsResult, tenant_id: tenantId!, user_id: user!.id } as GoogleCalendarSettings;
     },
     enabled: !!user?.id && !!tenantId,
@@ -143,7 +158,7 @@ export const useGoogleCalendar = () => {
     void queryClient.invalidateQueries({ queryKey: queryKeys.googleCalendarSettings.detail(tenantId, user?.id) });
   }, [queryClient, tenantId, user?.id]);
 
-  const initializeGoogleAuth = useCallback(() => {
+  const initializeGoogleAuth = useCallback(async () => {
     if (!user?.id) {
       toast({
         title: 'Erro',
@@ -167,8 +182,8 @@ export const useGoogleCalendar = () => {
         crypto.getRandomValues(new Uint8Array(32))
       ).map(b => b.toString(16).padStart(2, '0')).join('');
 
-      const authUrl = GoogleOAuthService.getAuthUrl(cryptoState);
       localStorage.setItem('google_oauth_state', cryptoState);
+      const authUrl = await GoogleOAuthService.getAuthUrl(cryptoState);
       window.location.href = authUrl;
     } catch (error: unknown) {
       toast({
@@ -184,23 +199,23 @@ export const useGoogleCalendar = () => {
 
     try {
       const savedState = localStorage.getItem('google_oauth_state');
-      if (state !== savedState) {
+      if (!savedState || state !== savedState) {
         throw new Error('State invalido. Possivel ataque CSRF.');
       }
 
-      await GoogleOAuthService.exchangeCodeForTokens(code, user.id);
+      await GoogleOAuthService.exchangeCodeForTokens(code);
       localStorage.removeItem('google_oauth_state');
 
-      const userCalendars = await GoogleOAuthService.listCalendars(user.id) as unknown as GoogleCalendar[];
-      setCalendars(userCalendars);
-
-      const primaryCalendar = userCalendars.find(cal => cal.primary);
-      if (primaryCalendar) {
-        await updateSettings({
-          calendar_enabled: true,
-          calendar_id: primaryCalendar.id,
-        });
-      }
+      // Default to the user's primary calendar. The edge function uses the
+      // calendar.events scope which doesn't grant calendarList.read — listing
+      // calendars is not possible. Users can pick a specific calendar later
+      // via settings if we add that surface.
+      const primary: GoogleCalendar = { id: 'primary', summary: 'Primary', primary: true };
+      setCalendars([primary]);
+      await updateSettings({
+        calendar_enabled: true,
+        calendar_id: 'primary',
+      });
 
       setIsAuthenticated(true);
 
@@ -224,7 +239,7 @@ export const useGoogleCalendar = () => {
     if (!user?.id) return false;
 
     try {
-      await GoogleOAuthService.revokeTokens(user.id);
+      await GoogleOAuthService.revokeTokens();
       await updateSettings({
         calendar_enabled: false,
         calendar_id: null,
@@ -249,177 +264,17 @@ export const useGoogleCalendar = () => {
     }
   }, [user?.id, toast, updateSettings]);
 
-  interface AgendamentoEventData {
-    titulo?: string;
-    descricao?: string;
-    data_hora?: string;
-    participantes?: string[];
-    // Google Calendar API format (used by components directly)
-    summary?: string;
-    description?: string;
-    start?: { dateTime: string; timeZone: string };
-    end?: { dateTime: string; timeZone: string };
-    attendees?: Array<{ email: string }>;
-  }
+  const { createCalendarEvent, updateCalendarEvent, deleteCalendarEvent } = useGoogleCalendarEvents({
+    userId: user?.id,
+    tenantId,
+    calendarId: settings?.calendar_id,
+  });
 
-  const createCalendarEvent = useCallback(async (eventData: AgendamentoEventData, agendamentoId: string) => {
-    if (!user?.id || !settings?.calendar_id || !tenantId) {
-      return null;
-    }
-
-    try {
-      const calendarEvent: CalendarEvent = {
-        summary: eventData.titulo || 'Agendamento Jurify',
-        description: eventData.descricao || '',
-        start: {
-          dateTime: new Date(eventData.data_hora || new Date()).toISOString(),
-          timeZone: 'America/Sao_Paulo',
-        },
-        end: {
-          dateTime: new Date(new Date(eventData.data_hora || new Date()).getTime() + 60 * 60 * 1000).toISOString(),
-          timeZone: 'America/Sao_Paulo',
-        },
-        attendees: eventData.participantes?.map((email: string) => ({ email })) || [],
-        reminders: {
-          useDefault: false,
-          overrides: [
-            { method: 'email', minutes: 24 * 60 },
-            { method: 'popup', minutes: 30 },
-          ],
-        },
-      };
-
-      const googleEvent = await GoogleOAuthService.createEvent(
-        user.id,
-        settings.calendar_id,
-        calendarEvent
-      );
-
-      await supabase.from('google_calendar_sync_logs').insert([{
-        user_id: user.id,
-        action: 'create',
-        agendamento_id: agendamentoId,
-        google_event_id: googleEvent.id,
-        status: 'success',
-        sync_data: calendarEvent as unknown as Json,
-      }]);
-
-      // Invalidate agendamentos cache so UI reflects sync status
-      void queryClient.invalidateQueries({ queryKey: queryKeys.agendamentos.all });
-
-      return googleEvent.id;
-    } catch (error: unknown) {
-      await supabase.from('google_calendar_sync_logs').insert([{
-        user_id: user.id,
-        action: 'create',
-        agendamento_id: agendamentoId,
-        status: 'error',
-        error_message: error instanceof Error ? error.message : 'Unknown error',
-      }]);
-
-      toast({
-        title: 'Erro',
-        description: 'Nao foi possivel criar evento no Google Calendar.',
-        variant: 'destructive',
-      });
-
-      return null;
-    }
-  }, [user?.id, tenantId, settings?.calendar_id, queryClient, toast]);
-
-  const updateCalendarEvent = useCallback(async (googleEventId: string, eventData: Partial<AgendamentoEventData>, agendamentoId: string) => {
-    if (!user?.id || !settings?.calendar_id || !tenantId) {
-      return false;
-    }
-
-    try {
-      const calendarEvent: Partial<CalendarEvent> = {
-        summary: eventData.titulo,
-        description: eventData.descricao,
-        start: eventData.data_hora ? {
-          dateTime: new Date(eventData.data_hora).toISOString(),
-          timeZone: 'America/Sao_Paulo',
-        } : undefined,
-      };
-
-      await GoogleOAuthService.updateEvent(
-        user.id,
-        settings.calendar_id,
-        googleEventId,
-        calendarEvent
-      );
-
-      await supabase.from('google_calendar_sync_logs').insert([{
-        user_id: user.id,
-        action: 'update',
-        agendamento_id: agendamentoId,
-        google_event_id: googleEventId,
-        status: 'success',
-        sync_data: calendarEvent as unknown as Json,
-      }]);
-
-      // Invalidate agendamentos cache so UI reflects sync status
-      void queryClient.invalidateQueries({ queryKey: queryKeys.agendamentos.all });
-
-      return true;
-    } catch (error: unknown) {
-      await supabase.from('google_calendar_sync_logs').insert([{
-        user_id: user.id,
-        action: 'update',
-        agendamento_id: agendamentoId,
-        google_event_id: googleEventId,
-        status: 'error',
-        error_message: error instanceof Error ? error.message : 'Unknown error',
-      }]);
-
-      return false;
-    }
-  }, [user?.id, tenantId, settings?.calendar_id, queryClient]);
-
-  const deleteCalendarEvent = useCallback(async (googleEventId: string, agendamentoId: string) => {
-    if (!user?.id || !settings?.calendar_id || !tenantId) {
-      return false;
-    }
-
-    try {
-      await GoogleOAuthService.deleteEvent(
-        user.id,
-        settings.calendar_id,
-        googleEventId
-      );
-
-      await supabase.from('google_calendar_sync_logs').insert([{
-        user_id: user.id,
-        action: 'delete',
-        agendamento_id: agendamentoId,
-        google_event_id: googleEventId,
-        status: 'success',
-      }]);
-
-      return true;
-    } catch (error: unknown) {
-      await supabase.from('google_calendar_sync_logs').insert([{
-        user_id: user.id,
-        action: 'delete',
-        agendamento_id: agendamentoId,
-        google_event_id: googleEventId,
-        status: 'error',
-        error_message: error instanceof Error ? error.message : 'Unknown error',
-      }]);
-
-      return false;
-    }
-  }, [user?.id, tenantId, settings?.calendar_id]);
-
-  const loadCalendars = useCallback(async () => {
+  // listCalendars is not exposed via the edge function (calendar.events scope
+  // doesn't grant calendar list access). We default to 'primary'.
+  const loadCalendars = useCallback(() => {
     if (!user?.id || !isAuthenticated) return;
-
-    try {
-      const userCalendars = await GoogleOAuthService.listCalendars(user.id) as unknown as GoogleCalendar[];
-      setCalendars(userCalendars);
-    } catch (_error: unknown) {
-      // Error handled silently
-    }
+    setCalendars([{ id: 'primary', summary: 'Primary', primary: true }]);
   }, [user?.id, isAuthenticated]);
 
   return {

@@ -85,14 +85,16 @@ vi.mock('@/integrations/supabase/client', () => {
 });
 
 // Mock GoogleOAuthService - configured = true
+// Note: getAuthUrl is now async (Promise<string>) because the real implementation
+// invokes the google-calendar edge function. loadTokens/listCalendars were removed
+// in the 2026-04-10 refactor that moved all token handling server-side.
 vi.mock('@/lib/google/GoogleOAuthService', () => ({
   GoogleOAuthService: {
     isConfigured: vi.fn(() => true),
-    getAuthUrl: vi.fn((state: string) => `https://accounts.google.com/o/oauth2/v2/auth?state=${state}`),
-    loadTokens: vi.fn().mockResolvedValue(null),
+    getAuthUrl: vi.fn(async (state: string) => `https://accounts.google.com/o/oauth2/v2/auth?state=${state}`),
+    getStatus: vi.fn().mockResolvedValue({ connected: false, email: null, name: null, picture: null, connectedAt: null }),
     revokeTokens: vi.fn().mockResolvedValue(undefined),
-    exchangeCodeForTokens: vi.fn().mockResolvedValue({}),
-    listCalendars: vi.fn().mockResolvedValue([]),
+    exchangeCodeForTokens: vi.fn().mockResolvedValue({ email: null, name: null }),
     createEvent: vi.fn().mockResolvedValue({ id: 'event-1' }),
     updateEvent: vi.fn().mockResolvedValue({}),
     deleteEvent: vi.fn().mockResolvedValue(undefined),
@@ -139,9 +141,11 @@ describe('OAuth State Security (CSRF Protection)', () => {
     const { GoogleOAuthService } = await import('@/lib/google/GoogleOAuthService');
     vi.mocked(GoogleOAuthService.isConfigured).mockReturnValue(true);
     vi.mocked(GoogleOAuthService.getAuthUrl).mockImplementation(
-      (state: string) => `https://accounts.google.com/o/oauth2/v2/auth?state=${state}`
+      async (state: string) => `https://accounts.google.com/o/oauth2/v2/auth?state=${state}`
     );
-    vi.mocked(GoogleOAuthService.loadTokens).mockResolvedValue(null);
+    vi.mocked(GoogleOAuthService.getStatus).mockResolvedValue({
+      connected: false, email: null, name: null, picture: null, connectedAt: null,
+    });
   });
 
   describe('Cryptographic State Generation', () => {
@@ -370,16 +374,18 @@ describe('GoogleOAuthService - State Parameter', () => {
     const { GoogleOAuthService } = await import('@/lib/google/GoogleOAuthService');
     vi.mocked(GoogleOAuthService.isConfigured).mockReturnValue(true);
     vi.mocked(GoogleOAuthService.getAuthUrl).mockImplementation(
-      (state: string) => `https://accounts.google.com/o/oauth2/v2/auth?state=${state}`
+      async (state: string) => `https://accounts.google.com/o/oauth2/v2/auth?state=${state}`
     );
-    vi.mocked(GoogleOAuthService.loadTokens).mockResolvedValue(null);
+    vi.mocked(GoogleOAuthService.getStatus).mockResolvedValue({
+      connected: false, email: null, name: null, picture: null, connectedAt: null,
+    });
   });
 
   it('getAuthUrl should accept state parameter', async () => {
     const { GoogleOAuthService } = await import('@/lib/google/GoogleOAuthService');
     const cryptoState = 'a'.repeat(64);
 
-    const url = GoogleOAuthService.getAuthUrl(cryptoState);
+    const url = await GoogleOAuthService.getAuthUrl(cryptoState);
 
     expect(url).toContain(`state=${cryptoState}`);
     expect(GoogleOAuthService.getAuthUrl).toHaveBeenCalledWith(cryptoState);
@@ -389,7 +395,7 @@ describe('GoogleOAuthService - State Parameter', () => {
     const { GoogleOAuthService } = await import('@/lib/google/GoogleOAuthService');
     const cryptoState = 'b'.repeat(64);
 
-    const url = GoogleOAuthService.getAuthUrl(cryptoState);
+    const url = await GoogleOAuthService.getAuthUrl(cryptoState);
 
     expect(url).toContain('state=');
     expect(url).toContain(cryptoState);
