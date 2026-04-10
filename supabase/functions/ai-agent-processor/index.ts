@@ -16,7 +16,7 @@ import { getCorsHeaders } from "../_shared/cors.ts";
 import { checkBudgetBeforeCall, recordTokenUsage } from "../_shared/ai-budget.ts";
 import { initSentry, captureError } from "../_shared/sentry.ts";
 import { DEFAULT_OPENAI_MODEL } from "../_shared/ai-model.ts";
-import { sanitizeInput } from "../_shared/security.ts";
+import { sanitizeInput, redactPII } from "../_shared/security.ts";
 
 // 🚀 INIT SENTRY
 initSentry();
@@ -173,7 +173,10 @@ async function processAIRequest(
 // ðŸ†” Gera execution_id Ãºnico
 function generateExecutionId(): string {
   const timestamp = Date.now();
-  const random = Math.random().toString(36).substring(2, 11);
+  // Use cryptographic randomness for execution IDs
+  const array = new Uint8Array(4);
+  crypto.getRandomValues(array);
+  const random = Array.from(array, (byte) => byte.toString(36).padStart(1, "0")).join("");
   return `exec_${timestamp}_${random}`;
 }
 
@@ -287,11 +290,11 @@ async function logAIProcessing(
       prompt_tokens: response.usage?.prompt_tokens || 0,
       completion_tokens: response.usage?.completion_tokens || 0,
       total_tokens: response.usage?.total_tokens || 0,
-      result_preview: response.result.substring(0, 200),
-      // Advanced Logging (LangSmith Style) — truncated to reduce PII surface
-      system_prompt: request.systemPrompt.substring(0, 500),
-      user_prompt: request.userPrompt.substring(0, 500),
-      full_result: response.result.substring(0, 2000),
+      result_preview: redactPII(response.result).substring(0, 200),
+      // Advanced Logging (LangSmith Style) — redacted and truncated to reduce PII surface
+      system_prompt: redactPII(request.systemPrompt).substring(0, 500),
+      user_prompt: redactPII(request.userPrompt).substring(0, 500),
+      full_result: redactPII(response.result).substring(0, 2000),
       context: request.context || null,
       created_at: new Date().toISOString(),
     });
