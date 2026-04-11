@@ -14,18 +14,20 @@ test.describe('Password Reset Flow', () => {
 
   test('shows forgot password dialog', async ({ page }) => {
     const forgotLink = page.getByText(/esquec/i);
-    if (await forgotLink.isVisible()) {
-      await forgotLink.click();
+    const count = await forgotLink.count();
+    if (count > 0) {
+      await forgotLink.first().click();
       // Should show email input for reset
-      await expect(page.getByPlaceholder(/email/i)).toBeVisible({ timeout: 5_000 });
+      await expect(page.getByTestId('input-forgot-password-email')).toBeVisible({ timeout: 5_000 });
     }
   });
 
   test('validates email format for reset', async ({ page }) => {
     const forgotLink = page.getByText(/esquec/i);
-    if (await forgotLink.isVisible()) {
-      await forgotLink.click();
-      const emailInput = page.getByPlaceholder(/email/i);
+    const count = await forgotLink.count();
+    if (count > 0) {
+      await forgotLink.first().click();
+      const emailInput = page.getByTestId('input-forgot-password-email');
       if (await emailInput.isVisible()) {
         await emailInput.fill('invalid-email');
         const submitBtn = page.getByRole('button', { name: /enviar|resetar|recuperar/i });
