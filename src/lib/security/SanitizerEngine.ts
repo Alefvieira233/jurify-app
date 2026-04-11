@@ -36,7 +36,7 @@ const PII_PATTERNS: PIIPattern[] = [
   },
   {
     name: 'CPF_FORMATTED',
-    regex: /\d{3}\.\d{3}\.\d{3}-\d{2}/g,
+    regex: /\b\d{3}\.\d{3}\.\d{3}-\d{2}\b/g,
     prefix: 'CPF',
   },
   {
@@ -45,9 +45,19 @@ const PII_PATTERNS: PIIPattern[] = [
     prefix: 'CPF',
   },
   {
+    name: 'RG',
+    regex: /\b\d{2}\.?\d{3}\.?\d{3}-?[\dXx]\b/g,
+    prefix: 'RG',
+  },
+  {
     name: 'OAB',
     regex: /\b(?:AC|AL|AP|AM|BA|CE|DF|ES|GO|MA|MT|MS|MG|PA|PB|PR|PE|PI|RJ|RN|RS|RO|RR|SC|SP|SE|TO)\s?\d{4,6}\b/g,
     prefix: 'OAB',
+  },
+  {
+    name: 'CARD',
+    regex: /\b\d{4}\s?\d{4}\s?\d{4}\s?\d{4}\b/g,
+    prefix: 'CARD',
   },
   {
     name: 'PHONE_BR',
@@ -64,13 +74,21 @@ const PII_PATTERNS: PIIPattern[] = [
 // ─── UUID Generator (no crypto dependency needed) ───────────────────────────
 
 function generateTokenId(): string {
-  // Simple UUID v4-like generator that works in all environments
-  const hex = '0123456789abcdef';
-  let id = '';
-  for (let i = 0; i < 8; i++) {
-    id += hex[Math.floor(Math.random() * 16)];
+  // Use crypto.getRandomValues for cryptographically secure random tokens.
+  // Works in modern browsers and Node/Deno environments.
+  const bytes = new Uint8Array(4);
+  const cryptoObj = typeof crypto !== 'undefined' ? crypto : (typeof globalThis !== 'undefined' ? globalThis.crypto : null);
+
+  if (cryptoObj?.getRandomValues) {
+    cryptoObj.getRandomValues(bytes);
+  } else {
+    // Fallback for environments where crypto is not available (should be rare)
+    for (let i = 0; i < 4; i++) {
+      bytes[i] = Math.floor(Math.random() * 256);
+    }
   }
-  return id;
+
+  return Array.from(bytes, (b) => b.toString(16).padStart(2, '0')).join('');
 }
 
 // ─── Core Types ─────────────────────────────────────────────────────────────

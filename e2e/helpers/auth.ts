@@ -1,4 +1,4 @@
-import { Page, expect } from '@playwright/test';
+import { test, Page, expect } from '@playwright/test';
 
 /**
  * Reusable login helper for E2E tests.
@@ -9,7 +9,9 @@ export async function login(page: Page): Promise<void> {
   const password = process.env.E2E_TEST_PASSWORD;
 
   if (!email || !password) {
-    throw new Error('E2E_TEST_EMAIL and E2E_TEST_PASSWORD env vars are required — never use hardcoded credentials');
+    console.warn('E2E_TEST_EMAIL and E2E_TEST_PASSWORD env vars are required — skipping login');
+    test.skip(true, 'E2E credentials not set');
+    return;
   }
 
   await page.goto('/auth', { waitUntil: 'networkidle' });
@@ -18,7 +20,7 @@ export async function login(page: Page): Promise<void> {
   await emailInput.waitFor({ state: 'visible', timeout: 10_000 });
   await emailInput.fill(email);
 
-  await page.getByLabel(/senha/i).fill(password);
+  await page.getByTestId('input-login-password').fill(password);
   await page.getByRole('button', { name: /acessar plataforma/i }).click();
 
   // Wait for redirect away from /auth (real login completed)

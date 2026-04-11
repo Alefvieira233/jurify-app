@@ -98,6 +98,7 @@ const ForgotPasswordDialog = () => {
                 placeholder="seu@escritorio.com.br"
                 required
                 autoFocus
+                data-testid="input-forgot-password-email"
               />
             </div>
             <Button type="submit" className="w-full" disabled={loading}>
