@@ -71,7 +71,7 @@ export const PasswordStrength: React.FC<PasswordStrengthProps> = ({
         <div className="mt-2 space-y-2">
             <div className="flex items-center justify-between">
                 <span className="text-xs text-[hsl(var(--muted-foreground))]">Força da senha:</span>
-                <span className={`text-xs font-semibold ${getStrengthColor()}`}>
+                <span className={`text-xs font-semibold ${getStrengthColor()}`} data-testid="password-strength-text">
                     {getStrengthText()}
                 </span>
             </div>
