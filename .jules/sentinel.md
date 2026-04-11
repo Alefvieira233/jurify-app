@@ -1,0 +1,4 @@
+## 2026-03-24 - AI Logging PII Leakage & Secure Randomness
+**Vulnerability:** Persistent logs in `agent_ai_logs` were storing raw `system_prompt`, `user_prompt`, and `full_result` from AI interactions, potentially leaking PII (CPF, CNPJ, OAB, etc.). Additionally, `Math.random()` was used for security-sensitive identifiers (Execution IDs, Tokens).
+**Learning:** Truncation alone is insufficient for PII protection; redaction must happen BEFORE truncation to prevent sensitive data from being preserved at the string boundaries. Shared security utilities should be synchronized across frontend and backend for consistency.
+**Prevention:** Always apply `redactPII` to any field containing user or system prompts before persisting to logs. Use `crypto.getRandomValues()` for all identifier generation to ensure cryptographic unpredictability.
