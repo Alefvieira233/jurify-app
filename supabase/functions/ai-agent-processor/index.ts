@@ -16,7 +16,7 @@ import { getCorsHeaders } from "../_shared/cors.ts";
 import { checkBudgetBeforeCall, recordTokenUsage } from "../_shared/ai-budget.ts";
 import { initSentry, captureError } from "../_shared/sentry.ts";
 import { DEFAULT_OPENAI_MODEL } from "../_shared/ai-model.ts";
-import { sanitizeInput, redactPII } from "../_shared/security.ts";
+import { sanitizeInput, redactPII, generateSecureId } from "../_shared/security.ts";
 
 // 🚀 INIT SENTRY
 initSentry();
@@ -172,11 +172,7 @@ async function processAIRequest(
 
 // ðŸ†” Gera execution_id Ãºnico
 function generateExecutionId(): string {
-  const timestamp = Date.now();
-  const randomBytes = new Uint8Array(6);
-  crypto.getRandomValues(randomBytes);
-  const random = Array.from(randomBytes, (b) => b.toString(36).padStart(1, '0')).join('').substring(0, 9);
-  return `exec_${timestamp}_${random}`;
+  return generateSecureId("exec", 9);
 }
 
 // ðŸ“ Cria registro de execuÃ§Ã£o no banco

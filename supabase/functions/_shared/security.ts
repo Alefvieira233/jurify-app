@@ -110,6 +110,19 @@ export function redactPII(text: string): string {
   return result;
 }
 
+/**
+ * Generate a cryptographically secure random identifier.
+ * Uses crypto.getRandomValues (standard in Deno/Edge Functions and modern browsers).
+ */
+export function generateSecureId(prefix = "id", length = 9): string {
+  const bytes = new Uint8Array(Math.ceil(length * 0.75));
+  crypto.getRandomValues(bytes);
+  const random = Array.from(bytes, (b) => b.toString(36).padStart(1, "0"))
+    .join("")
+    .substring(0, length);
+  return `${prefix}_${Date.now()}_${random}`;
+}
+
 // ---------------------------------------------------------------------------
 // Audit trail
 // ---------------------------------------------------------------------------

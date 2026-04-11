@@ -36,7 +36,7 @@ const PII_PATTERNS: PIIPattern[] = [
   },
   {
     name: 'CPF_FORMATTED',
-    regex: /\d{3}\.\d{3}\.\d{3}-\d{2}/g,
+    regex: /\b\d{3}\.\d{3}\.\d{3}-\d{2}\b/g,
     prefix: 'CPF',
   },
   {
@@ -45,9 +45,19 @@ const PII_PATTERNS: PIIPattern[] = [
     prefix: 'CPF',
   },
   {
+    name: 'RG',
+    regex: /\b\d{2}\.?\d{3}\.?\d{3}-?[\dXx]\b/g,
+    prefix: 'RG',
+  },
+  {
     name: 'OAB',
     regex: /\b(?:AC|AL|AP|AM|BA|CE|DF|ES|GO|MA|MT|MS|MG|PA|PB|PR|PE|PI|RJ|RN|RS|RO|RR|SC|SP|SE|TO)\s?\d{4,6}\b/g,
     prefix: 'OAB',
+  },
+  {
+    name: 'CARD',
+    regex: /\b\d{4}\s?\d{4}\s?\d{4}\s?\d{4}\b/g,
+    prefix: 'CARD',
   },
   {
     name: 'PHONE_BR',
