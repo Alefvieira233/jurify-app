@@ -10,16 +10,16 @@ import '@testing-library/jest-dom/vitest';
 // Provide default Supabase env vars for tests that import the client
 // These are safe dummy values — no real API calls are made in unit tests.
 // We force dummy values if the current ones are missing or are placeholders from .env.example
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+const initialSupabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+const initialSupabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
-if (!supabaseUrl || supabaseUrl === 'your_supabase_url' || !supabaseUrl.startsWith('http')) {
+if (!initialSupabaseUrl || initialSupabaseUrl === 'your_supabase_url' || !initialSupabaseUrl.startsWith('http')) {
   vi.stubEnv('VITE_SUPABASE_URL', 'https://dummy.supabase.co');
   // Also set on process.env for extra compatibility
   if (typeof process !== 'undefined') process.env.VITE_SUPABASE_URL = 'https://dummy.supabase.co';
 }
 
-if (!supabaseKey || supabaseKey === 'your_supabase_anon_key' || !supabaseKey.startsWith('eyJ')) {
+if (!initialSupabaseKey || initialSupabaseKey === 'your_supabase_anon_key' || !initialSupabaseKey.startsWith('eyJ')) {
   vi.stubEnv('VITE_SUPABASE_ANON_KEY', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS10ZXN0Iiwicm9sZSI6ImFub24iLCJleHAiOjk5OTk5OTk5OTl9.test-key');
   if (typeof process !== 'undefined') process.env.VITE_SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS10ZXN0Iiwicm9sZSI6ImFub24iLCJleHAiOjk5OTk5OTk5OTl9.test-key';
 }

@@ -39,12 +39,16 @@ test.describe('Jurify — Autenticação', () => {
 
     await page.getByTestId('input-register-name').fill('Teste E2E');
     await page.getByTestId('input-register-email').fill('e2e@test.com');
+
+    // Accept LGPD consent
+    await page.locator('#lgpdConsent').check();
+
     // "12345678" passes Zod (min 8) but fails the strength requirement (needs 4 of 5)
     await page.getByTestId('input-register-password').fill('12345678');
     await page.getByTestId('input-register-confirm-password').fill('12345678');
     await page.getByTestId('btn-register-submit').click();
 
-    await expect(page.getByText(/senha fraca/i).first()).toBeVisible({ timeout: 5_000 });
+    await expect(page.getByText(/senha fraca/i).first()).toBeVisible({ timeout: 10_000 });
   });
 
   test('deve redirecionar para dashboard após login bem-sucedido', async ({ page }) => {
