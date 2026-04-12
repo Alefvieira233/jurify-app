@@ -11,7 +11,7 @@ import { test, expect } from '@playwright/test';
 test.describe('Post-Deploy Smoke', () => {
   test('app boots and shows login page', async ({ page }) => {
     await page.goto('/auth', { waitUntil: 'domcontentloaded' });
-    await expect(page.getByLabel(/email/i).first()).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByTestId('input-login-email')).toBeVisible({ timeout: 15_000 });
   });
 
   test('login succeeds and dashboard renders', async ({ page }) => {
@@ -25,9 +25,9 @@ test.describe('Post-Deploy Smoke', () => {
 
     await page.goto('/auth', { waitUntil: 'networkidle' });
 
-    await page.getByLabel(/email/i).first().fill(email);
-    await page.getByLabel(/senha/i).first().fill(password);
-    await page.getByRole('button', { name: /acessar/i }).click();
+    await page.getByTestId('input-login-email').fill(email);
+    await page.getByTestId('input-login-password').fill(password);
+    await page.getByTestId('btn-login-submit').click();
 
     // Wait for redirect to dashboard
     await page.waitForURL(url => !url.toString().includes('/auth'), { timeout: 15_000 });

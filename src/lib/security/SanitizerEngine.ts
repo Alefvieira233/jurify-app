@@ -61,16 +61,21 @@ const PII_PATTERNS: PIIPattern[] = [
   },
 ];
 
-// ─── UUID Generator (no crypto dependency needed) ───────────────────────────
+// ─── UUID Generator (CSPRNG) ────────────────────────────────────────────────
 
 function generateTokenId(): string {
-  // Simple UUID v4-like generator that works in all environments
-  const hex = '0123456789abcdef';
-  let id = '';
-  for (let i = 0; i < 8; i++) {
-    id += hex[Math.floor(Math.random() * 16)];
+  // Cryptographically secure random token generation (8 chars)
+  // Works in both Browser and Deno environments.
+  const array = new Uint32Array(1);
+  if (typeof window !== 'undefined' && window.crypto) {
+    window.crypto.getRandomValues(array);
+  } else if (typeof globalThis !== 'undefined' && globalThis.crypto) {
+    globalThis.crypto.getRandomValues(array);
+  } else {
+    // Fallback for extreme legacy environments (unlikely in this modern stack)
+    return Math.random().toString(16).substring(2, 10);
   }
-  return id;
+  return array[0]!.toString(16).substring(0, 8);
 }
 
 // ─── Core Types ─────────────────────────────────────────────────────────────
