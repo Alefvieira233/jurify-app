@@ -13,13 +13,24 @@
 import { createClient } from '@supabase/supabase-js';
 import type { Database } from './database-extended';
 
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+const rawUrl = import.meta.env.VITE_SUPABASE_URL || (typeof process !== 'undefined' ? process.env.VITE_SUPABASE_URL : '');
+const rawKey = import.meta.env.VITE_SUPABASE_ANON_KEY || (typeof process !== 'undefined' ? process.env.VITE_SUPABASE_ANON_KEY : '');
+
+// Filter out placeholder values from .env.example or empty strings
+const supabaseUrl = rawUrl && rawUrl !== 'your_supabase_url' && rawUrl.startsWith('http') ? rawUrl : '';
+const supabaseAnonKey = rawKey && rawKey !== 'your_supabase_anon_key' && rawKey.startsWith('eyJ') ? rawKey : '';
 
 if (!supabaseUrl || !supabaseAnonKey) {
-  throw new Error(
-    '[supabase] Missing environment variables: VITE_SUPABASE_URL and/or VITE_SUPABASE_ANON_KEY.'
-  );
+  // If we are in a test environment, don't throw, just log warning.
+  // setup.ts will provide dummy values.
+  const isTest = typeof process !== 'undefined' && (process.env.NODE_ENV === 'test' || !!process.env.VITEST);
+  if (isTest) {
+    console.warn('[supabase] Supabase environment variables are missing or placeholders. Using fallback for tests.');
+  } else {
+    throw new Error(
+      '[supabase] Missing environment variables: VITE_SUPABASE_URL and/or VITE_SUPABASE_ANON_KEY.'
+    );
+  }
 }
 
 /**

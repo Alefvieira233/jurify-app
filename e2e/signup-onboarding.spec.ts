@@ -10,8 +10,8 @@ test.describe('Jurify — Signup & Onboarding', () => {
     await expect(page.locator('body')).not.toBeEmpty();
     await expect(page.getByText(/algo deu errado|error boundary/i)).not.toBeVisible();
     // Email and password fields should be present
-    await expect(page.getByLabel(/email/i).first()).toBeVisible({ timeout: 10_000 });
-    await expect(page.getByLabel(/senha/i).first()).toBeVisible({ timeout: 10_000 });
+    await expect(page.getByTestId('input-login-email')).toBeVisible({ timeout: 10_000 });
+    await expect(page.getByTestId('input-login-password')).toBeVisible({ timeout: 10_000 });
   });
 
   test('alternância para cadastro mostra campos extras', async ({ page }) => {
@@ -45,19 +45,19 @@ test.describe('Jurify — Signup & Onboarding', () => {
     await page.waitForTimeout(300);
 
     // Fill email
-    const emailInput = page.getByLabel(/email/i).first();
+    const emailInput = page.getByTestId('input-register-email');
     if (await emailInput.isVisible({ timeout: 3_000 }).catch(() => false)) {
       await emailInput.fill('test@example.com');
     }
 
     // Fill weak password
-    const passwordInputs = page.locator('input[type="password"]');
-    if (await passwordInputs.first().isVisible({ timeout: 3_000 }).catch(() => false)) {
-      await passwordInputs.first().fill('123');
+    const passwordInput = page.getByTestId('input-register-password');
+    if (await passwordInput.isVisible({ timeout: 3_000 }).catch(() => false)) {
+      await passwordInput.fill('123');
     }
 
     // Submit
-    const submitBtn = page.getByRole('button', { name: /cadastr|criar|registr|acessar/i }).first();
+    const submitBtn = page.getByTestId('btn-register-submit');
     if (await submitBtn.isVisible({ timeout: 3_000 }).catch(() => false)) {
       await submitBtn.click();
     }
@@ -76,18 +76,19 @@ test.describe('Jurify — Signup & Onboarding', () => {
     }
     await page.waitForTimeout(300);
 
-    const emailInput = page.getByLabel(/email/i).first();
+    const emailInput = page.getByTestId('input-register-email');
     if (await emailInput.isVisible({ timeout: 3_000 }).catch(() => false)) {
       await emailInput.fill('test@example.com');
     }
 
-    const passwordInputs = page.locator('input[type="password"]');
-    const count = await passwordInputs.count();
-    if (count >= 2) {
-      await passwordInputs.nth(0).fill('StrongPass123!');
-      await passwordInputs.nth(1).fill('DifferentPass456!');
+    const passwordInput = page.getByTestId('input-register-password');
+    const confirmInput = page.getByTestId('input-register-confirm-password');
 
-      const submitBtn = page.getByRole('button', { name: /cadastr|criar|registr/i }).first();
+    if (await passwordInput.isVisible() && await confirmInput.isVisible()) {
+      await passwordInput.fill('StrongPass123!');
+      await confirmInput.fill('DifferentPass456!');
+
+      const submitBtn = page.getByTestId('btn-register-submit');
       if (await submitBtn.isVisible({ timeout: 3_000 }).catch(() => false)) {
         await submitBtn.click();
       }
@@ -102,12 +103,12 @@ test.describe('Jurify — Signup & Onboarding', () => {
     await expect(page.getByText(/algo deu errado|error boundary/i)).not.toBeVisible();
 
     // Interact with the form
-    const emailInput = page.getByLabel(/email/i).first();
+    const emailInput = page.getByTestId('input-login-email');
     if (await emailInput.isVisible({ timeout: 3_000 }).catch(() => false)) {
       await emailInput.fill('invalid-email');
     }
 
-    const submitBtn = page.getByRole('button', { name: /acessar|entrar|login/i }).first();
+    const submitBtn = page.getByTestId('btn-login-submit');
     if (await submitBtn.isVisible({ timeout: 3_000 }).catch(() => false)) {
       await submitBtn.click();
     }
