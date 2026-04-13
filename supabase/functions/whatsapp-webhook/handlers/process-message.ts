@@ -3,7 +3,7 @@ import { OpenAI } from "https://deno.land/x/openai@v4.24.0/mod.ts";
 import { buildLegalContext } from "../../_shared/legal-context.ts";
 import { DEFAULT_OPENAI_MODEL } from "../../_shared/ai-model.ts";
 import { checkBudgetBeforeCall, recordTokenUsage } from "../../_shared/ai-budget.ts";
-import { sanitizeInput } from "../../_shared/security.ts";
+import { sanitizeInput, redactPII } from "../../_shared/security.ts";
 import type { NormalizedMessage } from "../../_shared/whatsapp-logic.ts";
 import { callEdgeFunction, escapeLike } from "./edge-function-client.ts";
 import { analyzeQualification } from "./qualification.ts";
@@ -629,7 +629,10 @@ export async function processNormalizedMessage(
     let aiResponse: { result: string; usage?: { prompt_tokens: number; completion_tokens: number; total_tokens: number }; model: string } | null = null;
     let aiError: Error | null = null;
 
-    const executionId = `exec_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
+    const array = new Uint32Array(1);
+    crypto.getRandomValues(array);
+    const randomStr = array[0]!.toString(36).substring(0, 9);
+    const executionId = `exec_${Date.now()}_${randomStr}`;
     const aiStartTime = Date.now();
     let executionRowId: string | null = null;
 
@@ -735,10 +738,10 @@ export async function processNormalizedMessage(
           prompt_tokens: aiResponse.usage?.prompt_tokens || 0,
           completion_tokens: aiResponse.usage?.completion_tokens || 0,
           total_tokens: aiResponse.usage?.total_tokens || 0,
-          result_preview: resultText.substring(0, 200),
-          system_prompt: finalSystemPrompt.substring(0, 500),
-          user_prompt: (commandIntent ?? processedText).substring(0, 500),
-          full_result: resultText.substring(0, 2000),
+          result_preview: redactPII(resultText).substring(0, 200),
+          system_prompt: redactPII(finalSystemPrompt).substring(0, 500),
+          user_prompt: redactPII(commandIntent ?? processedText).substring(0, 500),
+          full_result: redactPII(resultText).substring(0, 2000),
           context: { mediaCategory, agent: agentName, hasLegalContext: legalCtx.has_context },
           created_at: new Date().toISOString(),
         }).then(({ error }) => { if (error) console.error("[webhook] ai_log insert error:", error.message); });
