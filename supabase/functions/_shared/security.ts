@@ -91,6 +91,11 @@ export function sanitizeInput(
 
 const PII_PATTERNS: Array<{ pattern: RegExp; label: string; replacement: string }> = [
   {
+    pattern: /\b\d{4}\s?\d{4}\s?\d{4}\s?\d{4}\b/g,
+    label: "Card",
+    replacement: "[CARTAO]",
+  },
+  {
     pattern: /\d{7}-\d{2}\.\d{4}\.\d\.\d{2}\.\d{4}/g,
     label: "PROCESSO_CNJ",
     replacement: "[PROCESSO]",
@@ -124,11 +129,6 @@ const PII_PATTERNS: Array<{ pattern: RegExp; label: string; replacement: string 
     pattern: /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g,
     label: "EMAIL",
     replacement: "[EMAIL]",
-  },
-  {
-    pattern: /\b\d{4}\s?\d{4}\s?\d{4}\s?\d{4}\b/g,
-    label: "Card",
-    replacement: "[CARTAO]",
   },
 ];
 
