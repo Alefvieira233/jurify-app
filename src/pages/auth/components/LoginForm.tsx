@@ -46,6 +46,7 @@ const LoginForm: React.FC<LoginFormProps> = ({
                   type="email"
                   placeholder="seu@escritorio.com.br"
                   className="h-12 border-[hsl(var(--border))] focus:border-[hsl(var(--accent))] focus:ring-[hsl(var(--accent))] transition-all"
+                  data-testid="input-login-email"
                   {...field}
                 />
               </FormControl>
@@ -70,6 +71,7 @@ const LoginForm: React.FC<LoginFormProps> = ({
                   type="password"
                   placeholder="••••••••"
                   className="h-12 border-[hsl(var(--border))] focus:border-[hsl(var(--accent))] focus:ring-[hsl(var(--accent))] transition-all"
+                  data-testid="input-login-password"
                   {...field}
                 />
               </FormControl>

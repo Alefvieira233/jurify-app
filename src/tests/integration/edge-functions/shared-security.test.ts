@@ -142,26 +142,26 @@ describe('sanitizeInput — rejection of empty input', () => {
 
 describe('redactPII — CPF', () => {
   it('redacts CPF in xxx.xxx.xxx-xx format', () => {
-    expect(redactPII('Meu CPF é 123.456.789-00')).toBe('Meu CPF é ***CPF***');
+    expect(redactPII('Meu CPF é 123.456.789-00')).toBe('Meu CPF é [CPF]');
   });
 
   it('redacts CPF in xxxxxxxxxxx format (no separators)', () => {
-    expect(redactPII('CPF: 12345678900')).toBe('CPF: ***CPF***');
+    expect(redactPII('CPF: 12345678900')).toBe('CPF: [CPF]');
   });
 
   it('redacts CPF embedded in a sentence', () => {
     expect(redactPII('Cliente 111.222.333-44 solicitou extrato'))
-      .toBe('Cliente ***CPF*** solicitou extrato');
+      .toBe('Cliente [CPF] solicitou extrato');
   });
 });
 
 describe('redactPII — Credit card', () => {
   it('redacts 16-digit card with spaces', () => {
-    expect(redactPII('Cartão 4111 1111 1111 1111')).toBe('Cartão ***CARD***');
+    expect(redactPII('Cartão 4111 1111 1111 1111')).toBe('Cartão [CARTAO]');
   });
 
   it('redacts 16-digit card without spaces', () => {
-    expect(redactPII('Cartão 4111111111111111')).toBe('Cartão ***CARD***');
+    expect(redactPII('Cartão 4111111111111111')).toBe('Cartão [CARTAO]');
   });
 });
 

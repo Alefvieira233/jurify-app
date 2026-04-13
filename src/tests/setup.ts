@@ -75,13 +75,8 @@ Object.defineProperty(window, 'localStorage', {
 const { webcrypto } = require('node:crypto');
 Object.defineProperty(global, 'crypto', {
   value: {
-    getRandomValues: (arr: Uint8Array) => {
-      for (let i = 0; i < arr.length; i++) {
-        arr[i] = Math.floor(Math.random() * 256);
-      }
-      return arr;
-    },
-    randomUUID: () => 'test-uuid-' + Math.random().toString(36).substring(7),
+    getRandomValues: (arr: Uint8Array) => webcrypto.getRandomValues(arr),
+    randomUUID: () => webcrypto.randomUUID(),
     subtle: webcrypto.subtle,
   },
 });
