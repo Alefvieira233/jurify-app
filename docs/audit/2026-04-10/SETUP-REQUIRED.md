@@ -1,9 +1,43 @@
 # Jurify — Setup Required Before Launch
 
-**Date:** 2026-04-10
+**Date:** 2026-04-10 (atualizado 2026-04-13)
 **Status:** Code hardening complete (32 tasks). The items below are **operational** and can only be done by someone with access to Vercel, Supabase, Google Cloud, Stripe, and the app's secrets vault.
 
 Every item here has a direct code change already merged that depends on it. **The app will run without these, but some features will be degraded or insecure until they are done.**
+
+---
+
+## ✅ Progresso 2026-04-13 (segunda rodada de hardening)
+
+Aplicado na sessão:
+
+### Migrations aplicadas no banco de produção
+- `20260413000001_auto_qualify_lead_on_agendamento` — trigger pós-agendamento (status→qualificado, score+20, temperature=hot, tag auto, tarefa pro advogado)
+- `20260413000002_lead_phone_dedup` — UNIQUE index parcial + função `normalize_phone` + RPC `find_lead_by_phone`
+- `20260413000003_feature_flags` — tabelas `features`/`feature_overrides` + RPC `is_feature_enabled` (canary rollout determinístico)
+- `20260413000004_agendamentos_responsavel_fk` — FK `responsavel_id` em agendamentos + backfill + trigger atualizado
+- `20260413000005_fix_on_soft_delete_trigger` — hotfix de 2 bugs (uuid::text cast + constraint SOFT_DELETE)
+
+### Edge function redeployada
+- `whatsapp-webhook` com parser PT-BR de data/hora, validação de janela comercial, detecção de conflito, confirmação ao lead, re-roteamento dinâmico de depto por área, dedupe via RPC, PII redaction nos logs, rate-limit por tenant
+
+### Frontend
+- Contratos: dialog no empty-state (botão estava no-op)
+- Onboarding: `upsert` com `onConflict` (fim do 409)
+- Realtime: nomes de canal únicos (fim do "closed before established")
+- CSP: Google Fonts inline handler removido
+- Hook `useFeatureFlag` disponível pra todo React
+- `useLeadsCRUD.create` bloqueia duplicata de telefone com mensagem amigável
+
+### Dados
+- 8 pares de leads duplicados consolidados (mantém o mais antigo, soft-delete do novo, FKs migradas pra whatsapp_conversations/agendamentos/contratos/tarefas/lead_historico)
+
+### Bugs pré-existentes descobertos e corrigidos
+- `on_soft_delete` trigger: cast inválido `auth.uid()::text` em coluna uuid + valor `SOFT_DELETE` rejeitado pela CHECK constraint
+
+---
+
+## ⏳ Ainda pendente (operacional)
 
 ---
 
