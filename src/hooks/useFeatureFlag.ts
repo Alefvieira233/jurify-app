@@ -50,6 +50,6 @@ export function useFeatureFlag(featureName: string): FeatureFlagResult {
   return {
     enabled: Boolean(data),
     isLoading,
-    error: error as Error | null,
+    error,
   };
 }
