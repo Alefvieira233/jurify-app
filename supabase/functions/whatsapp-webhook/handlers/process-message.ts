@@ -231,12 +231,31 @@ export async function processNormalizedMessage(
     }
 
     // --- RESOLVE/CREATE LEAD ---
-    const { data: lead } = await supabase
-      .from("leads")
-      .select("id, status, area_juridica, departamento_id, responsavel_id, temperature, lead_score")
-      .eq("telefone", from)
-      .eq("tenant_id", tenantId)
-      .maybeSingle();
+    // Usa RPC find_lead_by_phone (normaliza telefone) pra bater variantes de formatação
+    // Fallback em query direta se RPC indisponível (compat com ambientes sem migration)
+    let lead: { id: string; status: string | null; area_juridica: string | null; departamento_id: string | null; responsavel_id: string | null; temperature: string | null; lead_score: number | null } | null = null;
+    const { data: foundByRpc } = await (supabase as unknown as {
+      rpc: (fn: string, args: Record<string, unknown>) => Promise<{ data: Array<{ id: string; status: string | null; area_juridica: string | null; departamento_id: string | null; responsavel_id: string | null }> | null; error: unknown }>;
+    }).rpc("find_lead_by_phone", { _tenant_id: tenantId, _phone: from });
+    if (foundByRpc && foundByRpc.length > 0) {
+      const found = foundByRpc[0];
+      // RPC retorna só subset — busca restante (temperature, lead_score)
+      const { data: full } = await supabase
+        .from("leads")
+        .select("id, status, area_juridica, departamento_id, responsavel_id, temperature, lead_score")
+        .eq("id", found.id)
+        .maybeSingle();
+      lead = full as typeof lead;
+    } else {
+      // Fallback: busca exata (usado se RPC não existe)
+      const { data: fallback } = await supabase
+        .from("leads")
+        .select("id, status, area_juridica, departamento_id, responsavel_id, temperature, lead_score")
+        .eq("telefone", from)
+        .eq("tenant_id", tenantId)
+        .maybeSingle();
+      lead = fallback as typeof lead;
+    }
 
     let leadId = lead?.id || null;
     const currentLeadStatus: string = lead?.status || 'novo';

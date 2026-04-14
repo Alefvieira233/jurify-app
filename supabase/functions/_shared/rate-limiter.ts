@@ -262,32 +262,38 @@ export function createRateLimitResponse(
 
 /**
  * Helper para extrair identificador de requisição
- * Prioriza: user_id > IP > fallback genérico
+ * Prioriza: tenant:user > tenant:ip > user > ip > hostname
+ *
+ * Escopo por tenant é CRÍTICO em multi-tenant: sem isso, um tenant abusivo
+ * estoura o bucket global de namespace e afeta todos os outros tenants.
  */
 export function getRequestIdentifier(
   req: Request,
-  user?: { id: string }
+  user?: { id: string },
+  tenantId?: string,
 ): string {
-  // 1. Se tem user autenticado, usa user_id
+  const prefix = tenantId ? `t:${tenantId}:` : "";
+
+  // 1. Se tem user autenticado, usa user_id (prefixado por tenant se houver)
   if (user?.id) {
-    return `user:${user.id}`;
+    return `${prefix}user:${user.id}`;
   }
 
   // 2. Tenta obter IP (funciona em alguns ambientes)
   const forwardedFor = req.headers.get("x-forwarded-for");
   if (forwardedFor) {
     const ip = forwardedFor.split(",")[0].trim();
-    return `ip:${ip}`;
+    return `${prefix}ip:${ip}`;
   }
 
   const realIp = req.headers.get("x-real-ip");
   if (realIp) {
-    return `ip:${realIp}`;
+    return `${prefix}ip:${realIp}`;
   }
 
   // 3. Fallback: usa hostname (menos preciso mas melhor que nada)
   const url = new URL(req.url);
-  return `host:${url.hostname}`;
+  return `${prefix}host:${url.hostname}`;
 }
 
 /**
@@ -315,13 +321,15 @@ export async function applyRateLimit(
   options?: {
     supabase?: ReturnType<typeof createClient>;
     user?: { id: string };
+    /** Escopa o bucket ao tenant (recomendado em endpoints multi-tenant). */
+    tenantId?: string;
     corsHeaders?: Record<string, string>;
   }
 ): Promise<
   | { allowed: true; result: RateLimitResult }
   | { allowed: false; result: RateLimitResult; response: Response }
 > {
-  const identifier = getRequestIdentifier(req, options?.user);
+  const identifier = getRequestIdentifier(req, options?.user, options?.tenantId);
 
   const result = await checkRateLimit(
     {
