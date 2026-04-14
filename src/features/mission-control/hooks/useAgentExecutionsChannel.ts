@@ -40,7 +40,7 @@ export function useAgentExecutionsChannel({
     if (!tenantId) return undefined;
 
     const channel = supabase
-      .channel('agent_executions_realtime')
+      .channel(`agent_executions_realtime_${tenantId}_${Date.now()}`)
       .on(
         'postgres_changes',
         {

@@ -54,7 +54,7 @@ const OnboardingWizard = () => {
         value: 'true',
         category: 'sistema',
         description: 'Wizard de onboarding concluido',
-      });
+      }, { onConflict: 'tenant_id,key' });
     },
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: queryKeys.onboardingWizard.all });

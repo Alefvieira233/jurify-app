@@ -118,7 +118,7 @@ const OnboardingFlow = () => {
   const dismissMutation = useMutation({
     mutationFn: async () => {
       if (!tenantId) return;
-      await supabase.from('system_settings').upsert({ tenant_id: tenantId, key: 'onboarding_dismissed', value: 'true', category: 'sistema', description: 'Onboarding dispensado pelo administrador' });
+      await supabase.from('system_settings').upsert({ tenant_id: tenantId, key: 'onboarding_dismissed', value: 'true', category: 'sistema', description: 'Onboarding dispensado pelo administrador' }, { onConflict: 'tenant_id,key' });
     },
     onMutate: () => { setDismissed(true); },
     onError: (err) => { log.warn('handleDismiss failed', { error: String(err) }); },
@@ -127,7 +127,7 @@ const OnboardingFlow = () => {
   const completeMutation = useMutation({
     mutationFn: async () => {
       if (!tenantId) throw new Error('Tenant not found');
-      await supabase.from('system_settings').upsert({ tenant_id: tenantId, key: 'onboarding_completed', value: 'true', category: 'sistema', description: 'Onboarding concluido pelo administrador' });
+      await supabase.from('system_settings').upsert({ tenant_id: tenantId, key: 'onboarding_completed', value: 'true', category: 'sistema', description: 'Onboarding concluido pelo administrador' }, { onConflict: 'tenant_id,key' });
     },
     onSuccess: () => {
       setDismissed(true);

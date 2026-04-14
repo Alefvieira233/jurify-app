@@ -180,6 +180,18 @@ const ContratosManager = () => {
             onClick: () => setIsNovoContratoOpen(true),
           }}
         />
+
+        <Dialog open={isNovoContratoOpen} onOpenChange={setIsNovoContratoOpen}>
+          <DialogContent className="w-[95vw] max-w-5xl">
+            <DialogHeader>
+              <DialogTitle>Novo Contrato</DialogTitle>
+            </DialogHeader>
+            <NovoContratoForm onClose={() => {
+              setIsNovoContratoOpen(false);
+              fetchContratos();
+            }} />
+          </DialogContent>
+        </Dialog>
       </div>
     );
   }

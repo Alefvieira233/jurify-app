@@ -73,22 +73,12 @@
     <meta name="theme-color" content="#1e3a8a" />
     <link rel="apple-touch-icon" href="/icons/icon-192.webp" />
 
-    <!-- Google Fonts: preconnect + non-blocking load.
-         The `media="print" onload="this.media='all'"` pattern loads the stylesheet
-         asynchronously by marking it as print-only initially (browsers defer non-matching
-         media queries) and then switching to `all` once loaded. Removes ~200-400ms
-         from FCP on slow connections. <noscript> fallback covers disabled JS. -->
+    <!-- Google Fonts: preconnect + stylesheet.
+         Inline onload handler was removed to comply with strict CSP (no unsafe-inline).
+         `display=swap` keeps text visible with fallback font until Inter loads. -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="anonymous" />
-    <link
-      rel="stylesheet"
-      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap"
-      media="print"
-      onload="this.media='all'"
-    />
-    <noscript>
-      <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" />
-    </noscript>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" />
   </head>
 
   <body>

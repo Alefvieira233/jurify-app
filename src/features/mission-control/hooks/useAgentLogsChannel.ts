@@ -37,7 +37,7 @@ export function useAgentLogsChannel({
     if (!tenantId) return undefined;
 
     const channel = supabase
-      .channel('agent_ai_logs_realtime')
+      .channel(`agent_ai_logs_realtime_${tenantId}_${Date.now()}`)
       .on(
         'postgres_changes',
         {
