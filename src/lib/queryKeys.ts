@@ -396,4 +396,10 @@ export const queryKeys = {
   aiUsageStats: {
     all: ['ai-usage-stats'] as const,
   },
+
+  featureFlags: {
+    all: ['feature-flags'] as const,
+    byName: (tenantId: string | null, featureName: string) =>
+      ['feature-flags', tenantId, featureName] as const,
+  },
 } as const;

@@ -41,12 +41,46 @@ export function useLeadsCRUD({ qKey, queryData: _queryData, tenantId, queryClien
         ...mapLeadInputToDb(data),
         tenant_id: tenantId ?? null,
       };
+
+      // Dedupe: se o telefone já existe no tenant, aborta com erro amigável
+      // Usa RPC find_lead_by_phone (normaliza número). Fail-soft: se RPC
+      // indisponível (ambiente de teste, migration pendente), o UNIQUE index
+      // ux_leads_tenant_phone_norm protege como defense-in-depth.
+      const inputTelefone = (data as { telefone?: string | null }).telefone;
+      if (tenantId && inputTelefone && String(inputTelefone).trim().length > 0) {
+        try {
+          const rpcClient = supabase as unknown as Record<string, unknown>;
+          const rpcFn = rpcClient.rpc as ((fn: string, args: Record<string, unknown>) => Promise<{ data: Array<{ id: string; nome: string | null }> | null; error: { message: string } | null }>) | undefined;
+          if (typeof rpcFn === 'function') {
+            const { data: existing } = await rpcFn('find_lead_by_phone', { _tenant_id: tenantId, _phone: String(inputTelefone) });
+            if (existing && existing.length > 0) {
+              const dup = existing[0];
+              throw new Error(`Telefone já cadastrado para o lead "${dup?.nome ?? 'sem nome'}". Edite o existente em vez de duplicar.`);
+            }
+          }
+        } catch (rpcErr) {
+          // Se erro é do nosso throw de dedupe, propaga. Se é erro da RPC, ignora.
+          if (rpcErr instanceof Error && rpcErr.message.startsWith('Telefone já cadastrado')) {
+            throw rpcErr;
+          }
+          // RPC indisponível — continua com insert; UNIQUE index bloqueia duplicata
+        }
+      }
+
       const { data: newLead, error } = await supabase
         .from('leads')
         .insert([payload as typeof payload & { nome: string; tenant_id: string }])
         .select()
         .single();
-      if (error) throw error;
+      if (error) {
+        // Tratamento amigável pra violação de UNIQUE index ux_leads_tenant_phone_norm
+        const msg = String(error.message || '');
+        const code = (error as { code?: string }).code;
+        if (msg.includes('ux_leads_tenant_phone_norm') || code === '23505') {
+          throw new Error('Já existe um lead com esse telefone neste escritório.');
+        }
+        throw error;
+      }
       return normalizeLead(newLead);
     },
     onSuccess: (newLead) => {
