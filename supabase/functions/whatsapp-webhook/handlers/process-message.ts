@@ -8,6 +8,13 @@ import type { NormalizedMessage } from "../../_shared/whatsapp-logic.ts";
 import { callEdgeFunction, escapeLike } from "./edge-function-client.ts";
 import { analyzeQualification } from "./qualification.ts";
 import { sendViaKapso, sendViaMeta, type SendResult } from "./send-reply.ts";
+import {
+  parseScheduleFromText,
+  detectScheduleIntent,
+  hasScheduleConflict,
+  formatScheduleForLead,
+  validateBusinessHours,
+} from "../../_shared/schedule-parser.ts";
 
 const INTEGRATION_NAME_KAPSO = "whatsapp_kapso";
 
@@ -784,54 +791,120 @@ export async function processNormalizedMessage(
       console.warn(`[processMsg:${provider}] AI returned empty result — sending fallback`);
     }
 
-    // --- CONSULTATION SCHEDULING: detect when client accepts AI's scheduling suggestion ---
-    const AI_SUGGESTS_CONSULTATION = /posso agendar|gostaria de agendar|agendar uma consulta|horários disponíveis|marcar um horário/i;
-    // Client acceptance: must be short affirmative response (not embedded in longer text)
-    const CLIENT_ACCEPTS = /^(sim|quero|pode agendar|gostaria|por favor|vamos|claro|bora|ok|pode ser|quero sim|gostaria sim|vamos sim|pode marcar|marca|agende)[!?.]*$/i;
+    // --- LEAD CONFIRMATION: transiciona agendamento 'agendado' → 'confirmado' ---
+    // Dispara quando lead diz "confirmo/confirmado/ok" curto e tem agendamento pendente recente.
+    const CONFIRM_REGEX = /^(confirmo|confirmado|confirmada|pode confirmar|t[áa] confirmado|ok confirmado|confirmei|confirm[áa]vel)[!?.\s]*$/i;
+    const leadConfirmed = text.trim().length < 40 && CONFIRM_REGEX.test(text.trim());
+    if (leadConfirmed && leadId) {
+      const { data: pending } = await supabase
+        .from("agendamentos")
+        .select("id, data_hora, responsavel")
+        .eq("lead_id", leadId)
+        .eq("tenant_id", tenantId)
+        .eq("status", "agendado")
+        .gte("data_hora", new Date().toISOString())
+        .order("data_hora", { ascending: true })
+        .limit(1);
 
-    // Only trigger if: (1) client message is a SHORT acceptance AND (2) the IMMEDIATELY PREVIOUS agent message suggested scheduling
-    const clientText = text.trim().toLowerCase();
-    const isShortAcceptance = clientText.length < 40 && CLIENT_ACCEPTS.test(clientText);
-    const lastAgentMessage = (recentMessages || []).filter(m => m.sender === 'agent')[0]; // Most recent agent msg (array is reversed)
-    const previousAISuggestedScheduling = lastAgentMessage && AI_SUGGESTS_CONSULTATION.test(lastAgentMessage.content);
-    const clientAcceptedConsultation = isShortAcceptance && previousAISuggestedScheduling;
-
-    if (clientAcceptedConsultation && leadId) {
-        // Client accepted! Create a preliminary agendamento
-        const nextBusinessDay = new Date();
-        nextBusinessDay.setDate(nextBusinessDay.getDate() + 1);
-        // Skip weekends
-        while (nextBusinessDay.getDay() === 0 || nextBusinessDay.getDay() === 6) {
-          nextBusinessDay.setDate(nextBusinessDay.getDate() + 1);
+      if (pending && pending.length > 0) {
+        const ag = pending[0] as { id: string; data_hora: string; responsavel: string };
+        const { error: updErr } = await supabase
+          .from("agendamentos")
+          .update({ status: "confirmado", updated_at: new Date().toISOString() })
+          .eq("id", ag.id)
+          .eq("tenant_id", tenantId);
+        if (!updErr) {
+          const when = formatScheduleForLead(new Date(ag.data_hora));
+          aiText = `Perfeito, confirmado! Te espero em ${when} com ${ag.responsavel}. Qualquer imprevisto me avisa com antecedência.`;
+          console.log(`[processMsg:${provider}] Lead ${leadId} confirmed agendamento ${ag.id}`);
         }
-        nextBusinessDay.setHours(10, 0, 0, 0); // Default 10am
+      }
+    }
 
+    // --- CONSULTATION SCHEDULING: intenção do lead + parsing data/hora + detecção de conflito ---
+    // Substitui fluxo antigo reativo por agendamento proativo:
+    //   1. Detecta intenção de agendar (mesmo sem sugestão prévia da IA).
+    //   2. Tenta extrair data/hora específica da mensagem ("quinta às 14h", "amanhã 10h").
+    //   3. Se extraiu: checa conflito com mesmo responsável; se livre, insere e confirma ao lead.
+    //   4. Se não extraiu: responde pedindo data/hora em vez de agendar hardcoded.
+    //
+    // Evita duplicação: não agenda se o lead já tiver agendamento futuro ativo.
+    const leadWantsToSchedule = !leadConfirmed && detectScheduleIntent(text);
+
+    if (leadWantsToSchedule && leadId) {
+      // Checa se lead já tem agendamento ativo futuro — evita duplicação
+      const { data: existingAgendamento } = await supabase
+        .from("agendamentos")
+        .select("id, data_hora, responsavel, status")
+        .eq("lead_id", leadId)
+        .eq("tenant_id", tenantId)
+        .in("status", ["agendado", "confirmado"])
+        .gte("data_hora", new Date().toISOString())
+        .order("data_hora", { ascending: true })
+        .limit(1);
+
+      if (existingAgendamento && existingAgendamento.length > 0) {
+        const existing = existingAgendamento[0] as { data_hora: string; responsavel: string };
+        const when = formatScheduleForLead(new Date(existing.data_hora));
+        aiText = `Você já tem um atendimento agendado com ${existing.responsavel} em ${when}. Se precisar reagendar, me avisa qual outra data/hora prefere.`;
+      } else {
+        const parsed = parseScheduleFromText(text);
         const responsavelNome = connectionResponsavelId
           ? (await supabase.from("profiles").select("nome_completo").eq("id", connectionResponsavelId).maybeSingle())?.data?.nome_completo ?? "Advogado"
           : "Advogado";
 
-        const { error: agendError } = await supabase.from("agendamentos").insert({
-          lead_id: leadId,
-          tenant_id: tenantId,
-          area_juridica: lead?.area_juridica ?? "Não especificada",
-          data_hora: nextBusinessDay.toISOString(),
-          responsavel: responsavelNome,
-          status: "agendado",
-          observacoes: `Consulta agendada automaticamente via WhatsApp. Lead aceitou sugestão da IA. Confirmar horário com o cliente.`,
-        });
+        if (parsed && parsed.confidence >= 0.5) {
+          // Valida janela comercial (seg-sex, 8h-20h)
+          const validation = validateBusinessHours(parsed.dateTimeUTC);
+          if (!validation.valid) {
+            aiText = validation.message!;
+          } else {
+          // Checa conflito com mesmo responsável
+          const conflict = await hasScheduleConflict(
+            supabase as never,
+            tenantId,
+            responsavelNome,
+            parsed.dateTimeUTC,
+            60,
+          );
 
-        if (!agendError) {
-          console.log(`[processMsg:${provider}] Auto-scheduled consultation for lead ${leadId}`);
+          if (conflict) {
+            const when = formatScheduleForLead(parsed.dateTimeUTC);
+            aiText = `Infelizmente ${responsavelNome} já tem compromisso em ${when}. Posso verificar outro horário? Você prefere mais cedo ou mais tarde nesse dia, ou outra data?`;
+          } else {
+            const { error: agendError } = await supabase.from("agendamentos").insert({
+              lead_id: leadId,
+              tenant_id: tenantId,
+              area_juridica: lead?.area_juridica ?? "Não especificada",
+              data_hora: parsed.dateTimeUTC.toISOString(),
+              responsavel: responsavelNome,
+              status: "agendado",
+              observacoes: `Agendado automaticamente via WhatsApp a partir da mensagem do lead: "${parsed.matched}".`,
+            });
 
-          // Notify responsible lawyer
-          void supabase.from("notificacoes").insert({
-            tenant_id: tenantId,
-            tipo: "sucesso",
-            titulo: `📅 Consulta agendada automaticamente`,
-            mensagem: `O lead "${name}" (${from}) aceitou agendar uma consulta via WhatsApp. Data sugerida: ${nextBusinessDay.toLocaleDateString("pt-BR")} às 10h. Confirme o horário com o cliente.`,
-            ativo: true,
-          }).then(({ error }) => { if (error) console.error("[webhook] consultation notification error:", error.message); });
+            if (!agendError) {
+              const when = formatScheduleForLead(parsed.dateTimeUTC);
+              aiText = `Perfeito! Reunião agendada com ${responsavelNome} em ${when}. Você receberá um lembrete antes. Caso precise remarcar, é só me avisar.`;
+              console.log(`[processMsg:${provider}] Auto-scheduled lead ${leadId} at ${parsed.dateTimeUTC.toISOString()} (matched: "${parsed.matched}")`);
+
+              void supabase.from("notificacoes").insert({
+                tenant_id: tenantId,
+                tipo: "sucesso",
+                titulo: `📅 Consulta agendada via WhatsApp`,
+                mensagem: `Lead "${name}" (${from}) solicitou e agendou reunião em ${when} com ${responsavelNome}.`,
+                ativo: true,
+              }).then(({ error }) => { if (error) console.error("[webhook] schedule notification error:", error.message); });
+            } else {
+              console.error(`[processMsg:${provider}] Agendamento insert failed:`, agendError.message);
+              aiText = `Tive um problema técnico ao registrar seu agendamento. Nossa equipe já foi notificada e entrará em contato em breve.`;
+            }
+          }
+          } // fecha else de validateBusinessHours
+        } else {
+          // Intenção detectada mas sem data/hora — pede especificação em vez de agendar hardcoded
+          aiText = `Claro, posso agendar uma reunião com ${responsavelNome}. Qual dia e horário fica melhor pra você? (ex.: "quinta às 14h", "amanhã de manhã")`;
         }
+      }
     }
 
     // --- HUMAN HANDOFF: detect when AI can't handle the conversation ---
@@ -908,6 +981,53 @@ export async function processNormalizedMessage(
     }
     if (qualification.extractedArea) {
       leadUpdate.area_juridica = qualification.extractedArea;
+
+      // --- RE-ROTEAMENTO DINÂMICO DE DEPARTAMENTO ---
+      // Se área detectada difere da área atual do lead E existe depto no tenant
+      // cujo nome bate (fuzzy) com a nova área, reatribui depto + responsável.
+      // Exemplos: "Direito de Família" → depto "Família"; "Trabalhista" → depto "Trabalhista".
+      const currentArea = (lead?.area_juridica as string | null) ?? "";
+      const newArea = qualification.extractedArea;
+      const areaChanged = currentArea.trim().toLowerCase() !== newArea.trim().toLowerCase();
+
+      if (areaChanged && newArea) {
+        // Extrai keyword principal da área ("Direito de Família" → "família")
+        const keyword = newArea
+          .replace(/^direito\s+(de\s+|do\s+|da\s+)?/i, "")
+          .trim()
+          .toLowerCase();
+
+        if (keyword.length >= 3) {
+          const { data: matchingDepto } = await supabase
+            .from("departamentos")
+            .select("id, nome")
+            .eq("tenant_id", tenantId)
+            .eq("ativo", true)
+            .ilike("nome", `%${keyword}%`)
+            .limit(1)
+            .maybeSingle();
+
+          if (matchingDepto?.id && matchingDepto.id !== (lead?.departamento_id as string | null)) {
+            leadUpdate.departamento_id = matchingDepto.id;
+
+            // Busca primeiro membro ativo do novo depto como responsável
+            const { data: deptoMember } = await supabase
+              .from("departamento_membros")
+              .select("profile_id")
+              .eq("departamento_id", matchingDepto.id)
+              .eq("tenant_id", tenantId)
+              .order("created_at", { ascending: true })
+              .limit(1)
+              .maybeSingle();
+
+            if (deptoMember?.profile_id) {
+              leadUpdate.responsavel_id = deptoMember.profile_id;
+            }
+
+            console.log(`[processMsg:${provider}] Lead ${leadId} re-roteado: area="${currentArea}" → "${newArea}", depto → ${matchingDepto.nome}`);
+          }
+        }
+      }
     }
     // Only ESCALATE temperature (never downgrade — respect manual admin overrides)
     if (qualification.temperature) {
