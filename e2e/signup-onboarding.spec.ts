@@ -11,7 +11,7 @@ test.describe('Jurify — Signup & Onboarding', () => {
     await expect(page.getByText(/algo deu errado|error boundary/i)).not.toBeVisible();
     // Email and password fields should be present
     await expect(page.getByLabel(/email/i).first()).toBeVisible({ timeout: 10_000 });
-    await expect(page.getByLabel(/senha/i).first()).toBeVisible({ timeout: 10_000 });
+    await expect(page.getByTestId('input-register-password')).toBeVisible({ timeout: 10_000 });
   });
 
   test('alternância para cadastro mostra campos extras', async ({ page }) => {
