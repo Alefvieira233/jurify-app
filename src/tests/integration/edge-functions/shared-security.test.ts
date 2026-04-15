@@ -140,7 +140,7 @@ describe('sanitizeInput — rejection of empty input', () => {
 
 // ─── PII redaction ─────────────────────────────────────────
 
-describe('redactPII — CPF', () => {
+describe('redactPII — Brazilian PII', () => {
   it('redacts CPF in xxx.xxx.xxx-xx format', () => {
     expect(redactPII('Meu CPF é 123.456.789-00')).toBe('Meu CPF é ***CPF***');
   });
@@ -149,9 +149,30 @@ describe('redactPII — CPF', () => {
     expect(redactPII('CPF: 12345678900')).toBe('CPF: ***CPF***');
   });
 
-  it('redacts CPF embedded in a sentence', () => {
-    expect(redactPII('Cliente 111.222.333-44 solicitou extrato'))
-      .toBe('Cliente ***CPF*** solicitou extrato');
+  it('redacts RG', () => {
+    expect(redactPII('RG 12.345.678-9')).toBe('RG ***RG***');
+  });
+
+  it('redacts CNPJ', () => {
+    expect(redactPII('CNPJ 12.345.678/0001-90')).toBe('CNPJ ***CNPJ***');
+  });
+
+  it('redacts OAB', () => {
+    expect(redactPII('OAB/SP 123456')).toBe('OAB/***OAB***');
+    expect(redactPII('OAB SP 123456')).toBe('OAB ***OAB***');
+  });
+
+  it('redacts Processo CNJ', () => {
+    expect(redactPII('Processo 0001234-56.2023.8.26.0001')).toBe('Processo ***CNJ***');
+  });
+
+  it('redacts Phone numbers', () => {
+    expect(redactPII('Telefone: (11) 99999-8888')).toBe('Telefone: ***PHONE***');
+    expect(redactPII('Contato: +55 11 98888-7777')).toBe('Contato: ***PHONE***');
+  });
+
+  it('redacts Emails', () => {
+    expect(redactPII('Email: joao.silva@gmail.com')).toBe('Email: ***EMAIL***');
   });
 });
 
