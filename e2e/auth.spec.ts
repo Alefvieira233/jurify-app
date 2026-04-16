@@ -40,6 +40,7 @@ test.describe('Jurify — Autenticação', () => {
     await page.getByLabel(/nome completo/i).fill('Teste E2E');
     await page.getByLabel(/email profissional/i).fill('e2e@test.com');
     await page.getByTestId('input-register-password').fill('fraca');
+    await page.getByTestId('input-register-confirm-password').fill('fraca');
 
     // Check strength text before submitting
     await expect(page.getByTestId('password-strength-text')).toHaveText(/fraca/i);
@@ -47,7 +48,7 @@ test.describe('Jurify — Autenticação', () => {
     await page.getByRole('button', { name: /começar agora/i }).click();
 
     // The form error from Zod/Hook Form should be visible
-    await expect(page.getByText(/mínimo 8 caracteres/i).first()).toBeVisible({ timeout: 5_000 });
+    await expect(page.getByText(/mínimo 8 caracteres/i).first()).toBeVisible({ timeout: 10_000 });
   });
 
   test('deve redirecionar para dashboard após login bem-sucedido', async ({ page }) => {

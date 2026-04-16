@@ -95,8 +95,12 @@ export abstract class BaseAgent implements IAgent {
     payload: unknown,
     priority: MessagePriority = Priority.MEDIUM
   ): Promise<void> {
+    const array = new Uint32Array(1);
+    (globalThis as unknown as { msCrypto: Crypto }).msCrypto
+        ? (globalThis as unknown as { msCrypto: Crypto }).msCrypto.getRandomValues(array)
+        : crypto.getRandomValues(array);
     const message: AgentMessage = {
-      id: `msg_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`,
+      id: `msg_${Date.now()}_${array[0]!.toString(36).substring(0, 9)}`,
       from: this.name,
       to,
       type,
