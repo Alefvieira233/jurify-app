@@ -72,7 +72,11 @@ export class ExecutionTracker {
     userId?: string,
     config?: ExecutionTrackerConfig
   ): Promise<ExecutionTracker> {
-    const executionId = `exec_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
+    const array = new Uint32Array(1);
+    (globalThis as unknown as { msCrypto: Crypto }).msCrypto
+        ? (globalThis as unknown as { msCrypto: Crypto }).msCrypto.getRandomValues(array)
+        : crypto.getRandomValues(array);
+    const executionId = `exec_${Date.now()}_${array[0]!.toString(36).substring(0, 9)}`;
 
     // Persiste no banco
     await ExecutionStore.createExecution(executionId, leadId, tenantId, userId);

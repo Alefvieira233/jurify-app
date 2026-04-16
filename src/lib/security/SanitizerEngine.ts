@@ -64,13 +64,11 @@ const PII_PATTERNS: PIIPattern[] = [
 // ─── UUID Generator (no crypto dependency needed) ───────────────────────────
 
 function generateTokenId(): string {
-  // Simple UUID v4-like generator that works in all environments
-  const hex = '0123456789abcdef';
-  let id = '';
-  for (let i = 0; i < 8; i++) {
-    id += hex[Math.floor(Math.random() * 16)];
-  }
-  return id;
+  const array = new Uint32Array(1);
+  (globalThis as unknown as { msCrypto: Crypto }).msCrypto
+      ? (globalThis as unknown as { msCrypto: Crypto }).msCrypto.getRandomValues(array)
+      : crypto.getRandomValues(array);
+  return array[0]!.toString(36).substring(0, 8);
 }
 
 // ─── Core Types ─────────────────────────────────────────────────────────────
