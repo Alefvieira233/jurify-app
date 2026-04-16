@@ -78,6 +78,13 @@ jobs:
             FOUND=1
           fi
 
+          # Supabase secret key tokens (new secret format)
+          if grep -rEn "\b(sb_secret|sbp)_[A-Za-z0-9_-]{20,}\b" $SCAN_DIRS \
+             --exclude-dir=node_modules --exclude-dir=.git --exclude-dir=dist; then
+            echo "❌ Supabase secret key token encontrado"
+            FOUND=1
+          fi
+
           # Kapso API keys
           if grep -rEn "kapso[_-]?(api[_-]?key|secret)['\"]?\s*[=:]\s*['\"][a-zA-Z0-9_-]{20,}['\"]" $SCAN_DIRS \
              --exclude-dir=node_modules --exclude-dir=.git --exclude-dir=dist -i; then
