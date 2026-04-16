@@ -77,7 +77,6 @@ export default defineConfig({
         'src/features/reports/useReportMetrics.ts', // Extracted hook — E2E
         'src/features/conexoes/Connection*Tab.tsx', // Extracted tab components — E2E
         'src/features/conexoes/connectionDetailsTypes.ts', // Types only
-        'src/hooks/useFollowUpSequences.ts', // 139 lines, CRM sequences CRUD — E2E
         'src/hooks/useEntityCRUD.ts', // Generic CRUD factory — E2E
         'src/hooks/useConexoes.ts', // 300 lines, WhatsApp connections CRUD — E2E
         'src/hooks/useDashboardMetricsFast.ts', // 233 lines, realtime dashboard — E2E

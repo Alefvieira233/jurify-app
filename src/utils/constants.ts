@@ -1,45 +1,3 @@
-
-// Constantes da aplicação para produção
-export const APP_CONFIG = {
-  name: 'Jurify',
-  version: '1.0.0',
-  environment: import.meta.env.MODE || 'development',
-  
-  // Cache settings
-  cache: {
-    defaultTTL: 300000, // 5 minutos
-    longTTL: 3600000,   // 1 hora
-    shortTTL: 60000,    // 1 minuto
-  },
-  
-  // API settings
-  api: {
-    timeout: 10000,     // 10 segundos
-    retryAttempts: 3,
-    retryDelay: 1000,   // 1 segundo
-  },
-  
-  // UI settings
-  ui: {
-    debounceDelay: 300,
-    animationDuration: 200,
-    toastDuration: 5000,
-  },
-  
-  // Pagination
-  pagination: {
-    defaultPageSize: 20,
-    maxPageSize: 100,
-  },
-  
-  // Validation
-  validation: {
-    minPasswordLength: 8,
-    maxFileSize: 10 * 1024 * 1024, // 10MB
-    allowedFileTypes: ['pdf', 'doc', 'docx', 'jpg', 'png'],
-  },
-} as const;
-
 export const STATUS_COLORS: Record<string, string> = {
   // Current CRM Operacional status values
   novo: 'bg-blue-100 text-blue-800',
@@ -64,15 +22,3 @@ export const AREAS_JURIDICAS = [
   'Administrativo',
 ] as const;
 
-export const ORIGINS_LEAD = [
-  'Site',
-  'WhatsApp',
-  'Indicação',
-  'Google Ads',
-  'Facebook',
-  'Instagram',
-  'LinkedIn',
-  'Email Marketing',
-  'Evento',
-  'Outros',
-] as const;
