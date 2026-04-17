@@ -35,6 +35,8 @@ interface Contrato {
   data_geracao_link?: string;
   data_envio_whatsapp?: string;
   telefone?: string;
+  arquivo_url?: string | null;
+  assinatura_digital_url?: string | null;
 }
 
 interface DetalhesContratoProps {
@@ -100,8 +102,18 @@ export const DetalhesContrato = ({ contrato, onClose: _onClose }: DetalhesContra
     });
   };
 
-  const handleGerarPDF = () => {
-    toast({ title: 'Funcionalidade de PDF será implementada em breve' });
+  const pdfUrl = contrato.assinatura_digital_url || contrato.arquivo_url || null;
+
+  const handleAbrirPDF = () => {
+    if (pdfUrl) {
+      window.open(pdfUrl, '_blank', 'noopener,noreferrer');
+    } else {
+      toast({
+        title: 'Nenhum PDF disponível',
+        description: 'Anexe um arquivo ou gere a assinatura digital para visualizar o PDF.',
+        variant: 'destructive',
+      });
+    }
   };
 
   const handleZapSignSuccess = () => {
@@ -135,9 +147,9 @@ export const DetalhesContrato = ({ contrato, onClose: _onClose }: DetalhesContra
                 <Edit className="h-4 w-4 mr-2" />
                 Editar
               </Button>
-              <Button variant="outline" size="sm" onClick={handleGerarPDF}>
+              <Button variant="outline" size="sm" onClick={handleAbrirPDF} disabled={!pdfUrl}>
                 <Download className="h-4 w-4 mr-2" />
-                PDF
+                {pdfUrl ? 'Abrir PDF' : 'PDF indisponível'}
               </Button>
               {contrato.status === 'rascunho' && (
                 <Button variant="outline" size="sm" onClick={handleEnviarAssinatura}>
@@ -224,6 +236,18 @@ export const DetalhesContrato = ({ contrato, onClose: _onClose }: DetalhesContra
           onStatusUpdate={handleZapSignSuccess}
         />
       </div>
+
+      {/* Visualização do PDF */}
+      {pdfUrl && (
+        <div className="space-y-2">
+          <Label className="text-sm font-medium">Visualização do PDF</Label>
+          <iframe
+            src={pdfUrl}
+            title="Visualização do contrato"
+            className="w-full h-[70vh] rounded-lg border bg-background"
+          />
+        </div>
+      )}
 
       {/* Texto do contrato */}
       <div className="space-y-2">

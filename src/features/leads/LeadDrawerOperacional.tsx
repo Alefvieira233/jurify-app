@@ -11,7 +11,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
-import { Check, Loader2 } from 'lucide-react';
+import { Check, Loader2, Wand2 } from 'lucide-react';
 import type { Lead } from '@/hooks/useLeads';
 import { createLogger } from '@/lib/logger';
 
@@ -23,6 +23,7 @@ import { useConexoes } from '@/hooks/useConexoes';
 import { PIPELINE_STAGES, LEAD_STATUS_LABELS as STATUS_LABELS } from '@/features/pipeline/pipelineConfig';
 import { PRIORIDADES } from '@/types/crm-operacional';
 import { useRBAC } from '@/hooks/useRBAC';
+import { useLeadAutoRouting } from './hooks/useLeadAutoRouting';
 
 interface LeadDrawerOperacionalProps {
   lead: Lead;
@@ -84,6 +85,7 @@ export default function LeadDrawerOperacional({ lead }: LeadDrawerOperacionalPro
   const { conexoes } = useConexoes();
   const { can } = useRBAC();
   const canEdit = can('leads', 'update');
+  const { autoRouteByArea, isRouting } = useLeadAutoRouting();
 
   const [saving, setSaving] = useState<string | null>(null);
 
@@ -201,6 +203,23 @@ export default function LeadDrawerOperacional({ lead }: LeadDrawerOperacionalPro
               ))}
             </SelectContent>
           </Select>
+          {canEdit && lead.area_juridica && (
+            <Button
+              size="sm"
+              variant="ghost"
+              className="h-7 mt-1 text-[11px] gap-1 px-2"
+              onClick={() => { void autoRouteByArea(lead.id, lead.area_juridica); }}
+              disabled={isRouting}
+              title={`Rotear pela área "${lead.area_juridica}"`}
+            >
+              {isRouting ? (
+                <Loader2 className="h-3 w-3 animate-spin" />
+              ) : (
+                <Wand2 className="h-3 w-3" />
+              )}
+              Auto-rotear por área
+            </Button>
+          )}
         </div>
 
         {/* Responsável */}

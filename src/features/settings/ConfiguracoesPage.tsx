@@ -16,7 +16,6 @@ import AssinaturaSection from './configuracoes/AssinaturaSection';
 import HorarioComercialSection from './sections/HorarioComercialSection';
 import StatusManager from './sections/StatusManager';
 import UsoSection from './sections/UsoSection';
-import PlaceholderClassManager from './sections/PlaceholderClassManager';
 import TagsManager from '@/features/tags/TagsManager';
 import DepartamentosManager from '@/features/departamentos/DepartamentosManager';
 
@@ -46,11 +45,8 @@ const SETTINGS_NAV: { group: string; sections: SettingsSection[] }[] = [
           { id: 'status', label: 'Status' },
           { id: 'etiquetas', label: 'Etiquetas' },
           { id: 'departamento', label: 'Departamento' },
-          { id: 'origem', label: 'Origem' },
-          { id: 'variaveis', label: 'Variáveis' },
         ],
       },
-      { id: 'templates', label: 'Templates' },
       { id: 'membros', label: 'Membros' },
       { id: 'integracoes', label: 'Integrações' },
       { id: 'horario-comercial', label: 'Horário Comercial' },
@@ -125,30 +121,9 @@ function SettingsContent({ section, subsection }: { section: string; subsection?
           {sub === 'status' && <StatusManager />}
           {sub === 'etiquetas' && <TagsManager />}
           {sub === 'departamento' && <DepartamentosManager />}
-          {sub === 'origem' && (
-            <PlaceholderClassManager
-              title="Origem"
-              description="Configure as origens de captação dos seus leads (Google, Instagram, indicação, etc)."
-            />
-          )}
-          {sub === 'variaveis' && (
-            <PlaceholderClassManager
-              title="Variáveis"
-              description="Defina variáveis customizadas para templates de mensagens e automações."
-            />
-          )}
         </div>
       );
     }
-    case 'templates':
-      return (
-        <div className="p-6 max-w-3xl">
-          <Breadcrumb path={['Empresa', 'Templates']} />
-          <h1 className="text-lg font-semibold mb-1">Templates</h1>
-          <p className="text-sm text-muted-foreground mb-6">Gerencie templates de mensagens.</p>
-          <div className="text-sm text-muted-foreground py-8 text-center">Em breve.</div>
-        </div>
-      );
     case 'membros':
       return (
         <div className="p-6 max-w-4xl">

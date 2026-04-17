@@ -6,8 +6,12 @@ import { lazy, ComponentType } from 'react';
  *
  * On failure after all retries, forces a full page reload (once) to pick up
  * the new deployment's asset manifest.
+ *
+ * The generic constraint mirrors React.lazy (`ComponentType<any>`) so that
+ * components with typed props remain assignable to the returned LazyExoticComponent.
  */
-export function lazyWithRetry<T extends ComponentType<unknown>>(
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export function lazyWithRetry<T extends ComponentType<any>>(
   factory: () => Promise<{ default: T }>,
   retries = 3,
   interval = 1500,
@@ -15,7 +19,8 @@ export function lazyWithRetry<T extends ComponentType<unknown>>(
   return lazy(() => retryImport(factory, retries, interval));
 }
 
-async function retryImport<T extends ComponentType<unknown>>(
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function retryImport<T extends ComponentType<any>>(
   factory: () => Promise<{ default: T }>,
   retries: number,
   interval: number,

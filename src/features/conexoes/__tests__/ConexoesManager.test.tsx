@@ -74,7 +74,7 @@ vi.mock('@/integrations/supabase/client', () => ({
   },
 }));
 
-vi.mock('../WhatsAppWizard', () => ({
+vi.mock('@/features/whatsapp/WhatsAppWizard', () => ({
   default: () => React.createElement('div', { 'data-testid': 'whatsapp-wizard' }, 'WhatsAppWizard'),
 }));
 

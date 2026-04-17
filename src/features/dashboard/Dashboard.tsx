@@ -1,6 +1,7 @@
-import React, { useState, useMemo, Suspense } from 'react';
+import { useState, useMemo, Suspense } from 'react';
 import { ScreenReaderAnnounce } from '@/components/ui/ScreenReaderAnnounce';
-const SankeyChart = React.lazy(() => import('./components/SankeyChart'));
+import { lazyWithRetry } from '@/lib/lazyWithRetry';
+const SankeyChart = lazyWithRetry(() => import('./components/SankeyChart'));
 import AgentActivityWidget from './components/AgentActivityWidget';
 import {
   MessageSquare, Search, CheckCircle, FileText, Trophy, XCircle,

@@ -13,7 +13,6 @@ import { AuthProvider } from "@/contexts/AuthContext";
 import ProtectedRoute from "./components/ProtectedRoute";
 import Layout from "./components/Layout";
 import LoadingSpinner from "./components/LoadingSpinner";
-import { ErrorBoundary } from "./components/ErrorBoundary";
 import { FeatureErrorBoundary } from "./components/FeatureErrorBoundary";
 import { withSentryReactRouterV6Routing } from '@sentry/react';
 import { QUERY_STALE_TIME_MS, QUERY_GC_TIME_MS, MAX_RETRY_DELAY_MS } from "./constants/timings";
@@ -175,17 +174,16 @@ function OfflineBanner() {
 }
 
 const App = () => (
-  <ErrorBoundary>
-    <QueryClientProvider client={queryClient}>
-      <TooltipProvider>
-        <Toaster />
-        <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
-          <OfflineBanner />
-          <DeepLinkHandler />
-          <AuthProvider>
-            <Suspense fallback={null}><CookieBanner /></Suspense>
-            <Suspense fallback={<LoadingSpinner fullScreen text="Carregando..." />}>
-              <SentryRoutes>
+  <QueryClientProvider client={queryClient}>
+    <TooltipProvider>
+      <Toaster />
+      <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+        <OfflineBanner />
+        <DeepLinkHandler />
+        <AuthProvider>
+          <Suspense fallback={null}><CookieBanner /></Suspense>
+          <Suspense fallback={<LoadingSpinner fullScreen text="Carregando..." />}>
+            <SentryRoutes>
                 {/* Rotas públicas */}
                 <Route path="/auth" element={<Auth />} />
                 <Route path="/auth/google/callback" element={<GoogleAuthCallback />} />
@@ -259,14 +257,13 @@ const App = () => (
                   <Route path="admin/status" element={<ProtectedRoute requiredRoles={['admin']}><FeatureErrorBoundary feature="Admin Status"><AdminStatus /></FeatureErrorBoundary></ProtectedRoute>} />
                 </Route>
 
-                <Route path="*" element={<NotFound />} />
-              </SentryRoutes>
-            </Suspense>
-          </AuthProvider>
-        </BrowserRouter>
-      </TooltipProvider>
-    </QueryClientProvider>
-  </ErrorBoundary>
+              <Route path="*" element={<NotFound />} />
+            </SentryRoutes>
+          </Suspense>
+        </AuthProvider>
+      </BrowserRouter>
+    </TooltipProvider>
+  </QueryClientProvider>
 );
 
 export default App;

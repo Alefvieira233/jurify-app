@@ -38,7 +38,16 @@
  */
 import { useCallback, useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import type { PostgrestFilterBuilder } from '@supabase/postgrest-js';
 import { supabase } from '@/integrations/supabase/client';
+
+/**
+ * Loose builder type used by `queryModifier`. The factory works with dynamic
+ * table names, so the schema/row generic params are intentionally `any`.
+ * Callers can refine the type at the call site if needed.
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export type EntityQueryBuilder = PostgrestFilterBuilder<any, any, any[]>;
 
 // useEntityCRUD is a generic factory that works with dynamic table names.
 // The typed Supabase client expects literal table names, so we use a loosely-typed
@@ -96,8 +105,7 @@ export interface EntityCRUDOptions {
    * Use for OR-based search, multi-column filters, or any query logic
    * that doesn't fit the simple `filters`/`search` options.
    */
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  queryModifier?: (query: any) => any;
+  queryModifier?: (query: EntityQueryBuilder) => EntityQueryBuilder;
   /**
    * Extra values appended to the React Query cache key.
    * Ensures the cache is properly scoped when using queryModifier.

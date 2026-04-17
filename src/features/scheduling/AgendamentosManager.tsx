@@ -1,5 +1,6 @@
 
-import { memo, useState, useCallback, useMemo, lazy, Suspense } from 'react';
+import { memo, useState, useCallback, useMemo, Suspense } from 'react';
+import { lazyWithRetry } from '@/lib/lazyWithRetry';
 import { Plus, Search, Calendar, RefreshCw, Eye, Edit, Trash2, LayoutGrid, CalendarDays } from 'lucide-react';
 import { useDebounce } from '@/hooks/useDebounce';
 import { Button } from '@/components/ui/button';
@@ -22,7 +23,7 @@ import EmptyState from '@/components/EmptyState';
 import ErrorState from '@/components/ErrorState';
 import { getStatusClasses, getStatusLabel } from '@/constants/statusConfig';
 
-const CalendarPanel = lazy(() => import('./components/CalendarPanel'));
+const CalendarPanel = lazyWithRetry(() => import('./components/CalendarPanel'));
 
 type ViewMode = 'list' | 'calendar';
 

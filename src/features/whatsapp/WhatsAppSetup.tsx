@@ -3,10 +3,11 @@
  * Legacy wrapper kept for backward compatibility with WhatsAppIA.tsx import.
  */
 
-import { lazy, Suspense } from 'react';
+import { Suspense } from 'react';
 import { Loader2 } from 'lucide-react';
+import { lazyWithRetry } from '@/lib/lazyWithRetry';
 
-const WhatsAppWizard = lazy(() => import('@/features/conexoes/WhatsAppWizard'));
+const WhatsAppWizard = lazyWithRetry(() => import('@/features/whatsapp/WhatsAppWizard'));
 
 interface WhatsAppSetupProps {
   onConnectionSuccess?: () => void;

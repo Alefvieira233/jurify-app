@@ -18,7 +18,7 @@ import { usePageTitle } from '@/hooks/usePageTitle';
 import { useToast } from '@/hooks/use-toast';
 import { toUserMessage } from '@/lib/errorMessages';
 import ConfirmDialog from '@/components/ConfirmDialog';
-import WhatsAppWizard from './WhatsAppWizard';
+import WhatsAppWizard from '@/features/whatsapp/WhatsAppWizard';
 import ConnectionDetailsDrawer from './ConnectionDetailsDrawer';
 import ErrorState from '@/components/ErrorState';
 

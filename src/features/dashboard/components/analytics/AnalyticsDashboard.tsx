@@ -17,6 +17,7 @@ import { useQuery } from '@tanstack/react-query';
 import { queryKeys } from '@/lib/queryKeys';
 import { RefreshCw } from 'lucide-react';
 import { createLogger } from '@/lib/logger';
+import type { EntityQueryBuilder } from '@/hooks/useEntityCRUD';
 import { AnalyticsFilters, type Period } from './AnalyticsFilters';
 import { AnalyticsSummaryCards, type DashboardMetrics } from './AnalyticsSummaryCards';
 import { AnalyticsChartTabs, type ChartData } from './AnalyticsChartTabs';
@@ -104,8 +105,7 @@ export const AnalyticsDashboard = () => {
     const { getLeadVisibilityScope, getUserDepartamentos } = useRBAC();
     const [selectedPeriod, setSelectedPeriod] = useState<Period>('30d');
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const applyLeadVisibilityFilter = useCallback((query: any) => {
+    const applyLeadVisibilityFilter = useCallback((query: EntityQueryBuilder): EntityQueryBuilder => {
         const scope = getLeadVisibilityScope();
         if (scope === 'own') {
             return query.eq('responsavel_id', profile?.id ?? '');

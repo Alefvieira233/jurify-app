@@ -5,7 +5,7 @@
  * Custom logic: multi-column OR search across numero_processo, tribunal, comarca.
  */
 import { useMemo, useCallback } from 'react';
-import { useEntityCRUD, type EntityCRUDOptions } from '@/hooks/useEntityCRUD';
+import { useEntityCRUD, type EntityCRUDOptions, type EntityQueryBuilder } from '@/hooks/useEntityCRUD';
 import { queryKeys } from '@/lib/queryKeys';
 import { usePlanLimits } from '@/hooks/usePlanLimits';
 import { useToast } from '@/hooks/use-toast';
@@ -68,8 +68,7 @@ export const useProcessos = (options?: {
   // only supports single-column ilike search natively.
   const queryModifier = useMemo(() => {
     if (!search) return undefined;
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    return (query: any) =>
+    return (query: EntityQueryBuilder): EntityQueryBuilder =>
       query.or(
         `numero_processo.ilike.%${search}%,tribunal.ilike.%${search}%,comarca.ilike.%${search}%`,
       );

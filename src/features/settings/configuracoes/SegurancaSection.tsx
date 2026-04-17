@@ -13,7 +13,7 @@ import {
   FormLabel,
   FormMessage,
 } from '@/components/ui/form';
-import { Lock, Loader2, ShieldCheck, Smartphone } from 'lucide-react';
+import { Lock, Loader2 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -200,32 +200,6 @@ const SegurancaSection = () => {
         </CardContent>
       </Card>
 
-      {/* 2FA (futuro) */}
-      <Card className="opacity-60">
-        <CardHeader className="pb-3">
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-lg bg-emerald-50 dark:bg-emerald-900/20 flex items-center justify-center flex-shrink-0">
-              <ShieldCheck className="h-5 w-5 text-emerald-600" />
-            </div>
-            <div className="flex-1">
-              <div className="flex items-center gap-2">
-                <CardTitle className="text-sm font-semibold">Autenticação de Dois Fatores</CardTitle>
-                <span className="text-[10px] font-medium bg-muted px-1.5 py-0.5 rounded uppercase tracking-wider text-muted-foreground">
-                  Em breve
-                </span>
-              </div>
-              <CardDescription className="text-[11px] mt-0.5">
-                Adicione uma camada extra de proteção exigindo um código do app autenticador
-              </CardDescription>
-            </div>
-          </div>
-        </CardHeader>
-        <CardContent>
-          <Button variant="outline" size="sm" disabled className="gap-2">
-            <Smartphone className="h-3.5 w-3.5" /> Configurar 2FA
-          </Button>
-        </CardContent>
-      </Card>
     </div>
   );
 };

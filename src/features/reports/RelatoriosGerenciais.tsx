@@ -1,6 +1,7 @@
 
-import { useMemo, lazy, Suspense, useState } from 'react';
-const MetricasOperacionais = lazy(() => import('./MetricasOperacionais'));
+import { useMemo, Suspense, useState } from 'react';
+import { lazyWithRetry } from '@/lib/lazyWithRetry';
+const MetricasOperacionais = lazyWithRetry(() => import('./MetricasOperacionais'));
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
   ComposedChart, Bar,
@@ -25,7 +26,7 @@ import ReportFilters from './ReportFilters';
 import ReportChartPanel, { EmptyChart } from './ReportChartPanel';
 
 /* Analytics avançado — lazy para não bloquear o bundle principal */
-const AnalyticsDashboard = lazy(() =>
+const AnalyticsDashboard = lazyWithRetry(() =>
   import('@/features/dashboard/components/analytics/AnalyticsDashboard').then(m => ({ default: m.AnalyticsDashboard }))
 );
 

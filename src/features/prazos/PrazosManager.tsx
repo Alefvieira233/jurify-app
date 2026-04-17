@@ -1,4 +1,5 @@
-import { useState, lazy, Suspense } from 'react';
+import { useState, Suspense } from 'react';
+import { lazyWithRetry } from '@/lib/lazyWithRetry';
 import { Plus, Search, Clock, Edit, Trash2, CheckCircle, List, CalendarDays, PieChart } from 'lucide-react';
 import { useSearchParams } from 'react-router-dom';
 import { useDebounce } from '@/hooks/useDebounce';
@@ -26,7 +27,7 @@ import NovoPrazoForm from './components/NovoPrazoForm';
 import { PrazosCalendario } from './components/PrazosCalendario';
 import type { PrazoFormData } from '@/schemas/prazoSchema';
 
-const PrazosDashboard = lazy(() => import('./PrazosDashboard'));
+const PrazosDashboard = lazyWithRetry(() => import('./PrazosDashboard'));
 
 const log = createLogger('PrazosManager');
 

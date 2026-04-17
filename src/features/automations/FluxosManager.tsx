@@ -1,4 +1,5 @@
-import React, { useState, useCallback, Suspense } from 'react';
+import { useState, useCallback, Suspense } from 'react';
+import { lazyWithRetry } from '@/lib/lazyWithRetry';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { queryKeys } from '@/lib/queryKeys';
 import { Plus, Workflow, Loader2 } from 'lucide-react';
@@ -13,7 +14,7 @@ import ConfirmDialog from '@/components/ConfirmDialog';
 import EmptyState from '@/components/EmptyState';
 import ErrorState from '@/components/ErrorState';
 import type { FlowData } from './FlowEditor';
-const FlowEditor = React.lazy(() => import('./FlowEditor').then(m => ({ default: m.FlowEditor })));
+const FlowEditor = lazyWithRetry(() => import('./FlowEditor').then(m => ({ default: m.FlowEditor })));
 import { createLogger } from '@/lib/logger';
 import type { Node, Edge } from '@xyflow/react';
 import { FlowCard, type AutomationFlow, type FlowNode, type FlowEdge } from './FlowCard';
