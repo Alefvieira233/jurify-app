@@ -99,6 +99,15 @@ export default tseslint.config(
           "message": "supabaseUntyped is deprecated. Use 'supabase' (typed) instead."
         }]
       }],
+      // Block deep cross-feature imports — use barrel exports for module boundaries.
+      // Set to 'warn' (not 'error') because pre-existing violations are documented;
+      // migration is gradual. Promote to 'error' once violations are resolved.
+      "@typescript-eslint/no-restricted-imports": ["warn", {
+        "patterns": [{
+          "group": ["@/features/*/components/**", "@/features/*/hooks/**", "@/features/*/api/**"],
+          "message": "Use barrel export from @/features/<feature-name> instead of deep imports."
+        }]
+      }],
       // Block `.select('*')` — list explicit columns to keep types accurate and
       // avoid accidentally shipping sensitive fields to the client. Legitimate
       // exceptions (e.g. LGPD full-export, backup-restore) must disable this

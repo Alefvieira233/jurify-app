@@ -15,6 +15,12 @@
 PROJECT_REF="yfxgncbopvnsltjqetxw"
 VERCEL_TOKEN="YOUR_VERCEL_TOKEN_HERE"
 
+# NOTE: secrets abaixo (VITE_SUPABASE_ANON_KEY, HEALTH_CHECK_TOKEN) NUNCA devem
+# ser hardcoded neste arquivo. Exporte-os no shell antes de rodar este script:
+#   export VITE_SUPABASE_ANON_KEY=$(supabase projects api-keys --project-ref "$PROJECT_REF" | grep anon | awk '{print $2}')
+#   export HEALTH_CHECK_TOKEN=$(uuidgen)
+# A sintaxe ${VAR:?msg} aborta o script se a env var não estiver setada.
+
 # ============================================================
 # 1. STRIPE — Billing e Assinaturas
 # ============================================================
@@ -81,8 +87,8 @@ vercel --prod --token "$VERCEL_TOKEN"
 echo ""
 echo "=== Testando health-check ==="
 curl -s "https://yfxgncbopvnsltjqetxw.supabase.co/functions/v1/health-check" \
-  -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlmeGduY2JvcHZuc2x0anFldHh3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDk5MzIzMTksImV4cCI6MjA2NTUwODMxOX0.NqVjMB81nBlAE4h7jvsHfDBOpMKXohNsquVIvEFH46A" \
-  -H "x-health-check-token: b42379f3-7ffd-4e71-9137-d49c4db17c79" | python3 -m json.tool 2>/dev/null || cat
+  -H "Authorization: Bearer ${VITE_SUPABASE_ANON_KEY:?set VITE_SUPABASE_ANON_KEY}" \
+  -H "x-health-check-token: ${HEALTH_CHECK_TOKEN:?set HEALTH_CHECK_TOKEN}" | python3 -m json.tool 2>/dev/null || cat
 
 echo ""
 echo "=== Setup concluído! ==="
