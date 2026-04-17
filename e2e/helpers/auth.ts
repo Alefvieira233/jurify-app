@@ -1,15 +1,16 @@
-import { Page, expect } from '@playwright/test';
+import { Page, test } from '@playwright/test';
 
 /**
  * Reusable login helper for E2E tests.
- * Uses env vars E2E_TEST_EMAIL / E2E_TEST_PASSWORD with sensible defaults.
+ * Uses env vars E2E_TEST_EMAIL / E2E_TEST_PASSWORD with no hardcoded fallbacks.
  */
 export async function login(page: Page): Promise<void> {
   const email = process.env.E2E_TEST_EMAIL;
   const password = process.env.E2E_TEST_PASSWORD;
 
   if (!email || !password) {
-    throw new Error('E2E_TEST_EMAIL and E2E_TEST_PASSWORD env vars are required — never use hardcoded credentials');
+    test.skip(true, 'E2E_TEST_EMAIL and E2E_TEST_PASSWORD env vars are required — never use hardcoded credentials');
+    return;
   }
 
   await page.goto('/auth', { waitUntil: 'networkidle' });
