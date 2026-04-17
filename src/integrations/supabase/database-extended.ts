@@ -164,6 +164,48 @@ interface AdditionalTables {
     };
     Relationships: [];
   };
+  processo_andamentos: {
+    Row: {
+      id: string;
+      tenant_id: string;
+      processo_id: string;
+      data_andamento: string;
+      tipo: string | null;
+      descricao: string;
+      orgao: string | null;
+      raw: Json | null;
+      external_id: string | null;
+      provider: string;
+      created_at: string;
+    };
+    Insert: {
+      id?: string;
+      tenant_id: string;
+      processo_id: string;
+      data_andamento: string;
+      tipo?: string | null;
+      descricao: string;
+      orgao?: string | null;
+      raw?: Json | null;
+      external_id?: string | null;
+      provider?: string;
+      created_at?: string;
+    };
+    Update: {
+      id?: string;
+      tenant_id?: string;
+      processo_id?: string;
+      data_andamento?: string;
+      tipo?: string | null;
+      descricao?: string;
+      orgao?: string | null;
+      raw?: Json | null;
+      external_id?: string | null;
+      provider?: string;
+      created_at?: string;
+    };
+    Relationships: [];
+  };
 }
 
 /**

@@ -45,6 +45,7 @@ export const queryKeys = {
       [...queryKeys.processos.all, tenantId, page ?? 1, filterStatus ?? '', filterTipo ?? '', search ?? ''] as const,
     statsAtivos: (tenantId?: string | null) => ['processos-stats-ativos', tenantId] as const,
     statsExito: (tenantId?: string | null) => ['processos-stats-exito', tenantId] as const,
+    andamentos: (processoId?: string | null) => ['processos', 'andamentos', processoId] as const,
   },
 
   contratos: {
@@ -374,6 +375,11 @@ export const queryKeys = {
     all: ['onboarding-status'] as const,
     detail: (tenantId?: string | null, userId?: string) =>
       ['onboarding-status', tenantId, userId] as const,
+  },
+
+  subscriptionPlans: {
+    all: ['subscription-plans'] as const,
+    list: () => ['subscription-plans', 'list'] as const,
   },
 
   // ─── Performance / Misc ────────────────────────────────────────────────────

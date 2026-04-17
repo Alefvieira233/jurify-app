@@ -1,4 +1,4 @@
-import { FileText, Clock, DollarSign, Folder } from 'lucide-react';
+import { FileText, Clock, DollarSign, Folder, Scroll } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -8,6 +8,7 @@ import { useHonorarios } from '@/hooks/useHonorarios';
 import { useDocumentosJuridicos } from '@/hooks/useDocumentosJuridicos';
 import PrazoAlertaBadge from '@/features/prazos/components/PrazoAlertaBadge';
 import { PROCESSO_STATUS_LABELS, TIPO_ACAO_LABELS as TIPO_LABELS } from '@/schemas/processoSchema';
+import ProcessoTimeline from './ProcessoTimeline';
 
 const HONORARIO_TIPO_LABELS: Record<string, string> = {
   fixo: 'Fixo', hora: 'Por hora', contingencia: 'Contingência',
@@ -241,6 +242,10 @@ const ProcessoDetalhes = ({ processo }: ProcessoDetalhesProps) => {
           <FileText className="w-3.5 h-3.5" />
           Resumo
         </TabsTrigger>
+        <TabsTrigger value="andamentos" className="gap-1.5">
+          <Scroll className="w-3.5 h-3.5" />
+          Andamentos
+        </TabsTrigger>
         <TabsTrigger value="prazos" className="gap-1.5">
           <Clock className="w-3.5 h-3.5" />
           Prazos
@@ -257,6 +262,10 @@ const ProcessoDetalhes = ({ processo }: ProcessoDetalhesProps) => {
 
       <TabsContent value="resumo">
         <ResumoTab processo={processo} />
+      </TabsContent>
+
+      <TabsContent value="andamentos">
+        <ProcessoTimeline processoId={processo.id} />
       </TabsContent>
 
       <TabsContent value="prazos">
