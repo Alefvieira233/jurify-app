@@ -9,6 +9,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
 import { usePageTitle } from '@/hooks/usePageTitle';
+import { useFeatureFlag } from '@/hooks/useFeatureFlag';
 import { supabase } from '@/integrations/supabase/client';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import EmptyState from '@/components/EmptyState';
@@ -54,6 +55,7 @@ export function FluxosManager() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const tenantId = profile?.tenant_id;
+  const { enabled: automationEnabled, isLoading: loadingFlag } = useFeatureFlag('automation_engine');
 
   // View state
   const [editorMode, setEditorMode] = useState<'list' | 'new' | 'edit'>('list');
@@ -80,7 +82,8 @@ export function FluxosManager() {
       if (err) throw err;
       return (data ?? []) as AutomationFlow[];
     },
-    enabled: !!tenantId,
+    // Evita query desnecessária enquanto feature flag está off (0 rows em prod)
+    enabled: !!tenantId && automationEnabled,
   });
 
   // Load a single flow with nodes + edges for the editor
@@ -237,6 +240,20 @@ export function FluxosManager() {
   const handleDelete = useCallback((id: string, label: string) => {
     setConfirmDelete({ open: true, id, label });
   }, []);
+
+  // ─── Feature flag gate ───────────────────────────────────────────────────
+
+  if (!loadingFlag && !automationEnabled) {
+    return (
+      <div className="space-y-6 px-8 py-6">
+        <EmptyState
+          icon={Workflow}
+          title="Motor de automação não ativado"
+          description="Fluxos visuais de automação estão desativados para este tenant. Entre em contato com o suporte para habilitar o motor de automação (feature flag: automation_engine)."
+        />
+      </div>
+    );
+  }
 
   // ─── Editor view ─────────────────────────────────────────────────────────
 

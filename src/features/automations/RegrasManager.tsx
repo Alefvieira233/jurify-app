@@ -2,6 +2,7 @@ import { useState, useMemo, useCallback } from 'react';
 import { Plus, GitBranch } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { usePageTitle } from '@/hooks/usePageTitle';
+import { useFeatureFlag } from '@/hooks/useFeatureFlag';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import EmptyState from '@/components/EmptyState';
 import ErrorState from '@/components/ErrorState';
@@ -20,6 +21,8 @@ export { EVENT_TYPE_LABELS } from './types';
 
 export const RegrasManager = () => {
   usePageTitle('Regras de Automacao');
+
+  const { enabled: automationEnabled, isLoading: loadingFlag } = useFeatureFlag('automation_engine');
 
   const {
     isLoading,
@@ -83,6 +86,19 @@ export const RegrasManager = () => {
   }, []);
 
   // ── Render ──
+
+  // Feature flag gate: esconde motor de automação para tenants que não ativaram.
+  if (!loadingFlag && !automationEnabled) {
+    return (
+      <div className="space-y-8 pb-12">
+        <EmptyState
+          icon={GitBranch}
+          title="Motor de automação não ativado"
+          description="Regras de automação estão desativadas para este tenant. Entre em contato com o suporte para habilitar o motor de automação (feature flag: automation_engine)."
+        />
+      </div>
+    );
+  }
 
   if (isLoading) return <RegrasLoadingSkeleton />;
 
