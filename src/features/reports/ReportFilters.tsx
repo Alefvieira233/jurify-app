@@ -1,4 +1,4 @@
-import { Filter, Download, FileText, FileSpreadsheet, FileType2, Loader2 } from 'lucide-react';
+import { Filter, Download, FileText, FileType2, Loader2 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import {
@@ -106,10 +106,6 @@ const ReportFilters = ({
             <DropdownMenuItem disabled={isExporting} onClick={() => { void onExport('pdf'); }}>
               <FileType2 className="h-3.5 w-3.5 mr-2" />
               PDF
-            </DropdownMenuItem>
-            <DropdownMenuItem disabled={isExporting} onClick={() => { void onExport('excel'); }}>
-              <FileSpreadsheet className="h-3.5 w-3.5 mr-2" />
-              Excel (.xlsx)
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>

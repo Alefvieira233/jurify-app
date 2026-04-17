@@ -1,9 +1,11 @@
 /**
  * Export helpers for reports.
  *
- * Supports CSV (native), PDF (jspdf + jspdf-autotable — lazy loaded),
- * and Excel (xlsx — lazy loaded). PDF and xlsx libs are imported via
- * dynamic `import()` so they do NOT enter the critical bundle.
+ * Supports CSV (native, BOM UTF-8 — Excel abre nativamente) e PDF
+ * (jspdf + jspdf-autotable — lazy loaded). XLSX foi removido em
+ * 2026-04-17 porque a lib `xlsx` tem CVE critical (GHSA-4r6h-8v6p-xvw6)
+ * sem fix upstream. Usuários que quiserem .xlsx devem exportar CSV e
+ * salvar como Excel — zero perda de dados, zero vulnerabilidade.
  *
  * Each export function accepts a consistent shape:
  *   { headers: string[]; rows: Array<Array<string | number>>; title?: string }
@@ -24,7 +26,7 @@ export interface ExportData {
   title?: string;
 }
 
-export type ExportFormat = 'csv' | 'pdf' | 'excel';
+export type ExportFormat = 'csv' | 'pdf';
 
 const DATE_STAMP = () => new Date().toISOString().slice(0, 10);
 
@@ -115,38 +117,5 @@ export function useReportExport() {
     [toast],
   );
 
-  const exportExcel = useCallback(
-    async (data: ExportData, filename?: string): Promise<void> => {
-      if (!data.rows.length) {
-        toast({ title: 'Nada para exportar', description: 'Não há dados no filtro atual.' });
-        return;
-      }
-      setExporting('excel');
-      try {
-        const XLSX = await import('xlsx');
-        const aoa = [data.headers, ...data.rows];
-        const ws = XLSX.utils.aoa_to_sheet(aoa);
-        const wb = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(wb, ws, (data.title ?? 'Relatório').slice(0, 31));
-        const buf: ArrayBuffer = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
-        const blob = new Blob([buf], {
-          type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-        });
-        triggerDownload(blob, filename ?? `relatorio-${DATE_STAMP()}.xlsx`);
-        toast({ title: 'Exportado', description: 'Excel gerado com sucesso.' });
-      } catch (err) {
-        log.error('exportExcel failed', err);
-        toast({
-          title: 'Erro ao exportar Excel',
-          description: toUserMessage(err),
-          variant: 'destructive',
-        });
-      } finally {
-        setExporting(null);
-      }
-    },
-    [toast],
-  );
-
-  return { exportCSV, exportPDF, exportExcel, exporting };
+  return { exportCSV, exportPDF, exporting };
 }

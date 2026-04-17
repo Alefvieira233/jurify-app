@@ -21,6 +21,8 @@ on:
     - cron: '0 7 * * 1'
     # cleanup-agent-memory: Sunday 03:00 UTC (00:00 BRT)
     - cron: '0 3 * * 0'
+    # tribunal-sync: every 6h (atualização de andamentos CNJ via Escavador)
+    - cron: '0 */6 * * *'
   workflow_dispatch:
     inputs:
       job:
@@ -33,6 +35,7 @@ on:
           - auto-followup
           - weekly-report
           - cleanup-agent-memory
+          - tribunal-sync
 
 env:
   SUPABASE_URL: https://yfxgncbopvnsltjqetxw.supabase.co
@@ -117,5 +120,21 @@ jobs:
             -H "Authorization: Bearer ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}" \
             -H "Content-Type: application/json" \
             -d '{"batch": true}' \
+            | tee /tmp/response.json
+          echo ""
+
+  tribunal-sync:
+    name: Tribunal Sync (CNJ Andamentos)
+    if: github.event.schedule == '0 */6 * * *' || github.event.inputs.job == 'tribunal-sync'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Invoke tribunal-sync (all tenants with active processos)
+        run: |
+          curl -fsS --max-time 840 -X POST \
+            "${SUPABASE_URL}/functions/v1/tribunal-sync" \
+            -H "Authorization: Bearer ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}" \
+            -H "Content-Type: application/json" \
+            -d '{"batch": true, "limit": 50}' \
             | tee /tmp/response.json
           echo ""

@@ -78,6 +78,12 @@ vi.mock('../FlowEditor', () => ({
   default: () => React.createElement('div', { 'data-testid': 'flow-editor' }, 'FlowEditor'),
 }));
 
+// FluxosManager is gated by feature flag automation_engine (commit abc95f1).
+// Mock the flag as enabled for tests that exercise the flow CRUD UI.
+vi.mock('@/hooks/useFeatureFlag', () => ({
+  useFeatureFlag: () => ({ enabled: true, isLoading: false, error: null }),
+}));
+
 import { FluxosManager } from '../FluxosManager';
 
 function createWrapper() {
