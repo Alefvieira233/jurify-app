@@ -1,10 +1,8 @@
 import { createClient } from "jsr:@supabase/supabase-js@2";
-import { OpenAI } from "https://deno.land/x/openai@v4.24.0/mod.ts";
 import { buildLegalContext } from "../../_shared/legal-context.ts";
 import { DEFAULT_OPENAI_MODEL } from "../../_shared/ai-model.ts";
-import { checkBudgetBeforeCall, recordTokenUsage } from "../../_shared/ai-budget.ts";
+import { callOpenAI, BudgetExceededError } from "../../_shared/ai-caller.ts";
 import { sanitizeInput } from "../../_shared/security.ts";
-import { withRetry } from "../../_shared/openai-retry.ts";
 import type { NormalizedMessage } from "../../_shared/whatsapp-logic.ts";
 import { callEdgeFunction, escapeLike } from "./edge-function-client.ts";
 import { analyzeQualification } from "./qualification.ts";
@@ -18,6 +16,76 @@ import {
 } from "../../_shared/schedule-parser.ts";
 
 const INTEGRATION_NAME_KAPSO = "whatsapp_kapso";
+
+// ============================================
+// SLASH COMMANDS — DB-backed tenant-editable registry
+// ============================================
+// Seeded in migration 20260417000008. Cached in-memory for 5 min per tenant
+// to avoid a round-trip on every incoming WhatsApp message. Legacy hardcoded
+// map below acts as a defense-in-depth fallback if the DB query fails.
+type SlashCommandEntry = { intent: string; agent: string };
+type SlashCommandMap = Record<string, SlashCommandEntry>;
+
+const LEGACY_COMMANDS: SlashCommandMap = {
+  "/prazos":      { intent: "liste os prazos processuais do cliente com datas e urgência",                                                  agent: "juridico" },
+  "/processos":   { intent: "liste os processos ativos do cliente com número, fase e tribunal",                                               agent: "juridico" },
+  "/documentos":  { intent: "informe quantos documentos o cliente tem no sistema e quais tipos",                                              agent: "analista_documentos" },
+  "/honorarios":  { intent: "informe o status dos honorários do cliente: valores acordados, pagos e pendentes",                               agent: "juridico" },
+  "/status":      { intent: "dê um resumo completo e organizado de todos os casos, prazos e pendências do cliente",                           agent: "juridico" },
+  "/audiencias":  { intent: "liste as audiências e compromissos agendados do cliente nos próximos 60 dias",                                   agent: "juridico" },
+  "/andamento":   { intent: "descreva o andamento cronológico dos processos do cliente, do mais recente ao mais antigo",                      agent: "juridico" },
+};
+
+const COMMANDS_CACHE_TTL_MS = 5 * 60 * 1000; // 5 min
+const commandsCache = new Map<string, { map: SlashCommandMap; expiresAt: number }>();
+
+async function getSlashCommands(
+  supabase: ReturnType<typeof createClient>,
+  tenantId: string | null,
+): Promise<SlashCommandMap> {
+  const cacheKey = tenantId ?? "__global__";
+  const now = Date.now();
+  const cached = commandsCache.get(cacheKey);
+  if (cached && cached.expiresAt > now) return cached.map;
+
+  try {
+    // Fetch both tenant-specific AND global (tenant_id IS NULL) rows in one round-trip.
+    // Tenant-specific rows take precedence (merge order below).
+    let query = supabase
+      .from("slash_commands")
+      .select("command, intent, agent_type, tenant_id")
+      .eq("active", true);
+
+    query = tenantId
+      ? query.or(`tenant_id.is.null,tenant_id.eq.${tenantId}`)
+      : query.is("tenant_id", null);
+
+    const { data, error } = await query;
+    if (error) {
+      console.error("[slash-commands] DB lookup failed — using legacy fallback:", error.message);
+      commandsCache.set(cacheKey, { map: LEGACY_COMMANDS, expiresAt: now + COMMANDS_CACHE_TTL_MS });
+      return LEGACY_COMMANDS;
+    }
+
+    // Build map: global first, tenant-specific overrides on top.
+    const map: SlashCommandMap = {};
+    const rows = (data ?? []) as Array<{ command: string; intent: string; agent_type: string; tenant_id: string | null }>;
+    for (const r of rows.filter((r) => r.tenant_id === null)) {
+      map[r.command] = { intent: r.intent, agent: r.agent_type };
+    }
+    for (const r of rows.filter((r) => r.tenant_id !== null)) {
+      map[r.command] = { intent: r.intent, agent: r.agent_type };
+    }
+    // Empty result (fresh DB without seeds) → use legacy to preserve behavior.
+    const final = Object.keys(map).length > 0 ? map : LEGACY_COMMANDS;
+    commandsCache.set(cacheKey, { map: final, expiresAt: now + COMMANDS_CACHE_TTL_MS });
+    return final;
+  } catch (err) {
+    console.error("[slash-commands] unexpected error — using legacy fallback:", err instanceof Error ? err.message : err);
+    commandsCache.set(cacheKey, { map: LEGACY_COMMANDS, expiresAt: now + COMMANDS_CACHE_TTL_MS });
+    return LEGACY_COMMANDS;
+  }
+}
 
 // ============================================
 // 📨 PROCESSA MENSAGEM NORMALIZADA (funciona para ambos providers)
@@ -459,16 +527,9 @@ export async function processNormalizedMessage(
     // Legal context
     const legalCtx = await buildLegalContext(supabase, leadId, tenantId, processedText);
 
-    // Command detection — maps slash commands to intents and routing agents
-    const COMMANDS: Record<string, { intent: string; agent: string }> = {
-      "/prazos": { intent: "liste os prazos processuais do cliente com datas e urgência", agent: "juridico" },
-      "/processos": { intent: "liste os processos ativos do cliente com número, fase e tribunal", agent: "juridico" },
-      "/documentos": { intent: "informe quantos documentos o cliente tem no sistema e quais tipos", agent: "analista_documentos" },
-      "/honorarios": { intent: "informe o status dos honorários do cliente: valores acordados, pagos e pendentes", agent: "juridico" },
-      "/status": { intent: "dê um resumo completo e organizado de todos os casos, prazos e pendências do cliente", agent: "juridico" },
-      "/audiencias": { intent: "liste as audiências e compromissos agendados do cliente nos próximos 60 dias", agent: "juridico" },
-      "/andamento": { intent: "descreva o andamento cronológico dos processos do cliente, do mais recente ao mais antigo", agent: "juridico" },
-    };
+    // Command detection — tenant-editable via `slash_commands` table (5-min cache,
+    // legacy hardcoded map as defense-in-depth fallback).
+    const COMMANDS = await getSlashCommands(supabase, tenantId);
     const commandKey = Object.keys(COMMANDS).find((cmd) =>
       processedText.trim().toLowerCase().startsWith(cmd)
     );
@@ -693,23 +754,13 @@ export async function processNormalizedMessage(
       executionRowId = execData?.id ?? null;
     } catch { /* non-critical */ }
 
-    // Budget check — skip AI if over daily limit (webhook, so no 429)
+    // Budget enforcement is delegated to ai-caller.callOpenAI (daily + monthly).
+    // The webhook is fire-and-forget — BudgetExceededError surfaces in catch below
+    // and maps to the existing budgetExceeded path (friendly fallback, admin notif).
     let budgetExceeded = false;
-    if (tenantId) {
-      const budgetCheck = await checkBudgetBeforeCall(tenantId);
-      if (!budgetCheck.allowed) {
-        console.warn(`[whatsapp-webhook] AI budget exceeded for tenant ${tenantId}, skipping AI response`);
-        budgetExceeded = true;
-      }
-    }
 
-    if (!budgetExceeded) try {
-      const openaiApiKey = Deno.env.get("OPENAI_API_KEY");
-      if (!openaiApiKey) throw new Error("OPENAI_API_KEY not configured");
-
-      const openai = new OpenAI({ apiKey: openaiApiKey });
-
-      const aiMessages: Array<{ role: string; content: string }> = [
+    try {
+      const aiMessages = [
         { role: "system", content: finalSystemPrompt },
         { role: "user", content: commandIntent ?? processedText },
       ];
@@ -717,44 +768,39 @@ export async function processNormalizedMessage(
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 30_000);
 
-      let completion;
+      let aiResult;
       try {
-        completion = await withRetry(
-          () => openai.chat.completions.create(
-            {
-              model: DEFAULT_OPENAI_MODEL,
-              messages: aiMessages,
-              temperature: agentTemp,
-              max_tokens: agentMaxTokens,
-            },
-            { signal: controller.signal }
-          ),
-          { label: `whatsapp-webhook:${agentName}` }
-        );
+        aiResult = await callOpenAI(supabase, {
+          tenantId: tenantId!,
+          leadId,
+          agentName,
+          model: DEFAULT_OPENAI_MODEL,
+          messages: aiMessages,
+          temperature: agentTemp,
+          maxTokens: agentMaxTokens,
+          abortSignal: controller.signal,
+          source: "whatsapp-webhook",
+          // Webhook keeps its own agent_ai_logs row (has execution_row_id +
+          // system_prompt/user_prompt). Skip the ai-caller log to avoid dupes.
+          persistLog: false,
+          metadata: { mediaCategory, hasLegalContext: legalCtx.has_context, agent: agentName },
+        });
       } finally {
         clearTimeout(timeoutId);
       }
 
-      const resultText = completion.choices[0]?.message?.content || "";
+      const resultText = aiResult.content;
       if (!resultText) {
-        console.error(`[processMsg:${provider}] OpenAI returned EMPTY content. Model: ${DEFAULT_OPENAI_MODEL} | Choices: ${completion.choices?.length || 0} | FinishReason: ${completion.choices?.[0]?.finish_reason || "N/A"} | Usage: ${JSON.stringify(completion.usage)}`);
+        console.error(`[processMsg:${provider}] OpenAI returned EMPTY content. Model: ${aiResult.model} | Usage: in=${aiResult.tokens_in} out=${aiResult.tokens_out}`);
       }
       aiResponse = {
         result: resultText,
-        usage: completion.usage
-          ? {
-            prompt_tokens: completion.usage.prompt_tokens,
-            completion_tokens: completion.usage.completion_tokens,
-            total_tokens: completion.usage.total_tokens,
-          }
+        usage: aiResult.tokens_total > 0
+          ? { prompt_tokens: aiResult.tokens_in, completion_tokens: aiResult.tokens_out, total_tokens: aiResult.tokens_total }
           : undefined,
-        model: completion.model,
+        model: aiResult.model,
       };
-
-      // Record daily token usage
-      if (tenantId && aiResponse.usage?.total_tokens) {
-        await recordTokenUsage(tenantId, aiResponse.usage.total_tokens);
-      }
+      // Token usage already recorded inside callOpenAI.
 
       // Mark execution completed
       const duration = Date.now() - aiStartTime;
@@ -770,7 +816,8 @@ export async function processNormalizedMessage(
         .eq("tenant_id", tenantId)
         .then(({ error }) => { if (error) console.error("[webhook] execution complete error:", error.message); });
 
-      // Log AI processing (non-blocking)
+      // Log AI processing (non-blocking) — keep webhook-specific row for
+      // system_prompt + user_prompt (not captured by ai-caller's log).
       if (executionRowId) {
         void supabase.from("agent_ai_logs").insert({
           execution_id: executionRowId,
@@ -792,19 +839,36 @@ export async function processNormalizedMessage(
 
       console.log(`[processMsg:${provider}] ${agentName} responded: "${resultText.substring(0, 80)}..."`);
     } catch (err) {
-      aiError = err instanceof Error ? err : new Error(String(err));
-      console.error(`[processMsg:${provider}] AI error (using fallback):`, aiError.message);
+      // Budget-exceeded is a known path → keep the old "budget exhausted" UX
+      // (canned fallback + admin alert) instead of the generic failure message.
+      if (err instanceof BudgetExceededError) {
+        budgetExceeded = true;
+        console.warn(`[whatsapp-webhook] AI budget exceeded (${err.scope}) for tenant ${tenantId} — skipping AI response`);
+        void supabase
+          .from("agent_executions")
+          .update({
+            status: "failed",
+            error_message: `budget_exceeded:${err.scope ?? "unknown"}`,
+            completed_at: new Date().toISOString(),
+          })
+          .eq("execution_id", executionId)
+          .eq("tenant_id", tenantId)
+          .then(({ error }) => { if (error) console.error("[webhook] execution fail error:", error.message); });
+      } else {
+        aiError = err instanceof Error ? err : new Error(String(err));
+        console.error(`[processMsg:${provider}] AI error (using fallback):`, aiError.message);
 
-      void supabase
-        .from("agent_executions")
-        .update({
-          status: "failed",
-          error_message: aiError.message,
-          completed_at: new Date().toISOString(),
-        })
-        .eq("execution_id", executionId)
-        .eq("tenant_id", tenantId)
-        .then(({ error }) => { if (error) console.error("[webhook] execution fail error:", error.message); });
+        void supabase
+          .from("agent_executions")
+          .update({
+            status: "failed",
+            error_message: aiError.message,
+            completed_at: new Date().toISOString(),
+          })
+          .eq("execution_id", executionId)
+          .eq("tenant_id", tenantId)
+          .then(({ error }) => { if (error) console.error("[webhook] execution fail error:", error.message); });
+      }
     }
 
     let aiText: string;

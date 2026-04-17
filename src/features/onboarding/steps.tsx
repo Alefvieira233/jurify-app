@@ -50,7 +50,7 @@ export const WelcomeStep = ({ onNext }: Pick<StepProps, 'onNext'>) => (
         Bem-vindo ao Jurify!
       </h1>
       <p className="text-muted-foreground text-lg max-w-sm mx-auto leading-relaxed">
-        Vamos configurar seu escritorio em 3 passos rapidos.
+        Vamos configurar seu escritorio em alguns passos rapidos.
       </p>
     </div>
     <Button size="lg" className="mt-4 px-8 text-base font-semibold gap-2" onClick={onNext}>

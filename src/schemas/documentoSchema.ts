@@ -8,6 +8,7 @@ export const TIPOS_DOCUMENTO = [
 export const documentoFormSchema = z.object({
   processo_id:    z.string().uuid().optional().nullable(),
   lead_id:        z.string().uuid().optional().nullable(),
+  folder_id:      z.string().uuid().optional().nullable(),
   tipo_documento: z.enum(TIPOS_DOCUMENTO),
   descricao:      z.string().max(500).optional().nullable(),
   tags:           z.array(z.string()).optional().nullable(),

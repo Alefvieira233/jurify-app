@@ -42,7 +42,8 @@ type EmailTemplate =
   | "subscription-cancelled"
   | "payment-failed"
   | "agent-alert"
-  | "charge-refunded";
+  | "charge-refunded"
+  | "team-invitation";
 
 interface TemplateData {
   name?: string;
@@ -55,6 +56,11 @@ interface TemplateData {
   tenant_id?: string;
   refund_amount?: string;
   charge_id?: string;
+  // team-invitation
+  invite_url?: string;
+  inviter_name?: string;
+  firm_name?: string;
+  role_label?: string;
 }
 
 function buildEmailContent(
@@ -198,6 +204,30 @@ function buildEmailContent(
   <p style="color:#6b7280;font-size:13px">Tenant ID: ${escapeHtml(data.tenant_id ?? "N/A")}</p>
 </div>`,
         textBody: `Alerta de Agente IA:\n${data.alert_message}\nTenant: ${data.tenant_id ?? "N/A"}`,
+      };
+
+    case "team-invitation":
+      return {
+        subject: `Voce foi convidado(a) para o ${data.firm_name ?? "Jurify"}`,
+        htmlBody: `
+<div style="font-family:Inter,Arial,sans-serif;max-width:600px;margin:0 auto;padding:40px 20px;color:#111827">
+  <div style="text-align:center;margin-bottom:32px">
+    <h1 style="color:#1e3a8a;font-size:28px;margin:0">Jurify</h1>
+    <p style="color:#6b7280;font-size:14px;margin:4px 0 0">Premium Legal Suite</p>
+  </div>
+  <h2 style="font-size:22px;margin-bottom:8px">Voce foi convidado(a)!</h2>
+  <p style="color:#374151;line-height:1.6"><strong>${escapeHtml(data.inviter_name ?? "Um administrador")}</strong> convidou voce para colaborar em <strong>${escapeHtml(data.firm_name ?? "")}</strong> como <strong>${escapeHtml(data.role_label ?? "membro")}</strong>.</p>
+  <div style="background:#f0f4ff;border-left:4px solid #1e3a8a;padding:16px;margin:24px 0;border-radius:4px">
+    <p style="margin:0;color:#374151">Clique no botao abaixo para criar sua conta e acessar o escritorio.</p>
+  </div>
+  <div style="text-align:center;margin:32px 0">
+    <a href="${escapeHtml(data.invite_url ?? "https://jurify-app.vercel.app")}" style="background:#1e3a8a;color:white;padding:14px 32px;border-radius:8px;text-decoration:none;font-weight:600;font-size:16px">
+      Aceitar Convite
+    </a>
+  </div>
+  <p style="color:#6b7280;font-size:13px;text-align:center">Este convite expira em 14 dias.</p>
+</div>`,
+        textBody: `${data.inviter_name ?? "Um administrador"} convidou voce para ${data.firm_name ?? "Jurify"} como ${data.role_label ?? "membro"}.\n\nAceitar: ${data.invite_url ?? "https://jurify-app.vercel.app"}`,
       };
 
     case "charge-refunded":
@@ -359,7 +389,21 @@ Deno.serve(async (req) => {
     const isLeadInTenant = leadMatch && leadMatch.length > 0;
     const isProfileInTenant = profileMatch && profileMatch.length > 0;
 
-    if (!isLeadInTenant && !isProfileInTenant) {
+    // team-invitation sends to people NOT yet in the tenant — allow only if
+    // there is a pending invite row for this tenant+email.
+    let isInvitedInTenant = false;
+    if (template === "team-invitation") {
+      const { data: inviteMatch } = await supabaseAdmin
+        .from("team_invites")
+        .select("id")
+        .eq("tenant_id", tenantId)
+        .eq("email", to)
+        .eq("status", "pending")
+        .limit(1);
+      isInvitedInTenant = !!inviteMatch && inviteMatch.length > 0;
+    }
+
+    if (!isLeadInTenant && !isProfileInTenant && !isInvitedInTenant) {
       console.warn(`[send-email] Tenant isolation: user ${authenticatedUserId} tried to email ${to} outside tenant ${tenantId}`);
       return new Response(
         JSON.stringify({ error: "Destinatário não pertence ao seu escritório" }),

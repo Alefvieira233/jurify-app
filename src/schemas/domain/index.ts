@@ -12,3 +12,19 @@ export {
   ConexaoWhatsAppSchema,
   type ConexaoWhatsAppRow,
 } from './conexaoWhatsApp.schema';
+export {
+  EscritorioOnboardingSchema,
+  type EscritorioOnboardingInput,
+  type EscritorioOnboardingData,
+  isValidCnpj,
+  stripCnpjMask,
+} from './escritorioOnboarding.schema';
+export {
+  TeamInvitesSubmitSchema,
+  TeamInviteDraftRowSchema,
+  TeamInviteRoleSchema,
+  TEAM_INVITE_MAX,
+  type TeamInviteDraftRow,
+  type TeamInviteRole,
+  type TeamInviteSubmitData,
+} from './teamInviteOnboarding.schema';

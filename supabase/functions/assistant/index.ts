@@ -12,7 +12,7 @@ import { getCorsHeaders } from "../_shared/cors.ts";
 import { getCache, setCache, CACHE_TTL } from "../_shared/cache.ts";
 import { sanitizeInput, redactPII, auditLog } from "../_shared/security.ts";
 import { applyRateLimit } from "../_shared/rate-limiter.ts";
-import { checkBudgetBeforeCall, recordTokenUsage } from "../_shared/ai-budget.ts";
+import { callOpenAI, BudgetExceededError } from "../_shared/ai-caller.ts";
 import { DEFAULT_OPENAI_MODEL } from "../_shared/ai-model.ts";
 
 // SEC-03: Escape LIKE wildcards in user-derived query values
@@ -134,9 +134,8 @@ Deno.serve(async (req) => {
   const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
   const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
   const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY") ?? "";
-  const openaiKey = Deno.env.get("OPENAI_API_KEY") ?? "";
-
-  if (!supabaseUrl || !supabaseServiceKey || !openaiKey) {
+  // OPENAI_API_KEY presence is enforced lazily inside ai-caller (getClient()).
+  if (!supabaseUrl || !supabaseServiceKey || !Deno.env.get("OPENAI_API_KEY")) {
     return new Response(JSON.stringify({ error: "Service unavailable" }), { status: 503, headers: jsonHeaders });
   }
 
@@ -209,17 +208,8 @@ Deno.serve(async (req) => {
   const { tenant_id: tenantId, nome_completo: userName } = profile;
 
   try {
-    // ── 0. Budget check ──
-    const budgetCheck = await checkBudgetBeforeCall(tenantId);
-    if (!budgetCheck.allowed) {
-      return new Response(
-        JSON.stringify({
-          error: "Limite diário de IA atingido",
-          message: `Uso: ${budgetCheck.tokensUsed.toLocaleString()}/${budgetCheck.budgetLimit.toLocaleString()} tokens. Tente novamente amanhã.`,
-        }),
-        { status: 429, headers: jsonHeaders }
-      );
-    }
+    // Budget enforcement + token recording are handled inside ai-caller.callOpenAI.
+    // BudgetExceededError surfaces below as a 429.
 
     // ── 1. Fetch context (cached) ──
     const context = await fetchContextCached(supabase, tenantId);
@@ -227,19 +217,33 @@ Deno.serve(async (req) => {
     // ── 2. System prompt ──
     const systemPrompt = buildSystemPrompt(userName, context);
 
-    // ── 3. First OpenAI call ──
-    const firstResult = await callOpenAIWithRetry(openaiKey, [
-      { role: "system", content: systemPrompt },
-      { role: "user", content: safeMessage },
-    ]);
+    // ── 3. First AI call (unified pipeline) ──
+    const firstResult = await callOpenAI(supabase, {
+      tenantId,
+      userId,
+      agentName: "assistant",
+      model: DEFAULT_OPENAI_MODEL,
+      messages: [
+        { role: "system", content: systemPrompt },
+        { role: "user", content: safeMessage },
+      ],
+      temperature: 0.6,
+      maxTokens: 1000,
+      tools: TOOLS,
+      toolChoice: "auto",
+      source: "assistant",
+      metadata: { conversation_id: conversationId ?? null, turn: "initial" },
+    });
 
     let finalText: string;
-    const firstChoice = firstResult.choices?.[0]?.message;
+    const firstChoice = firstResult.raw.choices?.[0]?.message;
+    // deno-lint-ignore no-explicit-any
+    const firstToolCalls = (firstChoice as any)?.tool_calls as Array<{ id: string; function: { name: string; arguments: string } }> | undefined;
 
     // ── 4. Handle tool calls ──
-    if (firstChoice?.tool_calls?.length) {
-      const toolMessages = [];
-      for (const tc of firstChoice.tool_calls) {
+    if (firstToolCalls?.length) {
+      const toolMessages: Array<{ role: string; tool_call_id: string; content: string }> = [];
+      for (const tc of firstToolCalls) {
         toolsUsed.push(tc.function.name);
         const result = await executeTool(supabase, tenantId, tc.function.name, tc.function.arguments);
         toolMessages.push({
@@ -249,24 +253,34 @@ Deno.serve(async (req) => {
         });
       }
 
-      const secondResult = await callOpenAIWithRetry(openaiKey, [
-        { role: "system", content: systemPrompt },
-        { role: "user", content: safeMessage },
-        firstChoice,
-        ...toolMessages,
-      ]);
+      const secondResult = await callOpenAI(supabase, {
+        tenantId,
+        userId,
+        agentName: "assistant",
+        model: DEFAULT_OPENAI_MODEL,
+        messages: [
+          { role: "system", content: systemPrompt },
+          { role: "user", content: safeMessage },
+          // deno-lint-ignore no-explicit-any
+          firstChoice as any,
+          // deno-lint-ignore no-explicit-any
+          ...(toolMessages as any),
+        ],
+        temperature: 0.6,
+        maxTokens: 1000,
+        source: "assistant",
+        metadata: { conversation_id: conversationId ?? null, turn: "tool-followup" },
+      });
 
-      finalText = secondResult.choices?.[0]?.message?.content ?? "Desculpe, não consegui processar.";
+      finalText = secondResult.content || "Desculpe, não consegui processar.";
     } else {
-      finalText = firstChoice?.content ?? "Desculpe, não consegui processar.";
+      finalText = firstResult.content || "Desculpe, não consegui processar.";
     }
 
     // ── 5. PII redaction ──
     finalText = redactPII(finalText);
 
-    // ── 5b. Record token usage ──
-    const tokensUsed = firstResult?.usage?.total_tokens ?? 0;
-    await recordTokenUsage(tenantId, tokensUsed);
+    // Token usage is recorded inside callOpenAI — no manual recordTokenUsage needed.
 
     const responseTimeMs = Date.now() - startTime;
 
@@ -309,6 +323,20 @@ Deno.serve(async (req) => {
       success: false,
       error: errorMsg,
     });
+
+    // Budget exceeded → explicit 429 with scope so the frontend can present the
+    // right message ("limite diário" vs. "plano atingido").
+    if (error instanceof BudgetExceededError) {
+      return new Response(
+        JSON.stringify({
+          error: "Limite de IA atingido",
+          message: error.decision.reason ?? error.message,
+          code: error.scope === "monthly" ? "PLAN_LIMIT_EXCEEDED" : "DAILY_BUDGET_EXCEEDED",
+          scope: error.scope,
+        }),
+        { status: 429, headers: jsonHeaders }
+      );
+    }
 
     // Graceful degradation: return friendly message instead of 500
     return new Response(
@@ -424,48 +452,6 @@ ${ctx.contracts.slice(0, 3).map((c: any) => "- " + c.cliente_nome + " | " + c.st
 7. Nunca revele CPFs, RGs ou dados sensíveis completos.
 8. Ao criar leads, confirme os dados com o usuário.
 9. Seja conciso — máximo 3 parágrafos por resposta.`;
-}
-
-// ---------------------------------------------------------------------------
-// OpenAI call with exponential backoff retry
-// ---------------------------------------------------------------------------
-
-async function callOpenAIWithRetry(
-  apiKey: string,
-  messages: any[],
-  maxRetries = 2
-): Promise<any> {
-  for (let attempt = 0; attempt <= maxRetries; attempt++) {
-    const res = await fetch("https://api.openai.com/v1/chat/completions", {
-      method: "POST",
-      signal: AbortSignal.timeout(30_000),
-      headers: {
-        Authorization: `Bearer ${apiKey}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: DEFAULT_OPENAI_MODEL,
-        messages,
-        temperature: 0.6,
-        max_tokens: 1000,
-        tools: TOOLS,
-        tool_choice: "auto",
-      }),
-    });
-
-    if (res.ok) return await res.json();
-
-    // Retry on 429 (rate limit) and 5xx
-    if ((res.status === 429 || res.status >= 500) && attempt < maxRetries) {
-      const delay = Math.pow(2, attempt) * 1000 + Math.random() * 500;
-      console.warn(`[assistant] OpenAI ${res.status}, retrying in ${Math.round(delay)}ms (attempt ${attempt + 1})`);
-      await new Promise((r) => setTimeout(r, delay));
-      continue;
-    }
-
-    const body = await res.text();
-    throw new Error(`OpenAI ${res.status}: ${body.slice(0, 200)}`);
-  }
 }
 
 // ---------------------------------------------------------------------------

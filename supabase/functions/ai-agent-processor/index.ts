@@ -10,14 +10,12 @@
 
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2";
-import { OpenAI } from "https://deno.land/x/openai@v4.24.0/mod.ts";
 import { applyRateLimit } from "../_shared/rate-limiter.ts";
 import { getCorsHeaders } from "../_shared/cors.ts";
-import { checkBudgetBeforeCall, recordTokenUsage } from "../_shared/ai-budget.ts";
 import { initSentry, captureError } from "../_shared/sentry.ts";
 import { DEFAULT_OPENAI_MODEL } from "../_shared/ai-model.ts";
 import { sanitizeInput } from "../_shared/security.ts";
-import { withRetry } from "../_shared/openai-retry.ts";
+import { callOpenAI, BudgetExceededError } from "../_shared/ai-caller.ts";
 
 // 🚀 INIT SENTRY
 initSentry();
@@ -93,7 +91,7 @@ function validateRequest(data: unknown): data is AgentAIRequest {
 
 // ðŸ§  Processa requisiÃ§Ã£o de IA
 async function processAIRequest(
-  openai: OpenAI,
+  supabase: ReturnType<typeof createClient>,
   request: AgentAIRequest
 ): Promise<AgentAIResponse> {
   const {
@@ -131,44 +129,47 @@ async function processAIRequest(
     content: userPrompt,
   });
 
-  // Chama OpenAI with timeout protection (30s)
+  // 30s wall-clock ceiling; ai-caller handles retry + budget + token usage.
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), 30_000);
 
-  let completion;
+  let aiResult;
   try {
-    completion = await withRetry(
-      () => openai.chat.completions.create(
-        {
-          model,
-          messages,
-          temperature,
-          max_tokens: maxTokens,
-          tools,
-          tool_choice,
-        },
-        { signal: controller.signal }
-      ),
-      { label: "ai-agent-processor" }
-    );
+    aiResult = await callOpenAI(supabase, {
+      tenantId: request.tenantId!,
+      userId: request.userId ?? null,
+      leadId: request.leadId ?? null,
+      agentName,
+      model,
+      messages,
+      maxTokens,
+      temperature,
+      tools,
+      toolChoice: tool_choice as string | Record<string, unknown> | undefined,
+      abortSignal: controller.signal,
+      source: "ai-agent-processor",
+      metadata: { agent_specialization: agentSpecialization },
+      // This function keeps its own `logAIProcessing` (links execution_row_id
+      // + stores full prompts). Skip the ai-caller log to avoid duplicates.
+      persistLog: false,
+    });
   } finally {
     clearTimeout(timeoutId);
   }
 
-  const result = completion.choices[0]?.message?.content || "";
-  const toolCalls = completion.choices[0]?.message?.tool_calls;
+  const toolCalls = (aiResult.raw.choices?.[0]?.message?.tool_calls as AgentAIResponse["tool_calls"]) ?? undefined;
 
   return {
-    result,
+    result: aiResult.content,
     tool_calls: toolCalls,
-    usage: completion.usage
+    usage: aiResult.tokens_total > 0
       ? {
-        prompt_tokens: completion.usage.prompt_tokens,
-        completion_tokens: completion.usage.completion_tokens,
-        total_tokens: completion.usage.total_tokens,
+        prompt_tokens: aiResult.tokens_in,
+        completion_tokens: aiResult.tokens_out,
+        total_tokens: aiResult.tokens_total,
       }
       : undefined,
-    model: completion.model,
+    model: aiResult.model,
     agentName,
     timestamp: new Date().toISOString(),
   };
@@ -438,70 +439,13 @@ Deno.serve(async (req) => {
       return rateLimitCheck.response;
     }
 
-    // ── Monthly AI quota check (plan limits enforcement) ──
-    const PLAN_AI_LIMITS: Record<string, number> = {
-      free: 50,
-      pro: 500,
-      enterprise: -1, // unlimited
-    };
-
-    const { data: tenantSub } = await supabase
-      .from("subscriptions")
-      .select("plan_id")
-      .eq("tenant_id", resolvedTenantId)
-      .eq("status", "active")
-      .maybeSingle();
-
-    const tenantPlan = (tenantSub?.plan_id as string) || "free";
-    const monthlyLimit = PLAN_AI_LIMITS[tenantPlan] ?? PLAN_AI_LIMITS.free!;
-
-    if (monthlyLimit !== -1) {
-      const thirtyDaysAgo = new Date();
-      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-
-      const { count: aiCallsThisMonth } = await supabase
-        .from("agent_ai_logs")
-        .select("*", { count: "exact", head: true })
-        .eq("tenant_id", resolvedTenantId)
-        .gte("created_at", thirtyDaysAgo.toISOString());
-
-      if ((aiCallsThisMonth ?? 0) >= monthlyLimit) {
-        console.warn(
-          `AI quota exceeded for tenant ${resolvedTenantId}: ${aiCallsThisMonth}/${monthlyLimit} (plan: ${tenantPlan})`
-        );
-        return new Response(
-          JSON.stringify({
-            error: `Limite mensal de ${monthlyLimit} chamadas de IA atingido. Faça upgrade do seu plano para continuar.`,
-            code: "PLAN_LIMIT_EXCEEDED",
-            usage: aiCallsThisMonth,
-            limit: monthlyLimit,
-          }),
-          {
-            headers: { ...corsHeaders, "Content-Type": "application/json" },
-            status: 429,
-          }
-        );
-      }
-    }
-
-    // Daily budget check
-    const budgetCheck = await checkBudgetBeforeCall(resolvedTenantId);
-    if (!budgetCheck.allowed) {
-      return new Response(
-        JSON.stringify({
-          error: "Limite diário de IA atingido",
-          message: `Uso: ${budgetCheck.tokensUsed.toLocaleString()}/${budgetCheck.budgetLimit.toLocaleString()} tokens.`,
-          code: "DAILY_BUDGET_EXCEEDED",
-        }),
-        { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-
-    // Verifica API Key da OpenAI
-    const openaiApiKey = Deno.env.get("OPENAI_API_KEY");
-    if (!openaiApiKey) {
-      throw new Error("OPENAI_API_KEY not configured");
-    }
+    // Budget enforcement (daily + monthly TOKENS) moved into ai-caller:
+    // - Legacy row-count check on agent_ai_logs inflated the count on retries
+    //   and double-counted orchestrator + specialist legs for one user request.
+    // - Daily ai_usage.budget_limit safety net still enforced by callOpenAI.
+    // - Monthly limits are now token-based from subscription_plans (see
+    //   _shared/ai-budget.ts PLAN_TOKEN_LIMITS).
+    // Budget-exceeded surfaces as BudgetExceededError below (mapped to 429).
 
     const executionId = generateExecutionId();
     const startTime = Date.now();
@@ -514,19 +458,15 @@ Deno.serve(async (req) => {
 
     try {
       // ðŸ¤– Inicializa OpenAI
-      const openai = new OpenAI({
-        apiKey: openaiApiKey,
-      });
+      // (OpenAI client + budget check now live inside ai-caller.)
 
       // ðŸ§  Processa requisiÃ§Ã£o de IA
-      const aiResponse = await processAIRequest(openai, aiRequest);
+      const aiResponse = await processAIRequest(supabase, aiRequest);
 
       // âœ… Atualiza execuÃ§Ã£o com sucesso
       const tokensUsed = aiResponse.usage?.total_tokens || 0;
       await completeExecution(supabase, executionId, startTime, tokensUsed, aiRequest.tenantId);
-
-      // Record daily token usage
-      await recordTokenUsage(resolvedTenantId, tokensUsed);
+      // Token usage is now recorded inside ai-caller (callOpenAI).
 
       // ðŸ“Š Salva log (nÃ£o-bloqueante)
       logAIProcessing(
@@ -560,6 +500,20 @@ Deno.serve(async (req) => {
     }
   } catch (error) {
     console.error("âŒ Error in ai-agent-processor:", error);
+
+    // Budget exceeded → 429 with explicit code for frontend fallback UI.
+    if (error instanceof BudgetExceededError) {
+      return new Response(
+        JSON.stringify({
+          error: error.decision.reason ?? error.message,
+          code: error.scope === "monthly" ? "PLAN_LIMIT_EXCEEDED" : "DAILY_BUDGET_EXCEEDED",
+          scope: error.scope,
+          usage: error.decision.tokens_used_month ?? error.decision.tokens_used_day,
+          limit: error.decision.budget_limit_month ?? error.decision.budget_limit_day,
+        }),
+        { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
+    }
 
     const errorMessage = error instanceof Error ? error.message : "Unknown error occurred";
     const statusCode = errorMessage.includes("Unauthorized") ? 401 : 500;

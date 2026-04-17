@@ -8,7 +8,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { CRUDManagerLayout } from '@/components/CRUDManagerLayout';
+import HonorariosDashboard from './HonorariosDashboard';
 import { useHonorarios } from '@/hooks/useHonorarios';
 import type { HonorarioWithOverdue } from '@/hooks/useHonorarios';
 import { useToast } from '@/hooks/use-toast';
@@ -94,6 +96,7 @@ HonorarioCard.displayName = 'HonorarioCard';
 
 const HonorariosManager = () => {
   const isMobile = useIsMobile();
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'lista'>('lista');
   const [filterStatus, setFilterStatus] = useState('all');
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [selectedHonorario, setSelectedHonorario] = useState<HonorarioWithOverdue | null>(null);
@@ -167,7 +170,18 @@ const HonorariosManager = () => {
 
   return (
     <>
-      <CRUDManagerLayout<HonorarioWithOverdue>
+      <div className="p-6 space-y-4">
+        <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'dashboard' | 'lista')}>
+          <TabsList>
+            <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
+            <TabsTrigger value="lista">Lista</TabsTrigger>
+          </TabsList>
+          <TabsContent value="dashboard" className="mt-4">
+            <HonorariosDashboard />
+          </TabsContent>
+          <TabsContent value="lista" className="mt-4">
+            <CRUDManagerLayout<HonorarioWithOverdue>
+              className="p-0 space-y-6"
         pageTitle="Honorarios"
         items={honorarios}
         isLoading={loading}
@@ -339,6 +353,9 @@ const HonorariosManager = () => {
           </Card>
         )}
       />
+          </TabsContent>
+        </Tabs>
+      </div>
 
       {/* Form Dialog */}
       <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>

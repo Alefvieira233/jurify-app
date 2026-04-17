@@ -6,7 +6,7 @@ import { getCorsHeaders } from "../_shared/cors.ts";
 import { applyRateLimit } from "../_shared/rate-limiter.ts";
 import { DEFAULT_OPENAI_MODEL } from "../_shared/ai-model.ts";
 import { sanitizeInput } from "../_shared/security.ts";
-import { checkBudgetBeforeCall, recordTokenUsage } from "../_shared/ai-budget.ts";
+import { callOpenAI, BudgetExceededError, getOpenAIClient } from "../_shared/ai-caller.ts";
 import { withRetry } from "../_shared/openai-retry.ts";
 
 Deno.serve(async (req) => {
@@ -63,26 +63,14 @@ Deno.serve(async (req) => {
       return rateLimitCheck.response;
     }
 
-    // Get tenant_id for budget check
+    // Resolve tenant_id once — budget enforcement is centralized in ai-caller
+    // (callOpenAI). Streaming mode still runs a pre-check below.
     const supabaseService = createClient(
       supabaseUrl,
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
     );
     const { data: profile } = await supabaseService.from("profiles").select("tenant_id").eq("id", user.id).single();
-    const tenantId = profile?.tenant_id;
-
-    if (tenantId) {
-      const budgetCheck = await checkBudgetBeforeCall(tenantId);
-      if (!budgetCheck.allowed) {
-        return new Response(
-          JSON.stringify({
-            error: "Limite diário de IA atingido",
-            message: `Uso: ${budgetCheck.tokensUsed.toLocaleString()}/${budgetCheck.budgetLimit.toLocaleString()} tokens.`,
-          }),
-          { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
-      }
-    }
+    const tenantId = profile?.tenant_id as string | undefined;
 
     const { messages, model: requestedModel = DEFAULT_OPENAI_MODEL, temperature = 0.7, stream = false } =
       await req.json();
@@ -103,19 +91,30 @@ Deno.serve(async (req) => {
     const ALLOWED_MODELS = ['gpt-4o-mini', 'gpt-4o', 'gpt-3.5-turbo', 'gpt-4-turbo', DEFAULT_OPENAI_MODEL];
     const model = ALLOWED_MODELS.includes(requestedModel) ? requestedModel : DEFAULT_OPENAI_MODEL;
 
-    const apiKey = Deno.env.get("OPENAI_API_KEY");
-    if (!apiKey) {
-      throw new Error("OPENAI_API_KEY not set");
-    }
-
-    const openai = new OpenAI({
-      apiKey,
-      timeout: 30_000,
-    });
-
-
+    // Streaming path: ai-caller is non-streaming (it needs usage metadata that
+    // OpenAI only returns on completion). For stream=true we:
+    //   1. Run the budget check ourselves (same signature as ai-caller).
+    //   2. Use the shared OpenAI client singleton.
+    //   3. Record token usage AFTER the stream closes (OpenAI returns usage on
+    //      the final chunk when stream_options.include_usage=true).
     if (stream) {
+      if (tenantId) {
+        const { checkBudgetBeforeCall } = await import("../_shared/ai-budget.ts");
+        const decision = await checkBudgetBeforeCall(supabaseService, tenantId, model);
+        if (!decision.allowed) {
+          return new Response(
+            JSON.stringify({
+              error: "Limite de IA atingido",
+              message: decision.reason,
+              code: decision.scope === "monthly" ? "PLAN_LIMIT_EXCEEDED" : "DAILY_BUDGET_EXCEEDED",
+            }),
+            { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+          );
+        }
+      }
+
       const encoder = new TextEncoder();
+      const openai = getOpenAIClient();
       // Note: stream=true returns an AsyncIterable, but the initial connection
       // can still fail transiently — retry only the create() call.
       const streamResponse = await withRetry(
@@ -124,18 +123,23 @@ Deno.serve(async (req) => {
           messages: sanitizedMessages,
           temperature,
           stream: true,
+          stream_options: { include_usage: true },
         }),
         { label: "chat-completion-stream" }
       );
 
       const readableStream = new ReadableStream({
         async start(controller) {
+          let streamUsage: { prompt_tokens?: number; completion_tokens?: number; total_tokens?: number } | null = null;
           try {
             for await (const chunk of streamResponse) {
               const delta = chunk.choices?.[0]?.delta?.content;
               if (delta) {
                 controller.enqueue(encoder.encode(`data: ${JSON.stringify({ delta })}\n\n`));
               }
+              // Final chunk with usage (stream_options.include_usage=true).
+              // deno-lint-ignore no-explicit-any
+              if ((chunk as any).usage) streamUsage = (chunk as any).usage;
             }
             controller.enqueue(encoder.encode("data: [DONE]\n\n"));
             controller.close();
@@ -146,6 +150,23 @@ Deno.serve(async (req) => {
             );
             controller.enqueue(encoder.encode("data: [DONE]\n\n"));
             controller.close();
+          } finally {
+            // Record usage after the stream closes. Non-blocking — never breaks the response.
+            if (tenantId && streamUsage) {
+              try {
+                const { recordTokenUsage } = await import("../_shared/ai-budget.ts");
+                await recordTokenUsage(supabaseService, {
+                  tenant_id: tenantId,
+                  user_id: user.id,
+                  model,
+                  tokens_in: streamUsage.prompt_tokens ?? 0,
+                  tokens_out: streamUsage.completion_tokens ?? 0,
+                  source: "chat-completion",
+                });
+              } catch (err) {
+                console.error("[chat-completion:stream] recordTokenUsage failed:", err);
+              }
+            }
           }
         },
       });
@@ -162,29 +183,37 @@ Deno.serve(async (req) => {
       });
     }
 
-    const completion = await withRetry(
-      () => openai.chat.completions.create({
-        model,
-        messages: sanitizedMessages,
-        temperature,
-      }),
-      { label: "chat-completion" }
-    );
-
-    const reply = completion.choices[0]?.message?.content;
-
-    // Record token usage
-    if (tenantId) {
-      const tokensUsed = completion.usage?.total_tokens ?? 0;
-      await recordTokenUsage(tenantId, tokensUsed);
+    // Non-streaming: unified ai-caller handles budget + retry + ai_usage + logs.
+    if (!tenantId) {
+      return new Response(JSON.stringify({ error: "Tenant not found" }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 400,
+      });
     }
 
-    return new Response(JSON.stringify({ reply }), {
+    const aiResult = await callOpenAI(supabaseService, {
+      tenantId,
+      userId: user.id,
+      model,
+      messages: sanitizedMessages,
+      temperature,
+      source: "chat-completion",
+    });
+
+    return new Response(JSON.stringify({ reply: aiResult.content }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
       status: 200,
     });
   } catch (error) {
-    console.error("Error in chat-completion function:", error);
+    if (error instanceof BudgetExceededError) {
+      return new Response(
+        JSON.stringify({
+          error: error.decision.reason ?? error.message,
+          code: error.scope === "monthly" ? "PLAN_LIMIT_EXCEEDED" : "DAILY_BUDGET_EXCEEDED",
+        }),
+        { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
+    }
     console.error("Error in chat-completion:", error);
     return new Response(JSON.stringify({ error: "Internal server error" }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },

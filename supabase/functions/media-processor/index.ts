@@ -1,10 +1,12 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { OpenAI } from "https://deno.land/x/openai@v4.24.0/mod.ts";
+import { createClient } from "jsr:@supabase/supabase-js@2";
 import { getCorsHeaders } from "../_shared/cors.ts";
 import { isServiceRole } from "../_shared/supabase-client.ts";
 import { downloadKapsoMedia, detectMediaCategory } from "../_shared/media-utils.ts";
 import { DEFAULT_OPENAI_MODEL, WHISPER_MODEL } from "../_shared/ai-model.ts";
 import { withRetry } from "../_shared/openai-retry.ts";
+import { recordTokenUsage } from "../_shared/ai-budget.ts";
 
 interface MediaProcessRequest {
   mediaUrl: string;
@@ -12,6 +14,14 @@ interface MediaProcessRequest {
   caption?: string;
   fileName?: string;
   tenantId: string;
+}
+
+/** Heuristic token cost for Whisper — billed per-second, not per-token. We
+ * convert seconds to a nominal token cost so ai_usage aggregates still reflect
+ * spend pressure across providers. Whisper pricing (2026): ~$0.006/min ≈ $0.0001/sec,
+ * roughly 1 Whisper second ≈ 4 gpt-4o-mini output tokens. We attribute 4 tokens/sec. */
+function estimateWhisperTokens(durationSeconds: number): number {
+  return Math.ceil(Math.max(1, durationSeconds) * 4);
 }
 
 interface MediaProcessResponse {
@@ -23,12 +33,14 @@ interface MediaProcessResponse {
 
 /**
  * Transcribes audio using OpenAI Whisper API.
+ * Returns the transcription and an estimated token cost (Whisper is billed
+ * per-second — we convert to tokens so ai_usage still sums spend pressure).
  */
 async function transcribeAudio(
   openai: OpenAI,
   base64Data: string,
   mimeType: string,
-): Promise<string> {
+): Promise<{ text: string; estimatedTokens: number }> {
   const ext = mimeType.includes("ogg") ? "ogg"
     : mimeType.includes("mp4") || mimeType.includes("m4a") ? "m4a"
     : mimeType.includes("webm") ? "webm"
@@ -38,18 +50,24 @@ async function transcribeAudio(
 
   const binaryData = Uint8Array.from(atob(base64Data), (c) => c.charCodeAt(0));
   const file = new File([binaryData], `audio.${ext}`, { type: mimeType });
-
+  // Whisper API doesn't return duration when response_format="text" — use
+  // "verbose_json" to get it, then fall back to a byte-size heuristic.
   const transcription = await withRetry(
     () => openai.audio.transcriptions.create({
       file,
       model: WHISPER_MODEL,
       language: "pt",
-      response_format: "text",
+      response_format: "verbose_json",
     }),
     { label: "media-processor:whisper" }
   );
-
-  return transcription as unknown as string;
+  // deno-lint-ignore no-explicit-any
+  const t = transcription as any;
+  const text: string = typeof t === "string" ? t : (t?.text ?? "");
+  const duration = typeof t?.duration === "number"
+    ? t.duration
+    : Math.max(1, binaryData.byteLength / 16_000); // rough: 16kB ≈ 1s of ogg-opus
+  return { text, estimatedTokens: estimateWhisperTokens(duration) };
 }
 
 /**
@@ -60,7 +78,7 @@ async function analyzeImage(
   base64Data: string,
   mimeType: string,
   caption?: string,
-): Promise<string> {
+): Promise<{ text: string; tokens_in: number; tokens_out: number }> {
   const dataUrl = `data:${mimeType};base64,${base64Data}`;
 
   const userContent: Array<{ type: string; text?: string; image_url?: { url: string; detail: string } }> = [];
@@ -82,7 +100,8 @@ async function analyzeImage(
       messages: [
         {
           role: "user",
-          content: userContent,
+          // deno-lint-ignore no-explicit-any
+          content: userContent as any,
         },
       ],
       max_tokens: 500,
@@ -91,7 +110,12 @@ async function analyzeImage(
     { label: "media-processor:vision" }
   );
 
-  return response.choices[0]?.message?.content || "[Não foi possível analisar a imagem]";
+  const text = response.choices[0]?.message?.content || "[Não foi possível analisar a imagem]";
+  return {
+    text,
+    tokens_in: response.usage?.prompt_tokens ?? 0,
+    tokens_out: response.usage?.completion_tokens ?? 0,
+  };
 }
 
 /**
@@ -147,7 +171,7 @@ Deno.serve(async (req) => {
 
   try {
     const body: MediaProcessRequest = await req.json();
-    const { mediaUrl, messageType, caption, fileName } = body;
+    const { mediaUrl, messageType, caption, fileName, tenantId } = body;
 
     if (!mediaUrl) {
       return new Response(
@@ -167,6 +191,9 @@ Deno.serve(async (req) => {
     // Step 2: Process based on category
     let extractedText: string;
     let processingMethod: string;
+    let tokensIn = 0;
+    let tokensOut = 0;
+    let modelUsed: string | null = null;
 
     const openaiApiKey = Deno.env.get("OPENAI_API_KEY");
     if (!openaiApiKey) throw new Error("OPENAI_API_KEY not configured");
@@ -174,15 +201,21 @@ Deno.serve(async (req) => {
 
     switch (category) {
       case "audio": {
-        extractedText = await transcribeAudio(openai, media.base64, media.mimeType);
+        const r = await transcribeAudio(openai, media.base64, media.mimeType);
+        extractedText = `[Transcrição de áudio do cliente]: ${r.text}`;
         processingMethod = "whisper";
-        extractedText = `[Transcrição de áudio do cliente]: ${extractedText}`;
+        // Whisper is output-only (transcription); attribute full estimate to completion tokens.
+        tokensOut = r.estimatedTokens;
+        modelUsed = WHISPER_MODEL;
         break;
       }
       case "image": {
-        extractedText = await analyzeImage(openai, media.base64, media.mimeType, caption);
+        const r = await analyzeImage(openai, media.base64, media.mimeType, caption);
+        extractedText = `[Análise de imagem enviada pelo cliente]: ${r.text}`;
         processingMethod = "gpt4o-vision";
-        extractedText = `[Análise de imagem enviada pelo cliente]: ${extractedText}`;
+        tokensIn = r.tokens_in;
+        tokensOut = r.tokens_out;
+        modelUsed = DEFAULT_OPENAI_MODEL;
         break;
       }
       case "pdf":
@@ -196,6 +229,27 @@ Deno.serve(async (req) => {
         extractedText = caption || `[Arquivo ${messageType} recebido — formato não suportado para análise automática]`;
         processingMethod = "unsupported";
         break;
+      }
+    }
+
+    // Record token usage for AI-powered paths (audio/image). Non-blocking — any
+    // failure is swallowed because media-processor must never fail the webhook
+    // just because usage accounting is unavailable.
+    if (tenantId && modelUsed && (tokensIn > 0 || tokensOut > 0)) {
+      try {
+        const supabase = createClient(
+          Deno.env.get("SUPABASE_URL") ?? "",
+          Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
+        );
+        await recordTokenUsage(supabase, {
+          tenant_id: tenantId,
+          model: modelUsed,
+          tokens_in: tokensIn,
+          tokens_out: tokensOut,
+          source: "media-processor",
+        });
+      } catch (err) {
+        console.error("[media-processor] recordTokenUsage failed:", err instanceof Error ? err.message : err);
       }
     }
 

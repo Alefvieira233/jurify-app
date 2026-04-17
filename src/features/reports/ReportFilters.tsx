@@ -1,10 +1,20 @@
-import { Filter } from 'lucide-react';
+import { Filter, Download, FileText, FileSpreadsheet, FileType2, Loader2 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+  DropdownMenuSeparator,
+  DropdownMenuLabel,
+} from '@/components/ui/dropdown-menu';
 import {
   Select, SelectTrigger, SelectValue, SelectContent, SelectItem,
 } from '@/components/ui/select';
 import type { PeriodKey } from './useReportMetrics';
 import { PERIOD_LABELS } from './useReportMetrics';
+import type { ExportFormat } from './hooks/useReportExport';
 
 interface ReportFiltersProps {
   selectedPeriod: PeriodKey;
@@ -13,6 +23,10 @@ interface ReportFiltersProps {
   customEnd: string;
   onCustomStartChange: (value: string) => void;
   onCustomEndChange: (value: string) => void;
+  /** Optional export handler — when provided, renders an Export dropdown (CSV / PDF / Excel). */
+  onExport?: (format: ExportFormat) => void | Promise<void>;
+  /** Current export format in-flight, to show loading indicator and disable clicks. */
+  exporting?: ExportFormat | null;
 }
 
 const ReportFilters = ({
@@ -22,7 +36,10 @@ const ReportFilters = ({
   customEnd,
   onCustomStartChange,
   onCustomEndChange,
+  onExport,
+  exporting,
 }: ReportFiltersProps) => {
+  const isExporting = exporting !== null && exporting !== undefined;
   return (
     <div className="flex flex-wrap items-center gap-2 bg-muted/20 p-1 border border-border/10 rounded-[14px]">
       <Select value={selectedPeriod} onValueChange={(v) => onPeriodChange(v as PeriodKey)}>
@@ -59,6 +76,43 @@ const ReportFilters = ({
             aria-label="Data final"
           />
         </div>
+      )}
+
+      {onExport && (
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button
+              size="sm"
+              variant="ghost"
+              className="h-8 text-xs gap-1.5"
+              disabled={isExporting}
+              aria-label="Exportar relatório"
+            >
+              {isExporting ? (
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              ) : (
+                <Download className="h-3.5 w-3.5" />
+              )}
+              Exportar
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-44">
+            <DropdownMenuLabel className="text-[11px]">Formato de exportação</DropdownMenuLabel>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem disabled={isExporting} onClick={() => { void onExport('csv'); }}>
+              <FileText className="h-3.5 w-3.5 mr-2" />
+              CSV
+            </DropdownMenuItem>
+            <DropdownMenuItem disabled={isExporting} onClick={() => { void onExport('pdf'); }}>
+              <FileType2 className="h-3.5 w-3.5 mr-2" />
+              PDF
+            </DropdownMenuItem>
+            <DropdownMenuItem disabled={isExporting} onClick={() => { void onExport('excel'); }}>
+              <FileSpreadsheet className="h-3.5 w-3.5 mr-2" />
+              Excel (.xlsx)
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       )}
     </div>
   );

@@ -1,11 +1,11 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
-import { OpenAI } from "https://deno.land/x/openai@v4.24.0/mod.ts";
+import { createClient } from "jsr:@supabase/supabase-js@2";
 import { getCorsHeaders } from "../_shared/cors.ts";
 import { applyRateLimit } from "../_shared/rate-limiter.ts";
 import { isServiceRole } from "../_shared/supabase-client.ts";
 import { DEFAULT_OPENAI_MODEL } from "../_shared/ai-model.ts";
 import { ORCHESTRATOR_PROMPT, AGENTS, type AgentDefinition } from "../_shared/agent-prompts.ts";
-import { withRetry } from "../_shared/openai-retry.ts";
+import { callOpenAI, BudgetExceededError } from "../_shared/ai-caller.ts";
 
 interface OrchestratorRequest {
   messageText: string;
@@ -54,10 +54,9 @@ Deno.serve(async (req) => {
   try {
     const body: OrchestratorRequest = await req.json();
 
-    const openaiApiKey = Deno.env.get("OPENAI_API_KEY");
-    if (!openaiApiKey) throw new Error("OPENAI_API_KEY not configured");
-
-    const openai = new OpenAI({ apiKey: openaiApiKey });
+    const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
+    const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
+    const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
     const contextSummary = JSON.stringify({
       has_legal_context: body.hasLegalContext,
@@ -67,21 +66,28 @@ Deno.serve(async (req) => {
       message_preview: body.messageText.substring(0, 300),
     });
 
-    const response = await withRetry(
-      () => openai.chat.completions.create({
-        model: DEFAULT_OPENAI_MODEL,
-        messages: [
-          { role: "system", content: ORCHESTRATOR_PROMPT },
-          { role: "user", content: `CONTEXTO:\n${contextSummary}\n\nMENSAGEM DO CLIENTE:\n${body.messageText.substring(0, 500)}` },
-        ],
-        temperature: 0.1,
-        max_tokens: 100,
-        response_format: { type: "json_object" },
-      }),
-      { label: "orchestrator", retries: 2, baseMs: 300 }
-    );
+    // Unified AI pipeline: budget check + retry + token usage + structured log.
+    // Orchestrator is latency-critical and the "prompt" is ~100 tokens with no
+    // PII worth persisting, so we disable the prompt-preview log (persistLog=false)
+    // and keep retries=2 with the caller's default backoff.
+    const aiResult = await callOpenAI(supabase, {
+      tenantId: body.tenantId,
+      leadId: body.leadId ?? null,
+      agentName: "orchestrator",
+      model: DEFAULT_OPENAI_MODEL,
+      messages: [
+        { role: "system", content: ORCHESTRATOR_PROMPT },
+        { role: "user", content: `CONTEXTO:\n${contextSummary}\n\nMENSAGEM DO CLIENTE:\n${body.messageText.substring(0, 500)}` },
+      ],
+      temperature: 0.1,
+      maxTokens: 100,
+      responseFormat: { type: "json_object" },
+      source: "orchestrator",
+      retries: 2,
+      persistLog: false,
+    });
 
-    const resultText = response.choices[0]?.message?.content || '{"agent":"recepcionista","reason":"fallback"}';
+    const resultText = aiResult.content || '{"agent":"recepcionista","reason":"fallback"}';
 
     let routing: { agent: string; reason: string };
     try {
@@ -117,6 +123,22 @@ Deno.serve(async (req) => {
   } catch (error) {
     const errorMsg = error instanceof Error ? error.message : "Unknown error";
     console.error(`[orchestrator] ERROR: ${errorMsg}`);
+
+    // Budget exceeded: webhook still wants a decision, not a 429 — fall back to
+    // juridico so the downstream specialist call can surface the limit (or
+    // return its own canned fallback).
+    if (error instanceof BudgetExceededError) {
+      const fb = "juridico";
+      return new Response(
+        JSON.stringify({
+          agent: fb,
+          agentDefinition: AGENTS[fb] || AGENTS.recepcionista,
+          reason: `Budget exceeded (${error.scope ?? "unknown"}): falling back to ${fb}`,
+          durationMs: Date.now() - startTime,
+        }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
+    }
 
     // On total failure, fallback to juridico (most common need for a law firm)
     // The webhook caller also has its own fallback using legalCtx

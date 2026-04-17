@@ -24,6 +24,7 @@ import { computePeriodRange, tooltipStyle } from './useReportMetrics';
 import { useReportMetrics } from './useReportMetrics';
 import ReportFilters from './ReportFilters';
 import ReportChartPanel, { EmptyChart } from './ReportChartPanel';
+import { useReportExport, type ExportFormat, type ExportData } from './hooks/useReportExport';
 
 /* Analytics avançado — lazy para não bloquear o bundle principal */
 const AnalyticsDashboard = lazyWithRetry(() =>
@@ -64,6 +65,48 @@ const RelatoriosGerenciais = () => {
     handleExportRelatorios,
     handleExportDemo,
   } = useReportMetrics(periodRange);
+
+  /* ── Multi-format export (CSV / PDF / Excel) ── */
+  const { exportCSV, exportPDF, exportExcel, exporting } = useReportExport();
+
+  const buildResumoExportData = (): ExportData => {
+    const rows: Array<Array<string | number>> = [];
+    if (metrics) {
+      rows.push(['KPI', 'Total de Leads', metrics.totalLeads]);
+      rows.push(['KPI', 'Leads Novos no Mês', metrics.leadsNovoMes]);
+      rows.push(['KPI', 'Contratos', metrics.contratos]);
+      rows.push(['KPI', 'Contratos Assinados', metrics.contratosAssinados]);
+      rows.push(['KPI', 'Agendamentos', metrics.agendamentos]);
+      rows.push(['KPI', 'Agendamentos Hoje', metrics.agendamentosHoje]);
+      rows.push(['KPI', 'Agentes Ativos', metrics.agentesAtivos]);
+      rows.push(['KPI', 'Execuções Agentes Hoje', metrics.execucoesAgentesHoje]);
+      statusData.forEach((s) => rows.push(['Status Leads', s.name, s.value]));
+      areaData.forEach((a) => rows.push(['Área Jurídica', a.name, a.leads]));
+      origemData.forEach((o) => rows.push(['Origem Lead', o.name, o.value]));
+      agentesData.forEach((a) => rows.push(['Agente IA', a.name, a.execucoes]));
+    }
+    return {
+      headers: ['Seção', 'Nome', 'Valor'],
+      rows,
+      title: `Relatório Gerencial — ${new Date().toLocaleDateString('pt-BR')}`,
+    };
+  };
+
+  const handleExport = async (format: ExportFormat) => {
+    const data = buildResumoExportData();
+    const stamp = new Date().toISOString().slice(0, 10);
+    if (format === 'csv') {
+      // Keep existing CSV path as fallback for test parity, but use the new hook
+      // for consistent toast + loading UX.
+      await exportCSV(data, `relatorio-gerencial-${stamp}.csv`);
+      return;
+    }
+    if (format === 'pdf') {
+      await exportPDF(data, `relatorio-gerencial-${stamp}.pdf`);
+      return;
+    }
+    await exportExcel(data, `relatorio-gerencial-${stamp}.xlsx`);
+  };
 
   /* ── Loading ── */
   if (loading) {
@@ -136,9 +179,16 @@ const RelatoriosGerenciais = () => {
           </div>
 
           <div className="flex items-center gap-3">
+            {/* Legacy CSV quick-export kept for regression tests */}
             {tab === 'resumo' && (
-              <Button onClick={handleExportRelatorios} size="lg" className="gap-2 shadow-lg shadow-primary/20 rounded-[12px]">
-                <Download className="h-4 w-4" /> Exportar CSV
+              <Button
+                onClick={handleExportRelatorios}
+                size="sm"
+                variant="outline"
+                className="gap-2 rounded-[10px]"
+                aria-label="Exportar CSV rápido"
+              >
+                <Download className="h-3.5 w-3.5" /> CSV Rápido
               </Button>
             )}
           </div>
@@ -162,6 +212,8 @@ const RelatoriosGerenciais = () => {
             customEnd={customEnd}
             onCustomStartChange={setCustomStart}
             onCustomEndChange={setCustomEnd}
+            onExport={tab === 'resumo' ? handleExport : undefined}
+            exporting={exporting}
           />
         </div>
       </header>
