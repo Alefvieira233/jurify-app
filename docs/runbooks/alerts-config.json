@@ -1,0 +1,96 @@
+{
+  "$schema": "https://docs.sentry.io/api/alerts/",
+  "description": "Jurify — Sentry alert rules (importable via Sentry API). See sentry-alerts.md for manual UI steps.",
+  "project": "jurify-web-prod",
+  "environment": "production",
+  "rules": [
+    {
+      "name": "High Error Rate — 5 min",
+      "actionMatch": "all",
+      "filterMatch": "all",
+      "frequency": 5,
+      "conditions": [
+        {
+          "id": "sentry.rules.conditions.event_frequency.EventFrequencyCondition",
+          "value": 10,
+          "interval": "5m",
+          "comparisonType": "count"
+        }
+      ],
+      "filters": [
+        { "id": "sentry.rules.filters.level.LevelFilter", "level": "40", "match": "gte" }
+      ],
+      "actions": [
+        {
+          "id": "sentry.integrations.slack.notify_action.SlackNotifyServiceAction",
+          "channel": "#jurify-alerts",
+          "workspace": "REPLACE_WITH_SLACK_WORKSPACE_ID"
+        }
+      ]
+    },
+    {
+      "name": "New Unhandled Error — Immediate",
+      "actionMatch": "all",
+      "filterMatch": "all",
+      "frequency": 1,
+      "conditions": [
+        { "id": "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition" }
+      ],
+      "filters": [
+        { "id": "sentry.rules.filters.tagged_event.TaggedEventFilter", "key": "handled", "match": "eq", "value": "no" }
+      ],
+      "actions": [
+        {
+          "id": "sentry.integrations.slack.notify_action.SlackNotifyServiceAction",
+          "channel": "#jurify-alerts",
+          "workspace": "REPLACE_WITH_SLACK_WORKSPACE_ID"
+        },
+        {
+          "id": "sentry.rules.actions.notify_email.NotifyEmailAction",
+          "targetType": "Member",
+          "targetIdentifier": "REPLACE_WITH_MEMBER_ID"
+        }
+      ]
+    },
+    {
+      "name": "High API Latency — p95 > 500ms",
+      "aggregate": "p95(transaction.duration)",
+      "dataset": "transactions",
+      "query": "transaction:/api/*",
+      "timeWindow": 10,
+      "threshold": {
+        "comparator": "above",
+        "value": 500
+      },
+      "actions": [
+        {
+          "type": "slack",
+          "targetType": "specific",
+          "targetIdentifier": "#jurify-alerts"
+        }
+      ]
+    },
+    {
+      "name": "Crash-Free Users Drop",
+      "aggregate": "percentage(users_crashed, users)",
+      "dataset": "sessions",
+      "timeWindow": 60,
+      "threshold": {
+        "comparator": "below",
+        "value": 0.99
+      },
+      "actions": [
+        {
+          "type": "slack",
+          "targetType": "specific",
+          "targetIdentifier": "#jurify-alerts"
+        },
+        {
+          "type": "email",
+          "targetType": "Member",
+          "targetIdentifier": "REPLACE_WITH_MEMBER_ID"
+        }
+      ]
+    }
+  ]
+}

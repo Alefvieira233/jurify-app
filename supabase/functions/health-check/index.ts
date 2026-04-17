@@ -16,7 +16,7 @@ Deno.serve(async (req) => {
   const startTime = Date.now();
   const healthStatus = {
     status: "ok",
-    version: "2.0.0",
+    version: "2.1.0",
     timestamp: new Date().toISOString(),
     uptime: 0,
     services: {
@@ -26,6 +26,10 @@ Deno.serve(async (req) => {
       whatsapp_kapso: "unknown",
       stripe: "unknown",
       zapsign: "unknown",
+      ai_agent_processor: "unknown",
+      slash_commands_seed: "unknown",
+      subscription_plans_seed: "unknown",
+      processo_andamentos_table: "unknown",
     },
     performance: {
       responseTime: 0,
@@ -180,6 +184,79 @@ Deno.serve(async (req) => {
     } catch (error) {
       log.error("ZapSign check failed", error);
       healthStatus.services.zapsign = "error";
+      healthStatus.status = "degraded";
+    }
+
+    // --- ai-agent-processor Edge Function Probe ---
+    // OPTIONS must resolve (function exists + deployed). Any non-5xx means reachable.
+    try {
+      const processorUrl = `${supabaseUrl}/functions/v1/ai-agent-processor`;
+      const response = await fetch(processorUrl, {
+        method: "OPTIONS",
+        headers: { Authorization: `Bearer ${supabaseServiceKey}` },
+        signal: AbortSignal.timeout(5000),
+      });
+      if (response.status < 500) {
+        healthStatus.services.ai_agent_processor = "deployed";
+      } else {
+        healthStatus.services.ai_agent_processor = "error";
+        healthStatus.status = "degraded";
+      }
+    } catch (error) {
+      log.error("ai-agent-processor probe failed", error);
+      healthStatus.services.ai_agent_processor = "error";
+      healthStatus.status = "degraded";
+    }
+
+    // --- slash_commands seed count (expect >= 7 built-in commands) ---
+    try {
+      const { count, error } = await supabaseAdmin
+        .from("slash_commands")
+        .select("id", { count: "exact", head: true })
+        .is("tenant_id", null);
+      if (error) throw error;
+      if ((count ?? 0) >= 7) {
+        healthStatus.services.slash_commands_seed = `ok (${count})`;
+      } else {
+        healthStatus.services.slash_commands_seed = `seed_missing (${count ?? 0})`;
+        healthStatus.status = "degraded";
+      }
+    } catch (error) {
+      log.error("slash_commands seed probe failed", error);
+      healthStatus.services.slash_commands_seed = "error";
+      healthStatus.status = "degraded";
+    }
+
+    // --- subscription_plans active count (expect >= 2: free + pro) ---
+    try {
+      const { count, error } = await supabaseAdmin
+        .from("subscription_plans")
+        .select("id", { count: "exact", head: true })
+        .eq("ativo", true);
+      if (error) throw error;
+      if ((count ?? 0) >= 2) {
+        healthStatus.services.subscription_plans_seed = `ok (${count})`;
+      } else {
+        healthStatus.services.subscription_plans_seed = `seed_missing (${count ?? 0})`;
+        healthStatus.status = "degraded";
+      }
+    } catch (error) {
+      log.error("subscription_plans seed probe failed", error);
+      healthStatus.services.subscription_plans_seed = "error";
+      healthStatus.status = "degraded";
+    }
+
+    // --- processo_andamentos table exists and is queryable ---
+    try {
+      const { error } = await supabaseAdmin
+        .from("processo_andamentos")
+        .select("id", { head: true, count: "exact" })
+        .limit(1);
+      if (error) throw error;
+      healthStatus.services.processo_andamentos_table = "ok";
+    } catch (error) {
+      log.error("processo_andamentos probe failed", error);
+      healthStatus.services.processo_andamentos_table = "error";
       healthStatus.status = "degraded";
     }
 

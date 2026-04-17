@@ -26,6 +26,7 @@ import { usePageTitle } from '@/hooks/usePageTitle';
 import { AgentStatusCard } from './components/AgentStatusCard';
 import { ActiveExecutionsList } from './components/ActiveExecutionsList';
 import { RealTimeTerminal } from './components/RealTimeTerminal';
+import { AdminMetricsPanel } from './components/AdminMetricsPanel';
 
 // =========================================================================
 // MAIN MISSION CONTROL COMPONENT
@@ -93,6 +94,9 @@ export function MissionControl() {
           </CardContent>
         </Card>
       )}
+
+      {/* Platform admin metrics */}
+      <AdminMetricsPanel />
 
       {/* Agent Status Grid */}
       <div>

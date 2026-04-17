@@ -87,6 +87,7 @@ const EquipeManager = lazyWithRetry(() => import("./features/equipe/EquipeManage
 const ArquivadosView = lazyWithRetry(() => import("./features/leads/ArquivadosView"));
 const MetricasOperacionais = lazyWithRetry(() => import("./features/reports/MetricasOperacionais"));
 const AdminStatus = lazyWithRetry(() => import("./pages/AdminStatus"));
+const StatusPublic = lazyWithRetry(() => import("./pages/StatusPublic"));
 
 // WhatsApp now uses FeatureErrorBoundary (WhatsAppErrorBoundary retained for standalone use)
 
@@ -188,6 +189,7 @@ const App = () => (
                 <Route path="/auth" element={<Auth />} />
                 <Route path="/auth/google/callback" element={<GoogleAuthCallback />} />
                 <Route path="/reset-password" element={<ResetPassword />} />
+                <Route path="/status" element={<StatusPublic />} />
                 <Route path="/termos" element={<TermosDeUso />} />
                 <Route path="/privacidade" element={<PoliticaDePrivacidade />} />
                 <Route path="/precos" element={<Pricing />} />
