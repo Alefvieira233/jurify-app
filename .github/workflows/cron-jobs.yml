@@ -1,0 +1,121 @@
+name: Scheduled Jobs
+
+# External cron replacement for pg_cron (not available on Supabase managed).
+# Each job invokes a specific Supabase Edge Function with service-role auth.
+# All schedules are in UTC. BRT = UTC-3. See docs/runbooks/cron-jobs.md.
+#
+# Required repo secrets:
+#   SUPABASE_SERVICE_ROLE_KEY  — service-role JWT (rotate regularly)
+#   SUPABASE_PROJECT_REF       — e.g. yfxgncbopvnsltjqetxw
+#   HEALTH_CHECK_TOKEN         — required by data-retention-cleanup
+
+on:
+  schedule:
+    # data-retention-cleanup: daily 02:00 UTC (23:00 BRT prev day)
+    - cron: '0 2 * * *'
+    # process-prazos-alerts: Mon-Fri 09:00 UTC (06:00 BRT)
+    - cron: '0 9 * * 1-5'
+    # auto-followup: daily 09:00 UTC (06:00 BRT)
+    - cron: '0 9 * * *'
+    # weekly-report: Monday 07:00 UTC (04:00 BRT)
+    - cron: '0 7 * * 1'
+    # cleanup-agent-memory: Sunday 03:00 UTC (00:00 BRT)
+    - cron: '0 3 * * 0'
+  workflow_dispatch:
+    inputs:
+      job:
+        description: 'Job to run manually'
+        required: true
+        type: choice
+        options:
+          - data-retention-cleanup
+          - process-prazos-alerts
+          - auto-followup
+          - weekly-report
+          - cleanup-agent-memory
+
+env:
+  SUPABASE_URL: https://yfxgncbopvnsltjqetxw.supabase.co
+
+jobs:
+  data-retention-cleanup:
+    name: LGPD Data Retention Cleanup
+    if: github.event.schedule == '0 2 * * *' || github.event.inputs.job == 'data-retention-cleanup'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Invoke data-retention-cleanup
+        run: |
+          curl -fsS --max-time 540 -X POST \
+            "${SUPABASE_URL}/functions/v1/data-retention-cleanup" \
+            -H "Authorization: Bearer ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}" \
+            -H "x-health-check-token: ${{ secrets.HEALTH_CHECK_TOKEN }}" \
+            -H "Content-Type: application/json" \
+            -d '{"batch": true}' \
+            | tee /tmp/response.json
+          echo ""
+          echo "status: $(cat /tmp/response.json | head -c 500)"
+
+  process-prazos-alerts:
+    name: Process Prazos Alerts (WhatsApp)
+    if: github.event.schedule == '0 9 * * 1-5' || github.event.inputs.job == 'process-prazos-alerts'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Invoke process-prazos-alerts
+        run: |
+          curl -fsS --max-time 540 -X POST \
+            "${SUPABASE_URL}/functions/v1/process-prazos-alerts" \
+            -H "Authorization: Bearer ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}" \
+            -H "Content-Type: application/json" \
+            -d '{"batch": true}' \
+            | tee /tmp/response.json
+          echo ""
+
+  auto-followup:
+    name: Auto Follow-up (Inactive Leads)
+    if: github.event.schedule == '0 9 * * *' || github.event.inputs.job == 'auto-followup'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Invoke auto-followup
+        run: |
+          curl -fsS --max-time 540 -X POST \
+            "${SUPABASE_URL}/functions/v1/auto-followup" \
+            -H "Authorization: Bearer ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}" \
+            -H "Content-Type: application/json" \
+            -d '{"batch": true, "inactivity_days": 3}' \
+            | tee /tmp/response.json
+          echo ""
+
+  weekly-report:
+    name: Weekly Report (Email to Admins)
+    if: github.event.schedule == '0 7 * * 1' || github.event.inputs.job == 'weekly-report'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Invoke weekly-report
+        run: |
+          curl -fsS --max-time 840 -X POST \
+            "${SUPABASE_URL}/functions/v1/weekly-report" \
+            -H "Authorization: Bearer ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}" \
+            -H "Content-Type: application/json" \
+            -d '{"batch": true}' \
+            | tee /tmp/response.json
+          echo ""
+
+  cleanup-agent-memory:
+    name: Cleanup Agent Memory
+    if: github.event.schedule == '0 3 * * 0' || github.event.inputs.job == 'cleanup-agent-memory'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Invoke cleanup-agent-memory
+        run: |
+          curl -fsS --max-time 540 -X POST \
+            "${SUPABASE_URL}/functions/v1/cleanup-agent-memory" \
+            -H "Authorization: Bearer ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}" \
+            -H "Content-Type: application/json" \
+            -d '{"batch": true}' \
+            | tee /tmp/response.json
+          echo ""

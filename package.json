@@ -36,6 +36,7 @@
     "test:security": "npm audit --audit-level=high && node scripts/security-audit.cjs && node scripts/check-secrets.cjs",
     "test:security:custom": "node scripts/security-audit.cjs",
     "check:secrets": "node scripts/check-secrets.cjs",
+    "check:rls": "node scripts/check-rls-coverage.cjs",
     "db:generate": "supabase gen types typescript --project-id $SUPABASE_PROJECT_ID > src/types/database.types.ts",
     "db:migrate": "supabase db push",
     "db:reset": "supabase db reset",
