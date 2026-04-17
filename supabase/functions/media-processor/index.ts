@@ -4,6 +4,7 @@ import { getCorsHeaders } from "../_shared/cors.ts";
 import { isServiceRole } from "../_shared/supabase-client.ts";
 import { downloadKapsoMedia, detectMediaCategory } from "../_shared/media-utils.ts";
 import { DEFAULT_OPENAI_MODEL, WHISPER_MODEL } from "../_shared/ai-model.ts";
+import { withRetry } from "../_shared/openai-retry.ts";
 
 interface MediaProcessRequest {
   mediaUrl: string;
@@ -38,12 +39,15 @@ async function transcribeAudio(
   const binaryData = Uint8Array.from(atob(base64Data), (c) => c.charCodeAt(0));
   const file = new File([binaryData], `audio.${ext}`, { type: mimeType });
 
-  const transcription = await openai.audio.transcriptions.create({
-    file,
-    model: WHISPER_MODEL,
-    language: "pt",
-    response_format: "text",
-  });
+  const transcription = await withRetry(
+    () => openai.audio.transcriptions.create({
+      file,
+      model: WHISPER_MODEL,
+      language: "pt",
+      response_format: "text",
+    }),
+    { label: "media-processor:whisper" }
+  );
 
   return transcription as unknown as string;
 }
@@ -72,17 +76,20 @@ async function analyzeImage(
 
   userContent.push({ type: "text", text: promptText });
 
-  const response = await openai.chat.completions.create({
-    model: DEFAULT_OPENAI_MODEL,
-    messages: [
-      {
-        role: "user",
-        content: userContent,
-      },
-    ],
-    max_tokens: 500,
-    temperature: 0.2,
-  });
+  const response = await withRetry(
+    () => openai.chat.completions.create({
+      model: DEFAULT_OPENAI_MODEL,
+      messages: [
+        {
+          role: "user",
+          content: userContent,
+        },
+      ],
+      max_tokens: 500,
+      temperature: 0.2,
+    }),
+    { label: "media-processor:vision" }
+  );
 
   return response.choices[0]?.message?.content || "[Não foi possível analisar a imagem]";
 }

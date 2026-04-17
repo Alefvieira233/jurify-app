@@ -4,6 +4,7 @@ import { buildLegalContext } from "../../_shared/legal-context.ts";
 import { DEFAULT_OPENAI_MODEL } from "../../_shared/ai-model.ts";
 import { checkBudgetBeforeCall, recordTokenUsage } from "../../_shared/ai-budget.ts";
 import { sanitizeInput } from "../../_shared/security.ts";
+import { withRetry } from "../../_shared/openai-retry.ts";
 import type { NormalizedMessage } from "../../_shared/whatsapp-logic.ts";
 import { callEdgeFunction, escapeLike } from "./edge-function-client.ts";
 import { analyzeQualification } from "./qualification.ts";
@@ -375,12 +376,26 @@ export async function processNormalizedMessage(
     // --- CHECK ia_active BEFORE INVOKING AI ---
     // For existing conversations, respect the ia_active flag.
     // New conversations (just created) default to ia_active = true.
-    // AUTO-REACTIVATE: If ia_active=false for >2 hours and new message arrives, reactivate.
+    // AUTO-REACTIVATE: If ia_active=false for >2 hours and new message arrives, reactivate
+    // — UNLESS the conversation is under an explicit handoff_until cooldown (default 24h).
+    // The cooldown is set by the HANDOFF_REGEX block below; humans can clear it via UI.
     let iaEnabled = conversation ? (conversation.ia_active !== false) : true;
 
     if (!iaEnabled && conversation?.updated_at) {
+      // Re-fetch handoff_until separately to avoid breaking on environments where
+      // migration 20260417000003 hasn't been applied yet (column may not exist).
+      const { data: convCooldown } = await supabase
+        .from("whatsapp_conversations")
+        .select("handoff_until")
+        .eq("id", conversationId)
+        .eq("tenant_id", tenantId)
+        .maybeSingle();
+
+      const handoffUntil = (convCooldown as { handoff_until?: string | null } | null)?.handoff_until ?? null;
+      const cooldownActive = handoffUntil ? new Date(handoffUntil).getTime() > Date.now() : false;
+
       const hoursSinceUpdate = (Date.now() - new Date(conversation.updated_at).getTime()) / (1000 * 60 * 60);
-      if (hoursSinceUpdate >= 2) {
+      if (hoursSinceUpdate >= 2 && !cooldownActive) {
         console.log(`[processMsg:${provider}] Auto-reactivating IA for conversation ${conversationId} (inactive ${Math.round(hoursSinceUpdate)}h)`);
         iaEnabled = true;
         void supabase
@@ -391,6 +406,8 @@ export async function processNormalizedMessage(
           .then(({ error: reactivateErr }) => {
             if (reactivateErr) console.error("[processMsg] ia_active reactivation error:", reactivateErr.message);
           });
+      } else if (cooldownActive) {
+        console.log(`[processMsg:${provider}] IA auto-reactivate blocked by handoff cooldown until ${handoffUntil} (conversation ${conversationId})`);
       }
     }
 
@@ -702,14 +719,17 @@ export async function processNormalizedMessage(
 
       let completion;
       try {
-        completion = await openai.chat.completions.create(
-          {
-            model: DEFAULT_OPENAI_MODEL,
-            messages: aiMessages,
-            temperature: agentTemp,
-            max_tokens: agentMaxTokens,
-          },
-          { signal: controller.signal }
+        completion = await withRetry(
+          () => openai.chat.completions.create(
+            {
+              model: DEFAULT_OPENAI_MODEL,
+              messages: aiMessages,
+              temperature: agentTemp,
+              max_tokens: agentMaxTokens,
+            },
+            { signal: controller.signal }
+          ),
+          { label: `whatsapp-webhook:${agentName}` }
         );
       } finally {
         clearTimeout(timeoutId);
@@ -868,8 +888,46 @@ export async function processNormalizedMessage(
         aiText = `Você já tem um atendimento agendado com ${existing.responsavel} em ${when}. Se precisar reagendar, me avisa qual outra data/hora prefere.`;
       } else {
         const parsed = parseScheduleFromText(text);
-        const responsavelNome = connectionResponsavelId
-          ? (await supabase.from("profiles").select("nome_completo").eq("id", connectionResponsavelId).maybeSingle())?.data?.nome_completo ?? "Advogado"
+
+        // RESOLVE responsavel_id (FK criada em 20260413000004) com fallback em camadas:
+        //   1. lead.responsavel_id (já vinculado ao lead)
+        //   2. connectionResponsavelId (resolvido por departamento/conexão)
+        //   3. profile match por nome ILIKE em lead.responsavel (text legado)
+        //   4. primeiro admin/manager do tenant
+        let resolvedResponsavelId: string | null = lead?.responsavel_id ?? null;
+        if (!resolvedResponsavelId && connectionResponsavelId) {
+          resolvedResponsavelId = connectionResponsavelId;
+        }
+        if (!resolvedResponsavelId) {
+          // lead.responsavel é texto livre legado — tenta match case-insensitive
+          // deno-lint-ignore no-explicit-any
+          const leadResponsavelText = (lead as any)?.responsavel as string | undefined;
+          if (leadResponsavelText && leadResponsavelText.trim().length > 0) {
+            const { data: byName } = await supabase
+              .from("profiles")
+              .select("id")
+              .eq("tenant_id", tenantId)
+              .ilike("nome_completo", leadResponsavelText.trim())
+              .maybeSingle();
+            resolvedResponsavelId = (byName as { id?: string } | null)?.id ?? null;
+          }
+        }
+        if (!resolvedResponsavelId) {
+          // Fallback: primeiro admin/manager do tenant
+          const { data: adminProfile } = await supabase
+            .from("profiles")
+            .select("id, user_roles!inner(role, ativo)")
+            .eq("tenant_id", tenantId)
+            .eq("user_roles.tenant_id", tenantId)
+            .in("user_roles.role", ["admin", "manager"])
+            .order("created_at", { ascending: true })
+            .limit(1)
+            .maybeSingle();
+          resolvedResponsavelId = (adminProfile as { id?: string } | null)?.id ?? null;
+        }
+
+        const responsavelNome = resolvedResponsavelId
+          ? (await supabase.from("profiles").select("nome_completo").eq("id", resolvedResponsavelId).maybeSingle())?.data?.nome_completo ?? "Advogado"
           : "Advogado";
 
         if (parsed && parsed.confidence >= 0.5) {
@@ -878,20 +936,21 @@ export async function processNormalizedMessage(
           if (!validation.valid) {
             aiText = validation.message!;
           } else {
-          // Checa conflito com mesmo responsável
+          // Checa conflito por responsavel_id (FK). Se não resolvido, fica tenant-wide.
           const conflict = await hasScheduleConflict(
             supabase as never,
             tenantId,
             responsavelNome,
             parsed.dateTimeUTC,
             60,
+            resolvedResponsavelId,
           );
 
           if (conflict) {
             const when = formatScheduleForLead(parsed.dateTimeUTC);
             aiText = `Infelizmente ${responsavelNome} já tem compromisso em ${when}. Posso verificar outro horário? Você prefere mais cedo ou mais tarde nesse dia, ou outra data?`;
           } else {
-            const { error: agendError } = await supabase.from("agendamentos").insert({
+            const insertPayload: Record<string, unknown> = {
               lead_id: leadId,
               tenant_id: tenantId,
               area_juridica: lead?.area_juridica ?? "Não especificada",
@@ -899,12 +958,79 @@ export async function processNormalizedMessage(
               responsavel: responsavelNome,
               status: "agendado",
               observacoes: `Agendado automaticamente via WhatsApp a partir da mensagem do lead: "${parsed.matched}".`,
-            });
+            };
+            if (resolvedResponsavelId) {
+              insertPayload.responsavel_id = resolvedResponsavelId;
+            }
+
+            const { data: insertedAgend, error: agendError } = await supabase
+              .from("agendamentos")
+              .insert(insertPayload)
+              .select("id")
+              .maybeSingle();
 
             if (!agendError) {
               const when = formatScheduleForLead(parsed.dateTimeUTC);
+              const newAgendamentoId = (insertedAgend as { id?: string } | null)?.id ?? null;
               aiText = `Perfeito! Reunião agendada com ${responsavelNome} em ${when}. Você receberá um lembrete antes. Caso precise remarcar, é só me avisar.`;
-              console.log(`[processMsg:${provider}] Auto-scheduled lead ${leadId} at ${parsed.dateTimeUTC.toISOString()} (matched: "${parsed.matched}")`);
+              console.log(`[processMsg:${provider}] Auto-scheduled lead ${leadId} at ${parsed.dateTimeUTC.toISOString()} responsavel_id=${resolvedResponsavelId} (matched: "${parsed.matched}")`);
+
+              // GOOGLE CALENDAR (best-effort): se o responsável tem token Google
+              // conectado, cria evento e persiste google_event_id. Falha não
+              // bloqueia o agendamento — Calendar é wrap em try/catch.
+              if (newAgendamentoId && resolvedResponsavelId) {
+                void (async () => {
+                  try {
+                    const { data: tokenRow } = await supabase
+                      .from("google_calendar_tokens")
+                      .select("user_id")
+                      .eq("user_id", resolvedResponsavelId)
+                      .maybeSingle();
+
+                    if (!tokenRow) {
+                      console.log(`[processMsg:${provider}] No Google token for responsavel ${resolvedResponsavelId} — skipping Calendar sync`);
+                      return;
+                    }
+
+                    const eventEnd = new Date(parsed.dateTimeUTC.getTime() + 60 * 60 * 1000).toISOString();
+                    const { data: calendarRes, error: calendarErr } = await supabase.functions.invoke("google-calendar", {
+                      body: {
+                        action: "createEventForResponsavel",
+                        data: {
+                          responsavelId: resolvedResponsavelId,
+                          tenantId,
+                          agendamentoId: newAgendamentoId,
+                          eventData: {
+                            summary: `Reunião com ${name}`,
+                            description: `Agendamento via WhatsApp.\nLead: ${name} (${from})\nÁrea: ${insertPayload.area_juridica}\nObs: ${insertPayload.observacoes}`,
+                            start: { dateTime: parsed.dateTimeUTC.toISOString() },
+                            end: { dateTime: eventEnd },
+                          },
+                        },
+                      },
+                    });
+
+                    if (calendarErr) {
+                      console.warn(`[processMsg:${provider}] Calendar sync failed (event_id=null):`, calendarErr.message);
+                      return;
+                    }
+
+                    const eventId = (calendarRes as { event?: { id?: string } } | null)?.event?.id;
+                    if (eventId) {
+                      await supabase
+                        .from("agendamentos")
+                        .update({ google_event_id: eventId })
+                        .eq("id", newAgendamentoId)
+                        .eq("tenant_id", tenantId);
+                      console.log(`[processMsg:${provider}] Calendar event ${eventId} linked to agendamento ${newAgendamentoId}`);
+                    } else {
+                      console.warn(`[processMsg:${provider}] Calendar response missing event id (event_id=null)`);
+                    }
+                  } catch (err) {
+                    console.warn(`[processMsg:${provider}] Calendar sync exception (event_id=null):`, err instanceof Error ? err.message : String(err));
+                  }
+                })();
+              }
 
               void supabase.from("notificacoes").insert({
                 tenant_id: tenantId,
@@ -948,10 +1074,13 @@ export async function processNormalizedMessage(
     const lowerAiText = aiText.toLowerCase();
     const shouldHandoff = HANDOFF_REGEX_PATTERNS.some((rx) => rx.test(lowerAiText));
     if (shouldHandoff && conversationId) {
-      console.log(`[processMsg:${provider}] HANDOFF triggered for ${from} — pausing AI`);
+      console.log(`[processMsg:${provider}] HANDOFF triggered for ${from} — pausing AI (24h cooldown)`);
+      // Cooldown 24h: bloqueia auto-reactivate até humano limpar o campo
+      // (migration 20260417000003 adicionou whatsapp_conversations.handoff_until).
+      const handoffUntil = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
       void supabase
         .from("whatsapp_conversations")
-        .update({ ia_active: false })
+        .update({ ia_active: false, handoff_until: handoffUntil })
         .eq("id", conversationId)
         .eq("tenant_id", tenantId)
         .then(({ error }) => { if (error) console.error("[webhook] handoff update error:", error.message); });

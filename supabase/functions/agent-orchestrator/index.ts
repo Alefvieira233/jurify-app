@@ -5,6 +5,7 @@ import { applyRateLimit } from "../_shared/rate-limiter.ts";
 import { isServiceRole } from "../_shared/supabase-client.ts";
 import { DEFAULT_OPENAI_MODEL } from "../_shared/ai-model.ts";
 import { ORCHESTRATOR_PROMPT, AGENTS, type AgentDefinition } from "../_shared/agent-prompts.ts";
+import { withRetry } from "../_shared/openai-retry.ts";
 
 interface OrchestratorRequest {
   messageText: string;
@@ -66,16 +67,19 @@ Deno.serve(async (req) => {
       message_preview: body.messageText.substring(0, 300),
     });
 
-    const response = await openai.chat.completions.create({
-      model: DEFAULT_OPENAI_MODEL,
-      messages: [
-        { role: "system", content: ORCHESTRATOR_PROMPT },
-        { role: "user", content: `CONTEXTO:\n${contextSummary}\n\nMENSAGEM DO CLIENTE:\n${body.messageText.substring(0, 500)}` },
-      ],
-      temperature: 0.1,
-      max_tokens: 100,
-      response_format: { type: "json_object" },
-    });
+    const response = await withRetry(
+      () => openai.chat.completions.create({
+        model: DEFAULT_OPENAI_MODEL,
+        messages: [
+          { role: "system", content: ORCHESTRATOR_PROMPT },
+          { role: "user", content: `CONTEXTO:\n${contextSummary}\n\nMENSAGEM DO CLIENTE:\n${body.messageText.substring(0, 500)}` },
+        ],
+        temperature: 0.1,
+        max_tokens: 100,
+        response_format: { type: "json_object" },
+      }),
+      { label: "orchestrator", retries: 2, baseMs: 300 }
+    );
 
     const resultText = response.choices[0]?.message?.content || '{"agent":"recepcionista","reason":"fallback"}';
 

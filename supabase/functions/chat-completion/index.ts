@@ -7,6 +7,7 @@ import { applyRateLimit } from "../_shared/rate-limiter.ts";
 import { DEFAULT_OPENAI_MODEL } from "../_shared/ai-model.ts";
 import { sanitizeInput } from "../_shared/security.ts";
 import { checkBudgetBeforeCall, recordTokenUsage } from "../_shared/ai-budget.ts";
+import { withRetry } from "../_shared/openai-retry.ts";
 
 Deno.serve(async (req) => {
   const corsHeaders = getCorsHeaders(req.headers.get("origin") || undefined);
@@ -115,12 +116,17 @@ Deno.serve(async (req) => {
 
     if (stream) {
       const encoder = new TextEncoder();
-      const streamResponse = await openai.chat.completions.create({
-        model,
-        messages: sanitizedMessages,
-        temperature,
-        stream: true,
-      });
+      // Note: stream=true returns an AsyncIterable, but the initial connection
+      // can still fail transiently — retry only the create() call.
+      const streamResponse = await withRetry(
+        () => openai.chat.completions.create({
+          model,
+          messages: sanitizedMessages,
+          temperature,
+          stream: true,
+        }),
+        { label: "chat-completion-stream" }
+      );
 
       const readableStream = new ReadableStream({
         async start(controller) {
@@ -156,11 +162,14 @@ Deno.serve(async (req) => {
       });
     }
 
-    const completion = await openai.chat.completions.create({
-      model,
-      messages: sanitizedMessages,
-      temperature,
-    });
+    const completion = await withRetry(
+      () => openai.chat.completions.create({
+        model,
+        messages: sanitizedMessages,
+        temperature,
+      }),
+      { label: "chat-completion" }
+    );
 
     const reply = completion.choices[0]?.message?.content;
 

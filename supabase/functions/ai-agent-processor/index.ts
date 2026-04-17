@@ -17,6 +17,7 @@ import { checkBudgetBeforeCall, recordTokenUsage } from "../_shared/ai-budget.ts
 import { initSentry, captureError } from "../_shared/sentry.ts";
 import { DEFAULT_OPENAI_MODEL } from "../_shared/ai-model.ts";
 import { sanitizeInput } from "../_shared/security.ts";
+import { withRetry } from "../_shared/openai-retry.ts";
 
 // 🚀 INIT SENTRY
 initSentry();
@@ -136,16 +137,19 @@ async function processAIRequest(
 
   let completion;
   try {
-    completion = await openai.chat.completions.create(
-      {
-        model,
-        messages,
-        temperature,
-        max_tokens: maxTokens,
-        tools,
-        tool_choice,
-      },
-      { signal: controller.signal }
+    completion = await withRetry(
+      () => openai.chat.completions.create(
+        {
+          model,
+          messages,
+          temperature,
+          max_tokens: maxTokens,
+          tools,
+          tool_choice,
+        },
+        { signal: controller.signal }
+      ),
+      { label: "ai-agent-processor" }
     );
   } finally {
     clearTimeout(timeoutId);

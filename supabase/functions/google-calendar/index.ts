@@ -22,6 +22,9 @@ const OAUTH_SCOPES = [
 
 const OAUTH_METHODS = ["initiateAuth", "exchangeCode", "disconnect", "status"];
 const CALENDAR_METHODS = ["listEvents", "createEvent", "updateEvent", "deleteEvent", "syncEvents"];
+// Service-role only methods (called via supabase.functions.invoke from edge functions
+// that already authenticated their own caller — no end-user JWT context).
+const SERVICE_METHODS = ["createEventForResponsavel"];
 
 Deno.serve(async (req) => {
   const corsHeaders = getCorsHeaders(req.headers.get("origin") || undefined);
@@ -31,6 +34,83 @@ Deno.serve(async (req) => {
   }
 
   try {
+    // Peek body to detect service-mode method first (skip user auth for these).
+    // Body is consumed once, so we re-use the parsed copy below.
+    const supabaseUrlEarly = Deno.env.get("SUPABASE_URL")!;
+    const supabaseServiceKeyEarly = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+
+    let parsedBody: { action?: string; method?: string; data?: Record<string, unknown> } | null = null;
+    try {
+      parsedBody = await req.clone().json();
+    } catch { /* will fail later in the user-auth path naturally */ }
+
+    const earlyMethod = parsedBody?.action || parsedBody?.method;
+
+    if (earlyMethod && SERVICE_METHODS.includes(earlyMethod)) {
+      // SERVICE-ROLE mode: caller is another edge function (whatsapp-webhook).
+      // Authentication is verified by the platform via the function-to-function
+      // invoke contract. We DO NOT consult auth.getUser here — there's no end user.
+      const supabase = createClient(supabaseUrlEarly, supabaseServiceKeyEarly);
+      const data = (parsedBody?.data ?? {}) as Record<string, unknown>;
+
+      if (earlyMethod === "createEventForResponsavel") {
+        const responsavelId = data.responsavelId as string | undefined;
+        const tenantId = data.tenantId as string | undefined;
+        const agendamentoId = data.agendamentoId as string | undefined;
+        const eventData = data.eventData as Record<string, unknown> | undefined;
+
+        if (!responsavelId || !tenantId || !agendamentoId || !eventData) {
+          return new Response(
+            JSON.stringify({ error: "Missing responsavelId, tenantId, agendamentoId, or eventData" }),
+            { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+        }
+
+        // Verify token row exists for this responsavel
+        const { data: tokenRow } = await supabase
+          .from("google_calendar_tokens")
+          .select("user_id")
+          .eq("user_id", responsavelId)
+          .maybeSingle();
+        if (!tokenRow) {
+          return new Response(
+            JSON.stringify({ error: "Responsavel has no Google Calendar connected" }),
+            { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+        }
+
+        const googleService = new GoogleOAuthService(supabase, responsavelId);
+        try {
+          const event = await googleService.createEvent("primary", eventData);
+          // Best-effort sync log (mirrors syncEvents behavior).
+          await supabase.from("google_calendar_sync_logs").insert({
+            user_id: responsavelId,
+            agendamento_id: agendamentoId,
+            google_event_id: event.id ?? null,
+            action: "create",
+            status: "success",
+          });
+          return new Response(JSON.stringify({ event }), {
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        } catch (err) {
+          const message = err instanceof Error ? err.message : String(err);
+          await supabase.from("google_calendar_sync_logs").insert({
+            user_id: responsavelId,
+            agendamento_id: agendamentoId,
+            google_event_id: null,
+            action: "create",
+            status: "error",
+            error_message: message,
+          });
+          return new Response(JSON.stringify({ error: message }), {
+            status: 502,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+      }
+    }
+
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) {
       return new Response(JSON.stringify({ error: "Missing authorization" }), {

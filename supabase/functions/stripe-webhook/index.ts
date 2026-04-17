@@ -9,15 +9,30 @@ import {
   type StripeSubscriptionLike,
 } from "../_shared/stripe-logic.ts";
 
+/**
+ * Sends a transactional email via the send-email edge function.
+ *
+ * Failures are NOT silent: every failure is logged at ERROR level AND persisted
+ * to the email_failures table for manual review. The Stripe webhook itself does
+ * not fail (returns 200) so that Stripe doesn't retry the entire event just
+ * because Postmark hiccuped — but the failure is now visible to operators
+ * instead of buried in a console.warn nobody reads.
+ */
 async function sendEmail(
   to: string,
   template: string,
-  data: Record<string, string | undefined>
+  data: Record<string, string | undefined>,
+  context?: { eventId?: string; eventType?: string }
 ): Promise<void> {
+  const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
+  const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
+
+  let httpStatus = 0;
+  let responseBody = "";
+  let errorMessage: string | null = null;
+
   try {
-    const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
-    const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
-    await fetch(`${supabaseUrl}/functions/v1/send-email`, {
+    const resp = await fetch(`${supabaseUrl}/functions/v1/send-email`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -25,8 +40,39 @@ async function sendEmail(
       },
       body: JSON.stringify({ to, template, data }),
     });
+    httpStatus = resp.status;
+    if (!resp.ok) {
+      responseBody = await resp.text().catch(() => "");
+      errorMessage = `send-email returned HTTP ${httpStatus}: ${responseBody.substring(0, 500)}`;
+    }
   } catch (err) {
-    console.warn(`[stripe-webhook] sendEmail failed silently for ${to}:`, err);
+    errorMessage = err instanceof Error ? err.message : String(err);
+  }
+
+  if (errorMessage) {
+    console.error(
+      `[stripe-webhook] EMAIL FAILED template=${template} to=${to.replace(/(.{2}).+(@.+)/, "$1***$2")} status=${httpStatus} event=${context?.eventType ?? "n/a"} reason=${errorMessage}`
+    );
+    // Persist to email_failures for manual inspection / replay. Best-effort —
+    // if the queue table itself is unreachable, we already logged ERROR above.
+    try {
+      const supabase = createClient(supabaseUrl, serviceKey);
+      await supabase.from("email_failures").insert({
+        recipient: to,
+        template,
+        payload: data as unknown as Record<string, unknown>,
+        error_message: errorMessage,
+        http_status: httpStatus || null,
+        source: "stripe-webhook",
+        stripe_event_id: context?.eventId ?? null,
+        stripe_event_type: context?.eventType ?? null,
+      });
+    } catch (insertErr) {
+      console.error(
+        `[stripe-webhook] email_failures insert ALSO failed:`,
+        insertErr instanceof Error ? insertErr.message : insertErr
+      );
+    }
   }
 }
 
@@ -60,8 +106,21 @@ Deno.serve(async (req) => {
         const body = await req.text();
         const webhookSecret = Deno.env.get("STRIPE_WEBHOOK_SECRET");
 
-        if (!signature || !webhookSecret) {
-            return new Response("Missing signature or secret", { status: 400 });
+        // Distinguish CONFIG missing (our fault) from SIGNATURE missing (caller's fault).
+        // Both used to return 400 silently — making it impossible to tell from logs why
+        // every Stripe webhook event was being rejected and zero rows were persisted.
+        if (!webhookSecret) {
+            console.error(
+                "[stripe-webhook] STRIPE_WEBHOOK_SECRET not configured — rejecting all webhook deliveries. " +
+                "Set this secret via `supabase secrets set STRIPE_WEBHOOK_SECRET=whsec_...` and re-deploy."
+            );
+            return new Response(
+                JSON.stringify({ error: "Webhook signing secret not configured", code: "MISSING_WEBHOOK_SECRET" }),
+                { status: 503, headers: { "Content-Type": "application/json" } }
+            );
+        }
+        if (!signature) {
+            return new Response("Missing Stripe-Signature header", { status: 400 });
         }
 
         let event;
@@ -146,7 +205,7 @@ Deno.serve(async (req) => {
                             amount: formatBrlCurrency(invoice.amount_paid ?? 0),
                             period: 'Mensal',
                             invoice_url: invoice.hosted_invoice_url ?? undefined,
-                        });
+                        }, { eventId: event.id, eventType: event.type });
                     }
                 }
                 break;
@@ -176,7 +235,7 @@ Deno.serve(async (req) => {
                     if (failedProfile.email) {
                         await sendEmail(failedProfile.email, 'payment-failed', {
                             name: failedProfile.email,
-                        });
+                        }, { eventId: event.id, eventType: event.type });
                     }
                 }
                 break;
@@ -200,7 +259,7 @@ Deno.serve(async (req) => {
                         name: refundedProfile.nome_completo ?? refundedProfile.email,
                         amount: amountFormatted,
                         charge_id: charge.id,
-                    });
+                    }, { eventId: event.id, eventType: event.type });
 
                     console.log(`[stripe-webhook] Refund email sent to ${refundedProfile.email} for ${amountFormatted}`);
                 } else {
@@ -292,12 +351,14 @@ async function manageSubscriptionStatusChange(
     if (error) {
         console.error('Error upserting subscription:', error.message);
     } else {
-
+        // Bug fix: previous code referenced `planId` (undefined ReferenceError),
+        // which silently broke profile updates after every subscription change.
+        // Use payload.plan_id, which comes from buildSubscriptionUpsertPayload.
         await supabase
             .from('profiles')
             .update({
                 subscription_status: mappedStatus,
-                subscription_tier: planId || 'free'
+                subscription_tier: payload.plan_id || 'free'
             })
             .eq('id', uuid);
 

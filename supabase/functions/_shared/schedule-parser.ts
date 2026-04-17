@@ -206,26 +206,41 @@ export function detectScheduleIntent(text: string): boolean {
 }
 
 /**
- * Verifica conflito: busca agendamentos do mesmo responsável com overlap de ±slotMinutes.
- * Retorna true se há conflito.
+ * Verifica conflito: busca agendamentos com overlap de ±slotMinutes.
+ *
+ * Quando `responsavelId` é fornecido, filtra a janela ao responsável (FK).
+ * Quando ausente (lead sem responsável resolvido), o filtro fica tenant-wide
+ * para evitar overbooking em qualquer agenda do escritório.
+ *
+ * O parâmetro `_responsavel` (nome textual) é mantido por compat — não é
+ * usado no filtro porque `agendamentos.responsavel` é texto livre e não
+ * garante unicidade entre membros da equipe.
  */
 export async function hasScheduleConflict(
-  supabase: { from: (t: string) => { select: (c: string) => { eq: (k: string, v: string) => { gte: (k: string, v: string) => { lte: (k: string, v: string) => Promise<{ data: unknown[] | null; error: unknown }> } } } } },
+  // deno-lint-ignore no-explicit-any
+  supabase: any,
   tenantId: string,
-  responsavel: string,
+  _responsavel: string,
   dateTimeUTC: Date,
   slotMinutes = 60,
+  responsavelId?: string | null,
 ): Promise<boolean> {
   const windowMs = slotMinutes * 60 * 1000;
   const from = new Date(dateTimeUTC.getTime() - windowMs).toISOString();
   const to = new Date(dateTimeUTC.getTime() + windowMs).toISOString();
 
-  const { data, error } = await supabase
+  let query = supabase
     .from("agendamentos")
     .select("id")
     .eq("tenant_id", tenantId)
     .gte("data_hora", from)
     .lte("data_hora", to);
+
+  if (responsavelId) {
+    query = query.eq("responsavel_id", responsavelId);
+  }
+
+  const { data, error } = await query;
 
   if (error) {
     console.error("[schedule-parser] conflict check error:", error);

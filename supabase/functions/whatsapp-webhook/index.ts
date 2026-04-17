@@ -1,7 +1,7 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2";
 import { getCorsHeaders } from "../_shared/cors.ts";
-import { applyRateLimit } from "../_shared/rate-limiter.ts";
+import { applyRateLimit, checkRateLimit, createRateLimitResponse } from "../_shared/rate-limiter.ts";
 import { getWebhookSecretByPhoneId } from "../_shared/kapso-client.ts";
 import {
   getMessageId,
@@ -145,14 +145,17 @@ Deno.serve(async (req) => {
         Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
       );
 
+      // Phase 1: GLOBAL rate limit (pre-parse, IP/host bucket).
+      // Tenant não é conhecido aqui — bucket protege a função inteira contra
+      // tempestades. Phase 2 (per-tenant) ocorre após tenant resolution.
       const rateLimitCheck = await applyRateLimit(
         req,
-        { maxRequests: 120, windowSeconds: 60, namespace: "whatsapp-webhook" },
+        { maxRequests: 120, windowSeconds: 60, namespace: "whatsapp-webhook:global" },
         { supabase, corsHeaders }
       );
 
       if (!rateLimitCheck.allowed) {
-        console.warn("[webhook] Rate limit exceeded");
+        console.warn("[webhook] Rate limit exceeded (global)");
         return rateLimitCheck.response;
       }
 
@@ -219,6 +222,22 @@ Deno.serve(async (req) => {
         if (!payloadPhoneId) {
           console.error("[webhook:kapso] SECURITY: Payload has no phone_number_id — cannot resolve tenant secret");
           return new Response("Unauthorized: unable to identify tenant", { status: 401, headers: corsHeaders });
+        }
+
+        // Phase 2: PER-TENANT rate limit (60 req/min por phone_number_id, que mapeia 1:1 com tenant).
+        // Evita que um tenant abusivo estoure o bucket global e afete outros tenants.
+        const tenantBucket = await checkRateLimit(
+          {
+            identifier: `phone:${payloadPhoneId}`,
+            namespace: "whatsapp-webhook:tenant",
+            maxRequests: 60,
+            windowSeconds: 60,
+          },
+          supabase
+        );
+        if (!tenantBucket.allowed) {
+          console.warn(`[webhook] Rate limit exceeded (per-tenant) phone=${payloadPhoneId}`);
+          return createRateLimitResponse(tenantBucket, corsHeaders);
         }
 
         const tenantSecret = await getWebhookSecretByPhoneId(supabase, payloadPhoneId);
