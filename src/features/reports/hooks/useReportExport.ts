@@ -50,10 +50,10 @@ export function useReportExport() {
   const [exporting, setExporting] = useState<ExportFormat | null>(null);
 
   const exportCSV = useCallback(
-    async (data: ExportData, filename?: string): Promise<void> => {
+    (data: ExportData, filename?: string): Promise<void> => {
       if (!data.rows.length) {
         toast({ title: 'Nada para exportar', description: 'Não há dados no filtro atual.' });
-        return;
+        return Promise.resolve();
       }
       setExporting('csv');
       try {
@@ -67,6 +67,7 @@ export function useReportExport() {
       } finally {
         setExporting(null);
       }
+      return Promise.resolve();
     },
     [toast],
   );

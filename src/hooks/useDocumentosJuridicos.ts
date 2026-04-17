@@ -28,6 +28,7 @@ export type DocumentoJuridico = {
   tenant_id: string | null;
   processo_id: string | null;
   lead_id: string | null;
+  folder_id: string | null;
   nome_arquivo: string;
   nome_original: string;
   storage_path: string;
@@ -56,40 +57,62 @@ export type DocumentoWithSignedUrl = DocumentoJuridico & { signedUrl: string | n
 
 // ─── Hook ────────────────────────────────────────────────────────────────────
 
-export const useDocumentosJuridicos = (options?: { processoId?: string; leadId?: string; page?: number }) => {
+export const useDocumentosJuridicos = (options?: {
+  processoId?: string;
+  leadId?: string;
+  folderId?: string | null;
+  /** When true, pass folderId=null (documentos sem pasta). Default false. */
+  unfiled?: boolean;
+  page?: number;
+}) => {
   const { user, profile } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const tenantId = profile?.tenant_id;
   const page = options?.page ?? 1;
-  const qKey = [...queryKeys.documentosJuridicos.list(tenantId), options?.processoId, options?.leadId, page];
+  const qKey = [
+    ...queryKeys.documentosJuridicos.list(tenantId),
+    options?.processoId,
+    options?.leadId,
+    options?.unfiled ? '__unfiled__' : options?.folderId ?? '__all__',
+    page,
+  ];
 
   const { data: queryData, isLoading: loading, error: queryError, refetch } = useQuery({
     queryKey: qKey,
     queryFn: async () => {
-      let query = supabase
+      // folder_id may not be present in older Supabase type-gen — use a
+      // scoped cast only on this chain so the rest of the file stays typed.
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      let query: any = supabase
         .from('documentos_juridicos')
-        .select('id, tenant_id, processo_id, lead_id, nome_arquivo, nome_original, storage_path, url_publica, tipo_mime, tamanho_bytes, tipo_documento, content_hash, descricao, tags, uploaded_by, created_at, updated_at', { count: 'exact' })
+        .select('id, tenant_id, processo_id, lead_id, folder_id, nome_arquivo, nome_original, storage_path, url_publica, tipo_mime, tamanho_bytes, tipo_documento, content_hash, descricao, tags, uploaded_by, created_at, updated_at', { count: 'exact' })
         .order('created_at', { ascending: false })
         .range((page - 1) * PAGE_SIZE, page * PAGE_SIZE - 1);
 
       if (tenantId) query = query.eq('tenant_id', tenantId);
       if (options?.processoId) query = query.eq('processo_id', options.processoId);
       if (options?.leadId) query = query.eq('lead_id', options.leadId);
+      if (options?.unfiled) {
+        query = query.is('folder_id', null);
+      } else if (options?.folderId) {
+        query = query.eq('folder_id', options.folderId);
+      }
 
       const { data, error, count } = await query;
       if (error) { log.error('Erro ao buscar documentos', error); throw error; }
 
-      const docs = (data || []).map(row => normalizeDocumento(row as Record<string, unknown>));
+      const rows: Record<string, unknown>[] = (data ?? []) as Record<string, unknown>[];
+      const docs: DocumentoJuridico[] = rows.map((row) => normalizeDocumento(row));
 
       // Batch signed URL creation (1 request instead of N)
-      const paths = docs.map(d => d.storage_path).filter(Boolean);
+      const paths = docs.map((d) => d.storage_path).filter(Boolean);
       const { data: signedUrls } = paths.length > 0
         ? await supabase.storage.from('documents').createSignedUrls(paths, 3600)
         : { data: [] };
 
-      const urlMap = new Map((signedUrls ?? []).map(s => [s.path, s.signedUrl ?? null]));
-      const items: DocumentoWithSignedUrl[] = docs.map(doc => ({
+      const urlMap = new Map((signedUrls ?? []).map((s) => [s.path, s.signedUrl ?? null]));
+      const items: DocumentoWithSignedUrl[] = docs.map((doc) => ({
         ...doc,
         signedUrl: urlMap.get(doc.storage_path) ?? null,
       }));

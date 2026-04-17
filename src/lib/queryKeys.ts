@@ -86,6 +86,11 @@ export const queryKeys = {
     list: (tenantId?: string | null) => [...queryKeys.documentosJuridicos.all, tenantId] as const,
   },
 
+  documentoFolders: {
+    all: ['documento_folders'] as const,
+    list: (tenantId?: string | null) => [...queryKeys.documentoFolders.all, tenantId] as const,
+  },
+
   // ─── CRM ────────────────────────────────────────────────────────────────────
 
   crmPipeline: {

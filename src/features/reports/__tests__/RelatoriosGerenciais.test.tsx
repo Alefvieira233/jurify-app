@@ -68,6 +68,16 @@ vi.mock('../useReportMetrics', () => ({
   useReportMetrics: () => mockUseReportMetrics(),
   computePeriodRange: () => ({ start: '2026-03-01', end: '2026-03-31' }),
   tooltipStyle: {},
+  PERIOD_LABELS: { '30_dias': '30 dias', personalizado: 'Personalizado' },
+}));
+
+vi.mock('../hooks/useReportExport', () => ({
+  useReportExport: () => ({
+    exportCSV: vi.fn().mockResolvedValue(undefined),
+    exportPDF: vi.fn().mockResolvedValue(undefined),
+    exportExcel: vi.fn().mockResolvedValue(undefined),
+    exporting: null,
+  }),
 }));
 
 import RelatoriosGerenciais from '../RelatoriosGerenciais';
@@ -187,6 +197,9 @@ describe('RelatoriosGerenciais', () => {
 
     render(<RelatoriosGerenciais />, { wrapper: createWrapper() });
 
-    expect(screen.getByText('Exportar CSV')).toBeInTheDocument();
+    // ReportFilters is mocked to a stub in this test, so the new "Exportar"
+    // dropdown lives inside that stub. Assert the top-level "CSV Rápido"
+    // quick-export button instead — it's the stable legacy path.
+    expect(screen.getByText(/CSV R[aá]pido/)).toBeInTheDocument();
   });
 });

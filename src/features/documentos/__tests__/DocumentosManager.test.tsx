@@ -10,6 +10,20 @@ vi.mock('@/hooks/useDocumentosJuridicos', () => ({
   useDocumentosJuridicos: (opts: unknown) => mockUseDocumentosJuridicos(opts),
 }));
 
+vi.mock('../hooks/useDocumentoFolders', () => ({
+  useDocumentoFolders: () => ({
+    folders: [],
+    tree: [],
+    isLoading: false,
+    error: null,
+    refetch: vi.fn(),
+    createFolder: vi.fn(),
+    renameFolder: vi.fn(),
+    deleteFolder: vi.fn(),
+    moveDocumento: vi.fn(),
+  }),
+}));
+
 vi.mock('@/hooks/usePageTitle', () => ({
   usePageTitle: vi.fn(),
 }));
@@ -162,7 +176,7 @@ describe('DocumentosManager', () => {
 
     render(<DocumentosManager />, { wrapper: createWrapper() });
 
-    expect(screen.getByTestId('empty-state')).toHaveTextContent('Nenhum Documento');
+    expect(screen.getByTestId('empty-state')).toHaveTextContent(/Nenhum documento/i);
   });
 
   it('renders document list with correct data', () => {
@@ -224,6 +238,6 @@ describe('DocumentosManager', () => {
 
     render(<DocumentosManager />, { wrapper: createWrapper() });
 
-    expect(screen.getByText('2 documentos')).toBeInTheDocument();
+    expect(screen.getByText(/2 documentos/)).toBeInTheDocument();
   });
 });

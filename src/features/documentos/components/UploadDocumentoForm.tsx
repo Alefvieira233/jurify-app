@@ -27,21 +27,27 @@ import {
   FormMessage,
 } from '@/components/ui/form';
 import { documentoFormSchema, type DocumentoFormData, TIPOS_DOCUMENTO, TIPO_LABELS } from '@/schemas/documentoSchema';
+import { useDocumentoFolders } from '../hooks/useDocumentoFolders';
 
 interface UploadDocumentoFormProps {
   onSubmit: (file: File, metadata: DocumentoFormData) => Promise<boolean>;
   onCancel: () => void;
   loading?: boolean;
   processoId?: string;
+  /** When provided, pre-selects this folder as the upload target. */
+  defaultFolderId?: string | null;
 }
+
+const UNFILED = '__unfiled__';
 
 const MAX_FILE_SIZE = 20 * 1024 * 1024; // 20 MB
 
-const UploadDocumentoForm = ({ onSubmit, onCancel, loading, processoId }: UploadDocumentoFormProps) => {
+const UploadDocumentoForm = ({ onSubmit, onCancel, loading, processoId, defaultFolderId }: UploadDocumentoFormProps) => {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [dragOver, setDragOver] = useState(false);
   const [fileError, setFileError] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const { folders } = useDocumentoFolders();
 
   const isNative = Capacitor.isNativePlatform();
 
@@ -70,6 +76,7 @@ const UploadDocumentoForm = ({ onSubmit, onCancel, loading, processoId }: Upload
     resolver: zodResolver(documentoFormSchema),
     defaultValues: {
       processo_id: processoId,
+      folder_id: defaultFolderId ?? null,
       tipo_documento: 'outro',
     },
   });
@@ -207,6 +214,35 @@ const UploadDocumentoForm = ({ onSubmit, onCancel, loading, processoId }: Upload
             />
           </div>
         </div>
+
+        {folders.length > 0 && (
+          <FormField
+            control={form.control}
+            name="folder_id"
+            render={({ field }) => (
+              <FormItem className="space-y-1.5">
+                <FormLabel>Pasta</FormLabel>
+                <Select
+                  value={field.value ?? UNFILED}
+                  onValueChange={(v) => field.onChange(v === UNFILED ? null : v)}
+                >
+                  <FormControl>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Sem pasta" />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    <SelectItem value={UNFILED}>Sem pasta</SelectItem>
+                    {folders.map((f) => (
+                      <SelectItem key={f.id} value={f.id}>{f.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        )}
 
         <FormField
           control={form.control}

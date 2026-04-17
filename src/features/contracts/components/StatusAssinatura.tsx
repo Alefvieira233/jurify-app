@@ -55,6 +55,13 @@ export const StatusAssinatura = ({ contrato, leadTelefone, onStatusUpdate }: Sta
             Expirado
           </Badge>
         );
+      case 'recusado':
+        return (
+          <Badge className="bg-red-500/15 text-red-200 border border-red-400/30">
+            <XCircle className="h-3 w-3 mr-1" />
+            Recusado
+          </Badge>
+        );
       default:
         return (
           <Badge className="bg-slate-500/15 text-slate-700 dark:text-slate-300 border border-slate-400/30">
