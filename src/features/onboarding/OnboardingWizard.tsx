@@ -209,7 +209,8 @@ const OnboardingWizard = () => {
 
   if (isLoading || !shouldShow?.show || dismissed) return null;
 
-  const currentId: StepId = STEP_IDS[step];
+  const safeStep = Math.min(Math.max(step, 0), TOTAL_STEPS - 1);
+  const currentId: StepId = STEP_IDS[safeStep] ?? STEP_IDS[0];
   const progressWidth = ((step + 1) / TOTAL_STEPS) * 100;
 
   return (

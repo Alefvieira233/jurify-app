@@ -89,7 +89,7 @@ CREATE POLICY tenant_assets_insert ON storage.objects
   WITH CHECK (
     bucket_id = 'tenant-assets'
     AND (storage.foldername(name))[1]::uuid = public.get_current_tenant_id()
-    AND public.has_role(auth.uid(), 'admin'::app_role)
+    AND public.has_role(auth.uid(), 'administrador'::app_role)
   );
 
 DROP POLICY IF EXISTS tenant_assets_update ON storage.objects;
@@ -98,7 +98,7 @@ CREATE POLICY tenant_assets_update ON storage.objects
   USING (
     bucket_id = 'tenant-assets'
     AND (storage.foldername(name))[1]::uuid = public.get_current_tenant_id()
-    AND public.has_role(auth.uid(), 'admin'::app_role)
+    AND public.has_role(auth.uid(), 'administrador'::app_role)
   );
 
 DROP POLICY IF EXISTS tenant_assets_delete ON storage.objects;
@@ -107,5 +107,5 @@ CREATE POLICY tenant_assets_delete ON storage.objects
   USING (
     bucket_id = 'tenant-assets'
     AND (storage.foldername(name))[1]::uuid = public.get_current_tenant_id()
-    AND public.has_role(auth.uid(), 'admin'::app_role)
+    AND public.has_role(auth.uid(), 'administrador'::app_role)
   );

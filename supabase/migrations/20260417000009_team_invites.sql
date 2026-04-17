@@ -40,7 +40,7 @@ CREATE POLICY team_invites_select_admins ON public.team_invites
   FOR SELECT
   USING (
     tenant_id = public.get_current_tenant_id()
-    AND public.has_role(auth.uid(), 'admin'::app_role)
+    AND public.has_role(auth.uid(), 'administrador'::app_role)
   );
 
 -- Admins of the tenant may create invites
@@ -49,7 +49,7 @@ CREATE POLICY team_invites_insert_admins ON public.team_invites
   FOR INSERT
   WITH CHECK (
     tenant_id = public.get_current_tenant_id()
-    AND public.has_role(auth.uid(), 'admin'::app_role)
+    AND public.has_role(auth.uid(), 'administrador'::app_role)
   );
 
 -- Admins of the tenant may update invites (revoke, resend, etc.)
@@ -58,7 +58,7 @@ CREATE POLICY team_invites_update_admins ON public.team_invites
   FOR UPDATE
   USING (
     tenant_id = public.get_current_tenant_id()
-    AND public.has_role(auth.uid(), 'admin'::app_role)
+    AND public.has_role(auth.uid(), 'administrador'::app_role)
   )
   WITH CHECK (tenant_id = public.get_current_tenant_id());
 

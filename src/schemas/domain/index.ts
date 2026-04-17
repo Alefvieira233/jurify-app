@@ -13,7 +13,9 @@ export {
   type ConexaoWhatsAppRow,
 } from './conexaoWhatsApp.schema';
 export {
+  EscritorioOnboardingFormSchema,
   EscritorioOnboardingSchema,
+  type EscritorioOnboardingForm,
   type EscritorioOnboardingInput,
   type EscritorioOnboardingData,
   isValidCnpj,

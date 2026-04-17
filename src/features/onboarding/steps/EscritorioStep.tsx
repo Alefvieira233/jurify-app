@@ -18,8 +18,9 @@ import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { createLogger } from '@/lib/logger';
 import {
+  EscritorioOnboardingFormSchema,
   EscritorioOnboardingSchema,
-  type EscritorioOnboardingInput,
+  type EscritorioOnboardingForm,
   stripCnpjMask,
 } from '@/schemas/domain';
 
@@ -50,10 +51,10 @@ const EscritorioStep = ({ onNext, onSkip }: EscritorioStepProps) => {
   const { toast } = useToast();
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
-  const firstInputRef = useRef<HTMLInputElement>(null);
+  const firstInputRef = useRef<HTMLInputElement | null>(null);
 
-  const form = useForm<EscritorioOnboardingInput>({
-    resolver: zodResolver(EscritorioOnboardingSchema),
+  const form = useForm<EscritorioOnboardingForm>({
+    resolver: zodResolver(EscritorioOnboardingFormSchema),
     defaultValues: {
       nome_escritorio: '',
       cnpj: '',
@@ -133,16 +134,38 @@ const EscritorioStep = ({ onNext, onSkip }: EscritorioStepProps) => {
     }
   };
 
-  const handleSubmit = async (values: EscritorioOnboardingInput) => {
+  const handleSubmit = async (values: EscritorioOnboardingForm) => {
     if (!profile?.tenant_id) return;
+
+    // Run the DOMAIN schema at submit-time for the extra transforms
+    // (CNPJ digit validation, URL parse, phone regex). If it fails we
+    // surface the first issue back on the matching form field.
+    const parsed = EscritorioOnboardingSchema.safeParse(values);
+    if (!parsed.success) {
+      for (const issue of parsed.error.issues) {
+        const field = issue.path[0];
+        if (
+          field === 'nome_escritorio' ||
+          field === 'cnpj' ||
+          field === 'endereco' ||
+          field === 'telefone_principal' ||
+          field === 'logo_url'
+        ) {
+          form.setError(field, { message: issue.message });
+        }
+      }
+      return;
+    }
+
     setSaving(true);
     try {
+      const data = parsed.data;
       const payload: Record<string, unknown> = {
-        nome: values.nome_escritorio,
-        cnpj: values.cnpj ? stripCnpjMask(values.cnpj) : null,
-        endereco: values.endereco || null,
-        telefone_principal: values.telefone_principal || null,
-        logo_url: values.logo_url || null,
+        nome: data.nome_escritorio,
+        cnpj: data.cnpj ? stripCnpjMask(data.cnpj) : null,
+        endereco: data.endereco ?? null,
+        telefone_principal: data.telefone_principal ?? null,
+        logo_url: data.logo_url ?? null,
       };
       const { error } = await supabase
         .from('tenants')
@@ -216,7 +239,10 @@ const EscritorioStep = ({ onNext, onSkip }: EscritorioStepProps) => {
                   <Input
                     placeholder="00.000.000/0001-00"
                     inputMode="numeric"
-                    value={field.value ?? ''}
+                    name={field.name}
+                    ref={field.ref}
+                    value={field.value}
+                    onBlur={field.onBlur}
                     onChange={(e) => field.onChange(formatCnpj(e.target.value))}
                   />
                 </FormControl>
@@ -237,8 +263,7 @@ const EscritorioStep = ({ onNext, onSkip }: EscritorioStepProps) => {
                       placeholder="(11) 99999-9999"
                       type="tel"
                       autoComplete="tel"
-                      value={field.value ?? ''}
-                      onChange={field.onChange}
+                      {...field}
                     />
                   </FormControl>
                   <FormMessage />
@@ -256,8 +281,7 @@ const EscritorioStep = ({ onNext, onSkip }: EscritorioStepProps) => {
                     <Input
                       placeholder="Rua, numero, cidade"
                       autoComplete="street-address"
-                      value={field.value ?? ''}
-                      onChange={field.onChange}
+                      {...field}
                     />
                   </FormControl>
                   <FormMessage />
@@ -277,8 +301,7 @@ const EscritorioStep = ({ onNext, onSkip }: EscritorioStepProps) => {
                     <Input
                       type="url"
                       placeholder="https://..."
-                      value={field.value ?? ''}
-                      onChange={field.onChange}
+                      {...field}
                     />
                     <label
                       className="inline-flex items-center gap-1 px-3 h-10 rounded-md border border-input bg-background text-sm cursor-pointer hover:bg-accent whitespace-nowrap"

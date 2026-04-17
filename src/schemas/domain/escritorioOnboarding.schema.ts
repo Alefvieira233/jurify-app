@@ -1,6 +1,6 @@
 /**
  * @module schemas/domain/escritorioOnboarding
- * @description Zod schema for the onboarding "Escritorio" step (step 2).
+ * @description Zod schemas for the onboarding "Escritorio" step (step 2).
  *
  * Captures the minimal firm identity required to personalize the app:
  * - nome_escritorio (required, 2..120 chars)
@@ -9,8 +9,13 @@
  * - telefone_principal (optional)
  * - logo_url (optional; populated after upload to tenant-assets bucket)
  *
- * The schema intentionally marks CNPJ as optional — the owner may want to
- * skip that field during onboarding and fill it later from Settings.
+ * Two schemas exposed:
+ * - `EscritorioOnboardingFormSchema` — plain strings, used by `react-hook-form`
+ *   via `zodResolver`. Every field is `string` (or empty string) so the
+ *   controlled inputs never see `unknown`.
+ * - `EscritorioOnboardingSchema` — post-form validation/transforms (CNPJ
+ *   digit check, trim, email/url). Call `safeParse()` on submit to get a
+ *   normalized payload before writing to the DB.
  */
 
 import { z } from 'zod';
@@ -54,10 +59,39 @@ export function isValidCnpj(raw: string): boolean {
   );
 }
 
-// ─── Schemas ───────────────────────────────────────────────────────────────
+// ─── Form schema ───────────────────────────────────────────────────────────
+// Every field is a plain `string` so react-hook-form + `<Input />` stay typed.
+// Only `nome_escritorio` is mandatory at the form layer — everything else may
+// be empty string, which the domain schema normalizes to `undefined`.
 
-const emptyToUndefined = (v: unknown) =>
-  typeof v === 'string' && v.trim() === '' ? undefined : v;
+export const EscritorioOnboardingFormSchema = z.object({
+  nome_escritorio: z
+    .string({ required_error: 'Informe o nome do escritorio' })
+    .min(2, 'Nome deve ter pelo menos 2 caracteres')
+    .max(120, 'Nome muito longo'),
+  cnpj: z.string().max(32, 'CNPJ muito longo').default(''),
+  endereco: z.string().max(240, 'Endereco muito longo').default(''),
+  telefone_principal: z
+    .string()
+    .max(20, 'Telefone muito longo')
+    .default(''),
+  logo_url: z.string().max(2048, 'URL muito longa').default(''),
+});
+
+export type EscritorioOnboardingForm = z.infer<
+  typeof EscritorioOnboardingFormSchema
+>;
+
+// ─── Domain schema ─────────────────────────────────────────────────────────
+// Consumes the form values and normalizes them into DB-ready shape.
+// Empty strings become `undefined`; CNPJ mask is stripped and validated;
+// URLs/phones are sanity-checked.
+
+const emptyToUndefined = (v: unknown): string | undefined => {
+  if (typeof v !== 'string') return undefined;
+  const trimmed = v.trim();
+  return trimmed.length === 0 ? undefined : trimmed;
+};
 
 export const EscritorioOnboardingSchema = z.object({
   nome_escritorio: z
@@ -67,34 +101,44 @@ export const EscritorioOnboardingSchema = z.object({
     .max(120, 'Nome muito longo'),
 
   cnpj: z
-    .preprocess(
-      emptyToUndefined,
-      z
-        .string()
-        .refine(isValidCnpj, { message: 'CNPJ invalido' })
-        .optional(),
-    ),
+    .string()
+    .optional()
+    .transform(emptyToUndefined)
+    .refine((v) => v === undefined || isValidCnpj(v), {
+      message: 'CNPJ invalido',
+    }),
 
   endereco: z
-    .preprocess(
-      emptyToUndefined,
-      z.string().max(240, 'Endereco muito longo').optional(),
-    ),
+    .string()
+    .max(240, 'Endereco muito longo')
+    .optional()
+    .transform(emptyToUndefined),
 
   telefone_principal: z
-    .preprocess(
-      emptyToUndefined,
-      z
-        .string()
-        .max(20, 'Telefone muito longo')
-        .regex(/^[+\d()\-\s]+$/, 'Telefone invalido')
-        .optional(),
+    .string()
+    .max(20, 'Telefone muito longo')
+    .optional()
+    .transform(emptyToUndefined)
+    .refine(
+      (v) => v === undefined || /^[+\d()\-\s]+$/.test(v),
+      'Telefone invalido',
     ),
 
   logo_url: z
-    .preprocess(
-      emptyToUndefined,
-      z.string().url('URL invalida').optional(),
+    .string()
+    .optional()
+    .transform(emptyToUndefined)
+    .refine(
+      (v) => {
+        if (v === undefined) return true;
+        try {
+          void new URL(v);
+          return true;
+        } catch {
+          return false;
+        }
+      },
+      'URL invalida',
     ),
 });
 
