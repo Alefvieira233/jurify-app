@@ -55,6 +55,10 @@ jobs:
         working-directory: ${{ env.WORKING_DIR }}
         run: npm run type-check
 
+      - name: 🔁 Check circular imports
+        working-directory: ${{ env.WORKING_DIR }}
+        run: npm run check:circular
+
   # ==========================================
   # JOB 2: UNIT TESTS
   # ==========================================
