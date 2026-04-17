@@ -178,7 +178,7 @@ async function processAIRequest(
 // ðŸ†” Gera execution_id Ãºnico
 function generateExecutionId(): string {
   const timestamp = Date.now();
-  const random = Math.random().toString(36).substring(2, 11);
+  const random = crypto.randomUUID().split("-")[0];
   return `exec_${timestamp}_${random}`;
 }
 

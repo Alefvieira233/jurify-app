@@ -733,7 +733,7 @@ export async function processNormalizedMessage(
     let aiResponse: { result: string; usage?: { prompt_tokens: number; completion_tokens: number; total_tokens: number }; model: string } | null = null;
     let aiError: Error | null = null;
 
-    const executionId = `exec_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
+    const executionId = `exec_${Date.now()}_${crypto.randomUUID().split("-")[0]}`;
     const aiStartTime = Date.now();
     let executionRowId: string | null = null;
 

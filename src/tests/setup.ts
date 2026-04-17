@@ -81,7 +81,7 @@ Object.defineProperty(global, 'crypto', {
       }
       return arr;
     },
-    randomUUID: () => 'test-uuid-' + Math.random().toString(36).substring(7),
+    randomUUID: () => 'abcdef12-abcd-4abc-9abc-abcdef123456',
     subtle: webcrypto.subtle,
   },
 });
