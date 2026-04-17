@@ -6,7 +6,7 @@ import type { Processo } from '@/hooks/useProcessos';
 import { usePrazosProcessuais } from '@/hooks/usePrazosProcessuais';
 import { useHonorarios } from '@/hooks/useHonorarios';
 import { useDocumentosJuridicos } from '@/hooks/useDocumentosJuridicos';
-import PrazoAlertaBadge from '@/features/prazos/components/PrazoAlertaBadge';
+import { PrazoAlertaBadge } from '@/features/prazos';
 import { PROCESSO_STATUS_LABELS, TIPO_ACAO_LABELS as TIPO_LABELS } from '@/schemas/processoSchema';
 
 const HONORARIO_TIPO_LABELS: Record<string, string> = {

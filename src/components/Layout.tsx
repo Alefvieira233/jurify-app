@@ -10,7 +10,7 @@ import { lazyWithRetry } from "@/lib/lazyWithRetry";
 const OnboardingWizard = lazyWithRetry(() => import("@/features/onboarding/OnboardingWizard"));
 import { useKeyboardShortcuts } from "@/hooks/useKeyboardShortcuts";
 import GlobalSearch from "@/components/GlobalSearch";
-import AIAssistantChat from "@/features/ai-agents/components/AIAssistantChat";
+import { AIAssistantChat } from "@/features/ai-agents";
 import { useRealtimeSync } from "@/hooks/useRealtimeSync";
 import { useNetworkStatus } from "@/hooks/useNetworkStatus";
 import { usePushNotifications } from '@/hooks/usePushNotifications';
