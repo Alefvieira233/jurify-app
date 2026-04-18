@@ -34,7 +34,7 @@ export function createErrorResponse(
   // Log the full error internally for debugging
   console.error(`[Edge Function Error] status ${status}:`, error);
 
-  const message = customSafeMessage || GENERIC_MESSAGE;
+  const message = customSafeMessage || getSafeError(error);
 
   return new Response(
     JSON.stringify({ error: message }),
