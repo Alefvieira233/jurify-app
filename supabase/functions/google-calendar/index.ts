@@ -9,6 +9,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { getCorsHeaders } from "../_shared/cors.ts";
 import { applyRateLimit } from "../_shared/rate-limiter.ts";
 import { encrypt } from "../_shared/crypto.ts";
+import { createErrorResponse } from "../_shared/error-handler.ts";
 import { GoogleOAuthService } from "./google-oauth.ts";
 
 // Least-privilege OAuth scopes.
@@ -20,7 +21,7 @@ const OAUTH_SCOPES = [
   "https://www.googleapis.com/auth/userinfo.profile",
 ].join(" ");
 
-const OAUTH_METHODS = ["initiateAuth", "exchangeCode", "disconnect", "status"];
+const OAUTH_METHODS = ["initiateAuth", "exchangeCode", "refresh_token", "disconnect", "status"];
 const CALENDAR_METHODS = ["listEvents", "createEvent", "updateEvent", "deleteEvent", "syncEvents"];
 // Service-role only methods (called via supabase.functions.invoke from edge functions
 // that already authenticated their own caller — no end-user JWT context).
@@ -60,10 +61,7 @@ Deno.serve(async (req) => {
         const eventData = data.eventData as Record<string, unknown> | undefined;
 
         if (!responsavelId || !tenantId || !agendamentoId || !eventData) {
-          return new Response(
-            JSON.stringify({ error: "Missing responsavelId, tenantId, agendamentoId, or eventData" }),
-            { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-          );
+          return createErrorResponse("Missing responsavelId, tenantId, agendamentoId, or eventData", 400, corsHeaders, "Dados incompletos.");
         }
 
         // Verify token row exists for this responsavel
@@ -73,10 +71,7 @@ Deno.serve(async (req) => {
           .eq("user_id", responsavelId)
           .maybeSingle();
         if (!tokenRow) {
-          return new Response(
-            JSON.stringify({ error: "Responsavel has no Google Calendar connected" }),
-            { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-          );
+          return createErrorResponse("Responsavel has no Google Calendar connected", 404, corsHeaders, "Agenda não conectada.");
         }
 
         const googleService = new GoogleOAuthService(supabase, responsavelId);
@@ -103,20 +98,14 @@ Deno.serve(async (req) => {
             status: "error",
             error_message: message,
           });
-          return new Response(JSON.stringify({ error: message }), {
-            status: 502,
-            headers: { ...corsHeaders, "Content-Type": "application/json" },
-          });
+          return createErrorResponse(err, 502, corsHeaders);
         }
       }
     }
 
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) {
-      return new Response(JSON.stringify({ error: "Missing authorization" }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return createErrorResponse("Missing authorization", 401, corsHeaders, "Não autorizado.");
     }
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
@@ -129,10 +118,7 @@ Deno.serve(async (req) => {
     });
     const { data: { user }, error: authError } = await supabaseAuth.auth.getUser();
     if (authError || !user) {
-      return new Response(JSON.stringify({ error: "Unauthorized" }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return createErrorResponse(authError || "Unauthorized", 401, corsHeaders, "Sessão expirada.");
     }
 
     // Rate limit
@@ -156,9 +142,11 @@ Deno.serve(async (req) => {
       switch (method) {
         case "initiateAuth": {
           if (!clientId) {
-            return new Response(
-              JSON.stringify({ error: "Google OAuth não configurado. Configure GOOGLE_CLIENT_ID e GOOGLE_CLIENT_SECRET nos Supabase Secrets." }),
-              { status: 503, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+            return createErrorResponse(
+              "Google OAuth não configurado. Configure GOOGLE_CLIENT_ID e GOOGLE_CLIENT_SECRET nos Supabase Secrets.",
+              503,
+              corsHeaders,
+              "Serviço de agenda indisponível."
             );
           }
           const { redirectUri, state } = data as { redirectUri: string; state?: string };
@@ -166,9 +154,11 @@ Deno.serve(async (req) => {
           // locally, and validate it matches on callback. Falling back to user.id
           // is insecure because user.id is predictable.
           if (!state || typeof state !== "string" || state.length < 16) {
-            return new Response(
-              JSON.stringify({ error: "Missing or weak OAuth state. Provide a crypto-random string ≥16 chars." }),
-              { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+            return createErrorResponse(
+              "Missing or weak OAuth state. Provide a crypto-random string ≥16 chars.",
+              400,
+              corsHeaders,
+              "Estado de autenticação inválido."
             );
           }
           const params = new URLSearchParams({
@@ -187,10 +177,7 @@ Deno.serve(async (req) => {
 
         case "exchangeCode": {
           if (!clientId || !clientSecret) {
-            return new Response(
-              JSON.stringify({ error: "Google OAuth não configurado." }),
-              { status: 503, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-            );
+            return createErrorResponse("Google OAuth não configurado.", 503, corsHeaders, "Serviço indisponível.");
           }
           const { code, redirectUri } = data as { code: string; redirectUri: string };
           const tokenRes = await fetch("https://oauth2.googleapis.com/token", {
@@ -230,16 +217,25 @@ Deno.serve(async (req) => {
             name: userInfo.name,
             picture: userInfo.picture,
           }, { onConflict: "user_id" });
-          if (upsertError) throw new Error(`DB error: ${upsertError.message}`);
+          if (upsertError) throw upsertError;
           return new Response(
             JSON.stringify({ success: true, email: userInfo.email, name: userInfo.name }),
             { headers: { ...corsHeaders, "Content-Type": "application/json" } }
           );
         }
 
+        case "refresh_token": {
+          const googleService = new GoogleOAuthService(supabase, user.id);
+          // getValidToken automatically refreshes if expired
+          await googleService.getValidToken();
+          return new Response(JSON.stringify({ success: true }), {
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+
         case "disconnect": {
           const { error: delError } = await supabase.from("google_calendar_tokens").delete().eq("user_id", user.id);
-          if (delError) throw new Error(`DB error: ${delError.message}`);
+          if (delError) throw delError;
           return new Response(JSON.stringify({ success: true }), {
             headers: { ...corsHeaders, "Content-Type": "application/json" },
           });
@@ -316,17 +312,9 @@ Deno.serve(async (req) => {
       }
     }
 
-    return new Response(JSON.stringify({ error: `Unknown method: ${method}` }), {
-      status: 400,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    return createErrorResponse(`Unknown method: ${method}`, 400, corsHeaders, "Operação inválida.");
 
   } catch (error) {
-    const message = error instanceof Error ? error.message : String(error);
-    console.error("[google-calendar] Error:", message);
-    return new Response(JSON.stringify({ error: message }), {
-      status: 500,
-      headers: { ...getCorsHeaders(req.headers.get("origin") || undefined), "Content-Type": "application/json" },
-    });
+    return createErrorResponse(error, 500, getCorsHeaders(req.headers.get("origin") || undefined));
   }
 });
