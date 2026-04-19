@@ -68,7 +68,7 @@ function generateTokenId(): string {
    * Use the first segment of a UUID v4 (8 hex chars).
    * crypto.randomUUID() is available in both browser and Edge Functions.
    */
-  return crypto.randomUUID().split('-')[0];
+  return crypto.randomUUID().split('-')[0]!;
 }
 
 // ─── Core Types ─────────────────────────────────────────────────────────────
