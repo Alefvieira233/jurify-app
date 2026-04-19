@@ -86,17 +86,32 @@ export function sanitizeInput(
 }
 
 // ---------------------------------------------------------------------------
-// PII content filtering
+// PII content filtering (GDPR/LGPD compliance)
 // ---------------------------------------------------------------------------
 
 const PII_PATTERNS: Array<{ pattern: RegExp; label: string; replacement: string }> = [
+  // Financial/Identity
+  { pattern: /\b\d{4}\s?\d{4}\s?\d{4}\s?\d{4}\b/g, label: "Card", replacement: "***CARD***" },
   { pattern: /\b\d{3}\.?\d{3}\.?\d{3}-?\d{2}\b/g, label: "CPF", replacement: "***CPF***" },
   { pattern: /\b\d{2}\.?\d{3}\.?\d{3}-?[\dXx]\b/g, label: "RG", replacement: "***RG***" },
-  { pattern: /\b\d{4}\s?\d{4}\s?\d{4}\s?\d{4}\b/g, label: "Card", replacement: "***CARD***" },
+  { pattern: /\b\d{2}\.\d{3}\.\d{3}\/\d{4}-\d{2}\b/g, label: "CNPJ", replacement: "***CNPJ***" },
+
+  // Legal-specific (Brazilian)
+  { pattern: /\b\d{7}-\d{2}\.\d{4}\.\d\.\d{2}\.\d{4}\b/g, label: "Processo", replacement: "***PROCESSO***" },
+  { pattern: /(?:oab\/)?\b(?:AC|AL|AP|AM|BA|CE|DF|ES|GO|MA|MT|MS|MG|PA|PB|PR|PE|PI|RJ|RN|RS|RO|RR|SC|SP|SE|TO)\s?\d{4,6}\b/gi, label: "OAB", replacement: "***OAB***" },
+
+  // Contact info
+  { pattern: /\b[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}\b/g, label: "Email", replacement: "***EMAIL***" },
+  { pattern: /(?:\+55\s?)?(?:\(\d{2}\)|\d{2})\s?\d{4,5}[-\s]?\d{4}/g, label: "Phone", replacement: "***PHONE***" },
 ];
 
-/** Redact PII from assistant responses before sending to client. */
+/**
+ * Redact PII from text before logging or sending to client.
+ * Returns empty string for invalid inputs to prevent runtime crashes.
+ */
 export function redactPII(text: string): string {
+  if (!text || typeof text !== "string") return "";
+
   let result = text;
   for (const { pattern, replacement } of PII_PATTERNS) {
     result = result.replace(pattern, replacement);
