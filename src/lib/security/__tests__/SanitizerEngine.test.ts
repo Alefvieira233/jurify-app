@@ -10,7 +10,7 @@ describe('SanitizerEngine', () => {
         'O CPF do cliente é 123.456.789-00'
       );
       expect(safePayload).not.toContain('123.456.789-00');
-      expect((safePayload as string)).toMatch(/\[CPF-[a-z0-9]+\]/);
+      expect((safePayload as string)).toMatch(/\[CPF-[a-f0-9]+\]/);
       expect(piiCount).toBe(1);
       expect(lookupMap.size).toBe(1);
     });
@@ -20,7 +20,7 @@ describe('SanitizerEngine', () => {
         'CPF: 12345678900'
       );
       expect(safePayload).not.toContain('12345678900');
-      expect((safePayload as string)).toMatch(/\[CPF-[a-z0-9]+\]/);
+      expect((safePayload as string)).toMatch(/\[CPF-[a-f0-9]+\]/);
     });
   });
 
@@ -31,7 +31,7 @@ describe('SanitizerEngine', () => {
         'CNPJ da empresa: 12.345.678/0001-90'
       );
       expect(safePayload).not.toContain('12.345.678/0001-90');
-      expect((safePayload as string)).toMatch(/\[CNPJ-[a-z0-9]+\]/);
+      expect((safePayload as string)).toMatch(/\[CNPJ-[a-f0-9]+\]/);
       expect(piiCount).toBe(1);
     });
   });
@@ -43,7 +43,7 @@ describe('SanitizerEngine', () => {
         'Advogado inscrito na OAB SP123456'
       );
       expect(safePayload).not.toContain('SP123456');
-      expect((safePayload as string)).toMatch(/\[OAB-[a-z0-9]+\]/);
+      expect((safePayload as string)).toMatch(/\[OAB-[a-f0-9]+\]/);
     });
 
     it('masks OAB with space', () => {
@@ -61,7 +61,7 @@ describe('SanitizerEngine', () => {
         'Processo: 0001234-56.2023.8.26.0100'
       );
       expect(safePayload).not.toContain('0001234-56.2023.8.26.0100');
-      expect((safePayload as string)).toMatch(/\[CNJ-[a-z0-9]+\]/);
+      expect((safePayload as string)).toMatch(/\[CNJ-[a-f0-9]+\]/);
     });
   });
 
@@ -72,7 +72,7 @@ describe('SanitizerEngine', () => {
         'Contato: joao.silva@escritorio.com.br'
       );
       expect(safePayload).not.toContain('joao.silva@escritorio.com.br');
-      expect((safePayload as string)).toMatch(/\[EMAIL-[a-z0-9]+\]/);
+      expect((safePayload as string)).toMatch(/\[EMAIL-[a-f0-9]+\]/);
     });
   });
 
@@ -83,7 +83,7 @@ describe('SanitizerEngine', () => {
         'Telefone: (11) 99999-8888'
       );
       expect(safePayload).not.toContain('99999-8888');
-      expect((safePayload as string)).toMatch(/\[TEL-[a-z0-9]+\]/);
+      expect((safePayload as string)).toMatch(/\[TEL-[a-f0-9]+\]/);
     });
 
     it('masks phone with +55', () => {

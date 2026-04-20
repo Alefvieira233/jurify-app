@@ -61,11 +61,16 @@ const PII_PATTERNS: PIIPattern[] = [
   },
 ];
 
-// ─── UUID Generator (deterministic for masking) ─────────────────────────────
+// ─── UUID Generator (no crypto dependency needed) ───────────────────────────
 
 function generateTokenId(): string {
-  // Use crypto.randomUUID() for high-entropy tokens
-  return crypto.randomUUID().split('-')[0]!;
+  // Simple UUID v4-like generator that works in all environments
+  const hex = '0123456789abcdef';
+  let id = '';
+  for (let i = 0; i < 8; i++) {
+    id += hex[Math.floor(Math.random() * 16)];
+  }
+  return id;
 }
 
 // ─── Core Types ─────────────────────────────────────────────────────────────

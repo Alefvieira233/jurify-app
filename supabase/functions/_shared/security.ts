@@ -86,37 +86,17 @@ export function sanitizeInput(
 }
 
 // ---------------------------------------------------------------------------
-// PII content filtering (LGPD Compliance)
+// PII content filtering
 // ---------------------------------------------------------------------------
 
 const PII_PATTERNS: Array<{ pattern: RegExp; label: string; replacement: string }> = [
-  // Credit Cards: 16 digits (must come before phone/email to avoid partial matches)
-  { pattern: /\b\d{4}\s?\d{4}\s?\d{4}\s?\d{4}\b/g, label: "Card", replacement: "***CARD***" },
-  // Processo CNJ: NNNNNNN-DD.AAAA.J.TR.OOOO
-  { pattern: /\d{7}-\d{2}\.\d{4}\.\d\.\d{2}\.\d{4}/g, label: "PROCESSO_CNJ", replacement: "***PROCESSO***" },
-  // CNPJ: XX.XXX.XXX/XXXX-XX
-  { pattern: /\d{2}\.\d{3}\.\d{3}\/\d{4}-\d{2}/g, label: "CNPJ", replacement: "***CNPJ***" },
-  // CPF: XXX.XXX.XXX-XX
-  { pattern: /\d{3}\.\d{3}\.\d{3}-\d{2}/g, label: "CPF_FORMATTED", replacement: "***CPF***" },
-  // CPF: 11 digits raw (avoiding numbers with 12+ digits)
-  { pattern: /(?<!\d)\d{11}(?!\d)/g, label: "CPF_RAW", replacement: "***CPF***" },
-  // OAB: UF + 4-6 digits (case-insensitive)
-  { pattern: /\b(?:AC|AL|AP|AM|BA|CE|DF|ES|GO|MA|MT|MS|MG|PA|PB|PR|PE|PI|RJ|RN|RS|RO|RR|SC|SP|SE|TO)\s?\d{4,6}\b/gi, label: "OAB", replacement: "***OAB***" },
-  // Phone numbers (BR formats)
-  { pattern: /(?:\+55\s?)?(?:\(\d{2}\)|\d{2})\s?\d{4,5}[-\s]?\d{4}/g, label: "PHONE", replacement: "***PHONE***" },
-  // Email addresses
-  { pattern: /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g, label: "EMAIL", replacement: "***EMAIL***" },
-  // RG: XX.XXX.XXX-X
+  { pattern: /\b\d{3}\.?\d{3}\.?\d{3}-?\d{2}\b/g, label: "CPF", replacement: "***CPF***" },
   { pattern: /\b\d{2}\.?\d{3}\.?\d{3}-?[\dXx]\b/g, label: "RG", replacement: "***RG***" },
+  { pattern: /\b\d{4}\s?\d{4}\s?\d{4}\s?\d{4}\b/g, label: "Card", replacement: "***CARD***" },
 ];
 
-/**
- * Redact PII from text before logging or sending to client.
- * Defensive: returns empty string for non-string inputs.
- */
+/** Redact PII from assistant responses before sending to client. */
 export function redactPII(text: string): string {
-  if (typeof text !== "string") return "";
-
   let result = text;
   for (const { pattern, replacement } of PII_PATTERNS) {
     result = result.replace(pattern, replacement);
