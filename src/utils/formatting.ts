@@ -100,8 +100,10 @@ const AREA_MAP: Record<string, string> = {
 };
 
 /** Formats a legal area key into a human-readable label. */
-export const formatarAreaJuridica = (area: string): string =>
-  AREA_MAP[area] ?? area.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+export const formatarAreaJuridica = (area: string): string => {
+  if (!area) return '';
+  return AREA_MAP[area] ?? area.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+};
 
 /* ── Pipeline stages ── */
 
@@ -117,8 +119,10 @@ const ETAPA_MAP: Record<string, string> = {
 };
 
 /** Formats a pipeline stage key into a human-readable label. */
-export const formatarEtapaPipeline = (etapa: string): string =>
-  ETAPA_MAP[etapa] ?? etapa.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+export const formatarEtapaPipeline = (etapa: string): string => {
+  if (!etapa) return '';
+  return ETAPA_MAP[etapa] ?? etapa.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+};
 
 /* ── Strings ── */
 
@@ -127,8 +131,10 @@ export const truncate = (text: string, length: number): string =>
   text.length > length ? text.substring(0, length) + '…' : text;
 
 /** Capitalizes the first letter and lowercases the rest. */
-export const capitalize = (text: string): string =>
-  text.charAt(0).toUpperCase() + text.slice(1).toLowerCase();
+export const capitalize = (text: string): string => {
+  if (!text) return '';
+  return text.charAt(0).toUpperCase() + text.slice(1).toLowerCase();
+};
 
 /* ── Document / Contact numbers ── */
 

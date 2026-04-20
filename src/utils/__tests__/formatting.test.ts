@@ -17,6 +17,8 @@ import {
   fmtCPF,
   fmtCNPJ,
   fmtFileSize,
+  formatarAreaJuridica,
+  formatarEtapaPipeline,
 } from '../formatting';
 
 describe('getInitials', () => {
@@ -197,6 +199,46 @@ describe('capitalize', () => {
 
   it('lowercases rest', () => {
     expect(capitalize('HELLO')).toBe('Hello');
+  });
+});
+
+describe('formatarAreaJuridica', () => {
+  it('formats known area', () => {
+    expect(formatarAreaJuridica('trabalhista')).toBe('Trabalhista');
+  });
+
+  it('formats unknown area', () => {
+    expect(formatarAreaJuridica('area_desconhecida')).toBe('Area Desconhecida');
+  });
+
+  it('handles null/empty', () => {
+    expect(formatarAreaJuridica('')).toBe('');
+    // @ts-expect-error
+    expect(formatarAreaJuridica(null)).toBe('');
+  });
+
+  it('handles special characters in area', () => {
+    expect(formatarAreaJuridica('area_test_abc')).toBe('Area Test Abc');
+  });
+});
+
+describe('formatarEtapaPipeline', () => {
+  it('formats known stage', () => {
+    expect(formatarEtapaPipeline('novo')).toBe('Novo');
+  });
+
+  it('formats unknown stage', () => {
+    expect(formatarEtapaPipeline('etapa_x')).toBe('Etapa X');
+  });
+
+  it('handles null/empty', () => {
+    expect(formatarEtapaPipeline('')).toBe('');
+    // @ts-expect-error
+    expect(formatarEtapaPipeline(null)).toBe('');
+  });
+
+  it('handles unknown stage format', () => {
+    expect(formatarEtapaPipeline('minha_etapa')).toBe('Minha Etapa');
   });
 });
 

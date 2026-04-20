@@ -89,6 +89,11 @@ describe('monitoring service', () => {
     const recent = monitoring.getRecentErrors(1);
     expect(recent[0].context).toBeDefined();
   });
+
+  it('exposes sendMetric method', () => {
+    expect(typeof (monitoring as any).sendMetric).toBe('function');
+    expect(() => (monitoring as any).sendMetric({ name: 'test', value: 1 })).not.toThrow();
+  });
 });
 
 describe('useMonitoring hook', () => {
