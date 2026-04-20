@@ -96,7 +96,7 @@ export abstract class BaseAgent implements IAgent {
     priority: MessagePriority = Priority.MEDIUM
   ): Promise<void> {
     const message: AgentMessage = {
-      id: `msg_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`,
+      id: `msg_${Date.now()}_${crypto.randomUUID().split('-')[0]!}`,
       from: this.name,
       to,
       type,
