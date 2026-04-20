@@ -75,7 +75,6 @@ vi.mock('../hooks/useReportExport', () => ({
   useReportExport: () => ({
     exportCSV: vi.fn().mockResolvedValue(undefined),
     exportPDF: vi.fn().mockResolvedValue(undefined),
-    exportExcel: vi.fn().mockResolvedValue(undefined),
     exporting: null,
   }),
 }));
