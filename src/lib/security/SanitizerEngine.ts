@@ -64,7 +64,8 @@ const PII_PATTERNS: PIIPattern[] = [
 // ─── UUID Generator (secure) ───────────────────────────────────────────────
 
 function generateTokenId(): string {
-  return crypto.randomUUID().split('-')[0];
+  // Use non-null assertion as randomUUID always returns a hyphenated string
+  return crypto.randomUUID().split('-')[0]!;
 }
 
 // ─── Core Types ─────────────────────────────────────────────────────────────
