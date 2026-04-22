@@ -95,7 +95,7 @@ const PII_PATTERNS: Array<{ pattern: RegExp; label: string; replacement: string 
   // CNPJ: XX.XXX.XXX/XXXX-XX
   { pattern: /\b\d{2}\.\d{3}\.\d{3}\/\d{4}-\d{2}\b/g, label: "CNPJ", replacement: "[CNPJ]" },
   // CPF: XXX.XXX.XXX-XX
-  { pattern: /\b\d{3}\.?\d{3}\.?\d{3}-?\d{2}\b/g, label: "CPF", replacement: "[CPF]" },
+  { pattern: /\b\d{3}\.?\d{3}\.?\d{3}-?\d{2}\b/g, label: "CPF", replacement: "***CPF***" },
   // RG: XX.XXX.XXX-X
   { pattern: /\b\d{2}\.?\d{3}\.?\d{3}-?[\dXx](?!\d)\b/g, label: "RG", replacement: "[RG]" },
   // OAB: (OAB/)?UF 123456
@@ -103,7 +103,7 @@ const PII_PATTERNS: Array<{ pattern: RegExp; label: string; replacement: string 
   // Email
   { pattern: /\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}\b/g, label: "Email", replacement: "[EMAIL]" },
   // Credit Card
-  { pattern: /\b\d{4}\s?\d{4}\s?\d{4}\s?\d{4}\b/g, label: "Card", replacement: "[CARD]" },
+  { pattern: /\b\d{4}\s?\d{4}\s?\d{4}\s?\d{4}\b/g, label: "Card", replacement: "***CARD***" },
   // Phone: (XX) 9XXXX-XXXX
   { pattern: /(?:\+55\s?)?(?:\(\d{2}\)|\d{2})\s?\d{4,5}[-\s]?\d{4}\b/g, label: "Phone", replacement: "[PHONE]" },
 ];
