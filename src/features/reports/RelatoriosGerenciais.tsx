@@ -14,10 +14,12 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Download, TrendingUp, BarChart3 } from 'lucide-react';
 import { useMRR } from '@/hooks/useMRR';
 import { useResponseTime } from '@/hooks/useResponseTime';
-import { ConversionFunnel } from '@/features/dashboard/components/analytics/ConversionFunnel';
-import { RevenueCard } from '@/features/dashboard/components/analytics/RevenueCard';
-import { ResponseTimeChart } from '@/features/dashboard/components/analytics/ResponseTimeChart';
-import { ChurnCard } from '@/features/dashboard/components/analytics/ChurnCard';
+import {
+  ConversionFunnel,
+  RevenueCard,
+  ResponseTimeChart,
+  ChurnCard,
+} from '@/features/dashboard';
 import { usePageTitle } from '@/hooks/usePageTitle';
 import type { PeriodKey } from './useReportMetrics';
 import { computePeriodRange, tooltipStyle } from './useReportMetrics';
@@ -28,7 +30,7 @@ import { useReportExport, type ExportFormat, type ExportData } from './hooks/use
 
 /* Analytics avançado — lazy para não bloquear o bundle principal */
 const AnalyticsDashboard = lazyWithRetry(() =>
-  import('@/features/dashboard/components/analytics/AnalyticsDashboard').then(m => ({ default: m.AnalyticsDashboard }))
+  import('@/features/dashboard').then(m => ({ default: m.AnalyticsDashboard }))
 );
 
 /* ─────────────────────────────────────────────────────────────────────────── */
@@ -66,8 +68,8 @@ const RelatoriosGerenciais = () => {
     handleExportDemo,
   } = useReportMetrics(periodRange);
 
-  /* ── Multi-format export (CSV / PDF / Excel) ── */
-  const { exportCSV, exportPDF, exportExcel, exporting } = useReportExport();
+  /* ── Multi-format export (CSV / PDF) ── */
+  const { exportCSV, exportPDF, exporting } = useReportExport();
 
   const buildResumoExportData = (): ExportData => {
     const rows: Array<Array<string | number>> = [];
@@ -105,7 +107,8 @@ const RelatoriosGerenciais = () => {
       await exportPDF(data, `relatorio-gerencial-${stamp}.pdf`);
       return;
     }
-    await exportExcel(data, `relatorio-gerencial-${stamp}.xlsx`);
+    // Excel export was removed due to security vulnerabilities in xlsx library.
+    // Users should use CSV and save as Excel.
   };
 
   /* ── Loading ── */

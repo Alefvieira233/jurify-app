@@ -8,3 +8,4 @@
 export { default as LogsMonitoramento } from './components/LogsMonitoramento';
 export { default as AgentesIAManager } from './AgentesIAManager';
 export { default as BaseConhecimento } from './BaseConhecimento';
+export { default as AIAssistantChat } from './components/AIAssistantChat';

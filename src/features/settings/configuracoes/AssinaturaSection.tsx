@@ -1,4 +1,4 @@
-import { SubscriptionManager } from '@/features/billing/components/SubscriptionManager';
+import SubscriptionManager from '@/features/billing';
 
 /**
  * Wrapper que embute o SubscriptionManager na aba Assinatura das Configurações.
