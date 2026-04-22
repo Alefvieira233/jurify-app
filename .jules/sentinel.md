@@ -1,0 +1,4 @@
+## 2026-04-12 - AI Log PII Leakage & Weak Identifiers
+**Vulnerability:** Internal AI processing logs (agent_ai_logs) were capturing system prompts, user prompts, and full results without PII redaction. Additionally, execution identifiers and security tokens were generated using `Math.random()`, which is cryptographically insecure.
+**Learning:** Security controls applied at the edge (like PII redaction for client responses) often miss internal observability paths. Logging "raw" AI interactions for debugging can inadvertently create a secondary PII leak if not passed through the same sanitization engine.
+**Prevention:** Always apply `redactPII` before logging any text that contains user-provided or model-generated content. Use `crypto.randomUUID()` or `crypto.getRandomValues()` for any identifier that requires uniqueness and non-predictability in security contexts.
