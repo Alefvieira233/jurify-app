@@ -7,3 +7,8 @@
 
 export { default as PerformanceDashboard } from './components/PerformanceDashboard';
 export { default as Dashboard } from './Dashboard';
+export { default as StatCard } from './components/StatCard';
+export { default as PrazosUrgentesWidget } from './components/PrazosUrgentesWidget';
+
+// Analytics components
+export * from './components/analytics';
