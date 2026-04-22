@@ -90,22 +90,23 @@ export function sanitizeInput(
 // ---------------------------------------------------------------------------
 
 const PII_PATTERNS: Array<{ pattern: RegExp; label: string; replacement: string }> = [
+  // Credit Card: 16 digits
+  { pattern: /\b\d{4}\s?\d{4}\s?\d{4}\s?\d{4}\b/g, label: "Card", replacement: "***CARD***" },
   // Processo CNJ: NNNNNNN-DD.AAAA.J.TR.OOOO
   { pattern: /\b\d{7}-\d{2}\.\d{4}\.\d\.\d{2}\.\d{4}\b/g, label: "Processo", replacement: "[PROCESSO]" },
   // CNPJ: XX.XXX.XXX/XXXX-XX
-  { pattern: /\b\d{2}\.\d{3}\.\d{3}\/\d{4}-\d{2}\b/g, label: "CNPJ", replacement: "[CNPJ]" },
+  { pattern: /\b\d{2}\.?\d{3}\.?\d{3}\/\d{4}-\d{2}\b/g, label: "CNPJ", replacement: "[CNPJ]" },
+  // OAB: (OAB[\/\s-]*)?UF\s?\d{4,6}
+  { pattern: /(?:OAB[\/\s-]*)?\b(?:AC|AL|AP|AM|BA|CE|DF|ES|GO|MA|MT|MS|MG|PA|PB|PR|PE|PI|RJ|RN|RS|RO|RR|SC|SP|SE|TO)[\s-]?\d{4,6}\b/gi, label: "OAB", replacement: "[OAB]" },
+  // Phone: (XX) 9XXXX-XXXX or XX 9XXXX-XXXX
+  // Matches cell phones (11 digits, 3rd is 9) and fixed lines (10 digits)
+  { pattern: /(?:\+55\s?)?(?:\(\d{2}\)|\b\d{2})\s?(?:9\d{4}[-\s]?\d{4}|\d{4}[-\s]?\d{4})\b/g, label: "Phone", replacement: "[PHONE]" },
   // CPF: XXX.XXX.XXX-XX
   { pattern: /\b\d{3}\.?\d{3}\.?\d{3}-?\d{2}\b/g, label: "CPF", replacement: "***CPF***" },
   // RG: XX.XXX.XXX-X
   { pattern: /\b\d{2}\.?\d{3}\.?\d{3}-?[\dXx](?!\d)\b/g, label: "RG", replacement: "[RG]" },
-  // OAB: (OAB/)?UF 123456
-  { pattern: /(?:OAB\/)?(?:AC|AL|AP|AM|BA|CE|DF|ES|GO|MA|MT|MS|MG|PA|PB|PR|PE|PI|RJ|RN|RS|RO|RR|SC|SP|SE|TO)\s?\d{4,6}\b/gi, label: "OAB", replacement: "[OAB]" },
   // Email
   { pattern: /\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}\b/g, label: "Email", replacement: "[EMAIL]" },
-  // Credit Card
-  { pattern: /\b\d{4}\s?\d{4}\s?\d{4}\s?\d{4}\b/g, label: "Card", replacement: "***CARD***" },
-  // Phone: (XX) 9XXXX-XXXX
-  { pattern: /(?:\+55\s?)?(?:\(\d{2}\)|\d{2})\s?\d{4,5}[-\s]?\d{4}\b/g, label: "Phone", replacement: "[PHONE]" },
 ];
 
 /**
