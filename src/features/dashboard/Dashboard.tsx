@@ -1,11 +1,12 @@
 import { useState, useMemo, Suspense } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { ScreenReaderAnnounce } from '@/components/ui/ScreenReaderAnnounce';
 import { lazyWithRetry } from '@/lib/lazyWithRetry';
 const SankeyChart = lazyWithRetry(() => import('./components/SankeyChart'));
 import AgentActivityWidget from './components/AgentActivityWidget';
 import {
   MessageSquare, Search, CheckCircle, FileText, Trophy, XCircle,
-  TrendingUp, Calendar, HelpCircle, AlertTriangle,
+  TrendingUp, Calendar, HelpCircle, AlertTriangle, Sparkles, Plus,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -91,6 +92,7 @@ function MiniSparkline({ data, color }: { data: number[]; color: string }) {
 /* ── Dashboard ── */
 const Dashboard = () => {
   usePageTitle('Dashboard');
+  const navigate = useNavigate();
   const { leads, error: leadsError } = useLeads();
   const { isViewFallback } = useDashboardMetricsFast();
   const [periodo, setPeriodo] = useState('semana');
@@ -202,6 +204,36 @@ const Dashboard = () => {
           </div>
         </div>
       </div>
+
+      {/* First-run welcome — shown only when the tenant has zero leads. */}
+      {totalAll === 0 && leads !== undefined && (
+        <div className="rounded-xl border border-primary/20 bg-gradient-to-br from-primary/5 via-primary/[0.02] to-transparent p-6">
+          <div className="flex items-start gap-4">
+            <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
+              <Sparkles className="h-6 w-6 text-primary" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <h3 className="text-base font-semibold text-foreground mb-1">
+                Bem-vindo ao Jurify
+              </h3>
+              <p className="text-sm text-muted-foreground mb-4 max-w-2xl">
+                Seu dashboard vai ganhar vida conforme os leads começarem a chegar.
+                Conecte o WhatsApp do escritório para captura automática, ou crie um lead manualmente agora.
+              </p>
+              <div className="flex flex-wrap gap-2">
+                <Button size="sm" onClick={() => navigate('/conexoes')}>
+                  <MessageSquare className="h-4 w-4 mr-1.5" />
+                  Conectar WhatsApp
+                </Button>
+                <Button size="sm" variant="outline" onClick={() => navigate('/crm')}>
+                  <Plus className="h-4 w-4 mr-1.5" />
+                  Criar primeiro lead
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ── Atividade dos Agentes IA ── */}
       <AgentActivityWidget />

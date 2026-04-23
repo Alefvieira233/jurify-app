@@ -62,6 +62,12 @@ const OnboardingFlow = () => {
     queryFn: async () => {
       if (!tenantId || !user) return { visible: false, completionMap: {}, allComplete: false };
 
+      // Wait for the first-run wizard to finish (or be skipped) before surfacing
+      // the checklist — otherwise both modals stack on a brand-new tenant.
+      const { data: wizardSetting } = await supabase
+        .from('system_settings').select('value').eq('tenant_id', tenantId).eq('key', 'onboarding_wizard_completed').maybeSingle();
+      if (wizardSetting?.value !== 'true') return { visible: false, completionMap: {}, allComplete: false };
+
       const { data: completedSetting } = await supabase
         .from('system_settings').select('value').eq('tenant_id', tenantId).eq('key', 'onboarding_completed').maybeSingle();
       if (completedSetting?.value === 'true') return { visible: false, completionMap: {}, allComplete: true };

@@ -1,15 +1,17 @@
-import { Calendar, CheckCircle2, Unlink, Loader2, AlertCircle, RefreshCw } from 'lucide-react';
+import { Calendar, CheckCircle2, Unlink, Loader2, AlertCircle, RefreshCw, Settings } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { useGoogleCalendarConnection } from '@/hooks/useGoogleCalendarConnection';
+import { GoogleOAuthService } from '@/lib/google/GoogleOAuthService';
 import { formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
 export function GoogleCalendarCard() {
   const { status, isLoading, isConnecting, isDisconnecting, error, connect, disconnect, refetch } =
     useGoogleCalendarConnection();
+  const envConfigured = GoogleOAuthService.isConfigured();
 
   if (isLoading) {
     return (
@@ -114,6 +116,23 @@ export function GoogleCalendarCard() {
                 <Unlink className="h-3.5 w-3.5 mr-2" />
               )}
               Desconectar
+            </Button>
+          </div>
+        ) : !envConfigured ? (
+          <div className="space-y-3">
+            <div className="flex items-start gap-2 p-2.5 rounded-md bg-amber-50 dark:bg-amber-900/20 text-amber-900 dark:text-amber-200 text-xs">
+              <Settings className="h-3.5 w-3.5 flex-shrink-0 mt-0.5" />
+              <div>
+                <p className="font-medium mb-0.5">Integração ainda não configurada</p>
+                <p className="text-[11px] opacity-90">
+                  O administrador precisa definir <code className="text-[10px] px-1 py-0.5 bg-amber-100 dark:bg-amber-900/40 rounded">VITE_GOOGLE_CLIENT_ID</code>
+                  {' '}no ambiente e <code className="text-[10px] px-1 py-0.5 bg-amber-100 dark:bg-amber-900/40 rounded">GOOGLE_CLIENT_SECRET</code> nos Supabase Secrets.
+                </p>
+              </div>
+            </div>
+            <Button className="w-full h-9 text-sm gap-2" disabled>
+              <Calendar className="h-4 w-4" />
+              Conectar com Google
             </Button>
           </div>
         ) : (

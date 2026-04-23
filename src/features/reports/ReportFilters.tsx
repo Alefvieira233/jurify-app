@@ -23,7 +23,7 @@ interface ReportFiltersProps {
   customEnd: string;
   onCustomStartChange: (value: string) => void;
   onCustomEndChange: (value: string) => void;
-  /** Optional export handler — when provided, renders an Export dropdown (CSV / PDF / Excel). */
+  /** Optional export handler — when provided, renders an Export dropdown (CSV / PDF). */
   onExport?: (format: ExportFormat) => void | Promise<void>;
   /** Current export format in-flight, to show loading indicator and disable clicks. */
   exporting?: ExportFormat | null;

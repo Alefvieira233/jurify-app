@@ -66,8 +66,8 @@ const RelatoriosGerenciais = () => {
     handleExportDemo,
   } = useReportMetrics(periodRange);
 
-  /* ── Multi-format export (CSV / PDF / Excel) ── */
-  const { exportCSV, exportPDF, exportExcel, exporting } = useReportExport();
+  /* ── Multi-format export (CSV / PDF) ── */
+  const { exportCSV, exportPDF, exporting } = useReportExport();
 
   const buildResumoExportData = (): ExportData => {
     const rows: Array<Array<string | number>> = [];
@@ -105,7 +105,6 @@ const RelatoriosGerenciais = () => {
       await exportPDF(data, `relatorio-gerencial-${stamp}.pdf`);
       return;
     }
-    await exportExcel(data, `relatorio-gerencial-${stamp}.xlsx`);
   };
 
   /* ── Loading ── */
