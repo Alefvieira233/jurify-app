@@ -51,12 +51,12 @@ const PII_PATTERNS: PIIPattern[] = [
   },
   {
     name: 'PHONE_BR',
-    regex: /(?:\+55\s?)?(?:\(\d{2}\)|\d{2})\s?\d{4,5}[-\s]?\d{4}/g,
+    regex: /(?:\+55\s?)?(?:\(\d{2}\)|\d{2})\s?\d{4,5}[-\s]?\d{4}\b/g,
     prefix: 'TEL',
   },
   {
     name: 'EMAIL',
-    regex: /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g,
+    regex: /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}\b/g,
     prefix: 'EMAIL',
   },
 ];
@@ -64,17 +64,9 @@ const PII_PATTERNS: PIIPattern[] = [
 // ─── UUID Generator (secure) ────────────────────────────────────────────────
 
 function generateTokenId(): string {
-  // SEC-09: Use cryptographically secure UUID for token IDs
-  if (typeof crypto !== 'undefined' && crypto.randomUUID) {
-    return crypto.randomUUID().split('-')[0]!;
-  }
-  // Fallback for older environments (should not be reached in modern browsers/Edge Functions)
-  const hex = '0123456789abcdef';
-  let id = '';
-  for (let i = 0; i < 8; i++) {
-    id += hex[Math.floor(Math.random() * 16)]!;
-  }
-  return id;
+  // SEC-09: Use cryptographically secure UUID for token IDs.
+  // globalThis.crypto is guaranteed in modern Browsers and Deno Edge Functions.
+  return crypto.randomUUID().split('-')[0]!;
 }
 
 // ─── Core Types ─────────────────────────────────────────────────────────────

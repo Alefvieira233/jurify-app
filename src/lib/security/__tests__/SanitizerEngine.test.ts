@@ -52,6 +52,14 @@ describe('SanitizerEngine', () => {
       );
       expect(safePayload).not.toContain('RJ 98765');
     });
+
+    it('masks OAB with / prefix', () => {
+      const { safePayload } = new SanitizerEngine().sanitize(
+        'Inscrito na OAB/SP 123456'
+      );
+      expect(safePayload).not.toContain('OAB/SP 123456');
+      expect((safePayload as string)).toMatch(/\[OAB-[a-f0-9]+\]/);
+    });
   });
 
   // ─── Processo CNJ ─────────────────────────────────────────────
@@ -195,6 +203,18 @@ describe('SanitizerEngine', () => {
       const { safePayload, lookupMap } = engine.sanitize(original);
       const restored = SanitizerEngine.rehydrate(safePayload, lookupMap);
       expect(restored).toEqual(original);
+    });
+
+    it('round-trips array correctly', () => {
+      const original = ['CPF: 123.456.789-00', 'Email: joao@test.com'];
+      const engine = new SanitizerEngine();
+      const { safePayload, lookupMap } = engine.sanitize(original);
+      const restored = SanitizerEngine.rehydrate(safePayload, lookupMap);
+      expect(restored).toEqual(original);
+    });
+
+    it('rehydrates primitives correctly', () => {
+      expect(SanitizerEngine.rehydrate(42, new Map())).toBe(42);
     });
 
     it('handles empty lookup map gracefully', () => {
