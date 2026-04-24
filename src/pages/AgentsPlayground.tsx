@@ -14,10 +14,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { toUserMessage } from '@/lib/errorMessages';
 import { usePageTitle } from '@/hooks/usePageTitle';
-import PlaygroundExamples from '@/features/agents/components/PlaygroundExamples';
-import PlaygroundInput from '@/features/agents/components/PlaygroundInput';
-import PlaygroundResults from '@/features/agents/components/PlaygroundResults';
-import type { ExecutionResult } from '@/features/agents/components/PlaygroundResults';
+import { PlaygroundExamples, PlaygroundInput, PlaygroundResults, type ExecutionResult } from '@/features/agents';
 
 export default function AgentsPlayground() {
   usePageTitle('Playground');
