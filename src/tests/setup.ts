@@ -81,7 +81,13 @@ Object.defineProperty(global, 'crypto', {
       }
       return arr;
     },
-    randomUUID: () => 'test-uuid-' + Math.random().toString(36).substring(7),
+    randomUUID: () => {
+      // Return a valid-looking but slightly randomized hex string for token matching
+      const hex = '0123456789abcdef';
+      let part = '';
+      for (let i = 0; i < 8; i++) part += hex[Math.floor(Math.random() * 16)];
+      return `${part}-abcd-abcd-abcd-abcdef012345`;
+    },
     subtle: webcrypto.subtle,
   },
 });

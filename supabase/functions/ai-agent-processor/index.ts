@@ -1,8 +1,8 @@
 ﻿/**
- * ðŸš€ JURIFY AI AGENT PROCESSOR - EDGE FUNCTION
+ * 🚀 JURIFY AI AGENT PROCESSOR - EDGE FUNCTION
  *
- * Edge Function segura para processar requisiÃ§Ãµes de IA dos agentes.
- * Todas as chamadas para OpenAI sÃ£o feitas aqui no servidor, protegendo a API key.
+ * Edge Function segura para processar requisições de IA dos agentes.
+ * Todas as chamadas para OpenAI são feitas aqui no servidor, protegendo a API key.
  *
  * @version 2.0.0
  * @security Enterprise Grade
@@ -14,7 +14,7 @@ import { applyRateLimit } from "../_shared/rate-limiter.ts";
 import { getCorsHeaders } from "../_shared/cors.ts";
 import { initSentry, captureError } from "../_shared/sentry.ts";
 import { DEFAULT_OPENAI_MODEL } from "../_shared/ai-model.ts";
-import { sanitizeInput } from "../_shared/security.ts";
+import { sanitizeInput, redactPII } from "../_shared/security.ts";
 import { callOpenAI, BudgetExceededError } from "../_shared/ai-caller.ts";
 
 // 🚀 INIT SENTRY
@@ -22,7 +22,7 @@ initSentry();
 
 // ðŸ”’ CORS Headers
 
-// ðŸŽ¯ TIPOS DE REQUISIÃ‡ÃƒO
+// 🎯 TIPOS DE REQUISIÇÃO
 interface AgentAIRequest {
   agentName: string;
   agentSpecialization: string;
@@ -54,7 +54,7 @@ interface AgentAIResponse {
   tool_calls?: any[];
 }
 
-// ðŸ›¡ï¸ ValidaÃ§Ã£o de Input
+// 🛡️ Validação de Input
 function validateRequest(data: unknown): data is AgentAIRequest {
   const req = data as Partial<AgentAIRequest>;
 
@@ -89,7 +89,7 @@ function validateRequest(data: unknown): data is AgentAIRequest {
   return true;
 }
 
-// ðŸ§  Processa requisiÃ§Ã£o de IA
+// 🧠 Processa requisição de IA
 async function processAIRequest(
   supabase: ReturnType<typeof createClient>,
   request: AgentAIRequest
@@ -175,14 +175,13 @@ async function processAIRequest(
   };
 }
 
-// ðŸ†” Gera execution_id Ãºnico
+// 🆔 Gera execution_id único
 function generateExecutionId(): string {
-  const timestamp = Date.now();
-  const random = Math.random().toString(36).substring(2, 11);
-  return `exec_${timestamp}_${random}`;
+  // SEC-09: Use cryptographically secure UUID + timestamp for collision resistance
+  return `exec_${Date.now()}_${crypto.randomUUID().split('-')[0]}`;
 }
 
-// ðŸ“ Cria registro de execuÃ§Ã£o no banco
+// 📝 Cria registro de execução no banco
 async function createExecution(
   supabase: ReturnType<typeof createClient>,
   executionId: string,
@@ -218,7 +217,7 @@ async function createExecution(
   }
 }
 
-// âœ… Atualiza execuÃ§Ã£o com sucesso
+// ✅ Atualiza execução com sucesso
 async function completeExecution(
   supabase: ReturnType<typeof createClient>,
   executionId: string,
@@ -245,7 +244,7 @@ async function completeExecution(
   }
 }
 
-// âŒ Atualiza execuÃ§Ã£o com erro
+// ❌ Atualiza execução com erro
 async function failExecution(
   supabase: ReturnType<typeof createClient>,
   executionId: string,
@@ -268,7 +267,7 @@ async function failExecution(
   }
 }
 
-// ðŸ“Š Salva log de processamento no banco
+// 📊 Salva log de processamento no banco
 async function logAIProcessing(
   supabase: ReturnType<typeof createClient>,
   executionRowId: string | null,
@@ -282,6 +281,11 @@ async function logAIProcessing(
       return;
     }
 
+    // SEC-10: Redact PII BEFORE truncation to prevent sensitive data leakage at character boundaries
+    const redactedSystem = redactPII(request.systemPrompt);
+    const redactedUser = redactPII(request.userPrompt);
+    const redactedResult = redactPII(response.result);
+
     await supabase.from("agent_ai_logs").insert({
       execution_id: executionRowId,
       agent_name: request.agentName,
@@ -292,11 +296,11 @@ async function logAIProcessing(
       prompt_tokens: response.usage?.prompt_tokens || 0,
       completion_tokens: response.usage?.completion_tokens || 0,
       total_tokens: response.usage?.total_tokens || 0,
-      result_preview: response.result.substring(0, 200),
+      result_preview: redactedResult.substring(0, 200),
       // Advanced Logging (LangSmith Style) — truncated to reduce PII surface
-      system_prompt: request.systemPrompt.substring(0, 500),
-      user_prompt: request.userPrompt.substring(0, 500),
-      full_result: response.result.substring(0, 2000),
+      system_prompt: redactedSystem.substring(0, 500),
+      user_prompt: redactedUser.substring(0, 500),
+      full_result: redactedResult.substring(0, 2000),
       context: request.context || null,
       created_at: new Date().toISOString(),
     });
@@ -307,7 +311,7 @@ async function logAIProcessing(
   }
 }
 
-// ðŸš€ HANDLER PRINCIPAL
+// 🚀 HANDLER PRINCIPAL
 Deno.serve(async (req) => {
   const corsHeaders = getCorsHeaders(req.headers.get("origin") || undefined);
 
@@ -317,7 +321,7 @@ Deno.serve(async (req) => {
   }
 
   try {
-    // ðŸ” VerificaÃ§Ã£o de autenticaÃ§Ã£o
+    // 🔑 Verificação de autenticação
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) {
       throw new Error("Missing authorization header");
@@ -457,18 +461,18 @@ Deno.serve(async (req) => {
     );
 
     try {
-      // ðŸ¤– Inicializa OpenAI
+      // 🤖 Inicializa OpenAI
       // (OpenAI client + budget check now live inside ai-caller.)
 
-      // ðŸ§  Processa requisiÃ§Ã£o de IA
+      // 🧠 Processa requisição de IA
       const aiResponse = await processAIRequest(supabase, aiRequest);
 
-      // âœ… Atualiza execuÃ§Ã£o com sucesso
+      // ✅ Atualiza execução com sucesso
       const tokensUsed = aiResponse.usage?.total_tokens || 0;
       await completeExecution(supabase, executionId, startTime, tokensUsed, aiRequest.tenantId);
       // Token usage is now recorded inside ai-caller (callOpenAI).
 
-      // ðŸ“Š Salva log (nÃ£o-bloqueante)
+      // 📊 Salva log (não-bloqueante)
       logAIProcessing(
         supabase,
         executionRowId,
@@ -489,7 +493,7 @@ Deno.serve(async (req) => {
         }
       );
     } catch (processingError) {
-      // âŒ Marca execuÃ§Ã£o como falha
+      // ❌ Marca execução como falha
       const errorMsg =
         processingError instanceof Error
           ? processingError.message
@@ -499,7 +503,7 @@ Deno.serve(async (req) => {
       throw processingError;
     }
   } catch (error) {
-    console.error("âŒ Error in ai-agent-processor:", error);
+    console.error("❌ Error in ai-agent-processor:", error);
 
     // Budget exceeded → 429 with explicit code for frontend fallback UI.
     if (error instanceof BudgetExceededError) {

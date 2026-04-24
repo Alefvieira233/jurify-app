@@ -90,13 +90,33 @@ export function sanitizeInput(
 // ---------------------------------------------------------------------------
 
 const PII_PATTERNS: Array<{ pattern: RegExp; label: string; replacement: string }> = [
+  // SEC-01: Credit card pattern must be first to avoid partial matches as phones
+  { pattern: /\b\d{4}[-\s]?\d{4}[-\s]?\d{4}[-\s]?\d{4}\b/g, label: "Card", replacement: "***CARD***" },
+  // SEC-02: Brazilian legal process (CNJ)
+  { pattern: /\b\d{7}-\d{2}\.\d{4}\.\d\.\d{2}\.\d{4}\b/g, label: "Processo", replacement: "***PROCESSO***" },
+  // SEC-03: CNPJ
+  { pattern: /\b\d{2}\.\d{3}\.\d{3}\/\d{4}-\d{2}\b/g, label: "CNPJ", replacement: "***CNPJ***" },
+  // SEC-04: CPF (formatted or raw 11 digits)
   { pattern: /\b\d{3}\.?\d{3}\.?\d{3}-?\d{2}\b/g, label: "CPF", replacement: "***CPF***" },
+  // SEC-05: RG
   { pattern: /\b\d{2}\.?\d{3}\.?\d{3}-?[\dXx]\b/g, label: "RG", replacement: "***RG***" },
-  { pattern: /\b\d{4}\s?\d{4}\s?\d{4}\s?\d{4}\b/g, label: "Card", replacement: "***CARD***" },
+  // SEC-06: OAB (Brazilian Bar Association) - case insensitive, optional OAB/ prefix
+  { pattern: /\b(?:OAB\/)?(?:AC|AL|AP|AM|BA|CE|DF|ES|GO|MA|MT|MS|MG|PA|PB|PR|PE|PI|RJ|RN|RS|RO|RR|SC|SP|SE|TO)\s?\d{4,6}\b/gi, label: "OAB", replacement: "***OAB***" },
+  // SEC-07: Email (leading boundary omitted intentionally for labels like email:user@host)
+  { pattern: /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}\b/g, label: "Email", replacement: "***EMAIL***" },
+  // SEC-08: Brazilian Phone (leading boundary omitted intentionally for labels like phone:(11)...)
+  { pattern: /(?:\+55\s?)?(?:\(\d{2}\)|\d{2})\s?\d{4,5}[-\s]?\d{4}\b/g, label: "Phone", replacement: "***PHONE***" },
 ];
 
-/** Redact PII from assistant responses before sending to client. */
+/**
+ * Redact PII from text before logging or sending to external services.
+ * Implements defensive checks and comprehensive patterns for Brazilian legal context.
+ */
 export function redactPII(text: string): string {
+  if (!text || typeof text !== "string") {
+    return text || "";
+  }
+
   let result = text;
   for (const { pattern, replacement } of PII_PATTERNS) {
     result = result.replace(pattern, replacement);
