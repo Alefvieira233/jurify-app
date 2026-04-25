@@ -14,7 +14,7 @@ import { applyRateLimit } from "../_shared/rate-limiter.ts";
 import { getCorsHeaders } from "../_shared/cors.ts";
 import { initSentry, captureError } from "../_shared/sentry.ts";
 import { DEFAULT_OPENAI_MODEL } from "../_shared/ai-model.ts";
-import { sanitizeInput } from "../_shared/security.ts";
+import { sanitizeInput, redactPII } from "../_shared/security.ts";
 import { callOpenAI, BudgetExceededError } from "../_shared/ai-caller.ts";
 
 // 🚀 INIT SENTRY
@@ -282,6 +282,10 @@ async function logAIProcessing(
       return;
     }
 
+    const redactedSystemPrompt = redactPII(request.systemPrompt);
+    const redactedUserPrompt = redactPII(request.userPrompt);
+    const redactedResult = redactPII(response.result);
+
     await supabase.from("agent_ai_logs").insert({
       execution_id: executionRowId,
       agent_name: request.agentName,
@@ -292,11 +296,11 @@ async function logAIProcessing(
       prompt_tokens: response.usage?.prompt_tokens || 0,
       completion_tokens: response.usage?.completion_tokens || 0,
       total_tokens: response.usage?.total_tokens || 0,
-      result_preview: response.result.substring(0, 200),
-      // Advanced Logging (LangSmith Style) — truncated to reduce PII surface
-      system_prompt: request.systemPrompt.substring(0, 500),
-      user_prompt: request.userPrompt.substring(0, 500),
-      full_result: response.result.substring(0, 2000),
+      result_preview: redactedResult.substring(0, 200),
+      // Advanced Logging (LangSmith Style) — redacted and truncated to reduce PII surface
+      system_prompt: redactedSystemPrompt.substring(0, 500),
+      user_prompt: redactedUserPrompt.substring(0, 500),
+      full_result: redactedResult.substring(0, 2000),
       context: request.context || null,
       created_at: new Date().toISOString(),
     });
