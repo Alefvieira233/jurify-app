@@ -165,6 +165,46 @@ describe('redactPII — Credit card', () => {
   });
 });
 
+describe('redactPII — CNPJ', () => {
+  it('redacts CNPJ in xx.xxx.xxx/xxxx-xx format', () => {
+    expect(redactPII('CNPJ da empresa: 12.345.678/0001-90')).toBe('CNPJ da empresa: ***CNPJ***');
+  });
+});
+
+describe('redactPII — CNJ (Processo)', () => {
+  it('redacts CNJ process number', () => {
+    expect(redactPII('Processo nº 0012345-67.2023.8.26.0000')).toBe('Processo nº ***CNJ***');
+  });
+});
+
+describe('redactPII — OAB', () => {
+  it('redacts OAB registration', () => {
+    expect(redactPII('OAB/SP 123456')).toBe('***OAB***');
+    expect(redactPII('Advogado OAB RJ 654321')).toBe('Advogado ***OAB***');
+  });
+});
+
+describe('redactPII — Phone', () => {
+  it('redacts Brazilian phone numbers', () => {
+    expect(redactPII('Ligue para (11) 98888-7777')).toBe('Ligue para ***PHONE***');
+    expect(redactPII('Contato: +55 11 988887777')).toBe('Contato: ***PHONE***');
+  });
+});
+
+describe('redactPII — Email', () => {
+  it('redacts email addresses', () => {
+    expect(redactPII('Email: teste@exemplo.com.br')).toBe('Email: ***EMAIL***');
+  });
+});
+
+describe('redactPII — input types', () => {
+  it('returns empty string for non-string inputs', () => {
+    expect(redactPII(null)).toBe('');
+    expect(redactPII(undefined)).toBe('');
+    expect(redactPII(42)).toBe('');
+  });
+});
+
 describe('redactPII — idempotency', () => {
   it('running redactPII twice produces the same output', () => {
     const text = 'CPF 123.456.789-00 e cartão 4111 1111 1111 1111';
