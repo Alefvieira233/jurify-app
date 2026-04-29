@@ -14,10 +14,12 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Download, TrendingUp, BarChart3 } from 'lucide-react';
 import { useMRR } from '@/hooks/useMRR';
 import { useResponseTime } from '@/hooks/useResponseTime';
-import { ConversionFunnel } from '@/features/dashboard/components/analytics/ConversionFunnel';
-import { RevenueCard } from '@/features/dashboard/components/analytics/RevenueCard';
-import { ResponseTimeChart } from '@/features/dashboard/components/analytics/ResponseTimeChart';
-import { ChurnCard } from '@/features/dashboard/components/analytics/ChurnCard';
+import {
+  ConversionFunnel,
+  RevenueCard,
+  ResponseTimeChart,
+  ChurnCard
+} from '@/features/dashboard';
 import { usePageTitle } from '@/hooks/usePageTitle';
 import type { PeriodKey } from './useReportMetrics';
 import { computePeriodRange, tooltipStyle } from './useReportMetrics';

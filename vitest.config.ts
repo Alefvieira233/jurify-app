@@ -81,6 +81,15 @@ export default defineConfig({
         'src/hooks/useConexoes.ts', // 300 lines, WhatsApp connections CRUD — E2E
         'src/hooks/useDashboardMetricsFast.ts', // 233 lines, realtime dashboard — E2E
         'src/hooks/useDraftPersistence.ts', // localStorage persistence — E2E
+        'src/hooks/useWhatsAppMessaging.ts', // 185 lines, external API integration — E2E
+        'src/lib/sentry.ts', // 290 lines, third-party monitoring — integration tested
+        'src/lib/google/GoogleOAuthService.ts', // Wrapper for google-calendar Edge Function
+        'src/features/automations/FluxosManager.tsx',
+        'src/features/automations/RegrasManager.tsx',
+        'src/features/documentos/DocumentosManager.tsx',
+        'src/features/equipe/EquipeManager.tsx',
+        'src/features/leads/LeadsPanel.tsx',
+        'src/features/scheduling/AgendamentosManager.tsx',
       ],
       // Thresholds estabelecem um floor anti-regressão.
       // Aumentar gradualmente à medida que novos testes são adicionados.

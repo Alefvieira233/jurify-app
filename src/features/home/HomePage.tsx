@@ -7,8 +7,7 @@ import { useNavigate } from 'react-router-dom';
 import { Plus, MessageCircle, CheckSquare, Calendar, Users, ListTodo, CalendarCheck, TrendingUp } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
-import StatCard from '@/features/dashboard/components/StatCard';
-import PrazosUrgentesWidget from '@/features/dashboard/components/PrazosUrgentesWidget';
+import { StatCard, PrazosUrgentesWidget } from '@/features/dashboard';
 import ErrorState from '@/components/ErrorState';
 
 export default function HomePage() {

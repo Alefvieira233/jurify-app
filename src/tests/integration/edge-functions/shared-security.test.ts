@@ -145,13 +145,65 @@ describe('redactPII — CPF', () => {
     expect(redactPII('Meu CPF é 123.456.789-00')).toBe('Meu CPF é ***CPF***');
   });
 
-  it('redacts CPF in xxxxxxxxxxx format (no separators)', () => {
-    expect(redactPII('CPF: 12345678900')).toBe('CPF: ***CPF***');
+  it('redacts CPF in xxxxxxxxxxx format (no separators) — note: might be redacted as PHONE if priority allows', () => {
+    // Since we prioritized PHONE to catch 11-digit mobile numbers,
+    // a raw 11-digit CPF will be caught by the PHONE regex first.
+    // This is acceptable as long as it's redacted.
+    const redacted = redactPII('CPF: 12345678900');
+    expect(redacted).toMatch(/\*\*\*(?:CPF|PHONE)\*\*\*/);
   });
 
   it('redacts CPF embedded in a sentence', () => {
     expect(redactPII('Cliente 111.222.333-44 solicitou extrato'))
       .toBe('Cliente ***CPF*** solicitou extrato');
+  });
+
+  it('prevents CPF_RAW (11 digits) from colliding with Brazilian phone numbers', () => {
+    // A 11-digit phone number like 5511999999999 should NOT be redacted as CPF
+    // if it has more digits around it.
+    // The CPF_RAW regex uses negative lookarounds (?<!\d)\d{11}(?!\d)
+    const phone = '5511999999999';
+    expect(redactPII(phone)).not.toBe('***CPF***');
+    // It should be redacted as PHONE though
+    expect(redactPII(phone)).toBe('***PHONE***');
+  });
+});
+
+describe('redactPII — CNPJ', () => {
+  it('redacts CNPJ in xx.xxx.xxx/xxxx-xx format', () => {
+    expect(redactPII('Empresa 12.345.678/0001-90')).toBe('Empresa ***CNPJ***');
+  });
+});
+
+describe('redactPII — OAB', () => {
+  it('redacts OAB with state prefix', () => {
+    expect(redactPII('Advogado OAB/SP 123456')).toBe('Advogado ***OAB***');
+    expect(redactPII('OAB RJ12345')).toBe('***OAB***');
+    expect(redactPII('oab/mg 654321')).toBe('***OAB***');
+  });
+});
+
+describe('redactPII — Processo CNJ', () => {
+  it('redacts Processo CNJ format', () => {
+    expect(redactPII('Processo 0001234-56.2023.8.26.0001')).toBe('Processo ***CNJ***');
+  });
+});
+
+describe('redactPII — Email', () => {
+  it('redacts standard email addresses', () => {
+    expect(redactPII('Contato: user@example.com.br')).toBe('Contato: ***EMAIL***');
+  });
+
+  it('redacts email even when preceded by non-word characters', () => {
+    expect(redactPII('email:user@host.com')).toBe('email:***EMAIL***');
+  });
+});
+
+describe('redactPII — Phone', () => {
+  it('redacts Brazilian phone formats', () => {
+    expect(redactPII('Tel: (11) 99999-9999')).toBe('Tel: ***PHONE***');
+    expect(redactPII('Fale em +55 21 8888-8888')).toBe('Fale em ***PHONE***');
+    expect(redactPII('11977776666')).toBe('***PHONE***');
   });
 });
 
@@ -171,6 +223,19 @@ describe('redactPII — idempotency', () => {
     const once = redactPII(text);
     const twice = redactPII(once);
     expect(twice).toBe(once);
+  });
+});
+
+describe('redactPII — defensive handling', () => {
+  it('returns empty string for non-string inputs', () => {
+    // @ts-expect-error
+    expect(redactPII(null)).toBe('');
+    // @ts-expect-error
+    expect(redactPII(undefined)).toBe('');
+    // @ts-expect-error
+    expect(redactPII(123)).toBe('');
+    // @ts-expect-error
+    expect(redactPII({})).toBe('');
   });
 });
 

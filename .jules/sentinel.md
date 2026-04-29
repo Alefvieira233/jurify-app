@@ -1,0 +1,4 @@
+## 2026-04-29 - Robust PII Redaction in AI Logs
+**Vulnerability:** Personally Identifiable Information (PII) leakage in interaction logs (agent_ai_logs). Sensitive data like CPFs, emails, and phone numbers were being stored in plaintext.
+**Learning:** Redaction must be applied *before* truncation. If data is truncated first, a sensitive pattern (like a CPF) might be split at the boundary, causing the regex to miss it while still leaving enough identifiable fragments in the log. Additionally, Brazilian 11-digit mobile phones collide with raw 11-digit CPFs, necessitating prioritized regex matching (Phone before CPF_RAW) and negative lookarounds to ensure accuracy.
+**Prevention:** Always use a centralized security utility (e.g., _shared/security.ts) for PII redaction across all Edge Functions. Implement defensive type checking in these utilities to handle unexpected AI outputs safely.
