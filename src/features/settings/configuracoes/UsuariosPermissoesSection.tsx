@@ -3,9 +3,11 @@ import { Input } from '@/components/ui/input';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Plus, Search, Columns3, ShieldAlert, ShieldCheck } from 'lucide-react';
 import ConfirmDialog from '@/components/ConfirmDialog';
-import NovoUsuarioForm from '@/features/users/components/NovoUsuarioForm';
-import EditarUsuarioForm from '@/features/users/components/EditarUsuarioForm';
-import GerenciarPermissoesForm from '@/features/users/components/GerenciarPermissoesForm';
+import {
+  NovoUsuarioForm,
+  EditarUsuarioForm,
+  GerenciarPermissoesForm
+} from '@/features/users';
 import { UsersList } from './UsersList';
 import { PermissionsMatrix } from './PermissionsMatrix';
 import { useUsuariosPermissoes } from './useUsuariosPermissoes';
