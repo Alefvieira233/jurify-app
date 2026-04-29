@@ -159,11 +159,14 @@ export async function auditLog(
   entry: AuditEntry
 ): Promise<void> {
   try {
+    // Redact PII from the user query before auditing
+    const redactedQuery = entry.query ? redactPII(entry.query) : undefined;
+
     await supabase.from("assistant_audit").insert({
       user_id: entry.user_id,
       tenant_id: entry.tenant_id,
       action: entry.action,
-      query: entry.query,
+      query: redactedQuery,
       response_time_ms: entry.response_time_ms,
       tools_used: entry.tools_used ?? [],
       success: entry.success,
