@@ -89,14 +89,45 @@ export function sanitizeInput(
 // PII content filtering
 // ---------------------------------------------------------------------------
 
-const PII_PATTERNS: Array<{ pattern: RegExp; label: string; replacement: string }> = [
-  { pattern: /\b\d{3}\.?\d{3}\.?\d{3}-?\d{2}\b/g, label: "CPF", replacement: "***CPF***" },
-  { pattern: /\b\d{2}\.?\d{3}\.?\d{3}-?[\dXx]\b/g, label: "RG", replacement: "***RG***" },
-  { pattern: /\b\d{4}\s?\d{4}\s?\d{4}\s?\d{4}\b/g, label: "Card", replacement: "***CARD***" },
+const PII_PATTERNS: Array<{ pattern: RegExp; replacement: string }> = [
+  // 1. Credit Card (High priority, 16 digits)
+  { pattern: /\b\d{4}\s?\d{4}\s?\d{4}\s?\d{4}\b/g, replacement: "***CARD***" },
+
+  // 2. Processo CNJ (NNNNNNN-DD.AAAA.J.TR.OOOO)
+  { pattern: /\b\d{7}-\d{2}\.\d{4}\.\d\.\d{2}\.\d{4}\b/g, replacement: "***CNJ***" },
+
+  // 3. CNPJ (XX.XXX.XXX/XXXX-XX)
+  { pattern: /\b\d{2}\.\d{3}\.\d{3}\/\d{4}-\d{2}\b/g, replacement: "***CNPJ***" },
+
+  // 4. CPF Formatted (XXX.XXX.XXX-XX)
+  { pattern: /\b\d{3}\.\d{3}\.\d{3}-\d{2}\b/g, replacement: "***CPF***" },
+
+  // 5. Phone (Brazilian formats, no leading word boundary, high priority to catch 11-digit mobile before CPF_RAW)
+  { pattern: /(?:\+?55\s?)?(?:\(?\d{2}\)?)\s?9?\d{4,5}[-\s]?\d{4}\b/g, replacement: "***PHONE***" },
+
+  // 6. CPF Raw (11 digits with negative lookarounds to avoid larger number collision)
+  { pattern: /(?<!\d)\d{11}(?!\d)/g, replacement: "***CPF***" },
+
+  // 7. RG (Standard Brazilian format)
+  { pattern: /\b\d{2}\.?\d{3}\.?\d{3}-?[\dXx]\b/g, replacement: "***RG***" },
+
+  // 8. OAB (Case-insensitive, optional OAB/ or OAB space prefix)
+  {
+    pattern: /\b(?:OAB[\/\s])?(?:AC|AL|AP|AM|BA|CE|DF|ES|GO|MA|MT|MS|MG|PA|PB|PR|PE|PI|RJ|RN|RS|RO|RR|SC|SP|SE|TO)\s?\d{4,6}\b/gi,
+    replacement: "***OAB***",
+  },
+
+  // 9. Email (No leading word boundary to allow email:user@host)
+  { pattern: /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}\b/g, replacement: "***EMAIL***" },
 ];
 
-/** Redact PII from assistant responses before sending to client. */
-export function redactPII(text: string): string {
+/**
+ * Redact PII from text before logging or sending to client.
+ * Includes defensive check for non-string values.
+ */
+export function redactPII(text: unknown): string {
+  if (typeof text !== "string") return "";
+
   let result = text;
   for (const { pattern, replacement } of PII_PATTERNS) {
     result = result.replace(pattern, replacement);
