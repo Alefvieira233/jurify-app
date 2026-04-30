@@ -2,7 +2,7 @@
  * Security Middleware for Edge Functions
  *
  * - Input sanitisation against prompt injection
- * - PII content filtering (CPF, RG, phone)
+ * - PII content filtering (CPF, RG, phone, email, CNPJ, OAB, Processo CNJ)
  * - Audit trail logging to Supabase
  *
  * Rate limiting consolidated in rate-limiter.ts
@@ -89,14 +89,31 @@ export function sanitizeInput(
 // PII content filtering
 // ---------------------------------------------------------------------------
 
+/**
+ * PII Patterns synced with SanitizerEngine.ts
+ * Includes Brazilian specific identifiers (CPF, CNPJ, OAB, Processo CNJ)
+ * and universal ones (Email, Card, Phone).
+ */
 const PII_PATTERNS: Array<{ pattern: RegExp; label: string; replacement: string }> = [
+  { pattern: /\d{7}-\d{2}\.\d{4}\.\d\.\d{2}\.\d{4}/g, label: "CNJ", replacement: "***CNJ***" },
+  { pattern: /\d{2}\.\d{3}\.\d{3}\/\d{4}-\d{2}/g, label: "CNPJ", replacement: "***CNPJ***" },
   { pattern: /\b\d{3}\.?\d{3}\.?\d{3}-?\d{2}\b/g, label: "CPF", replacement: "***CPF***" },
-  { pattern: /\b\d{2}\.?\d{3}\.?\d{3}-?[\dXx]\b/g, label: "RG", replacement: "***RG***" },
   { pattern: /\b\d{4}\s?\d{4}\s?\d{4}\s?\d{4}\b/g, label: "Card", replacement: "***CARD***" },
+  { pattern: /\b(?:OAB\s*\/?)?(?:AC|AL|AP|AM|BA|CE|DF|ES|GO|MA|MT|MS|MG|PA|PB|PR|PE|PI|RJ|RN|RS|RO|RR|SC|SP|SE|TO)\s?\d{4,6}\b/gi, label: "OAB", replacement: "***OAB***" },
+  { pattern: /(?:\+55\s?)?(?:\(?\d{2}\)?)\s?9?\d{4}[-\s]?\d{4}\b/g, label: "Phone", replacement: "***PHONE***" },
+  { pattern: /\b\d{2}\.?\d{3}\.?\d{3}-?[\dXx]\b/g, label: "RG", replacement: "***RG***" },
+  { pattern: /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g, label: "Email", replacement: "***EMAIL***" },
 ];
 
-/** Redact PII from assistant responses before sending to client. */
-export function redactPII(text: string): string {
+/**
+ * Redact PII from text before logging or sending to client.
+ * Defensive against non-string inputs.
+ */
+export function redactPII(text: unknown): string {
+  if (typeof text !== "string") {
+    return "";
+  }
+
   let result = text;
   for (const { pattern, replacement } of PII_PATTERNS) {
     result = result.replace(pattern, replacement);
