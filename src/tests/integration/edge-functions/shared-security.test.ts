@@ -6,8 +6,8 @@
  * assistant, chat-completion, ai-agent-processor).
  */
 
-import { describe, it, expect } from 'vitest';
-import { sanitizeInput, redactPII } from '../../../../supabase/functions/_shared/security';
+import { describe, it, expect, vi } from 'vitest';
+import { sanitizeInput, redactPII, auditLog } from '../../../../supabase/functions/_shared/security';
 
 // ─── Prompt injection detection ─────────────────────────────
 
@@ -155,6 +155,38 @@ describe('redactPII — CPF', () => {
   });
 });
 
+describe('redactPII — CNPJ', () => {
+  it('redacts formatted CNPJ', () => {
+    expect(redactPII('Empresa: 12.345.678/0001-90')).toBe('Empresa: ***CNPJ***');
+  });
+});
+
+describe('redactPII — OAB', () => {
+  it('redacts OAB with state', () => {
+    expect(redactPII('Advogado OAB SP123456')).toBe('Advogado ***OAB***');
+    expect(redactPII('Registro OAB/RJ 654321')).toBe('Registro ***OAB***');
+  });
+});
+
+describe('redactPII — Processo CNJ', () => {
+  it('redacts CNJ process number', () => {
+    expect(redactPII('Processo 0001234-56.2024.8.26.0001')).toBe('Processo ***PROCESSO***');
+  });
+});
+
+describe('redactPII — Email', () => {
+  it('redacts email addresses', () => {
+    expect(redactPII('Email: joao.silva@empresa.com.br')).toBe('Email: ***EMAIL***');
+  });
+});
+
+describe('redactPII — Phone', () => {
+  it('redacts Brazilian phone numbers', () => {
+    expect(redactPII('Ligue para (11) 99999-8888')).toBe('Ligue para ***PHONE***');
+    expect(redactPII('Contato +55 11 8888-7777')).toBe('Contato ***PHONE***');
+  });
+});
+
 describe('redactPII — Credit card', () => {
   it('redacts 16-digit card with spaces', () => {
     expect(redactPII('Cartão 4111 1111 1111 1111')).toBe('Cartão ***CARD***');
@@ -183,5 +215,54 @@ describe('redactPII — non-PII is preserved', () => {
   it('does not redact short numbers', () => {
     const text = 'Ano 2026, mês 4, dia 10';
     expect(redactPII(text)).toBe(text);
+  });
+});
+
+describe('redactPII — defensive checks', () => {
+  it('returns empty string for non-string input', () => {
+    // @ts-expect-error — testing runtime robustness
+    expect(redactPII(null)).toBe('');
+    // @ts-expect-error
+    expect(redactPII(undefined)).toBe('');
+    // @ts-expect-error
+    expect(redactPII(42)).toBe('');
+    // @ts-expect-error
+    expect(redactPII({})).toBe('');
+  });
+});
+
+describe('auditLog', () => {
+  it('inserts audit entry into database', async () => {
+    const mockInsert = vi.fn().mockResolvedValue({ error: null });
+    const mockFrom = vi.fn().mockReturnValue({ insert: mockInsert });
+    const mockSupabase = { from: mockFrom };
+
+    const entry = {
+      user_id: 'user123',
+      tenant_id: 'tenant456',
+      action: 'test_action',
+      query: 'test query',
+      success: true,
+    };
+
+    await auditLog(mockSupabase as any, entry);
+
+    expect(mockFrom).toHaveBeenCalledWith('assistant_audit');
+    expect(mockInsert).toHaveBeenCalled();
+  });
+
+  it('handles insert failure gracefully', async () => {
+    const mockFrom = vi.fn().mockReturnValue({
+      insert: vi.fn().mockRejectedValue(new Error('DB error'))
+    });
+    const mockSupabase = { from: mockFrom };
+    const consoleSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+
+    await expect(auditLog(mockSupabase as any, {
+      user_id: 'u', tenant_id: 't', action: 'a', success: false
+    })).resolves.not.toThrow();
+
+    expect(consoleSpy).toHaveBeenCalled();
+    consoleSpy.mockRestore();
   });
 });
