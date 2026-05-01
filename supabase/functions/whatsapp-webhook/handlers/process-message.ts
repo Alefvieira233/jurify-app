@@ -2,7 +2,7 @@ import { createClient } from "jsr:@supabase/supabase-js@2";
 import { buildLegalContext } from "../../_shared/legal-context.ts";
 import { DEFAULT_OPENAI_MODEL } from "../../_shared/ai-model.ts";
 import { callOpenAI, BudgetExceededError } from "../../_shared/ai-caller.ts";
-import { sanitizeInput } from "../../_shared/security.ts";
+import { sanitizeInput, redactPII } from "../../_shared/security.ts";
 import type { NormalizedMessage } from "../../_shared/whatsapp-logic.ts";
 import { callEdgeFunction, escapeLike } from "./edge-function-client.ts";
 import { analyzeQualification } from "./qualification.ts";
@@ -819,6 +819,11 @@ export async function processNormalizedMessage(
       // Log AI processing (non-blocking) — keep webhook-specific row for
       // system_prompt + user_prompt (not captured by ai-caller's log).
       if (executionRowId) {
+        // Redact PII before logging/truncation
+        const redactedSystemPrompt = redactPII(finalSystemPrompt);
+        const redactedUserPrompt = redactPII(commandIntent ?? processedText);
+        const redactedResult = redactPII(resultText);
+
         void supabase.from("agent_ai_logs").insert({
           execution_id: executionRowId,
           agent_name: agentName,
@@ -828,10 +833,10 @@ export async function processNormalizedMessage(
           prompt_tokens: aiResponse.usage?.prompt_tokens || 0,
           completion_tokens: aiResponse.usage?.completion_tokens || 0,
           total_tokens: aiResponse.usage?.total_tokens || 0,
-          result_preview: resultText.substring(0, 200),
-          system_prompt: finalSystemPrompt.substring(0, 500),
-          user_prompt: (commandIntent ?? processedText).substring(0, 500),
-          full_result: resultText.substring(0, 2000),
+          result_preview: redactedResult.substring(0, 200),
+          system_prompt: redactedSystemPrompt.substring(0, 500),
+          user_prompt: redactedUserPrompt.substring(0, 500),
+          full_result: redactedResult.substring(0, 2000),
           context: { mediaCategory, agent: agentName, hasLegalContext: legalCtx.has_context },
           created_at: new Date().toISOString(),
         }).then(({ error }) => { if (error) console.error("[webhook] ai_log insert error:", error.message); });

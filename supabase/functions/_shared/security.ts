@@ -90,13 +90,32 @@ export function sanitizeInput(
 // ---------------------------------------------------------------------------
 
 const PII_PATTERNS: Array<{ pattern: RegExp; label: string; replacement: string }> = [
-  { pattern: /\b\d{3}\.?\d{3}\.?\d{3}-?\d{2}\b/g, label: "CPF", replacement: "***CPF***" },
-  { pattern: /\b\d{2}\.?\d{3}\.?\d{3}-?[\dXx]\b/g, label: "RG", replacement: "***RG***" },
-  { pattern: /\b\d{4}\s?\d{4}\s?\d{4}\s?\d{4}\b/g, label: "Card", replacement: "***CARD***" },
+  // Prioritize Credit Card before Phone/CPF
+  { pattern: /\b\d{4}[-\s]?\d{4}[-\s]?\d{4}[-\s]?\d{4}\b/g, label: "Card", replacement: "***CARD***" },
+  // Processo CNJ: NNNNNNN-DD.AAAA.J.TR.OOOO
+  { pattern: /\b\d{7}-\d{2}\.\d{4}\.\d\.\d{2}\.\d{4}\b/g, label: "Processo", replacement: "***PROCESSO***" },
+  // CNPJ: XX.XXX.XXX/XXXX-XX
+  { pattern: /\b\d{2}\.?\d{3}\.?\d{3}\/?\d{4}-?\d{2}\b/g, label: "CNPJ", replacement: "***CNPJ***" },
+  // OAB: (State) 123456 (optional OAB/ or OAB prefix)
+  { pattern: /\b(?:OAB\s*\/?)?\s*(?:AC|AL|AP|AM|BA|CE|DF|ES|GO|MA|MT|MS|MG|PA|PB|PR|PE|PI|RJ|RN|RS|RO|RR|SC|SP|SE|TO)\s?\d{4,6}\b/gi, label: "OAB", replacement: "***OAB***" },
+  // Email: user@domain.com
+  { pattern: /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}\b/g, label: "Email", replacement: "***EMAIL***" },
+  // CPF Formatted: XXX.XXX.XXX-XX
+  { pattern: /\b\d{3}\.\d{3}\.\d{3}-\d{2}\b/g, label: "CPF", replacement: "***CPF***" },
+  // CPF Raw: 11 digits (use negative lookarounds to avoid clashing with longer numbers)
+  { pattern: /(?<!\d)\d{11}(?!\d)/g, label: "CPF_RAW", replacement: "***CPF***" },
+  // Phone: Brazilian formats
+  { pattern: /(?:\+55\s?)?(?:\(?\d{2}\)?|\d{2})\s?\d{4,5}[-\s]?\d{4}\b/g, label: "Phone", replacement: "***PHONE***" },
+  // RG
+  { pattern: /\b\d{2}\.?\d{3}\.?\d{3}-?[\dXx](?!\d)\b/g, label: "RG", replacement: "***RG***" },
 ];
 
-/** Redact PII from assistant responses before sending to client. */
-export function redactPII(text: string): string {
+/**
+ * Redact PII (CPF, CNPJ, OAB, Email, Phone, Card) from text.
+ * Defensive against non-string inputs.
+ */
+export function redactPII(text: unknown): string {
+  if (typeof text !== "string") return "";
   let result = text;
   for (const { pattern, replacement } of PII_PATTERNS) {
     result = result.replace(pattern, replacement);

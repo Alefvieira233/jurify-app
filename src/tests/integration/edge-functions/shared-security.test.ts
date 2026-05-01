@@ -155,6 +155,38 @@ describe('redactPII — CPF', () => {
   });
 });
 
+describe('redactPII — CNPJ', () => {
+  it('redacts formatted CNPJ', () => {
+    expect(redactPII('Empresa: 12.345.678/0001-90')).toBe('Empresa: ***CNPJ***');
+  });
+});
+
+describe('redactPII — OAB', () => {
+  it('redacts OAB with state', () => {
+    expect(redactPII('Advogado OAB SP123456')).toBe('Advogado ***OAB***');
+    expect(redactPII('Registro OAB/RJ 654321')).toBe('Registro ***OAB***');
+  });
+});
+
+describe('redactPII — Processo CNJ', () => {
+  it('redacts CNJ process number', () => {
+    expect(redactPII('Processo 0001234-56.2024.8.26.0001')).toBe('Processo ***PROCESSO***');
+  });
+});
+
+describe('redactPII — Email', () => {
+  it('redacts email addresses', () => {
+    expect(redactPII('Email: joao.silva@empresa.com.br')).toBe('Email: ***EMAIL***');
+  });
+});
+
+describe('redactPII — Phone', () => {
+  it('redacts Brazilian phone numbers', () => {
+    expect(redactPII('Ligue para (11) 99999-8888')).toBe('Ligue para ***PHONE***');
+    expect(redactPII('Contato +55 11 8888-7777')).toBe('Contato ***PHONE***');
+  });
+});
+
 describe('redactPII — Credit card', () => {
   it('redacts 16-digit card with spaces', () => {
     expect(redactPII('Cartão 4111 1111 1111 1111')).toBe('Cartão ***CARD***');
