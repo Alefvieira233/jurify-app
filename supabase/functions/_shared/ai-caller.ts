@@ -25,6 +25,7 @@ import {
   recordTokenUsage,
   type BudgetDecision,
 } from "./ai-budget.ts";
+import { redactPII } from "./security.ts";
 
 type SupabaseClient = ReturnType<typeof createClient>;
 
@@ -205,6 +206,7 @@ export async function callOpenAI(
   if (params.persistLog !== false) {
     try {
       const preview = typeof content === "string" ? content.substring(0, 2000) : "";
+      const redactedPreview = redactPII(preview);
       await supabase.from("agent_ai_logs").insert({
         execution_id: null, // callers that have an execution row should set metadata.execution_row_id
         agent_name: params.agentName ?? params.source,
@@ -215,8 +217,8 @@ export async function callOpenAI(
         prompt_tokens: tokens_in,
         completion_tokens: tokens_out,
         total_tokens: tokens_total,
-        result_preview: preview.substring(0, 200),
-        full_result: preview,
+        result_preview: redactedPreview.substring(0, 200),
+        full_result: redactedPreview,
         context: {
           source: params.source,
           latency_ms,
