@@ -205,8 +205,10 @@ export async function callOpenAI(
   // any failure is swallowed — logging must never break the pipeline) ---
   if (params.persistLog !== false) {
     try {
-      const preview = typeof content === "string" ? content.substring(0, 2000) : "";
-      const redactedPreview = redactPII(preview);
+      // SEC-RED-01: redact BEFORE truncation to avoid character-boundary leaks
+      const redactedContent = redactPII(content);
+      const preview = redactedContent.substring(0, 2000);
+
       await supabase.from("agent_ai_logs").insert({
         execution_id: null, // callers that have an execution row should set metadata.execution_row_id
         agent_name: params.agentName ?? params.source,
@@ -217,8 +219,8 @@ export async function callOpenAI(
         prompt_tokens: tokens_in,
         completion_tokens: tokens_out,
         total_tokens: tokens_total,
-        result_preview: redactedPreview.substring(0, 200),
-        full_result: redactedPreview,
+        result_preview: preview.substring(0, 200),
+        full_result: preview,
         context: {
           source: params.source,
           latency_ms,

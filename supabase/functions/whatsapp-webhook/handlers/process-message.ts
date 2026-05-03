@@ -819,6 +819,11 @@ export async function processNormalizedMessage(
       // Log AI processing (non-blocking) — keep webhook-specific row for
       // system_prompt + user_prompt (not captured by ai-caller's log).
       if (executionRowId) {
+        // SEC-RED-02: redact BEFORE truncation to prevent sensitive data leakage at boundaries
+        const redactedResult = redactPII(resultText);
+        const redactedSystem = redactPII(finalSystemPrompt);
+        const redactedUser = redactPII(commandIntent ?? processedText);
+
         void supabase.from("agent_ai_logs").insert({
           execution_id: executionRowId,
           agent_name: agentName,
@@ -828,10 +833,10 @@ export async function processNormalizedMessage(
           prompt_tokens: aiResponse.usage?.prompt_tokens || 0,
           completion_tokens: aiResponse.usage?.completion_tokens || 0,
           total_tokens: aiResponse.usage?.total_tokens || 0,
-          result_preview: redactPII(resultText).substring(0, 200),
-          system_prompt: redactPII(finalSystemPrompt.substring(0, 500)),
-          user_prompt: redactPII((commandIntent ?? processedText).substring(0, 500)),
-          full_result: redactPII(resultText.substring(0, 2000)),
+          result_preview: redactedResult.substring(0, 200),
+          system_prompt: redactedSystem.substring(0, 500),
+          user_prompt: redactedUser.substring(0, 500),
+          full_result: redactedResult.substring(0, 2000),
           context: { mediaCategory, agent: agentName, hasLegalContext: legalCtx.has_context },
           created_at: new Date().toISOString(),
         }).then(({ error }) => { if (error) console.error("[webhook] ai_log insert error:", error.message); });
