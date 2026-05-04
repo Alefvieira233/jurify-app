@@ -74,7 +74,7 @@ export const useWhatsAppConversations = (): UseWhatsAppConversationsReturn => {
 
       let query = supabase
         .from('whatsapp_conversations')
-        .select('id, lead_id, tenant_id, user_id, responsavel_id, phone_number, contact_name, status, area_juridica, last_message, last_message_at, unread_count, ia_active, created_at, updated_at, agent_status, last_agent_error, agent_processed_at')
+        .select('id, lead_id, tenant_id, user_id, responsavel_id, phone_number, contact_name, status, area_juridica, last_message, last_message_at, unread_count, ia_active, created_at, updated_at, agent_status, last_agent_error, agent_processed_at, current_urgency, current_sentiment, last_inbound_at')
         .order('last_message_at', { ascending: false })
         .limit(500);
 

@@ -75,6 +75,18 @@ const ConversationItem = memo(({ conv, isSelected, onSelect, responsavelName }: 
       </div>
       <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
         {getStatusBadge(conv.status)}
+        {(conv.current_urgency === 'alta' || conv.current_urgency === 'critica') && (
+          <span
+            className={`text-[9px] px-1.5 py-0.5 rounded font-bold uppercase ${
+              conv.current_urgency === 'critica'
+                ? 'bg-rose-500/15 text-rose-700 dark:text-rose-300 border border-rose-500/40 animate-pulse'
+                : 'bg-orange-500/15 text-orange-700 dark:text-orange-300 border border-orange-500/40'
+            }`}
+            title={`Urgência ${conv.current_urgency} detectada pela IA`}
+          >
+            {conv.current_urgency === 'critica' ? '🚨 Crítica' : '⚠ Urgente'}
+          </span>
+        )}
         {!conv.ia_active && conv.status === 'ativo' && (
           <span className="text-[9px] px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-600 font-medium">Manual</span>
         )}

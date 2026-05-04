@@ -25,6 +25,9 @@ export interface WhatsAppConversation {
   agent_status?: 'idle' | 'processing' | 'failed' | 'waiting_human';
   last_agent_error?: string | null;
   agent_processed_at?: string | null;
+  current_urgency?: 'baixa' | 'media' | 'alta' | 'critica' | null;
+  current_sentiment?: 'positivo' | 'neutro' | 'negativo' | 'frustrado' | 'urgente' | null;
+  last_inbound_at?: string | null;
 }
 
 export type MessageSendStatus = 'pending' | 'sent' | 'failed' | 'delivered' | 'read';
