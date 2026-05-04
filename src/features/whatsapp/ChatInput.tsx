@@ -12,8 +12,10 @@ import {
 import { Button } from '@/components/ui/button';
 import { createLogger } from '@/lib/logger';
 import { useWhatsAppWindow } from '@/hooks/useWhatsAppWindow';
+import { useWhatsAppQuickReplies, type QuickReply } from '@/hooks/useWhatsAppQuickReplies';
 import WindowStatusBadge from './WindowStatusBadge';
 import TemplateSelectorModal from './TemplateSelectorModal';
+import QuickReplyPopover from './QuickReplyPopover';
 
 const log = createLogger('ChatInput');
 
@@ -41,6 +43,19 @@ const ChatInput = ({
 }: ChatInputProps) => {
   const { formattedRemaining, status, requiresTemplate } = useWhatsAppWindow(conversationId);
   const [templateModalOpen, setTemplateModalOpen] = useState(false);
+  const { incrementUse } = useWhatsAppQuickReplies();
+
+  // Quick replies: detecta /shortcut no início ou após espaço
+  const quickReplyMatch = /(?:^|\s)(\/[a-z0-9_-]*)$/i.exec(newMessage);
+  const quickReplyQuery: string = quickReplyMatch?.[1] ?? '';
+  const showQuickReply = !!quickReplyMatch && !requiresTemplate;
+
+  const applyQuickReply = (reply: QuickReply) => {
+    // Substitui o /shortcut pelo conteúdo no final do textarea
+    const before = newMessage.slice(0, newMessage.length - quickReplyQuery.length);
+    setNewMessage(before + reply.content);
+    void incrementUse(reply.id);
+  };
   const [showAttachMenu, setShowAttachMenu] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
   const [recordingTime, setRecordingTime] = useState(0);
@@ -297,6 +312,15 @@ const ChatInput = ({
           onSent={onTemplateSent}
         />
       )}
+
+      <div className="relative">
+        <QuickReplyPopover
+          query={quickReplyQuery}
+          visible={showQuickReply}
+          onSelect={applyQuickReply}
+          onClose={() => { /* clear by typing */ }}
+        />
+      </div>
     </div>
   );
 };

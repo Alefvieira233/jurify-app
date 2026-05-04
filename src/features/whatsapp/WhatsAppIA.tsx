@@ -10,8 +10,14 @@ import {
   User,
   ArrowLeft,
   FileDown,
+  Sparkles,
+  Wand2,
+  Search,
 } from 'lucide-react';
 import { useExportConversationPDF } from '@/hooks/useExportConversationPDF';
+import ConversationSummaryModal from './ConversationSummaryModal';
+import ExtractedDataModal from './ExtractedDataModal';
+import WhatsAppSearchModal from './WhatsAppSearchModal';
 import { useWhatsAppConversations } from '@/hooks/useWhatsAppConversations';
 import type { WhatsAppConversation, WhatsAppMessage } from '@/hooks/useWhatsAppConversations';
 import WhatsAppSetup from './WhatsAppSetup';
@@ -67,6 +73,9 @@ const ChatPanel = ({
   tenantName,
 }: ChatPanelProps) => {
   const { exportPDF } = useExportConversationPDF();
+  const [summaryOpen, setSummaryOpen] = useState(false);
+  const [extractOpen, setExtractOpen] = useState(false);
+  const [searchOpen, setSearchOpen] = useState(false);
   if (!selectedConversation) {
     return (
       <div className={`flex-1 flex flex-col items-center justify-center bg-[hsl(var(--background))] ${showMobileChat ? 'hidden' : ''}`}>
@@ -114,7 +123,34 @@ const ChatPanel = ({
           </p>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1">
+          <Button
+            variant="ghost" size="icon"
+            onClick={() => setSearchOpen(true)}
+            className="h-8 w-8 text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))]"
+            title="Buscar mensagens"
+            aria-label="Buscar mensagens"
+          >
+            <Search className="h-4 w-4" />
+          </Button>
+          <Button
+            variant="ghost" size="icon"
+            onClick={() => setSummaryOpen(true)}
+            className="h-8 w-8 text-[hsl(var(--muted-foreground))] hover:text-primary"
+            title="Resumir conversa com IA"
+            aria-label="Resumir conversa com IA"
+          >
+            <Sparkles className="h-4 w-4" />
+          </Button>
+          <Button
+            variant="ghost" size="icon"
+            onClick={() => setExtractOpen(true)}
+            className="h-8 w-8 text-[hsl(var(--muted-foreground))] hover:text-primary"
+            title="Extrair dados (CPF, telefone, processo, etc)"
+            aria-label="Extrair dados estruturados"
+          >
+            <Wand2 className="h-4 w-4" />
+          </Button>
           <Button
             variant="ghost"
             size="icon"
@@ -160,6 +196,24 @@ const ChatPanel = ({
         onSendMedia={onSendMedia}
         conversationId={selectedConversation?.id}
         toPhoneNumber={selectedConversation?.phone_number}
+      />
+
+      {/* AI + Search modals */}
+      <ConversationSummaryModal
+        open={summaryOpen}
+        onOpenChange={setSummaryOpen}
+        conversationId={selectedConversation.id}
+        contactName={selectedConversation.contact_name ?? undefined}
+      />
+      <ExtractedDataModal
+        open={extractOpen}
+        onOpenChange={setExtractOpen}
+        conversationId={selectedConversation.id}
+      />
+      <WhatsAppSearchModal
+        open={searchOpen}
+        onOpenChange={setSearchOpen}
+        conversationId={selectedConversation.id}
       />
     </div>
   );

@@ -441,6 +441,26 @@ export async function processNormalizedMessage(
       console.log(`[processMsg:${provider}] Message saved to conversation ${conversationId}`);
     }
 
+    // --- AUTO-REPLY (greeting / away) ---
+    // Roda fire-and-forget pra não bloquear o fluxo principal de resposta IA.
+    void (async () => {
+      try {
+        const { maybeSendAutoReply } = await import("../../_shared/auto-reply.ts");
+        const { getTenantKapsoConfig } = await import("../../_shared/kapso-client.ts");
+        const cfg = await getTenantKapsoConfig(supabase, tenantId);
+        const sent = await maybeSendAutoReply(supabase, cfg, {
+          tenantId,
+          conversationId: conversationId!,
+          fromPhone: from,
+        });
+        if (sent) {
+          console.log(`[processMsg:${provider}] auto-reply sent: ${sent}`);
+        }
+      } catch (err) {
+        console.error("[processMsg] auto-reply error (non-critical):", err);
+      }
+    })();
+
     // --- CHECK ia_active BEFORE INVOKING AI ---
     // For existing conversations, respect the ia_active flag.
     // New conversations (just created) default to ia_active = true.
