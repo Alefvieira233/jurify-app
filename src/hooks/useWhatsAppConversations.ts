@@ -217,6 +217,11 @@ export const useWhatsAppConversations = (): UseWhatsAppConversationsReturn => {
             : conv
         )
       );
+
+      // 👁️ Fire-and-forget: marca como lido na Meta API (✓✓ azul pro cliente)
+      void supabase.functions.invoke('whatsapp-mark-read', {
+        body: { conversationId },
+      }).catch((e) => log.warn('whatsapp-mark-read failed (non-critical)', { error: String(e) }));
     } catch (err: unknown) {
       log.error('Erro ao marcar como lido', err);
       toast({

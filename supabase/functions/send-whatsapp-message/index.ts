@@ -29,6 +29,8 @@ interface SendMessageRequest {
   mimeType?: string;       // MIME type of the media (e.g., audio/webm, image/png)
   fileName?: string;       // Original file name
   caption?: string;        // Caption for images/documents
+  // Reply quoted: provider_message_id da mensagem que está sendo citada
+  replyToMessageId?: string;
 }
 
 interface SendMessageResponse {
@@ -82,9 +84,10 @@ async function sendViaKapso(
   config: KapsoTenantConfig,
   to: string,
   text: string,
+  replyToMessageId?: string,
 ): Promise<{ success: boolean; messageId?: string; error?: string }> {
   try {
-    const result = await kapsoSendText(config, to, text);
+    const result = await kapsoSendText(config, to, text, replyToMessageId);
     return { success: true, messageId: result.messageId };
   } catch (error) {
     console.error("❌ Kapso API Error:", error);
@@ -105,6 +108,7 @@ async function sendMediaViaKapso(
   mimeType?: string,
   fileName?: string,
   caption?: string,
+  replyToMessageId?: string,
 ): Promise<{ success: boolean; messageId?: string; error?: string }> {
   try {
     // Upload to Supabase Storage to get a signed URL
@@ -132,7 +136,7 @@ async function sendMediaViaKapso(
       throw new Error(`Failed to create signed URL: ${signedError?.message || "unknown"}`);
     }
 
-    const result = await kapsoSendMedia(config, to, mediaType, signedData.signedUrl, caption, fileName);
+    const result = await kapsoSendMedia(config, to, mediaType, signedData.signedUrl, caption, fileName, replyToMessageId);
     return { success: true, messageId: result.messageId };
   } catch (error) {
     console.error("❌ Kapso Media Error:", error);
@@ -432,12 +436,14 @@ Deno.serve(async (req) => {
           messageRequest.mimeType,
           messageRequest.fileName,
           messageRequest.caption,
+          messageRequest.replyToMessageId,
         );
       } else {
         result = await sendViaKapso(
           tenantKapsoConfig,
           messageRequest.to,
           messageRequest.text,
+          messageRequest.replyToMessageId,
         );
       }
     } else if (credentials.provider === "meta" && credentials.phoneNumberId && credentials.accessToken) {

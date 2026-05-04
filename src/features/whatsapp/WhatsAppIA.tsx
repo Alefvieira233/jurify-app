@@ -9,7 +9,9 @@ import {
   Wifi,
   User,
   ArrowLeft,
+  FileDown,
 } from 'lucide-react';
+import { useExportConversationPDF } from '@/hooks/useExportConversationPDF';
 import { useWhatsAppConversations } from '@/hooks/useWhatsAppConversations';
 import type { WhatsAppConversation, WhatsAppMessage } from '@/hooks/useWhatsAppConversations';
 import WhatsAppSetup from './WhatsAppSetup';
@@ -47,6 +49,7 @@ interface ChatPanelProps {
   messagesEndRef: RefObject<HTMLDivElement>;
   onSetup: () => void;
   onToggleIA: () => void;
+  tenantName?: string | null;
 }
 
 const ChatPanel = ({
@@ -61,7 +64,9 @@ const ChatPanel = ({
   messagesEndRef,
   onSetup,
   onToggleIA,
+  tenantName,
 }: ChatPanelProps) => {
+  const { exportPDF } = useExportConversationPDF();
   if (!selectedConversation) {
     return (
       <div className={`flex-1 flex flex-col items-center justify-center bg-[hsl(var(--background))] ${showMobileChat ? 'hidden' : ''}`}>
@@ -110,6 +115,16 @@ const ChatPanel = ({
         </div>
 
         <div className="flex items-center gap-2">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => void exportPDF(selectedConversation, messages, { officeName: tenantName ?? 'Jurify' })}
+            className="h-8 w-8 text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))]"
+            title="Exportar conversa em PDF"
+            aria-label="Exportar conversa em PDF"
+          >
+            <FileDown className="h-4 w-4" />
+          </Button>
           <button
             onClick={onToggleIA}
             className={`inline-flex items-center rounded-full border-2 px-3 py-1.5 text-xs font-semibold transition-colors cursor-pointer shadow-sm ${
@@ -388,6 +403,7 @@ const WhatsAppIA = () => {
         messagesEndRef={messagesEndRef}
         onSetup={() => isWhatsAppConnected ? navigate('/conexoes') : setShowSetup(true)}
         onToggleIA={() => selectedConversation && void toggleIA(selectedConversation.id)}
+        tenantName={profile?.nome_completo ?? null}
       />
     </main>
   );

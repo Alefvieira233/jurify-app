@@ -176,25 +176,28 @@ interface SendResult {
 export async function sendTextMessage(
   config: KapsoTenantConfig,
   to: string,
-  text: string
+  text: string,
+  replyToMessageId?: string,
 ): Promise<SendResult> {
   if (!config.phoneNumberId) {
     throw new Error("WhatsApp não conectado. Complete o setup primeiro.");
   }
 
   const phone = to.replace(/\D/g, "");
+  const payload: Record<string, unknown> = {
+    messaging_product: "whatsapp",
+    to: phone,
+    type: "text",
+    text: { body: text },
+  };
+  if (replyToMessageId) {
+    payload.context = { message_id: replyToMessageId };
+  }
+
   const response = await kapsoFetchWithKey(
     config.apiKey,
     `/meta/whatsapp/v24.0/${config.phoneNumberId}/messages`,
-    {
-      method: "POST",
-      body: JSON.stringify({
-        messaging_product: "whatsapp",
-        to: phone,
-        type: "text",
-        text: { body: text },
-      }),
-    },
+    { method: "POST", body: JSON.stringify(payload) },
     config.apiUrl
   );
 
@@ -216,7 +219,8 @@ export async function sendMediaMessage(
   mediaType: MediaType,
   mediaUrl: string,
   caption?: string,
-  filename?: string
+  filename?: string,
+  replyToMessageId?: string,
 ): Promise<SendResult> {
   if (!config.phoneNumberId) {
     throw new Error("WhatsApp não conectado. Complete o setup primeiro.");
@@ -227,18 +231,18 @@ export async function sendMediaMessage(
   if (caption) mediaPayload.caption = caption;
   if (filename) mediaPayload.filename = filename;
 
+  const payload: Record<string, unknown> = {
+    messaging_product: "whatsapp",
+    to: phone,
+    type: mediaType,
+    [mediaType]: mediaPayload,
+  };
+  if (replyToMessageId) payload.context = { message_id: replyToMessageId };
+
   const response = await kapsoFetchWithKey(
     config.apiKey,
     `/meta/whatsapp/v24.0/${config.phoneNumberId}/messages`,
-    {
-      method: "POST",
-      body: JSON.stringify({
-        messaging_product: "whatsapp",
-        to: phone,
-        type: mediaType,
-        [mediaType]: mediaPayload,
-      }),
-    },
+    { method: "POST", body: JSON.stringify(payload) },
     config.apiUrl
   );
 
