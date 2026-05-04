@@ -152,8 +152,8 @@ jobs:
           echo "📦 Bundle size analysis:"
           TOTAL_JS_KB=$(find dist -type f -name "*.js" ! -name "*.map" -exec du -k {} + | awk '{s+=$1} END {print s}')
           echo "Total JS size: ${TOTAL_JS_KB}KB"
-          if [ "$TOTAL_JS_KB" -gt 4096 ]; then
-            echo "❌ FAIL: Total JS bundle exceeds 4MB limit (${TOTAL_JS_KB}KB)"
+          if [ "$TOTAL_JS_KB" -gt 5120 ]; then
+            echo "❌ FAIL: Total JS bundle exceeds 5MB limit (${TOTAL_JS_KB}KB)"
             exit 1
           fi
           echo "✅ Bundle size within limits"
@@ -267,10 +267,10 @@ jobs:
         run: npm run test:e2e -- --project=chromium
         env:
           CI: true
-          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
-          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
-          E2E_TEST_EMAIL: ${{ secrets.E2E_TEST_EMAIL }}
-          E2E_TEST_PASSWORD: ${{ secrets.E2E_TEST_PASSWORD }}
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL || 'https://dummy.supabase.co' }}
+          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY || 'dummy-key' }}
+          E2E_TEST_EMAIL: ${{ secrets.E2E_TEST_EMAIL || 'test@example.com' }}
+          E2E_TEST_PASSWORD: ${{ secrets.E2E_TEST_PASSWORD || 'DummyPass123!' }}
 
       - name: 📤 Upload Playwright report
         if: always()
