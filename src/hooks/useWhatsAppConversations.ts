@@ -141,7 +141,7 @@ export const useWhatsAppConversations = (): UseWhatsAppConversationsReturn => {
 
       let msgsQuery = supabase
         .from('whatsapp_messages')
-        .select('id, conversation_id, sender, content, message_type, media_url, read, timestamp, created_at, send_status, send_error, processed_by_agent')
+        .select('id, conversation_id, sender, content, message_type, media_url, read, timestamp, created_at, send_status, send_error, processed_by_agent, provider_message_id, pinned, pinned_at')
         .eq('conversation_id', conversationId);
 
       if (profile?.tenant_id) {

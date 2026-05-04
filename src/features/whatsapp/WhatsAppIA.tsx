@@ -13,11 +13,13 @@ import {
   Sparkles,
   Wand2,
   Search,
+  StickyNote,
 } from 'lucide-react';
 import { useExportConversationPDF } from '@/hooks/useExportConversationPDF';
 import ConversationSummaryModal from './ConversationSummaryModal';
 import ExtractedDataModal from './ExtractedDataModal';
 import WhatsAppSearchModal from './WhatsAppSearchModal';
+import NotesDrawer from './NotesDrawer';
 import { useWhatsAppConversations } from '@/hooks/useWhatsAppConversations';
 import type { WhatsAppConversation, WhatsAppMessage } from '@/hooks/useWhatsAppConversations';
 import WhatsAppSetup from './WhatsAppSetup';
@@ -76,6 +78,7 @@ const ChatPanel = ({
   const [summaryOpen, setSummaryOpen] = useState(false);
   const [extractOpen, setExtractOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
+  const [notesOpen, setNotesOpen] = useState(false);
   if (!selectedConversation) {
     return (
       <div className={`flex-1 flex flex-col items-center justify-center bg-[hsl(var(--background))] ${showMobileChat ? 'hidden' : ''}`}>
@@ -132,6 +135,15 @@ const ChatPanel = ({
             aria-label="Buscar mensagens"
           >
             <Search className="h-4 w-4" />
+          </Button>
+          <Button
+            variant="ghost" size="icon"
+            onClick={() => setNotesOpen(true)}
+            className="h-8 w-8 text-[hsl(var(--muted-foreground))] hover:text-amber-600"
+            title="Notas internas"
+            aria-label="Notas internas"
+          >
+            <StickyNote className="h-4 w-4" />
           </Button>
           <Button
             variant="ghost" size="icon"
@@ -214,6 +226,12 @@ const ChatPanel = ({
         open={searchOpen}
         onOpenChange={setSearchOpen}
         conversationId={selectedConversation.id}
+      />
+      <NotesDrawer
+        open={notesOpen}
+        onOpenChange={setNotesOpen}
+        conversationId={selectedConversation.id}
+        contactName={selectedConversation.contact_name ?? undefined}
       />
     </div>
   );

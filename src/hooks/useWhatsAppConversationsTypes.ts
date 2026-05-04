@@ -43,4 +43,6 @@ export interface WhatsAppMessage {
   send_error?: string | null;
   processed_by_agent?: boolean;
   provider_message_id?: string | null;
+  pinned?: boolean;
+  pinned_at?: string | null;
 }

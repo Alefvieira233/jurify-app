@@ -8,6 +8,8 @@ import { useVirtualizer } from '@tanstack/react-virtual';
 import { fmtMessageTime } from '@/utils/formatting';
 import type { WhatsAppConversation, WhatsAppMessage } from '@/hooks/useWhatsAppConversations';
 import { getDeliveryStatusIcon } from './whatsapp-helpers';
+import { Pin } from 'lucide-react';
+import { useTogglePinMessage } from '@/hooks/useConversationNotes';
 import ReactionPicker from './ReactionPicker';
 
 export interface MessageViewProps {
@@ -45,6 +47,8 @@ const MessageRow = memo(function MessageRow({
   const isLead = message.sender === 'lead';
   const isIA = message.sender === 'ia';
   const canReact = isLead && !!message.provider_message_id && !!toPhoneNumber;
+  const isPinned = (message as { pinned?: boolean }).pinned === true;
+  const togglePin = useTogglePinMessage(conversationId);
 
   // Date separator
   const messageDate = new Date(message.timestamp).toLocaleDateString('pt-BR');
@@ -68,21 +72,36 @@ const MessageRow = memo(function MessageRow({
       )}
       <div className={`group flex items-start gap-1.5 ${isLead ? 'justify-start' : 'justify-end'}`}>
         {canReact && toPhoneNumber && message.provider_message_id && (
-          <div className="opacity-0 group-hover:opacity-100 transition-opacity self-center order-2">
+          <div className="opacity-0 group-hover:opacity-100 transition-opacity self-center order-2 flex flex-col gap-0.5">
             <ReactionPicker
               to={toPhoneNumber}
               providerMessageId={message.provider_message_id}
               conversationId={conversationId}
             />
+            <button
+              type="button"
+              onClick={() => void togglePin.mutateAsync(message.id)}
+              disabled={togglePin.isPending}
+              className={`p-1 rounded-full hover:bg-muted transition-colors ${isPinned ? 'text-amber-600' : 'text-muted-foreground hover:text-foreground'}`}
+              title={isPinned ? 'Desafixar' : 'Fixar (max 3)'}
+              aria-label={isPinned ? 'Desafixar mensagem' : 'Fixar mensagem'}
+            >
+              <Pin className="h-3.5 w-3.5" />
+            </button>
           </div>
         )}
-        <div className={`max-w-[75%] rounded-lg px-3 py-2 shadow-sm ${isLead ? 'order-1' : 'order-2'} ${
+        <div className={`max-w-[75%] rounded-lg px-3 py-2 shadow-sm relative ${isLead ? 'order-1' : 'order-2'} ${
           isLead
             ? 'bg-white dark:bg-[#202c33] border border-[hsl(var(--border))]/30 rounded-tl-none'
             : isIA
               ? 'bg-[#d9fdd3] dark:bg-[#005c4b] text-[hsl(var(--foreground))] dark:text-white rounded-tr-none'
               : 'bg-[#d4e4fa] dark:bg-[#1f3a5f] text-[hsl(var(--foreground))] dark:text-white rounded-tr-none'
-        }`}>
+        } ${isPinned ? 'ring-1 ring-amber-500/50' : ''}`}>
+          {isPinned && (
+            <div className="absolute -top-1.5 -left-1.5 bg-amber-500 text-white rounded-full p-0.5 shadow">
+              <Pin className="h-2.5 w-2.5" />
+            </div>
+          )}
           {isIA && (
             <div className="flex items-center gap-1 mb-0.5">
               <Bot className="h-3 w-3 text-emerald-600 dark:text-emerald-300" />
