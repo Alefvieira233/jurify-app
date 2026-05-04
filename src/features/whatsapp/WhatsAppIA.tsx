@@ -20,6 +20,7 @@ import ConversationSummaryModal from './ConversationSummaryModal';
 import ExtractedDataModal from './ExtractedDataModal';
 import WhatsAppSearchModal from './WhatsAppSearchModal';
 import NotesDrawer from './NotesDrawer';
+import PinnedMessagesBar from './PinnedMessagesBar';
 import { useWhatsAppConversations } from '@/hooks/useWhatsAppConversations';
 import type { WhatsAppConversation, WhatsAppMessage } from '@/hooks/useWhatsAppConversations';
 import WhatsAppSetup from './WhatsAppSetup';
@@ -193,6 +194,9 @@ const ChatPanel = ({
         </div>
       </div>
 
+      {/* Pinned messages bar (até 3) */}
+      <PinnedMessagesBar conversationId={selectedConversation.id} />
+
       {/* Messages Area */}
       <MessageView
         selectedConversation={selectedConversation}
@@ -305,35 +309,47 @@ const WhatsAppIA = () => {
     qualified: conversations.filter(c => c.status === 'qualificado').length,
     pending: conversations.reduce((acc, c) => acc + (c.unread_count || 0), 0),
     total: conversations.length,
+    urgent: conversations.filter(c => c.current_urgency === 'alta' || c.current_urgency === 'critica').length,
   }), [conversations]);
 
+  // Rank usado pra ordenar quando tab é "urgentes"
+  const urgencyRank = (u?: string | null): number =>
+    u === 'critica' ? 4 : u === 'alta' ? 3 : u === 'media' ? 2 : u === 'baixa' ? 1 : 0;
+
   const filteredConversations = useMemo(() => {
-    return conversations.filter(conv => {
+    const filtered = conversations.filter(conv => {
       // Tab filter
       const tabMatch = (() => {
         switch (convFilter.tab) {
+          case 'urgentes': return conv.current_urgency === 'alta' || conv.current_urgency === 'critica';
           case 'ia': return conv.agent_status === 'processing' || conv.agent_status === 'waiting_human';
           case 'ativos': return conv.status === 'ativo';
           case 'pendentes': return conv.status === 'aguardando';
           default: return true;
         }
       })();
-      // Status filter
       const statusMatch = !convFilter.status || conv.status === convFilter.status;
-      // Responsavel filter
       const respMatch = (() => {
         if (!convFilter.responsavelId) return true;
         if (convFilter.responsavelId === '__none__') return !conv.responsavel_id;
         return conv.responsavel_id === convFilter.responsavelId;
       })();
-      // Area juridica filter
       const areaMatch = !convFilter.areaJuridica || conv.area_juridica === convFilter.areaJuridica;
-      // Search filter (debounced to avoid re-filtering on every keystroke)
       const searchMatch = !debouncedSearch.trim() ||
         (conv.contact_name ?? '').toLowerCase().includes(debouncedSearch.toLowerCase()) ||
         (conv.phone_number ?? '').includes(debouncedSearch);
       return tabMatch && statusMatch && searchMatch && respMatch && areaMatch;
     });
+
+    // Tab "urgentes": ordena por urgência decrescente (crítica > alta) e depois recência
+    if (convFilter.tab === 'urgentes') {
+      return [...filtered].sort((a, b) => {
+        const rankDiff = urgencyRank(b.current_urgency) - urgencyRank(a.current_urgency);
+        if (rankDiff !== 0) return rankDiff;
+        return new Date(b.last_message_at || 0).getTime() - new Date(a.last_message_at || 0).getTime();
+      });
+    }
+    return filtered;
   }, [conversations, convFilter, debouncedSearch]);
 
   const handleSendMessage = () => {

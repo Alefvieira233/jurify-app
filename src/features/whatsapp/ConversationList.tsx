@@ -22,7 +22,7 @@ export interface ConversationListProps {
   onFilterChange: (next: ConversationFilterState) => void;
   filteredConversations: WhatsAppConversation[];
   selectedConversation: WhatsAppConversation | null;
-  stats: { total: number; active: number; pending: number; qualified: number };
+  stats: { total: number; active: number; pending: number; qualified: number; urgent: number };
   isConnected: boolean;
   onSelectConversation: (id: string) => void;
   onRefresh: () => void;

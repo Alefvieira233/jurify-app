@@ -21,7 +21,7 @@ import type { ConversationFilterState } from './conversationFilterTypes';
 interface ConversationFiltersProps {
   value: ConversationFilterState;
   onChange: (next: ConversationFilterState) => void;
-  stats: { total: number; active: number; pending: number; qualified: number };
+  stats: { total: number; active: number; pending: number; qualified: number; urgent: number };
   members: { id: string; nome_completo: string | null }[];
   areasJuridicas: string[];
 }
@@ -42,18 +42,19 @@ const ConversationFilters = ({ value, onChange, stats, members, areasJuridicas }
             onChange({ ...value, tab: v as ConversationFilterState['tab'] })
           }
         >
-          <TabsList className="w-full grid grid-cols-4 h-8">
+          <TabsList className="w-full grid grid-cols-5 h-8">
             <TabsTrigger value="todos" className="text-xs">
               Todos{stats.total > 0 ? ` (${stats.total})` : ''}
             </TabsTrigger>
-            <TabsTrigger value="ia" className="text-xs">
-              IA
+            <TabsTrigger value="urgentes" className={`text-xs ${stats.urgent > 0 ? 'data-[state=active]:bg-rose-500/15 data-[state=active]:text-rose-700 dark:data-[state=active]:text-rose-300' : ''}`}>
+              {stats.urgent > 0 ? '🚨' : ''} Urgentes{stats.urgent > 0 ? ` (${stats.urgent})` : ''}
             </TabsTrigger>
+            <TabsTrigger value="ia" className="text-xs">IA</TabsTrigger>
             <TabsTrigger value="ativos" className="text-xs">
               Ativos{stats.active > 0 ? ` (${stats.active})` : ''}
             </TabsTrigger>
             <TabsTrigger value="pendentes" className="text-xs">
-              Pendentes{stats.pending > 0 ? ` (${stats.pending})` : ''}
+              Pend.{stats.pending > 0 ? ` (${stats.pending})` : ''}
             </TabsTrigger>
           </TabsList>
         </Tabs>

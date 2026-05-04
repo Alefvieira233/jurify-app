@@ -1,5 +1,5 @@
 export interface ConversationFilterState {
-  tab: 'todos' | 'ia' | 'ativos' | 'pendentes';
+  tab: 'todos' | 'urgentes' | 'ia' | 'ativos' | 'pendentes';
   status: '' | 'ativo' | 'aguardando' | 'qualificado' | 'finalizado';
   responsavelId: string;  // '' = all, '__none__' = unassigned, uuid = specific
   areaJuridica: string;   // '' = all, or area string
