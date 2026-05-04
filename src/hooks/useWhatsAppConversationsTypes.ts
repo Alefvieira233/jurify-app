@@ -34,7 +34,7 @@ export interface WhatsAppMessage {
   conversation_id: string;
   sender: 'lead' | 'ia' | 'agent';
   content: string;
-  message_type: 'text' | 'image' | 'document' | 'audio';
+  message_type: 'text' | 'image' | 'document' | 'audio' | 'template' | 'interactive' | 'reaction' | (string & {});
   media_url: string | null;
   read: boolean;
   timestamp: string;
@@ -42,4 +42,5 @@ export interface WhatsAppMessage {
   send_status?: MessageSendStatus;
   send_error?: string | null;
   processed_by_agent?: boolean;
+  provider_message_id?: string | null;
 }

@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import {
   Send,
   Paperclip,
@@ -13,6 +13,7 @@ import { Button } from '@/components/ui/button';
 import { createLogger } from '@/lib/logger';
 import { useWhatsAppWindow } from '@/hooks/useWhatsAppWindow';
 import { useWhatsAppQuickReplies, type QuickReply } from '@/hooks/useWhatsAppQuickReplies';
+import { useWhatsAppActions } from '@/hooks/useWhatsAppActions';
 import WindowStatusBadge from './WindowStatusBadge';
 import TemplateSelectorModal from './TemplateSelectorModal';
 import QuickReplyPopover from './QuickReplyPopover';
@@ -44,6 +45,22 @@ const ChatInput = ({
   const { formattedRemaining, status, requiresTemplate } = useWhatsAppWindow(conversationId);
   const [templateModalOpen, setTemplateModalOpen] = useState(false);
   const { incrementUse } = useWhatsAppQuickReplies();
+  const { sendTyping } = useWhatsAppActions();
+  const typingTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Typing indicator: dispara quando user começa a digitar (debounce 600ms),
+  // e re-dispara cada 20s pra manter visible enquanto digita.
+  const triggerTyping = useCallback(() => {
+    if (!conversationId || requiresTemplate) return;
+    if (typingTimerRef.current) clearTimeout(typingTimerRef.current);
+    typingTimerRef.current = setTimeout(() => {
+      void sendTyping(conversationId);
+    }, 600);
+  }, [conversationId, requiresTemplate, sendTyping]);
+
+  useEffect(() => () => {
+    if (typingTimerRef.current) clearTimeout(typingTimerRef.current);
+  }, []);
 
   // Quick replies: detecta /shortcut no início ou após espaço
   const quickReplyMatch = /(?:^|\s)(\/[a-z0-9_-]*)$/i.exec(newMessage);
@@ -250,6 +267,7 @@ const ChatInput = ({
             onChange={(e) => {
               if (e.target.value.length <= 4096) {
                 setNewMessage(e.target.value);
+                triggerTyping();
               }
               e.target.style.height = 'auto';
               e.target.style.height = Math.min(e.target.scrollHeight, 120) + 'px';

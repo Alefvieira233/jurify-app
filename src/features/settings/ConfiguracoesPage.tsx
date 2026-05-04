@@ -18,6 +18,9 @@ import StatusManager from './sections/StatusManager';
 import UsoSection from './sections/UsoSection';
 import TagsManager from '@/features/tags/TagsManager';
 import DepartamentosManager from '@/features/departamentos/DepartamentosManager';
+import WhatsAppQuickRepliesSection from './sections/WhatsAppQuickRepliesSection';
+import WhatsAppAutoReplySection from './sections/WhatsAppAutoReplySection';
+import WhatsAppBusinessProfileSection from './sections/WhatsAppBusinessProfileSection';
 
 type SettingsSection = {
   id: string;
@@ -50,6 +53,14 @@ const SETTINGS_NAV: { group: string; sections: SettingsSection[] }[] = [
       { id: 'membros', label: 'Membros' },
       { id: 'integracoes', label: 'Integrações' },
       { id: 'horario-comercial', label: 'Horário Comercial' },
+    ],
+  },
+  {
+    group: 'WHATSAPP',
+    sections: [
+      { id: 'wa-quick-replies', label: 'Respostas rápidas' },
+      { id: 'wa-auto-reply', label: 'Respostas automáticas' },
+      { id: 'wa-profile', label: 'Perfil do negócio' },
     ],
   },
   {
@@ -147,6 +158,27 @@ function SettingsContent({ section, subsection }: { section: string; subsection?
         <div className="p-6 max-w-3xl">
           <Breadcrumb path={['Empresa', 'Horário Comercial']} />
           <HorarioComercialSection />
+        </div>
+      );
+    case 'wa-quick-replies':
+      return (
+        <div className="p-6 max-w-4xl">
+          <Breadcrumb path={['WhatsApp', 'Respostas rápidas']} />
+          <WhatsAppQuickRepliesSection />
+        </div>
+      );
+    case 'wa-auto-reply':
+      return (
+        <div className="p-6 max-w-3xl">
+          <Breadcrumb path={['WhatsApp', 'Respostas automáticas']} />
+          <WhatsAppAutoReplySection />
+        </div>
+      );
+    case 'wa-profile':
+      return (
+        <div className="p-6 max-w-3xl">
+          <Breadcrumb path={['WhatsApp', 'Perfil do negócio']} />
+          <WhatsAppBusinessProfileSection />
         </div>
       );
     case 'plano':

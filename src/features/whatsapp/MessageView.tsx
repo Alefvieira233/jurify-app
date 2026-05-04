@@ -8,6 +8,7 @@ import { useVirtualizer } from '@tanstack/react-virtual';
 import { fmtMessageTime } from '@/utils/formatting';
 import type { WhatsAppConversation, WhatsAppMessage } from '@/hooks/useWhatsAppConversations';
 import { getDeliveryStatusIcon } from './whatsapp-helpers';
+import ReactionPicker from './ReactionPicker';
 
 export interface MessageViewProps {
   selectedConversation: WhatsAppConversation;
@@ -32,13 +33,18 @@ const MessageRow = memo(function MessageRow({
   message,
   messages,
   index,
+  conversationId,
+  toPhoneNumber,
 }: {
   message: WhatsAppMessage;
   messages: WhatsAppMessage[];
   index: number;
+  conversationId?: string;
+  toPhoneNumber?: string;
 }) {
   const isLead = message.sender === 'lead';
   const isIA = message.sender === 'ia';
+  const canReact = isLead && !!message.provider_message_id && !!toPhoneNumber;
 
   // Date separator
   const messageDate = new Date(message.timestamp).toLocaleDateString('pt-BR');
@@ -60,8 +66,17 @@ const MessageRow = memo(function MessageRow({
           </span>
         </div>
       )}
-      <div className={`flex ${isLead ? 'justify-start' : 'justify-end'}`}>
-        <div className={`max-w-[75%] rounded-lg px-3 py-2 shadow-sm ${
+      <div className={`group flex items-start gap-1.5 ${isLead ? 'justify-start' : 'justify-end'}`}>
+        {canReact && toPhoneNumber && message.provider_message_id && (
+          <div className="opacity-0 group-hover:opacity-100 transition-opacity self-center order-2">
+            <ReactionPicker
+              to={toPhoneNumber}
+              providerMessageId={message.provider_message_id}
+              conversationId={conversationId}
+            />
+          </div>
+        )}
+        <div className={`max-w-[75%] rounded-lg px-3 py-2 shadow-sm ${isLead ? 'order-1' : 'order-2'} ${
           isLead
             ? 'bg-white dark:bg-[#202c33] border border-[hsl(var(--border))]/30 rounded-tl-none'
             : isIA
@@ -112,9 +127,13 @@ MessageRow.displayName = 'MessageRow';
 function VirtualizedMessageList({
   messages,
   messagesEndRef,
+  conversationId,
+  toPhoneNumber,
 }: {
   messages: WhatsAppMessage[];
   messagesEndRef: RefObject<HTMLDivElement>;
+  conversationId?: string;
+  toPhoneNumber?: string;
 }) {
   const parentRef = useRef<HTMLDivElement>(null);
 
@@ -160,6 +179,8 @@ function VirtualizedMessageList({
                   message={msg}
                   messages={messages}
                   index={virtualRow.index}
+                  conversationId={conversationId}
+                  toPhoneNumber={toPhoneNumber}
                 />
               </div>
             );
@@ -192,7 +213,12 @@ const MessageView = ({
   if (useVirtual) {
     return (
       <>
-        <VirtualizedMessageList messages={messages} messagesEndRef={messagesEndRef} />
+        <VirtualizedMessageList
+          messages={messages}
+          messagesEndRef={messagesEndRef}
+          conversationId={selectedConversation.id}
+          toPhoneNumber={selectedConversation.phone_number}
+        />
         {/* Typing/Processing Indicator */}
         {selectedConversation.ia_active && selectedConversation.agent_status === 'processing' && (
           <div className="flex justify-start px-4 pb-3 bg-[#efeae2] dark:bg-[#0b141a]">
@@ -214,7 +240,14 @@ const MessageView = ({
     <div className="flex-1 overflow-auto px-4 py-3 bg-[#efeae2] dark:bg-[#0b141a]" style={WA_BG_PATTERN}>
       <div className="space-y-3 max-w-3xl mx-auto">
         {messages.map((message, index) => (
-          <MessageRow key={message.id} message={message} messages={messages} index={index} />
+          <MessageRow
+            key={message.id}
+            message={message}
+            messages={messages}
+            index={index}
+            conversationId={selectedConversation.id}
+            toPhoneNumber={selectedConversation.phone_number}
+          />
         ))}
         {/* Typing/Processing Indicator */}
         {selectedConversation.ia_active && selectedConversation.agent_status === 'processing' && (
