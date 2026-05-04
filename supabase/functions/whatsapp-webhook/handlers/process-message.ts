@@ -441,8 +441,26 @@ export async function processNormalizedMessage(
       console.log(`[processMsg:${provider}] Message saved to conversation ${conversationId}`);
     }
 
+    // --- SENTIMENT ANALYSIS (fire-and-forget) ---
+    if (inboundMsgId) {
+      void (async () => {
+        try {
+          const supabaseUrl = Deno.env.get("SUPABASE_URL");
+          const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+          if (!supabaseUrl || !serviceKey) return;
+          await fetch(`${supabaseUrl}/functions/v1/analyze-whatsapp-sentiment`, {
+            method: "POST",
+            headers: { "Authorization": `Bearer ${serviceKey}`, "Content-Type": "application/json" },
+            body: JSON.stringify({ messageId: inboundMsgId }),
+            signal: AbortSignal.timeout(20_000),
+          });
+        } catch (e) {
+          console.warn("[processMsg] sentiment analysis failed (non-critical):", e instanceof Error ? e.message : e);
+        }
+      })();
+    }
+
     // --- AUTO-REPLY (greeting / away) ---
-    // Roda fire-and-forget pra não bloquear o fluxo principal de resposta IA.
     void (async () => {
       try {
         const { maybeSendAutoReply } = await import("../../_shared/auto-reply.ts");

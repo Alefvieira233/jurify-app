@@ -8,9 +8,11 @@ import { useVirtualizer } from '@tanstack/react-virtual';
 import { fmtMessageTime } from '@/utils/formatting';
 import type { WhatsAppConversation, WhatsAppMessage } from '@/hooks/useWhatsAppConversations';
 import { getDeliveryStatusIcon } from './whatsapp-helpers';
-import { Pin } from 'lucide-react';
+import { Pin, Forward } from 'lucide-react';
 import { useTogglePinMessage } from '@/hooks/useConversationNotes';
 import ReactionPicker from './ReactionPicker';
+import ForwardMessageModal from './ForwardMessageModal';
+import { useState } from 'react';
 
 export interface MessageViewProps {
   selectedConversation: WhatsAppConversation;
@@ -49,6 +51,7 @@ const MessageRow = memo(function MessageRow({
   const canReact = isLead && !!message.provider_message_id && !!toPhoneNumber;
   const isPinned = (message as { pinned?: boolean }).pinned === true;
   const togglePin = useTogglePinMessage(conversationId);
+  const [forwardOpen, setForwardOpen] = useState(false);
 
   // Date separator
   const messageDate = new Date(message.timestamp).toLocaleDateString('pt-BR');
@@ -88,7 +91,24 @@ const MessageRow = memo(function MessageRow({
             >
               <Pin className="h-3.5 w-3.5" />
             </button>
+            <button
+              type="button"
+              onClick={() => setForwardOpen(true)}
+              className="p-1 rounded-full hover:bg-muted transition-colors text-muted-foreground hover:text-foreground"
+              title="Encaminhar"
+              aria-label="Encaminhar mensagem"
+            >
+              <Forward className="h-3.5 w-3.5" />
+            </button>
           </div>
+        )}
+        {forwardOpen && (
+          <ForwardMessageModal
+            open={forwardOpen}
+            onOpenChange={setForwardOpen}
+            messageId={message.id}
+            excludeConversationId={conversationId}
+          />
         )}
         <div className={`max-w-[75%] rounded-lg px-3 py-2 shadow-sm relative ${isLead ? 'order-1' : 'order-2'} ${
           isLead
