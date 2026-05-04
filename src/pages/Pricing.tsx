@@ -36,7 +36,7 @@ const plans = [
   {
     id: 'pro',
     name: 'Profissional',
-    price: 'R$ 99',
+    price: 'R$ 199',
     period: '/mês',
     description: 'Para escritórios em crescimento que precisam de escala.',
     features: [
@@ -54,7 +54,7 @@ const plans = [
   {
     id: 'enterprise',
     name: 'Escritório Elite',
-    price: 'R$ 299',
+    price: 'R$ 999',
     period: '/mês',
     description: 'Para grandes bancas jurídicas com alta demanda.',
     features: [

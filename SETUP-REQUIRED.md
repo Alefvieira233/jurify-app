@@ -120,17 +120,16 @@ https://account.postmarkapp.com/signup
 
 ---
 
-### 5. 3 toggles no Supabase Dashboard · 15 min + ~10 min downtime
+### 5. Toggles Supabase Dashboard
 
-**5.1 HIBP password check:**
-https://supabase.com/dashboard/project/yfxgncbopvnsltjqetxw/auth/providers
+**5.1 HIBP password check** — requer **Supabase Pro Plan** ($25/mês)
+- [ ] Upgrade Supabase pra Pro: https://supabase.com/dashboard/project/yfxgncbopvnsltjqetxw/settings/billing
 - [ ] Email → toggle **"Check for leaked passwords"** ON
 
-**5.2 OTP expiry:**
-Mesmo painel:
-- [ ] Email → **OTP expiry** = `3600` (1 hora)
+**5.2 OTP expiry** ✅ JÁ APLICADO via API (3600s)
+**5.3 Min password length** ✅ JÁ APLICADO via API (8 chars)
 
-**5.3 Postgres upgrade (17.4.1.054 → patch mais recente):**
+**5.4 Postgres upgrade (17.4.1.054 → patch mais recente):**
 https://supabase.com/dashboard/project/yfxgncbopvnsltjqetxw/settings/infrastructure
 - [ ] Clicar **Upgrade Project**. Downtime ~5-15 min. Agendar fora de horário de pico.
 

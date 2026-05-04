@@ -76,12 +76,19 @@ export function useSubscription() {
     retry: 1,
   });
 
-  const restrictions = data?.restrictions ?? (data?.expired ? DEFAULT_RESTRICTIVE : DEFAULT_PERMISSIVE);
   const isExpired = data?.expired ?? false;
   const isTrialing = data?.is_trial && !isExpired;
   const daysRemaining = data?.days_remaining ?? null;
 
-  const can = (action: keyof TrialRestrictions): boolean => restrictions[action] ?? false;
+  // Sem subscription (legacy/enterprise) = permissivo. Senão usa restrictions do RPC.
+  const hasNoSubscription = data && data.has_subscription === false;
+  const restrictions: TrialRestrictions = hasNoSubscription
+    ? DEFAULT_PERMISSIVE
+    : (data?.restrictions && Object.keys(data.restrictions).length > 0
+        ? { ...DEFAULT_PERMISSIVE, ...data.restrictions }
+        : (isExpired ? DEFAULT_RESTRICTIVE : DEFAULT_PERMISSIVE));
+
+  const can = (action: keyof TrialRestrictions): boolean => restrictions[action] === true;
 
   return {
     status: data,
