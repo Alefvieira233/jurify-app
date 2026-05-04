@@ -7,9 +7,13 @@ import {
   Image,
   FileText,
   X,
+  FileCheck2,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { createLogger } from '@/lib/logger';
+import { useWhatsAppWindow } from '@/hooks/useWhatsAppWindow';
+import WindowStatusBadge from './WindowStatusBadge';
+import TemplateSelectorModal from './TemplateSelectorModal';
 
 const log = createLogger('ChatInput');
 
@@ -18,6 +22,12 @@ export interface ChatInputProps {
   setNewMessage: (msg: string) => void;
   onSendMessage: () => void;
   onSendMedia: (file: File, mediaType: 'image' | 'audio' | 'document') => void;
+  /** Conversation context — habilita 24h window check + template fallback */
+  conversationId?: string;
+  /** Phone number do destinatário (E.164 sem +) — necessário pro template */
+  toPhoneNumber?: string;
+  /** Callback após template enviado (refetch messages) */
+  onTemplateSent?: () => void;
 }
 
 const ChatInput = ({
@@ -25,7 +35,12 @@ const ChatInput = ({
   setNewMessage,
   onSendMessage,
   onSendMedia,
+  conversationId,
+  toPhoneNumber,
+  onTemplateSent,
 }: ChatInputProps) => {
+  const { formattedRemaining, status, requiresTemplate } = useWhatsAppWindow(conversationId);
+  const [templateModalOpen, setTemplateModalOpen] = useState(false);
   const [showAttachMenu, setShowAttachMenu] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
   const [recordingTime, setRecordingTime] = useState(0);
@@ -132,9 +147,37 @@ const ChatInput = ({
   };
 
   return (
-    <div className="px-4 py-3 border-t border-[hsl(var(--border))] bg-[hsl(var(--card))]">
-      <input type="file" ref={fileInputRef} className="hidden" aria-label="Selecionar arquivo" />
-      <div className="flex items-end gap-2 max-w-3xl mx-auto">
+    <div className="border-t border-[hsl(var(--border))] bg-[hsl(var(--card))]">
+      {/* 24h window status bar */}
+      {conversationId && (
+        <div className="px-4 pt-2 pb-1 flex items-center justify-between gap-2 max-w-3xl mx-auto">
+          <WindowStatusBadge status={status} formattedRemaining={formattedRemaining} />
+          {toPhoneNumber && (
+            <Button
+              variant={requiresTemplate ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => setTemplateModalOpen(true)}
+              className="h-7 text-xs gap-1.5"
+            >
+              <FileCheck2 className="h-3.5 w-3.5" />
+              {requiresTemplate ? 'Enviar template' : 'Templates'}
+            </Button>
+          )}
+        </div>
+      )}
+
+      {/* Window closed warning banner */}
+      {conversationId && requiresTemplate && (
+        <div className="mx-4 mt-1 mb-2 max-w-3xl lg:mx-auto p-2.5 rounded-md bg-amber-500/10 border border-amber-500/30 text-xs text-amber-700 dark:text-amber-300 flex items-start gap-2">
+          <span className="font-medium">Janela 24h fechada.</span>
+          <span className="text-amber-600 dark:text-amber-400/80">
+            Para reabrir conversa, envie um template aprovado pela Meta. Texto livre seria silenciosamente bloqueado.
+          </span>
+        </div>
+      )}
+
+      <div className="px-4 py-3 flex items-end gap-2 max-w-3xl mx-auto">
+        <input type="file" ref={fileInputRef} className="hidden" aria-label="Selecionar arquivo" />
         {/* Attachment button */}
         <div className="relative" ref={attachMenuRef}>
           <Button
@@ -199,13 +242,14 @@ const ChatInput = ({
             onKeyDown={(e) => {
               if (e.key === 'Enter' && !e.shiftKey) {
                 e.preventDefault();
-                onSendMessage();
+                if (!requiresTemplate) onSendMessage();
               }
             }}
-            placeholder="Digite uma mensagem..."
+            placeholder={requiresTemplate ? 'Janela fechada — clique em "Enviar template" acima' : 'Digite uma mensagem...'}
             maxLength={4096}
+            disabled={requiresTemplate && !!conversationId}
             aria-label="Mensagem WhatsApp"
-            className="flex-1 min-h-[40px] max-h-[120px] py-2.5 px-3 text-sm rounded-md border border-input bg-background resize-none overflow-y-auto focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+            className="flex-1 min-h-[40px] max-h-[120px] py-2.5 px-3 text-sm rounded-md border border-input bg-background resize-none overflow-y-auto focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
             rows={1}
           />
         )}
@@ -223,6 +267,7 @@ const ChatInput = ({
         ) : newMessage.trim() ? (
           <Button
             onClick={onSendMessage}
+            disabled={requiresTemplate && !!conversationId}
             size="icon"
             className="h-10 w-10 bg-emerald-600 hover:bg-emerald-700"
             aria-label="Enviar mensagem"
@@ -232,6 +277,7 @@ const ChatInput = ({
         ) : (
           <Button
             onClick={() => void startRecording()}
+            disabled={requiresTemplate && !!conversationId}
             variant="ghost"
             size="icon"
             className="h-10 w-10 text-[hsl(var(--muted-foreground))] hover:text-emerald-600"
@@ -241,6 +287,16 @@ const ChatInput = ({
           </Button>
         )}
       </div>
+
+      {toPhoneNumber && (
+        <TemplateSelectorModal
+          open={templateModalOpen}
+          onOpenChange={setTemplateModalOpen}
+          to={toPhoneNumber}
+          conversationId={conversationId}
+          onSent={onTemplateSent}
+        />
+      )}
     </div>
   );
 };

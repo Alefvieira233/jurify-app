@@ -143,6 +143,8 @@ const ChatPanel = ({
         setNewMessage={setNewMessage}
         onSendMessage={onSendMessage}
         onSendMedia={onSendMedia}
+        conversationId={selectedConversation?.id}
+        toPhoneNumber={selectedConversation?.phone_number}
       />
     </div>
   );

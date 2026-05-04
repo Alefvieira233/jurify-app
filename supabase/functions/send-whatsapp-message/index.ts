@@ -14,6 +14,7 @@ import { getCorsHeaders } from "../_shared/cors.ts";
 import { applyRateLimit } from "../_shared/rate-limiter.ts";
 import { sendTextMessage as kapsoSendText, sendMediaMessage as kapsoSendMedia, getTenantKapsoConfig, type KapsoTenantConfig } from "../_shared/kapso-client.ts";
 import { checkTrialAccess, trialBlockedResponse } from "../_shared/trial-gate.ts";
+import { checkWindowByConversation, checkWindowByPhone, windowClosedResponse } from "../_shared/whatsapp-window.ts";
 
 // 🔒 TIPOS DE REQUISIÇÃO
 interface SendMessageRequest {
@@ -380,6 +381,18 @@ Deno.serve(async (req) => {
       if (!gate.allowed) {
         console.log(`🔒 [trial-gate] tenant ${tenantId} bloqueado para send_whatsapp (${gate.reason})`);
         return trialBlockedResponse(gate.reason || "trial_expired", corsHeaders);
+      }
+    }
+
+    // 🕐 24h WINDOW — Meta WhatsApp não permite texto livre fora da janela 24h
+    // (cliente precisa ter enviado mensagem nas últimas 24h). Fora disso, exigir template.
+    if (tenantId && (messageRequest.conversationId || messageRequest.to)) {
+      const window = messageRequest.conversationId
+        ? await checkWindowByConversation(supabase, messageRequest.conversationId)
+        : await checkWindowByPhone(supabase, tenantId, messageRequest.to);
+      if (!window.is_open) {
+        console.log(`🕐 [window-closed] tenant=${tenantId} reason=${window.reason} age=${window.age_hours}h`);
+        return windowClosedResponse(window, corsHeaders);
       }
     }
 
