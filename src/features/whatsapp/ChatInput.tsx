@@ -17,6 +17,7 @@ import { useWhatsAppActions } from '@/hooks/useWhatsAppActions';
 import WindowStatusBadge from './WindowStatusBadge';
 import TemplateSelectorModal from './TemplateSelectorModal';
 import QuickReplyPopover from './QuickReplyPopover';
+import SmartReplyPopover from './SmartReplyPopover';
 
 const log = createLogger('ChatInput');
 
@@ -284,6 +285,16 @@ const ChatInput = ({
             aria-label="Mensagem WhatsApp"
             className="flex-1 min-h-[40px] max-h-[120px] py-2.5 px-3 text-sm rounded-md border border-input bg-background resize-none overflow-y-auto focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
             rows={1}
+          />
+        )}
+
+        {/* Smart Reply IA — só quando há conversa e janela aberta */}
+        {!isRecording && conversationId && !requiresTemplate && (
+          <SmartReplyPopover
+            conversationId={conversationId}
+            onSelect={(text) => {
+              setNewMessage(newMessage ? newMessage + (newMessage.endsWith(' ') ? '' : ' ') + text : text);
+            }}
           />
         )}
 
