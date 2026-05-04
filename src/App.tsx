@@ -200,7 +200,9 @@ const App = () => (
                   <Route path="dashboard" element={<FeatureErrorBoundary feature="Dashboard"><Dashboard /></FeatureErrorBoundary>} />
                   {/* /leads absorvido por Pipeline — redirect para evitar rotas fantasma */}
                   <Route path="leads" element={<Navigate to="/pipeline" replace />} />
-                  <Route path="conexoes" element={<ProtectedRoute requiredRoles={['admin', 'manager']}><FeatureErrorBoundary feature="Conexoes"><ConexoesManager /></FeatureErrorBoundary></ProtectedRoute>} />
+                  {/* /conexoes: open to all authenticated users — every escritório needs to connect its own WhatsApp.
+                      Granular CRUD permissions (create/delete) remain enforced inside the component via can('conexoes', ...). */}
+                  <Route path="conexoes" element={<FeatureErrorBoundary feature="Conexoes"><ConexoesManager /></FeatureErrorBoundary>} />
                   <Route path="pipeline" element={<FeatureErrorBoundary feature="Pipeline"><KanbanOperacional /></FeatureErrorBoundary>} />
                   <Route path="pipeline/classico" element={<FeatureErrorBoundary feature="Pipeline Classico"><PipelineJuridico /></FeatureErrorBoundary>} />
                   <Route path="agendamentos" element={<FeatureErrorBoundary feature="Agendamentos"><AgendamentosManager /></FeatureErrorBoundary>} />
