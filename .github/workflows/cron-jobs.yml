@@ -23,6 +23,8 @@ on:
     - cron: '0 3 * * 0'
     # tribunal-sync: every 6h (atualização de andamentos CNJ via Escavador)
     - cron: '0 */6 * * *'
+    # expire-trials: daily 03:30 UTC (00:30 BRT) — marca trials expirados como past_due
+    - cron: '30 3 * * *'
   workflow_dispatch:
     inputs:
       job:
@@ -36,6 +38,7 @@ on:
           - weekly-report
           - cleanup-agent-memory
           - tribunal-sync
+          - expire-trials
 
 env:
   SUPABASE_URL: https://yfxgncbopvnsltjqetxw.supabase.co
@@ -138,3 +141,21 @@ jobs:
             -d '{"batch": true, "limit": 50}' \
             | tee /tmp/response.json
           echo ""
+
+  expire-trials:
+    name: Expire Trials (mark past_due)
+    if: github.event.schedule == '30 3 * * *' || github.event.inputs.job == 'expire-trials'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Invoke RPC expire_trials
+        run: |
+          curl -fsS --max-time 60 -X POST \
+            "${SUPABASE_URL}/rest/v1/rpc/expire_trials" \
+            -H "apikey: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}" \
+            -H "Authorization: Bearer ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}" \
+            -H "Content-Type: application/json" \
+            -d '{}' \
+            | tee /tmp/response.json
+          echo ""
+          echo "expired_count: $(cat /tmp/response.json)"

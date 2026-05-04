@@ -1,6 +1,7 @@
 
 import { useState, useMemo, useCallback } from 'react';
 import { Plus, Search, Eye, Edit, FileSignature, RefreshCw, Trash2, MoreVertical } from 'lucide-react';
+import TrialGate from '@/components/TrialGate';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { MobileCard } from '@/components/ui/MobileCard';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
@@ -163,10 +164,12 @@ const ContratosManager = () => {
                 <CardTitle className="text-2xl">Gestão de Contratos</CardTitle>
                 <p className="text-[hsl(var(--muted-foreground))]">Gerencie contratos e assinaturas digitais</p>
               </div>
-              <Button onClick={() => setIsNovoContratoOpen(true)} className="bg-[hsl(var(--accent))] hover:bg-[hsl(var(--accent-hover))] text-[hsl(var(--accent-foreground))]">
-                <Plus className="h-4 w-4 mr-2" />
-                Novo Contrato
-              </Button>
+              <TrialGate action="create_contrato">
+                <Button onClick={() => setIsNovoContratoOpen(true)} className="bg-[hsl(var(--accent))] hover:bg-[hsl(var(--accent-hover))] text-[hsl(var(--accent-foreground))]">
+                  <Plus className="h-4 w-4 mr-2" />
+                  Novo Contrato
+                </Button>
+              </TrialGate>
             </div>
           </CardHeader>
         </Card>
@@ -235,16 +238,18 @@ const ContratosManager = () => {
             </Button>
 
             {/* Novo Contrato Button Premium */}
-            <Button
-              onClick={() => setIsNovoContratoOpen(true)}
-              className="relative group/btn overflow-hidden bg-gradient-to-r from-[hsl(var(--accent))] via-[hsl(43_96%_56%)] to-[hsl(43_96%_48%)] hover:shadow-lg transition-all duration-500 border-0"
-              data-testid="btn-novo-contrato"
-            >
-              <div className="absolute inset-0 bg-gradient-to-r from-[hsl(var(--accent))] via-[hsl(43_96%_62%)] to-[hsl(var(--accent))] opacity-0 group-hover/btn:opacity-100 blur-xl transition-opacity duration-500" style={{ filter: 'blur(20px)' }} />
-              <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover/btn:translate-x-full transition-transform duration-1000" />
-              <Plus className="relative h-4 w-4 mr-2" strokeWidth={2.5} />
-              <span className="relative font-bold">Novo Contrato</span>
-            </Button>
+            <TrialGate action="create_contrato">
+              <Button
+                onClick={() => setIsNovoContratoOpen(true)}
+                className="relative group/btn overflow-hidden bg-gradient-to-r from-[hsl(var(--accent))] via-[hsl(43_96%_56%)] to-[hsl(43_96%_48%)] hover:shadow-lg transition-all duration-500 border-0"
+                data-testid="btn-novo-contrato"
+              >
+                <div className="absolute inset-0 bg-gradient-to-r from-[hsl(var(--accent))] via-[hsl(43_96%_62%)] to-[hsl(var(--accent))] opacity-0 group-hover/btn:opacity-100 blur-xl transition-opacity duration-500" style={{ filter: 'blur(20px)' }} />
+                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover/btn:translate-x-full transition-transform duration-1000" />
+                <Plus className="relative h-4 w-4 mr-2" strokeWidth={2.5} />
+                <span className="relative font-bold">Novo Contrato</span>
+              </Button>
+            </TrialGate>
           </div>
         </div>
 

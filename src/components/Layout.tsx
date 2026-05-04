@@ -20,6 +20,7 @@ import { WifiOff, Wifi } from "lucide-react";
 import { useCapacitor } from '@/hooks/useCapacitor';
 import TopBar from '@/components/TopBar';
 import Breadcrumbs from '@/components/Breadcrumbs';
+import TrialBanner from '@/components/TrialBanner';
 
 const Layout = () => {
     const { user, loading } = useAuth();
@@ -139,6 +140,7 @@ const Layout = () => {
 
             {/* ── TopBar — all screen sizes ── */}
             <TopBar onMenuToggle={() => setMobileMenuOpen(!mobileMenuOpen)} />
+            <TrialBanner />
 
             {/* ── Mobile Menu Overlay ── */}
             {mobileMenuOpen && (

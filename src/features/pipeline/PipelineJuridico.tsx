@@ -1,6 +1,7 @@
 
 import { useState, useMemo } from 'react';
 import { Search, Plus, RefreshCw, User, TrendingUp } from 'lucide-react';
+import TrialGate from '@/components/TrialGate';
 import { DragDropContext, DropResult } from '@hello-pangea/dnd';
 import { useToast } from '@/hooks/use-toast';
 import { useLeads, type Lead } from '@/hooks/useLeads';
@@ -182,10 +183,12 @@ const PipelineJuridico = () => {
               <RefreshCw className="h-3.5 w-3.5" />
               <span className="hidden sm:inline">Sincronizar</span>
             </Button>
-            <Button size="sm" onClick={() => setShowFormModal(true)} className="h-8 text-xs gap-1.5" data-testid="btn-novo-lead">
-              <Plus className="h-3.5 w-3.5" strokeWidth={2.5} />
-              Novo Lead
-            </Button>
+            <TrialGate action="create_lead">
+              <Button size="sm" onClick={() => setShowFormModal(true)} className="h-8 text-xs gap-1.5" data-testid="btn-novo-lead">
+                <Plus className="h-3.5 w-3.5" strokeWidth={2.5} />
+                Novo Lead
+              </Button>
+            </TrialGate>
           </div>
         </div>
 

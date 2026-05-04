@@ -1,10 +1,15 @@
 /**
  * Shared Kapso WhatsApp API client for Supabase Edge Functions.
  *
- * MULTI-TENANT MODEL:
- * Each Jurify tenant has their OWN Kapso account and API key.
- * The key is stored encrypted in configuracoes_integracoes.api_key_encrypted per tenant.
- * There is NO global API key — each request uses the tenant's key.
+ * PARTNER (MASTER) MODEL — preferred:
+ *   Jurify tem 1 conta master Kapso. KAPSO_MASTER_API_KEY (Edge Secret) gerencia
+ *   todos os tenants via "customers" da Kapso. Cada tenant Jurify = 1 customer
+ *   Kapso com external_customer_id = tenant_id. Cliente final NUNCA cola API key.
+ *
+ * LEGACY MULTI-TENANT MODEL — fallback:
+ *   Tenants antigos com api_key_encrypted em configuracoes_integracoes continuam
+ *   funcionando. getTenantKapsoConfig retorna a master key se disponível, senão
+ *   tenta a key específica do tenant.
  */
 
 import { encrypt, decrypt } from "./crypto.ts";
@@ -56,9 +61,17 @@ export async function kapsoFetch(
   return kapsoFetchWithKey(apiKey, path, options, apiUrl);
 }
 
+/** Resolve the Kapso master API key from env (Partner mode). */
+export function getMasterKapsoKey(): string | null {
+  const k = Deno.env.get("KAPSO_MASTER_API_KEY") || Deno.env.get("KAPSO_API_KEY");
+  return k && k.length > 0 ? k : null;
+}
+
 /**
- * Load a tenant's Kapso config from the database.
- * Returns null if tenant has no Kapso key configured.
+ * Load Kapso config for a tenant. PREFERS the master key (Partner mode), falls
+ * back to per-tenant key (legacy) for tenants that already saved their own key.
+ *
+ * Returns null only if BOTH master is unset AND tenant has no legacy key.
  */
 export async function getTenantKapsoConfig(
   supabase: { from: (table: string) => unknown },
@@ -66,6 +79,8 @@ export async function getTenantKapsoConfig(
 ): Promise<KapsoTenantConfig | null> {
   // deno-lint-ignore no-explicit-any
   const client = supabase as any;
+
+  // Always read tenant row to pick up phone_number_id + webhook_secret + customer_id
   const { data } = await client
     .from("configuracoes_integracoes")
     .select("api_key_encrypted, webhook_secret_encrypted, endpoint_url, observacoes")
@@ -73,37 +88,21 @@ export async function getTenantKapsoConfig(
     .eq("tenant_id", tenantId)
     .maybeSingle();
 
-  if (!data?.api_key_encrypted) {
-    return null;
-  }
-
-  // Decrypt the API key
-  let apiKey: string;
-  try {
-    apiKey = await decrypt(data.api_key_encrypted);
-  } catch (err) {
-    console.error("[kapso-client] Failed to decrypt API key:", err instanceof Error ? err.message : err);
-    return null;
-  }
-
-  if (!apiKey || apiKey === "kapso_managed" || apiKey === "pending_setup") {
-    return null;
-  }
-
-  // phone_number_id is stored as JSON in observacoes: {"phone_number_id":"...","display_phone":"..."}
+  // phone_number_id / observacoes parsing (works whether or not we have legacy key)
   let phoneNumberId: string | null = null;
-  if (data.observacoes) {
+  let observacoesObj: Record<string, unknown> = {};
+  if (data?.observacoes) {
     try {
-      const obs = JSON.parse(data.observacoes);
-      phoneNumberId = obs.phone_number_id || null;
+      observacoesObj = JSON.parse(data.observacoes) as Record<string, unknown>;
+      phoneNumberId = (observacoesObj.phone_number_id as string | undefined) || null;
     } catch {
-      // Legacy format: "phone:+55..." — no phone_number_id
+      // legacy "phone:+55..." text — ignore
     }
   }
 
-  // Decrypt webhook secret if available (per-tenant HMAC verification)
+  // Decrypt webhook secret if present (per-tenant HMAC verification)
   let webhookSecret: string | null = null;
-  if (data.webhook_secret_encrypted) {
+  if (data?.webhook_secret_encrypted) {
     try {
       webhookSecret = await decrypt(data.webhook_secret_encrypted);
     } catch {
@@ -111,12 +110,32 @@ export async function getTenantKapsoConfig(
     }
   }
 
-  return {
-    apiKey,
-    apiUrl: data.endpoint_url || "https://api.kapso.ai",
-    phoneNumberId,
-    webhookSecret,
-  };
+  const apiUrl = data?.endpoint_url || "https://api.kapso.ai";
+
+  // PRIMARY: Partner mode via master key
+  const masterKey = getMasterKapsoKey();
+  if (masterKey) {
+    return { apiKey: masterKey, apiUrl, phoneNumberId, webhookSecret };
+  }
+
+  // FALLBACK: legacy per-tenant key
+  if (!data?.api_key_encrypted) {
+    return null;
+  }
+
+  let apiKey: string;
+  try {
+    apiKey = await decrypt(data.api_key_encrypted);
+  } catch (err) {
+    console.error("[kapso-client] Failed to decrypt tenant API key:", err instanceof Error ? err.message : err);
+    return null;
+  }
+
+  if (!apiKey || apiKey === "kapso_managed" || apiKey === "pending_setup") {
+    return null;
+  }
+
+  return { apiKey, apiUrl, phoneNumberId, webhookSecret };
 }
 
 /**

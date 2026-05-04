@@ -4,6 +4,12 @@
 >
 > **Status do operacional:** Stripe/Sentry/Postmark/ZapSign/Google ainda não credenciados. Este arquivo é o checklist único pra fechar isso.
 
+> 🆕 **Atualização 2026-05-04 — Trial 45 dias + Kapso Master Mode:**
+> - Trial de 45 dias automático no signup. Após expirar: read-only (vê dashboard, recebe WhatsApp inbound, mas **não cria leads/contratos/processos nem responde mensagens**).
+> - Kapso agora opera em **Partner Mode**: 1 conta master Jurify gerencia todos os tenants. Cliente final só clica "Conectar WhatsApp" (Meta Embedded Signup, sem precisar criar conta Kapso).
+> - **Variável crítica nova: `KAPSO_MASTER_API_KEY`** (Supabase Edge Secret). Sem ela, novos clientes não conseguem conectar WhatsApp.
+> - GitHub Actions cron diário `expire-trials` (03:30 UTC) marca trials vencidos como `past_due`.
+
 ---
 
 ## Onde vai cada coisa
@@ -73,17 +79,27 @@ https://sentry.io/signup (se não tem conta)
 
 ---
 
-### 3. Reativar WhatsApp/Kapso — **provavelmente quebrado** · 10 min
-**Diagnóstico atual:** último webhook real recebido foi em 2026-04-11. Nas últimas 24h o endpoint `whatsapp-webhook` só recebeu requisições de teste. Isso indica que o `WHATSAPP_VERIFY_TOKEN` mudou no Supabase mas não foi atualizado no Kapso, OU o tenant foi reconfigurado.
+### 3. Kapso Master Mode (NOVO — substitui o setup antigo) · 5 min
+**Mudança 2026-05-04:** modelo Kapso agora é Partner: você (Jurify) tem 1 conta master, todos os tenants são "customers" dela. Cliente final NUNCA cola API key — só clica "Conectar WhatsApp" no Jurify e faz o Meta Embedded Signup.
 
-- [ ] Em https://app.kapso.ai → Configurações do tenant → Webhooks
-- [ ] Confirmar URL: `https://yfxgncbopvnsltjqetxw.supabase.co/functions/v1/whatsapp-webhook`
-- [ ] Atualizar verify token para o valor atualmente configurado no Supabase
-- [ ] Se quiser rotacionar o token:
-  1. Gerar novo UUID (`uuidgen` ou `crypto.randomUUID()` no devtools)
-  2. Atualizar `WHATSAPP_VERIFY_TOKEN` no Supabase Edge Secrets
-  3. Atualizar no app.kapso.ai simultaneamente
-- [ ] Enviar mensagem teste ao número do tenant → confirmar que `webhook_events` ganha uma linha nova
+**Setup uma vez (você admin):**
+- [ ] Login em https://app.kapso.ai (sua conta master Jurify, criar se não tem)
+- [ ] Settings > API → criar (ou copiar) **Master API Key**
+- [ ] Em Supabase Edge Secrets: salvar como `KAPSO_MASTER_API_KEY`
+  https://supabase.com/dashboard/project/yfxgncbopvnsltjqetxw/settings/functions
+- [ ] Re-deploy das edge functions afetadas (uma vez):
+  ```bash
+  bash scripts/deploy-pending-edges.sh
+  # ou manualmente:
+  supabase functions deploy send-whatsapp-message kapso-manager whatsapp-webhook \
+    auto-followup health-check process-prazos-alerts ai-agent-processor
+  ```
+- [ ] Teste: signup teste → /conexoes → "Conectar WhatsApp" → completa Meta Embedded Signup → mensagem teste ao número → ver `webhook_events` ganhando linha nova
+
+**Migração de tenants antigos:** o código tem fallback automático — tenants que já têm api_key_encrypted continuam funcionando. Novos cadastros usam direto a master.
+
+**Verify token (legacy, ainda relevante p/ webhook):**
+- [ ] `WHATSAPP_VERIFY_TOKEN` continua sendo validado pela função `whatsapp-webhook`. Se já configurado, não mexer.
 
 ---
 
@@ -270,16 +286,16 @@ SENTRY_DSN
 POSTMARK_SERVER_TOKEN
 POSTMARK_FROM_EMAIL
 POSTMARK_FROM_NAME
-KAPSO_API_KEY
-KAPSO_API_URL          # default https://api.kapso.ai
-KAPSO_PHONE_NUMBER_ID
+KAPSO_MASTER_API_KEY   # 🆕 PARTNER MODE — única chave que precisa configurar
+KAPSO_API_URL          # default https://api.kapso.ai (opcional)
 WHATSAPP_VERIFY_TOKEN
-WHATSAPP_ACCESS_TOKEN
-WHATSAPP_PHONE_NUMBER_ID
 HEALTH_CHECK_TOKEN
 ALLOWED_ORIGINS        # ex: https://jurify-app.vercel.app,https://jurify.com.br
 FRONTEND_URL           # https://jurify-app.vercel.app
+ENCRYPTION_KEY         # AES-256 (openssl rand -base64 32)
 ```
+
+> **Legacy (não mais necessárias):** `KAPSO_API_KEY`, `KAPSO_PHONE_NUMBER_ID`, `WHATSAPP_ACCESS_TOKEN`, `WHATSAPP_PHONE_NUMBER_ID`. O sistema agora deriva tudo da master via Kapso customers API.
 
 **Opcionais:**
 ```

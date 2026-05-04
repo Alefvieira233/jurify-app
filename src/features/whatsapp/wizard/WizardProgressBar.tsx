@@ -5,17 +5,26 @@ interface WizardProgressBarProps {
   step: WizardStep;
 }
 
-const ALL_STEPS = ['API Key', 'Preparar', 'Conectar', 'Pronto'] as const;
+// Master-mode: 3 steps padrão. Step 'api-key' é fallback raro e intercalado.
+const PRIMARY_STEPS = ['Preparar', 'Conectar', 'Pronto'] as const;
+const FALLBACK_STEPS = ['Setup', 'Preparar', 'Conectar', 'Pronto'] as const;
 
-function getStepIndex(step: WizardStep): number {
-  if (step === 'api-key') return 0;
-  if (step === 'prepare') return 1;
-  if (step === 'connecting') return 2;
-  return 3;
+function getStepIndex(step: WizardStep, withFallback: boolean): number {
+  if (withFallback) {
+    if (step === 'api-key') return 0;
+    if (step === 'prepare') return 1;
+    if (step === 'connecting') return 2;
+    return 3;
+  }
+  if (step === 'prepare') return 0;
+  if (step === 'connecting') return 1;
+  return 2;
 }
 
 const WizardProgressBar = ({ step }: WizardProgressBarProps) => {
-  const stepIndex = getStepIndex(step);
+  const showFallback = step === 'api-key';
+  const ALL_STEPS = showFallback ? FALLBACK_STEPS : PRIMARY_STEPS;
+  const stepIndex = getStepIndex(step, showFallback);
 
   return (
     <div className="flex items-center justify-center gap-0 mb-8">

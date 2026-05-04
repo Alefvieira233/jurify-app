@@ -13,6 +13,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { getCorsHeaders } from "../_shared/cors.ts";
 import { applyRateLimit } from "../_shared/rate-limiter.ts";
 import { sendTextMessage as kapsoSendText, sendMediaMessage as kapsoSendMedia, getTenantKapsoConfig, type KapsoTenantConfig } from "../_shared/kapso-client.ts";
+import { checkTrialAccess, trialBlockedResponse } from "../_shared/trial-gate.ts";
 
 // 🔒 TIPOS DE REQUISIÇÃO
 interface SendMessageRequest {
@@ -372,6 +373,15 @@ Deno.serve(async (req) => {
       .single();
 
     const tenantId = userProfile?.tenant_id;
+
+    // 🚫 TRIAL GATE — bloqueia outbound se trial expirado (inbound continua via webhook)
+    if (tenantId) {
+      const gate = await checkTrialAccess(supabase, tenantId, "send_whatsapp");
+      if (!gate.allowed) {
+        console.log(`🔒 [trial-gate] tenant ${tenantId} bloqueado para send_whatsapp (${gate.reason})`);
+        return trialBlockedResponse(gate.reason || "trial_expired", corsHeaders);
+      }
+    }
 
     // 🔑 Busca credenciais do WhatsApp
     const credentials = await getWhatsAppCredentials(

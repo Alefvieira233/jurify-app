@@ -1,5 +1,6 @@
 import { useState, useCallback } from 'react';
 import { Plus, Scale } from 'lucide-react';
+import TrialGate from '@/components/TrialGate';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useDebounce } from '@/hooks/useDebounce';
 import { Button } from '@/components/ui/button';
@@ -192,10 +193,12 @@ const ProcessosManager = () => {
               </p>
             </div>
             {can('processos', 'create') && (
-              <Button onClick={() => { setSelectedProcesso(null); setIsFormOpen(true); }}>
-                <Plus className="w-4 h-4 mr-2" />
-                Novo Processo
-              </Button>
+              <TrialGate action="create_processo">
+                <Button onClick={() => { setSelectedProcesso(null); setIsFormOpen(true); }}>
+                  <Plus className="w-4 h-4 mr-2" />
+                  Novo Processo
+                </Button>
+              </TrialGate>
             )}
           </div>
         </CardHeader>

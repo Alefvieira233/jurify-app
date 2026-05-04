@@ -9,7 +9,9 @@ const log = createLogger('WhatsAppWizard');
 const POLL_INTERVAL_MS = 5000;
 
 export function useWhatsAppWizard(onConnected: () => void) {
-  const [step, setStep] = useState<WizardStep>('api-key');
+  // Default: 'prepare' — Partner mode (master key Jurify) cobre tudo.
+  // Caímos em 'api-key' apenas como fallback se backend retornar needsApiKey.
+  const [step, setStep] = useState<WizardStep>('prepare');
   const [setupState, setSetupState] = useState<SetupState>('idle');
   const [setupUrl, setSetupUrl] = useState<string | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
@@ -31,21 +33,17 @@ export function useWhatsAppWizard(onConnected: () => void) {
 
   const [hasExistingKey, setHasExistingKey] = useState(false);
 
-  // Check if tenant already has a valid API key on mount
+  // Health check just informs UX; default flow segue para 'prepare' e
+  // generateSetupLink resolve. Se backend retornar needsApiKey, caímos em fallback.
   useEffect(() => {
     void (async () => {
       try {
         const { data } = await supabase.functions.invoke('kapso-manager', {
           body: { action: 'health' },
         });
-        if (data?.hasApiKey && data?.success) {
-          setHasExistingKey(true);
-          setStep('prepare');
-        } else if (data?.hasApiKey && !data?.success) {
-          setKeyError('Sua API key está inválida. Atualize abaixo.');
-        }
+        if (data?.hasApiKey) setHasExistingKey(true);
       } catch {
-        // No key configured — show api-key step
+        // ignore — fallback será detectado em generateSetupLink
       }
     })();
   }, []);
