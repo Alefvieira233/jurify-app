@@ -139,7 +139,7 @@ describe('sanitizeInput — rejection of empty input', () => {
 
 // ─── PII redaction ─────────────────────────────────────────
 
-describe('redactPII — Email and Phone', () => {
+describe('redactPII — Email, Phone and OAB', () => {
   it('redacts email addresses', () => {
     expect(redactPII('Contato: joao.silva@empresa.com')).toBe('Contato: ***EMAIL***');
   });
@@ -147,6 +147,11 @@ describe('redactPII — Email and Phone', () => {
   it('redacts Brazilian phone numbers', () => {
     expect(redactPII('Ligue para (11) 99999-8888')).toBe('Ligue para ***PHONE***');
     expect(redactPII('Tel: +55 11 999998888')).toBe('Tel: ***PHONE***');
+  });
+
+  it('redacts OAB registrations', () => {
+    expect(redactPII('Advogado SP123456')).toBe('Advogado ***OAB***');
+    expect(redactPII('OAB RJ 99999')).toBe('OAB ***OAB***');
   });
 });
 

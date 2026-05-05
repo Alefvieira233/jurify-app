@@ -52,6 +52,11 @@ describe('PII redaction primitives', () => {
       expect(out).not.toContain('11999998888');
     });
 
+    it('mascara telefone BR com formato', () => {
+      const out = redactPIIString('Ligue para (11) 99999-8888');
+      expect(out).toContain('***');
+    });
+
     it('mascara JWT/Bearer tokens', () => {
       const out = redactPIIString('Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.abc.def');
       // Tail do JWT é redacted; mantém prefixo curto pra debug
@@ -62,6 +67,12 @@ describe('PII redaction primitives', () => {
 
     it('não altera texto sem PII', () => {
       expect(redactPIIString('Olá, tudo bem?')).toBe('Olá, tudo bem?');
+    });
+
+    it('handles empty/null string', () => {
+      expect(redactPIIString('')).toBe('');
+      // @ts-expect-error
+      expect(redactPIIString(null)).toBe(null);
     });
   });
 
@@ -135,5 +146,103 @@ describe('EdgeLogger — integração PII', () => {
     // Tail do token deve sumir
     expect(out).not.toContain('eyJhbGciOiJIUzI1');
     spy.mockRestore();
+  });
+
+  it('handles debug() logs', () => {
+    const spy = vi.spyOn(console, 'debug').mockImplementation(() => {});
+    const log = createEdgeLogger('test-fn');
+    log.debug('debugging user@test.com');
+    const out = spy.mock.calls[0]?.[0] as string;
+    expect(out).not.toContain('user@test.com');
+    spy.mockRestore();
+  });
+
+  it('handles warn() logs', () => {
+    const spy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const log = createEdgeLogger('test-fn');
+    log.warn('warning for user@test.com');
+    const out = spy.mock.calls[0]?.[0] as string;
+    expect(out).not.toContain('user@test.com');
+    spy.mockRestore();
+  });
+
+  it('suppresses logs based on environment', () => {
+    const g = globalThis as Record<string, unknown>;
+    const originalDeno = g.Deno;
+    g.Deno = { env: { get: (k: string) => (k === 'SUPABASE_DB_NAME' ? 'production' : undefined) } };
+
+    const spy = vi.spyOn(console, 'info').mockImplementation(() => {});
+    const log = createEdgeLogger('test-fn');
+    log.info('should not log');
+    expect(spy).not.toHaveBeenCalled();
+
+    spy.mockRestore();
+    g.Deno = originalDeno;
+  });
+
+  it('redactPII handles deep objects with depth-limit', () => {
+    const circular: any = {};
+    circular.self = circular;
+    const redacted = redactPII(circular) as any;
+    // Should contain depth-limit string at the configured depth
+    expect(JSON.stringify(redacted)).toContain('[depth-limit]');
+  });
+
+  it('redactPII handles unknown types', () => {
+    const sym = Symbol('test');
+    expect(redactPII(sym)).toBe('[unserializable]');
+  });
+
+  it('serialize handles BigInt (JSON.stringify error)', () => {
+    const log = createEdgeLogger('test-fn');
+    const spy = vi.spyOn(console, 'info').mockImplementation(() => {});
+
+    // redactPII for bigint returns it as-is, which JSON.stringify fails on
+    log.info('test bigint', { val: BigInt(9007199254740991) });
+
+    const out = spy.mock.calls[0]?.[0] as string;
+    expect(out).toContain('[test-fn] test bigint');
+    spy.mockRestore();
+  });
+
+  it('debug() does not log in production', () => {
+    const g = globalThis as Record<string, unknown>;
+    const originalDeno = g.Deno;
+    g.Deno = { env: { get: (k: string) => (k === 'SUPABASE_DB_NAME' ? 'production' : undefined) } };
+
+    const spy = vi.spyOn(console, 'debug').mockImplementation(() => {});
+    const log = createEdgeLogger('test-fn');
+    log.debug('should not log');
+    expect(spy).not.toHaveBeenCalled();
+
+    spy.mockRestore();
+    g.Deno = originalDeno;
+  });
+
+  it('warn() and error() log even in production', () => {
+    const g = globalThis as Record<string, unknown>;
+    const originalDeno = g.Deno;
+    g.Deno = { env: { get: (k: string) => (k === 'SUPABASE_DB_NAME' ? 'production' : undefined) } };
+
+    const spyWarn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const spyError = vi.spyOn(console, 'error').mockImplementation(() => {});
+    const log = createEdgeLogger('test-fn');
+
+    log.warn('warn production');
+    log.error('error production');
+
+    expect(spyWarn).toHaveBeenCalled();
+    expect(spyError).toHaveBeenCalled();
+
+    spyWarn.mockRestore();
+    spyError.mockRestore();
+    g.Deno = originalDeno;
+  });
+
+  it('redactPII handles unknown primitives', () => {
+    // @ts-expect-error
+    expect(redactPII(undefined)).toBeUndefined();
+    // @ts-expect-error
+    expect(redactPII(null)).toBeNull();
   });
 });

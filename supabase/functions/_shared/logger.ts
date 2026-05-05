@@ -37,7 +37,7 @@ const PII_FIELDS = new Set([
   "credit_card", "card_number", "cvv",
 ]);
 
-const EMAIL_RE = /\b([A-Za-z0-9._%+-]{1,64})@([A-Za-z0-9.-]+\.[A-Z|a-z]{2,})\b/g;
+const EMAIL_RE = /\b([A-Za-z0-9._%+-]{1,64})@([A-Za-z0-9.-]+\.[a-zA-Z]{2,})\b/g;
 const PHONE_RE = /\b(\+?\d{1,3})?[\s.-]?\(?\d{2,3}\)?[\s.-]?\d{4,5}[\s.-]?\d{4}\b/g;
 const CPF_RE = /\b\d{3}\.?\d{3}\.?\d{3}[-.]?\d{2}\b/g;
 const CNPJ_RE = /\b\d{2}\.?\d{3}\.?\d{3}\/?\d{4}[-.]?\d{2}\b/g;
