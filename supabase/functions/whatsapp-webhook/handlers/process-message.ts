@@ -441,6 +441,25 @@ export async function processNormalizedMessage(
       console.log(`[processMsg:${provider}] Message saved to conversation ${conversationId}`);
     }
 
+    // --- AUDIO TRANSCRIPTION (fire-and-forget, antes do sentiment pra que ele leia o texto transcrito) ---
+    if (inboundMsgId && messageType === "audio") {
+      void (async () => {
+        try {
+          const supabaseUrl = Deno.env.get("SUPABASE_URL");
+          const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+          if (!supabaseUrl || !serviceKey) return;
+          await fetch(`${supabaseUrl}/functions/v1/transcribe-whatsapp-audio`, {
+            method: "POST",
+            headers: { "Authorization": `Bearer ${serviceKey}`, "Content-Type": "application/json" },
+            body: JSON.stringify({ messageId: inboundMsgId }),
+            signal: AbortSignal.timeout(70_000),
+          });
+        } catch (e) {
+          console.warn("[processMsg] audio transcription failed (non-critical):", e instanceof Error ? e.message : e);
+        }
+      })();
+    }
+
     // --- SENTIMENT ANALYSIS (fire-and-forget) ---
     if (inboundMsgId) {
       void (async () => {
@@ -448,6 +467,8 @@ export async function processNormalizedMessage(
           const supabaseUrl = Deno.env.get("SUPABASE_URL");
           const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
           if (!supabaseUrl || !serviceKey) return;
+          // Delay pequeno pra dar tempo da transcrição terminar (audio + sentiment lê o transcribed)
+          if (messageType === "audio") await new Promise(r => setTimeout(r, 8000));
           await fetch(`${supabaseUrl}/functions/v1/analyze-whatsapp-sentiment`, {
             method: "POST",
             headers: { "Authorization": `Bearer ${serviceKey}`, "Content-Type": "application/json" },

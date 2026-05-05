@@ -19,6 +19,8 @@ export interface KapsoTenantConfig {
   apiUrl: string;
   phoneNumberId?: string | null;
   webhookSecret?: string | null;
+  /** Kapso customer_id — necessário em Partner Mode pra isolar dados por tenant */
+  customerId?: string | null;
 }
 
 /**
@@ -29,7 +31,8 @@ export async function kapsoFetchWithKey(
   apiKey: string,
   path: string,
   options: RequestInit = {},
-  apiUrl = "https://api.kapso.ai"
+  apiUrl = "https://api.kapso.ai",
+  customerId?: string | null,
 ): Promise<Response> {
   const url = `${apiUrl.replace(/\/+$/, "")}${path.startsWith("/") ? path : `/${path}`}`;
 
@@ -38,6 +41,8 @@ export async function kapsoFetchWithKey(
   if (!headers.has("Content-Type")) {
     headers.set("Content-Type", "application/json");
   }
+  // Partner Mode: isola dados por tenant via header customer_id
+  if (customerId) headers.set("X-Kapso-Customer-Id", customerId);
 
   return fetch(url, { ...options, headers, signal: options.signal ?? AbortSignal.timeout(15_000) });
 }
@@ -90,11 +95,13 @@ export async function getTenantKapsoConfig(
 
   // phone_number_id / observacoes parsing (works whether or not we have legacy key)
   let phoneNumberId: string | null = null;
+  let customerId: string | null = null;
   let observacoesObj: Record<string, unknown> = {};
   if (data?.observacoes) {
     try {
       observacoesObj = JSON.parse(data.observacoes) as Record<string, unknown>;
       phoneNumberId = (observacoesObj.phone_number_id as string | undefined) || null;
+      customerId = (observacoesObj.kapso_customer_id as string | undefined) || null;
     } catch {
       // legacy "phone:+55..." text — ignore
     }
@@ -115,7 +122,7 @@ export async function getTenantKapsoConfig(
   // PRIMARY: Partner mode via master key
   const masterKey = getMasterKapsoKey();
   if (masterKey) {
-    return { apiKey: masterKey, apiUrl, phoneNumberId, webhookSecret };
+    return { apiKey: masterKey, apiUrl, phoneNumberId, webhookSecret, customerId };
   }
 
   // FALLBACK: legacy per-tenant key
@@ -135,7 +142,7 @@ export async function getTenantKapsoConfig(
     return null;
   }
 
-  return { apiKey, apiUrl, phoneNumberId, webhookSecret };
+  return { apiKey, apiUrl, phoneNumberId, webhookSecret, customerId };
 }
 
 /**
@@ -198,7 +205,8 @@ export async function sendTextMessage(
     config.apiKey,
     `/meta/whatsapp/v24.0/${config.phoneNumberId}/messages`,
     { method: "POST", body: JSON.stringify(payload) },
-    config.apiUrl
+    config.apiUrl,
+    config.customerId,
   );
 
   if (!response.ok) {
@@ -243,7 +251,8 @@ export async function sendMediaMessage(
     config.apiKey,
     `/meta/whatsapp/v24.0/${config.phoneNumberId}/messages`,
     { method: "POST", body: JSON.stringify(payload) },
-    config.apiUrl
+    config.apiUrl,
+    config.customerId,
   );
 
   if (!response.ok) {
