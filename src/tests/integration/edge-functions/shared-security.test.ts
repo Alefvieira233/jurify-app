@@ -6,8 +6,8 @@
  * assistant, chat-completion, ai-agent-processor).
  */
 
-import { describe, it, expect } from 'vitest';
-import { sanitizeInput, redactPII } from '../../../../supabase/functions/_shared/security';
+import { describe, it, expect, vi } from 'vitest';
+import { sanitizeInput, redactPII, auditLog } from '../../../../supabase/functions/_shared/security';
 
 // ─── Prompt injection detection ─────────────────────────────
 
@@ -193,5 +193,46 @@ describe('redactPII — non-PII is preserved', () => {
   it('does not redact short numbers', () => {
     const text = 'Ano 2026, mês 4, dia 10';
     expect(redactPII(text)).toBe(text);
+  });
+});
+
+describe('auditLog', () => {
+  it('redacts PII from query and error fields before insertion', async () => {
+    const mockInsert = vi.fn().mockResolvedValue({ error: null });
+    const mockFrom = vi.fn().mockReturnValue({ insert: mockInsert });
+    const mockSupabase = { from: mockFrom };
+
+    const entry = {
+      user_id: 'user-123',
+      tenant_id: 'tenant-456',
+      action: 'test-action',
+      query: 'My CPF is 123.456.789-00',
+      success: false,
+      error: 'Failed for user@example.com',
+    };
+
+    await auditLog(mockSupabase as any, entry);
+
+    expect(mockFrom).toHaveBeenCalledWith('assistant_audit');
+    expect(mockInsert).toHaveBeenCalledWith(expect.objectContaining({
+      query: 'My CPF is ***CPF***',
+      error: 'Failed for ***EMAIL***',
+    }));
+  });
+
+  it('handles auditLog failure gracefully', async () => {
+    const mockInsert = vi.fn().mockRejectedValue(new Error('DB connection failed'));
+    const mockFrom = vi.fn().mockReturnValue({ insert: mockInsert });
+    const mockSupabase = { from: mockFrom };
+
+    const entry = {
+      user_id: 'u',
+      tenant_id: 't',
+      action: 'a',
+      success: true,
+    };
+
+    // Should not throw
+    await expect(auditLog(mockSupabase as any, entry)).resolves.not.toThrow();
   });
 });
