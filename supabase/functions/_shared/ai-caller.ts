@@ -20,6 +20,7 @@
 import { OpenAI } from "https://deno.land/x/openai@v4.24.0/mod.ts";
 import type { createClient } from "jsr:@supabase/supabase-js@2";
 import { withRetry } from "./openai-retry.ts";
+import { redactPII } from "./security.ts";
 import {
   checkBudgetBeforeCall,
   recordTokenUsage,
@@ -204,7 +205,7 @@ export async function callOpenAI(
   // any failure is swallowed — logging must never break the pipeline) ---
   if (params.persistLog !== false) {
     try {
-      const preview = typeof content === "string" ? content.substring(0, 2000) : "";
+      const preview = typeof content === "string" ? redactPII(content.substring(0, 2000)) : "";
       await supabase.from("agent_ai_logs").insert({
         execution_id: null, // callers that have an execution row should set metadata.execution_row_id
         agent_name: params.agentName ?? params.source,
