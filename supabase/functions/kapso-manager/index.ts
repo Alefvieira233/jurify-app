@@ -754,7 +754,7 @@ Deno.serve(async (req) => {
         // 1. Check configuracoes_integracoes record
         const { data: cfg } = await supabase
           .from("configuracoes_integracoes")
-          .select("id, status, api_key_encrypted, endpoint_url, observacoes")
+          .select("id, status, api_key_encrypted, endpoint_url, observacoes, webhook_secret_encrypted")
           .eq("nome_integracao", "whatsapp_kapso")
           .eq("tenant_id", tenantId)
           .maybeSingle();
@@ -873,10 +873,16 @@ Deno.serve(async (req) => {
           detail: `Total: ${eventCount || 0} | Debug: ${debugCount} | Não resolvidos: ${unresolvedCount}`,
         };
 
-        // 7. Check KAPSO_WEBHOOK_SECRET env var (only detectable via webhook, but we can flag it)
-        checks.env_reminder = {
-          ok: true,
-          detail: "Verifique que KAPSO_WEBHOOK_SECRET está configurado nos secrets do Supabase Edge Functions",
+        // 7. Check per-tenant webhook secret is stored encrypted.
+        //    The legacy global KAPSO_WEBHOOK_SECRET env fallback was removed
+        //    on 2026-04-10 (audit P0-3). HMAC verification now requires a
+        //    per-tenant secret persisted in configuracoes_integracoes by the
+        //    finalize / register-webhook actions.
+        checks.webhook_secret = {
+          ok: !!(cfg as { webhook_secret_encrypted?: string } | null)?.webhook_secret_encrypted,
+          detail: (cfg as { webhook_secret_encrypted?: string } | null)?.webhook_secret_encrypted
+            ? "Per-tenant webhook secret armazenado (HMAC habilitado)"
+            : "Sem webhook secret persistido — execute 'Registrar Webhook' para que a Kapso emita um secret e o Jurify o armazene.",
         };
 
         const allOk = Object.values(checks).every(c => c.ok);
