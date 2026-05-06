@@ -644,8 +644,12 @@ Deno.serve(async (req) => {
         await upsertKapsoConfig(supabase, tenantId, config.apiKey, phoneNumberId, phoneDisplay);
         const result = await finalizeConnection(supabase, tenantId, phoneNumberId, phoneDisplay);
 
-        // CRITICAL: Register webhook URL with Kapso so messages arrive
-        const webhookResult = await registerWebhook(config.apiKey, phoneNumberId);
+        // CRITICAL: Register webhook URL with Kapso so messages arrive.
+        // Pass customerId so phone-id resolution is scoped to THIS tenant's
+        // customer — without it, listPhoneNumbers can return phones from other
+        // customers under the master account, and registerWebhook may pick the
+        // wrong Kapso internal id. Mirrors the register-webhook action below.
+        const webhookResult = await registerWebhook(config.apiKey, phoneNumberId, customerId);
         if (!webhookResult.success) {
           console.error(`[kapso-manager] Webhook registration failed for ${phoneNumberId}: ${webhookResult.error}`);
           await logEvent(supabase, result.conexaoId ?? null, tenantId, "webhook_registration_failed", "warning",
