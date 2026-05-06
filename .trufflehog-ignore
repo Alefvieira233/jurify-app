@@ -1,5 +1,30 @@
+# TruffleHog `--exclude-paths` ignore file (one regex pattern per line).
+# Wired into .github/workflows/pre-commit-check.yml via `--exclude-paths`.
+#
+# Patterns are Go regex matched against file paths. Be specific — wide
+# excludes can mask real secrets in those areas.
+
 # Supabase anon key is public by design (RLS enforces security)
 .env.example
 .env.production.example
+
 # Supabase auto-generated types contain the project URL (not a secret)
 src/integrations/supabase/client.ts
+
+# AIOX local-dev fixture postgres URLs (`aiox:aiox_dev@postgres:5432`).
+# Documented in the AIOX agent SDK; not a real credential. Flagged by
+# TruffleHog Postgres detector v3.88.0 as "unknown".
+.aiox-core/development/tasks/db-supabase-setup.md
+.aiox-core/docs/standards/AIOX-LIVRO-DE-OURO-V2.2-SUMMARY.md
+
+# Orphan duplicates of the AIOX docs nested under meu-projeto/
+# (cleanup pendente — ver AUDIT_REPORT.md).
+meu-projeto/.aiox-core/development/tasks/db-supabase-setup.md
+meu-projeto/.aiox-core/docs/standards/AIOX-LIVRO-DE-OURO-V2.2-SUMMARY.md
+
+# docker-compose.staging.yml line 51: legacy Evolution staging postgres
+# default `${EVOLUTION_DATABASE_URL:-postgresql://postgres:postgres@db:5432/evolution_staging}`.
+# Evolution provider was retired (kapso migration mar/2026); this default
+# is dead config that should be removed in a follow-up. Excluded here so
+# CI can pass while it sits.
+docker-compose.staging.yml

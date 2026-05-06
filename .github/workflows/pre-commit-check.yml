@@ -24,7 +24,12 @@ jobs:
           path: ./
           base: ${{ github.event.pull_request.base.sha || github.event.before }}
           head: ${{ github.event.pull_request.head.sha || github.sha }}
-          extra_args: --results=verified,unknown --fail
+          # `--exclude-paths` consumes the repo-root `.trufflehog-ignore`
+          # (one regex per line). Required to skip documented false
+          # positives (AIOX local-dev fixtures, retired Evolution staging
+          # default in docker-compose.staging.yml). The file already
+          # existed but was never wired to the workflow before.
+          extra_args: --results=verified,unknown --fail --exclude-paths=.trufflehog-ignore
 
       - name: 🔍 Check for hardcoded credentials (explicit patterns)
         run: |
