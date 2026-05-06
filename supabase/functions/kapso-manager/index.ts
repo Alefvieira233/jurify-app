@@ -21,6 +21,13 @@ import {
 } from "../_shared/kapso-client.ts";
 import { encrypt } from "../_shared/crypto.ts";
 import { applyRateLimit } from "../_shared/rate-limiter.ts";
+import {
+  CONEXOES_WRITE_ROLES,
+  ForbiddenError,
+  forbiddenResponse,
+  requireRole,
+  type AppRole,
+} from "../_shared/rbac.ts";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -507,6 +514,31 @@ Deno.serve(async (req) => {
     // ── Parse request ──
     const body: KapsoRequest = await req.json();
     const frontendUrl = Deno.env.get("FRONTEND_URL") || "https://jurify-app.vercel.app";
+
+    // ── RBAC gate (server-side defense in depth) ──
+    // Mirrors the "conexoes" matrix from src/types/rbac.ts: viewer is read-only,
+    // admin/manager/user can mutate. Read-only actions (health, diagnose) skip
+    // the role check; status writes lazily on auto-finalize so it's gated too.
+    // Service-role bypasses RLS inside this function, so we MUST validate the
+    // caller's role here — otherwise a viewer could connect or disconnect
+    // WhatsApp by hand-crafting an invoke.
+    const READ_ONLY_ACTIONS: ReadonlySet<KapsoRequest["action"]> = new Set([
+      "health",
+      "diagnose",
+    ]);
+    let callerRole: AppRole | null = null;
+    if (!READ_ONLY_ACTIONS.has(body.action)) {
+      try {
+        callerRole = await requireRole(supabase, user.id, CONEXOES_WRITE_ROLES);
+      } catch (err) {
+        if (err instanceof ForbiddenError) return forbiddenResponse(err, corsHeaders);
+        throw err;
+      }
+    }
+    // callerRole is intentionally available for future per-action policy
+    // refinements (e.g. admin-only `disconnect`); kept void-cast to satisfy
+    // noUnusedLocals while not branching on it yet.
+    void callerRole;
 
     // ── Actions ──
     switch (body.action) {
