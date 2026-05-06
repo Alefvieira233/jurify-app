@@ -17,11 +17,20 @@
  */
 
 import { supabase } from '@/integrations/supabase/client';
+import { deriveCodeChallenge, generateCodeVerifier } from '@/lib/security/pkce';
 
 const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID || '';
 const GOOGLE_REDIRECT_URI =
   import.meta.env.VITE_GOOGLE_REDIRECT_URI ||
   `${window.location.origin}/auth/google/callback`;
+
+/**
+ * sessionStorage key for the active PKCE code_verifier. Scoped to the tab
+ * that initiated OAuth so concurrent tabs cannot accidentally pick up each
+ * other's flows. Cleared on success and on any failure path during the
+ * exchange.
+ */
+const PKCE_VERIFIER_STORAGE_KEY = 'gcal_pkce_verifier';
 
 export interface CalendarEvent {
   summary: string;
@@ -71,7 +80,12 @@ export class GoogleOAuthService {
   }
 
   /**
-   * Build an OAuth URL by asking the edge function.
+   * Build an OAuth URL by asking the edge function. Generates a fresh PKCE
+   * code_verifier per call and stashes it in sessionStorage so that
+   * `exchangeCodeForTokens` (called after Google redirects back) can prove
+   * possession to Google's token endpoint. Defends against authorization
+   * code interception in addition to the existing `state` CSRF check.
+   *
    * @param state Crypto-random CSRF state; caller must store it and validate on callback.
    */
   static async getAuthUrl(state: string): Promise<string> {
@@ -83,26 +97,68 @@ export class GoogleOAuthService {
     if (!state || state.length < 16) {
       throw new Error('OAuth state must be a crypto-random string ≥16 chars.');
     }
+
+    // PKCE: generate verifier locally, send only the SHA-256 challenge.
+    const verifier = generateCodeVerifier();
+    const codeChallenge = await deriveCodeChallenge(verifier);
+
+    // Persist verifier so the callback handler can present it. sessionStorage
+    // limits scope to the originating tab and clears on tab close.
+    try {
+      sessionStorage.setItem(PKCE_VERIFIER_STORAGE_KEY, verifier);
+    } catch {
+      // Private browsing or storage disabled — surface a clear error rather
+      // than initiating a flow we won't be able to complete.
+      throw new Error(
+        'Não foi possível iniciar o fluxo seguro do Google (sessionStorage indisponível). ' +
+        'Saia do modo anônimo ou habilite armazenamento local e tente novamente.'
+      );
+    }
+
     const { authUrl } = await invokeEdge<{ authUrl: string }>('initiateAuth', {
       redirectUri: GOOGLE_REDIRECT_URI,
       state,
+      codeChallenge,
+      codeChallengeMethod: 'S256',
     });
     return authUrl;
   }
 
-  /** Exchange auth code → tokens (tokens stored encrypted server-side). */
+  /**
+   * Exchange auth code → tokens (tokens stored encrypted server-side).
+   * Reads the PKCE verifier persisted by `getAuthUrl` and clears it on
+   * either success or failure to ensure single-use semantics.
+   */
   static async exchangeCodeForTokens(code: string): Promise<{
     email: string | null;
     name: string | null;
   }> {
-    const result = await invokeEdge<{ success: boolean; email?: string; name?: string }>(
-      'exchangeCode',
-      { code, redirectUri: GOOGLE_REDIRECT_URI }
-    );
-    return {
-      email: result.email ?? null,
-      name: result.name ?? null,
-    };
+    let verifier: string | null = null;
+    try {
+      verifier = sessionStorage.getItem(PKCE_VERIFIER_STORAGE_KEY);
+    } catch {
+      verifier = null;
+    }
+
+    if (!verifier) {
+      throw new Error(
+        'Fluxo OAuth incompleto: verificador PKCE ausente. Inicie a conexão do Google Calendar novamente.'
+      );
+    }
+
+    try {
+      const result = await invokeEdge<{ success: boolean; email?: string; name?: string }>(
+        'exchangeCode',
+        { code, redirectUri: GOOGLE_REDIRECT_URI, codeVerifier: verifier }
+      );
+      return {
+        email: result.email ?? null,
+        name: result.name ?? null,
+      };
+    } finally {
+      // Single-use: remove regardless of outcome.
+      try { sessionStorage.removeItem(PKCE_VERIFIER_STORAGE_KEY); } catch { /* ignore */ }
+    }
   }
 
   /** Current connection status — never returns tokens. */

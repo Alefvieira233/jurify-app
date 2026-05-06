@@ -21,6 +21,13 @@ import {
 } from "../_shared/kapso-client.ts";
 import { encrypt } from "../_shared/crypto.ts";
 import { applyRateLimit } from "../_shared/rate-limiter.ts";
+import {
+  CONEXOES_WRITE_ROLES,
+  ForbiddenError,
+  forbiddenResponse,
+  requireRole,
+  type AppRole,
+} from "../_shared/rbac.ts";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -508,6 +515,31 @@ Deno.serve(async (req) => {
     const body: KapsoRequest = await req.json();
     const frontendUrl = Deno.env.get("FRONTEND_URL") || "https://jurify-app.vercel.app";
 
+    // ── RBAC gate (server-side defense in depth) ──
+    // Mirrors the "conexoes" matrix from src/types/rbac.ts: viewer is read-only,
+    // admin/manager/user can mutate. Read-only actions (health, diagnose) skip
+    // the role check; status writes lazily on auto-finalize so it's gated too.
+    // Service-role bypasses RLS inside this function, so we MUST validate the
+    // caller's role here — otherwise a viewer could connect or disconnect
+    // WhatsApp by hand-crafting an invoke.
+    const READ_ONLY_ACTIONS: ReadonlySet<KapsoRequest["action"]> = new Set([
+      "health",
+      "diagnose",
+    ]);
+    let callerRole: AppRole | null = null;
+    if (!READ_ONLY_ACTIONS.has(body.action)) {
+      try {
+        callerRole = await requireRole(supabase, user.id, CONEXOES_WRITE_ROLES);
+      } catch (err) {
+        if (err instanceof ForbiddenError) return forbiddenResponse(err, corsHeaders);
+        throw err;
+      }
+    }
+    // callerRole is intentionally available for future per-action policy
+    // refinements (e.g. admin-only `disconnect`); kept void-cast to satisfy
+    // noUnusedLocals while not branching on it yet.
+    void callerRole;
+
     // ── Actions ──
     switch (body.action) {
 
@@ -644,8 +676,12 @@ Deno.serve(async (req) => {
         await upsertKapsoConfig(supabase, tenantId, config.apiKey, phoneNumberId, phoneDisplay);
         const result = await finalizeConnection(supabase, tenantId, phoneNumberId, phoneDisplay);
 
-        // CRITICAL: Register webhook URL with Kapso so messages arrive
-        const webhookResult = await registerWebhook(config.apiKey, phoneNumberId);
+        // CRITICAL: Register webhook URL with Kapso so messages arrive.
+        // Pass customerId so phone-id resolution is scoped to THIS tenant's
+        // customer — without it, listPhoneNumbers can return phones from other
+        // customers under the master account, and registerWebhook may pick the
+        // wrong Kapso internal id. Mirrors the register-webhook action below.
+        const webhookResult = await registerWebhook(config.apiKey, phoneNumberId, customerId);
         if (!webhookResult.success) {
           console.error(`[kapso-manager] Webhook registration failed for ${phoneNumberId}: ${webhookResult.error}`);
           await logEvent(supabase, result.conexaoId ?? null, tenantId, "webhook_registration_failed", "warning",
@@ -750,7 +786,7 @@ Deno.serve(async (req) => {
         // 1. Check configuracoes_integracoes record
         const { data: cfg } = await supabase
           .from("configuracoes_integracoes")
-          .select("id, status, api_key_encrypted, endpoint_url, observacoes")
+          .select("id, status, api_key_encrypted, endpoint_url, observacoes, webhook_secret_encrypted")
           .eq("nome_integracao", "whatsapp_kapso")
           .eq("tenant_id", tenantId)
           .maybeSingle();
@@ -869,10 +905,16 @@ Deno.serve(async (req) => {
           detail: `Total: ${eventCount || 0} | Debug: ${debugCount} | Não resolvidos: ${unresolvedCount}`,
         };
 
-        // 7. Check KAPSO_WEBHOOK_SECRET env var (only detectable via webhook, but we can flag it)
-        checks.env_reminder = {
-          ok: true,
-          detail: "Verifique que KAPSO_WEBHOOK_SECRET está configurado nos secrets do Supabase Edge Functions",
+        // 7. Check per-tenant webhook secret is stored encrypted.
+        //    The legacy global KAPSO_WEBHOOK_SECRET env fallback was removed
+        //    on 2026-04-10 (audit P0-3). HMAC verification now requires a
+        //    per-tenant secret persisted in configuracoes_integracoes by the
+        //    finalize / register-webhook actions.
+        checks.webhook_secret = {
+          ok: !!(cfg as { webhook_secret_encrypted?: string } | null)?.webhook_secret_encrypted,
+          detail: (cfg as { webhook_secret_encrypted?: string } | null)?.webhook_secret_encrypted
+            ? "Per-tenant webhook secret armazenado (HMAC habilitado)"
+            : "Sem webhook secret persistido — execute 'Registrar Webhook' para que a Kapso emita um secret e o Jurify o armazene.",
         };
 
         const allOk = Object.values(checks).every(c => c.ok);

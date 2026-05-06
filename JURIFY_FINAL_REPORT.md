@@ -1,5 +1,17 @@
 # 🏛️ JURIFY — RELATÓRIO FINAL MULTI-AGENT
 
+> ⚠️ **SNAPSHOT HISTÓRICO — 11/02/2026**
+>
+> Este relatório foi produzido **antes da migração para a Kapso** (março/2026)
+> e descreve a stack WhatsApp baseada em Evolution API, que foi totalmente
+> retirada do projeto. Para o estado atual da plataforma, consulte
+> [`AUDIT_REPORT.md`](./AUDIT_REPORT.md) (relatório mais recente) e
+> [`docs/superpowers/plans/2026-03-25-kapso-migration-conexoes-redesign.md`](./docs/superpowers/plans/2026-03-25-kapso-migration-conexoes-redesign.md).
+>
+> Mantido como registro temporal. Não use para decisões operacionais.
+
+---
+
 > **Data**: 11/02/2026  
 > **Metodologia**: 6 agentes especializados (Security, Architecture, Type Safety, Integration, Test, Performance)  
 > **Escopo**: Análise 100% do codebase — 83 arquivos .ts/.tsx de produção, 18 Edge Functions, infra completa

@@ -8,6 +8,11 @@ import {
   type PriceMappingConfig,
   type StripeSubscriptionLike,
 } from "../_shared/stripe-logic.ts";
+import {
+  applyRateLimit,
+  checkRateLimit,
+  createRateLimitResponse,
+} from "../_shared/rate-limiter.ts";
 
 /**
  * Sends a transactional email via the send-email edge function.
@@ -102,6 +107,26 @@ Deno.serve(async (req) => {
             return new Response("Payment service not configured", { status: 503 });
         }
 
+        // Phase 1: GLOBAL rate limit (pre-signature, IP/host bucket).
+        // Generous ceiling — Stripe legitimately bursts during dunning/retry
+        // storms. The bucket exists to protect CPU from a flood of invalid
+        // signature attempts (CPU DoS) and to bound the absolute throughput
+        // of the function. A 429 here makes Stripe back off and retry with
+        // exponential delay, which is exactly the desired behavior.
+        const supabaseGlobal = createClient(
+            Deno.env.get("SUPABASE_URL") ?? "",
+            Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
+        );
+        const globalLimit = await applyRateLimit(
+            req,
+            { maxRequests: 300, windowSeconds: 60, namespace: "stripe-webhook:global" },
+            { supabase: supabaseGlobal }
+        );
+        if (!globalLimit.allowed) {
+            console.warn("[stripe-webhook] Rate limit exceeded (global)");
+            return globalLimit.response;
+        }
+
         const signature = req.headers.get("Stripe-Signature");
         const body = await req.text();
         const webhookSecret = Deno.env.get("STRIPE_WEBHOOK_SECRET");
@@ -145,6 +170,37 @@ Deno.serve(async (req) => {
 
         if (!event.type || !event.data?.object) {
             return new Response("Invalid event structure", { status: 400 });
+        }
+
+        // Phase 2: PER-CUSTOMER rate limit (post-signature).
+        // Stripe customers normally generate single-digit events per minute.
+        // A burst > 60/min usually means a runaway loop on the customer side
+        // (e.g. failed-payment retry storm) or a replay attack with valid
+        // signatures from a leaked endpoint. 429-ing one customer protects
+        // backend processing and downstream email volume without affecting
+        // other tenants. Stripe will retry these with exponential backoff.
+        // Skipped when no customer is attached (rare admin events).
+        const eventObject = event.data.object as { customer?: string | null };
+        const stripeCustomerId =
+            typeof eventObject.customer === "string" && eventObject.customer.length > 0
+                ? eventObject.customer
+                : null;
+        if (stripeCustomerId) {
+            const customerLimit = await checkRateLimit(
+                {
+                    identifier: `stripe_cust:${stripeCustomerId}`,
+                    namespace: "stripe-webhook:customer",
+                    maxRequests: 60,
+                    windowSeconds: 60,
+                },
+                supabase
+            );
+            if (!customerLimit.allowed) {
+                console.warn(
+                    `[stripe-webhook] Rate limit exceeded (per-customer) customer=${stripeCustomerId} event=${event.type}`
+                );
+                return createRateLimitResponse(customerLimit);
+            }
         }
 
         // Idempotency check: skip if event already processed

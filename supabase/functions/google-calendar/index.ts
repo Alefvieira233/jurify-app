@@ -161,13 +161,34 @@ Deno.serve(async (req) => {
               { status: 503, headers: { ...corsHeaders, "Content-Type": "application/json" } }
             );
           }
-          const { redirectUri, state } = data as { redirectUri: string; state?: string };
+          const { redirectUri, state, codeChallenge, codeChallengeMethod } = data as {
+            redirectUri: string;
+            state?: string;
+            codeChallenge?: string;
+            codeChallengeMethod?: string;
+          };
           // CSRF protection: client must provide a crypto-random state, store it
           // locally, and validate it matches on callback. Falling back to user.id
           // is insecure because user.id is predictable.
           if (!state || typeof state !== "string" || state.length < 16) {
             return new Response(
               JSON.stringify({ error: "Missing or weak OAuth state. Provide a crypto-random string ≥16 chars." }),
+              { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+            );
+          }
+          // PKCE (RFC 7636): client MUST provide a S256 code challenge.
+          // Defends against authorization code interception attacks (mobile
+          // WebView, redirect leaks, shared devices). The matching verifier
+          // is stored in the originating browser tab and presented on the
+          // exchange call.
+          if (
+            !codeChallenge || typeof codeChallenge !== "string" || codeChallenge.length < 43 ||
+            codeChallengeMethod !== "S256"
+          ) {
+            return new Response(
+              JSON.stringify({
+                error: "PKCE required: provide codeChallenge (≥43 base64url chars) and codeChallengeMethod='S256'.",
+              }),
               { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
             );
           }
@@ -179,6 +200,8 @@ Deno.serve(async (req) => {
             access_type: "offline",
             prompt: "consent",
             state,
+            code_challenge: codeChallenge,
+            code_challenge_method: codeChallengeMethod,
           });
           return new Response(JSON.stringify({ authUrl: `https://accounts.google.com/o/oauth2/v2/auth?${params.toString()}` }), {
             headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -192,13 +215,29 @@ Deno.serve(async (req) => {
               { status: 503, headers: { ...corsHeaders, "Content-Type": "application/json" } }
             );
           }
-          const { code, redirectUri } = data as { code: string; redirectUri: string };
+          const { code, redirectUri, codeVerifier } = data as {
+            code: string;
+            redirectUri: string;
+            codeVerifier?: string;
+          };
+          // PKCE verifier is required (matches the challenge sent at initiateAuth).
+          // RFC 7636 §4.1: 43..128 chars from the unreserved set.
+          if (
+            !codeVerifier || typeof codeVerifier !== "string" ||
+            codeVerifier.length < 43 || codeVerifier.length > 128
+          ) {
+            return new Response(
+              JSON.stringify({ error: "PKCE required: provide codeVerifier (43..128 chars)." }),
+              { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+            );
+          }
           const tokenRes = await fetch("https://oauth2.googleapis.com/token", {
             method: "POST",
             headers: { "Content-Type": "application/x-www-form-urlencoded" },
             body: new URLSearchParams({
               code, client_id: clientId, client_secret: clientSecret,
               redirect_uri: redirectUri, grant_type: "authorization_code",
+              code_verifier: codeVerifier,
             }),
           });
           if (!tokenRes.ok) {

@@ -107,13 +107,20 @@ export async function getTenantKapsoConfig(
     }
   }
 
-  // Decrypt webhook secret if present (per-tenant HMAC verification)
+  // Decrypt webhook secret if present (per-tenant HMAC verification).
+  // The legacy global KAPSO_WEBHOOK_SECRET env fallback was removed on
+  // 2026-04-10 (audit P0-3): if decryption fails we MUST surface null and let
+  // whatsapp-webhook reject the request, otherwise a tenant with corrupted
+  // ciphertext could fall back to a global secret and defeat tenant isolation.
   let webhookSecret: string | null = null;
   if (data?.webhook_secret_encrypted) {
     try {
       webhookSecret = await decrypt(data.webhook_secret_encrypted);
-    } catch {
-      // Non-critical — fallback to global KAPSO_WEBHOOK_SECRET
+    } catch (err) {
+      console.error(
+        "[kapso-client] Failed to decrypt tenant webhook secret — webhook will reject until re-registered:",
+        err instanceof Error ? err.message : err,
+      );
     }
   }
 
