@@ -27,6 +27,9 @@ const GoogleAuthCallback: React.FC = () => {
       try {
         const code = searchParams.get('code');
         const error = searchParams.get('error');
+        // CSRF state is validated against sessionStorage inside handleCallback.
+        // Forwarding the value here makes the contract explicit at the call site.
+        const returnedState = searchParams.get('state');
 
         if (error) {
           throw new Error(`Google recusou a permissão: ${error}`);
@@ -36,7 +39,7 @@ const GoogleAuthCallback: React.FC = () => {
           throw new Error('Código de autorização ausente no callback');
         }
 
-        await handleCallback(code);
+        await handleCallback(code, returnedState);
         setStatus('success');
 
         setTimeout(() => {

@@ -6,6 +6,8 @@ import { toUserMessage } from '@/lib/errorMessages';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { queryKeys } from '@/lib/queryKeys';
+import { GoogleOAuthService } from '@/lib/google/GoogleOAuthService';
+import { generateState, safeEqual } from '@/lib/security/pkce';
 
 interface GoogleCalendarStatus {
   connected: boolean;
@@ -16,7 +18,13 @@ interface GoogleCalendarStatus {
 }
 
 const FUNCTION_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/google-calendar`;
-const REDIRECT_PATH = '/auth/google/callback';
+
+/**
+ * sessionStorage key for the OAuth CSRF state. Validated by handleCallback.
+ * Mirrors the verifier key in GoogleOAuthService — both belong to the tab
+ * that initiated the flow.
+ */
+const OAUTH_STATE_STORAGE_KEY = 'gcal_oauth_state';
 
 async function callOAuthFunction(method: string, data: Record<string, unknown>, token: string) {
   const res = await fetch(FUNCTION_URL, {
@@ -66,47 +74,68 @@ export function useGoogleCalendarConnection() {
     },
   });
 
-  /* ── Initiate OAuth ── */
+  /* ── Initiate OAuth ──
+   *
+   * Delegates to GoogleOAuthService.getAuthUrl, which handles PKCE
+   * (verifier generation + S256 challenge) and CSRF state forwarding to the
+   * edge function. We generate the state here so we can validate it on
+   * callback. Previously this hook called the edge function directly without
+   * sending `state`, which the function now requires (and PKCE additionally
+   * requires) — that broken path is consolidated through GoogleOAuthService.
+   */
   const connect = useCallback(async () => {
     setError(null);
     setIsConnecting(true);
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) throw new Error('No session');
+      const state = generateState();
+      try {
+        sessionStorage.setItem(OAUTH_STATE_STORAGE_KEY, state);
+        sessionStorage.setItem('gcal_return_tab', 'configuracoes');
+      } catch {
+        throw new Error(
+          'Não foi possível iniciar a conexão (sessionStorage indisponível). ' +
+          'Saia do modo anônimo ou habilite armazenamento local e tente novamente.'
+        );
+      }
 
-      const redirectUri = `${window.location.origin}${REDIRECT_PATH}`;
-      const { authUrl } = await callOAuthFunction('initiateAuth', { redirectUri }, session.access_token);
-
-      // Store redirect info for callback handler
-      sessionStorage.setItem('gcal_redirect_uri', redirectUri);
-      sessionStorage.setItem('gcal_return_tab', 'configuracoes');
-
+      const authUrl = await GoogleOAuthService.getAuthUrl(state);
       window.location.href = authUrl;
     } catch (err) {
+      // Clean up partial state if the flow couldn't even start.
+      try { sessionStorage.removeItem(OAUTH_STATE_STORAGE_KEY); } catch { /* ignore */ }
       setError(toUserMessage(err));
       setIsConnecting(false);
     }
   }, []);
 
-  /* ── Handle OAuth callback (call from callback page/component) ── */
-  const handleCallback = useCallback(async (code: string) => {
+  /* ── Handle OAuth callback (call from callback page/component) ──
+   *
+   * Validates the returned `state` matches what we stored at initiation
+   * (CSRF protection — without this, an attacker could trigger a victim's
+   * browser to attach the attacker's Google account). The PKCE verifier
+   * lookup happens inside GoogleOAuthService.exchangeCodeForTokens.
+   */
+  const handleCallback = useCallback(async (code: string, returnedState?: string | null) => {
     setError(null);
     setIsConnecting(true);
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) throw new Error('No session');
+      let storedState: string | null = null;
+      try { storedState = sessionStorage.getItem(OAUTH_STATE_STORAGE_KEY); } catch { /* ignore */ }
+      if (!storedState || !returnedState || !safeEqual(storedState, returnedState)) {
+        throw new Error(
+          'Estado OAuth inválido — possível CSRF. Reinicie a conexão do Google Calendar.'
+        );
+      }
 
-      const redirectUri = sessionStorage.getItem('gcal_redirect_uri')
-        || `${window.location.origin}${REDIRECT_PATH}`;
-
-      const result = await callOAuthFunction('exchangeCode', { code, redirectUri }, session.access_token);
+      const result = await GoogleOAuthService.exchangeCodeForTokens(code);
       void queryClient.invalidateQueries({ queryKey: queryKeys.googleCalendarStatus.all });
-      sessionStorage.removeItem('gcal_redirect_uri');
       return result;
     } catch (err) {
       setError(toUserMessage(err));
       throw err;
     } finally {
+      // Single-use: always clear the state, success or failure.
+      try { sessionStorage.removeItem(OAUTH_STATE_STORAGE_KEY); } catch { /* ignore */ }
       setIsConnecting(false);
     }
   }, [queryClient]);
