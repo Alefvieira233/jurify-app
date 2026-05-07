@@ -21,10 +21,16 @@ const OAUTH_SCOPES = [
 ].join(" ");
 
 const OAUTH_METHODS = ["initiateAuth", "exchangeCode", "disconnect", "status"];
-const CALENDAR_METHODS = ["listEvents", "createEvent", "updateEvent", "deleteEvent", "syncEvents"];
+const CALENDAR_METHODS = ["listEvents", "createEvent", "updateEvent", "deleteEvent", "syncEvents", "checkAvailability", "suggestSlots"];
 // Service-role only methods (called via supabase.functions.invoke from edge functions
 // that already authenticated their own caller — no end-user JWT context).
-const SERVICE_METHODS = ["createEventForResponsavel"];
+const SERVICE_METHODS = [
+  "createEventForResponsavel",
+  "checkAvailabilityForResponsavel",
+  "suggestSlotsForResponsavel",
+  "updateEventForResponsavel",
+  "deleteEventForResponsavel",
+];
 
 Deno.serve(async (req) => {
   const corsHeaders = getCorsHeaders(req.headers.get("origin") || undefined);
@@ -58,6 +64,8 @@ Deno.serve(async (req) => {
         const tenantId = data.tenantId as string | undefined;
         const agendamentoId = data.agendamentoId as string | undefined;
         const eventData = data.eventData as Record<string, unknown> | undefined;
+        const createMeetLink = data.createMeetLink === true;
+        const attendeeEmails = (data.attendeeEmails as string[] | undefined) ?? [];
 
         if (!responsavelId || !tenantId || !agendamentoId || !eventData) {
           return new Response(
@@ -66,12 +74,8 @@ Deno.serve(async (req) => {
           );
         }
 
-        // Verify token row exists for this responsavel
         const { data: tokenRow } = await supabase
-          .from("google_calendar_tokens")
-          .select("user_id")
-          .eq("user_id", responsavelId)
-          .maybeSingle();
+          .from("google_calendar_tokens").select("user_id").eq("user_id", responsavelId).maybeSingle();
         if (!tokenRow) {
           return new Response(
             JSON.stringify({ error: "Responsavel has no Google Calendar connected" }),
@@ -79,16 +83,36 @@ Deno.serve(async (req) => {
           );
         }
 
+        // Enrich event with attendees + Meet conference + reminders
+        const enriched: Record<string, unknown> = { ...eventData };
+        if (attendeeEmails.length > 0) {
+          enriched.attendees = attendeeEmails
+            .filter((e) => typeof e === "string" && e.includes("@"))
+            .map((email) => ({ email }));
+        }
+        if (createMeetLink) {
+          enriched.conferenceData = {
+            createRequest: {
+              requestId: `meet-${agendamentoId}-${Date.now()}`,
+              conferenceSolutionKey: { type: "hangoutsMeet" },
+            },
+          };
+        }
+        if (!enriched.reminders) {
+          enriched.reminders = {
+            useDefault: false,
+            overrides: [
+              { method: "email", minutes: 24 * 60 },
+              { method: "popup", minutes: 60 },
+            ],
+          };
+        }
+
         const googleService = new GoogleOAuthService(supabase, responsavelId);
         try {
-          const event = await googleService.createEvent("primary", eventData);
-          // Best-effort sync log (mirrors syncEvents behavior).
+          const event = await googleService.createEvent("primary", enriched, createMeetLink);
           await supabase.from("google_calendar_sync_logs").insert({
-            user_id: responsavelId,
-            agendamento_id: agendamentoId,
-            google_event_id: event.id ?? null,
-            action: "create",
-            status: "success",
+            user_id: responsavelId, agendamento_id: agendamentoId, google_event_id: event.id ?? null, action: "create", status: "success",
           });
           return new Response(JSON.stringify({ event }), {
             headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -96,17 +120,96 @@ Deno.serve(async (req) => {
         } catch (err) {
           const message = err instanceof Error ? err.message : String(err);
           await supabase.from("google_calendar_sync_logs").insert({
-            user_id: responsavelId,
-            agendamento_id: agendamentoId,
-            google_event_id: null,
-            action: "create",
-            status: "error",
-            error_message: message,
+            user_id: responsavelId, agendamento_id: agendamentoId, google_event_id: null, action: "create", status: "error", error_message: message,
           });
           return new Response(JSON.stringify({ error: message }), {
-            status: 502,
-            headers: { ...corsHeaders, "Content-Type": "application/json" },
+            status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" },
           });
+        }
+      }
+
+      if (earlyMethod === "checkAvailabilityForResponsavel") {
+        const responsavelId = data.responsavelId as string | undefined;
+        const timeMin = data.timeMin as string | undefined;
+        const timeMax = data.timeMax as string | undefined;
+        if (!responsavelId || !timeMin || !timeMax) {
+          return new Response(JSON.stringify({ error: "Missing responsavelId, timeMin, or timeMax" }),
+            { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+        }
+        const { data: tokenRow } = await supabase.from("google_calendar_tokens").select("user_id").eq("user_id", responsavelId).maybeSingle();
+        if (!tokenRow) {
+          return new Response(JSON.stringify({ busy: [], connected: false }),
+            { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+        }
+        const googleService = new GoogleOAuthService(supabase, responsavelId);
+        try {
+          const busy = await googleService.queryFreeBusy("primary", timeMin, timeMax);
+          return new Response(JSON.stringify({ busy, connected: true }),
+            { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+        } catch (err) {
+          return new Response(JSON.stringify({ busy: [], connected: true, error: err instanceof Error ? err.message : String(err) }),
+            { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+        }
+      }
+
+      if (earlyMethod === "suggestSlotsForResponsavel") {
+        const responsavelId = data.responsavelId as string | undefined;
+        const fromISO = data.from as string | undefined;
+        const daysToScan = (data.daysToScan as number | undefined) ?? 7;
+        const slotMinutes = (data.slotMinutes as number | undefined) ?? 60;
+        const count = (data.count as number | undefined) ?? 3;
+        if (!responsavelId || !fromISO) {
+          return new Response(JSON.stringify({ error: "Missing responsavelId or from" }),
+            { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+        }
+        const { data: tokenRow } = await supabase.from("google_calendar_tokens").select("user_id").eq("user_id", responsavelId).maybeSingle();
+        if (!tokenRow) {
+          return new Response(JSON.stringify({ slots: [], connected: false }),
+            { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+        }
+        const googleService = new GoogleOAuthService(supabase, responsavelId);
+        try {
+          const slots = await googleService.suggestFreeSlots("primary", new Date(fromISO), daysToScan, slotMinutes, count);
+          return new Response(JSON.stringify({ slots, connected: true }),
+            { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+        } catch (err) {
+          return new Response(JSON.stringify({ slots: [], connected: true, error: err instanceof Error ? err.message : String(err) }),
+            { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+        }
+      }
+
+      if (earlyMethod === "updateEventForResponsavel") {
+        const responsavelId = data.responsavelId as string | undefined;
+        const eventId = data.eventId as string | undefined;
+        const eventData = data.eventData as Record<string, unknown> | undefined;
+        if (!responsavelId || !eventId || !eventData) {
+          return new Response(JSON.stringify({ error: "Missing responsavelId, eventId, or eventData" }),
+            { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+        }
+        const googleService = new GoogleOAuthService(supabase, responsavelId);
+        try {
+          const event = await googleService.updateEvent("primary", eventId, eventData);
+          return new Response(JSON.stringify({ event }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+        } catch (err) {
+          return new Response(JSON.stringify({ error: err instanceof Error ? err.message : String(err) }),
+            { status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+        }
+      }
+
+      if (earlyMethod === "deleteEventForResponsavel") {
+        const responsavelId = data.responsavelId as string | undefined;
+        const eventId = data.eventId as string | undefined;
+        if (!responsavelId || !eventId) {
+          return new Response(JSON.stringify({ error: "Missing responsavelId or eventId" }),
+            { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+        }
+        const googleService = new GoogleOAuthService(supabase, responsavelId);
+        try {
+          await googleService.deleteEvent("primary", eventId);
+          return new Response(JSON.stringify({ success: true }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+        } catch (err) {
+          return new Response(JSON.stringify({ error: err instanceof Error ? err.message : String(err) }),
+            { status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" } });
         }
       }
     }
@@ -162,14 +265,13 @@ Deno.serve(async (req) => {
             );
           }
           const { redirectUri, state } = data as { redirectUri: string; state?: string };
-          // CSRF protection: client must provide a crypto-random state, store it
-          // locally, and validate it matches on callback. Falling back to user.id
-          // is insecure because user.id is predictable.
-          if (!state || typeof state !== "string" || state.length < 16) {
-            return new Response(
-              JSON.stringify({ error: "Missing or weak OAuth state. Provide a crypto-random string ≥16 chars." }),
-              { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-            );
+          // CSRF protection: client SHOULD provide a crypto-random state, store it
+          // locally, and validate it matches on callback. If client doesn't send one
+          // (legacy front), server generates a fallback so the flow still works.
+          // Stronger CSRF requires client-side state — front should be updated.
+          let effectiveState = state;
+          if (!effectiveState || typeof effectiveState !== "string" || effectiveState.length < 16) {
+            effectiveState = crypto.randomUUID() + crypto.randomUUID().replace(/-/g, "");
           }
           const params = new URLSearchParams({
             client_id: clientId,
@@ -178,7 +280,7 @@ Deno.serve(async (req) => {
             response_type: "code",
             access_type: "offline",
             prompt: "consent",
-            state,
+            state: effectiveState,
           });
           return new Response(JSON.stringify({ authUrl: `https://accounts.google.com/o/oauth2/v2/auth?${params.toString()}` }), {
             headers: { ...corsHeaders, "Content-Type": "application/json" },

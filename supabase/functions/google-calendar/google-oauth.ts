@@ -132,20 +132,33 @@ export class GoogleOAuthService {
     return data.items || [];
   }
 
-  async createEvent(calendarId: string, eventData: Partial<GoogleEvent>): Promise<GoogleEvent> {
+  async createEvent(
+    calendarId: string,
+    eventData: Partial<GoogleEvent>,
+    withConferenceData = false,
+  ): Promise<GoogleEvent> {
     const accessToken = await this.getValidToken();
 
-    const response = await fetch(
+    const url = new URL(
       `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(calendarId)}/events`,
-      {
-        method: "POST",
-        headers: {
-          "Authorization": `Bearer ${accessToken}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(eventData),
-      },
     );
+    if (withConferenceData) {
+      // Required by Google Calendar API to honor `conferenceData.createRequest`
+      url.searchParams.set("conferenceDataVersion", "1");
+    }
+    if (eventData.attendees && eventData.attendees.length > 0) {
+      // Notify attendees about the new event
+      url.searchParams.set("sendUpdates", "all");
+    }
+
+    const response = await fetch(url.toString(), {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${accessToken}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(eventData),
+    });
 
     if (!response.ok) {
       const error = await response.json();
@@ -197,5 +210,92 @@ export class GoogleOAuthService {
       const error = await response.json();
       throw new Error(`Error deleting event: ${error.error?.message || "Unknown"}`);
     }
+  }
+
+  /**
+   * FreeBusy query — retorna janelas ocupadas do calendário no intervalo.
+   * Usado pra checar disponibilidade real antes de marcar agendamento.
+   */
+  async queryFreeBusy(
+    calendarId: string,
+    timeMin: string,
+    timeMax: string,
+  ): Promise<Array<{ start: string; end: string }>> {
+    const accessToken = await this.getValidToken();
+    const response = await fetch("https://www.googleapis.com/calendar/v3/freeBusy", {
+      method: "POST",
+      headers: { "Authorization": `Bearer ${accessToken}`, "Content-Type": "application/json" },
+      body: JSON.stringify({
+        timeMin,
+        timeMax,
+        timeZone: "America/Sao_Paulo",
+        items: [{ id: calendarId }],
+      }),
+    });
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({}));
+      throw new Error(`FreeBusy query failed: ${error.error?.message || response.status}`);
+    }
+    const data = await response.json();
+    const busy = data?.calendars?.[calendarId]?.busy || [];
+    return busy as Array<{ start: string; end: string }>;
+  }
+
+  /**
+   * Sugere slots livres em janela comercial (seg-sex 8h-20h BRT) considerando free/busy real.
+   * Retorna até `count` slots de `slotMinutes` minutos cada, a partir de `fromUTC`.
+   * Pula automaticamente fim de semana e fora de janela comercial.
+   */
+  async suggestFreeSlots(
+    calendarId: string,
+    fromUTC: Date,
+    daysToScan = 7,
+    slotMinutes = 60,
+    count = 3,
+  ): Promise<Array<{ start: string; end: string }>> {
+    const BRT_OFFSET_MS = 3 * 60 * 60 * 1000;
+    const BUSINESS_START = 8;
+    const BUSINESS_END = 20;
+    const SLOT_MS = slotMinutes * 60 * 1000;
+
+    const timeMin = fromUTC.toISOString();
+    const timeMax = new Date(fromUTC.getTime() + daysToScan * 24 * 60 * 60 * 1000).toISOString();
+
+    let busy: Array<{ start: string; end: string }>;
+    try {
+      busy = await this.queryFreeBusy(calendarId, timeMin, timeMax);
+    } catch {
+      busy = [];
+    }
+
+    const busyRanges = busy.map((b) => [new Date(b.start).getTime(), new Date(b.end).getTime()] as const);
+    const isBusy = (slotStartMs: number, slotEndMs: number) =>
+      busyRanges.some(([bs, be]) => slotStartMs < be && slotEndMs > bs);
+
+    const slots: Array<{ start: string; end: string }> = [];
+    const now = Date.now();
+
+    for (let dayOffset = 0; dayOffset < daysToScan && slots.length < count; dayOffset++) {
+      const dayBRT = new Date(fromUTC.getTime() - BRT_OFFSET_MS + dayOffset * 24 * 60 * 60 * 1000);
+      const dayOfWeek = dayBRT.getDay();
+      if (dayOfWeek === 0 || dayOfWeek === 6) continue;
+
+      for (let hour = BUSINESS_START; hour < BUSINESS_END && slots.length < count; hour++) {
+        const slotBRT = new Date(dayBRT);
+        slotBRT.setHours(hour, 0, 0, 0);
+        const slotStartMs = slotBRT.getTime() + BRT_OFFSET_MS;
+        const slotEndMs = slotStartMs + SLOT_MS;
+
+        if (slotStartMs <= now) continue;
+        if (isBusy(slotStartMs, slotEndMs)) continue;
+
+        slots.push({
+          start: new Date(slotStartMs).toISOString(),
+          end: new Date(slotEndMs).toISOString(),
+        });
+      }
+    }
+
+    return slots;
   }
 }

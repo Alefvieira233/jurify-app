@@ -2,6 +2,8 @@ import { createClient } from "jsr:@supabase/supabase-js@2";
 import { buildLegalContext } from "../../_shared/legal-context.ts";
 import { DEFAULT_OPENAI_MODEL } from "../../_shared/ai-model.ts";
 import { callOpenAI, BudgetExceededError } from "../../_shared/ai-caller.ts";
+import { AGENT_TOOLS, type AgentToolName } from "../../_shared/agent-tools.ts";
+import { executeAgentTool, buildToolContext } from "../../_shared/agent-tools-executor.ts";
 import { sanitizeInput } from "../../_shared/security.ts";
 import type { NormalizedMessage } from "../../_shared/whatsapp-logic.ts";
 import { callEdgeFunction, escapeLike } from "./edge-function-client.ts";
@@ -819,36 +821,149 @@ export async function processNormalizedMessage(
     let budgetExceeded = false;
 
     try {
-      const aiMessages = [
-        { role: "system", content: finalSystemPrompt },
+      // ── ONDA 17: Conversation state stateful ──
+      // Lê fase atual da conversa pra dar ao agente contexto de pipeline.
+      // Phases: greeting → qualifying → scheduling → confirmed → follow_up → closed.
+      let conversationPhase: string = "greeting";
+      let accumulatedContext: Record<string, unknown> = {};
+      try {
+        const { data: stateRow } = await supabase
+          .from("conversation_state")
+          .select("current_phase, accumulated_context, last_agent_type")
+          .eq("conversation_id", conversationId)
+          .eq("tenant_id", tenantId)
+          .maybeSingle();
+        if (stateRow) {
+          conversationPhase = (stateRow as { current_phase?: string }).current_phase ?? "greeting";
+          accumulatedContext = ((stateRow as { accumulated_context?: Record<string, unknown> }).accumulated_context) ?? {};
+        }
+      } catch (stateErr) {
+        console.warn(`[processMsg:${provider}] Failed to read conversation_state:`, stateErr instanceof Error ? stateErr.message : String(stateErr));
+      }
+
+      // Detecta se a mensagem do lead pede ação CRM (agendar/reagendar/cancelar/mover Kanban).
+      // Se sim, expõe as agent tools pra que a IA possa executar essas operações via function calling.
+      // Caso contrário, mantém fluxo de texto puro (mais barato/rápido).
+      const lowerText = processedText.toLowerCase();
+      const hasActionIntent =
+        detectScheduleIntent(processedText) ||
+        /\b(remarcar|reagendar|reagendamento|trocar.*hor[áa]rio|mudar.*hor[áa]rio|adiar|antecipar)\b/i.test(lowerText) ||
+        /\b(cancelar|desmarcar|n[ãa]o\s+(quero|posso)\s+mais|cancelamento)\b/i.test(lowerText) ||
+        /\b(disponibilidade|hor[áa]rios?\s+livres?|quando\s+pode|qual\s+(dia|hor[áa]rio))\b/i.test(lowerText);
+
+      // Augmenta o system prompt com info de fase + contexto acumulado pra agente
+      // ter consciência do estado da conversa (quem é o lead, o que já foi falado,
+      // qual fase do funil a conversa está).
+      const phaseInstructions: Record<string, string> = {
+        greeting: "Esta é uma das primeiras mensagens. Cumprimente brevemente, identifique o motivo do contato e colete dados básicos do caso.",
+        qualifying: "Você está coletando informações sobre o caso do cliente. Faça perguntas relevantes pra entender área jurídica, urgência e contexto. Quando tiver info suficiente, sugira marcar uma reunião com o advogado.",
+        scheduling: "Você está negociando data/horário de reunião com o cliente. Use as ferramentas check_availability, suggest_slots e schedule_meeting pra confirmar disponibilidade real e marcar.",
+        confirmed: "Reunião já confirmada. Trate dúvidas pré-reunião, lembrete, ou pedidos de remarcar/cancelar.",
+        follow_up: "Pós-reunião. Pergunte se o cliente tem dúvidas, oferecer próximos passos, evolução do caso.",
+        closed: "Conversa encerrada. Trate como reativação se cliente voltar a falar.",
+      };
+      const stateContextNote = `\n\n[CONTEXTO DA CONVERSA]\nFase atual: ${conversationPhase}\n${phaseInstructions[conversationPhase] ?? ""}\n${Object.keys(accumulatedContext).length > 0 ? "Dados já coletados: " + JSON.stringify(accumulatedContext) : ""}`;
+
+      const aiMessages: Array<{ role: string; content: string; tool_call_id?: string; tool_calls?: unknown[]; name?: string }> = [
+        { role: "system", content: finalSystemPrompt + stateContextNote },
         { role: "user", content: commandIntent ?? processedText },
       ];
 
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 30_000);
 
-      let aiResult;
+      // Tool context (built once per turn — re-used across loop iterations)
+      const toolContext = hasActionIntent && tenantId
+        ? await buildToolContext(supabase as never, tenantId, leadId, resolvedResponsavelId, responsavelNome)
+        : null;
+
+      let aiResult: Awaited<ReturnType<typeof callOpenAI>> | null = null;
+      let totalTokensIn = 0;
+      let totalTokensOut = 0;
+      const MAX_TOOL_ITERATIONS = 4;
+
       try {
-        aiResult = await callOpenAI(supabase, {
-          tenantId: tenantId!,
-          leadId,
-          agentName,
-          model: DEFAULT_OPENAI_MODEL,
-          messages: aiMessages,
-          temperature: agentTemp,
-          maxTokens: agentMaxTokens,
-          abortSignal: controller.signal,
-          source: "whatsapp-webhook",
-          // Webhook keeps its own agent_ai_logs row (has execution_row_id +
-          // system_prompt/user_prompt). Skip the ai-caller log to avoid dupes.
-          persistLog: false,
-          metadata: { mediaCategory, hasLegalContext: legalCtx.has_context, agent: agentName },
-        });
+        for (let iter = 0; iter < MAX_TOOL_ITERATIONS + 1; iter++) {
+          aiResult = await callOpenAI(supabase, {
+            tenantId: tenantId!,
+            leadId,
+            agentName,
+            model: DEFAULT_OPENAI_MODEL,
+            messages: aiMessages as never,
+            temperature: agentTemp,
+            maxTokens: agentMaxTokens,
+            abortSignal: controller.signal,
+            source: "whatsapp-webhook",
+            persistLog: false,
+            metadata: { mediaCategory, hasLegalContext: legalCtx.has_context, agent: agentName, tool_iter: iter },
+            ...(hasActionIntent && toolContext
+              ? { tools: AGENT_TOOLS as never, toolChoice: "auto" }
+              : {}),
+          });
+
+          totalTokensIn += aiResult.tokens_in;
+          totalTokensOut += aiResult.tokens_out;
+
+          // deno-lint-ignore no-explicit-any
+          const raw = (aiResult as { raw?: any }).raw;
+          const message = raw?.choices?.[0]?.message;
+          const toolCalls = (message?.tool_calls ?? []) as Array<{
+            id: string;
+            type: string;
+            function: { name: string; arguments: string };
+          }>;
+
+          if (!hasActionIntent || !toolContext || toolCalls.length === 0 || iter >= MAX_TOOL_ITERATIONS) {
+            // No tools requested OR loop exhausted — break with current aiResult
+            break;
+          }
+
+          // Append the assistant message with tool_calls to history
+          aiMessages.push({
+            role: "assistant",
+            content: message?.content ?? "",
+            tool_calls: toolCalls as never,
+          });
+
+          // Execute each tool and append result
+          for (const tc of toolCalls) {
+            // deno-lint-ignore no-explicit-any
+            let parsedArgs: any = {};
+            try {
+              parsedArgs = JSON.parse(tc.function.arguments || "{}");
+            } catch (parseErr) {
+              console.warn(`[processMsg:${provider}] Tool args parse failed for ${tc.function.name}:`, parseErr);
+            }
+            const toolResult = await executeAgentTool(
+              toolContext,
+              tc.function.name as AgentToolName,
+              parsedArgs,
+            );
+            console.log(`[processMsg:${provider}] tool ${tc.function.name} → success=${toolResult.success}${toolResult.error ? ` err=${toolResult.error}` : ""}`);
+            aiMessages.push({
+              role: "tool",
+              tool_call_id: tc.id,
+              name: tc.function.name,
+              content: JSON.stringify(toolResult),
+            });
+          }
+          // Loop continues — re-call OpenAI with tool results
+        }
       } finally {
         clearTimeout(timeoutId);
       }
 
-      const resultText = aiResult.content;
+      // Sum totals across iterations
+      if (aiResult) {
+        aiResult = {
+          ...aiResult,
+          tokens_in: totalTokensIn || aiResult.tokens_in,
+          tokens_out: totalTokensOut || aiResult.tokens_out,
+          tokens_total: (totalTokensIn + totalTokensOut) || aiResult.tokens_total,
+        };
+      }
+
+      const resultText = aiResult?.content ?? "";
       if (!resultText) {
         console.error(`[processMsg:${provider}] OpenAI returned EMPTY content. Model: ${aiResult.model} | Usage: in=${aiResult.tokens_in} out=${aiResult.tokens_out}`);
       }
@@ -897,6 +1012,53 @@ export async function processNormalizedMessage(
       }
 
       console.log(`[processMsg:${provider}] ${agentName} responded: "${resultText.substring(0, 80)}..."`);
+
+      // ── ONDA 17: Update conversation phase based on this turn ──
+      // Heurística simples — agente dedicated phase classifier seria melhor mas mais caro.
+      // Promove fase em ordem (não regredimos) com base em sinais do turno.
+      try {
+        let nextPhase = conversationPhase;
+        const ctxPatch: Record<string, unknown> = {
+          last_message_at: new Date().toISOString(),
+          last_user_message: processedText.substring(0, 200),
+        };
+
+        if (conversationPhase === "greeting") {
+          // Primeiro turno → vai pra qualifying
+          nextPhase = "qualifying";
+        } else if (conversationPhase === "qualifying" && hasActionIntent) {
+          // Lead pediu agendamento → entra em scheduling
+          nextPhase = "scheduling";
+        } else if (conversationPhase === "scheduling") {
+          // Se a IA confirmou reunião neste turno, promove a confirmed
+          if (/reuni[ãa]o (agendada|marcada|confirmada)|agendamento confirmado/i.test(resultText)) {
+            nextPhase = "confirmed";
+          }
+        }
+
+        // Captura nome se foi mencionado e ainda não tá no contexto
+        if (!accumulatedContext.lead_name && name && name !== "Unknown") {
+          ctxPatch.lead_name = name;
+        }
+        if (!accumulatedContext.area_juridica && lead?.area_juridica && lead.area_juridica !== "Nao informado") {
+          ctxPatch.area_juridica = lead.area_juridica;
+        }
+
+        if (nextPhase !== conversationPhase || Object.keys(ctxPatch).length > 0) {
+          await supabase.rpc("update_conversation_phase", {
+            _conversation_id: conversationId,
+            _tenant_id: tenantId,
+            _new_phase: nextPhase,
+            _agent_type: agentType,
+            _context_patch: ctxPatch,
+          });
+          if (nextPhase !== conversationPhase) {
+            console.log(`[processMsg:${provider}] phase ${conversationPhase} → ${nextPhase}`);
+          }
+        }
+      } catch (phaseErr) {
+        console.warn(`[processMsg:${provider}] phase update failed:`, phaseErr instanceof Error ? phaseErr.message : String(phaseErr));
+      }
     } catch (err) {
       // Budget-exceeded is a known path → keep the old "budget exhausted" UX
       // (canned fallback + admin alert) instead of the generic failure message.
@@ -1059,7 +1221,8 @@ export async function processNormalizedMessage(
           if (!validation.valid) {
             aiText = validation.message!;
           } else {
-          // Checa conflito por responsavel_id (FK). Se não resolvido, fica tenant-wide.
+          // Checa conflito em DUAS frentes: tabela interna + Google Calendar real do responsável.
+          // Sem isso o agente marcaria por cima de eventos do Calendar fora do Jurify (audiência, almoço, etc.).
           const conflict = await hasScheduleConflict(
             supabase as never,
             tenantId,
@@ -1069,9 +1232,60 @@ export async function processNormalizedMessage(
             resolvedResponsavelId,
           );
 
-          if (conflict) {
+          let calendarBusy = false;
+          if (resolvedResponsavelId && !conflict) {
+            try {
+              const slotEnd = new Date(parsed.dateTimeUTC.getTime() + 60 * 60 * 1000);
+              const { data: availRes } = await supabase.functions.invoke("google-calendar", {
+                body: {
+                  action: "checkAvailabilityForResponsavel",
+                  data: {
+                    responsavelId: resolvedResponsavelId,
+                    timeMin: parsed.dateTimeUTC.toISOString(),
+                    timeMax: slotEnd.toISOString(),
+                  },
+                },
+              });
+              const busy = (availRes as { busy?: Array<{ start: string; end: string }>; connected?: boolean } | null)?.busy ?? [];
+              calendarBusy = busy.length > 0;
+              if (calendarBusy) {
+                console.log(`[processMsg:${provider}] Google Calendar busy at ${parsed.dateTimeUTC.toISOString()} for responsavel ${resolvedResponsavelId}`);
+              }
+            } catch (availErr) {
+              console.warn(`[processMsg:${provider}] checkAvailability failed (best-effort):`, availErr instanceof Error ? availErr.message : String(availErr));
+            }
+          }
+
+          if (conflict || calendarBusy) {
+            // Sugere 3 slots livres pelos próximos 7 dias úteis
+            let suggestionText = "";
+            if (resolvedResponsavelId) {
+              try {
+                const { data: slotsRes } = await supabase.functions.invoke("google-calendar", {
+                  body: {
+                    action: "suggestSlotsForResponsavel",
+                    data: {
+                      responsavelId: resolvedResponsavelId,
+                      from: parsed.dateTimeUTC.toISOString(),
+                      daysToScan: 7,
+                      slotMinutes: 60,
+                      count: 3,
+                    },
+                  },
+                });
+                const slots = (slotsRes as { slots?: Array<{ start: string; end: string }> } | null)?.slots ?? [];
+                if (slots.length > 0) {
+                  const formatted = slots
+                    .map((s, i) => `${i + 1}. ${formatScheduleForLead(new Date(s.start))}`)
+                    .join("\n");
+                  suggestionText = `\n\nTenho esses horários livres:\n${formatted}\n\nQual prefere?`;
+                }
+              } catch (suggErr) {
+                console.warn(`[processMsg:${provider}] suggestSlots failed:`, suggErr instanceof Error ? suggErr.message : String(suggErr));
+              }
+            }
             const when = formatScheduleForLead(parsed.dateTimeUTC);
-            aiText = `Infelizmente ${responsavelNome} já tem compromisso em ${when}. Posso verificar outro horário? Você prefere mais cedo ou mais tarde nesse dia, ou outra data?`;
+            aiText = `Infelizmente ${responsavelNome} já tem compromisso em ${when}.${suggestionText || " Pode me indicar outro horário?"}`;
           } else {
             const insertPayload: Record<string, unknown> = {
               lead_id: leadId,
@@ -1095,25 +1309,27 @@ export async function processNormalizedMessage(
             if (!agendError) {
               const when = formatScheduleForLead(parsed.dateTimeUTC);
               const newAgendamentoId = (insertedAgend as { id?: string } | null)?.id ?? null;
-              aiText = `Perfeito! Reunião agendada com ${responsavelNome} em ${when}. Você receberá um lembrete antes. Caso precise remarcar, é só me avisar.`;
-              console.log(`[processMsg:${provider}] Auto-scheduled lead ${leadId} at ${parsed.dateTimeUTC.toISOString()} responsavel_id=${resolvedResponsavelId} (matched: "${parsed.matched}")`);
 
-              // GOOGLE CALENDAR (best-effort): se o responsável tem token Google
-              // conectado, cria evento e persiste google_event_id. Falha não
-              // bloqueia o agendamento — Calendar é wrap em try/catch.
+              // Cria evento no Google Calendar SINCRONICAMENTE (em vez de fire-and-forget)
+              // pra capturar o link Meet e enviar pro lead na mesma mensagem.
+              let meetLink: string | null = null;
               if (newAgendamentoId && resolvedResponsavelId) {
-                void (async () => {
-                  try {
-                    const { data: tokenRow } = await supabase
-                      .from("google_calendar_tokens")
-                      .select("user_id")
-                      .eq("user_id", resolvedResponsavelId)
-                      .maybeSingle();
+                try {
+                  const { data: tokenRow } = await supabase
+                    .from("google_calendar_tokens")
+                    .select("user_id")
+                    .eq("user_id", resolvedResponsavelId)
+                    .maybeSingle();
 
-                    if (!tokenRow) {
-                      console.log(`[processMsg:${provider}] No Google token for responsavel ${resolvedResponsavelId} — skipping Calendar sync`);
-                      return;
-                    }
+                  if (tokenRow) {
+                    // Lead email pra adicionar como attendee
+                    const { data: leadFull } = await supabase
+                      .from("leads")
+                      .select("email")
+                      .eq("id", leadId)
+                      .maybeSingle();
+                    const leadEmail = (leadFull as { email?: string } | null)?.email ?? null;
+                    const attendeeEmails = leadEmail ? [leadEmail] : [];
 
                     const eventEnd = new Date(parsed.dateTimeUTC.getTime() + 60 * 60 * 1000).toISOString();
                     const { data: calendarRes, error: calendarErr } = await supabase.functions.invoke("google-calendar", {
@@ -1123,43 +1339,54 @@ export async function processNormalizedMessage(
                           responsavelId: resolvedResponsavelId,
                           tenantId,
                           agendamentoId: newAgendamentoId,
+                          createMeetLink: true,
+                          attendeeEmails,
                           eventData: {
                             summary: `Reunião com ${name}`,
                             description: `Agendamento via WhatsApp.\nLead: ${name} (${from})\nÁrea: ${insertPayload.area_juridica}\nObs: ${insertPayload.observacoes}`,
-                            start: { dateTime: parsed.dateTimeUTC.toISOString() },
-                            end: { dateTime: eventEnd },
+                            start: { dateTime: parsed.dateTimeUTC.toISOString(), timeZone: "America/Sao_Paulo" },
+                            end: { dateTime: eventEnd, timeZone: "America/Sao_Paulo" },
                           },
                         },
                       },
                     });
 
                     if (calendarErr) {
-                      console.warn(`[processMsg:${provider}] Calendar sync failed (event_id=null):`, calendarErr.message);
-                      return;
-                    }
-
-                    const eventId = (calendarRes as { event?: { id?: string } } | null)?.event?.id;
-                    if (eventId) {
-                      await supabase
-                        .from("agendamentos")
-                        .update({ google_event_id: eventId })
-                        .eq("id", newAgendamentoId)
-                        .eq("tenant_id", tenantId);
-                      console.log(`[processMsg:${provider}] Calendar event ${eventId} linked to agendamento ${newAgendamentoId}`);
+                      console.warn(`[processMsg:${provider}] Calendar sync failed:`, calendarErr.message);
                     } else {
-                      console.warn(`[processMsg:${provider}] Calendar response missing event id (event_id=null)`);
+                      const event = (calendarRes as { event?: { id?: string; hangoutLink?: string; conferenceData?: { entryPoints?: Array<{ uri?: string; entryPointType?: string }> } } } | null)?.event;
+                      const eventId = event?.id ?? null;
+                      meetLink = event?.hangoutLink
+                        ?? event?.conferenceData?.entryPoints?.find((e) => e.entryPointType === "video")?.uri
+                        ?? null;
+                      if (eventId) {
+                        await supabase
+                          .from("agendamentos")
+                          .update({ google_event_id: eventId, link_videochamada: meetLink })
+                          .eq("id", newAgendamentoId)
+                          .eq("tenant_id", tenantId);
+                        console.log(`[processMsg:${provider}] Calendar event ${eventId} (meet=${!!meetLink}) linked to agendamento ${newAgendamentoId}`);
+                      }
                     }
-                  } catch (err) {
-                    console.warn(`[processMsg:${provider}] Calendar sync exception (event_id=null):`, err instanceof Error ? err.message : String(err));
+                  } else {
+                    console.log(`[processMsg:${provider}] No Google token for responsavel ${resolvedResponsavelId} — skipping Calendar sync`);
                   }
-                })();
+                } catch (err) {
+                  console.warn(`[processMsg:${provider}] Calendar sync exception:`, err instanceof Error ? err.message : String(err));
+                }
               }
+
+              const meetSuffix = meetLink
+                ? `\n\n📹 Link da videochamada (Google Meet):\n${meetLink}`
+                : "";
+              aiText = `Perfeito! Reunião agendada com ${responsavelNome} em ${when}. Você receberá um lembrete antes. Caso precise remarcar, é só me avisar.${meetSuffix}`;
+              console.log(`[processMsg:${provider}] Auto-scheduled lead ${leadId} at ${parsed.dateTimeUTC.toISOString()} responsavel_id=${resolvedResponsavelId} (matched: "${parsed.matched}")`);
 
               void supabase.from("notificacoes").insert({
                 tenant_id: tenantId,
                 tipo: "sucesso",
                 titulo: `📅 Consulta agendada via WhatsApp`,
-                mensagem: `Lead "${name}" (${from}) solicitou e agendou reunião em ${when} com ${responsavelNome}.`,
+                mensagem: `Lead "${name}" (${from}) solicitou e agendou reunião em ${when} com ${responsavelNome}.${meetLink ? " Meet: " + meetLink : ""}`,
                 ativo: true,
               }).then(({ error }) => { if (error) console.error("[webhook] schedule notification error:", error.message); });
             } else {
@@ -1169,8 +1396,32 @@ export async function processNormalizedMessage(
           }
           } // fecha else de validateBusinessHours
         } else {
-          // Intenção detectada mas sem data/hora — pede especificação em vez de agendar hardcoded
-          aiText = `Claro, posso agendar uma reunião com ${responsavelNome}. Qual dia e horário fica melhor pra você? (ex.: "quinta às 14h", "amanhã de manhã")`;
+          // Intenção detectada mas sem data/hora — sugere slots livres pra dar opções concretas
+          let suggestionText = "";
+          if (resolvedResponsavelId) {
+            try {
+              const { data: slotsRes } = await supabase.functions.invoke("google-calendar", {
+                body: {
+                  action: "suggestSlotsForResponsavel",
+                  data: {
+                    responsavelId: resolvedResponsavelId,
+                    from: new Date().toISOString(),
+                    daysToScan: 7,
+                    slotMinutes: 60,
+                    count: 3,
+                  },
+                },
+              });
+              const slots = (slotsRes as { slots?: Array<{ start: string; end: string }> } | null)?.slots ?? [];
+              if (slots.length > 0) {
+                const formatted = slots
+                  .map((s, i) => `${i + 1}. ${formatScheduleForLead(new Date(s.start))}`)
+                  .join("\n");
+                suggestionText = `\n\nTenho esses horários livres:\n${formatted}\n\nQual prefere? Ou pode sugerir outra data.`;
+              }
+            } catch { /* fallback ao texto simples */ }
+          }
+          aiText = `Claro, posso agendar uma reunião com ${responsavelNome}.${suggestionText || ' Qual dia e horário fica melhor pra você? (ex.: "quinta às 14h", "amanhã de manhã")'}`;
         }
       }
     }

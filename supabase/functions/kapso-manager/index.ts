@@ -264,10 +264,18 @@ async function registerWebhook(
     // Continue with original ID
   }
 
+  // Kapso requires us to PROVIDE the secret_key (it doesn't generate one).
+  // Generate 32 random bytes → hex (64 chars) for HMAC verification.
+  const secretBytes = crypto.getRandomValues(new Uint8Array(32));
+  const generatedSecret = Array.from(secretBytes)
+    .map((b) => b.toString(16).padStart(2, "0"))
+    .join("");
+
   const webhookBody = JSON.stringify({
     whatsapp_webhook: {
       kind: "kapso",
       url: webhookUrl,
+      secret_key: generatedSecret,
       events: [
         "whatsapp.message.received",
         "whatsapp.message.sent",
@@ -309,7 +317,9 @@ async function registerWebhook(
       const data = await res.json().catch(() => ({}));
 
       if (res.ok) {
-        const secretKey = data?.data?.secret_key || data?.secret_key;
+        // Kapso echoes back the secret_key we sent (or generates equivalent).
+        // Trust our generated value as source of truth — if Kapso returns a different one, prefer Kapso's.
+        const secretKey = data?.data?.secret_key || data?.secret_key || generatedSecret;
         console.log(`[kapso-manager] Webhook registered for phone ID=${id} → ${webhookUrl}`);
         return { success: true, secretKey };
       }
@@ -588,7 +598,7 @@ Deno.serve(async (req) => {
         const phones = await listPhoneNumbers(config.apiKey, customerId);
         const connected = phones.length > 0;
 
-        // Auto-finalize if connected but no conexoes_whatsapp record
+        // Auto-finalize if connected but no conexoes_whatsapp record OR webhook not registered
         if (connected) {
           const phone = phones[0];
           const { data: existingConn } = await supabase
@@ -599,9 +609,37 @@ Deno.serve(async (req) => {
             .limit(1)
             .maybeSingle();
 
+          // Self-heal: ensure conexao_whatsapp exists
           if (!existingConn) {
             await upsertKapsoConfig(supabase, tenantId, config.apiKey, phone.phone_number_id, phone.display_phone_number);
             await finalizeConnection(supabase, tenantId, phone.phone_number_id, phone.display_phone_number);
+          }
+
+          // Self-heal: ensure webhook is registered on Kapso side AND secret is stored locally.
+          // Without this, Kapso has nowhere to send inbound messages and our webhook rejects 401.
+          const { data: cfgRow } = await supabase
+            .from("configuracoes_integracoes")
+            .select("id, webhook_secret_encrypted")
+            .eq("nome_integracao", "whatsapp_kapso")
+            .eq("tenant_id", tenantId)
+            .maybeSingle();
+
+          if (cfgRow && !cfgRow.webhook_secret_encrypted) {
+            const wh = await registerWebhook(config.apiKey, phone.phone_number_id, customerId);
+            if (wh.success && wh.secretKey) {
+              const encryptedSecret = await encrypt(wh.secretKey);
+              await supabase
+                .from("configuracoes_integracoes")
+                .update({ webhook_secret_encrypted: encryptedSecret })
+                .eq("id", cfgRow.id);
+              console.log(`[kapso-manager] status: webhook self-healed for tenant ${tenantId}`);
+              await logEvent(supabase, null, tenantId, "webhook_registered", "info",
+                `Webhook auto-registrado durante status check para ${phone.display_phone_number}`);
+            } else if (!wh.success) {
+              console.warn(`[kapso-manager] status: webhook self-heal failed for tenant ${tenantId}: ${wh.error}`);
+              await logEvent(supabase, null, tenantId, "webhook_registration_failed", "warning",
+                `Webhook auto-registro falhou: ${wh.error}`);
+            }
           }
         }
 
