@@ -139,26 +139,37 @@ async function tool_scheduleMeeting(
   const observacoes = args.observacoes ?? `Agendado via IA WhatsApp.`;
 
   try {
-    // 1) Insert agendamento
-    const { data: agend, error: agendErr } = await ctx.supabase
-      .from("agendamentos")
-      .insert({
-        tenant_id: ctx.tenantId,
-        lead_id: ctx.leadId,
-        responsavel: ctx.responsavelNome,
-        responsavel_id: ctx.responsavelId,
-        area_juridica: area,
-        data_hora: start.toISOString(),
-        observacoes,
-        status: "agendado",
-        titulo: `Reunião: ${area} — ${ctx.leadNome ?? "Cliente"}`,
-        duracao: duration,
-      })
-      .select("id")
-      .single();
-    if (agendErr) return { success: false, error: `Erro ao criar agendamento: ${agendErr.message}` };
+    // 1) Insert agendamento via RPC racing-safe (P0 #2 fix 2026-05-07).
+    // pg_try_advisory_xact_lock + re-check + INSERT atomic. Trata 3 razões
+    // de conflito: lock_busy, lead_already_scheduled, responsavel_conflict.
+    const { data: rpcRows, error: rpcErr } = await (ctx.supabase as unknown as {
+      rpc: (fn: string, args: Record<string, unknown>) => Promise<{
+        data: Array<{ acquired: boolean; agendamento_id: string | null; conflict_reason: string | null }> | null;
+        error: { message: string } | null;
+      }>;
+    }).rpc("try_acquire_schedule_slot", {
+      _tenant_id: ctx.tenantId,
+      _lead_id: ctx.leadId,
+      _data_hora: start.toISOString(),
+      _slot_minutes: duration,
+      _responsavel_id: ctx.responsavelId,
+      _responsavel_nome: ctx.responsavelNome,
+      _area_juridica: area,
+      _observacoes: observacoes,
+    });
+    if (rpcErr) return { success: false, error: `Erro ao criar agendamento: ${rpcErr.message}` };
+    const rpcRow = rpcRows && rpcRows.length > 0 ? rpcRows[0] : null;
+    if (!rpcRow?.acquired) {
+      const reason = rpcRow?.conflict_reason ?? "unknown";
+      const userMsg = reason === "lead_already_scheduled"
+        ? "Lead já tem reunião agendada. Use reschedule_meeting pra alterar horário."
+        : reason === "responsavel_conflict"
+        ? `${ctx.responsavelNome} já tem compromisso nesse horário. Sugira outro horário.`
+        : "Operação concorrente em curso, tente novamente em instantes.";
+      return { success: false, error: userMsg, data: { conflict_reason: reason } };
+    }
 
-    const agendamentoId = (agend as { id: string }).id;
+    const agendamentoId = rpcRow.agendamento_id as string;
 
     // 2) Create Calendar event with Meet
     let meetLink: string | null = null;
