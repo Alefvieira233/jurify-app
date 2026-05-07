@@ -1066,16 +1066,20 @@ export async function processNormalizedMessage(
           ctxPatch.area_juridica = lead.area_juridica;
         }
 
-        // ── HANDOFF DETECTION: detecta no texto da resposta se agente fez handoff verbal ──
-        // Ex: "Vou te conectar com a Dra. Jacira", "te passo pro Dr. Gabriel", "Marcos vai te ajudar"
-        // Mapeia pro tipo do agente alvo e grava em pending_handoff_to.
+        // ── HANDOFF DETECTION: detecta menção do agente alvo no texto da resposta ──
+        // Lógica simplificada: se a resposta MENCIONA outro agente específico (Jacira/Gabriel/Marcos)
+        // E o agente atual NÃO é esse, é sinal de handoff verbal.
+        // Guard: nunca dispara handoff pro próprio agente que está respondendo (evita loop).
         let detectedHandoff: string | null = null;
-        const lowerResp = resultText.toLowerCase();
-        if (/(?:conectar|passar|encaminhar|transferir)\s+(?:com|para|pro|pra)?\s*(?:a\s+|o\s+)?(?:dra?\.?\s+)?jacira|jacira\s+(?:vai|vou|te\s+atend|te\s+ajud)/i.test(resultText)) {
+        const mentionsJacira = /\b(?:dra?\.?\s*jacira|doutora\s+jacira|jacira\s+gomes)\b/i.test(resultText);
+        const mentionsGabriel = /\b(?:dr\.?\s*gabriel|doutor\s+gabriel|assistente\s+jur[íi]dico)\b/i.test(resultText);
+        const mentionsMarcos = /\b(?:marcos|consultor\s+comercial)\b/i.test(resultText);
+
+        if (mentionsJacira && agentType !== "juridico_bancario") {
           detectedHandoff = "juridico_bancario";
-        } else if (/(?:conectar|passar|encaminhar|transferir)\s+(?:com|para|pro|pra)?\s*(?:o\s+|a\s+)?(?:dr\.?\s+)?gabriel|gabriel\s+(?:vai|vou|te\s+atend|te\s+ajud)/i.test(resultText)) {
+        } else if (mentionsGabriel && agentType !== "juridico") {
           detectedHandoff = "juridico";
-        } else if (/(?:conectar|passar|encaminhar|transferir)\s+(?:com|para|pro|pra)?\s*(?:o\s+)?marcos|marcos\s+(?:vai|vou|te\s+atend|te\s+ajud)/i.test(resultText)) {
+        } else if (mentionsMarcos && agentType !== "comercial") {
           detectedHandoff = "comercial";
         }
 
