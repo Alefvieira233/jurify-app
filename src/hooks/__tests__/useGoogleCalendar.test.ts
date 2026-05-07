@@ -1,5 +1,12 @@
 /**
- * Tests for Google Calendar OAuth - CSRF Protection
+ * Tests for Google Calendar OAuth - CSRF Protection (server-side binding 2026-05-07).
+ *
+ * Modelo novo: state crypto-random é gerado SERVER-SIDE pela edge function
+ * google-calendar (RPC create_oauth_pending_state) e persistido em
+ * oauth_pending_states com vínculo ao user_id atual + redirect_uri + TTL 10min.
+ * Na callback, exchangeCode consome o state via consume_oauth_pending_state
+ * (single-use, valida user_id == auth.uid()). Frontend NÃO mais usa
+ * localStorage — binding fica em DB.
  */
 
 import React from 'react';
@@ -14,7 +21,6 @@ const createWrapper = () => {
     React.createElement(QueryClientProvider, { client: qc }, children);
 };
 
-// Mock AuthContext
 vi.mock('@/contexts/AuthContext', () => ({
   useAuth: () => ({
     user: {
@@ -29,15 +35,11 @@ vi.mock('@/contexts/AuthContext', () => ({
   }),
 }));
 
-// Mock toast
 const mockToast = vi.fn();
 vi.mock('@/hooks/use-toast', () => ({
   useToast: () => ({ toast: mockToast }),
 }));
 
-// Chainable proxy for supabase queries
-// First call (select query) returns PGRST116 (no row found)
-// Second call (insert) returns success with default settings data
 let callCount = 0;
 function createChainableQuery() {
   const handler: ProxyHandler<object> = {
@@ -45,13 +47,11 @@ function createChainableQuery() {
       if (prop === 'then') {
         callCount++;
         if (callCount <= 1) {
-          // First query: no row found (PGRST116)
           return (
             onFulfilled?: (v: unknown) => unknown,
             onRejected?: (e: unknown) => unknown
           ) => Promise.resolve({ data: null, error: { code: 'PGRST116' } }).then(onFulfilled, onRejected);
         }
-        // Subsequent queries: success (insert or other operations)
         return (
           onFulfilled?: (v: unknown) => unknown,
           onRejected?: (e: unknown) => unknown
@@ -72,7 +72,6 @@ function createChainableQuery() {
         return (onRejected?: (e: unknown) => unknown) =>
           Promise.resolve({ data: null, error: null }).catch(onRejected);
       }
-      // Chain methods
       return (..._args: unknown[]) => new Proxy({}, handler);
     },
   };
@@ -84,14 +83,10 @@ vi.mock('@/integrations/supabase/client', () => {
   return { supabase: client, supabaseUntyped: client };
 });
 
-// Mock GoogleOAuthService - configured = true
-// Note: getAuthUrl is now async (Promise<string>) because the real implementation
-// invokes the google-calendar edge function. loadTokens/listCalendars were removed
-// in the 2026-04-10 refactor that moved all token handling server-side.
 vi.mock('@/lib/google/GoogleOAuthService', () => ({
   GoogleOAuthService: {
     isConfigured: vi.fn(() => true),
-    getAuthUrl: vi.fn(async (state: string) => `https://accounts.google.com/o/oauth2/v2/auth?state=${state}`),
+    getAuthUrl: vi.fn(async () => `https://accounts.google.com/o/oauth2/v2/auth?state=server-generated-state`),
     getStatus: vi.fn().mockResolvedValue({ connected: false, email: null, name: null, picture: null, connectedAt: null }),
     revokeTokens: vi.fn().mockResolvedValue(undefined),
     exchangeCodeForTokens: vi.fn().mockResolvedValue({ email: null, name: null }),
@@ -101,7 +96,6 @@ vi.mock('@/lib/google/GoogleOAuthService', () => ({
   },
 }));
 
-// Prevent actual navigation
 let locationDescriptor: PropertyDescriptor | undefined;
 beforeEach(() => {
   locationDescriptor = Object.getOwnPropertyDescriptor(window, 'location');
@@ -118,286 +112,110 @@ afterEach(() => {
   }
 });
 
-// Helper to wait for loadSettings to complete
 async function waitForLoadSettings() {
   await act(async () => {
     await new Promise(r => setTimeout(r, 100));
   });
 }
 
-describe('OAuth State Security (CSRF Protection)', () => {
+describe('Google Calendar OAuth — server-side state binding (P1 fix 2026-05-07)', () => {
   beforeEach(async () => {
     vi.clearAllMocks();
     callCount = 0;
-
-    // Map-backed localStorage so values actually persist between set/get
-    const store = new Map<string, string>();
-    vi.mocked(localStorage.getItem).mockImplementation((key: string) => store.get(key) ?? null);
-    vi.mocked(localStorage.setItem).mockImplementation((key: string, val: string) => { store.set(key, val); });
-    vi.mocked(localStorage.removeItem).mockImplementation((key: string) => { store.delete(key); });
-    vi.mocked(localStorage.clear).mockImplementation(() => { store.clear(); });
-
-    // Re-establish mocks cleared by clearAllMocks
     const { GoogleOAuthService } = await import('@/lib/google/GoogleOAuthService');
     vi.mocked(GoogleOAuthService.isConfigured).mockReturnValue(true);
     vi.mocked(GoogleOAuthService.getAuthUrl).mockImplementation(
-      async (state: string) => `https://accounts.google.com/o/oauth2/v2/auth?state=${state}`
+      async () => `https://accounts.google.com/o/oauth2/v2/auth?state=server-generated-state`
     );
     vi.mocked(GoogleOAuthService.getStatus).mockResolvedValue({
       connected: false, email: null, name: null, picture: null, connectedAt: null,
     });
   });
 
-  describe('Cryptographic State Generation', () => {
-    it('should generate cryptographic state (not user.id)', async () => {
-      const { result } = renderHook(() => useGoogleCalendar(), { wrapper: createWrapper() });
-      await waitForLoadSettings();
+  it('initializeGoogleAuth deve invocar getAuthUrl SEM args (state gerado pelo server)', async () => {
+    const { GoogleOAuthService } = await import('@/lib/google/GoogleOAuthService');
+    const { result } = renderHook(() => useGoogleCalendar(), { wrapper: createWrapper() });
+    await waitForLoadSettings();
 
-      act(() => {
-        result.current.initializeGoogleAuth();
-      });
-
-      const savedState = localStorage.getItem('google_oauth_state');
-      expect(savedState).not.toBeNull();
-      expect(savedState).not.toBe('test-user-id-123');
+    act(() => {
+      result.current.initializeGoogleAuth();
     });
+    await act(async () => { await new Promise(r => setTimeout(r, 50)); });
 
-    it('state should be exactly 64 hex characters (32 bytes)', async () => {
-      const { result } = renderHook(() => useGoogleCalendar(), { wrapper: createWrapper() });
-      await waitForLoadSettings();
-
-      act(() => {
-        result.current.initializeGoogleAuth();
-      });
-
-      const savedState = localStorage.getItem('google_oauth_state');
-      expect(savedState).not.toBeNull();
-      expect(savedState!.length).toBe(64);
-      expect(savedState).toMatch(/^[0-9a-f]{64}$/);
-    });
-
-    it('each call should generate unique state', async () => {
-      const { result } = renderHook(() => useGoogleCalendar(), { wrapper: createWrapper() });
-      await waitForLoadSettings();
-
-      const states = new Set<string>();
-
-      for (let i = 0; i < 5; i++) {
-        act(() => {
-          result.current.initializeGoogleAuth();
-        });
-
-        const state = localStorage.getItem('google_oauth_state');
-        expect(state).not.toBeNull();
-        states.add(state!);
-        localStorage.removeItem('google_oauth_state');
-      }
-
-      expect(states.size).toBe(5);
-    });
-
-    it('state should have high entropy', async () => {
-      const { result } = renderHook(() => useGoogleCalendar(), { wrapper: createWrapper() });
-      await waitForLoadSettings();
-
-      const states: string[] = [];
-
-      for (let i = 0; i < 20; i++) {
-        act(() => {
-          result.current.initializeGoogleAuth();
-        });
-
-        const state = localStorage.getItem('google_oauth_state');
-        expect(state).not.toBeNull();
-        states.push(state!);
-        localStorage.removeItem('google_oauth_state');
-      }
-
-      const charCounts = new Map<string, number>();
-      states.forEach(state => {
-        state.split('').forEach(char => {
-          charCounts.set(char, (charCounts.get(char) || 0) + 1);
-        });
-      });
-
-      expect(charCounts.size).toBeGreaterThanOrEqual(10);
-    });
-
-    it('state should not be sequential or timestamp-based', async () => {
-      const { result } = renderHook(() => useGoogleCalendar(), { wrapper: createWrapper() });
-      await waitForLoadSettings();
-
-      act(() => {
-        result.current.initializeGoogleAuth();
-      });
-      const state1 = localStorage.getItem('google_oauth_state');
-      localStorage.removeItem('google_oauth_state');
-
-      act(() => {
-        result.current.initializeGoogleAuth();
-      });
-      const state2 = localStorage.getItem('google_oauth_state');
-
-      expect(state1).not.toBe(state2);
+    expect(GoogleOAuthService.getAuthUrl).toHaveBeenCalled();
+    vi.mocked(GoogleOAuthService.getAuthUrl).mock.calls.forEach(call => {
+      expect(call.length).toBe(0);
     });
   });
 
-  describe('State Validation', () => {
-    it('should store state in localStorage for later validation', async () => {
-      const { result } = renderHook(() => useGoogleCalendar(), { wrapper: createWrapper() });
-      await waitForLoadSettings();
+  it('initializeGoogleAuth NÃO deve persistir state em localStorage (binding agora é server-side)', async () => {
+    const setItemSpy = vi.spyOn(Storage.prototype, 'setItem');
+    const { result } = renderHook(() => useGoogleCalendar(), { wrapper: createWrapper() });
+    await waitForLoadSettings();
 
-      act(() => {
-        result.current.initializeGoogleAuth();
-      });
-
-      const savedState = localStorage.getItem('google_oauth_state');
-      expect(savedState).not.toBeNull();
-      expect(savedState!.length).toBe(64);
+    act(() => {
+      result.current.initializeGoogleAuth();
     });
+    await act(async () => { await new Promise(r => setTimeout(r, 50)); });
 
-    it('should reject invalid state', () => {
-      const legitimateState = 'a'.repeat(64);
-      localStorage.setItem('google_oauth_state', legitimateState);
-
-      const attackState = 'b'.repeat(64);
-      expect(attackState === localStorage.getItem('google_oauth_state')).toBe(false);
-    });
-
-    it('should detect absent state', () => {
-      localStorage.removeItem('google_oauth_state');
-      expect(localStorage.getItem('google_oauth_state')).toBeNull();
-    });
+    const oauthStateWrites = setItemSpy.mock.calls.filter(c => c[0] === 'google_oauth_state');
+    expect(oauthStateWrites.length).toBe(0);
+    setItemSpy.mockRestore();
   });
 
-  describe('crypto.getRandomValues Usage', () => {
-    it('should use crypto.getRandomValues', async () => {
-      const getRandomValuesSpy = vi.spyOn(crypto, 'getRandomValues');
-      const { result } = renderHook(() => useGoogleCalendar(), { wrapper: createWrapper() });
-      await waitForLoadSettings();
-
-      act(() => {
-        result.current.initializeGoogleAuth();
-      });
-
-      expect(getRandomValuesSpy).toHaveBeenCalled();
-      const firstCall = getRandomValuesSpy.mock.calls[0][0];
-      expect(firstCall).toBeInstanceOf(Uint8Array);
-      expect((firstCall as Uint8Array).length).toBe(32);
-
-      getRandomValuesSpy.mockRestore();
-    });
-
-    it('state should be valid hex conversion of random bytes', async () => {
-      const { result } = renderHook(() => useGoogleCalendar(), { wrapper: createWrapper() });
-      await waitForLoadSettings();
-
-      act(() => {
-        result.current.initializeGoogleAuth();
-      });
-
-      const state = localStorage.getItem('google_oauth_state');
-      expect(state).not.toBeNull();
-
-      for (let i = 0; i < state!.length; i += 2) {
-        const byte = state!.substring(i, i + 2);
-        const value = parseInt(byte, 16);
-        expect(value).toBeGreaterThanOrEqual(0);
-        expect(value).toBeLessThanOrEqual(255);
-        expect(byte).toMatch(/^[0-9a-f]{2}$/);
-      }
-    });
+  it('exchangeCodeForTokens deve receber (code, state) — binding check no server', async () => {
+    const { GoogleOAuthService } = await import('@/lib/google/GoogleOAuthService');
+    await GoogleOAuthService.exchangeCodeForTokens('test-code', 'test-state-from-server');
+    expect(GoogleOAuthService.exchangeCodeForTokens).toHaveBeenCalledWith('test-code', 'test-state-from-server');
   });
 
-  describe('GoogleOAuthService Integration', () => {
-    it('getAuthUrl should receive cryptographic state', async () => {
-      const { GoogleOAuthService } = await import('@/lib/google/GoogleOAuthService');
-      const { result } = renderHook(() => useGoogleCalendar(), { wrapper: createWrapper() });
-      await waitForLoadSettings();
-
-      act(() => {
-        result.current.initializeGoogleAuth();
-      });
-
-      expect(GoogleOAuthService.getAuthUrl).toHaveBeenCalled();
-      const calls = vi.mocked(GoogleOAuthService.getAuthUrl).mock.calls;
-      calls.forEach(call => {
-        const state = call[0];
-        expect(state).not.toBe('test-user-id-123');
-        expect(state.length).toBe(64);
-        expect(state).toMatch(/^[0-9a-f]{64}$/);
-      });
-    });
-
-    it('getAuthUrl should not receive userId as parameter', async () => {
-      const { GoogleOAuthService } = await import('@/lib/google/GoogleOAuthService');
-      const { result } = renderHook(() => useGoogleCalendar(), { wrapper: createWrapper() });
-      await waitForLoadSettings();
-
-      act(() => {
-        result.current.initializeGoogleAuth();
-      });
-
-      const calls = vi.mocked(GoogleOAuthService.getAuthUrl).mock.calls;
-      expect(calls.length).toBeGreaterThan(0);
-      calls.forEach(call => {
-        expect(call.length).toBe(1);
-        expect(call[0]).not.toBe('test-user-id-123');
-      });
-    });
+  it('getAuthUrl mock retorna URL com parâmetro state embutido', async () => {
+    const { GoogleOAuthService } = await import('@/lib/google/GoogleOAuthService');
+    const url = await GoogleOAuthService.getAuthUrl();
+    expect(url).toContain('state=');
+    expect(url).toContain('accounts.google.com');
   });
 
-  describe('CSRF Attack Prevention', () => {
-    it('should prevent CSRF attack with predictable state', () => {
-      const attackerState = 'test-user-id-123';
-      const legitimateState = 'a1b2c3d4e5f6'.repeat(5) + 'abcd';
-      localStorage.setItem('google_oauth_state', legitimateState);
-
-      expect(attackerState === localStorage.getItem('google_oauth_state')).toBe(false);
+  it('estados gerados SERVER-SIDE: cada chamada produz nova URL (server gera state distinto)', async () => {
+    const { GoogleOAuthService } = await import('@/lib/google/GoogleOAuthService');
+    let counter = 0;
+    vi.mocked(GoogleOAuthService.getAuthUrl).mockImplementation(async () => {
+      counter += 1;
+      return `https://accounts.google.com/o/oauth2/v2/auth?state=server-state-${counter}`;
     });
+    const url1 = await GoogleOAuthService.getAuthUrl();
+    const url2 = await GoogleOAuthService.getAuthUrl();
+    expect(url1).not.toBe(url2);
+    expect(url1).toContain('server-state-1');
+    expect(url2).toContain('server-state-2');
   });
 });
 
-describe('GoogleOAuthService - State Parameter', () => {
+describe('Google Calendar — connection lifecycle smoke', () => {
   beforeEach(async () => {
     vi.clearAllMocks();
     callCount = 0;
-
-    // Map-backed localStorage so values actually persist between set/get
-    const store = new Map<string, string>();
-    vi.mocked(localStorage.getItem).mockImplementation((key: string) => store.get(key) ?? null);
-    vi.mocked(localStorage.setItem).mockImplementation((key: string, val: string) => { store.set(key, val); });
-    vi.mocked(localStorage.removeItem).mockImplementation((key: string) => { store.delete(key); });
-    vi.mocked(localStorage.clear).mockImplementation(() => { store.clear(); });
-
-    // Re-establish mocks cleared by clearAllMocks
     const { GoogleOAuthService } = await import('@/lib/google/GoogleOAuthService');
     vi.mocked(GoogleOAuthService.isConfigured).mockReturnValue(true);
-    vi.mocked(GoogleOAuthService.getAuthUrl).mockImplementation(
-      async (state: string) => `https://accounts.google.com/o/oauth2/v2/auth?state=${state}`
-    );
     vi.mocked(GoogleOAuthService.getStatus).mockResolvedValue({
       connected: false, email: null, name: null, picture: null, connectedAt: null,
     });
   });
 
-  it('getAuthUrl should accept state parameter', async () => {
+  it('not configured: initializeGoogleAuth shows toast and bails', async () => {
     const { GoogleOAuthService } = await import('@/lib/google/GoogleOAuthService');
-    const cryptoState = 'a'.repeat(64);
+    vi.mocked(GoogleOAuthService.isConfigured).mockReturnValue(false);
 
-    const url = await GoogleOAuthService.getAuthUrl(cryptoState);
+    const { result } = renderHook(() => useGoogleCalendar(), { wrapper: createWrapper() });
+    await waitForLoadSettings();
 
-    expect(url).toContain(`state=${cryptoState}`);
-    expect(GoogleOAuthService.getAuthUrl).toHaveBeenCalledWith(cryptoState);
-  });
+    act(() => {
+      result.current.initializeGoogleAuth();
+    });
 
-  it('state should be included in OAuth URL', async () => {
-    const { GoogleOAuthService } = await import('@/lib/google/GoogleOAuthService');
-    const cryptoState = 'b'.repeat(64);
+    await act(async () => { await new Promise(r => setTimeout(r, 50)); });
 
-    const url = await GoogleOAuthService.getAuthUrl(cryptoState);
-
-    expect(url).toContain('state=');
-    expect(url).toContain(cryptoState);
+    expect(mockToast).toHaveBeenCalled();
+    expect(GoogleOAuthService.getAuthUrl).not.toHaveBeenCalled();
   });
 });

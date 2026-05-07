@@ -72,32 +72,37 @@ export class GoogleOAuthService {
 
   /**
    * Build an OAuth URL by asking the edge function.
-   * @param state Crypto-random CSRF state; caller must store it and validate on callback.
+   * Server gera o state crypto-random, persiste em oauth_pending_states com
+   * binding ao user_id e ao redirect_uri, e devolve a URL do Google. O state
+   * vem embutido na URL retornada.
    */
-  static async getAuthUrl(state: string): Promise<string> {
+  static async getAuthUrl(): Promise<string> {
     if (!this.isConfigured()) {
       throw new Error(
         'Google OAuth não configurado. Configure VITE_GOOGLE_CLIENT_ID no .env e GOOGLE_CLIENT_SECRET nos Supabase Secrets.'
       );
     }
-    if (!state || state.length < 16) {
-      throw new Error('OAuth state must be a crypto-random string ≥16 chars.');
-    }
     const { authUrl } = await invokeEdge<{ authUrl: string }>('initiateAuth', {
       redirectUri: GOOGLE_REDIRECT_URI,
-      state,
     });
     return authUrl;
   }
 
-  /** Exchange auth code → tokens (tokens stored encrypted server-side). */
-  static async exchangeCodeForTokens(code: string): Promise<{
+  /**
+   * Exchange auth code → tokens (tokens stored encrypted server-side).
+   * O state recebido na URL de callback DEVE ser repassado aqui — server faz
+   * binding check (single-use, expira em 10min, vincula ao user_id atual).
+   */
+  static async exchangeCodeForTokens(code: string, state: string): Promise<{
     email: string | null;
     name: string | null;
   }> {
+    if (!state || typeof state !== 'string') {
+      throw new Error('OAuth state ausente — bloqueado por proteção CSRF.');
+    }
     const result = await invokeEdge<{ success: boolean; email?: string; name?: string }>(
       'exchangeCode',
-      { code, redirectUri: GOOGLE_REDIRECT_URI }
+      { code, redirectUri: GOOGLE_REDIRECT_URI, state }
     );
     return {
       email: result.email ?? null,

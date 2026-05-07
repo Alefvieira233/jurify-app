@@ -224,6 +224,31 @@ const PoliticaDePrivacidade = () => {
               </a>.
             </p>
           </section>
+
+          <section>
+            <h2 className="text-xl font-semibold mb-3">Uso de dados do Google APIs (Limited Use)</h2>
+            <p>
+              Quando o usuário conecta sua conta Google ao Jurify (integração Google Calendar), o uso e
+              transferência de informações recebidas das APIs do Google pelo Jurify estão em conformidade
+              com a{' '}
+              <a
+                href="https://developers.google.com/terms/api-services-user-data-policy"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-primary underline"
+              >
+                Google API Services User Data Policy
+              </a>
+              , incluindo os requisitos de <strong>Limited Use</strong>. Especificamente:
+            </p>
+            <ul className="list-disc list-inside space-y-1 mt-2 ml-4">
+              <li>Dados do usuário Google são usados <strong>exclusivamente</strong> para criar, atualizar e cancelar eventos no Google Calendar do próprio usuário (escopo <code>calendar.events</code>).</li>
+              <li>Não usamos dados Google para anúncios, treinamento de modelos de IA, ou venda a terceiros.</li>
+              <li>Não permitimos que humanos leiam dados Google do usuário, exceto: (a) com permissão expressa, (b) por motivos de segurança/abuso, (c) para cumprir lei aplicável, ou (d) quando agregados/anônimos para operações internas.</li>
+              <li>OAuth tokens são armazenados cifrados em repouso (AES-256, chave em Supabase Vault) e nunca chegam ao navegador do usuário em texto puro.</li>
+              <li>Ao desconectar (Configurações → Integrações → Google Calendar → Desconectar), o refresh token é revogado via endpoint oficial do Google e a linha é removida do banco de dados Jurify.</li>
+            </ul>
+          </section>
         </div>
 
         <div className="mt-12 pt-8 border-t border-border flex items-center justify-between text-sm text-muted-foreground">

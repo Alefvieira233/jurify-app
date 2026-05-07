@@ -178,12 +178,11 @@ export const useGoogleCalendar = () => {
     }
 
     try {
-      const cryptoState = Array.from(
-        crypto.getRandomValues(new Uint8Array(32))
-      ).map(b => b.toString(16).padStart(2, '0')).join('');
-
-      localStorage.setItem('google_oauth_state', cryptoState);
-      const authUrl = await GoogleOAuthService.getAuthUrl(cryptoState);
+      // CSRF binding agora é server-side: edge function gera state crypto-random,
+      // persiste em oauth_pending_states com user_id binding, devolve authUrl
+      // já com state embutido. Single-use, expira em 10min. localStorage não é
+      // mais necessário (binding fica em DB).
+      const authUrl = await GoogleOAuthService.getAuthUrl();
       window.location.href = authUrl;
     } catch (error: unknown) {
       toast({
@@ -198,13 +197,11 @@ export const useGoogleCalendar = () => {
     if (!user?.id) return false;
 
     try {
-      const savedState = localStorage.getItem('google_oauth_state');
-      if (!savedState || state !== savedState) {
-        throw new Error('State invalido. Possivel ataque CSRF.');
-      }
-
-      await GoogleOAuthService.exchangeCodeForTokens(code);
+      // Server faz binding check (single-use, vinculado ao user_id na DB).
+      // Cleanup do localStorage legado caso ainda exista.
       localStorage.removeItem('google_oauth_state');
+
+      await GoogleOAuthService.exchangeCodeForTokens(code, state);
 
       // Default to the user's primary calendar. The edge function uses the
       // calendar.events scope which doesn't grant calendarList.read — listing

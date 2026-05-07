@@ -198,13 +198,20 @@ const OnboardingWizard = () => {
     navigate('/');
   }, [markComplete, navigate]);
 
+  // Bug crítico (auditoria 2026-05-07): clicar em "Conectar WhatsApp" ou
+  // "Personalizar agentes" marcava o wizard COMO COMPLETO prematuramente,
+  // resultando em 0% de tenants com onboarding completo de fato (usuário
+  // pulava plano/equipe/escritório). Fix: NavigateAway apenas dismissa
+  // temporariamente; o resume_step persistido em profiles permite retomar
+  // do mesmo passo na próxima sessão.
   const handleNavigateAway = useCallback(
     (path: string) => {
       setDismissed(true);
-      markComplete();
+      // Persiste o step atual sem marcar complete — pra retomar depois.
+      void persistStep(step);
       navigate(path);
     },
-    [markComplete, navigate],
+    [persistStep, step, navigate],
   );
 
   if (isLoading || !shouldShow?.show || dismissed) return null;

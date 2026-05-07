@@ -308,6 +308,7 @@ export async function processNormalizedMessage(
 
     let leadId = lead?.id || null;
     const currentLeadStatus: string = lead?.status || 'novo';
+    const isFirstContact = !leadId;
 
     if (!leadId) {
       const { data: newLead, error: leadError } = await supabase
@@ -394,6 +395,26 @@ export async function processNormalizedMessage(
       }
       conversationId = newConv.id;
       console.log(`[processMsg:${provider}] Created new conversation: ${conversationId}`);
+    }
+
+    // --- LGPD CONSENT LOG (Lei 13.709/2018, art. 7º/8º/37) ---
+    // Registra consentimento implícito do titular dos dados na primeira interação
+    // via WhatsApp. Imutável — auditável pela ANPD.
+    if (isFirstContact && leadId && conversationId) {
+      void supabase.from("lgpd_consent_log").insert({
+        tenant_id: tenantId,
+        lead_id: leadId,
+        conversation_id: conversationId,
+        phone_number: from,
+        consent_channel: "whatsapp",
+        consent_type: "implicit_first_contact",
+        consent_version: "v1.0",
+        consent_text: "Iniciou conversa via WhatsApp. Consentimento implícito conforme LGPD art. 7º, IX (legítimo interesse / atendimento ao titular).",
+        policy_url: "https://jurify.app/privacidade",
+        metadata: { source_instance: instanceName ?? null, provider, first_message: text.substring(0, 200) },
+      }).then(({ error }) => {
+        if (error) console.warn(`[processMsg:${provider}] LGPD consent log insert error:`, error.message);
+      });
     }
 
     // --- SAVE MESSAGE (inbound = already delivered) ---

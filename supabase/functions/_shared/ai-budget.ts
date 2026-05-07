@@ -30,7 +30,17 @@ type SupabaseClient = ReturnType<typeof createClient>;
 // ---------------------------------------------------------------------------
 const PLAN_TOKEN_LIMITS: Record<string, number> = {
   free: 100_000,
+  trial: 500_000,
   pro: 5_000_000,
+  enterprise: Number.POSITIVE_INFINITY,
+};
+
+// Daily budget defaults por status. Trial 50k/dia + 500k/mês conforme
+// auditoria 2026-05-07 §12 Sprint 2 item 7.
+const PLAN_DAILY_LIMITS: Record<string, number> = {
+  free: 10_000,
+  trial: 50_000,
+  pro: 250_000,
   enterprise: Number.POSITIVE_INFINITY,
 };
 
@@ -76,11 +86,17 @@ async function resolvePlanTier(supabase: SupabaseClient, tenantId: string): Prom
   try {
     const { data: sub } = await supabase
       .from("subscriptions")
-      .select("plan_id")
+      .select("plan_id, status")
       .eq("tenant_id", tenantId)
-      .eq("status", "active")
+      .in("status", ["active", "trialing"])
+      .order("created_at", { ascending: false })
+      .limit(1)
       .maybeSingle();
-    const planId = (sub as { plan_id?: string } | null)?.plan_id;
+    const subRow = sub as { plan_id?: string; status?: string } | null;
+    if (!subRow) return DEFAULT_PLAN;
+    // Trial sempre usa pacote 'trial' (limites próprios) independente do plan_id.
+    if (subRow.status === "trialing") return "trial";
+    const planId = subRow.plan_id;
     if (planId && PLAN_TOKEN_LIMITS[planId] !== undefined) return planId;
     return DEFAULT_PLAN;
   } catch {
@@ -140,9 +156,13 @@ export async function checkBudgetBeforeCall(
 }
 
 async function runChecks(supabase: SupabaseClient, tenantId: string): Promise<BudgetDecision> {
-  // --- DAILY CHECK (existing ai_usage.budget_limit behaviour) ---
+  // Resolve plan first — daily defaults dependem do plan/status.
+  const plan = await resolvePlanTier(supabase, tenantId);
+  const planDailyDefault = PLAN_DAILY_LIMITS[plan] ?? PLAN_DAILY_LIMITS.free!;
+
+  // --- DAILY CHECK (ai_usage.budget_limit override OU default por plano) ---
   let tokens_used_day = 0;
-  let budget_limit_day = 100_000;
+  let budget_limit_day = planDailyDefault;
   try {
     const { data, error } = await supabase
       .from("ai_usage")
@@ -154,12 +174,16 @@ async function runChecks(supabase: SupabaseClient, tenantId: string): Promise<Bu
       console.error("[ai-budget] Daily check failed — failing open:", error.message);
     } else if (data) {
       tokens_used_day = (data as { tokens_used?: number }).tokens_used ?? 0;
-      budget_limit_day = (data as { budget_limit?: number }).budget_limit ?? 100_000;
-      if (tokens_used_day >= budget_limit_day) {
+      // Override só vale se for explícito (>0); senão respeita default por plano.
+      const explicitLimit = (data as { budget_limit?: number }).budget_limit;
+      if (typeof explicitLimit === "number" && explicitLimit > 0) {
+        budget_limit_day = explicitLimit;
+      }
+      if (budget_limit_day !== Number.POSITIVE_INFINITY && tokens_used_day >= budget_limit_day) {
         return {
           allowed: false,
           scope: "daily",
-          reason: `Limite diário excedido (${tokens_used_day.toLocaleString()}/${budget_limit_day.toLocaleString()} tokens)`,
+          reason: `Limite diário do plano ${plan} excedido (${tokens_used_day.toLocaleString()}/${budget_limit_day.toLocaleString()} tokens)`,
           tokens_used_day,
           budget_limit_day,
         };
@@ -170,7 +194,6 @@ async function runChecks(supabase: SupabaseClient, tenantId: string): Promise<Bu
   }
 
   // --- MONTHLY CHECK (SUM tokens_total from ai_usage over current month) ---
-  const plan = await resolvePlanTier(supabase, tenantId);
   const budget_limit_month = PLAN_TOKEN_LIMITS[plan] ?? PLAN_TOKEN_LIMITS.free!;
 
   if (budget_limit_month !== Number.POSITIVE_INFINITY) {

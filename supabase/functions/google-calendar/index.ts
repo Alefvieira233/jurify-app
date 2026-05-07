@@ -264,15 +264,25 @@ Deno.serve(async (req) => {
               { status: 503, headers: { ...corsHeaders, "Content-Type": "application/json" } }
             );
           }
-          const { redirectUri, state } = data as { redirectUri: string; state?: string };
-          // CSRF protection: client SHOULD provide a crypto-random state, store it
-          // locally, and validate it matches on callback. If client doesn't send one
-          // (legacy front), server generates a fallback so the flow still works.
-          // Stronger CSRF requires client-side state — front should be updated.
-          let effectiveState = state;
-          if (!effectiveState || typeof effectiveState !== "string" || effectiveState.length < 16) {
-            effectiveState = crypto.randomUUID() + crypto.randomUUID().replace(/-/g, "");
+          const { redirectUri } = data as { redirectUri: string };
+          // CSRF binding correto (2026-05-07): state crypto-random é gerado server-side
+          // e persistido em oauth_pending_states com user_id binding. exchangeCode
+          // consome (single-use) e valida user_id == auth.uid().
+          const { data: stateResult, error: stateErr } = await supabase.rpc("create_oauth_pending_state", {
+            _user_id: user.id,
+            _provider: "google",
+            _redirect_uri: redirectUri,
+            _scope: OAUTH_SCOPES,
+            _metadata: { source: "google-calendar-edge-function" },
+            _ttl_seconds: 600,
+          });
+          if (stateErr || !stateResult) {
+            return new Response(
+              JSON.stringify({ error: `Failed to create OAuth state binding: ${stateErr?.message ?? "unknown"}` }),
+              { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+            );
           }
+          const effectiveState = stateResult as string;
           const params = new URLSearchParams({
             client_id: clientId,
             redirect_uri: redirectUri,
@@ -294,7 +304,40 @@ Deno.serve(async (req) => {
               { status: 503, headers: { ...corsHeaders, "Content-Type": "application/json" } }
             );
           }
-          const { code, redirectUri } = data as { code: string; redirectUri: string };
+          const { code, redirectUri, state } = data as { code: string; redirectUri: string; state?: string };
+
+          // CSRF binding check (2026-05-07): exige state crypto-random emitido
+          // pelo initiateAuth. Single-use, vincula ao user_id e ao redirect_uri.
+          if (!state || typeof state !== "string") {
+            return new Response(
+              JSON.stringify({ error: "Missing OAuth state — possible CSRF attempt" }),
+              { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+            );
+          }
+          const { data: stateRows, error: stateErr } = await supabase.rpc("consume_oauth_pending_state", {
+            _state: state,
+            _provider: "google",
+          });
+          const stateRow = (stateRows as Array<{ user_id: string | null; redirect_uri: string | null; valid: boolean; reason: string | null }> | null)?.[0];
+          if (stateErr || !stateRow || !stateRow.valid) {
+            return new Response(
+              JSON.stringify({ error: `OAuth state invalid: ${stateRow?.reason ?? stateErr?.message ?? "unknown"}` }),
+              { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+            );
+          }
+          if (stateRow.user_id !== user.id) {
+            return new Response(
+              JSON.stringify({ error: "OAuth state user mismatch — possible CSRF/account fixation attempt" }),
+              { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+            );
+          }
+          if (stateRow.redirect_uri !== redirectUri) {
+            return new Response(
+              JSON.stringify({ error: "OAuth redirect_uri mismatch" }),
+              { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+            );
+          }
+
           const tokenRes = await fetch("https://oauth2.googleapis.com/token", {
             method: "POST",
             headers: { "Content-Type": "application/x-www-form-urlencoded" },

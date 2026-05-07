@@ -1,4 +1,5 @@
 import React from 'react';
+import { Link } from 'react-router-dom';
 import { type UseFormReturn } from 'react-hook-form';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -142,6 +143,19 @@ const LoginForm: React.FC<LoginFormProps> = ({
           <ArrowRight className="h-4 w-4 group-hover:translate-x-1 transition-transform" />
         </span>
       </button>
+
+      {/* Legal footer (LGPD/OAB compliance) */}
+      <p className="text-center text-xs text-[hsl(var(--muted-foreground))] mt-6">
+        Ao acessar, você aceita os{' '}
+        <Link to="/termos" target="_blank" className="underline hover:text-[hsl(var(--accent))] transition-colors">
+          Termos de Uso
+        </Link>{' '}
+        e a{' '}
+        <Link to="/privacidade" target="_blank" className="underline hover:text-[hsl(var(--accent))] transition-colors">
+          Política de Privacidade
+        </Link>
+        .
+      </p>
     </>
   );
 };
