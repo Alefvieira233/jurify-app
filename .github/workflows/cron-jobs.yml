@@ -25,6 +25,8 @@ on:
     - cron: '0 */6 * * *'
     # expire-trials: daily 03:30 UTC (00:30 BRT) — marca trials expirados como past_due
     - cron: '30 3 * * *'
+    # notify-expiring-trials: daily 13:00 UTC (10:00 BRT) — email D-3 e D-1 antes do trial expirar
+    - cron: '0 13 * * *'
   workflow_dispatch:
     inputs:
       job:
@@ -39,6 +41,7 @@ on:
           - cleanup-agent-memory
           - tribunal-sync
           - expire-trials
+          - notify-expiring-trials
 
 env:
   SUPABASE_URL: https://yfxgncbopvnsltjqetxw.supabase.co
@@ -159,3 +162,19 @@ jobs:
             | tee /tmp/response.json
           echo ""
           echo "expired_count: $(cat /tmp/response.json)"
+
+  notify-expiring-trials:
+    name: Notify Expiring Trials (D-3 e D-1)
+    if: github.event.schedule == '0 13 * * *' || github.event.inputs.job == 'notify-expiring-trials'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Invoke edge function notify-expiring-trials
+        run: |
+          curl -fsS --max-time 120 -X POST \
+            "${SUPABASE_URL}/functions/v1/notify-expiring-trials" \
+            -H "Authorization: Bearer ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}" \
+            -H "Content-Type: application/json" \
+            -d '{}' \
+            | tee /tmp/response.json
+          echo ""

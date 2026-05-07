@@ -11,6 +11,7 @@ import { validatePasswordStrength } from '@/components/ui/password-strength';
 import { useBiometrics } from '@/hooks/useBiometrics';
 import { toUserMessage } from '@/lib/errorMessages';
 import { createLogger } from '@/lib/logger';
+import { supabase } from '@/integrations/supabase/client';
 
 const log = createLogger('Auth');
 import { Form } from '@/components/ui/form';
@@ -123,6 +124,12 @@ const Auth = () => {
           title: "Conta criada!",
           description: "Redirecionando...",
         });
+        // Welcome email — fire-and-forget. Postmark via edge function send-email.
+        // Falha silenciosa: se POSTMARK_SERVER_TOKEN não estiver configurado,
+        // edge function retorna 503 e seguimos com o redirect normalmente.
+        void supabase.functions.invoke('send-email', {
+          body: { to: data.email, template: 'welcome', data: { name: data.nomeCompleto } },
+        }).catch((err) => log.warn('welcome email failed', { error: String(err) }));
         // autoconfirm is ON — user is already logged in, redirect
         navigate('/');
       } else {

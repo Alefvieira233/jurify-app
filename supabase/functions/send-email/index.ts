@@ -43,7 +43,8 @@ type EmailTemplate =
   | "payment-failed"
   | "agent-alert"
   | "charge-refunded"
-  | "team-invitation";
+  | "team-invitation"
+  | "trial-expiring";
 
 interface TemplateData {
   name?: string;
@@ -61,6 +62,9 @@ interface TemplateData {
   inviter_name?: string;
   firm_name?: string;
   role_label?: string;
+  // trial-expiring
+  days_left?: number;
+  trial_end_date?: string;
 }
 
 function buildEmailContent(
@@ -228,6 +232,43 @@ function buildEmailContent(
   <p style="color:#6b7280;font-size:13px;text-align:center">Este convite expira em 14 dias.</p>
 </div>`,
         textBody: `${data.inviter_name ?? "Um administrador"} convidou voce para ${data.firm_name ?? "Jurify"} como ${data.role_label ?? "membro"}.\n\nAceitar: ${data.invite_url ?? "https://jurify-app.vercel.app"}`,
+      };
+
+    case "trial-expiring":
+      return {
+        subject: data.days_left === 1
+          ? "Seu trial Jurify termina amanhã ⏰"
+          : `Seu trial Jurify termina em ${data.days_left ?? "alguns"} dias`,
+        htmlBody: `
+<div style="font-family:Inter,Arial,sans-serif;max-width:600px;margin:0 auto;padding:40px 20px;color:#111827">
+  <div style="text-align:center;margin-bottom:32px">
+    <h1 style="color:#1e3a8a;font-size:28px;margin:0">Jurify</h1>
+  </div>
+  <div style="background:#fef9e7;border-left:4px solid #f59e0b;padding:16px;border-radius:4px;margin-bottom:24px">
+    <p style="margin:0;font-weight:600;color:#92400e">⏰ Seu período de avaliação está terminando</p>
+  </div>
+  <h2 style="font-size:22px;margin-bottom:8px">Olá, ${escapeHtml(data.name ?? "Advogado(a)")}!</h2>
+  <p style="color:#374151;line-height:1.6">${data.days_left === 1
+    ? "Seu trial Jurify termina <strong>amanhã</strong>. Pra continuar usando todos os recursos sem interrupção, escolha um plano e ative sua assinatura agora."
+    : `Seu trial Jurify termina em <strong>${escapeHtml(String(data.days_left ?? ""))} dias</strong> (${escapeHtml(data.trial_end_date ?? "")}). Pra continuar usando todos os recursos sem interrupção, escolha um plano e ative sua assinatura.`}</p>
+  <div style="background:#f0f4ff;border-left:4px solid #1e3a8a;padding:16px;margin:24px 0;border-radius:4px">
+    <p style="margin:0;font-weight:600;color:#1e3a8a">O que acontece se o trial expirar:</p>
+    <ul style="margin:8px 0 0;color:#374151;padding-left:20px">
+      <li>Você mantém acesso ao histórico (read-only)</li>
+      <li>Recebimento de mensagens WhatsApp continua funcionando</li>
+      <li>Envio de respostas, criação de agendamentos e IA são pausados</li>
+    </ul>
+  </div>
+  <div style="text-align:center;margin:32px 0">
+    <a href="https://jurify-app.vercel.app/configuracoes/plano" style="background:#1e3a8a;color:white;padding:14px 32px;border-radius:8px;text-decoration:none;font-weight:600;font-size:16px">
+      Ativar Assinatura
+    </a>
+  </div>
+  <p style="color:#6b7280;font-size:13px;text-align:center">Dúvidas? Responda este email.</p>
+</div>`,
+        textBody: data.days_left === 1
+          ? `Seu trial Jurify termina amanhã. Ative sua assinatura: https://jurify-app.vercel.app/configuracoes/plano`
+          : `Seu trial Jurify termina em ${data.days_left ?? "alguns"} dias (${data.trial_end_date ?? ""}). Ative sua assinatura: https://jurify-app.vercel.app/configuracoes/plano`,
       };
 
     case "charge-refunded":
