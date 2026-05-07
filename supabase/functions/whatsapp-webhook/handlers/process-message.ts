@@ -140,46 +140,24 @@ export async function processNormalizedMessage(
       }
     }
 
-    // 1c. FALLBACK: Match by connected conexao_whatsapp with matching phone
-    if (!tenantId && from) {
-      const cleanFrom = from.replace(/\D/g, "");
-      const { data: connMatch } = await supabase
-        .from("conexoes_whatsapp")
-        .select("tenant_id")
-        .eq("status", "connected")
-        .or(`telefone.eq.${cleanFrom},telefone.eq.+${cleanFrom}`)
-        .limit(1)
-        .maybeSingle();
-
-      if (connMatch?.tenant_id) {
-        tenantId = connMatch.tenant_id;
-        resolvedVia = "conexoes_whatsapp.telefone";
-        console.warn(`[processMsg:${provider}] Tenant resolved via fallback method 1c (telefone match) — less reliable for multi-tenant`);
-      }
-    }
+    // 1c. REMOVED 2026-05-07 (P0 SECURITY FIX) — cross-tenant leakage.
+    // Matching `from` (lead phone) against `conexoes_whatsapp.telefone` (tenant phone)
+    // was semantically incorrect; também pegava tenant errado quando dois tenants
+    // tinham números próximos durante migrações. Resolução agora é estrita:
+    // PRIMARY (phone_number_id em observacoes) ou 1b (instance_name).
 
     // NOTE: Method 2 (single-config-shortcut) was REMOVED — it's dangerous for multi-tenant
     // because it assigns messages to a tenant based on being the only config, not on actual match.
 
-    // 3. LAST RESORT: Resolve by existing conversation (phone number match)
-    if (!tenantId) {
-      const { data: existingConv } = await supabase
-        .from("whatsapp_conversations")
-        .select("tenant_id")
-        .eq("phone_number", from)
-        .order("last_message_at", { ascending: false })
-        .limit(1)
-        .maybeSingle();
-
-      if (existingConv) {
-        tenantId = existingConv.tenant_id;
-        resolvedVia = "whatsapp_conversations.phone_number";
-        console.warn(`[processMsg:${provider}] Tenant resolved via last-resort method 3 (existing conversation) — primary resolution methods failed`);
-      }
-    }
+    // 3. REMOVED 2026-05-07 (P0 SECURITY FIX) — cross-tenant leakage.
+    // Last-resort match em `whatsapp_conversations.phone_number` roteava mensagens
+    // pro tenant que falou por último com o lead. O mesmo telefone pode existir
+    // legitimamente em vários tenants (B2B leads, advogados-clientes), então
+    // contexto/histórico/IA de tenant A vazavam pro tenant B. Sem fallback frouxo.
 
     if (!tenantId) {
-      console.error(`[processMsg:${provider}] TENANT RESOLUTION FAILED | from=${from} | instance=${instanceName} | type=${messageType} | text="${text.substring(0, 80)}"`);
+      // P0 SECURITY: strict tenant resolution failed. Sem fallback por telefone do lead.
+      console.error(`[processMsg:${provider}] TENANT_RESOLUTION_FAILED_STRICT | from=${from} | instance=${instanceName} | type=${messageType} | text="${text.substring(0, 80)}"`);
       // Persist failed resolution for diagnostics
       void supabase.from("webhook_events").insert({
         event_id: `unresolved_${Date.now()}_${from}`,
@@ -1344,28 +1322,49 @@ export async function processNormalizedMessage(
             const when = formatScheduleForLead(parsed.dateTimeUTC);
             aiText = `Infelizmente ${responsavelNome} já tem compromisso em ${when}.${suggestionText || " Pode me indicar outro horário?"}`;
           } else {
-            const insertPayload: Record<string, unknown> = {
-              lead_id: leadId,
-              tenant_id: tenantId,
-              area_juridica: lead?.area_juridica ?? "Não especificada",
-              data_hora: parsed.dateTimeUTC.toISOString(),
-              responsavel: responsavelNome,
-              status: "agendado",
-              observacoes: `Agendado automaticamente via WhatsApp a partir da mensagem do lead: "${parsed.matched}".`,
-            };
-            if (resolvedResponsavelId) {
-              insertPayload.responsavel_id = resolvedResponsavelId;
-            }
+            // P0 RACE FIX (2026-05-07): usa RPC com pg_try_advisory_xact_lock pra
+            // serializar check+insert por (tenant_id, lead_id). Webhooks concorrentes
+            // do mesmo lead não criam duplicate booking nem duplicate Calendar event.
+            const areaJuridica = lead?.area_juridica ?? "Não especificada";
+            const observacoesText = `Agendado automaticamente via WhatsApp a partir da mensagem do lead: "${parsed.matched}".`;
 
-            const { data: insertedAgend, error: agendError } = await supabase
-              .from("agendamentos")
-              .insert(insertPayload)
-              .select("id")
-              .maybeSingle();
+            const { data: rpcRows, error: rpcErr } = await (supabase as unknown as {
+              rpc: (fn: string, args: Record<string, unknown>) => Promise<{
+                data: Array<{ acquired: boolean; agendamento_id: string | null; conflict_reason: string | null }> | null;
+                error: { message: string } | null;
+              }>;
+            }).rpc("try_acquire_schedule_slot", {
+              _tenant_id: tenantId,
+              _lead_id: leadId,
+              _data_hora: parsed.dateTimeUTC.toISOString(),
+              _slot_minutes: 60,
+              _responsavel_id: resolvedResponsavelId ?? null,
+              _responsavel_nome: responsavelNome,
+              _area_juridica: areaJuridica,
+              _observacoes: observacoesText,
+            });
 
-            if (!agendError) {
+            const rpcRow = rpcRows && rpcRows.length > 0 ? rpcRows[0] : null;
+            const acquired = rpcRow?.acquired === true;
+            const conflictReason = rpcRow?.conflict_reason ?? null;
+            const newAgendamentoId = rpcRow?.agendamento_id ?? null;
+            const agendError = rpcErr;
+
+            console.log(`[processMsg:${provider}] schedule_lock leadId=${leadId} acquired=${acquired} reason=${conflictReason ?? 'ok'}`);
+
+            if (!acquired && !rpcErr) {
+              // Race detectada ou idempotência: lead já tem agendamento ou outro fluxo está processando.
               const when = formatScheduleForLead(parsed.dateTimeUTC);
-              const newAgendamentoId = (insertedAgend as { id?: string } | null)?.id ?? null;
+              if (conflictReason === 'lead_already_scheduled') {
+                aiText = `Você já tem um agendamento ativo conosco. Caso queira remarcar, é só me avisar.`;
+              } else if (conflictReason === 'responsavel_conflict') {
+                aiText = `Infelizmente ${responsavelNome} já tem compromisso em ${when}. Pode me indicar outro horário?`;
+              } else {
+                // lock_busy
+                aiText = `Estou processando seu pedido anterior, só um instante…`;
+              }
+            } else if (!agendError && acquired) {
+              const when = formatScheduleForLead(parsed.dateTimeUTC);
 
               // Cria evento no Google Calendar SINCRONICAMENTE (em vez de fire-and-forget)
               // pra capturar o link Meet e enviar pro lead na mesma mensagem.
@@ -1400,7 +1399,7 @@ export async function processNormalizedMessage(
                           attendeeEmails,
                           eventData: {
                             summary: `Reunião com ${name}`,
-                            description: `Agendamento via WhatsApp.\nLead: ${name} (${from})\nÁrea: ${insertPayload.area_juridica}\nObs: ${insertPayload.observacoes}`,
+                            description: `Agendamento via WhatsApp.\nLead: ${name} (${from})\nÁrea: ${areaJuridica}\nObs: ${observacoesText}`,
                             start: { dateTime: parsed.dateTimeUTC.toISOString(), timeZone: "America/Sao_Paulo" },
                             end: { dateTime: eventEnd, timeZone: "America/Sao_Paulo" },
                           },
@@ -1446,8 +1445,8 @@ export async function processNormalizedMessage(
                 mensagem: `Lead "${name}" (${from}) solicitou e agendou reunião em ${when} com ${responsavelNome}.${meetLink ? " Meet: " + meetLink : ""}`,
                 ativo: true,
               }).then(({ error }) => { if (error) console.error("[webhook] schedule notification error:", error.message); });
-            } else {
-              console.error(`[processMsg:${provider}] Agendamento insert failed:`, agendError.message);
+            } else if (agendError) {
+              console.error(`[processMsg:${provider}] try_acquire_schedule_slot RPC failed:`, agendError.message);
               aiText = `Tive um problema técnico ao registrar seu agendamento. Nossa equipe já foi notificada e entrará em contato em breve.`;
             }
           }
