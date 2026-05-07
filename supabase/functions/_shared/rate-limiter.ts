@@ -153,7 +153,8 @@ async function checkRateLimitMemory(
 
 async function checkRateLimitSupabase(
   config: RateLimitConfig,
-  supabase: ReturnType<typeof createClient>
+  supabase: ReturnType<typeof createClient>,
+  denyOnDbFailure = false,
 ): Promise<RateLimitResult> {
   const now = new Date();
 
@@ -180,6 +181,19 @@ async function checkRateLimitSupabase(
       limit: data.limit as number,
     };
   } catch (error) {
+    if (denyOnDbFailure) {
+      // FAIL-CLOSED: usado em endpoints onde o custo de um flood (OpenAI, etc.)
+      // é maior que o custo de bloquear tráfego durante outage do Supabase.
+      console.warn("⚠️ Rate limit DB check failed — fail-closed (deny):", error);
+      return {
+        allowed: false,
+        remaining: 0,
+        resetInSeconds: config.windowSeconds,
+        resetAt: new Date(Date.now() + config.windowSeconds * 1000),
+        current: config.maxRequests,
+        limit: config.maxRequests,
+      };
+    }
     // FALLBACK TRADEOFF: In-memory state is lost on cold starts, so we halve
     // the allowed requests to be more conservative when the DB is unavailable.
     // This means legitimate users may hit limits sooner, but it protects
@@ -205,7 +219,8 @@ async function checkRateLimitSupabase(
  */
 export async function checkRateLimit(
   config: RateLimitConfig,
-  supabase?: ReturnType<typeof createClient>
+  supabase?: ReturnType<typeof createClient>,
+  options?: { denyOnDbFailure?: boolean }
 ): Promise<RateLimitResult> {
   // Validação de config
   if (!config.identifier) {
@@ -222,7 +237,7 @@ export async function checkRateLimit(
 
   // Se tem Supabase, usa tabela; senão usa memória
   if (supabase) {
-    return checkRateLimitSupabase(config, supabase);
+    return checkRateLimitSupabase(config, supabase, options?.denyOnDbFailure ?? false);
   } else {
     return checkRateLimitMemory(config);
   }
@@ -324,6 +339,12 @@ export async function applyRateLimit(
     /** Escopa o bucket ao tenant (recomendado em endpoints multi-tenant). */
     tenantId?: string;
     corsHeaders?: Record<string, string>;
+    /**
+     * Quando true, durante outage do DB o rate limiter retorna deny (fail-closed)
+     * em vez de cair pro fallback in-memory halved. Recomendado em endpoints
+     * críticos (webhook, AI calls) onde o custo de um flood > custo de outage.
+     */
+    denyOnDbFailure?: boolean;
   }
 ): Promise<
   | { allowed: true; result: RateLimitResult }
@@ -336,7 +357,8 @@ export async function applyRateLimit(
       ...config,
       identifier,
     },
-    options?.supabase
+    options?.supabase,
+    { denyOnDbFailure: options?.denyOnDbFailure }
   );
 
   if (!result.allowed) {

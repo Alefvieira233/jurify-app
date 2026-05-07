@@ -4,7 +4,7 @@ import { DEFAULT_OPENAI_MODEL } from "../../_shared/ai-model.ts";
 import { callOpenAI, BudgetExceededError } from "../../_shared/ai-caller.ts";
 import { AGENT_TOOLS, type AgentToolName } from "../../_shared/agent-tools.ts";
 import { executeAgentTool, buildToolContext } from "../../_shared/agent-tools-executor.ts";
-import { sanitizeInput } from "../../_shared/security.ts";
+import { sanitizeInput, redactPII } from "../../_shared/security.ts";
 import type { NormalizedMessage } from "../../_shared/whatsapp-logic.ts";
 import { callEdgeFunction, escapeLike } from "./edge-function-client.ts";
 import { analyzeQualification } from "./qualification.ts";
@@ -157,7 +157,7 @@ export async function processNormalizedMessage(
 
     if (!tenantId) {
       // P0 SECURITY: strict tenant resolution failed. Sem fallback por telefone do lead.
-      console.error(`[processMsg:${provider}] TENANT_RESOLUTION_FAILED_STRICT | from=${from} | instance=${instanceName} | type=${messageType} | text="${text.substring(0, 80)}"`);
+      console.error(`[processMsg:${provider}] TENANT_RESOLUTION_FAILED_STRICT | from=${from} | instance=${instanceName} | type=${messageType} | text="${redactPII(text.substring(0, 80))}"`);
       // Persist failed resolution for diagnostics
       void supabase.from("webhook_events").insert({
         event_id: `unresolved_${Date.now()}_${from}`,

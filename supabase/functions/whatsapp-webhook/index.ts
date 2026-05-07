@@ -12,6 +12,7 @@ import {
   verifyHmacSignature,
   type WebhookPayload,
 } from "../_shared/whatsapp-logic.ts";
+import { redactPII } from "../_shared/security.ts";
 import { escapeLike } from "./handlers/edge-function-client.ts";
 import { processNormalizedMessage } from "./handlers/process-message.ts";
 import { processStatusUpdate } from "./handlers/process-status-update.ts";
@@ -151,7 +152,10 @@ Deno.serve(async (req) => {
       const rateLimitCheck = await applyRateLimit(
         req,
         { maxRequests: 120, windowSeconds: 60, namespace: "whatsapp-webhook:global" },
-        { supabase, corsHeaders }
+        // denyOnDbFailure=true: webhook é endpoint crítico — durante outage
+        // do DB, melhor rejeitar flood do que cair no fallback in-memory
+        // halved (que em cold-start de Deno deixaria escapar bursts).
+        { supabase, corsHeaders, denyOnDbFailure: true }
       );
 
       if (!rateLimitCheck.allowed) {
@@ -233,7 +237,8 @@ Deno.serve(async (req) => {
             maxRequests: 60,
             windowSeconds: 60,
           },
-          supabase
+          supabase,
+          { denyOnDbFailure: true }
         );
         if (!tenantBucket.allowed) {
           console.warn(`[webhook] Rate limit exceeded (per-tenant) phone=${payloadPhoneId}`);
@@ -354,7 +359,7 @@ Deno.serve(async (req) => {
           }
           const normalized = normalizeKapsoMessage(payload, eventHeader);
           if (normalized) {
-            console.log(`[webhook:kapso] Processing message from ${normalized.from}: "${normalized.text.substring(0, 50)}"`);
+            console.log(`[webhook:kapso] Processing message from ${normalized.from}: "${redactPII(normalized.text.substring(0, 50))}"`);
             await processNormalizedMessage(supabase, normalized);
           } else {
             console.warn(`[webhook:kapso] Could not normalize message | keys: ${payloadKeys} | event: ${event}`);

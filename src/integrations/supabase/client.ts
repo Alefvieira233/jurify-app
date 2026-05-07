@@ -39,13 +39,10 @@ export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey, {
   },
 });
 
-/** @deprecated Use `supabase` directly — it is now fully typed. */
-export const supabaseTyped = supabase;
-
 /**
  * @deprecated Use `supabase` directly — types were regenerated and cover all tables.
- * This alias now points to the TYPED client. It exists only for backwards compatibility
- * and will be removed in a future cleanup pass.
+ * Mantido apenas pra back-compat com 56 arquivos legados (refactor incremental
+ * pendente). NÃO usar em código novo.
  */
 export const supabaseUntyped = supabase;
 
