@@ -131,7 +131,22 @@ export function normalizeKapsoMessage(
     const phoneNumber = (conv?.phone_number || "").replace(/\D/g, "");
     if (!phoneNumber) return null;
 
-    const contactName = conv?.kapso?.contact_name || "Unknown";
+    // Fallback chain robusto pra contact name (v2-real format).
+    // Antes: só `conv.kapso.contact_name` → causava "Unknown" em quase todos casos.
+    // Agora: cobre estruturas conhecidas do payload Kapso v2 + Meta padrão.
+    const contactName = (
+      conv?.kapso?.contact_name
+      || conv?.contact?.name
+      || conv?.contact?.profile?.name
+      || conv?.contact_name
+      || raw?.contact?.name
+      || raw?.contact?.profile?.name
+      || raw?.contacts?.[0]?.profile?.name
+      || raw?.contacts?.[0]?.name
+      || msg?.profile?.name
+      || msg?.from_name
+      || "Unknown"
+    ) as string;
     const msgType = (msg.type || "text") as string;
     let text = "";
     let mediaUrl: string | null = null;
