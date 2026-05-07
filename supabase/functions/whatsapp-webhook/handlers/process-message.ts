@@ -695,8 +695,36 @@ export async function processNormalizedMessage(
     let agentTemp: number;
     let agentMaxTokens: number;
 
+    // ── STATE-BASED HANDOFF: pula orchestrator se conversa tem handoff pendente ──
+    // Quando agente A diz "vou te conectar com Dra. Jacira", o webhook grava
+    // `pending_handoff_to='juridico_bancario'` no state. Próxima mensagem PULA
+    // o orchestrator (não-determinístico) e vai direto pro agente alvo.
+    let handoffOverride: string | null = null;
+    let handoffSetAt: string | null = null;
+    try {
+      const { data: handoffRow } = await supabase
+        .from("conversation_state")
+        .select("pending_handoff_to, pending_handoff_set_at")
+        .eq("conversation_id", conversationId)
+        .eq("tenant_id", tenantId)
+        .maybeSingle();
+      if (handoffRow?.pending_handoff_to) {
+        // Expira após 30min pra evitar handoff stale (lead voltando dias depois)
+        const setAt = (handoffRow as { pending_handoff_set_at?: string }).pending_handoff_set_at;
+        if (setAt && Date.now() - new Date(setAt).getTime() < 30 * 60 * 1000) {
+          handoffOverride = (handoffRow as { pending_handoff_to: string }).pending_handoff_to;
+          handoffSetAt = setAt;
+        }
+      }
+    } catch (handoffErr) {
+      console.warn(`[processMsg:${provider}] handoff state read failed:`, handoffErr instanceof Error ? handoffErr.message : String(handoffErr));
+    }
+
     if (commandKey) {
       agentType = COMMANDS[commandKey]!.agent;
+    } else if (handoffOverride) {
+      agentType = handoffOverride;
+      console.log(`[processMsg:${provider}] HANDOFF override → ${agentType} (set_at=${handoffSetAt})`);
     } else {
       try {
         const routing = await callEdgeFunction<{
@@ -1013,9 +1041,7 @@ export async function processNormalizedMessage(
 
       console.log(`[processMsg:${provider}] ${agentName} responded: "${resultText.substring(0, 80)}..."`);
 
-      // ── ONDA 17: Update conversation phase based on this turn ──
-      // Heurística simples — agente dedicated phase classifier seria melhor mas mais caro.
-      // Promove fase em ordem (não regredimos) com base em sinais do turno.
+      // ── ONDA 17: Update conversation phase + state-based handoff ──
       try {
         let nextPhase = conversationPhase;
         const ctxPatch: Record<string, unknown> = {
@@ -1024,19 +1050,15 @@ export async function processNormalizedMessage(
         };
 
         if (conversationPhase === "greeting") {
-          // Primeiro turno → vai pra qualifying
           nextPhase = "qualifying";
         } else if (conversationPhase === "qualifying" && hasActionIntent) {
-          // Lead pediu agendamento → entra em scheduling
           nextPhase = "scheduling";
         } else if (conversationPhase === "scheduling") {
-          // Se a IA confirmou reunião neste turno, promove a confirmed
           if (/reuni[ãa]o (agendada|marcada|confirmada)|agendamento confirmado/i.test(resultText)) {
             nextPhase = "confirmed";
           }
         }
 
-        // Captura nome se foi mencionado e ainda não tá no contexto
         if (!accumulatedContext.lead_name && name && name !== "Unknown") {
           ctxPatch.lead_name = name;
         }
@@ -1044,16 +1066,47 @@ export async function processNormalizedMessage(
           ctxPatch.area_juridica = lead.area_juridica;
         }
 
-        if (nextPhase !== conversationPhase || Object.keys(ctxPatch).length > 0) {
+        // ── HANDOFF DETECTION: detecta no texto da resposta se agente fez handoff verbal ──
+        // Ex: "Vou te conectar com a Dra. Jacira", "te passo pro Dr. Gabriel", "Marcos vai te ajudar"
+        // Mapeia pro tipo do agente alvo e grava em pending_handoff_to.
+        let detectedHandoff: string | null = null;
+        const lowerResp = resultText.toLowerCase();
+        if (/(?:conectar|passar|encaminhar|transferir)\s+(?:com|para|pro|pra)?\s*(?:a\s+|o\s+)?(?:dra?\.?\s+)?jacira|jacira\s+(?:vai|vou|te\s+atend|te\s+ajud)/i.test(resultText)) {
+          detectedHandoff = "juridico_bancario";
+        } else if (/(?:conectar|passar|encaminhar|transferir)\s+(?:com|para|pro|pra)?\s*(?:o\s+|a\s+)?(?:dr\.?\s+)?gabriel|gabriel\s+(?:vai|vou|te\s+atend|te\s+ajud)/i.test(resultText)) {
+          detectedHandoff = "juridico";
+        } else if (/(?:conectar|passar|encaminhar|transferir)\s+(?:com|para|pro|pra)?\s*(?:o\s+)?marcos|marcos\s+(?:vai|vou|te\s+atend|te\s+ajud)/i.test(resultText)) {
+          detectedHandoff = "comercial";
+        }
+
+        // Se este turno usou handoff override, limpa o flag (one-shot consumido)
+        const clearHandoff = !!handoffOverride;
+        // Se detectou novo handoff, sobrescreve (mais recente vence)
+        const setHandoff = detectedHandoff;
+
+        if (
+          nextPhase !== conversationPhase ||
+          Object.keys(ctxPatch).length > 0 ||
+          setHandoff !== null ||
+          clearHandoff
+        ) {
           await supabase.rpc("update_conversation_phase", {
             _conversation_id: conversationId,
             _tenant_id: tenantId,
             _new_phase: nextPhase,
             _agent_type: agentType,
             _context_patch: ctxPatch,
+            _pending_handoff_to: setHandoff,
+            _clear_pending_handoff: clearHandoff && setHandoff === null,
           });
           if (nextPhase !== conversationPhase) {
             console.log(`[processMsg:${provider}] phase ${conversationPhase} → ${nextPhase}`);
+          }
+          if (setHandoff) {
+            console.log(`[processMsg:${provider}] HANDOFF detected → next msg routes to ${setHandoff}`);
+          }
+          if (clearHandoff && !setHandoff) {
+            console.log(`[processMsg:${provider}] handoff override consumed (cleared)`);
           }
         }
       } catch (phaseErr) {
