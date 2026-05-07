@@ -97,7 +97,7 @@ export async function processNormalizedMessage(
   msg: NormalizedMessage,
 ) {
   try {
-    const { from, name, text, messageType, mediaUrl, instanceName, provider } = msg;
+    const { from, name, text, messageType, mediaUrl, instanceName, provider, messageId } = msg;
 
     console.log(`[processMsg:${provider}] START from=${from} instance=${instanceName} type=${messageType}`);
 
@@ -428,6 +428,7 @@ export async function processNormalizedMessage(
       timestamp: new Date().toISOString(),
       send_status: "delivered",
       processed_by_agent: false,
+      message_id: messageId,
       // Legacy columns (kept for backward compatibility)
       session_id: conversationId,
       direction: "inbound",

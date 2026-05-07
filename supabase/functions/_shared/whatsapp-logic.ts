@@ -75,6 +75,9 @@ export interface NormalizedMessage {
   mediaUrl: string | null;
   instanceName: string | null;
   provider: "kapso" | "meta";
+  /** wamid.* do Meta. Persistido em whatsapp_messages.message_id pra
+   *  permitir status updates (delivered/read/failed) e idempotência. */
+  messageId: string | null;
 }
 
 // ─────────────────────────────────────────────────────────────────
@@ -194,6 +197,7 @@ export function normalizeKapsoMessage(
     if (!text) return null;
 
     const instanceName = raw.phone_number_id || conv?.phone_number_id || null;
+    const messageId = (msg.id || raw?.data?.message_id || raw?.message_id || null) as string | null;
 
     return {
       from: phoneNumber,
@@ -203,6 +207,7 @@ export function normalizeKapsoMessage(
       mediaUrl,
       instanceName,
       provider: "kapso",
+      messageId,
     };
   }
 
@@ -265,6 +270,7 @@ export function normalizeKapsoMessage(
     if (!text) return null;
 
     const instanceName = raw.phone_number_id || raw.metadata?.phone_number_id || payload.instance || null;
+    const messageId = (d.id || raw?.message_id || raw?.data?.message_id || null) as string | null;
 
     return {
       from,
@@ -274,6 +280,7 @@ export function normalizeKapsoMessage(
       mediaUrl,
       instanceName,
       provider: "kapso",
+      messageId,
     };
   }
 
@@ -329,6 +336,7 @@ export function normalizeKapsoMessage(
     mediaUrl,
     instanceName: payload.instance || null,
     provider: "kapso",
+    messageId: (key?.id as string | undefined) ?? null,
   };
 }
 
@@ -384,8 +392,9 @@ export function normalizeMetaMessages(payload: WebhookPayload): NormalizedMessag
             text,
             messageType: msgType,
             mediaUrl,
-            instanceName: null,
+            instanceName: value?.metadata?.phone_number_id || null,
             provider: "meta",
+            messageId: (message.id as string | undefined) ?? null,
           });
         }
       }
