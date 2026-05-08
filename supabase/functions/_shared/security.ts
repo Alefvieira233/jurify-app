@@ -145,11 +145,11 @@ export async function auditLog(
       user_id: entry.user_id,
       tenant_id: entry.tenant_id,
       action: entry.action,
-      query: entry.query,
+      query: entry.query ? redactPII(entry.query) : null,
       response_time_ms: entry.response_time_ms,
       tools_used: entry.tools_used ?? [],
       success: entry.success,
-      error: entry.error ?? null,
+      error: entry.error ? redactPII(entry.error) : null,
       created_at: new Date().toISOString(),
     });
   } catch {

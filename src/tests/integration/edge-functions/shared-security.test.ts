@@ -6,8 +6,8 @@
  * assistant, chat-completion, ai-agent-processor).
  */
 
-import { describe, it, expect } from 'vitest';
-import { sanitizeInput, redactPII } from '../../../../supabase/functions/_shared/security';
+import { describe, it, expect, vi } from 'vitest';
+import { sanitizeInput, redactPII, auditLog } from '../../../../supabase/functions/_shared/security';
 
 // ─── Prompt injection detection ─────────────────────────────
 
@@ -100,6 +100,12 @@ describe('sanitizeInput — base64 hidden payload', () => {
     const input = `msg ${shortHidden}`;
     expect(sanitizeInput(input).safe).toBe(true);
   });
+
+  it('handles invalid base64 gracefully (branch coverage)', () => {
+    // A string that looks like base64 but is too long and invalid
+    const invalidBase64 = 'A'.repeat(40) + '!!!';
+    expect(sanitizeInput(`Check this: ${invalidBase64}`).safe).toBe(true);
+  });
 });
 
 describe('sanitizeInput — rejection of empty input', () => {
@@ -187,7 +193,11 @@ describe('redactPII — robustness', () => {
     // @ts-expect-error
     expect(redactPII(null)).toBe('');
     // @ts-expect-error
+    expect(redactPII(undefined)).toBe('');
+    // @ts-expect-error
     expect(redactPII(42)).toBe('42');
+    // @ts-expect-error
+    expect(redactPII({ a: 1 })).toBe('[object Object]');
   });
 });
 
@@ -209,5 +219,70 @@ describe('redactPII — non-PII is preserved', () => {
   it('does not redact short numbers', () => {
     const text = 'Ano 2026, mês 4, dia 10';
     expect(redactPII(text)).toBe(text);
+  });
+});
+
+// ─── Audit Trail ───────────────────────────────────────────
+
+describe('auditLog', () => {
+  it('calls supabase.from("assistant_audit").insert with correct data', async () => {
+    const mockInsert = vi.fn().mockResolvedValue({ error: null });
+    const mockFrom = vi.fn().mockReturnValue({ insert: mockInsert });
+    const mockSupabase = { from: mockFrom };
+
+    const entry = {
+      user_id: 'user_123',
+      tenant_id: 'tenant_456',
+      action: 'test_action',
+      query: 'Hello world 123.456.789-00', // PII here
+      success: true,
+    };
+
+    await auditLog(mockSupabase, entry);
+
+    expect(mockFrom).toHaveBeenCalledWith('assistant_audit');
+    expect(mockInsert).toHaveBeenCalledWith(expect.objectContaining({
+      user_id: 'user_123',
+      tenant_id: 'tenant_456',
+      action: 'test_action',
+      success: true,
+    }));
+  });
+
+  it('swallows errors and logs a warning', async () => {
+    const mockInsert = vi.fn().mockRejectedValue(new Error('DB Error'));
+    const mockFrom = vi.fn().mockReturnValue({ insert: mockInsert });
+    const mockSupabase = { from: mockFrom };
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+
+    await auditLog(mockSupabase, {
+      user_id: 'u',
+      tenant_id: 't',
+      action: 'a',
+      success: false,
+    });
+
+    expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining('auditLog insert failed'));
+    warnSpy.mockRestore();
+  });
+
+  it('redacts query and error fields in auditLog', async () => {
+    const mockInsert = vi.fn().mockResolvedValue({ error: null });
+    const mockFrom = vi.fn().mockReturnValue({ insert: mockInsert });
+    const mockSupabase = { from: mockFrom };
+
+    await auditLog(mockSupabase, {
+      user_id: 'u',
+      tenant_id: 't',
+      action: 'a',
+      query: 'CPF 123.456.789-00',
+      error: 'Error with 4111111111111111',
+      success: false,
+    });
+
+    expect(mockInsert).toHaveBeenCalledWith(expect.objectContaining({
+      query: 'CPF ***CPF***',
+      error: 'Error with ***CARD***',
+    }));
   });
 });

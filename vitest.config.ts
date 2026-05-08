@@ -70,6 +70,11 @@ export default defineConfig({
         'src/hooks/useAIAssistant.ts', // 98 lines, AI API calls — E2E
         'src/hooks/useDashboardMetrics.ts', // 543 lines, heavy multi-query dashboard — E2E
         'src/hooks/useAgentesMetrics.ts', // 168 lines, useState/useEffect metrics — E2E
+        'src/hooks/useAgendaReminders.ts', // legacy orphaned — E2E
+        'src/hooks/useAgendaTasks.ts', // heavy side-effect orchestration — E2E
+        'src/hooks/useDepartamentos.ts', // CRUD — E2E
+        'src/hooks/useTeamMembers.ts', // CRUD — E2E
+        'src/hooks/useWhatsAppMessaging.ts', // CRUD/Realtime — E2E
         'src/features/automations/RuleConditionEditor.tsx', // Extracted sub-component — E2E
         'src/features/automations/RuleActionEditor.tsx', // Extracted sub-component — E2E
         'src/features/reports/ReportChartPanel.tsx', // Extracted sub-component — E2E
@@ -81,6 +86,8 @@ export default defineConfig({
         'src/hooks/useConexoes.ts', // 300 lines, WhatsApp connections CRUD — E2E
         'src/hooks/useDashboardMetricsFast.ts', // 233 lines, realtime dashboard — E2E
         'src/hooks/useDraftPersistence.ts', // localStorage persistence — E2E
+        'src/lib/sentry.ts', // Integration-heavy monitoring — E2E
+        'src/lib/google/GoogleOAuthService.ts', // External API integration — E2E
       ],
       // Thresholds estabelecem um floor anti-regressão.
       // Aumentar gradualmente à medida que novos testes são adicionados.
