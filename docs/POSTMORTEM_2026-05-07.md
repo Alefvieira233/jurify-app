@@ -146,7 +146,7 @@ Build/lint/typecheck: verde após cada commit.
 | Stripe price IDs reais | Depende de credenciamento Stripe pelo owner (~30 min em prod). |
 | Submissão Google OAuth verification | Depende de logo PNG + vídeo demo gravado + acesso ao Google Cloud Console (~1h de trabalho do owner). Checklist documentado em `docs/GOOGLE_OAUTH_VERIFICATION_CHECKLIST.md`. |
 | Rotação `HEALTH_CHECK_TOKEN` | Depende de acesso GH Actions secrets + Supabase Edge Secrets (5 min owner). |
-| Investigar projeto Supabase "Missãocumprida" | Depende de owner confirmar se é staging desejado ou deletar (sem contexto pra decidir). |
+| ~~Investigar projeto Supabase "Missãocumprida"~~ | **Resolvido:** owner confirmou que é SaaS independente (e Judson APP também). Zero referências no código do Jurify. Sem ação. |
 | Dropar `whatsapp_messages.content` plaintext | Dual-read window deliberado de 30 dias antes da fase 2 (segurança incremental). |
 | UNIQUE constraint defense-in-depth em `agendamentos` (lead_id, minute_bucket) | `date_trunc`/`extract` em timestamptz não são IMMUTABLE em Postgres → exigiria função wrapper customizada. RPC com advisory lock já cobre o caso real. P1 follow-up. |
 | UNIQUE em `conexoes_whatsapp.instance_name` | P1 follow-up — risco residual baixo após fix P0 #1. |
@@ -188,7 +188,7 @@ Build/lint/typecheck: verde após cada commit.
 | Owner | D+1 | Configurar Sentry DSN em Vercel + Edge Secrets |
 | Owner | D+2 | Stripe — produtos + price IDs reais |
 | Owner | D+1 | Rotacionar `HEALTH_CHECK_TOKEN` |
-| Owner | D+3 | Decidir Missãocumprida (deletar ou documentar) |
+| ~~Owner~~ | ~~D+3~~ | ~~Decidir Missãocumprida~~ — **resolvido 2026-05-07:** owner confirmou que Missãocumprida + Judson APP são SaaS independentes na mesma org Supabase, sem relação com o Jurify (zero referências no código). |
 | Owner | D+7 | Gravar vídeo demo + logo + submeter Google OAuth verification |
 | Eng | D+30 | Fase 2 cifragem: `UPDATE whatsapp_messages SET content = NULL` |
 | Eng | D+45 | Fase 3 cifragem: `ALTER TABLE DROP COLUMN content` |
