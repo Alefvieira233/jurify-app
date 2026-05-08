@@ -122,3 +122,4 @@ logs/
 .claude/settings.local.json
 .aiox/install-log.txt
 supabase/.temp/
+.secrets-pending/
