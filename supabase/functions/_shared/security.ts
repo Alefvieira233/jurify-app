@@ -90,13 +90,34 @@ export function sanitizeInput(
 // ---------------------------------------------------------------------------
 
 const PII_PATTERNS: Array<{ pattern: RegExp; label: string; replacement: string }> = [
-  { pattern: /\b\d{3}\.?\d{3}\.?\d{3}-?\d{2}\b/g, label: "CPF", replacement: "***CPF***" },
-  { pattern: /\b\d{2}\.?\d{3}\.?\d{3}-?[\dXx]\b/g, label: "RG", replacement: "***RG***" },
+  // Credit Cards - Priority 1
   { pattern: /\b\d{4}\s?\d{4}\s?\d{4}\s?\d{4}\b/g, label: "Card", replacement: "***CARD***" },
+  // Processo CNJ (NNNNNNN-DD.AAAA.J.TR.OOOO)
+  { pattern: /\d{7}-\d{2}\.\d{4}\.\d\.\d{2}\.\d{4}/g, label: "CNJ", replacement: "***CNJ***" },
+  // CNPJ (XX.XXX.XXX/XXXX-XX)
+  { pattern: /\d{2}\.\d{3}\.\d{3}\/\d{4}-\d{2}/g, label: "CNPJ", replacement: "***CNPJ***" },
+  // CPF (Formatted: XXX.XXX.XXX-XX)
+  { pattern: /\b\d{3}\.\d{3}\.\d{3}-\d{2}\b/g, label: "CPF", replacement: "***CPF***" },
+  // CPF (Raw: 11 digits) - Uses negative lookaround to avoid matching longer numbers
+  { pattern: /(?<!\d)\d{11}(?!\d)/g, label: "CPF_RAW", replacement: "***CPF***" },
+  // RG (Formatted or Raw 7-9 digits)
+  { pattern: /\b\d{1,2}\.?\d{3}\.?\d{3}-?[\dXx]\b/g, label: "RG", replacement: "***RG***" },
+  // OAB registration (e.g., OAB/SP 123456)
+  { pattern: /\b(?:OAB[\s/-]?)?(?:AC|AL|AP|AM|BA|CE|DF|ES|GO|MA|MT|MS|MG|PA|PB|PR|PE|PI|RJ|RN|RS|RO|RR|SC|SP|SE|TO)\s?\d{4,6}\b/gi, label: "OAB", replacement: "***OAB***" },
+  // Email addresses
+  { pattern: /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}\b/g, label: "Email", replacement: "***EMAIL***" },
+  // Phone numbers (Brazilian formats)
+  { pattern: /(?:\+55\s?)?(?:\(\d{2}\)|\d{2})\s?\d{4,5}[-\s]?\d{4}\b/g, label: "Phone", replacement: "***PHONE***" },
 ];
 
-/** Redact PII from assistant responses before sending to client. */
-export function redactPII(text: string): string {
+/**
+ * Redact PII from text before logging or sending to client.
+ * Handles unknown input types gracefully (returns empty string if not a string).
+ */
+export function redactPII(text: unknown): string {
+  if (!text || typeof text !== "string") {
+    return "";
+  }
   let result = text;
   for (const { pattern, replacement } of PII_PATTERNS) {
     result = result.replace(pattern, replacement);
@@ -121,6 +142,7 @@ interface AuditEntry {
 
 /**
  * Log an interaction to the assistant_audit table (fire-and-forget).
+ * Automatically redacts PII from query and error fields.
  * Uses Supabase service-role client passed in to avoid circular deps.
  */
 export async function auditLog(
@@ -132,11 +154,11 @@ export async function auditLog(
       user_id: entry.user_id,
       tenant_id: entry.tenant_id,
       action: entry.action,
-      query: entry.query,
+      query: redactPII(entry.query),
       response_time_ms: entry.response_time_ms,
       tools_used: entry.tools_used ?? [],
       success: entry.success,
-      error: entry.error ?? null,
+      error: redactPII(entry.error),
       created_at: new Date().toISOString(),
     });
   } catch {
