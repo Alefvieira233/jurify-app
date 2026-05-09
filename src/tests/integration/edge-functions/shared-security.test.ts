@@ -6,8 +6,8 @@
  * assistant, chat-completion, ai-agent-processor).
  */
 
-import { describe, it, expect } from 'vitest';
-import { sanitizeInput, redactPII } from '../../../../supabase/functions/_shared/security';
+import { describe, it, expect, vi } from 'vitest';
+import { sanitizeInput, redactPII, auditLog } from '../../../../supabase/functions/_shared/security';
 
 // ─── Prompt injection detection ─────────────────────────────
 
@@ -183,5 +183,95 @@ describe('redactPII — non-PII is preserved', () => {
   it('does not redact short numbers', () => {
     const text = 'Ano 2026, mês 4, dia 10';
     expect(redactPII(text)).toBe(text);
+  });
+});
+
+describe('redactPII — New patterns', () => {
+  it('redacts CNPJ', () => {
+    expect(redactPII('Empresa: 12.345.678/0001-90')).toBe('Empresa: ***CNPJ***');
+  });
+
+  it('redacts Processo CNJ', () => {
+    expect(redactPII('Processo: 0001234-56.2023.8.26.0001')).toBe('Processo: ***CNJ***');
+  });
+
+  it('redacts OAB with variants', () => {
+    expect(redactPII('Dra. Jacira OAB/SP 123456')).toBe('Dra. Jacira ***OAB***');
+    expect(redactPII('OAB RJ 654321')).toBe('***OAB***');
+  });
+
+  it('redacts Emails', () => {
+    expect(redactPII('Email: cliente@example.com')).toBe('Email: ***EMAIL***');
+  });
+
+  it('redacts Brazilian Phone numbers', () => {
+    expect(redactPII('Tel: (11) 98765-4321')).toBe('Tel: ***PHONE***');
+    expect(redactPII('Contato: +55 11 4002-8922')).toBe('Contato: ***PHONE***');
+  });
+});
+
+describe('redactPII — defensive checks', () => {
+  it('returns empty string for null', () => {
+    expect(redactPII(null)).toBe('');
+  });
+
+  it('returns empty string for undefined', () => {
+    expect(redactPII(undefined)).toBe('');
+  });
+
+  it('returns empty string for non-string types', () => {
+    expect(redactPII(123)).toBe('');
+    expect(redactPII({ foo: 'bar' })).toBe('');
+  });
+});
+
+describe('auditLog utility', () => {
+  it('calls redactPII on query and error fields and inserts into DB', async () => {
+    const mockInsert = vi.fn().mockResolvedValue({ error: null });
+    const mockSupabase = {
+      from: vi.fn().mockReturnValue({
+        insert: mockInsert
+      })
+    };
+
+    const entry = {
+      user_id: 'user-123',
+      tenant_id: 'tenant-456',
+      action: 'test-action',
+      query: 'Meu CPF é 123.456.789-00',
+      error: 'Falha no email: leak@pii.com',
+      success: false,
+      response_time_ms: 100,
+      tools_used: ['tool1']
+    };
+
+    // @ts-expect-error — mock types
+    await auditLog(mockSupabase, entry);
+
+    expect(mockSupabase.from).toHaveBeenCalledWith('assistant_audit');
+    expect(mockInsert).toHaveBeenCalledWith(expect.objectContaining({
+      user_id: 'user-123',
+      tenant_id: 'tenant-456',
+      action: 'test-action',
+      query: 'Meu CPF é ***CPF***',
+      error: 'Falha no email: ***EMAIL***',
+      success: false,
+      response_time_ms: 100,
+      tools_used: ['tool1'],
+      created_at: expect.any(String)
+    }));
+  });
+
+  it('handles errors gracefully in auditLog', async () => {
+    const mockSupabase = {
+      from: vi.fn().mockImplementation(() => {
+        throw new Error('DB Error');
+      })
+    };
+
+    // Should not throw
+    // @ts-expect-error — mock types
+    await expect(auditLog(mockSupabase, { user_id: 'x', tenant_id: 'y', action: 'z', success: true }))
+      .resolves.toBeUndefined();
   });
 });
