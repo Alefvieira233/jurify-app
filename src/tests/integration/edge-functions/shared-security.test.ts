@@ -6,8 +6,8 @@
  * assistant, chat-completion, ai-agent-processor).
  */
 
-import { describe, it, expect } from 'vitest';
-import { sanitizeInput, redactPII } from '../../../../supabase/functions/_shared/security';
+import { describe, it, expect, vi } from 'vitest';
+import { sanitizeInput, redactPII, auditLog } from '../../../../supabase/functions/_shared/security';
 
 // ─── Prompt injection detection ─────────────────────────────
 
@@ -202,5 +202,62 @@ describe('redactPII — non-PII is preserved', () => {
   it('does not redact short numbers', () => {
     const text = 'Ano 2026, mês 4, dia 10';
     expect(redactPII(text)).toBe(text);
+  });
+
+  it('handles non-string input by stringifying it', () => {
+    const obj = { info: 'CPF 123.456.789-00', active: true };
+    const redacted = redactPII(obj);
+    expect(redacted).toContain('***CPF***');
+    expect(redacted).toContain('"active":true');
+  });
+
+  it('returns empty string for null or undefined', () => {
+    expect(redactPII(null)).toBe('');
+    expect(redactPII(undefined)).toBe('');
+  });
+
+  it('handles circular references gracefully', () => {
+    const circular: any = { a: 1 };
+    circular.self = circular;
+    const redacted = redactPII(circular);
+    expect(redacted).toBe('[object Object]');
+  });
+});
+
+// ─── Audit logging ─────────────────────────────────────────
+
+describe('auditLog', () => {
+  it('redacts PII from query and error before inserting', async () => {
+    const mockInsert = vi.fn().mockResolvedValue({ error: null });
+    const mockFrom = vi.fn().mockReturnValue({ insert: mockInsert });
+    const mockSupabase = { from: mockFrom };
+
+    const entry = {
+      user_id: 'u1',
+      tenant_id: 't1',
+      action: 'test',
+      query: 'Meu CPF é 123.456.789-00',
+      success: false,
+      error: 'Falha ao processar CNPJ 12.345.678/0001-90',
+    };
+
+    await auditLog(mockSupabase, entry);
+
+    expect(mockFrom).toHaveBeenCalledWith('assistant_audit');
+    const inserted = mockInsert.mock.calls[0][0];
+    expect(inserted.query).toBe('Meu CPF é ***CPF***');
+    expect(inserted.error).toBe('Falha ao processar CNPJ ***CNPJ***');
+  });
+
+  it('fails silently on DB error', async () => {
+    const mockInsert = vi.fn().mockRejectedValue(new Error('DB failure'));
+    const mockFrom = vi.fn().mockReturnValue({ insert: mockInsert });
+    const mockSupabase = { from: mockFrom };
+    const consoleSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+
+    await auditLog(mockSupabase, { user_id: 'u1', tenant_id: 't1', action: 'a', success: true });
+
+    expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining('failed silently'));
+    consoleSpy.mockRestore();
   });
 });

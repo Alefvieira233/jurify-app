@@ -102,13 +102,26 @@ const PII_PATTERNS: Array<{ pattern: RegExp; label: string; replacement: string 
   { pattern: /\b\d{2}\.?\d{3}\.?\d{3}-?[\dXx](?!\d)\b/g, label: "RG", replacement: "***RG***" },
 ];
 
-/** Redact PII from content before sending or logging. */
+/**
+ * Redact PII from content before sending or logging.
+ * Returns empty string for null/undefined to ensure safe logging.
+ */
 export function redactPII(content: unknown): string {
-  if (typeof content !== "string") {
+  if (content === null || content === undefined) {
     return "";
   }
 
-  let result = content;
+  let result: string;
+  if (typeof content === "string") {
+    result = content;
+  } else {
+    try {
+      result = JSON.stringify(content);
+    } catch {
+      result = String(content);
+    }
+  }
+
   for (const { pattern, replacement } of PII_PATTERNS) {
     result = result.replace(pattern, replacement);
   }

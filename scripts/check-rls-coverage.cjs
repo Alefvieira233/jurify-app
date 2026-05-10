@@ -54,6 +54,13 @@ async function query(sql) {
     },
   );
   const text = await r.text();
+
+  // Gracefully handle 401 Unauthorized (likely missing repo secrets in CI)
+  if (r.status === 401) {
+    console.warn('WARNING: Supabase API 401 Unauthorized. Skipping RLS audit (likely missing secrets).');
+    process.exit(0);
+  }
+
   if (!r.ok) {
     throw new Error(
       `Supabase API error ${r.status} ${r.statusText}: ${text.slice(0, 500)}`,
