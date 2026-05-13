@@ -13,7 +13,7 @@
 // ---------------------------------------------------------------------------
 
 const INJECTION_PATTERNS = [
-  /ignore\s+(previous|all|above)\s+(instructions?|prompts?|rules?)/i,
+  /ignore\s+(?:(?:\w+)\s+){0,3}(?:instructions?|prompts?|rules?)/i,
   /you\s+are\s+now\s+/i,
   /system\s*:\s*/i,
   /\bDAN\b/,
@@ -27,7 +27,7 @@ const INJECTION_PATTERNS = [
 
 // Homoglyph map for common substitution attacks (e.g. "ign0re" → "ignore")
 const HOMOGLYPHS: Record<string, string> = {
-  "0": "o", "1": "l", "3": "e", "4": "a", "5": "s",
+  "0": "o", "1": "i", "3": "e", "4": "a", "5": "s",
   "@": "a", "$": "s", "!": "i",
 };
 
