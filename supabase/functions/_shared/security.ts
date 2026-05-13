@@ -67,7 +67,7 @@ export function sanitizeInput(
   }
 
   // Detect base64-encoded payloads that might hide injection instructions
-  const base64Match = trimmed.match(/[A-Za-z0-9+/]{40,}={0,2}/);
+  const base64Match = trimmed.match(/[A-Za-z0-9+/]{16,}={0,2}/);
   if (base64Match) {
     try {
       const decoded = atob(base64Match[0]);
@@ -89,10 +89,61 @@ export function sanitizeInput(
 // PII content filtering
 // ---------------------------------------------------------------------------
 
-const PII_PATTERNS: Array<{ pattern: RegExp; label: string; replacement: string }> = [
-  { pattern: /\b\d{3}\.?\d{3}\.?\d{3}-?\d{2}\b/g, label: "CPF", replacement: "***CPF***" },
-  { pattern: /\b\d{2}\.?\d{3}\.?\d{3}-?[\dXx]\b/g, label: "RG", replacement: "***RG***" },
-  { pattern: /\b\d{4}\s?\d{4}\s?\d{4}\s?\d{4}\b/g, label: "Card", replacement: "***CARD***" },
+const PII_PATTERNS: Array<{ pattern: RegExp; label: string; replacement: string; name?: string }> = [
+  {
+    name: "CREDIT_CARD",
+    pattern: /\b\d{4}[-\s]?\d{4}[-\s]?\d{4}[-\s]?\d{4}\b/g,
+    label: "Card",
+    replacement: "***CARD***",
+  },
+  {
+    name: "PROCESSO_CNJ",
+    pattern: /\d{7}-\d{2}\.\d{4}\.\d\.\d{2}\.\d{4}/g,
+    label: "CNJ",
+    replacement: "***CNJ***",
+  },
+  {
+    name: "CNPJ",
+    pattern: /\d{2}\.\d{3}\.\d{3}\/\d{4}-\d{2}/g,
+    label: "CNPJ",
+    replacement: "***CNPJ***",
+  },
+  {
+    name: "CPF_FORMATTED",
+    pattern: /\b\d{3}\.\d{3}\.\d{3}-\d{2}\b/g,
+    label: "CPF",
+    replacement: "***CPF***",
+  },
+  {
+    name: "CPF_RAW",
+    pattern: /(?<!\d)\d{11}(?!\d)/g,
+    label: "CPF",
+    replacement: "***CPF***",
+  },
+  {
+    name: "OAB",
+    pattern: /\b(?:OAB[\s/-]?)?(?:AC|AL|AP|AM|BA|CE|DF|ES|GO|MA|MT|MS|MG|PA|PB|PR|PE|PI|RJ|RN|RS|RO|RR|SC|SP|SE|TO)\s?\d{4,6}\b/gi,
+    label: "OAB",
+    replacement: "***OAB***",
+  },
+  {
+    name: "PHONE_BR",
+    pattern: /(?:\+55\s?)?(?:\(\d{2}\)|\d{2})\s?\d{4,5}[-\s]?\d{4}\b/g,
+    label: "Phone",
+    replacement: "***PHONE***",
+  },
+  {
+    name: "EMAIL",
+    pattern: /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}\b/g,
+    label: "Email",
+    replacement: "***EMAIL***",
+  },
+  {
+    name: "RG",
+    pattern: /\b\d{2}\.?\d{3}\.?\d{3}-?[\dXx](?!\d)\b/g,
+    label: "RG",
+    replacement: "***RG***",
+  },
 ];
 
 /** Redact PII from assistant responses before sending to client. */
