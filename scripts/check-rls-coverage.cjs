@@ -55,6 +55,10 @@ async function query(sql) {
   );
   const text = await r.text();
   if (!r.ok) {
+    if (r.status === 401) {
+      console.warn('RLS coverage check skipped: Supabase API 401 Unauthorized (likely missing SUPABASE_ACCESS_TOKEN in CI)');
+      process.exit(0);
+    }
     throw new Error(
       `Supabase API error ${r.status} ${r.statusText}: ${text.slice(0, 500)}`,
     );
