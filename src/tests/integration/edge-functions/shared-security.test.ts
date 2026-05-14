@@ -6,8 +6,8 @@
  * assistant, chat-completion, ai-agent-processor).
  */
 
-import { describe, it, expect } from 'vitest';
-import { sanitizeInput, redactPII } from '../../../../supabase/functions/_shared/security';
+import { describe, it, expect, vi } from 'vitest';
+import { sanitizeInput, redactPII, auditLog } from '../../../../supabase/functions/_shared/security';
 
 // ─── Prompt injection detection ─────────────────────────────
 
@@ -200,5 +200,58 @@ describe('redactPII — non-PII is preserved', () => {
   it('does not redact short numbers', () => {
     const text = 'Ano 2026, mês 4, dia 10';
     expect(redactPII(text)).toBe(text);
+  });
+});
+
+// ─── Audit logging ──────────────────────────────────────────
+
+describe('auditLog — PII redaction', () => {
+  it('redacts PII from query and error fields in audit logs', async () => {
+    const mockInsert = vi.fn().mockResolvedValue({ error: null });
+    const mockSupabase = {
+      from: vi.fn().mockReturnValue({
+        insert: mockInsert,
+      }),
+    };
+
+    const entry = {
+      user_id: 'user_123',
+      tenant_id: 'tenant_456',
+      action: 'test_action',
+      query: 'Busca pelo CPF 123.456.789-00',
+      error: 'Erro ao processar telefone (11) 98765-4321',
+      success: false,
+    };
+
+    await auditLog(mockSupabase as any, entry);
+
+    expect(mockSupabase.from).toHaveBeenCalledWith('assistant_audit');
+    const insertedData = mockInsert.mock.calls[0][0];
+
+    expect(insertedData.query).toBe('Busca pelo CPF ***CPF***');
+    expect(insertedData.error).toBe('Erro ao processar telefone ***PHONE***');
+    expect(insertedData.user_id).toBe('user_123');
+  });
+
+  it('handles null query and error fields', async () => {
+    const mockInsert = vi.fn().mockResolvedValue({ error: null });
+    const mockSupabase = {
+      from: vi.fn().mockReturnValue({
+        insert: mockInsert,
+      }),
+    };
+
+    const entry = {
+      user_id: 'user_123',
+      tenant_id: 'tenant_456',
+      action: 'test_action',
+      success: true,
+    };
+
+    await auditLog(mockSupabase as any, entry);
+
+    const insertedData = mockInsert.mock.calls[0][0];
+    expect(insertedData.query).toBeNull();
+    expect(insertedData.error).toBeNull();
   });
 });
