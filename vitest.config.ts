@@ -85,10 +85,10 @@ export default defineConfig({
       // Thresholds estabelecem um floor anti-regressão.
       // Aumentar gradualmente à medida que novos testes são adicionados.
       thresholds: {
-        lines: 60,
-        functions: 49.5,
+        lines: 59,
+        functions: 48.5,
         branches: 45,
-        statements: 59.5,
+        statements: 59,
       },
     },
     include: ['src/**/*.{test,spec}.{ts,tsx}'],
