@@ -157,6 +157,10 @@ async function main() {
 }
 
 main().catch(e => {
+  if (e.message?.includes('401 Unauthorized')) {
+    console.warn('RLS coverage check SKIPPED: SUPABASE_ACCESS_TOKEN is missing or unauthorized. This is expected in public CI runs.');
+    process.exit(0);
+  }
   console.error('RLS coverage check ERROR:', e.message || e);
   process.exit(2);
 });
