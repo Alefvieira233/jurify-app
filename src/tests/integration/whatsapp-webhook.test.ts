@@ -200,6 +200,7 @@ describe('normalizeKapsoMessage — legacy format', () => {
       mediaUrl: null,
       instanceName: 'jurify-prod',
       provider: 'kapso',
+      messageId: 'evo_msg_001',
     });
   });
 
@@ -408,6 +409,7 @@ describe('normalizeMetaMessages', () => {
       mediaUrl: null,
       instanceName: null,
       provider: 'meta',
+      messageId: 'wamid.meta_001',
     });
   });
 
