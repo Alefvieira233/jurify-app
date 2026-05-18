@@ -157,7 +157,7 @@ export async function processNormalizedMessage(
 
     if (!tenantId) {
       // P0 SECURITY: strict tenant resolution failed. Sem fallback por telefone do lead.
-      console.error(`[processMsg:${provider}] TENANT_RESOLUTION_FAILED_STRICT | from=${from} | instance=${instanceName} | type=${messageType} | text="${redactPII(text.substring(0, 80))}"`);
+      console.error(`[processMsg:${provider}] TENANT_RESOLUTION_FAILED_STRICT | from=${from} | instance=${instanceName} | type=${messageType} | text="${redactPII(text).substring(0, 80)}"`);
       // Persist failed resolution for diagnostics
       void supabase.from("webhook_events").insert({
         event_id: `unresolved_${Date.now()}_${from}`,
@@ -1021,6 +1021,7 @@ export async function processNormalizedMessage(
       // Log AI processing (non-blocking) — keep webhook-specific row for
       // system_prompt + user_prompt (not captured by ai-caller's log).
       if (executionRowId) {
+        const fullRedacted = redactPII(resultText);
         void supabase.from("agent_ai_logs").insert({
           execution_id: executionRowId,
           agent_name: agentName,
@@ -1030,10 +1031,10 @@ export async function processNormalizedMessage(
           prompt_tokens: aiResponse.usage?.prompt_tokens || 0,
           completion_tokens: aiResponse.usage?.completion_tokens || 0,
           total_tokens: aiResponse.usage?.total_tokens || 0,
-          result_preview: resultText.substring(0, 200),
-          system_prompt: finalSystemPrompt.substring(0, 500),
-          user_prompt: (commandIntent ?? processedText).substring(0, 500),
-          full_result: resultText.substring(0, 2000),
+          result_preview: fullRedacted.substring(0, 200),
+          system_prompt: redactPII(finalSystemPrompt).substring(0, 500),
+          user_prompt: redactPII(commandIntent ?? processedText).substring(0, 500),
+          full_result: fullRedacted.substring(0, 2000),
           context: { mediaCategory, agent: agentName, hasLegalContext: legalCtx.has_context },
           created_at: new Date().toISOString(),
         }).then(({ error }) => { if (error) console.error("[webhook] ai_log insert error:", error.message); });
