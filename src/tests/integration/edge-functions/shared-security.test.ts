@@ -6,8 +6,8 @@
  * assistant, chat-completion, ai-agent-processor).
  */
 
-import { describe, it, expect } from 'vitest';
-import { sanitizeInput, redactPII } from '../../../../supabase/functions/_shared/security';
+import { describe, it, expect, vi } from 'vitest';
+import { sanitizeInput, redactPII, auditLog } from '../../../../supabase/functions/_shared/security';
 
 // ─── Prompt injection detection ─────────────────────────────
 
@@ -126,6 +126,13 @@ describe('sanitizeInput — rejection of empty input', () => {
     // @ts-expect-error
     expect(sanitizeInput({}).safe).toBe(false);
   });
+
+  it('ignores invalid base64 (coverage catch block)', () => {
+    // A string that looks like it might be base64 but is too short or invalid
+    // The regex is {16,}
+    const result = sanitizeInput('This is a test with a long enough string that is not base64: !@#$%^&*()_+');
+    expect(result.safe).toBe(true);
+  });
 });
 
 // ─── PII redaction ─────────────────────────────────────────
@@ -190,6 +197,15 @@ describe('redactPII — idempotency', () => {
 });
 
 describe('redactPII — non-PII is preserved', () => {
+  it('returns empty string for non-string input', () => {
+    // @ts-expect-error
+    expect(redactPII(null)).toBe('');
+    // @ts-expect-error
+    expect(redactPII(undefined)).toBe('');
+    // @ts-expect-error
+    expect(redactPII(123)).toBe('');
+  });
+
   it('does not touch non-PII text', () => {
     const safe = 'Olá, tudo bem? Quero agendar uma consulta.';
     expect(redactPII(safe)).toBe(safe);
@@ -198,5 +214,48 @@ describe('redactPII — non-PII is preserved', () => {
   it('does not redact short numbers', () => {
     const text = 'Ano 2026, mês 4, dia 10';
     expect(redactPII(text)).toBe(text);
+  });
+});
+
+// ─── Audit Log ──────────────────────────────────────────────
+
+describe('auditLog', () => {
+  it('calls supabase insert with redacted PII', async () => {
+    const mockInsert = vi.fn().mockResolvedValue({ error: null });
+    const mockFrom = vi.fn().mockReturnValue({ insert: mockInsert });
+    const mockSupabase = { from: mockFrom };
+
+    const entry = {
+      user_id: 'user-123',
+      tenant_id: 'tenant-456',
+      action: 'test-action',
+      query: 'Meu CPF é 123.456.789-00',
+      success: true,
+      error: 'Erro no cartão 4111 1111 1111 1111'
+    };
+
+    await auditLog(mockSupabase, entry);
+
+    expect(mockFrom).toHaveBeenCalledWith('assistant_audit');
+    expect(mockInsert).toHaveBeenCalledWith(expect.objectContaining({
+      query: 'Meu CPF é ***CPF***',
+      error: 'Erro no cartão ***CARD***'
+    }));
+  });
+
+  it('handles insert failure silently', async () => {
+    const mockInsert = vi.fn().mockRejectedValue(new Error('DB Error'));
+    const mockFrom = vi.fn().mockReturnValue({ insert: mockInsert });
+    const mockSupabase = { from: mockFrom };
+
+    const entry = {
+      user_id: 'u',
+      tenant_id: 't',
+      action: 'a',
+      success: false
+    };
+
+    // Should not throw
+    await expect(auditLog(mockSupabase, entry)).resolves.not.toThrow();
   });
 });
