@@ -56,6 +56,9 @@ export function sanitizeInput(
   }
 
   const trimmed = text.trim().slice(0, maxLength);
+  if (!trimmed) {
+    return { safe: false, reason: "Empty or invalid input" };
+  }
 
   // Check original + normalized version to catch homoglyph attacks
   const normalized = normalizeForDetection(trimmed);
@@ -92,7 +95,8 @@ export function sanitizeInput(
 const PII_PATTERNS: Array<{ pattern: RegExp; label: string; replacement: string }> = [
   { pattern: /\b\d{4}\s?\d{4}\s?\d{4}\s?\d{4}\b/g, label: "Card", replacement: "***CARD***" },
   { pattern: /\d{7}-\d{2}\.\d{4}\.\d\.\d{2}\.\d{4}/g, label: "Processo CNJ", replacement: "***PROCESSO***" },
-  { pattern: /\d{2}\.\d{3}\.\d{3}\/\d{4}-\d{2}/g, label: "CNPJ", replacement: "***CNPJ***" },
+  { pattern: /\d{2}\.?\d{3}\.?\d{3}\/?\d{4}-?\d{2}/g, label: "CNPJ", replacement: "***CNPJ***" },
+  { pattern: /(?<!\d)\d{14}(?!\d)/g, label: "CNPJ_RAW", replacement: "***CNPJ***" },
   { pattern: /\b\d{3}\.?\d{3}\.?\d{3}-?\d{2}\b/g, label: "CPF", replacement: "***CPF***" },
   { pattern: /\b\d{2}\.?\d{3}\.?\d{3}-?[\dXx]\b/g, label: "RG", replacement: "***RG***" },
   { pattern: /\b(?:OAB[\s/-]?)?(?:AC|AL|AP|AM|BA|CE|DF|ES|GO|MA|MT|MS|MG|PA|PB|PR|PE|PI|RJ|RN|RS|RO|RR|SC|SP|SE|TO)\s?\d{4,6}\b/gi, label: "OAB", replacement: "***OAB***" },
@@ -102,11 +106,22 @@ const PII_PATTERNS: Array<{ pattern: RegExp; label: string; replacement: string 
 
 /**
  * Redact PII from text before logging or sending to client.
- * Handles non-string inputs gracefully.
+ * Handles non-string inputs by stringifying them.
  */
 export function redactPII(text: unknown): string {
-  if (typeof text !== "string") return "";
-  let result = text;
+  if (text === null || text === undefined) return "";
+
+  let result: string;
+  if (typeof text !== "string") {
+    try {
+      result = JSON.stringify(text);
+    } catch {
+      result = String(text);
+    }
+  } else {
+    result = text;
+  }
+
   for (const { pattern, replacement } of PII_PATTERNS) {
     result = result.replace(pattern, replacement);
   }
