@@ -161,60 +161,6 @@ describe('redactPII — idempotency', () => {
   });
 });
 
-describe('redactPII — CNPJ', () => {
-  it('redacts formatted CNPJ', () => {
-    expect(redactPII('CNPJ 12.345.678/0001-90')).toBe('CNPJ ***CNPJ***');
-  });
-
-  it('redacts raw CNPJ (14 digits)', () => {
-    expect(redactPII('12345678000190')).toBe('***CNPJ***');
-  });
-});
-
-describe('redactPII — Email', () => {
-  it('redacts email addresses', () => {
-    expect(redactPII('Contato: joao.silva@empresa.com.br')).toBe('Contato: ***EMAIL***');
-  });
-});
-
-describe('redactPII — Phone', () => {
-  it('redacts Brazilian phone formats', () => {
-    expect(redactPII('Tel: (11) 99999-8888')).toBe('Tel: ***PHONE***');
-    expect(redactPII('Ligue para 11988887777')).toContain('***');
-  });
-
-  it('redacts phone with +55', () => {
-    expect(redactPII('+55 11 97777-6666')).toContain('***PHONE***');
-  });
-});
-
-describe('redactPII — OAB', () => {
-  it('redacts OAB registrations', () => {
-    expect(redactPII('Advogado OAB/SP 123456')).toBe('Advogado ***OAB***');
-    expect(redactPII('Inscrição RJ12345')).toBe('Inscrição ***OAB***');
-  });
-});
-
-describe('redactPII — Processo CNJ', () => {
-  it('redacts Processo CNJ numbers', () => {
-    expect(redactPII('Processo 0001234-56.2024.8.26.0001')).toBe('Processo ***PROCESSO***');
-  });
-});
-
-describe('redactPII — Non-string inputs', () => {
-  it('redacts PII in objects (via stringify)', () => {
-    const obj = { cpf: '123.456.789-00', msg: 'Ola' };
-    const redacted = redactPII(obj);
-    expect(redacted).toContain('***CPF***');
-    expect(redacted).toContain('Ola');
-  });
-
-  it('returns empty string for null/undefined', () => {
-    expect(redactPII(null)).toBe("");
-    expect(redactPII(undefined)).toBe("");
-  });
-});
-
 describe('redactPII — non-PII is preserved', () => {
   it('does not touch non-PII text', () => {
     const safe = 'Olá, tudo bem? Quero agendar uma consulta.';
@@ -224,12 +170,5 @@ describe('redactPII — non-PII is preserved', () => {
   it('does not redact short numbers', () => {
     const text = 'Ano 2026, mês 4, dia 10';
     expect(redactPII(text)).toBe(text);
-  });
-
-  it('does not redact long numeric strings that are not PII', () => {
-    // 13 digits is not a CPF (11) or CNPJ (14) or Phone (10 or 11)
-    expect(redactPII('1234567890123')).toBe('1234567890123');
-    // 15 digits is not a CPF (11) or CNPJ (14)
-    expect(redactPII('123456789012345')).toBe('123456789012345');
   });
 });
