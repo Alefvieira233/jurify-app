@@ -6,8 +6,8 @@
  * assistant, chat-completion, ai-agent-processor).
  */
 
-import { describe, it, expect } from 'vitest';
-import { sanitizeInput, redactPII } from '../../../../supabase/functions/_shared/security';
+import { describe, it, expect, vi } from 'vitest';
+import { sanitizeInput, redactPII, auditLog } from '../../../../supabase/functions/_shared/security';
 
 // ─── Prompt injection detection ─────────────────────────────
 
@@ -161,6 +161,56 @@ describe('redactPII — idempotency', () => {
   });
 });
 
+describe('redactPII — CNPJ', () => {
+  it('redacts formatted CNPJ', () => {
+    expect(redactPII('CNPJ 12.345.678/0001-90')).toBe('CNPJ ***CNPJ***');
+  });
+
+  it('redacts raw CNPJ (14 digits)', () => {
+    expect(redactPII('12345678000190')).toBe('***CNPJ***');
+  });
+});
+
+describe('redactPII — Email', () => {
+  it('redacts email addresses', () => {
+    expect(redactPII('Contato: joao.silva@empresa.com.br')).toBe('Contato: ***EMAIL***');
+  });
+});
+
+describe('redactPII — Phone', () => {
+  it('redacts Brazilian phone formats', () => {
+    expect(redactPII('Tel: (11) 99999-8888')).toContain('***');
+    expect(redactPII('Ligue para 11988887777')).toContain('***');
+  });
+});
+
+describe('redactPII — OAB', () => {
+  it('redacts OAB registrations', () => {
+    expect(redactPII('Advogado OAB/SP 123456')).toBe('Advogado ***OAB***');
+    expect(redactPII('Inscrição RJ12345')).toBe('Inscrição ***OAB***');
+  });
+});
+
+describe('redactPII — Processo CNJ', () => {
+  it('redacts Processo CNJ numbers', () => {
+    expect(redactPII('Processo 0001234-56.2024.8.26.0001')).toBe('Processo ***PROCESSO***');
+  });
+});
+
+describe('redactPII — Non-string inputs', () => {
+  it('redacts PII in objects (via stringify)', () => {
+    const obj = { cpf: '123.456.789-00', msg: 'Ola' };
+    const redacted = redactPII(obj);
+    expect(redacted).toContain('***CPF***');
+    expect(redacted).toContain('Ola');
+  });
+
+  it('returns empty string for null/undefined', () => {
+    expect(redactPII(null)).toBe("");
+    expect(redactPII(undefined)).toBe("");
+  });
+});
+
 describe('redactPII — non-PII is preserved', () => {
   it('does not touch non-PII text', () => {
     const safe = 'Olá, tudo bem? Quero agendar uma consulta.';
@@ -170,5 +220,39 @@ describe('redactPII — non-PII is preserved', () => {
   it('does not redact short numbers', () => {
     const text = 'Ano 2026, mês 4, dia 10';
     expect(redactPII(text)).toBe(text);
+  });
+
+  it('does not redact long numeric strings that are not PII', () => {
+    expect(redactPII('1234567890123')).toBe('1234567890123');
+    expect(redactPII('123456789012345')).toBe('123456789012345');
+  });
+});
+
+describe('auditLog', () => {
+  it('calls supabase insert and redacts query', async () => {
+    const insertMock = vi.fn().mockResolvedValue({ error: null });
+    const fromMock = vi.fn().mockReturnValue({ insert: insertMock });
+    const supabase = { from: fromMock };
+
+    const entry = {
+      user_id: 'u1',
+      tenant_id: 't1',
+      action: 'test',
+      query: 'my CPF is 123.456.789-00',
+      success: true
+    };
+
+    await auditLog(supabase, entry);
+
+    expect(fromMock).toHaveBeenCalledWith('assistant_audit');
+    expect(insertMock).toHaveBeenCalledWith(expect.objectContaining({
+      query: 'my CPF is ***CPF***'
+    }));
+  });
+
+  it('handles insert failure silently', async () => {
+    const supabase = { from: () => ({ insert: () => Promise.reject('error') }) };
+    await expect(auditLog(supabase as any, { user_id: 'u', tenant_id: 't', action: 'a', success: true }))
+      .resolves.not.toThrow();
   });
 });
