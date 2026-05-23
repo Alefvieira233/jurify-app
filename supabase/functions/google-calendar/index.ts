@@ -469,7 +469,11 @@ Deno.serve(async (req) => {
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     console.error("[google-calendar] Error:", message);
-    return new Response(JSON.stringify({ error: message }), {
+
+    // Return generic error message to prevent information leakage
+    return new Response(JSON.stringify({
+      error: "Ocorreu um erro ao processar sua solicitação no Google Calendar. Por favor, tente novamente mais tarde."
+    }), {
       status: 500,
       headers: { ...getCorsHeaders(req.headers.get("origin") || undefined), "Content-Type": "application/json" },
     });
