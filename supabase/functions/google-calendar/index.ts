@@ -122,7 +122,7 @@ Deno.serve(async (req) => {
           await supabase.from("google_calendar_sync_logs").insert({
             user_id: responsavelId, agendamento_id: agendamentoId, google_event_id: null, action: "create", status: "error", error_message: message,
           });
-          return new Response(JSON.stringify({ error: message }), {
+          return new Response(JSON.stringify({ error: "Erro ao criar evento no Google Calendar" }), {
             status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" },
           });
         }
@@ -147,7 +147,8 @@ Deno.serve(async (req) => {
           return new Response(JSON.stringify({ busy, connected: true }),
             { headers: { ...corsHeaders, "Content-Type": "application/json" } });
         } catch (err) {
-          return new Response(JSON.stringify({ busy: [], connected: true, error: err instanceof Error ? err.message : String(err) }),
+          console.error("[google-calendar] checkAvailability error:", err);
+          return new Response(JSON.stringify({ busy: [], connected: true, error: "Erro ao consultar disponibilidade" }),
             { headers: { ...corsHeaders, "Content-Type": "application/json" } });
         }
       }
@@ -173,7 +174,8 @@ Deno.serve(async (req) => {
           return new Response(JSON.stringify({ slots, connected: true }),
             { headers: { ...corsHeaders, "Content-Type": "application/json" } });
         } catch (err) {
-          return new Response(JSON.stringify({ slots: [], connected: true, error: err instanceof Error ? err.message : String(err) }),
+          console.error("[google-calendar] suggestSlots error:", err);
+          return new Response(JSON.stringify({ slots: [], connected: true, error: "Erro ao sugerir horários" }),
             { headers: { ...corsHeaders, "Content-Type": "application/json" } });
         }
       }
@@ -191,7 +193,8 @@ Deno.serve(async (req) => {
           const event = await googleService.updateEvent("primary", eventId, eventData);
           return new Response(JSON.stringify({ event }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
         } catch (err) {
-          return new Response(JSON.stringify({ error: err instanceof Error ? err.message : String(err) }),
+          console.error("[google-calendar] updateEvent error:", err);
+          return new Response(JSON.stringify({ error: "Erro ao atualizar evento" }),
             { status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" } });
         }
       }
@@ -208,7 +211,8 @@ Deno.serve(async (req) => {
           await googleService.deleteEvent("primary", eventId);
           return new Response(JSON.stringify({ success: true }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
         } catch (err) {
-          return new Response(JSON.stringify({ error: err instanceof Error ? err.message : String(err) }),
+          console.error("[google-calendar] deleteEvent error:", err);
+          return new Response(JSON.stringify({ error: "Erro ao excluir evento" }),
             { status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" } });
         }
       }
