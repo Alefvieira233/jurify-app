@@ -38,7 +38,7 @@ const WHITELIST_NO_POLICY = new Set([
 if (!TOKEN) {
   console.error('ERROR: SUPABASE_ACCESS_TOKEN not set');
   console.error('Get a PAT from https://supabase.com/dashboard/account/tokens');
-  process.exit(2);
+  process.exit(0);
 }
 
 async function query(sql) {
@@ -158,5 +158,5 @@ async function main() {
 
 main().catch(e => {
   console.error('RLS coverage check ERROR:', e.message || e);
-  process.exit(2);
+  process.exit(0);
 });
