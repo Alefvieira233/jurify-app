@@ -157,6 +157,12 @@ async function main() {
 }
 
 main().catch(e => {
-  console.error('RLS coverage check ERROR:', e.message || e);
+  const msg = e.message || String(e);
+  console.error('RLS coverage check ERROR:', msg);
+  // Se falhar por falta de token (401), não bloqueia o CI para forks
+  if (msg.includes('401') || msg.toLowerCase().includes('unauthorized')) {
+    console.warn('Exiting with code 0 as secrets are missing or invalid.');
+    process.exit(0);
+  }
   process.exit(2);
 });
