@@ -37,7 +37,18 @@ export const STAGE_COLORS: Record<string, StageColors> = {
   sky:     { hex: '#0284c7', light: 'rgba(2,132,199,0.07)',   textColor: '#0369a1', twBg: 'bg-sky-600 dark:bg-sky-500',           twBgSubtle: 'bg-sky-600/10 dark:bg-sky-400/15',       twText: 'text-sky-700 dark:text-sky-400',       twIcon: 'text-sky-600 dark:text-sky-400'      },
 };
 
-/** Map from status ID to human-readable label */
+/**
+ * Map from status ID to human-readable label.
+ *
+ * A1.2 (auditoria 2026-05-25): mantemos derivado de PIPELINE_STAGES porque
+ * este arquivo é usado em componentes de pipeline que precisam do mesmo
+ * shape exposto pelos stages (id + color). A canonical single source ainda
+ * é `@/constants/leadStatus` — Vitest valida que ambos batem (ver
+ * `src/tests/leadStatus.consistency.test.ts`).
+ *
+ * Em runtime, se um stage for renomeado em PIPELINE_STAGES sem refletir em
+ * `constants/leadStatus.ts`, o teste falha — gateando o drift.
+ */
 export const LEAD_STATUS_LABELS: Record<string, string> = Object.fromEntries(
   PIPELINE_STAGES.map((s) => [s.id, s.title]),
 );

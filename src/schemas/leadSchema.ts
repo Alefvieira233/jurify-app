@@ -174,15 +174,11 @@ export const STATUS_LEAD = [
   'perdido',
 ] as const;
 
-export const LEAD_STATUS_LABELS: Record<typeof STATUS_LEAD[number], string> = {
-  novo: 'Novo',
-  em_contato: 'Em Contato',
-  qualificado: 'Qualificado',
-  proposta: 'Proposta',
-  negociacao: 'Negociação',
-  ganho: 'Ganho',
-  perdido: 'Perdido',
-};
+// A1.2 (auditoria 2026-05-25): single source of truth em @/constants/leadStatus.
+// Mantemos o re-export aqui para preservar a API pública do schema (consumers
+// já importam `LEAD_STATUS_LABELS` deste arquivo). Antes este arquivo duplicava
+// o objeto, criando 3 fontes divergentes (constants/schemas/pipelineConfig).
+export { LEAD_STATUS_LABELS } from '@/constants/leadStatus';
 
 // Temperaturas do lead
 export const LEAD_TEMPERATURES = [
