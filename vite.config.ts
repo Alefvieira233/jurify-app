@@ -32,6 +32,21 @@ export default defineConfig(({ mode }) => {
       outDir: 'dist',
       sourcemap: 'hidden',
       minify: 'esbuild',
+      // P0-11 (auditoria 2026-05-25): Vite gera modulepreload automaticamente para
+      // todo chunk em manualChunks. Isso anulava o defer documentado em App.tsx
+      // (Sentry/charts/dnd/calendar carregando no first paint, ~1MB+ desnecessário).
+      // Excluímos os chunks pesados que devem ficar fora do critical path —
+      // eles continuam disponíveis on-demand via dynamic import.
+      modulePreload: {
+        resolveDependencies: (_filename, deps) =>
+          deps.filter(d =>
+            !d.includes('sentry') &&
+            !d.includes('charts') &&
+            !d.includes('dnd') &&
+            !d.includes('calendar') &&
+            !d.includes('flow')
+          ),
+      },
       rollupOptions: {
         output: {
           manualChunks: {
