@@ -89,17 +89,27 @@ export function useGoogleCalendarConnection() {
   }, []);
 
   /* ── Handle OAuth callback (call from callback page/component) ── */
-  const handleCallback = useCallback(async (code: string) => {
+  // P0-4 (auditoria 2026-05-25): assinatura agora recebe `state` obrigatoriamente.
+  // O backend (google-calendar edge function) exige state crypto-random emitido
+  // pelo initiateAuth e validado via consume_oauth_pending_state. Sem ele,
+  // exchangeCode retorna 400 "Missing OAuth state — possible CSRF attempt".
+  const handleCallback = useCallback(async (code: string, state: string) => {
     setError(null);
     setIsConnecting(true);
     try {
+      if (!state) throw new Error('OAuth state missing — CSRF binding required');
+
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) throw new Error('No session');
 
       const redirectUri = sessionStorage.getItem('gcal_redirect_uri')
         || `${window.location.origin}${REDIRECT_PATH}`;
 
-      const result = await callOAuthFunction('exchangeCode', { code, redirectUri }, session.access_token);
+      const result = await callOAuthFunction(
+        'exchangeCode',
+        { code, state, redirectUri },
+        session.access_token,
+      );
       void queryClient.invalidateQueries({ queryKey: queryKeys.googleCalendarStatus.all });
       sessionStorage.removeItem('gcal_redirect_uri');
       return result;

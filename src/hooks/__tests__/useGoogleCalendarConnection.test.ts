@@ -60,4 +60,19 @@ describe('useGoogleCalendarConnection', () => {
     expect(typeof result.current.connect).toBe('function');
     expect(typeof result.current.disconnect).toBe('function');
   });
+
+  // P0-4 (auditoria 2026-05-25): handleCallback exige `state` obrigatório.
+  // Sem ele, backend retorna 400 "Missing OAuth state — possible CSRF attempt".
+  it('handleCallback rejeita chamada sem state (CSRF binding)', async () => {
+    const { result } = renderHook(() => useGoogleCalendarConnection(), { wrapper: createWrapper() });
+    await expect(
+      // intentional empty string — força o guard interno
+      result.current.handleCallback('valid-code', ''),
+    ).rejects.toThrow(/OAuth state missing/i);
+  });
+
+  it('handleCallback aceita code+state e expõe assinatura correta', () => {
+    const { result } = renderHook(() => useGoogleCalendarConnection(), { wrapper: createWrapper() });
+    expect(result.current.handleCallback.length).toBe(2); // 2 parâmetros: code, state
+  });
 });

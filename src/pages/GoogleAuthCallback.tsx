@@ -26,6 +26,7 @@ const GoogleAuthCallback: React.FC = () => {
     const processCallback = async () => {
       try {
         const code = searchParams.get('code');
+        const state = searchParams.get('state');
         const error = searchParams.get('error');
 
         if (error) {
@@ -36,7 +37,15 @@ const GoogleAuthCallback: React.FC = () => {
           throw new Error('Código de autorização ausente no callback');
         }
 
-        await handleCallback(code);
+        // P0-4 (auditoria 2026-05-25): backend exige `state` desde a migration
+        // 20260507000013_oauth_pending_states (CSRF binding). Sem ele, exchangeCode
+        // retorna 400 "Missing OAuth state — possible CSRF attempt" e todo usuário
+        // novo falhava ao conectar Calendar.
+        if (!state) {
+          throw new Error('Parâmetro state ausente no callback (possível ataque CSRF)');
+        }
+
+        await handleCallback(code, state);
         setStatus('success');
 
         setTimeout(() => {
