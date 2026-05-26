@@ -873,11 +873,25 @@ export async function processNormalizedMessage(
       // Se sim, expõe as agent tools pra que a IA possa executar essas operações via function calling.
       // Caso contrário, mantém fluxo de texto puro (mais barato/rápido).
       const lowerText = processedText.toLowerCase();
+      // P0-1 (auditoria 2026-05-25): detecção de intent de transferência na
+      // MENSAGEM DO LEAD (não mais regex post-hoc na resposta da IA). Ativa o
+      // tool gate (hasActionIntent) para que o agente possa chamar
+      // transfer_to_agent diretamente. Padrões cobrem 3 famílias de pedido:
+      //   1. "me transfere/transfira/transferir para/com X"
+      //   2. "quero/posso/preciso falar com (Dr/Dra) X"
+      //   3. "passa/passe/encaminha para X" / "chama o X"
+      const hasTransferIntent =
+        /\btransfer(?:e|i|ir|ÊNCIA|ência|a[-\s]?me)\s+(?:para|pro|pra|com)\b/i.test(lowerText) ||
+        /\b(?:quero|posso|preciso|gostaria|posso\s+por\s+favor)\s+falar\s+(?:com|diretamente\s+com)\b/i.test(lowerText) ||
+        /\bpod(?:e|eria)?\s+(?:me\s+)?(?:transferir|passar|encaminhar|conectar)\b/i.test(lowerText) ||
+        /\b(?:chama|chame|encaminha|passa|passe)\s+(?:o|a|para|pro|pra)\b.*\bdra?\.?\s+\w+/i.test(lowerText);
+
       const hasActionIntent =
         detectScheduleIntent(processedText) ||
         /\b(remarcar|reagendar|reagendamento|trocar.*hor[áa]rio|mudar.*hor[áa]rio|adiar|antecipar)\b/i.test(lowerText) ||
         /\b(cancelar|desmarcar|n[ãa]o\s+(quero|posso)\s+mais|cancelamento)\b/i.test(lowerText) ||
-        /\b(disponibilidade|hor[áa]rios?\s+livres?|quando\s+pode|qual\s+(dia|hor[áa]rio))\b/i.test(lowerText);
+        /\b(disponibilidade|hor[áa]rios?\s+livres?|quando\s+pode|qual\s+(dia|hor[áa]rio))\b/i.test(lowerText) ||
+        hasTransferIntent;
 
       // Augmenta o system prompt com info de fase + contexto acumulado pra agente
       // ter consciência do estado da conversa (quem é o lead, o que já foi falado,
@@ -900,14 +914,29 @@ export async function processNormalizedMessage(
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 30_000);
 
-      // Tool context (built once per turn — re-used across loop iterations)
+      // Tool context (built once per turn — re-used across loop iterations).
+      // P0-2 (2026-05-25): conversationId precisa fluir até aqui para a tool
+      // transfer_to_agent gravar pending_handoff_to em conversation_state.
       const toolContext = hasActionIntent && tenantId
-        ? await buildToolContext(supabase as never, tenantId, leadId, resolvedResponsavelId, responsavelNome)
+        ? await buildToolContext(
+            supabase as never,
+            tenantId,
+            leadId,
+            resolvedResponsavelId,
+            responsavelNome,
+            conversationId,
+          )
         : null;
 
       let aiResult: Awaited<ReturnType<typeof callOpenAI>> | null = null;
       let totalTokensIn = 0;
       let totalTokensOut = 0;
+      // P0-5 (auditoria 2026-05-25): flag para o parser legacy de agendamento
+      // saber que a IA já lidou com o assunto via function-calling neste turn.
+      // Sem isso, IA agendava via tool e logo em seguida o parser regex rodava
+      // e sobrescrevia a resposta com "Você já tem agendamento ativo".
+      let aiUsedSchedulingTool = false;
+      let aiUsedTransferTool = false;
       const MAX_TOOL_ITERATIONS = 4;
 
       try {
@@ -954,6 +983,11 @@ export async function processNormalizedMessage(
           });
 
           // Execute each tool and append result
+          // P0-2 (2026-05-25): se `transfer_to_agent` foi executado com sucesso,
+          // encerramos o loop imediatamente e usamos `handoff_message` como
+          // resposta visível ao cliente — evita que a IA "explique de novo" ou
+          // faça pergunta extra após anunciar a transferência.
+          let handoffShortCircuit: string | null = null;
           for (const tc of toolCalls) {
             // deno-lint-ignore no-explicit-any
             let parsedArgs: any = {};
@@ -974,6 +1008,42 @@ export async function processNormalizedMessage(
               name: tc.function.name,
               content: JSON.stringify(toolResult),
             });
+
+            // P0-5: marca que a IA já lidou com agendamento/transferência neste
+            // turn — usado pelo parser legacy abaixo para não rodar duplicado.
+            if (toolResult.success) {
+              if (
+                tc.function.name === "schedule_meeting" ||
+                tc.function.name === "reschedule_meeting" ||
+                tc.function.name === "cancel_meeting" ||
+                tc.function.name === "check_availability" ||
+                tc.function.name === "suggest_slots"
+              ) {
+                aiUsedSchedulingTool = true;
+              }
+              if (tc.function.name === "transfer_to_agent") {
+                aiUsedTransferTool = true;
+              }
+            }
+
+            if (
+              tc.function.name === "transfer_to_agent" &&
+              toolResult.success &&
+              typeof parsedArgs?.handoff_message === "string" &&
+              parsedArgs.handoff_message.trim().length > 0
+            ) {
+              handoffShortCircuit = parsedArgs.handoff_message.trim().substring(0, 800);
+            }
+          }
+
+          if (handoffShortCircuit) {
+            // Substitui a resposta da IA pelo texto curto e direto do handoff.
+            aiResult = {
+              ...aiResult,
+              content: handoffShortCircuit,
+            };
+            console.log(`[processMsg:${provider}] handoff short-circuit → using handoff_message as final response`);
+            break;
           }
           // Loop continues — re-call OpenAI with tool results
         }
@@ -1004,19 +1074,27 @@ export async function processNormalizedMessage(
       };
       // Token usage already recorded inside callOpenAI.
 
-      // Mark execution completed
+      // P0-6 (auditoria 2026-05-25): UPDATE síncrono — o `void ... .then(...)` anterior
+      // perdia corrida com a finalização do edge runtime, deixando 25/25 execuções em
+      // `processing` mesmo após sucesso. Métrica + observabilidade morriam.
       const duration = Date.now() - aiStartTime;
-      void supabase
-        .from("agent_executions")
-        .update({
-          status: "completed",
-          completed_at: new Date().toISOString(),
-          total_duration_ms: duration,
-          total_tokens: aiResponse.usage?.total_tokens || 0,
-        })
-        .eq("execution_id", executionId)
-        .eq("tenant_id", tenantId)
-        .then(({ error }) => { if (error) console.error("[webhook] execution complete error:", error.message); });
+      try {
+        const { error: execUpdateErr } = await supabase
+          .from("agent_executions")
+          .update({
+            status: "completed",
+            completed_at: new Date().toISOString(),
+            total_duration_ms: duration,
+            total_tokens: aiResponse.usage?.total_tokens || 0,
+          })
+          .eq("execution_id", executionId)
+          .eq("tenant_id", tenantId);
+        if (execUpdateErr) {
+          console.error("[webhook] execution complete error:", execUpdateErr.message);
+        }
+      } catch (execUpdateThrow) {
+        console.error("[webhook] execution complete threw:", execUpdateThrow);
+      }
 
       // Log AI processing (non-blocking) — keep webhook-specific row for
       // system_prompt + user_prompt (not captured by ai-caller's log).
@@ -1122,30 +1200,42 @@ export async function processNormalizedMessage(
       if (err instanceof BudgetExceededError) {
         budgetExceeded = true;
         console.warn(`[whatsapp-webhook] AI budget exceeded (${err.scope}) for tenant ${tenantId} — skipping AI response`);
-        void supabase
-          .from("agent_executions")
-          .update({
-            status: "failed",
-            error_message: `budget_exceeded:${err.scope ?? "unknown"}`,
-            completed_at: new Date().toISOString(),
-          })
-          .eq("execution_id", executionId)
-          .eq("tenant_id", tenantId)
-          .then(({ error }) => { if (error) console.error("[webhook] execution fail error:", error.message); });
+        try {
+          const { error: execFailErr } = await supabase
+            .from("agent_executions")
+            .update({
+              status: "failed",
+              error_message: `budget_exceeded:${err.scope ?? "unknown"}`,
+              completed_at: new Date().toISOString(),
+            })
+            .eq("execution_id", executionId)
+            .eq("tenant_id", tenantId);
+          if (execFailErr) {
+            console.error("[webhook] execution fail (budget) error:", execFailErr.message);
+          }
+        } catch (execFailThrow) {
+          console.error("[webhook] execution fail (budget) threw:", execFailThrow);
+        }
       } else {
         aiError = err instanceof Error ? err : new Error(String(err));
         console.error(`[processMsg:${provider}] AI error (using fallback):`, aiError.message);
 
-        void supabase
-          .from("agent_executions")
-          .update({
-            status: "failed",
-            error_message: aiError.message,
-            completed_at: new Date().toISOString(),
-          })
-          .eq("execution_id", executionId)
-          .eq("tenant_id", tenantId)
-          .then(({ error }) => { if (error) console.error("[webhook] execution fail error:", error.message); });
+        try {
+          const { error: execFailErr } = await supabase
+            .from("agent_executions")
+            .update({
+              status: "failed",
+              error_message: aiError.message,
+              completed_at: new Date().toISOString(),
+            })
+            .eq("execution_id", executionId)
+            .eq("tenant_id", tenantId);
+          if (execFailErr) {
+            console.error("[webhook] execution fail (ai) error:", execFailErr.message);
+          }
+        } catch (execFailThrow) {
+          console.error("[webhook] execution fail (ai) threw:", execFailThrow);
+        }
       }
     }
 
@@ -1210,7 +1300,16 @@ export async function processNormalizedMessage(
     //   4. Se não extraiu: responde pedindo data/hora em vez de agendar hardcoded.
     //
     // Evita duplicação: não agenda se o lead já tiver agendamento futuro ativo.
-    const leadWantsToSchedule = !leadConfirmed && detectScheduleIntent(text);
+    //
+    // P0-5 (auditoria 2026-05-25): gateamos o parser legacy por aiUsedSchedulingTool
+    // e aiUsedTransferTool. Quando a IA já lidou com a intenção via function-call
+    // (schedule/reschedule/cancel/transfer), o parser regex NÃO roda — evita
+    // sobrescrita da resposta IA com "Você já tem agendamento ativo".
+    const leadWantsToSchedule =
+      !leadConfirmed &&
+      !aiUsedSchedulingTool &&
+      !aiUsedTransferTool &&
+      detectScheduleIntent(text);
 
     if (leadWantsToSchedule && leadId) {
       // Checa se lead já tem agendamento ativo futuro — evita duplicação
