@@ -15,6 +15,7 @@
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { getCorsHeaders } from "../_shared/cors.ts";
+import { checkTrialAccess, trialBlockedResponse } from "../_shared/trial-gate.ts";
 
 interface Request { messageId: string; }
 
@@ -74,6 +75,17 @@ Deno.serve(async (req) => {
     if ((msg as { sentiment_analyzed_at?: string | null }).sentiment_analyzed_at) {
       return new Response(JSON.stringify({ success: true, skipped: "already_analyzed" }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200 });
+    }
+
+    // 🚫 TRIAL GATE — E1.1 (auditoria 2026-05-25). Função é fire-and-forget do
+    // webhook, mas evitar consumo de OpenAI em tenants com trial expirado.
+    const tenantId = (msg as { tenant_id?: string | null }).tenant_id;
+    if (tenantId) {
+      const gate = await checkTrialAccess(supabase, tenantId, "ai_responder");
+      if (!gate.allowed) {
+        console.log(`🔒 [trial-gate] tenant ${tenantId} bloqueado para sentiment (${gate.reason})`);
+        return trialBlockedResponse(gate.reason || "trial_expired", corsHeaders);
+      }
     }
 
     const content = ((msg as { content: string }).content || "").trim();

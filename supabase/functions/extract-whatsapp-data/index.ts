@@ -14,6 +14,7 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { getCorsHeaders } from "../_shared/cors.ts";
 import { applyRateLimit } from "../_shared/rate-limiter.ts";
+import { checkTrialAccess, trialBlockedResponse } from "../_shared/trial-gate.ts";
 
 interface Request { conversationId: string; }
 
@@ -79,6 +80,13 @@ Deno.serve(async (req) => {
     const { data: profile } = await supabase.from("profiles").select("tenant_id").eq("id", user.id).single();
     const tenantId = (profile as { tenant_id?: string } | null)?.tenant_id;
     if (!tenantId) throw new Error("Tenant não encontrado");
+
+    // 🚫 TRIAL GATE — E1.1 (auditoria 2026-05-25)
+    const gate = await checkTrialAccess(supabase, tenantId, "ai_responder");
+    if (!gate.allowed) {
+      console.log(`🔒 [trial-gate] tenant ${tenantId} bloqueado para extract (${gate.reason})`);
+      return trialBlockedResponse(gate.reason || "trial_expired", corsHeaders);
+    }
 
     // Pega últimas 100 mensagens da conversa
     const { data: msgs } = await supabase

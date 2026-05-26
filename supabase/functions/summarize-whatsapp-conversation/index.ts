@@ -14,6 +14,7 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { getCorsHeaders } from "../_shared/cors.ts";
 import { applyRateLimit } from "../_shared/rate-limiter.ts";
+import { checkTrialAccess, trialBlockedResponse } from "../_shared/trial-gate.ts";
 
 interface Request {
   conversationId: string;
@@ -67,6 +68,14 @@ Deno.serve(async (req) => {
     const { data: profile } = await supabase.from("profiles").select("tenant_id").eq("id", user.id).single();
     const tenantId = (profile as { tenant_id?: string } | null)?.tenant_id;
     if (!tenantId) throw new Error("Tenant não encontrado");
+
+    // 🚫 TRIAL GATE — bloqueia uso de IA outbound se trial expirado.
+    // E1.1 (auditoria 2026-05-25): faltava gate em 4 funcs IA.
+    const gate = await checkTrialAccess(supabase, tenantId, "ai_responder");
+    if (!gate.allowed) {
+      console.log(`🔒 [trial-gate] tenant ${tenantId} bloqueado para summarize (${gate.reason})`);
+      return trialBlockedResponse(gate.reason || "trial_expired", corsHeaders);
+    }
 
     // Verifica conversation existe e pertence ao tenant
     const { data: conv } = await supabase
