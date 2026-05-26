@@ -156,6 +156,48 @@ export const AGENT_TOOLS = [
       },
     },
   },
+  {
+    // P0-2 (auditoria 2026-05-25): tool de handoff explícita substituindo regex
+    // post-hoc na resposta da IA. Detecção heurística falhava em frases negativas
+    // ("entendo, MAS preciso entender" + nome do agente no texto) — handoff
+    // jamais ocorria. Agora o agente decide via function-call, com motivo e
+    // mensagem de transição claros para o cliente.
+    type: "function",
+    function: {
+      name: "transfer_to_agent",
+      description:
+        "Transfere a conversa para outro agente especialista do escritório. Use SOMENTE quando: (a) o cliente pedir explicitamente para falar com outro profissional (ex: 'me transfere para a Dra. Jacira'); ou (b) o caso fugir claramente do seu escopo definido (ex: você é o recepcionista e o cliente trouxe matéria jurídica complexa que exige um especialista). Após chamar esta tool, NÃO faça pergunta adicional — apenas anuncie a transferência via `handoff_message`. O próximo turn será respondido pelo agente alvo.",
+      parameters: {
+        type: "object",
+        properties: {
+          target_agent_type: {
+            type: "string",
+            enum: [
+              "recepcionista",
+              "juridico",
+              "juridico_bancario",
+              "comercial",
+              "suporte",
+              "analista_documentos",
+            ],
+            description:
+              "Tipo do agente alvo. Use 'juridico_bancario' para banco/financiamento/empréstimo/score/cartão. Use 'juridico' para outros temas jurídicos complexos. Use 'comercial' para discussão de honorários/orçamento. Use 'suporte' para dúvidas operacionais do escritório. Use 'analista_documentos' para análise de documentos enviados. Use 'recepcionista' apenas em casos de retorno de bypass.",
+          },
+          reason: {
+            type: "string",
+            description:
+              "Motivo curto da transferência (1 frase). Será gravado em audit_log para telemetria. Ex: 'Lead solicitou Dra. Jacira nominalmente' ou 'Tema bancário fora do escopo do recepcionista'.",
+          },
+          handoff_message: {
+            type: "string",
+            description:
+              "Mensagem curta enviada ao cliente anunciando a transferência. Não faça pergunta — apenas confirme. Ex: 'Vou te transferir para a Dra. Jacira, especialista em direito bancário. Um momento.' (máx 200 chars)",
+          },
+        },
+        required: ["target_agent_type", "reason", "handoff_message"],
+      },
+    },
+  },
 ] as const;
 
 export type AgentToolName =
@@ -164,4 +206,5 @@ export type AgentToolName =
   | "schedule_meeting"
   | "reschedule_meeting"
   | "cancel_meeting"
-  | "update_lead_kanban";
+  | "update_lead_kanban"
+  | "transfer_to_agent";

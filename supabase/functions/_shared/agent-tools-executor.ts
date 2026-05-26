@@ -26,6 +26,11 @@ export interface ToolContext {
   /** Most recent active agendamento for this lead (for reschedule/cancel). */
   activeAgendamentoId: string | null;
   activeGoogleEventId: string | null;
+  /** P0-2 (2026-05-25): id da conversation (whatsapp_conversations) para
+   *  permitir tool transfer_to_agent gravar pending_handoff_to em
+   *  conversation_state. Nullable porque há fluxos onde a conversation ainda
+   *  não foi criada (primeiro contato). */
+  conversationId: string | null;
 }
 
 interface ToolResult {
@@ -385,6 +390,110 @@ async function tool_updateLeadKanban(
 }
 
 // =====================================================================
+// P0-2 (2026-05-25): TRANSFER_TO_AGENT — handoff explícito via function-call
+// =====================================================================
+
+async function tool_transferToAgent(
+  ctx: ToolContext,
+  args: { target_agent_type: string; reason: string; handoff_message: string },
+): Promise<ToolResult> {
+  try {
+    if (!ctx.conversationId) {
+      return {
+        success: false,
+        error: "Conversation ID indisponível — handoff requer conversa persistida.",
+      };
+    }
+
+    const target = (args.target_agent_type || "").trim();
+    if (!target) {
+      return { success: false, error: "target_agent_type vazio." };
+    }
+
+    // Confirma que o agente alvo existe e está ativo neste tenant.
+    const { data: agentRow, error: agentErr } = await ctx.supabase
+      .from("agentes_ia")
+      .select("id, nome, tipo, ativo")
+      .eq("tenant_id", ctx.tenantId)
+      .eq("tipo", target)
+      .eq("ativo", true)
+      .maybeSingle();
+
+    if (agentErr) {
+      return { success: false, error: `Erro ao buscar agente alvo: ${agentErr.message}` };
+    }
+
+    if (!agentRow) {
+      // Fallback graceful: não derruba a UX do cliente, mas registra para audit
+      console.warn(
+        `[transfer_to_agent] Agente alvo '${target}' não disponível no tenant ${ctx.tenantId}`,
+      );
+      return {
+        success: false,
+        error: `agent_not_available:${target}`,
+        message:
+          "O especialista solicitado não está disponível agora. Vou continuar atendendo e, se necessário, encaminho posteriormente.",
+      };
+    }
+
+    // Persiste o handoff em conversation_state — próximo turn pula o orchestrator
+    // e despacha direto para target_agent_type (cf. process-message.ts).
+    const { error: stateErr } = await ctx.supabase
+      .from("conversation_state")
+      .upsert(
+        {
+          conversation_id: ctx.conversationId,
+          tenant_id: ctx.tenantId,
+          pending_handoff_to: target,
+          handoff_reason: args.reason?.substring(0, 500) ?? null,
+          handoff_expires_at: new Date(Date.now() + 30 * 60 * 1000).toISOString(),
+          updated_at: new Date().toISOString(),
+        },
+        { onConflict: "conversation_id" },
+      );
+
+    if (stateErr) {
+      return {
+        success: false,
+        error: `Falha ao persistir handoff em conversation_state: ${stateErr.message}`,
+      };
+    }
+
+    // Telemetria: registra em audit_log (imutável) para análise post-mortem
+    // e para o dashboard de qualidade de handoff.
+    await ctx.supabase.from("audit_log").insert({
+      tenant_id: ctx.tenantId,
+      action: "agent_handoff",
+      entity_type: "conversation",
+      entity_id: ctx.conversationId,
+      // user_id null aqui (chamada server-to-server pela IA)
+      metadata: {
+        from_lead_id: ctx.leadId,
+        target_agent_type: target,
+        target_agent_id: agentRow.id,
+        target_agent_name: agentRow.nome,
+        reason: args.reason?.substring(0, 500) ?? null,
+        triggered_by: "tool_call",
+      },
+    });
+
+    return {
+      success: true,
+      data: {
+        target_agent_type: target,
+        target_agent_name: agentRow.nome,
+        handoff_message: args.handoff_message,
+      },
+      // O texto retornado entra como input do próximo passo do agente.
+      // O webhook usa `handoff_message` direto como resposta visível ao cliente.
+      message: `Handoff registrado para ${agentRow.nome}. Próximo turn será atendido por ${target}.`,
+    };
+  } catch (err) {
+    return { success: false, error: err instanceof Error ? err.message : String(err) };
+  }
+}
+
+// =====================================================================
 // PUBLIC API
 // =====================================================================
 
@@ -409,6 +518,8 @@ export async function executeAgentTool(
       return tool_cancelMeeting(ctx, args);
     case "update_lead_kanban":
       return tool_updateLeadKanban(ctx, args);
+    case "transfer_to_agent":
+      return tool_transferToAgent(ctx, args);
     default:
       return { success: false, error: `Tool desconhecida: ${toolName}` };
   }
@@ -416,6 +527,10 @@ export async function executeAgentTool(
 
 /**
  * Builds the ToolContext from supabase + leadId. Returns null if lead/responsavel not resolvable.
+ * P0-2 (2026-05-25): aceita conversationId opcional para suportar a tool
+ * transfer_to_agent (que persiste pending_handoff_to em conversation_state).
+ * Callers antigos que não passarem o param continuam funcionando — apenas
+ * a tool transfer_to_agent retornará erro graceful.
  */
 export async function buildToolContext(
   supabase: SupabaseClient,
@@ -423,6 +538,7 @@ export async function buildToolContext(
   leadId: string | null,
   responsavelId: string | null,
   responsavelNome: string,
+  conversationId: string | null = null,
 ): Promise<ToolContext> {
   let leadEmail: string | null = null;
   let leadNome: string | null = null;
@@ -470,6 +586,7 @@ export async function buildToolContext(
     areaJuridica,
     activeAgendamentoId,
     activeGoogleEventId,
+    conversationId,
   };
 }
 
