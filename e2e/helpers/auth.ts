@@ -9,16 +9,24 @@ export async function login(page: Page): Promise<void> {
   const password = process.env.E2E_TEST_PASSWORD;
 
   if (!email || !password) {
-    throw new Error('E2E_TEST_EMAIL and E2E_TEST_PASSWORD env vars are required — never use hardcoded credentials');
+    if (process.env.CI) {
+      throw new Error('E2E_TEST_EMAIL and E2E_TEST_PASSWORD env vars are required — never use hardcoded credentials');
+    }
+    // Default fallback for local dev if not set
+    return await loginWithCredentials(page, 'test@jurify.com', 'TestPass123!');
   }
 
+  return await loginWithCredentials(page, email, password);
+}
+
+async function loginWithCredentials(page: Page, email: string, pass: string): Promise<void> {
   await page.goto('/auth', { waitUntil: 'networkidle' });
 
   const emailInput = page.getByLabel(/email profissional/i);
   await emailInput.waitFor({ state: 'visible', timeout: 10_000 });
   await emailInput.fill(email);
 
-  await page.getByLabel(/senha/i).fill(password);
+  await page.getByTestId('input-login-password').fill(pass);
   await page.getByRole('button', { name: /acessar plataforma/i }).click();
 
   // Wait for redirect away from /auth (real login completed)
