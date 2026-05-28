@@ -13,7 +13,7 @@
 // ---------------------------------------------------------------------------
 
 const INJECTION_PATTERNS = [
-  /ignore\s+(previous|all|above)\s+(instructions?|prompts?|rules?)/i,
+  /ignore\s+.*?\s+(instructions?|prompts?|rules?)/i,
   /you\s+are\s+now\s+/i,
   /system\s*:\s*/i,
   /\bDAN\b/,
@@ -27,7 +27,7 @@ const INJECTION_PATTERNS = [
 
 // Homoglyph map for common substitution attacks (e.g. "ign0re" → "ignore")
 const HOMOGLYPHS: Record<string, string> = {
-  "0": "o", "1": "l", "3": "e", "4": "a", "5": "s",
+  "0": "o", "1": "i", "3": "e", "4": "a", "5": "s",
   "@": "a", "$": "s", "!": "i",
 };
 
@@ -67,7 +67,7 @@ export function sanitizeInput(
   }
 
   // Detect base64-encoded payloads that might hide injection instructions
-  const base64Match = trimmed.match(/[A-Za-z0-9+/]{40,}={0,2}/);
+  const base64Match = trimmed.match(/[A-Za-z0-9+/]{16,}={0,2}/);
   if (base64Match) {
     try {
       const decoded = atob(base64Match[0]);
@@ -86,17 +86,37 @@ export function sanitizeInput(
 }
 
 // ---------------------------------------------------------------------------
-// PII content filtering
+// PII content filtering (LGPD / GDPR Compliance)
 // ---------------------------------------------------------------------------
 
 const PII_PATTERNS: Array<{ pattern: RegExp; label: string; replacement: string }> = [
-  { pattern: /\b\d{3}\.?\d{3}\.?\d{3}-?\d{2}\b/g, label: "CPF", replacement: "***CPF***" },
-  { pattern: /\b\d{2}\.?\d{3}\.?\d{3}-?[\dXx]\b/g, label: "RG", replacement: "***RG***" },
+  // Email
+  { pattern: /\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b/g, label: "Email", replacement: "***EMAIL***" },
+  // CNPJ (Brazilian Business Tax ID) - Before phone/CPF to avoid partial match
+  { pattern: /\b\d{2}\.?\d{3}\.?\d{3}\/?\d{4}-?\d{2}\b/g, label: "CNPJ", replacement: "***CNPJ***" },
+  // CPF (Brazilian Individual Tax ID) - Before phone to avoid partial match
+  { pattern: /\b\d{3}\.\d{3}\.\d{3}-\d{2}\b/g, label: "CPF", replacement: "***CPF***" },
+  // CPF RAW (11 digits) - specifically for raw numeric strings.
+  // Matches 11 digits that are not clearly a phone (heuristic).
+  { pattern: /(?<!\d)(?!(\d{2})?9\d{8})\d{11}(?!\d)/g, label: "CPF_RAW", replacement: "***CPF***" },
+  // Credit Card - Before phone to avoid partial match
   { pattern: /\b\d{4}\s?\d{4}\s?\d{4}\s?\d{4}\b/g, label: "Card", replacement: "***CARD***" },
+  // Phone (Brazilian + International variants) - Guarded to avoid matching CPFs.
+  // Note: 11-digit raw numbers are prioritized as CPFs by the pattern above.
+  { pattern: /(?<!\d)(?:\+?55\s?)?(?:\(?\d{2}\)?\s?)?(?:[1-9]{2}9?\d{4}[-\s]?\d{4}|9?\d{4}[-\s]?\d{4})(?!\d)/g, label: "Phone", replacement: "***PHONE***" },
+  // OAB (Brazilian Bar Association ID)
+  { pattern: /\bOAB\s*\/?[A-Z]{2}\s*[\d.]{2,}\b/gi, label: "OAB", replacement: "***OAB***" },
+  // RG (Brazilian Identity Card)
+  { pattern: /\b\d{2}\.?\d{3}\.?\d{3}-?[\dXx]\b/g, label: "RG", replacement: "***RG***" },
 ];
 
-/** Redact PII from assistant responses before sending to client. */
+/**
+ * Redact PII from assistant responses or logs.
+ * ALWAYS call this on the FULL string before performing any truncation (like .substring())
+ * to avoid breaking sensitive patterns and bypassing detection.
+ */
 export function redactPII(text: string): string {
+  if (!text || typeof text !== "string") return text;
   let result = text;
   for (const { pattern, replacement } of PII_PATTERNS) {
     result = result.replace(pattern, replacement);
