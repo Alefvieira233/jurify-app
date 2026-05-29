@@ -169,7 +169,8 @@ Deno.serve(async (req) => {
       try {
         parsed = JSON.parse(rawBody);
       } catch {
-        console.error("[webhook] Invalid JSON body:", rawBody.substring(0, 500));
+        // PII redaction MUST occur before truncation to prevent token splitting.
+        console.error("[webhook] Invalid JSON body:", redactPII(rawBody).substring(0, 500));
         return new Response("Bad Request", { status: 400, headers: corsHeaders });
       }
 
@@ -178,6 +179,7 @@ Deno.serve(async (req) => {
       const batchHeader = req.headers.get("x-webhook-batch");
       const eventHeader = req.headers.get("x-webhook-event");
       const sigHeader = req.headers.get("x-webhook-signature") ? "present" : "absent";
+      // rawBody may contain PII in JSON fields. Log only metadata.
       console.log(`[webhook] Received: type=${typeof parsed} isArray=${Array.isArray(parsed)} keys=${rawKeys} batch=${batchHeader} event=${eventHeader} sig=${sigHeader} size=${rawBody.length}`);
 
       // ============================================
@@ -359,7 +361,8 @@ Deno.serve(async (req) => {
           }
           const normalized = normalizeKapsoMessage(payload, eventHeader);
           if (normalized) {
-            console.log(`[webhook:kapso] Processing message from ${normalized.from}: "${redactPII(normalized.text.substring(0, 50))}"`);
+            // PII redaction MUST occur before truncation to prevent token splitting.
+            console.log(`[webhook:kapso] Processing message from ${redactPII(normalized.from)}: "${redactPII(normalized.text).substring(0, 50)}"`);
             await processNormalizedMessage(supabase, normalized);
           } else {
             console.warn(`[webhook:kapso] Could not normalize message | keys: ${payloadKeys} | event: ${event}`);
