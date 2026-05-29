@@ -157,7 +157,8 @@ export async function processNormalizedMessage(
 
     if (!tenantId) {
       // P0 SECURITY: strict tenant resolution failed. Sem fallback por telefone do lead.
-      console.error(`[processMsg:${provider}] TENANT_RESOLUTION_FAILED_STRICT | from=${from} | instance=${instanceName} | type=${messageType} | text="${redactPII(text.substring(0, 80))}"`);
+      // PII redaction MUST occur before truncation to prevent token splitting.
+      console.error(`[processMsg:${provider}] TENANT_RESOLUTION_FAILED_STRICT | from=${redactPII(from)} | instance=${instanceName} | type=${messageType} | text="${redactPII(text).substring(0, 80)}"`);
       // Persist failed resolution for diagnostics
       void supabase.from("webhook_events").insert({
         event_id: `unresolved_${Date.now()}_${from}`,
@@ -575,7 +576,8 @@ export async function processNormalizedMessage(
 
         processedText = mediaResult.extractedText;
         mediaCategory = mediaResult.mediaCategory;
-        console.log(`[processMsg:${provider}] Media processed (${mediaResult.processingMethod}, ${mediaResult.durationMs}ms): "${processedText.substring(0, 80)}..."`);
+        // PII redaction MUST occur before truncation to prevent token splitting.
+        console.log(`[processMsg:${provider}] Media processed (${mediaResult.processingMethod}, ${mediaResult.durationMs}ms): "${redactPII(processedText).substring(0, 80)}..."`);
       } catch (mediaErr) {
         console.error(`[processMsg:${provider}] Media processing failed, using raw text:`, mediaErr);
       }
@@ -1099,6 +1101,11 @@ export async function processNormalizedMessage(
       // Log AI processing (non-blocking) — keep webhook-specific row for
       // system_prompt + user_prompt (not captured by ai-caller's log).
       if (executionRowId) {
+        // PII redaction MUST occur before truncation to prevent token splitting.
+        const redactedResult = redactPII(resultText);
+        const redactedSystem = redactPII(finalSystemPrompt);
+        const redactedUser = redactPII(commandIntent ?? processedText);
+
         void supabase.from("agent_ai_logs").insert({
           execution_id: executionRowId,
           agent_name: agentName,
@@ -1108,16 +1115,17 @@ export async function processNormalizedMessage(
           prompt_tokens: aiResponse.usage?.prompt_tokens || 0,
           completion_tokens: aiResponse.usage?.completion_tokens || 0,
           total_tokens: aiResponse.usage?.total_tokens || 0,
-          result_preview: resultText.substring(0, 200),
-          system_prompt: finalSystemPrompt.substring(0, 500),
-          user_prompt: (commandIntent ?? processedText).substring(0, 500),
-          full_result: resultText.substring(0, 2000),
+          result_preview: redactedResult.substring(0, 200),
+          system_prompt: redactedSystem.substring(0, 500),
+          user_prompt: redactedUser.substring(0, 500),
+          full_result: redactedResult.substring(0, 2000),
           context: { mediaCategory, agent: agentName, hasLegalContext: legalCtx.has_context },
           created_at: new Date().toISOString(),
         }).then(({ error }) => { if (error) console.error("[webhook] ai_log insert error:", error.message); });
       }
 
-      console.log(`[processMsg:${provider}] ${agentName} responded: "${resultText.substring(0, 80)}..."`);
+      // PII redaction MUST occur before truncation to prevent token splitting.
+      console.log(`[processMsg:${provider}] ${agentName} responded: "${redactPII(resultText).substring(0, 80)}..."`);
 
       // ── ONDA 17: Update conversation phase + state-based handoff ──
       try {
