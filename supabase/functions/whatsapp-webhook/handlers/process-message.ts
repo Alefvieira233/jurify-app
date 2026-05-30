@@ -1099,6 +1099,11 @@ export async function processNormalizedMessage(
       // Log AI processing (non-blocking) — keep webhook-specific row for
       // system_prompt + user_prompt (not captured by ai-caller's log).
       if (executionRowId) {
+        // Redact PII before logging to prevent sensitive data leakage
+        const redactedResult = redactPII(resultText);
+        const redactedUserPrompt = redactPII(commandIntent ?? processedText);
+        const redactedSystemPrompt = redactPII(finalSystemPrompt);
+
         void supabase.from("agent_ai_logs").insert({
           execution_id: executionRowId,
           agent_name: agentName,
@@ -1108,10 +1113,10 @@ export async function processNormalizedMessage(
           prompt_tokens: aiResponse.usage?.prompt_tokens || 0,
           completion_tokens: aiResponse.usage?.completion_tokens || 0,
           total_tokens: aiResponse.usage?.total_tokens || 0,
-          result_preview: resultText.substring(0, 200),
-          system_prompt: finalSystemPrompt.substring(0, 500),
-          user_prompt: (commandIntent ?? processedText).substring(0, 500),
-          full_result: resultText.substring(0, 2000),
+          result_preview: redactedResult.substring(0, 200),
+          system_prompt: redactedSystemPrompt.substring(0, 500),
+          user_prompt: redactedUserPrompt.substring(0, 500),
+          full_result: redactedResult.substring(0, 2000),
           context: { mediaCategory, agent: agentName, hasLegalContext: legalCtx.has_context },
           created_at: new Date().toISOString(),
         }).then(({ error }) => { if (error) console.error("[webhook] ai_log insert error:", error.message); });
