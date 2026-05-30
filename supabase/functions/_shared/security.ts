@@ -90,16 +90,19 @@ export function sanitizeInput(
 // ---------------------------------------------------------------------------
 
 const PII_PATTERNS: Array<{ pattern: RegExp; label: string; replacement: string }> = [
-  { pattern: /\b\d{3}\.?\d{3}\.?\d{3}-?\d{2}\b/g, label: "CPF", replacement: "***CPF***" },
-  { pattern: /\b\d{2}\.?\d{3}\.?\d{3}-?[\dXx]\b/g, label: "RG", replacement: "***RG***" },
+  { pattern: /\b\d{2}\.?\d{3}\.?\d{3}\/?\d{4}[-.]?\d{2}\b/g, label: "CNPJ", replacement: "***CNPJ***" },
   { pattern: /\b\d{4}\s?\d{4}\s?\d{4}\s?\d{4}\b/g, label: "Card", replacement: "***CARD***" },
   { pattern: /\b[A-Za-z0-9._%+-]{1,64}@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b/g, label: "Email", replacement: "***EMAIL***" },
-  { pattern: /\b\d{2}\.?\d{3}\.?\d{3}\/?\d{4}[-.]?\d{2}\b/g, label: "CNPJ", replacement: "***CNPJ***" },
+  { pattern: /\bOAB\/?[A-Z]{2}\s?\d{2,6}\b/gi, label: "OAB", replacement: "***OAB***" },
+  { pattern: /(?<!\d)\d{2}\s?9?\d{4}-?\d{4}(?!\d)/g, label: "Phone", replacement: "***PHONE***" },
+  { pattern: /\b\d{3}\.?\d{3}\.?\d{3}-?\d{2}\b/g, label: "CPF", replacement: "***CPF***" },
+  { pattern: /\b\d{2}\.?\d{3}\.?\d{3}-?[\dXx]\b/g, label: "RG", replacement: "***RG***" },
 ];
 
 /** Redact PII from assistant responses before sending to client. */
-export function redactPII(text: string): string {
-  let result = text;
+export function redactPII(text: unknown): string {
+  if (text === null || text === undefined) return "";
+  let result = typeof text === "string" ? text : JSON.stringify(text);
   for (const { pattern, replacement } of PII_PATTERNS) {
     result = result.replace(pattern, replacement);
   }
