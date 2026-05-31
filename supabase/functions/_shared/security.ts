@@ -86,17 +86,28 @@ export function sanitizeInput(
 }
 
 // ---------------------------------------------------------------------------
-// PII content filtering
+// PII content filtering (LGPD/GDPR compliance)
 // ---------------------------------------------------------------------------
 
 const PII_PATTERNS: Array<{ pattern: RegExp; label: string; replacement: string }> = [
+  // Specific Brazilian patterns
+  { pattern: /\b\d{2}\.?\d{3}\.?\d{3}\/?\d{4}-?\d{2}\b/g, label: "CNPJ", replacement: "***CNPJ***" },
+  { pattern: /\b\d{7}-?\d{2}\.?\d{4}\.?\d\.?\d{2}\.?\d{4}\b/g, label: "Processo", replacement: "***PROCESSO***" },
+  { pattern: /\bOAB\s*\/\s*[A-Z]{2}\s*\d{2,6}\b/gi, label: "OAB", replacement: "***OAB***" },
+  // General patterns
+  { pattern: /\b\d{4}\s?\d{4}\s?\d{4}\s?\d{4}\b/g, label: "Card", replacement: "***CARD***" },
+  { pattern: /\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b/g, label: "Email", replacement: "***EMAIL***" },
+  { pattern: /\b(?:\+?55\s?)?(?:\(?\d{2}\)?\s?)?9?\d{4}[-\s]?\d{4}\b/g, label: "Phone", replacement: "***PHONE***" },
   { pattern: /\b\d{3}\.?\d{3}\.?\d{3}-?\d{2}\b/g, label: "CPF", replacement: "***CPF***" },
   { pattern: /\b\d{2}\.?\d{3}\.?\d{3}-?[\dXx]\b/g, label: "RG", replacement: "***RG***" },
-  { pattern: /\b\d{4}\s?\d{4}\s?\d{4}\s?\d{4}\b/g, label: "Card", replacement: "***CARD***" },
 ];
 
-/** Redact PII from assistant responses before sending to client. */
-export function redactPII(text: string): string {
+/**
+ * Redact PII from assistant responses before sending to client or logging.
+ * Priority: CNPJ/Processo first to avoid partial matches by shorter numeric patterns.
+ */
+export function redactPII(text: string | null | undefined): string {
+  if (!text) return "";
   let result = text;
   for (const { pattern, replacement } of PII_PATTERNS) {
     result = result.replace(pattern, replacement);
@@ -132,11 +143,11 @@ export async function auditLog(
       user_id: entry.user_id,
       tenant_id: entry.tenant_id,
       action: entry.action,
-      query: entry.query,
+      query: redactPII(entry.query),
       response_time_ms: entry.response_time_ms,
       tools_used: entry.tools_used ?? [],
       success: entry.success,
-      error: entry.error ?? null,
+      error: entry.error ? redactPII(entry.error) : null,
       created_at: new Date().toISOString(),
     });
   } catch {
