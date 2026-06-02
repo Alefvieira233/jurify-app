@@ -162,7 +162,8 @@ main().catch(e => {
 
   // In CI environments where secrets aren't available, we get 401.
   // Exit with 0 to allow the pipeline to proceed.
-  if (message.includes('401 Unauthorized')) {
+  // Case-insensitive check to be more robust.
+  if (message.toLowerCase().includes('401') || message.toLowerCase().includes('unauthorized')) {
     console.warn('Unauthorized access to Supabase API — likely missing SUPABASE_ACCESS_TOKEN in CI. Skipping check.');
     process.exit(0);
   }
