@@ -2,7 +2,7 @@
  * Security Middleware for Edge Functions
  *
  * - Input sanitisation against prompt injection
- * - PII content filtering (CPF, RG, phone)
+ * - PII content filtering (CPF, RG, phone, CNPJ, OAB)
  * - Audit trail logging to Supabase
  *
  * Rate limiting consolidated in rate-limiter.ts
@@ -13,7 +13,8 @@
 // ---------------------------------------------------------------------------
 
 const INJECTION_PATTERNS = [
-  /ignore\s+(previous|all|above)\s+(instructions?|prompts?|rules?)/i,
+  /ignore\s+(instructions?|prompts?|rules?)/i,
+  /ignore\s+.*?(previous|all|above)\s+.*?(instructions?|prompts?|rules?)/i,
   /you\s+are\s+now\s+/i,
   /system\s*:\s*/i,
   /\bDAN\b/,
@@ -27,7 +28,7 @@ const INJECTION_PATTERNS = [
 
 // Homoglyph map for common substitution attacks (e.g. "ign0re" → "ignore")
 const HOMOGLYPHS: Record<string, string> = {
-  "0": "o", "1": "l", "3": "e", "4": "a", "5": "s",
+  "0": "o", "1": "i", "3": "e", "4": "a", "5": "s",
   "@": "a", "$": "s", "!": "i",
 };
 
@@ -90,14 +91,30 @@ export function sanitizeInput(
 // ---------------------------------------------------------------------------
 
 const PII_PATTERNS: Array<{ pattern: RegExp; label: string; replacement: string }> = [
-  { pattern: /\b\d{3}\.?\d{3}\.?\d{3}-?\d{2}\b/g, label: "CPF", replacement: "***CPF***" },
-  { pattern: /\b\d{2}\.?\d{3}\.?\d{3}-?[\dXx]\b/g, label: "RG", replacement: "***RG***" },
+  { pattern: /\b\d{2}\.?\d{3}\.?\d{3}\/?\d{4}[-.]?\d{2}\b/g, label: "CNPJ", replacement: "***CNPJ***" },
+  { pattern: /\d{7}-\d{2}\.\d{4}\.\d\.\d{2}\.\d{4}/g, label: "Processo", replacement: "***PROCESSO***" },
   { pattern: /\b\d{4}\s?\d{4}\s?\d{4}\s?\d{4}\b/g, label: "Card", replacement: "***CARD***" },
+  { pattern: /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g, label: "Email", replacement: "***EMAIL***" },
+  { pattern: /\bOAB[\s\/]?(?:[A-Z]{2})?[\s\/]?\d{5,6}\b/gi, label: "OAB", replacement: "***OAB***" },
+  { pattern: /\b\d{3}\.?\d{3}\.?\d{3}-?\d{2}\b/g, label: "CPF", replacement: "***CPF***" },
+  { pattern: /(?:\+55\s?)?(?:\(\d{2}\)|\d{2})\s?\d{4,5}[-\s]?\d{4}/g, label: "Phone", replacement: "***PHONE***" },
+  { pattern: /\b\d{2}\.?\d{3}\.?\d{3}-?[\dXx]\b/g, label: "RG", replacement: "***RG***" },
 ];
 
-/** Redact PII from assistant responses before sending to client. */
-export function redactPII(text: string): string {
-  let result = text;
+/** Redact PII from assistant responses before sending to client or logging. */
+export function redactPII(text: any): string {
+  if (text === null || text === undefined) return "";
+  let result = typeof text === "string" ? text : String(text);
+
+  // Attempt JSON stringify for objects if it looks like one, but fall back to String()
+  if (typeof text === "object") {
+    try {
+      result = JSON.stringify(text);
+    } catch {
+      result = String(text);
+    }
+  }
+
   for (const { pattern, replacement } of PII_PATTERNS) {
     result = result.replace(pattern, replacement);
   }
@@ -128,15 +145,18 @@ export async function auditLog(
   entry: AuditEntry
 ): Promise<void> {
   try {
+    // Redact query before logging if present
+    const safeQuery = entry.query ? redactPII(entry.query) : undefined;
+
     await supabase.from("assistant_audit").insert({
       user_id: entry.user_id,
       tenant_id: entry.tenant_id,
       action: entry.action,
-      query: entry.query,
+      query: safeQuery,
       response_time_ms: entry.response_time_ms,
       tools_used: entry.tools_used ?? [],
       success: entry.success,
-      error: entry.error ?? null,
+      error: entry.error ? redactPII(entry.error) : null,
       created_at: new Date().toISOString(),
     });
   } catch {
