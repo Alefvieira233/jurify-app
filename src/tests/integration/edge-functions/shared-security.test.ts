@@ -165,6 +165,52 @@ describe('redactPII — Credit card', () => {
   });
 });
 
+describe('redactPII — Brazilian PII (CNPJ, OAB, Phone, Email, Processo)', () => {
+  it('redacts CNPJ with separators', () => {
+    expect(redactPII('CNPJ: 12.345.678/0001-90')).toBe('CNPJ: ***CNPJ***');
+  });
+
+  it('redacts CNPJ without separators', () => {
+    expect(redactPII('CNPJ: 12345678000190')).toBe('CNPJ: ***CNPJ***');
+  });
+
+  it('redacts OAB with state and slash', () => {
+    expect(redactPII('Advogado OAB/RJ 123456')).toBe('Advogado ***OAB***');
+  });
+
+  it('redacts OAB with state and space', () => {
+    expect(redactPII('Advogado OAB SP 12345')).toBe('Advogado ***OAB***');
+  });
+
+  it('redacts Brazilian Phone with international code', () => {
+    expect(redactPII('Fone: +55 11 99999-8888')).toBe('Fone: ***PHONE***');
+  });
+
+  it('redacts Brazilian Phone with local format', () => {
+    expect(redactPII('Ligue para (11) 999998888')).toBe('Ligue para ***PHONE***');
+  });
+
+  it('redacts Email address', () => {
+    expect(redactPII('Contato: cliente.teste@gmail.com')).toBe('Contato: ***EMAIL***');
+  });
+
+  it('redacts Processo CNJ with separators', () => {
+    expect(redactPII('Processo: 0000000-00.2024.8.19.0001')).toBe('Processo: ***PROCESSO***');
+  });
+
+  it('handles non-string inputs safely', () => {
+    const obj = { secret: '123.456.789-00', public: 'hello' };
+    const result = redactPII(obj);
+    expect(result).toContain('***CPF***');
+    expect(result).toContain('hello');
+  });
+
+  it('avoids false positives on long numeric strings (BigInt)', () => {
+    const text = 'ID: 12345678901234567890';
+    expect(redactPII(text)).toBe(text);
+  });
+});
+
 describe('redactPII — idempotency', () => {
   it('running redactPII twice produces the same output', () => {
     const text = 'CPF 123.456.789-00 e cartão 4111 1111 1111 1111';

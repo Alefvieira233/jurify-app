@@ -90,8 +90,8 @@ export function sanitizeInput(
 // ---------------------------------------------------------------------------
 
 const PII_PATTERNS: Array<{ pattern: RegExp; label: string; replacement: string }> = [
-  { pattern: /\b\d{2}\.?\d{3}\.?\d{3}\/\d{4}-?\d{2}\b/g, label: "CNPJ", replacement: "***CNPJ***" },
-  { pattern: /\b\d{7}-\d{2}\.\d{4}\.\d\.\d{2}\.\d{4}\b/g, label: "Processo", replacement: "***PROCESSO***" },
+  { pattern: /\b\d{2}\.?\d{3}\.?\d{3}[\/\.]?\d{4}-?\d{2}\b/g, label: "CNPJ", replacement: "***CNPJ***" },
+  { pattern: /\b\d{7}-?\d{2}\.\d{4}\.\d\.\d{2}\.\d{4}\b/g, label: "Processo", replacement: "***PROCESSO***" },
   { pattern: /\b\d{4}\s?\d{4}\s?\d{4}\s?\d{4}\b/g, label: "Card", replacement: "***CARD***" },
   { pattern: /\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b/g, label: "Email", replacement: "***EMAIL***" },
   { pattern: /\bOAB[\s\/]?(?:[A-Z]{2})?[\s\/]?\d{5,6}\b/gi, label: "OAB", replacement: "***OAB***" },
