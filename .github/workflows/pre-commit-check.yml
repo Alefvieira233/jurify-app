@@ -24,6 +24,8 @@ jobs:
           path: ./
           base: ${{ github.event.pull_request.base.sha || github.event.before }}
           head: ${{ github.event.pull_request.head.sha || github.sha }}
+          # The trufflehog action includes --fail by default. Adding it here
+          # would cause a 'flag cannot be repeated' error.
           extra_args: --results=verified,unknown
 
       - name: 🔍 Check for hardcoded credentials (explicit patterns)
