@@ -149,6 +149,30 @@ describe('redactPII — CPF', () => {
     expect(redactPII('CPF: 12345678900')).toBe('CPF: ***CPF***');
   });
 
+  it('redacts CNPJ formatted and raw', () => {
+    expect(redactPII('CNPJ: 12.345.678/0001-90')).toBe('CNPJ: ***CNPJ***');
+    expect(redactPII('CNPJ 12345678000190')).toBe('CNPJ ***CNPJ***');
+  });
+
+  it('redacts Processo CNJ', () => {
+    expect(redactPII('Processo 0001234-56.2024.8.26.0001')).toBe('Processo ***PROCESSO***');
+  });
+
+  it('redacts Emails', () => {
+    expect(redactPII('Email: joao.silva@exemplo.com.br')).toBe('Email: ***EMAIL***');
+  });
+
+  it('redacts OAB registrations', () => {
+    expect(redactPII('Dra Jacira (OAB/SP 123456)')).toBe('Dra Jacira (***OAB***)');
+    expect(redactPII('OAB 654321')).toBe('***OAB***');
+  });
+
+  it('redacts Brazilian Phone numbers', () => {
+    expect(redactPII('Tel: +55 11 99999-8888')).toBe('Tel: ***PHONE***');
+    expect(redactPII('Ligue (11) 4002-8922')).toBe('Ligue ***PHONE***');
+    expect(redactPII('5511988887777')).toBe('***PHONE***');
+  });
+
   it('redacts CPF embedded in a sentence', () => {
     expect(redactPII('Cliente 111.222.333-44 solicitou extrato'))
       .toBe('Cliente ***CPF*** solicitou extrato');
