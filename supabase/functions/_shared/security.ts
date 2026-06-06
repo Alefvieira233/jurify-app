@@ -56,6 +56,9 @@ export function sanitizeInput(
   }
 
   const trimmed = text.trim().slice(0, maxLength);
+  if (trimmed.length === 0) {
+    return { safe: false, reason: "Empty or invalid input" };
+  }
 
   // Check original + normalized version to catch homoglyph attacks
   const normalized = normalizeForDetection(trimmed);
