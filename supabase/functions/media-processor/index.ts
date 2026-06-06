@@ -3,6 +3,7 @@ import { OpenAI } from "https://deno.land/x/openai@v4.24.0/mod.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2";
 import { getCorsHeaders } from "../_shared/cors.ts";
 import { isServiceRole } from "../_shared/supabase-client.ts";
+import { redactPII } from "../_shared/security.ts";
 import { downloadKapsoMedia, detectMediaCategory } from "../_shared/media-utils.ts";
 import { DEFAULT_OPENAI_MODEL, WHISPER_MODEL } from "../_shared/ai-model.ts";
 import { withRetry } from "../_shared/openai-retry.ts";
@@ -254,7 +255,7 @@ Deno.serve(async (req) => {
     }
 
     const durationMs = Date.now() - startTime;
-    console.log(`[media-processor] Done in ${durationMs}ms via ${processingMethod}: "${extractedText.substring(0, 100)}..."`);
+    console.log(`[media-processor] Done in ${durationMs}ms via ${processingMethod}: "${redactPII(extractedText).substring(0, 100)}..."`);
 
     const result: MediaProcessResponse = {
       extractedText,

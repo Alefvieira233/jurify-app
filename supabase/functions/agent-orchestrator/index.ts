@@ -1,6 +1,7 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2";
 import { getCorsHeaders } from "../_shared/cors.ts";
+import { redactPII } from "../_shared/security.ts";
 import { applyRateLimit } from "../_shared/rate-limiter.ts";
 import { isServiceRole } from "../_shared/supabase-client.ts";
 import { DEFAULT_OPENAI_MODEL } from "../_shared/ai-model.ts";
@@ -98,7 +99,7 @@ Deno.serve(async (req) => {
         : body.hasLegalContext ? "juridico"
         : body.isFirstContact ? "recepcionista"
         : "juridico";
-      console.error(`[orchestrator] JSON parse FAILED — smart fallback to "${fallbackAgent}" | raw: ${resultText.substring(0, 100)}`);
+      console.error(`[orchestrator] JSON parse FAILED — smart fallback to "${fallbackAgent}" | raw: ${redactPII(resultText).substring(0, 100)}`);
       routing = { agent: fallbackAgent, reason: `JSON parse fallback (context: media=${body.hasMedia}, legal=${body.hasLegalContext}, first=${body.isFirstContact})` };
     }
 
