@@ -165,6 +165,53 @@ describe('redactPII — Credit card', () => {
   });
 });
 
+describe('redactPII — Enhanced patterns', () => {
+  it('redacts CNPJ', () => {
+    expect(redactPII('CNPJ: 12.345.678/0001-99')).toBe('CNPJ: ***CNPJ***');
+    expect(redactPII('CNPJ: 12345678000199')).toBe('CNPJ: ***CNPJ***');
+  });
+
+  it('redacts Email', () => {
+    expect(redactPII('Email me at test@example.com')).toBe('Email me at ***EMAIL***');
+  });
+
+  it('redacts Phone', () => {
+    expect(redactPII('Telefone: (11) 99999-8888')).toBe('Telefone: ***PHONE***');
+    expect(redactPII('Ligar para +55 11 98888-7777')).toBe('Ligar para ***PHONE***');
+  });
+
+  it('redacts OAB', () => {
+    expect(redactPII('Advogado OAB/SP 123456')).toBe('Advogado ***OAB***');
+    expect(redactPII('Registro OAB 12345')).toBe('Registro ***OAB***');
+  });
+
+  it('redacts Tokens', () => {
+    expect(redactPII('Authorization: Bearer sbp_abc123def456ghi789jkl012mno')).toBe('Authorization: Bearer ***TOKEN***');
+    expect(redactPII('JWT eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.payload.signature')).toBe('JWT ***TOKEN***');
+  });
+});
+
+describe('redactPII — non-string inputs', () => {
+  it('handles objects by stringifying and redacting', () => {
+    const input = { info: 'My CPF is 123.456.789-00' };
+    const output = redactPII(input);
+    expect(output).toContain('***CPF***');
+    expect(output).not.toContain('123.456.789-00');
+  });
+
+  it('handles arrays', () => {
+    const input = ['123.456.789-00', 'test@example.com'];
+    const output = redactPII(input);
+    expect(output).toContain('***CPF***');
+    expect(output).toContain('***EMAIL***');
+  });
+
+  it('returns empty string for null/undefined', () => {
+    expect(redactPII(null)).toBe('');
+    expect(redactPII(undefined)).toBe('');
+  });
+});
+
 describe('redactPII — idempotency', () => {
   it('running redactPII twice produces the same output', () => {
     const text = 'CPF 123.456.789-00 e cartão 4111 1111 1111 1111';

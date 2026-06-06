@@ -1,0 +1,4 @@
+## 2026-05-25 - [Log PII Redaction Race Condition]
+**Vulnerability:** Personally Identifiable Information (PII) and authentication tokens leaking into `agent_ai_logs` and `console.error` logs due to truncation-before-redaction race condition. Sensitive tokens (like `sbp_...`) or Brazilian PII (CPF/CNPJ) were being truncated (e.g., `.substring(0, 80)`) before `redactPII` was called, causing regex patterns to fail to match partial strings.
+**Learning:** Always apply PII redaction to the *complete* content string or object before performing any length-based truncation for display or storage. Redacting a truncated string is inherently unreliable as it may split the sensitive token.
+**Prevention:** Hardened `redactPII` to handle `unknown` types (objects/arrays) and enforced the "Redact then Truncate" pattern in all Edge Function logging paths (`ai-caller.ts`, `ai-agent-processor`, `whatsapp-webhook`). Added tests for partial and full PII matches.

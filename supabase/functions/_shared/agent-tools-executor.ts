@@ -12,6 +12,7 @@
 
 import { createClient, SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2";
 import type { AgentToolName } from "./agent-tools.ts";
+import { redactPII } from "./security.ts";
 
 export interface ToolContext {
   supabase: SupabaseClient;
@@ -503,7 +504,7 @@ export async function executeAgentTool(
   // deno-lint-ignore no-explicit-any
   args: any,
 ): Promise<ToolResult> {
-  console.log(`[agent-tools] Executing: ${toolName}`, JSON.stringify(args).substring(0, 200));
+  console.log(`[agent-tools] Executing: ${toolName}`, redactPII(args).substring(0, 200));
 
   switch (toolName) {
     case "check_availability":
