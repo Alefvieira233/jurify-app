@@ -17,6 +17,8 @@ import {
   fmtCPF,
   fmtCNPJ,
   fmtFileSize,
+  formatarAreaJuridica,
+  formatarEtapaPipeline,
 } from '../formatting';
 
 describe('getInitials', () => {
@@ -253,5 +255,25 @@ describe('fmtFileSize', () => {
 
   it('rounds correctly', () => {
     expect(fmtFileSize(1536)).toBe('1.5 KB');
+  });
+});
+
+describe('formatarAreaJuridica', () => {
+  it('formats known areas', () => {
+    expect(formatarAreaJuridica('trabalhista')).toBe('Trabalhista');
+    expect(formatarAreaJuridica('direito_familia')).toBe('Família e Sucessões');
+  });
+  it('formats unknown areas by capitalizing and replacing underscores', () => {
+    expect(formatarAreaJuridica('area_desconhecida')).toBe('Area Desconhecida');
+  });
+});
+
+describe('formatarEtapaPipeline', () => {
+  it('formats known stages', () => {
+    expect(formatarEtapaPipeline('novo')).toBe('Novo');
+    expect(formatarEtapaPipeline('ganho')).toBe('Ganho');
+  });
+  it('formats unknown stages', () => {
+    expect(formatarEtapaPipeline('etapa_x')).toBe('Etapa X');
   });
 });
