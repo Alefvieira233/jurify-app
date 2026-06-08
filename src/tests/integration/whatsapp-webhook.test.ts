@@ -452,6 +452,46 @@ describe('normalizeMetaMessages', () => {
     expect(results[0].mediaUrl).toBe('doc_media_001');
   });
 
+  it('handles audio messages', () => {
+    const payload = {
+      entry: [{
+        changes: [{
+          value: {
+            messages: [{
+              from: '5511444444444',
+              id: 'wamid.audio_001',
+              type: 'audio',
+              audio: { id: 'audio_media_001' },
+            }],
+          },
+        }],
+      }],
+    } as WebhookPayload;
+    const results = normalizeMetaMessages(payload);
+    expect(results).toHaveLength(1);
+    expect(results[0].messageType).toBe('audio');
+    expect(results[0].text).toBe('[Audio recebido]');
+  });
+
+  it('handles unknown message types', () => {
+    const payload = {
+      entry: [{
+        changes: [{
+          value: {
+            messages: [{
+              from: '5511444444444',
+              id: 'wamid.unknown_001',
+              type: 'sticker',
+            }],
+          },
+        }],
+      }],
+    } as WebhookPayload;
+    const results = normalizeMetaMessages(payload);
+    expect(results).toHaveLength(1);
+    expect(results[0].text).toBe('[sticker recebido]');
+  });
+
   it('normalizes multiple messages in a single webhook', () => {
     const payload = {
       entry: [{

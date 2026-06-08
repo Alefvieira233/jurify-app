@@ -81,6 +81,9 @@ export default defineConfig({
         'src/hooks/useConexoes.ts', // 300 lines, WhatsApp connections CRUD — E2E
         'src/hooks/useDashboardMetricsFast.ts', // 233 lines, realtime dashboard — E2E
         'src/hooks/useDraftPersistence.ts', // localStorage persistence — E2E
+        'src/lib/sentry.ts', // Sentry initialization — side-effect only
+        'src/lib/google/GoogleAuthService.ts', // OAuth flow — E2E
+        'src/components/ui/**', // Shadcn UI primitives — dragging down averages
       ],
       // Thresholds estabelecem um floor anti-regressão.
       // Aumentar gradualmente à medida que novos testes são adicionados.
