@@ -6,8 +6,8 @@
  * assistant, chat-completion, ai-agent-processor).
  */
 
-import { describe, it, expect } from 'vitest';
-import { sanitizeInput, redactPII } from '../../../../supabase/functions/_shared/security';
+import { describe, it, expect, vi } from 'vitest';
+import { sanitizeInput, redactPII, auditLog } from '../../../../supabase/functions/_shared/security';
 
 // ─── Prompt injection detection ─────────────────────────────
 
@@ -202,5 +202,51 @@ describe('redactPII — non-PII is preserved', () => {
   it('does not redact short numbers', () => {
     const text = 'Ano 2026, mês 4, dia 10';
     expect(redactPII(text)).toBe(text);
+  });
+});
+
+// ─── Audit Trail ──────────────────────────────────────────
+
+describe('auditLog', () => {
+  it('calls supabase insert with correct parameters', async () => {
+    const mockInsert = vi.fn().mockResolvedValue({ error: null });
+    const mockFrom = vi.fn().mockReturnValue({ insert: mockInsert });
+    const mockSupabase = { from: mockFrom };
+
+    const entry = {
+      user_id: 'user-123',
+      tenant_id: 'tenant-456',
+      action: 'test-action',
+      query: 'test query',
+      success: true,
+    };
+
+    await auditLog(mockSupabase as any, entry);
+
+    expect(mockFrom).toHaveBeenCalledWith('assistant_audit');
+    expect(mockInsert).toHaveBeenCalledWith(expect.objectContaining({
+      user_id: entry.user_id,
+      tenant_id: entry.tenant_id,
+      action: entry.action,
+      query: entry.query,
+      success: entry.success,
+    }));
+  });
+
+  it('handles insert failure silently', async () => {
+    const mockInsert = vi.fn().mockRejectedValue(new Error('DB Error'));
+    const mockFrom = vi.fn().mockReturnValue({ insert: mockInsert });
+    const mockSupabase = { from: mockFrom };
+
+    const entry = {
+      user_id: 'user-123',
+      tenant_id: 'tenant-456',
+      action: 'test-action',
+      success: false,
+    };
+
+    // Should not throw
+    await expect(auditLog(mockSupabase as any, entry)).resolves.not.toThrow();
+    expect(mockInsert).toHaveBeenCalled();
   });
 });
