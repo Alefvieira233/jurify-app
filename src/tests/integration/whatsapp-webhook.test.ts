@@ -175,6 +175,14 @@ describe('isKapsoPayload', () => {
     expect(isKapsoPayload(v2OnlyPhoneId)).toBe(true);
   });
 
+  it('detects Kapso v2-old via event name', () => {
+    const v2Old = {
+      event: 'whatsapp.message.received',
+      data: { id: 'x' }
+    } as unknown as WebhookPayload;
+    expect(isKapsoPayload(v2Old)).toBe(true);
+  });
+
   it('rejects Meta Official payloads', () => {
     expect(isKapsoPayload(MOCK_META_WEBHOOK)).toBe(false);
     expect(isKapsoPayload(MOCK_META_STATUS_ONLY)).toBe(false);
@@ -301,6 +309,48 @@ describe('normalizeKapsoMessage — legacy format', () => {
     expect(result!.from).toBe('120363123456789');
   });
 
+  it('Legacy: handles video/document/contact/location/sticker', () => {
+    const baseData = {
+      key: { remoteJid: '5511333333333@s.whatsapp.net', fromMe: false, id: 'x' },
+      pushName: 'User',
+    };
+
+    // Video
+    const vidRes = normalizeKapsoMessage({
+      event: 'messages.upsert',
+      data: { ...baseData, messageType: 'videoMessage', message: { videoMessage: { caption: 'vid', url: 'u' } } },
+    } as any);
+    expect(vidRes!.messageType).toBe('videoMessage');
+
+    // Document
+    const docRes = normalizeKapsoMessage({
+      event: 'messages.upsert',
+      data: { ...baseData, messageType: 'documentMessage', message: { documentMessage: { caption: 'doc', url: 'u' } } },
+    } as any);
+    expect(docRes!.text).toBe('doc');
+
+    // Contact
+    const conRes = normalizeKapsoMessage({
+      event: 'messages.upsert',
+      data: { ...baseData, messageType: 'contactMessage', message: { contactMessage: { displayName: 'John' } } },
+    } as any);
+    expect(conRes!.text).toContain('John');
+
+    // Location
+    const locRes = normalizeKapsoMessage({
+      event: 'messages.upsert',
+      data: { ...baseData, messageType: 'locationMessage', message: { locationMessage: { degreesLatitude: 1, degreesLongitude: 2 } } },
+    } as any);
+    expect(locRes!.text).toContain('Localizacao');
+
+    // Sticker
+    const stickRes = normalizeKapsoMessage({
+      event: 'messages.upsert',
+      data: { ...baseData, messageType: 'stickerMessage', message: { stickerMessage: {} } },
+    } as any);
+    expect(stickRes!.text).toContain('Sticker');
+  });
+
   it('accepts event from the X-Webhook-Event header when body has no event', () => {
     const payload = {
       instance: 'test',
@@ -314,6 +364,83 @@ describe('normalizeKapsoMessage — legacy format', () => {
     const result = normalizeKapsoMessage(payload, 'messages.upsert');
     expect(result).not.toBeNull();
     expect(result!.text).toBe('via header');
+  });
+
+  it('v2-old: handles audio/video/document/location', () => {
+    const baseData = { from: '5511999998888', contact: { name: 'V2 Old' } };
+
+    // Audio
+    const audRes = normalizeKapsoMessage({
+      event: 'whatsapp.message.received',
+      data: { ...baseData, type: 'audio', audio: { url: 'u' } }
+    } as any);
+    expect(audRes!.messageType).toBe('audio');
+
+    // Video
+    const vidRes = normalizeKapsoMessage({
+      event: 'whatsapp.message.received',
+      data: { ...baseData, type: 'video', video: { caption: 'vid' } }
+    } as any);
+    expect(vidRes!.messageType).toBe('video');
+
+    // Document
+    const docRes = normalizeKapsoMessage({
+      event: 'whatsapp.message.received',
+      data: { ...baseData, type: 'document', document: { caption: 'doc' } }
+    } as any);
+    expect(docRes!.messageType).toBe('document');
+
+    // Location
+    const locRes = normalizeKapsoMessage({
+      event: 'whatsapp.message.received',
+      data: { ...baseData, type: 'location', location: { latitude: 0, longitude: 0 } }
+    } as any);
+    expect(locRes!.text).toContain('Localizacao');
+  });
+
+  it('v2-old: handles image/sticker/contacts/default', () => {
+    const baseData = { from: '5511999998888', contact: { name: 'V2 Old' } };
+
+    // Image
+    const imgRes = normalizeKapsoMessage({
+      event: 'whatsapp.message.received',
+      data: { ...baseData, type: 'image', image: { caption: 'pic' } }
+    } as any);
+    expect(imgRes!.messageType).toBe('image');
+
+    // Sticker
+    const stickRes = normalizeKapsoMessage({
+      event: 'whatsapp.message.received',
+      data: { ...baseData, type: 'sticker' }
+    } as any);
+    expect(stickRes!.text).toContain('Sticker');
+
+    // Contacts
+    const conRes = normalizeKapsoMessage({
+      event: 'whatsapp.message.received',
+      data: { ...baseData, type: 'contacts' }
+    } as any);
+    expect(conRes!.text).toContain('Contato');
+
+    // Default
+    const defRes = normalizeKapsoMessage({
+      event: 'whatsapp.message.received',
+      data: { ...baseData, type: 'mystery', text: { body: '???' } }
+    } as any);
+    expect(defRes!.text).toBe('???');
+
+    // Body/Content fallback
+    const bodyRes = normalizeKapsoMessage({
+      event: 'whatsapp.message.received',
+      data: { ...baseData, type: 'text', body: 'body text' }
+    } as any);
+    expect(bodyRes!.text).toBe('body text');
+
+    const contentRes = normalizeKapsoMessage({
+      event: 'whatsapp.message.received',
+      data: { ...baseData, type: 'text', content: 'content text' }
+    } as any);
+    expect(contentRes!.text).toBe('content text');
   });
 });
 
@@ -362,6 +489,16 @@ describe('normalizeKapsoMessage — v2-real format', () => {
     expect(result!.messageType).toBe('image');
   });
 
+  it('v2-real: handles default case for unknown types', () => {
+    const payload = {
+      message: { id: 'x', type: 'unknown_type' },
+      conversation: { phone_number: '5511987654321' },
+      phone_number_id: '5511888888888',
+    } as unknown as WebhookPayload;
+    const result = normalizeKapsoMessage(payload);
+    expect(result!.text).toContain('unknown_type');
+  });
+
   it('extracts interactive button reply title', () => {
     const payload = {
       message: {
@@ -392,6 +529,77 @@ describe('normalizeKapsoMessage — v2-real format', () => {
     expect(result).not.toBeNull();
     expect(result!.text).toBe('Oi, preciso de ajuda');
     expect(result!.mediaUrl).toBe('https://cdn/a.ogg');
+  });
+
+  it('v2-real: handles document (no caption)/sticker/interactive(button)/location', () => {
+    const basePayload = {
+      conversation: { phone_number: '5511987654321', kapso: { contact_name: 'Teste' } },
+      phone_number_id: '5511888888888',
+    };
+
+    // Document no caption
+    const docRes = normalizeKapsoMessage({
+      ...basePayload,
+      message: { id: 'd', type: 'document', document: { id: 'x' }, kapso: { direction: 'inbound', media_data: { filename: 'file.txt' } } },
+    } as any);
+    expect(docRes!.text).toContain('file.txt');
+
+    // Sticker
+    const stickRes = normalizeKapsoMessage({
+      ...basePayload,
+      message: { id: 's', type: 'sticker', kapso: { direction: 'inbound' } },
+    } as any);
+    expect(stickRes!.text).toContain('Sticker');
+
+    // Interactive button_reply
+    const intRes = normalizeKapsoMessage({
+      ...basePayload,
+      message: { id: 'i', type: 'interactive', interactive: { button_reply: { title: 'YES' } }, kapso: { direction: 'inbound' } },
+    } as any);
+    expect(intRes!.text).toBe('YES');
+  });
+
+  it('v2-real: handles document/video/location/interactive/reaction', () => {
+    const basePayload = {
+      conversation: { phone_number: '5511987654321', kapso: { contact_name: 'Teste' } },
+      phone_number_id: '5511888888888',
+    };
+
+    // Document
+    const docRes = normalizeKapsoMessage({
+      ...basePayload,
+      message: { id: 'd', type: 'document', document: { caption: 'doc' }, kapso: { direction: 'inbound', media_url: 'url' } },
+    } as any);
+    expect(docRes!.messageType).toBe('document');
+    expect(docRes!.text).toBe('doc');
+
+    // Video
+    const vidRes = normalizeKapsoMessage({
+      ...basePayload,
+      message: { id: 'v', type: 'video', video: { caption: 'vid' }, kapso: { direction: 'inbound', media_url: 'url' } },
+    } as any);
+    expect(vidRes!.messageType).toBe('video');
+
+    // Location
+    const locRes = normalizeKapsoMessage({
+      ...basePayload,
+      message: { id: 'l', type: 'location', location: { latitude: 10, longitude: 20 }, kapso: { direction: 'inbound' } },
+    } as any);
+    expect(locRes!.text).toContain('Localizacao');
+
+    // Interactive (list_reply)
+    const intRes = normalizeKapsoMessage({
+      ...basePayload,
+      message: { id: 'i', type: 'interactive', interactive: { list_reply: { title: 'Option 1' } }, kapso: { direction: 'inbound' } },
+    } as any);
+    expect(intRes!.text).toBe('Option 1');
+
+    // Reaction
+    const reactRes = normalizeKapsoMessage({
+      ...basePayload,
+      message: { id: 'r', type: 'reaction', reaction: { emoji: '👍' }, kapso: { direction: 'inbound' } },
+    } as any);
+    expect(reactRes!.text).toBe('👍');
   });
 });
 
