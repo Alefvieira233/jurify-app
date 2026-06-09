@@ -6,8 +6,8 @@
  * assistant, chat-completion, ai-agent-processor).
  */
 
-import { describe, it, expect } from 'vitest';
-import { sanitizeInput, redactPII } from '../../../../supabase/functions/_shared/security';
+import { describe, it, expect, vi } from 'vitest';
+import { sanitizeInput, redactPII, auditLog } from '../../../../supabase/functions/_shared/security';
 
 // ─── Prompt injection detection ─────────────────────────────
 
@@ -197,6 +197,51 @@ describe('redactPII — OAB', () => {
 describe('redactPII — Processo CNJ', () => {
   it('redacts official lawsuit numbers', () => {
     expect(redactPII('Processo nº 1234567-89.2024.8.26.0100')).toBe('Processo nº ***PROCESSO***');
+  });
+});
+
+describe('auditLog', () => {
+  it('calls supabase.from("assistant_audit").insert with correct payload', async () => {
+    const mockSupabase = {
+      from: vi.fn().mockReturnThis(),
+      insert: vi.fn().mockResolvedValue({ error: null }),
+    };
+
+    const entry = {
+      user_id: 'user-123',
+      tenant_id: 'tenant-456',
+      action: 'test-action',
+      query: 'test-query',
+      success: true,
+    };
+
+    await auditLog(mockSupabase as any, entry);
+
+    expect(mockSupabase.from).toHaveBeenCalledWith('assistant_audit');
+    expect(mockSupabase.insert).toHaveBeenCalledWith(expect.objectContaining({
+      user_id: 'user-123',
+      tenant_id: 'tenant-456',
+      action: 'test-action',
+      query: 'test-query',
+      success: true,
+    }));
+  });
+
+  it('handles insert failure silently', async () => {
+    const mockSupabase = {
+      from: vi.fn().mockReturnThis(),
+      insert: vi.fn().mockRejectedValue(new Error('DB Error')),
+    };
+
+    const entry = {
+      user_id: 'u',
+      tenant_id: 't',
+      action: 'a',
+      success: false,
+    };
+
+    // Should not throw
+    await expect(auditLog(mockSupabase as any, entry)).resolves.not.toThrow();
   });
 });
 
