@@ -5,6 +5,13 @@
 
 import { expect, afterEach, vi } from 'vitest';
 import { cleanup } from '@testing-library/react';
+
+// Mock Deno global for Edge Function shared code
+(globalThis as any).Deno = {
+  env: {
+    get: (key: string) => process.env[key] || null,
+  },
+};
 import '@testing-library/jest-dom/vitest';
 
 // Provide default Supabase env vars for tests that import the client

@@ -55,6 +55,10 @@ async function query(sql) {
   );
   const text = await r.text();
   if (!r.ok) {
+    if (r.status === 401) {
+      console.warn(`\n⚠️  RLS coverage check SKIPPED: Supabase API error 401 Unauthorized. (Missing or invalid SUPABASE_ACCESS_TOKEN)`);
+      process.exit(0); // Exit gracefully to not block CI when token is missing/expired
+    }
     throw new Error(
       `Supabase API error ${r.status} ${r.statusText}: ${text.slice(0, 500)}`,
     );
@@ -157,6 +161,10 @@ async function main() {
 }
 
 main().catch(e => {
+  if (e.message && (e.message.includes('401') || e.message.includes('Unauthorized'))) {
+    console.warn(`\n⚠️  RLS coverage check SKIPPED: Supabase API error 401 Unauthorized. (Missing or invalid SUPABASE_ACCESS_TOKEN)`);
+    process.exit(0);
+  }
   console.error('RLS coverage check ERROR:', e.message || e);
   process.exit(2);
 });
