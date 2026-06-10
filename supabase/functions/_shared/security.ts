@@ -89,15 +89,42 @@ export function sanitizeInput(
 // PII content filtering
 // ---------------------------------------------------------------------------
 
+/**
+ * PII Patterns for Brazilian context.
+ * Prioritised from most specific (longest) to least specific to prevent
+ * partial matches or collisions (e.g., CNPJ matching part of a CPF).
+ */
 const PII_PATTERNS: Array<{ pattern: RegExp; label: string; replacement: string }> = [
-  { pattern: /\b\d{3}\.?\d{3}\.?\d{3}-?\d{2}\b/g, label: "CPF", replacement: "***CPF***" },
-  { pattern: /\b\d{2}\.?\d{3}\.?\d{3}-?[\dXx]\b/g, label: "RG", replacement: "***RG***" },
+  { pattern: /\b\d{2}\.?\d{3}\.?\d{3}\/?\d{4}-?\d{2}\b/g, label: "CNPJ", replacement: "***CNPJ***" },
+  { pattern: /\b\d{7}-\d{2}\.\d{4}\.\d\.\d{2}\.\d{4}\b/g, label: "Processo", replacement: "***PROCESSO***" },
   { pattern: /\b\d{4}\s?\d{4}\s?\d{4}\s?\d{4}\b/g, label: "Card", replacement: "***CARD***" },
+  { pattern: /\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b/g, label: "Email", replacement: "***EMAIL***" },
+  { pattern: /\bOAB[\s\/]?(?:[A-Z]{2})?[\s\/]?\d{5,6}\b/gi, label: "OAB", replacement: "***OAB***" },
+  { pattern: /\b\d{3}\.?\d{3}\.?\d{3}-?\d{2}\b/g, label: "CPF", replacement: "***CPF***" },
+  { pattern: /(?<!\d)(?:\+?55[\s.-]?)?\(?\d{2,3}\)?[\s.-]?\d{4,5}[\s.-]?\d{4}\b/g, label: "Phone", replacement: "***PHONE***" },
+  { pattern: /\b\d{2}\.?\d{3}\.?\d{3}-?[\dXx]\b/g, label: "RG", replacement: "***RG***" },
 ];
 
-/** Redact PII from assistant responses before sending to client. */
-export function redactPII(text: string): string {
-  let result = text;
+/**
+ * Redact PII from strings or objects before logging or sending to client.
+ * Handles non-string inputs by stringifying them first.
+ */
+export function redactPII(text: unknown): string {
+  if (text === null || text === undefined) return "";
+
+  let result: string;
+  if (typeof text === "string") {
+    result = text;
+  } else if (typeof text === "bigint") {
+    result = text.toString();
+  } else {
+    try {
+      result = JSON.stringify(text);
+    } catch {
+      result = String(text);
+    }
+  }
+
   for (const { pattern, replacement } of PII_PATTERNS) {
     result = result.replace(pattern, replacement);
   }
