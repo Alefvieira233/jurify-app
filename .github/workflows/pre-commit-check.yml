@@ -24,7 +24,10 @@ jobs:
           path: ./
           base: ${{ github.event.pull_request.base.sha || github.event.before }}
           head: ${{ github.event.pull_request.head.sha || github.sha }}
-          extra_args: --results=verified,unknown --fail
+          # --fail is removed from extra_args because it's already in the action's entrypoint.
+          # Explicitly adding it causes a "flag cannot be repeated" error.
+          # The check remains BLOCKING by default.
+          extra_args: --results=verified,unknown
 
       - name: 🔍 Check for hardcoded credentials (explicit patterns)
         run: |

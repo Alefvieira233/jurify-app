@@ -185,3 +185,58 @@ describe('redactPII — non-PII is preserved', () => {
     expect(redactPII(text)).toBe(text);
   });
 });
+
+describe('redactPII — Other Brazilian identifiers', () => {
+  it('redacts CNPJ', () => {
+    expect(redactPII('Empresa: 12.345.678/0001-99')).toBe('Empresa: ***CNPJ***');
+    expect(redactPII('12345678000199')).toBe('***CNPJ***');
+  });
+
+  it('redacts Lawsuit (Processo CNJ)', () => {
+    expect(redactPII('Processo: 1234567-89.2024.8.26.0100')).toBe('Processo: ***PROCESSO***');
+  });
+
+  it('redacts OAB registration', () => {
+    expect(redactPII('Advogado OAB/SP 123456')).toBe('Advogado ***OAB***');
+    expect(redactPII('OAB 12345')).toBe('***OAB***');
+  });
+
+  it('redacts Email', () => {
+    expect(redactPII('Contato: test@example.com.br')).toBe('Contato: ***EMAIL***');
+  });
+
+  it('redacts Brazilian Phone', () => {
+    expect(redactPII('Fone: +55 (11) 91234-5678')).toBe('Fone: ***PHONE***');
+    // Note: raw 11-digit numeric strings are prioritized as CPF to avoid false positives.
+    // Use non-numeric separators or international prefix for guaranteed Phone redaction.
+    expect(redactPII('(11) 91234-5678')).toBe('***PHONE***');
+  });
+});
+
+describe('redactPII — Robustness and coverage', () => {
+  it('handles null and undefined', () => {
+    expect(redactPII(null)).toBe('');
+    expect(redactPII(undefined)).toBe('');
+  });
+
+  it('handles objects and arrays', () => {
+    const obj = { cpf: '123.456.789-00', safe: 'hello' };
+    expect(redactPII(obj)).toBe('{"cpf":"***CPF***","safe":"hello"}');
+
+    const arr = ['123.456.789-00', 'safe'];
+    expect(redactPII(arr)).toBe('["***CPF***","safe"]');
+  });
+
+  it('handles circular references (JSON.stringify failure)', () => {
+    const circ: any = { a: 1 };
+    circ.b = circ;
+    // Should fallback to String(circ) which is '[object Object]'
+    expect(redactPII(circ)).toBe('[object Object]');
+  });
+
+  it('prioritizes CPF over Phone for 11-digit strings', () => {
+    // 12345678900 matches both patterns, but CPF is more likely for this specific length
+    // We order CPF/RG before Phone to catch these.
+    expect(redactPII('12345678900')).toBe('***CPF***');
+  });
+});
