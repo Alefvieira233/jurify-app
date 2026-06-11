@@ -55,14 +55,21 @@ check('sourcemap set to hidden', viteConfig.includes("sourcemap: 'hidden'") || v
 // 4. Check security headers in vercel.json
 console.log('\n[Security Headers]');
 const vercelJson = JSON.parse(fs.readFileSync(path.join(ROOT, 'vercel.json'), 'utf8'));
-const headers = vercelJson.headers?.[0]?.headers || [];
-const headerKeys = headers.map(h => h.key);
-check('X-Content-Type-Options', headerKeys.includes('X-Content-Type-Options'));
-check('X-Frame-Options', headerKeys.includes('X-Frame-Options'));
-check('Strict-Transport-Security', headerKeys.includes('Strict-Transport-Security'));
-check('Content-Security-Policy', headerKeys.includes('Content-Security-Policy'));
-check('Referrer-Policy', headerKeys.includes('Referrer-Policy'));
-check('Permissions-Policy', headerKeys.includes('Permissions-Policy'));
+const allHeaders = vercelJson.headers || [];
+const headerKeys = new Set();
+for (const block of allHeaders) {
+  if (block.headers) {
+    for (const h of block.headers) {
+      headerKeys.add(h.key);
+    }
+  }
+}
+check('X-Content-Type-Options', headerKeys.has('X-Content-Type-Options'));
+check('X-Frame-Options', headerKeys.has('X-Frame-Options'));
+check('Strict-Transport-Security', headerKeys.has('Strict-Transport-Security'));
+check('Content-Security-Policy', headerKeys.has('Content-Security-Policy'));
+check('Referrer-Policy', headerKeys.has('Referrer-Policy'));
+check('Permissions-Policy', headerKeys.has('Permissions-Policy'));
 
 // 5. Check no hardcoded keys in source
 console.log('\n[Source Code]');
