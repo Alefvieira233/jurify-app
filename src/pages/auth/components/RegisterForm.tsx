@@ -91,6 +91,7 @@ const RegisterForm: React.FC<RegisterFormProps> = ({
                   type="password"
                   placeholder="••••••••"
                   className="h-12 border-[hsl(var(--border))] focus:border-[hsl(var(--accent))] focus:ring-[hsl(var(--accent))] transition-all"
+                  data-testid="input-register-password"
                   {...field}
                 />
               </FormControl>
@@ -113,6 +114,7 @@ const RegisterForm: React.FC<RegisterFormProps> = ({
                   type="password"
                   placeholder="••••••••"
                   className="h-12 border-[hsl(var(--border))] focus:border-[hsl(var(--accent))] focus:ring-[hsl(var(--accent))] transition-all"
+                  data-testid="input-register-confirm-password"
                   {...field}
                 />
               </FormControl>
@@ -131,11 +133,11 @@ const RegisterForm: React.FC<RegisterFormProps> = ({
           />
           <label htmlFor="lgpdConsent" className="text-xs text-muted-foreground leading-relaxed cursor-pointer">
             Li e concordo com os{' '}
-            <Link to="/termos" target="_blank" className="underline text-foreground hover:text-[hsl(43_96%_56%)] transition-colors">
+            <Link to="/termos" target="_blank" rel="noopener noreferrer" className="underline text-foreground hover:text-[hsl(43_96%_56%)] transition-colors">
               Termos de Uso
             </Link>{' '}
             e a{' '}
-            <Link to="/privacidade" target="_blank" className="underline text-foreground hover:text-[hsl(43_96%_56%)] transition-colors">
+            <Link to="/privacidade" target="_blank" rel="noopener noreferrer" className="underline text-foreground hover:text-[hsl(43_96%_56%)] transition-colors">
               Política de Privacidade
             </Link>
             , incluindo o tratamento dos meus dados conforme a LGPD.

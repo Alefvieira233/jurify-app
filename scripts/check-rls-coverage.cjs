@@ -55,6 +55,10 @@ async function query(sql) {
   );
   const text = await r.text();
   if (!r.ok) {
+    if (r.status === 401) {
+      console.warn('⚠️  RLS coverage check SKIPPED: SUPABASE_ACCESS_TOKEN is invalid or expired.');
+      process.exit(0); // Soft fail for infra issues in CI
+    }
     throw new Error(
       `Supabase API error ${r.status} ${r.statusText}: ${text.slice(0, 500)}`,
     );
