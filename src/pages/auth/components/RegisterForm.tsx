@@ -131,11 +131,11 @@ const RegisterForm: React.FC<RegisterFormProps> = ({
           />
           <label htmlFor="lgpdConsent" className="text-xs text-muted-foreground leading-relaxed cursor-pointer">
             Li e concordo com os{' '}
-            <Link to="/termos" target="_blank" className="underline text-foreground hover:text-[hsl(43_96%_56%)] transition-colors">
+            <Link to="/termos" target="_blank" rel="noopener noreferrer" className="underline text-foreground hover:text-[hsl(43_96%_56%)] transition-colors">
               Termos de Uso
             </Link>{' '}
             e a{' '}
-            <Link to="/privacidade" target="_blank" className="underline text-foreground hover:text-[hsl(43_96%_56%)] transition-colors">
+            <Link to="/privacidade" target="_blank" rel="noopener noreferrer" className="underline text-foreground hover:text-[hsl(43_96%_56%)] transition-colors">
               Política de Privacidade
             </Link>
             , incluindo o tratamento dos meus dados conforme a LGPD.
