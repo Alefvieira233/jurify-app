@@ -6,8 +6,8 @@
  * assistant, chat-completion, ai-agent-processor).
  */
 
-import { describe, it, expect } from 'vitest';
-import { sanitizeInput, redactPII } from '../../../../supabase/functions/_shared/security';
+import { describe, it, expect, vi } from 'vitest';
+import { sanitizeInput, redactPII, auditLog } from '../../../../supabase/functions/_shared/security';
 
 // ─── Prompt injection detection ─────────────────────────────
 
@@ -212,5 +212,58 @@ describe('redactPII — non-PII is preserved', () => {
   it('does not redact short numbers', () => {
     const text = 'Ano 2026, mês 4, dia 10';
     expect(redactPII(text)).toBe(text);
+  });
+});
+
+// ─── Audit logging ──────────────────────────────────────────
+
+describe('auditLog', () => {
+  it('calls supabase insert with correct parameters', async () => {
+    const mockInsert = vi.fn().mockResolvedValue({ error: null });
+    const mockFrom = vi.fn().mockReturnValue({ insert: mockInsert });
+    const mockSupabase = { from: mockFrom };
+
+    const entry = {
+      user_id: 'user-123',
+      tenant_id: 'tenant-456',
+      action: 'test-action',
+      query: 'test-query',
+      success: true,
+      response_time_ms: 100,
+      tools_used: ['tool1']
+    };
+
+    await auditLog(mockSupabase as any, entry);
+
+    expect(mockFrom).toHaveBeenCalledWith('assistant_audit');
+    expect(mockInsert).toHaveBeenCalledWith(expect.objectContaining({
+      user_id: 'user-123',
+      tenant_id: 'tenant-456',
+      action: 'test-action',
+      query: 'test-query',
+      success: true,
+      response_time_ms: 100,
+      tools_used: ['tool1'],
+      created_at: expect.any(String)
+    }));
+  });
+
+  it('handles errors silently', async () => {
+    const mockInsert = vi.fn().mockRejectedValue(new Error('DB Error'));
+    const mockFrom = vi.fn().mockReturnValue({ insert: mockInsert });
+    const mockSupabase = { from: mockFrom };
+
+    const entry = {
+      user_id: 'u',
+      tenant_id: 't',
+      action: 'a',
+      success: false
+    };
+
+    // Should not throw
+    const consoleSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    await expect(auditLog(mockSupabase as any, entry)).resolves.not.toThrow();
+    expect(consoleSpy).toHaveBeenCalled();
+    consoleSpy.mockRestore();
   });
 });
