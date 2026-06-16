@@ -10,8 +10,8 @@ test.describe('Jurify — Signup & Onboarding', () => {
     await expect(page.locator('body')).not.toBeEmpty();
     await expect(page.getByText(/algo deu errado|error boundary/i)).not.toBeVisible();
     // Email and password fields should be present
-    await expect(page.getByLabel(/email/i).first()).toBeVisible({ timeout: 10_000 });
-    await expect(page.getByLabel(/senha/i).first()).toBeVisible({ timeout: 10_000 });
+    await expect(page.getByTestId('input-login-email')).toBeVisible({ timeout: 10_000 });
+    await expect(page.getByTestId('input-login-password')).toBeVisible({ timeout: 10_000 });
   });
 
   test('alternância para cadastro mostra campos extras', async ({ page }) => {
@@ -45,7 +45,7 @@ test.describe('Jurify — Signup & Onboarding', () => {
     await page.waitForTimeout(300);
 
     // Fill email
-    const emailInput = page.getByLabel(/email/i).first();
+    const emailInput = page.getByTestId('input-register-email');
     if (await emailInput.isVisible({ timeout: 3_000 }).catch(() => false)) {
       await emailInput.fill('test@example.com');
     }
@@ -76,7 +76,7 @@ test.describe('Jurify — Signup & Onboarding', () => {
     }
     await page.waitForTimeout(300);
 
-    const emailInput = page.getByLabel(/email/i).first();
+    const emailInput = page.getByTestId('input-register-email');
     if (await emailInput.isVisible({ timeout: 3_000 }).catch(() => false)) {
       await emailInput.fill('test@example.com');
     }
@@ -102,7 +102,7 @@ test.describe('Jurify — Signup & Onboarding', () => {
     await expect(page.getByText(/algo deu errado|error boundary/i)).not.toBeVisible();
 
     // Interact with the form
-    const emailInput = page.getByLabel(/email/i).first();
+    const emailInput = page.getByTestId('input-login-email');
     if (await emailInput.isVisible({ timeout: 3_000 }).catch(() => false)) {
       await emailInput.fill('invalid-email');
     }
