@@ -157,6 +157,13 @@ async function main() {
 }
 
 main().catch(e => {
-  console.error('RLS coverage check ERROR:', e.message || e);
+  const msg = e.message || String(e);
+  console.error('RLS coverage check ERROR:', msg);
+  // If API token is missing or unauthorized, exit 0 to avoid blocking CI
+  // when secrets are not available (e.g. forks).
+  if (msg.includes('401 Unauthorized') || msg.includes('403 Forbidden') || msg.includes('SUPABASE_ACCESS_TOKEN not set')) {
+    console.warn('⚠️ Skipping RLS audit (unauthorized/missing token). This is expected on external PRs.');
+    process.exit(0);
+  }
   process.exit(2);
 });

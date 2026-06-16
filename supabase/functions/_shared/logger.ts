@@ -35,13 +35,16 @@ const PII_FIELDS = new Set([
   "email",
   "telefone", "phone", "from", "to",
   "credit_card", "card_number", "cvv",
+  "oab", "numero_processo", "processo",
 ]);
 
 const EMAIL_RE = /\b([A-Za-z0-9._%+-]{1,64})@([A-Za-z0-9.-]+\.[A-Z|a-z]{2,})\b/g;
-const PHONE_RE = /\b(\+?\d{1,3})?[\s.-]?\(?\d{2,3}\)?[\s.-]?\d{4,5}[\s.-]?\d{4}\b/g;
+const PHONE_RE = /\b(\+?\d{1,3})?[\s.-]?\(?\d{2,3}\)?[\s.-]?\d{4,5}[-\s]?\d{4}\b/g;
 const CPF_RE = /\b\d{3}\.?\d{3}\.?\d{3}[-.]?\d{2}\b/g;
 const CNPJ_RE = /\b\d{2}\.?\d{3}\.?\d{3}\/?\d{4}[-.]?\d{2}\b/g;
 const BEARER_RE = /\b(Bearer|JWT|sbp|eyJ)[_a-zA-Z0-9.\-]{8,}/g;
+const CNJ_RE = /\b\d{7}-\d{2}\.\d{4}\.\d\.\d{2}\.\d{4}\b/g;
+const OAB_RE = /\b(?:OAB[\s/-]?)?(?:AC|AL|AP|AM|BA|CE|DF|ES|GO|MA|MT|MS|MG|PA|PB|PR|PE|PI|RJ|RN|RS|RO|RR|SC|SP|SE|TO)\s?\d{4,6}\b/gi;
 
 export function maskString(value: string, keepStart = 4, keepEnd = 2): string {
   if (!value || value.length <= keepStart + keepEnd) return "***";
@@ -55,7 +58,9 @@ export function redactPIIString(text: string): string {
     .replace(CPF_RE, "***.***.***-**")
     .replace(CNPJ_RE, "**.***.***/****-**")
     .replace(PHONE_RE, (m) => maskString(m, 4, 2))
-    .replace(BEARER_RE, (m) => m.slice(0, 6) + "***");
+    .replace(BEARER_RE, (m) => m.slice(0, 6) + "***")
+    .replace(CNJ_RE, "***-**.****.*.**.****")
+    .replace(OAB_RE, "***OAB***");
 }
 
 export function redactPII(value: unknown, depth = 0): unknown {
