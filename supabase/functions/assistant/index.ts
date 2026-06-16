@@ -285,11 +285,14 @@ Deno.serve(async (req) => {
     const responseTimeMs = Date.now() - startTime;
 
     // ── 6. Audit log (fire-and-forget) ──
+    // SEC-CRITICAL: Redact PII BEFORE truncation to prevent token splitting bypass
+    const redactedLogQuery = redactPII(safeMessage).slice(0, 500);
+
     auditLog(supabase, {
       user_id: userId,
       tenant_id: tenantId,
       action: "assistant_query",
-      query: safeMessage.slice(0, 500),
+      query: redactedLogQuery,
       response_time_ms: responseTimeMs,
       tools_used: toolsUsed,
       success: true,
@@ -313,11 +316,14 @@ Deno.serve(async (req) => {
     const errorMsg = error instanceof Error ? error.message : String(error);
     console.error("[assistant] Error:", errorMsg);
 
+    // SEC-CRITICAL: Redact PII BEFORE truncation
+    const redactedErrorQuery = redactPII(safeMessage).slice(0, 500);
+
     auditLog(supabase, {
       user_id: userId,
       tenant_id: tenantId,
       action: "assistant_query",
-      query: safeMessage.slice(0, 500),
+      query: redactedErrorQuery,
       response_time_ms: Date.now() - startTime,
       tools_used: toolsUsed,
       success: false,

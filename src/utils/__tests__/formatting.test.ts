@@ -255,3 +255,27 @@ describe('fmtFileSize', () => {
     expect(fmtFileSize(1536)).toBe('1.5 KB');
   });
 });
+
+import { formatarAreaJuridica, formatarEtapaPipeline } from '../formatting';
+
+describe('formatarAreaJuridica', () => {
+  it('formats known areas', () => {
+    expect(formatarAreaJuridica('trabalhista')).toBe('Trabalhista');
+    expect(formatarAreaJuridica('direito_familia')).toBe('Família e Sucessões');
+  });
+
+  it('formats unknown areas (fallback)', () => {
+    expect(formatarAreaJuridica('area_customizada')).toBe('Area Customizada');
+  });
+});
+
+describe('formatarEtapaPipeline', () => {
+  it('formats known stages', () => {
+    expect(formatarEtapaPipeline('novo')).toBe('Novo');
+    expect(formatarEtapaPipeline('negociacao')).toBe('Negociação');
+  });
+
+  it('formats unknown stages (fallback)', () => {
+    expect(formatarEtapaPipeline('etapa_x')).toBe('Etapa X');
+  });
+});

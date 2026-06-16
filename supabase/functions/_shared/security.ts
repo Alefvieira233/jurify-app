@@ -13,7 +13,7 @@
 // ---------------------------------------------------------------------------
 
 const INJECTION_PATTERNS = [
-  /ignore\s+(previous|all|above)\s+(instructions?|prompts?|rules?)/i,
+  /ignore\s+(?:(?:\w+)\s+){0,3}(?:instructions?|prompts?|rules?)/i,
   /you\s+are\s+now\s+/i,
   /system\s*:\s*/i,
   /\bDAN\b/,
@@ -27,7 +27,7 @@ const INJECTION_PATTERNS = [
 
 // Homoglyph map for common substitution attacks (e.g. "ign0re" → "ignore")
 const HOMOGLYPHS: Record<string, string> = {
-  "0": "o", "1": "l", "3": "e", "4": "a", "5": "s",
+  "0": "o", "1": "i", "3": "e", "4": "a", "5": "s",
   "@": "a", "$": "s", "!": "i",
 };
 
@@ -38,7 +38,7 @@ function normalizeForDetection(text: string): string {
   // NFKD decomposes look-alike characters (e.g. ﬁ → fi, ℌ → H)
   let normalized = text.normalize("NFKD");
   // Replace common homoglyphs used to bypass detection
-  normalized = normalized.replace(/[01345@$!]/g, (ch) => HOMOGLYPHS[ch] || ch);
+  normalized = normalized.replace(/[01345@$!]/g, (ch) => HOMOGLYPHS[ch as keyof typeof HOMOGLYPHS] || ch);
   return normalized;
 }
 
@@ -56,6 +56,9 @@ export function sanitizeInput(
   }
 
   const trimmed = text.trim().slice(0, maxLength);
+  if (!trimmed) {
+    return { safe: false, reason: "Empty or invalid input" };
+  }
 
   // Check original + normalized version to catch homoglyph attacks
   const normalized = normalizeForDetection(trimmed);
@@ -67,7 +70,7 @@ export function sanitizeInput(
   }
 
   // Detect base64-encoded payloads that might hide injection instructions
-  const base64Match = trimmed.match(/[A-Za-z0-9+/]{40,}={0,2}/);
+  const base64Match = trimmed.match(/[A-Za-z0-9+/]{16,}={0,2}/);
   if (base64Match) {
     try {
       const decoded = atob(base64Match[0]);
@@ -90,14 +93,36 @@ export function sanitizeInput(
 // ---------------------------------------------------------------------------
 
 const PII_PATTERNS: Array<{ pattern: RegExp; label: string; replacement: string }> = [
+  { pattern: /\b\d{4}\s?\d{4}\s?\d{4}\s?\d{4}\b/g, label: "Card", replacement: "***CARD***" },
+  { pattern: /(?<!\d)\d{11}(?!\d)/g, label: "CPF_RAW", replacement: "***CPF***" },
+  { pattern: /\b\d{7}-\d{2}\.\d{4}\.\d\.\d{2}\.\d{4}\b/g, label: "Processo CNJ", replacement: "***PROCESSO***" },
+  { pattern: /\b\d{2}\.?\d{3}\.?\d{3}\/?\d{4}-?\d{2}\b/g, label: "CNPJ", replacement: "***CNPJ***" },
+  { pattern: /(?<!\d)\d{14}(?!\d)/g, label: "CNPJ_RAW", replacement: "***CNPJ***" },
   { pattern: /\b\d{3}\.?\d{3}\.?\d{3}-?\d{2}\b/g, label: "CPF", replacement: "***CPF***" },
   { pattern: /\b\d{2}\.?\d{3}\.?\d{3}-?[\dXx]\b/g, label: "RG", replacement: "***RG***" },
-  { pattern: /\b\d{4}\s?\d{4}\s?\d{4}\s?\d{4}\b/g, label: "Card", replacement: "***CARD***" },
+  { pattern: /\b(?:OAB[\s/-]?)?(?:AC|AL|AP|AM|BA|CE|DF|ES|GO|MA|MT|MS|MG|PA|PB|PR|PE|PI|RJ|RN|RS|RO|RR|SC|SP|SE|TO)\s?\d{4,6}\b/gi, label: "OAB", replacement: "***OAB***" },
+  { pattern: /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}\b/g, label: "Email", replacement: "***EMAIL***" },
+  { pattern: /(?<!\d)(?:\+55\s?)?(?:\(\d{2}\)|\d{2})\s?\d{4,5}[-\s]?\d{4}\b/g, label: "Phone", replacement: "***PHONE***" },
 ];
 
-/** Redact PII from assistant responses before sending to client. */
-export function redactPII(text: string): string {
-  let result = text;
+/**
+ * Redact PII from text before logging or sending to client.
+ * Handles non-string inputs by stringifying them.
+ */
+export function redactPII(text: unknown): string {
+  if (text === null || text === undefined) return "";
+
+  let result: string;
+  if (typeof text !== "string") {
+    try {
+      result = JSON.stringify(text);
+    } catch {
+      result = String(text);
+    }
+  } else {
+    result = text;
+  }
+
   for (const { pattern, replacement } of PII_PATTERNS) {
     result = result.replace(pattern, replacement);
   }
@@ -128,15 +153,18 @@ export async function auditLog(
   entry: AuditEntry
 ): Promise<void> {
   try {
+    const redactedQuery = entry.query ? redactPII(entry.query) : null;
+    const redactedError = entry.error ? redactPII(entry.error) : null;
+
     await supabase.from("assistant_audit").insert({
       user_id: entry.user_id,
       tenant_id: entry.tenant_id,
       action: entry.action,
-      query: entry.query,
+      query: redactedQuery,
       response_time_ms: entry.response_time_ms,
       tools_used: entry.tools_used ?? [],
       success: entry.success,
-      error: entry.error ?? null,
+      error: redactedError,
       created_at: new Date().toISOString(),
     });
   } catch {
