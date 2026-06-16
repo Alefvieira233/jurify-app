@@ -25,6 +25,7 @@
     "lint": "eslint . --ext .ts,.tsx --max-warnings 0",
     "lint:strict": "eslint . --ext .ts,.tsx --max-warnings 0",
     "lint:fix": "eslint . --ext .ts,.tsx --fix",
+    "typecheck": "npm run type-check",
     "type-check": "tsc --noEmit --skipLibCheck",
     "format": "prettier --write \"src/**/*.{ts,tsx,js,jsx,json,css,md}\"",
     "format:check": "prettier --check \"src/**/*.{ts,tsx,js,jsx,json,css,md}\"",

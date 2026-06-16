@@ -39,6 +39,10 @@ const PATTERNS = [
     name: 'Supabase service role literal',
     regex: /SUPABASE_SERVICE_ROLE_KEY\s*=\s*['"]eyJ/g,
   },
+  {
+    name: 'Supabase secret key (sb_secret_/sbp_)',
+    regex: /\b(sb_secret|sbp)_[A-Za-z0-9_-]{20,}\b/g,
+  },
 ];
 
 const issues = [];

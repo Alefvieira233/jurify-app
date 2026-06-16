@@ -11,8 +11,14 @@ const { createClient } = require('@supabase/supabase-js');
 // Carregar variáveis de ambiente do .env
 require('dotenv').config();
 
-const SUPABASE_URL = process.env.VITE_SUPABASE_URL || 'https://yfxgncbopvnsltjqetxw.supabase.co';
-const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || 'sb_secret_fLfBA6I3NbiCQv1VmYiBeQ_4wQgMyF-';
+const SUPABASE_URL = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
+const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+if (!SUPABASE_URL || !SUPABASE_SERVICE_KEY) {
+  console.error('❌ Variáveis obrigatórias ausentes: SUPABASE_URL (ou VITE_SUPABASE_URL) e/ou SUPABASE_SERVICE_ROLE_KEY');
+  console.error('   Configure no .env local (NUNCA hardcode credenciais no código).');
+  process.exit(1);
+}
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
 

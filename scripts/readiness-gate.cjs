@@ -21,6 +21,8 @@ const args = process.argv.slice(2);
 const jsonOnly = args.includes('--json');
 const thresholdIdx = args.indexOf('--threshold');
 const THRESHOLD = thresholdIdx !== -1 ? parseInt(args[thresholdIdx + 1], 10) : 90;
+const BUNDLE_LIMIT_KB = 4096; // aligned with CI bundle gate in .github/workflows/ci.yml
+const IS_CI = process.env.CI === 'true';
 
 function log(msg) {
   if (!jsonOnly) console.log(msg);
@@ -58,14 +60,21 @@ checks.push({
 
 // ── CHECK 2: Unit tests ─────────────────────────────────────────────
 log('  [2/8] Unit tests...');
-const test = run('npx vitest run --reporter=verbose');
-const testMatch = test.output.match(/(\d+) passed/);
-const testCount = testMatch ? parseInt(testMatch[1], 10) : 0;
-const testFailed = test.output.match(/(\d+) failed/);
-const failCount = testFailed ? parseInt(testFailed[1], 10) : 0;
+const test = run('npm test', { timeout: 300_000 });
+const testsLine = test.output.match(/Tests\s+(.+)/i)?.[1] ?? '';
+const passedMatch = testsLine.match(/(\d+)\s+passed/i);
+const failedMatch = testsLine.match(/(\d+)\s+failed/i);
+const fallbackPassedMatch = test.output.match(/Test Files\s+(\d+)\s+passed/i);
+const fallbackFailedMatch = test.output.match(/Test Files\s+(\d+)\s+failed/i);
+const testCount = passedMatch
+  ? parseInt(passedMatch[1], 10)
+  : (fallbackPassedMatch ? parseInt(fallbackPassedMatch[1], 10) : 0);
+const failCount = failedMatch
+  ? parseInt(failedMatch[1], 10)
+  : (fallbackFailedMatch ? parseInt(fallbackFailedMatch[1], 10) : 0);
 checks.push({
   name: 'unit-tests',
-  pass: test.ok && failCount === 0,
+  pass: test.ok && failCount === 0 && testCount > 0,
   weight: 20,
   detail: `${testCount} passed, ${failCount} failed`,
 });
@@ -90,22 +99,30 @@ if (fs.existsSync(distDir)) {
     bundleSizeKB += fs.statSync(path.join(distDir, f)).size / 1024;
   }
 }
-const bundleOk = bundleSizeKB > 0 && bundleSizeKB < 3072;
+const bundleOk = bundleSizeKB > 0 && bundleSizeKB <= BUNDLE_LIMIT_KB;
 checks.push({
   name: 'bundle-size',
   pass: bundleOk,
   weight: 10,
-  detail: `${Math.round(bundleSizeKB)}KB JS (limit: 3072KB)`,
+  detail: `${Math.round(bundleSizeKB)}KB JS (limit: ${BUNDLE_LIMIT_KB}KB)`,
 });
 
 // ── CHECK 5: Security audit ─────────────────────────────────────────
 log('  [5/8] npm audit...');
 const audit = run('npm audit --audit-level=high --omit=dev');
+const auditUnavailable = /audit endpoint returned an error|EAI_AGAIN|ENOTFOUND|ECONNRESET|403 Forbidden|socket hang up/i.test(audit.output);
+const auditPass = audit.ok || (!IS_CI && auditUnavailable);
 checks.push({
   name: 'npm-audit',
-  pass: audit.ok,
+  pass: auditPass,
   weight: 15,
-  detail: audit.ok ? '0 high/critical' : 'vulnerabilities found',
+  detail: audit.ok
+    ? '0 high/critical'
+    : (
+      auditUnavailable
+        ? (IS_CI ? 'audit unavailable in CI (blocking)' : 'audit unavailable (local network/registry), non-blocking')
+        : 'vulnerabilities found'
+    ),
 });
 
 // ── CHECK 6: Custom security scan ───────────────────────────────────
@@ -121,10 +138,10 @@ checks.push({
 // ── CHECK 7: Critical files ─────────────────────────────────────────
 log('  [7/8] Critical files...');
 const criticalFiles = [
-  'src/pages/Index.tsx',
+  'src/App.tsx',
   'src/pages/Pricing.tsx',
-  'src/components/billing/SubscriptionManager.tsx',
-  'src/features/whatsapp/WhatsAppEvolutionSetup.tsx',
+  'src/features/billing/components/SubscriptionManager.tsx',
+  'src/features/whatsapp/WhatsAppSetup.tsx',
   'src/features/ai-agents/AgentesIAManager.tsx',
   'src/features/scheduling/AgendamentosManager.tsx',
   'src/features/dashboard/Dashboard.tsx',
