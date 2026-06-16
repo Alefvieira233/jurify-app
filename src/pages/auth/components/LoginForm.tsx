@@ -47,6 +47,7 @@ const LoginForm: React.FC<LoginFormProps> = ({
                   type="email"
                   placeholder="seu@escritorio.com.br"
                   className="h-12 border-[hsl(var(--border))] focus:border-[hsl(var(--accent))] focus:ring-[hsl(var(--accent))] transition-all"
+                  data-testid="input-login-email"
                   {...field}
                 />
               </FormControl>
@@ -71,6 +72,7 @@ const LoginForm: React.FC<LoginFormProps> = ({
                   type="password"
                   placeholder="••••••••"
                   className="h-12 border-[hsl(var(--border))] focus:border-[hsl(var(--accent))] focus:ring-[hsl(var(--accent))] transition-all"
+                  data-testid="input-login-password"
                   {...field}
                 />
               </FormControl>
@@ -147,11 +149,11 @@ const LoginForm: React.FC<LoginFormProps> = ({
       {/* Legal footer (LGPD/OAB compliance) */}
       <p className="text-center text-xs text-[hsl(var(--muted-foreground))] mt-6">
         Ao acessar, você aceita os{' '}
-        <Link to="/termos" target="_blank" className="underline hover:text-[hsl(var(--accent))] transition-colors">
+        <Link to="/termos" target="_blank" rel="noopener noreferrer" className="underline hover:text-[hsl(var(--accent))] transition-colors">
           Termos de Uso
         </Link>{' '}
         e a{' '}
-        <Link to="/privacidade" target="_blank" className="underline hover:text-[hsl(var(--accent))] transition-colors">
+        <Link to="/privacidade" target="_blank" rel="noopener noreferrer" className="underline hover:text-[hsl(var(--accent))] transition-colors">
           Política de Privacidade
         </Link>
         .
