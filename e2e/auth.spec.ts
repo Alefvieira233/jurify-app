@@ -14,8 +14,8 @@ test.describe('Jurify — Autenticação', () => {
   });
 
   test('deve mostrar erro com credenciais inválidas', async ({ page }) => {
-    await page.getByLabel(/email profissional/i).fill('usuario@invalido.com');
-    await page.getByLabel(/senha/i).fill('SenhaErrada123!');
+    await page.getByTestId('input-login-email').fill('usuario@invalido.com');
+    await page.getByTestId('input-login-password').fill('SenhaErrada123!');
     await page.getByRole('button', { name: /acessar plataforma/i }).click();
 
     await expect(page.getByText(/erro no login/i).first()).toBeVisible({ timeout: 10_000 });
@@ -29,7 +29,7 @@ test.describe('Jurify — Autenticação', () => {
     await expect(page.getByRole('button', { name: /começar agora/i })).toBeVisible();
 
     // Type a weak password and check strength indicator
-    await page.getByLabel(/senha/i).fill('abc');
+    await page.getByTestId('input-register-password').fill('abc');
     await expect(page.getByText(/fraca/i)).toBeVisible();
     await expect(page.getByText(/mínimo 8 caracteres/i)).toBeVisible();
   });
@@ -39,7 +39,11 @@ test.describe('Jurify — Autenticação', () => {
 
     await page.getByLabel(/nome completo/i).fill('Teste E2E');
     await page.getByLabel(/email profissional/i).fill('e2e@test.com');
-    await page.getByLabel(/senha/i).fill('fraca');
+    // 8 chars passes Zod, but lack of variety (no caps, special, numbers) makes it "fraca"
+    await page.getByTestId('input-register-password').fill('fraca123');
+    await page.getByTestId('input-register-confirm-password').fill('fraca123');
+    // Important: check LGPD consent to avoid blocking by that instead
+    await page.locator('#lgpdConsent').check();
     await page.getByRole('button', { name: /começar agora/i }).click();
 
     await expect(page.getByText(/senha fraca/i).first()).toBeVisible({ timeout: 5_000 });
@@ -49,8 +53,8 @@ test.describe('Jurify — Autenticação', () => {
     const testEmail = process.env.E2E_TEST_EMAIL || 'test@jurify.com';
     const testPassword = process.env.E2E_TEST_PASSWORD || 'TestPass123!';
 
-    await page.getByLabel(/email profissional/i).fill(testEmail);
-    await page.getByLabel(/senha/i).fill(testPassword);
+    await page.getByTestId('input-login-email').fill(testEmail);
+    await page.getByTestId('input-login-password').fill(testPassword);
     await page.getByRole('button', { name: /acessar plataforma/i }).click();
 
     await expect(page).toHaveURL(/.*\//, { timeout: 15_000 });
@@ -71,8 +75,8 @@ test.describe('Jurify — Segurança', () => {
     });
 
     const xssPayload = '<script>alert("XSS")</script>';
-    await page.getByLabel(/email profissional/i).fill(xssPayload);
-    await page.getByLabel(/senha/i).fill('SenhaForte123!');
+    await page.getByTestId('input-login-email').fill(xssPayload);
+    await page.getByTestId('input-login-password').fill('SenhaForte123!');
     await page.getByRole('button', { name: /acessar plataforma/i }).click();
 
     // If we reach here, XSS was blocked
