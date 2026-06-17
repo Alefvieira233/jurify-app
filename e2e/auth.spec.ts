@@ -8,14 +8,14 @@ test.describe('Jurify — Autenticação', () => {
   test('deve exibir página de login com todos os elementos', async ({ page }) => {
     await expect(page.getByRole('heading', { name: /bem-vindo de volta/i })).toBeVisible();
     await expect(page.getByLabel(/email profissional/i)).toBeVisible();
-    await expect(page.getByLabel(/senha/i)).toBeVisible();
+    await expect(page.getByTestId('input-login-password')).toBeVisible();
     await expect(page.getByRole('button', { name: /acessar plataforma/i })).toBeVisible();
     await expect(page.getByText(/criar uma nova conta/i)).toBeVisible();
   });
 
   test('deve mostrar erro com credenciais inválidas', async ({ page }) => {
     await page.getByLabel(/email profissional/i).fill('usuario@invalido.com');
-    await page.getByLabel(/senha/i).fill('SenhaErrada123!');
+    await page.getByTestId('input-login-password').fill('SenhaErrada123!');
     await page.getByRole('button', { name: /acessar plataforma/i }).click();
 
     await expect(page.getByText(/erro no login/i).first()).toBeVisible({ timeout: 10_000 });
@@ -50,7 +50,7 @@ test.describe('Jurify — Autenticação', () => {
     const testPassword = process.env.E2E_TEST_PASSWORD || 'TestPass123!';
 
     await page.getByLabel(/email profissional/i).fill(testEmail);
-    await page.getByLabel(/senha/i).fill(testPassword);
+    await page.getByTestId('input-login-password').fill(testPassword);
     await page.getByRole('button', { name: /acessar plataforma/i }).click();
 
     await expect(page).toHaveURL(/.*\//, { timeout: 15_000 });
@@ -72,7 +72,7 @@ test.describe('Jurify — Segurança', () => {
 
     const xssPayload = '<script>alert("XSS")</script>';
     await page.getByLabel(/email profissional/i).fill(xssPayload);
-    await page.getByLabel(/senha/i).fill('SenhaForte123!');
+    await page.getByTestId('input-login-password').fill('SenhaForte123!');
     await page.getByRole('button', { name: /acessar plataforma/i }).click();
 
     // If we reach here, XSS was blocked
