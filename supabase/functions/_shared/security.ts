@@ -13,7 +13,7 @@
 // ---------------------------------------------------------------------------
 
 const INJECTION_PATTERNS = [
-  /ignore\s+(previous|all|above)\s+(instructions?|prompts?|rules?)/i,
+  /ignore\s+(?:(?:\w+)\s+){0,3}(?:instructions?|prompts?|rules?)/i,
   /you\s+are\s+now\s+/i,
   /system\s*:\s*/i,
   /\bDAN\b/,
@@ -27,7 +27,7 @@ const INJECTION_PATTERNS = [
 
 // Homoglyph map for common substitution attacks (e.g. "ign0re" → "ignore")
 const HOMOGLYPHS: Record<string, string> = {
-  "0": "o", "1": "l", "3": "e", "4": "a", "5": "s",
+  "0": "o", "1": "i", "3": "e", "4": "a", "5": "s",
   "@": "a", "$": "s", "!": "i",
 };
 
@@ -67,7 +67,8 @@ export function sanitizeInput(
   }
 
   // Detect base64-encoded payloads that might hide injection instructions
-  const base64Match = trimmed.match(/[A-Za-z0-9+/]{40,}={0,2}/);
+  // Threshold reduced to 16 chars to catch shorter payloads (e.g. "ignore" encoded)
+  const base64Match = trimmed.match(/[A-Za-z0-9+/]{16,}={0,2}/);
   if (base64Match) {
     try {
       const decoded = atob(base64Match[0]);
@@ -90,9 +91,14 @@ export function sanitizeInput(
 // ---------------------------------------------------------------------------
 
 const PII_PATTERNS: Array<{ pattern: RegExp; label: string; replacement: string }> = [
-  { pattern: /\b\d{3}\.?\d{3}\.?\d{3}-?\d{2}\b/g, label: "CPF", replacement: "***CPF***" },
-  { pattern: /\b\d{2}\.?\d{3}\.?\d{3}-?[\dXx]\b/g, label: "RG", replacement: "***RG***" },
   { pattern: /\b\d{4}\s?\d{4}\s?\d{4}\s?\d{4}\b/g, label: "Card", replacement: "***CARD***" },
+  { pattern: /\b\d{3}\.?\d{3}\.?\d{3}-?\d{2}\b/g, label: "CPF", replacement: "***CPF***" },
+  { pattern: /\b\d{2}\.\d{3}\.\d{3}\/\d{4}-\d{2}\b/g, label: "CNPJ", replacement: "***CNPJ***" },
+  { pattern: /\b\d{7}-\d{2}\.\d{4}\.\d\.\d{2}\.\d{4}\b/g, label: "Processo", replacement: "***PROCESSO***" },
+  { pattern: /(?:\+55\s?)?(?:\(\d{2}\)|\d{2})\s?\d{4,5}[-\s]?\d{4}/g, label: "Phone", replacement: "***PHONE***" },
+  { pattern: /\b\d{2}\.?\d{3}\.?\d{3}-?[\dXx]\b/g, label: "RG", replacement: "***RG***" },
+  { pattern: /\b(?:OAB[\s/-]?)?(?:AC|AL|AP|AM|BA|CE|DF|ES|GO|MA|MT|MS|MG|PA|PB|PR|PE|PI|RJ|RN|RS|RO|RR|SC|SP|SE|TO)\s?\d{4,6}\b/gi, label: "OAB", replacement: "***OAB***" },
+  { pattern: /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g, label: "Email", replacement: "***EMAIL***" },
 ];
 
 /** Redact PII from assistant responses before sending to client. */
@@ -132,11 +138,11 @@ export async function auditLog(
       user_id: entry.user_id,
       tenant_id: entry.tenant_id,
       action: entry.action,
-      query: entry.query,
+      query: entry.query ? redactPII(entry.query) : null,
       response_time_ms: entry.response_time_ms,
       tools_used: entry.tools_used ?? [],
       success: entry.success,
-      error: entry.error ?? null,
+      error: entry.error ? redactPII(entry.error) : null,
       created_at: new Date().toISOString(),
     });
   } catch {
