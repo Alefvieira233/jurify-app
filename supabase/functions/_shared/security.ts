@@ -2,7 +2,7 @@
  * Security Middleware for Edge Functions
  *
  * - Input sanitisation against prompt injection
- * - PII content filtering (CPF, RG, phone)
+ * - PII content filtering (CPF, RG, phone, email, CNPJ, OAB, process numbers)
  * - Audit trail logging to Supabase
  *
  * Rate limiting consolidated in rate-limiter.ts
@@ -13,7 +13,7 @@
 // ---------------------------------------------------------------------------
 
 const INJECTION_PATTERNS = [
-  /ignore\s+(previous|all|above)\s+(instructions?|prompts?|rules?)/i,
+  /ignore\s+(?:.*?\s+)?(instructions?|prompts?|rules?)/i,
   /you\s+are\s+now\s+/i,
   /system\s*:\s*/i,
   /\bDAN\b/,
@@ -27,7 +27,7 @@ const INJECTION_PATTERNS = [
 
 // Homoglyph map for common substitution attacks (e.g. "ign0re" → "ignore")
 const HOMOGLYPHS: Record<string, string> = {
-  "0": "o", "1": "l", "3": "e", "4": "a", "5": "s",
+  "0": "o", "1": "i", "3": "e", "4": "a", "5": "s",
   "@": "a", "$": "s", "!": "i",
 };
 
@@ -67,7 +67,7 @@ export function sanitizeInput(
   }
 
   // Detect base64-encoded payloads that might hide injection instructions
-  const base64Match = trimmed.match(/[A-Za-z0-9+/]{40,}={0,2}/);
+  const base64Match = trimmed.match(/[A-Za-z0-9+/]{16,}={0,2}/);
   if (base64Match) {
     try {
       const decoded = atob(base64Match[0]);
@@ -89,14 +89,29 @@ export function sanitizeInput(
 // PII content filtering
 // ---------------------------------------------------------------------------
 
-const PII_PATTERNS: Array<{ pattern: RegExp; label: string; replacement: string }> = [
-  { pattern: /\b\d{3}\.?\d{3}\.?\d{3}-?\d{2}\b/g, label: "CPF", replacement: "***CPF***" },
-  { pattern: /\b\d{2}\.?\d{3}\.?\d{3}-?[\dXx]\b/g, label: "RG", replacement: "***RG***" },
-  { pattern: /\b\d{4}\s?\d{4}\s?\d{4}\s?\d{4}\b/g, label: "Card", replacement: "***CARD***" },
+/**
+ * PII redaction patterns prioritized to prevent collision.
+ * Email, CNPJ, Processo and Tokens are checked before shorter numbers.
+ */
+const PII_PATTERNS: Array<{ pattern: RegExp; replacement: string }> = [
+  { pattern: /\b\d{2}\.?\d{3}\.?\d{3}\/?\d{4}-?\d{2}\b/g, replacement: "***CNPJ***" },
+  { pattern: /\b\d{7}-\d{2}\.\d{4}\.\d\.\d{2}\.\d{4}\b/g, replacement: "***PROCESSO***" },
+  { pattern: /\b\d{4}[\s-]?\d{4}[\s-]?\d{4}[\s-]?\d{4}\b/g, replacement: "***CARD***" },
+  { pattern: /\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}\b/g, replacement: "***EMAIL***" },
+  { pattern: /\bOAB[\s\/]?[A-Z]{2}[\s\/]?\d{5,6}\b/gi, replacement: "***OAB***" },
+  { pattern: /\b\d{3}\.?\d{3}\.?\d{3}-?\d{2}\b/g, replacement: "***CPF***" },
+  { pattern: /(?:\+?55[\s.-]?)?\(?\d{2,3}\)?[\s.-]?\d{4,5}[\s.-]?\d{4}\b/g, replacement: "***PHONE***" },
+  { pattern: /\b\d{2}\.?\d{3}\.?\d{3}-?[\dXx]\b/g, replacement: "***RG***" },
+  { pattern: /\b(?:Bearer\s+)?(sk-|eyJ)[A-Za-z0-9._\-\/]{10,}\b/g, replacement: "***TOKEN***" },
+  { pattern: /\bBearer\s+[A-Za-z0-9._\-\/]{10,}\b/g, replacement: "***TOKEN***" },
 ];
 
-/** Redact PII from assistant responses before sending to client. */
-export function redactPII(text: string): string {
+/**
+ * Redact PII from text before logging or sending to client.
+ * Returns empty string if input is null or undefined.
+ */
+export function redactPII(text: string | null | undefined): string {
+  if (!text) return "";
   let result = text;
   for (const { pattern, replacement } of PII_PATTERNS) {
     result = result.replace(pattern, replacement);
