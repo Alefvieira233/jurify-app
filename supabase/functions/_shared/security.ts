@@ -94,23 +94,14 @@ export function sanitizeInput(
  * Email, CNPJ, Processo and Tokens are checked before shorter numbers.
  */
 const PII_PATTERNS: Array<{ pattern: RegExp; replacement: string }> = [
-  // CNPJ: 12.345.678/0001-90
   { pattern: /\b\d{2}\.?\d{3}\.?\d{3}\/?\d{4}-?\d{2}\b/g, replacement: "***CNPJ***" },
-  // Processo CNJ: 1234567-89.2024.8.26.0001
   { pattern: /\b\d{7}-\d{2}\.\d{4}\.\d\.\d{2}\.\d{4}\b/g, replacement: "***PROCESSO***" },
-  // Credit Card: 1234 5678 1234 5678
   { pattern: /\b\d{4}[\s-]?\d{4}[\s-]?\d{4}[\s-]?\d{4}\b/g, replacement: "***CARD***" },
-  // Email: user@domain.com
   { pattern: /\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}\b/g, replacement: "***EMAIL***" },
-  // OAB: OAB/SP 123456
   { pattern: /\bOAB[\s\/]?[A-Z]{2}[\s\/]?\d{5,6}\b/gi, replacement: "***OAB***" },
-  // CPF: 123.456.789-01
   { pattern: /\b\d{3}\.?\d{3}\.?\d{3}-?\d{2}\b/g, replacement: "***CPF***" },
-  // Phone: (11) 98888-7777 or +5511...
   { pattern: /(?:\+?55[\s.-]?)?\(?\d{2,3}\)?[\s.-]?\d{4,5}[\s.-]?\d{4}\b/g, replacement: "***PHONE***" },
-  // RG: 12.345.678-X
   { pattern: /\b\d{2}\.?\d{3}\.?\d{3}-?[\dXx]\b/g, replacement: "***RG***" },
-  // Tokens/Keys: Bearer eyJ... or sk-xxx...
   { pattern: /\b(?:Bearer\s+)?(sk-|eyJ)[A-Za-z0-9._\-\/]{10,}\b/g, replacement: "***TOKEN***" },
   { pattern: /\bBearer\s+[A-Za-z0-9._\-\/]{10,}\b/g, replacement: "***TOKEN***" },
 ];

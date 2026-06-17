@@ -6,8 +6,8 @@
  * assistant, chat-completion, ai-agent-processor).
  */
 
-import { describe, it, expect } from 'vitest';
-import { sanitizeInput, redactPII } from '../../../../supabase/functions/_shared/security';
+import { describe, it, expect, vi } from 'vitest';
+import { sanitizeInput, redactPII, auditLog } from '../../../../supabase/functions/_shared/security';
 
 // ─── Prompt injection detection ─────────────────────────────
 
@@ -168,11 +168,13 @@ describe('redactPII — Phone', () => {
 
 describe('redactPII — Tokens', () => {
   it('redacts Bearer tokens', () => {
-    expect(redactPII('Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.abc.def')).toBe('Authorization: ***TOKEN***');
+    // Note: using non-sensitive looking strings to avoid gitleaks false positives in CI
+    expect(redactPII('Authorization: Bearer my_fake_token_12345')).toBe('Authorization: ***TOKEN***');
   });
 
   it('redacts OpenAI keys', () => {
-    expect(redactPII('Key: sk-1234567890abcdef1234567890abcdef')).toBe('Key: ***TOKEN***');
+    // Use a string that matches the pattern but doesn't look like a real key to gitleaks
+    expect(redactPII('Key: sk-antigravity-test-token-12345')).toBe('Key: ***TOKEN***');
   });
 });
 
@@ -211,5 +213,54 @@ describe('redactPII — edge cases', () => {
   it('handles null/undefined gracefully', () => {
     expect(redactPII(null)).toBe('');
     expect(redactPII(undefined)).toBe('');
+  });
+});
+
+// ─── Audit Log ─────────────────────────────────────────────
+
+describe('auditLog', () => {
+  it('calls supabase insert with correct parameters', async () => {
+    const mockInsert = vi.fn().mockResolvedValue({ error: null });
+    const mockFrom = vi.fn().mockReturnValue({ insert: mockInsert });
+    const mockSupabase = { from: mockFrom };
+
+    const entry = {
+      user_id: 'user-123',
+      tenant_id: 'tenant-456',
+      action: 'test_action',
+      query: 'test query',
+      success: true,
+    };
+
+    await auditLog(mockSupabase as any, entry);
+
+    expect(mockFrom).toHaveBeenCalledWith('assistant_audit');
+    expect(mockInsert).toHaveBeenCalledWith(expect.objectContaining({
+      user_id: 'user-123',
+      tenant_id: 'tenant-456',
+      action: 'test_action',
+      query: 'test query',
+      success: true,
+    }));
+  });
+
+  it('handles insert failure silently', async () => {
+    const mockInsert = vi.fn().mockRejectedValue(new Error('DB Error'));
+    const mockFrom = vi.fn().mockReturnValue({ insert: mockInsert });
+    const mockSupabase = { from: mockFrom };
+
+    const entry = {
+      user_id: 'user-123',
+      tenant_id: 'tenant-456',
+      action: 'test_action',
+      success: false,
+    };
+
+    const consoleSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+
+    await expect(auditLog(mockSupabase as any, entry)).resolves.not.toThrow();
+    expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining('auditLog insert failed'));
+
+    consoleSpy.mockRestore();
   });
 });
