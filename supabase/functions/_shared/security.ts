@@ -13,7 +13,7 @@
 // ---------------------------------------------------------------------------
 
 const INJECTION_PATTERNS = [
-  /ignore\s+(previous|all|above)\s+(instructions?|prompts?|rules?)/i,
+  /ignore\s+(?:(?:\w+)\s+){0,3}(?:instructions?|prompts?|rules?)/i,
   /you\s+are\s+now\s+/i,
   /system\s*:\s*/i,
   /\bDAN\b/,
@@ -90,9 +90,24 @@ export function sanitizeInput(
 // ---------------------------------------------------------------------------
 
 const PII_PATTERNS: Array<{ pattern: RegExp; label: string; replacement: string }> = [
-  { pattern: /\b\d{3}\.?\d{3}\.?\d{3}-?\d{2}\b/g, label: "CPF", replacement: "***CPF***" },
-  { pattern: /\b\d{2}\.?\d{3}\.?\d{3}-?[\dXx]\b/g, label: "RG", replacement: "***RG***" },
+  // Credit Cards
   { pattern: /\b\d{4}\s?\d{4}\s?\d{4}\s?\d{4}\b/g, label: "Card", replacement: "***CARD***" },
+  // CPF (Formatted: 000.000.000-00)
+  { pattern: /\b\d{3}\.\d{3}\.\d{3}-\d{2}\b/g, label: "CPF", replacement: "***CPF***" },
+  // CPF (Raw: 11 digits) - using lookarounds to avoid merging with other numbers
+  { pattern: /(?<!\d)\d{11}(?!\d)/g, label: "CPF_RAW", replacement: "***CPF***" },
+  // Phone (Brazilian formats)
+  { pattern: /(?:\+55\s?)?(?:\(\d{2}\)|\d{2})\s?\d{4,5}[-\s]?\d{4}\b/g, label: "Phone", replacement: "***PHONE***" },
+  // Email
+  { pattern: /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}\b/g, label: "Email", replacement: "***EMAIL***" },
+  // CNPJ (00.000.000/0000-00)
+  { pattern: /\b\d{2}\.\d{3}\.\d{3}\/\d{4}-\d{2}\b/g, label: "CNPJ", replacement: "***CNPJ***" },
+  // RG (standard formats)
+  { pattern: /\b\d{2}\.?\d{3}\.?\d{3}-?[\dXx]\b/g, label: "RG", replacement: "***RG***" },
+  // Processo CNJ (0000000-00.0000.0.00.0000)
+  { pattern: /\b\d{7}-\d{2}\.\d{4}\.\d\.\d{2}\.\d{4}\b/g, label: "Processo", replacement: "***PROCESSO***" },
+  // OAB (e.g., SP123456, OAB/SP 123456)
+  { pattern: /(?:\bOAB[\s/-]+)?\b(?:AC|AL|AP|AM|BA|CE|DF|ES|GO|MA|MT|MS|MG|PA|PB|PR|PE|PI|RJ|RN|RS|RO|RR|SC|SP|SE|TO)\s?\d{4,6}\b/gi, label: "OAB", replacement: "***OAB***" },
 ];
 
 /** Redact PII from assistant responses before sending to client. */
