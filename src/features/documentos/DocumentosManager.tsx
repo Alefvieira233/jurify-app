@@ -439,7 +439,7 @@ const DocumentosManager = () => {
                   )}
                   {doc.signedUrl && (
                     <Button size="sm" variant="ghost" title="Download" asChild>
-                      <a href={doc.signedUrl} download={doc.nome_original} target="_blank" rel="noopener noreferrer">
+                      <a href={doc.signedUrl} download={doc.nome_original} target="_blank" rel="noreferrer">
                         <Download className="w-4 h-4" />
                       </a>
                     </Button>

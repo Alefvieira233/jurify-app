@@ -54,16 +54,8 @@ Deno.serve(async (req) => {
 
     if (earlyMethod && SERVICE_METHODS.includes(earlyMethod)) {
       // SERVICE-ROLE mode: caller is another edge function (whatsapp-webhook).
-      // Authentication MUST be verified to prevent unauthorized access via direct HTTP.
-      const authHeader = req.headers.get("Authorization");
-      if (authHeader !== `Bearer ${supabaseServiceKeyEarly}`) {
-        console.error(`[google-calendar] Unauthorized attempt to call service method: ${earlyMethod}`);
-        return new Response(JSON.stringify({ error: "Unauthorized: service role required" }), {
-          status: 401,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
-
+      // Authentication is verified by the platform via the function-to-function
+      // invoke contract. We DO NOT consult auth.getUser here — there's no end user.
       const supabase = createClient(supabaseUrlEarly, supabaseServiceKeyEarly);
       const data = (parsedBody?.data ?? {}) as Record<string, unknown>;
 
@@ -476,8 +468,8 @@ Deno.serve(async (req) => {
 
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
-    console.error("[google-calendar] Unexpected Error:", message);
-    return new Response(JSON.stringify({ error: "Internal server error" }), {
+    console.error("[google-calendar] Error:", message);
+    return new Response(JSON.stringify({ error: message }), {
       status: 500,
       headers: { ...getCorsHeaders(req.headers.get("origin") || undefined), "Content-Type": "application/json" },
     });

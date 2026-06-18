@@ -105,7 +105,7 @@ const DocumentoViewer = ({ documento, open, onClose }: DocumentoViewerProps) => 
                 aplicativo externo ou baixados.
               </p>
               <Button asChild variant="default" size="sm">
-                <a href={url} target="_blank" rel="noopener noreferrer">
+                <a href={url} target="_blank" rel="noreferrer">
                   <ExternalLink className="w-4 h-4 mr-2" />
                   Abrir em nova aba
                 </a>
@@ -117,7 +117,7 @@ const DocumentoViewer = ({ documento, open, onClose }: DocumentoViewerProps) => 
         <div className="flex flex-wrap items-center justify-end gap-2 pt-2">
           {url && (
             <Button asChild variant="outline" size="sm">
-              <a href={url} download={name} target="_blank" rel="noopener noreferrer">
+              <a href={url} download={name} target="_blank" rel="noreferrer">
                 <Download className="w-4 h-4 mr-2" />
                 Download
               </a>
