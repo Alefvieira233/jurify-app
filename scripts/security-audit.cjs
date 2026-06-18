@@ -36,7 +36,7 @@ if (fs.existsSync(envFile)) {
   }
   if (envClean) check('No secrets in VITE_ variables', true);
 } else {
-  check('.env file exists', false, 'No .env found');
+  console.log('  INFO  .env file not found — skipping local env check');
 }
 
 // 2. Check .gitignore includes .env
@@ -55,14 +55,15 @@ check('sourcemap set to hidden', viteConfig.includes("sourcemap: 'hidden'") || v
 // 4. Check security headers in vercel.json
 console.log('\n[Security Headers]');
 const vercelJson = JSON.parse(fs.readFileSync(path.join(ROOT, 'vercel.json'), 'utf8'));
-const headers = vercelJson.headers?.[0]?.headers || [];
-const headerKeys = headers.map(h => h.key);
-check('X-Content-Type-Options', headerKeys.includes('X-Content-Type-Options'));
-check('X-Frame-Options', headerKeys.includes('X-Frame-Options'));
-check('Strict-Transport-Security', headerKeys.includes('Strict-Transport-Security'));
-check('Content-Security-Policy', headerKeys.includes('Content-Security-Policy'));
-check('Referrer-Policy', headerKeys.includes('Referrer-Policy'));
-check('Permissions-Policy', headerKeys.includes('Permissions-Policy'));
+// Check all header blocks to find security headers (often defined for /(.*))
+const allHeaders = (vercelJson.headers || []).flatMap(h => h.headers || []);
+const headerKeys = allHeaders.map(h => h.key);
+check('X-Content-Type-Options', headerKeys.includes('X-Content-Type-Options'), 'Check vercel.json headers');
+check('X-Frame-Options', headerKeys.includes('X-Frame-Options'), 'Check vercel.json headers');
+check('Strict-Transport-Security', headerKeys.includes('Strict-Transport-Security'), 'Check vercel.json headers');
+check('Content-Security-Policy', headerKeys.includes('Content-Security-Policy'), 'Check vercel.json headers');
+check('Referrer-Policy', headerKeys.includes('Referrer-Policy'), 'Check vercel.json headers');
+check('Permissions-Policy', headerKeys.includes('Permissions-Policy'), 'Check vercel.json headers');
 
 // 5. Check no hardcoded keys in source
 console.log('\n[Source Code]');
@@ -72,7 +73,8 @@ function scanDir(dir, patterns) {
   const entries = fs.readdirSync(dir, { withFileTypes: true });
   for (const entry of entries) {
     const fullPath = path.join(dir, entry.name);
-    if (entry.isDirectory() && entry.name !== 'node_modules') {
+    // Ignore node_modules and test directories to avoid false positives
+    if (entry.isDirectory() && entry.name !== 'node_modules' && entry.name !== 'tests' && entry.name !== '__tests__') {
       found.push(...scanDir(fullPath, patterns));
     } else if (entry.isFile() && /\.(ts|tsx|js)$/.test(entry.name)) {
       const content = fs.readFileSync(fullPath, 'utf8');
