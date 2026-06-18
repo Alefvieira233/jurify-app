@@ -90,6 +90,7 @@ const RegisterForm: React.FC<RegisterFormProps> = ({
                 <Input
                   type="password"
                   placeholder="••••••••"
+                  data-testid="input-register-password"
                   className="h-12 border-[hsl(var(--border))] focus:border-[hsl(var(--accent))] focus:ring-[hsl(var(--accent))] transition-all"
                   {...field}
                 />
@@ -112,6 +113,7 @@ const RegisterForm: React.FC<RegisterFormProps> = ({
                 <Input
                   type="password"
                   placeholder="••••••••"
+                  data-testid="input-register-confirm-password"
                   className="h-12 border-[hsl(var(--border))] focus:border-[hsl(var(--accent))] focus:ring-[hsl(var(--accent))] transition-all"
                   {...field}
                 />

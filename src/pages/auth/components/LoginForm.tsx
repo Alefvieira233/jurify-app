@@ -70,6 +70,7 @@ const LoginForm: React.FC<LoginFormProps> = ({
                 <Input
                   type="password"
                   placeholder="••••••••"
+                  data-testid="input-login-password"
                   className="h-12 border-[hsl(var(--border))] focus:border-[hsl(var(--accent))] focus:ring-[hsl(var(--accent))] transition-all"
                   {...field}
                 />
