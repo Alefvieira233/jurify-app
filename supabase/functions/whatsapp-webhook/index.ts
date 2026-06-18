@@ -178,6 +178,7 @@ Deno.serve(async (req) => {
       const batchHeader = req.headers.get("x-webhook-batch");
       const eventHeader = req.headers.get("x-webhook-event");
       const sigHeader = req.headers.get("x-webhook-signature") ? "present" : "absent";
+      // SECURITY: Redact PII before logging the raw body size/info
       console.log(`[webhook] Received: type=${typeof parsed} isArray=${Array.isArray(parsed)} keys=${rawKeys} batch=${batchHeader} event=${eventHeader} sig=${sigHeader} size=${rawBody.length}`);
 
       // ============================================
@@ -359,7 +360,9 @@ Deno.serve(async (req) => {
           }
           const normalized = normalizeKapsoMessage(payload, eventHeader);
           if (normalized) {
-            console.log(`[webhook:kapso] Processing message from ${normalized.from}: "${redactPII(normalized.text.substring(0, 50))}"`);
+            // SECURITY: Redact PII BEFORE truncation
+            const redactedText = redactPII(normalized.text);
+            console.log(`[webhook:kapso] Processing message from ${normalized.from}: "${redactedText.substring(0, 50)}"`);
             await processNormalizedMessage(supabase, normalized);
           } else {
             console.warn(`[webhook:kapso] Could not normalize message | keys: ${payloadKeys} | event: ${event}`);
