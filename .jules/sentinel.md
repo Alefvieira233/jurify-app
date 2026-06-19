@@ -1,0 +1,4 @@
+## 2025-05-22 - [HIGH] PII Leakage via Redact-After-Truncate Pattern
+**Vulnerability:** Personally Identifiable Information (PII) and sensitive tokens were being leaked in console logs and observability tables (`agent_ai_logs`) because string truncation (e.g., `.substring(0, 80)`) was applied *before* the `redactPII` function.
+**Learning:** Truncating a sensitive string before redaction often breaks the structure required for regex-based matching. For example, if an email or a Bearer token is cut in half by a character limit, the PII pattern will no longer match, allowing the partial (but still sensitive) data to be logged in plain text.
+**Prevention:** Always apply PII redaction to the *full content* string first, and only perform character-based truncation on the *already redacted* output for logging/display purposes.
