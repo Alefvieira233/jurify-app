@@ -157,7 +157,7 @@ export async function processNormalizedMessage(
 
     if (!tenantId) {
       // P0 SECURITY: strict tenant resolution failed. Sem fallback por telefone do lead.
-      console.error(`[processMsg:${provider}] TENANT_RESOLUTION_FAILED_STRICT | from=${from} | instance=${instanceName} | type=${messageType} | text="${redactPII(text.substring(0, 80))}"`);
+      console.error(`[processMsg:${provider}] TENANT_RESOLUTION_FAILED_STRICT | from=${from} | instance=${instanceName} | type=${messageType} | text="${redactPII(text).substring(0, 80)}"`);
       // Persist failed resolution for diagnostics
       void supabase.from("webhook_events").insert({
         event_id: `unresolved_${Date.now()}_${from}`,
@@ -575,7 +575,7 @@ export async function processNormalizedMessage(
 
         processedText = mediaResult.extractedText;
         mediaCategory = mediaResult.mediaCategory;
-        console.log(`[processMsg:${provider}] Media processed (${mediaResult.processingMethod}, ${mediaResult.durationMs}ms): "${processedText.substring(0, 80)}..."`);
+        console.log(`[processMsg:${provider}] Media processed (${mediaResult.processingMethod}, ${mediaResult.durationMs}ms): "${redactPII(processedText).substring(0, 80)}..."`);
       } catch (mediaErr) {
         console.error(`[processMsg:${provider}] Media processing failed, using raw text:`, mediaErr);
       }
@@ -1108,16 +1108,16 @@ export async function processNormalizedMessage(
           prompt_tokens: aiResponse.usage?.prompt_tokens || 0,
           completion_tokens: aiResponse.usage?.completion_tokens || 0,
           total_tokens: aiResponse.usage?.total_tokens || 0,
-          result_preview: resultText.substring(0, 200),
-          system_prompt: finalSystemPrompt.substring(0, 500),
-          user_prompt: (commandIntent ?? processedText).substring(0, 500),
-          full_result: resultText.substring(0, 2000),
+          result_preview: redactPII(resultText).substring(0, 200),
+          system_prompt: redactPII(finalSystemPrompt).substring(0, 500),
+          user_prompt: redactPII(commandIntent ?? processedText).substring(0, 500),
+          full_result: redactPII(resultText).substring(0, 2000),
           context: { mediaCategory, agent: agentName, hasLegalContext: legalCtx.has_context },
           created_at: new Date().toISOString(),
         }).then(({ error }) => { if (error) console.error("[webhook] ai_log insert error:", error.message); });
       }
 
-      console.log(`[processMsg:${provider}] ${agentName} responded: "${resultText.substring(0, 80)}..."`);
+      console.log(`[processMsg:${provider}] ${agentName} responded: "${redactPII(resultText).substring(0, 80)}..."`);
 
       // ── ONDA 17: Update conversation phase + state-based handoff ──
       try {
