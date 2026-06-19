@@ -6,8 +6,8 @@
  * assistant, chat-completion, ai-agent-processor).
  */
 
-import { describe, it, expect } from 'vitest';
-import { sanitizeInput, redactPII } from '../../../../supabase/functions/_shared/security';
+import { describe, it, expect, vi } from 'vitest';
+import { sanitizeInput, redactPII, auditLog } from '../../../../supabase/functions/_shared/security';
 
 // ─── Prompt injection detection ─────────────────────────────
 
@@ -162,6 +162,119 @@ describe('redactPII — Credit card', () => {
 
   it('redacts 16-digit card without spaces', () => {
     expect(redactPII('Cartão 4111111111111111')).toBe('Cartão ***CARD***');
+  });
+});
+
+describe('redactPII — Processo CNJ', () => {
+  it('redacts formatted Processo CNJ', () => {
+    expect(redactPII('Processo 0001234-56.2023.8.26.0000')).toBe('Processo ***PROCESSO***');
+  });
+});
+
+describe('redactPII — CNPJ', () => {
+  it('redacts formatted CNPJ', () => {
+    expect(redactPII('CNPJ: 12.345.678/0001-90')).toBe('CNPJ: ***CNPJ***');
+  });
+});
+
+describe('redactPII — OAB', () => {
+  it('redacts OAB registration', () => {
+    expect(redactPII('Advogado OAB SP 123456')).toBe('Advogado ***OAB***');
+    expect(redactPII('Inscrição OAB/RJ 654321')).toBe('Inscrição ***OAB***');
+  });
+});
+
+describe('redactPII — Email', () => {
+  it('redacts email addresses', () => {
+    expect(redactPII('Contato: joao.silva@exemplo.com.br')).toBe('Contato: ***EMAIL***');
+  });
+});
+
+describe('redactPII — Phone', () => {
+  it('redacts Brazilian phone formats', () => {
+    expect(redactPII('Tel: (11) 98888-7777')).toBe('Tel: ***PHONE***');
+    expect(redactPII('WhatsApp +55 21 97777-6666')).toBe('WhatsApp ***PHONE***');
+  });
+});
+
+describe('redactPII — Objects and Arrays', () => {
+  it('redacts PII within stringified objects', () => {
+    const data = { info: 'O CPF dele é 123.456.789-00' };
+    expect(redactPII(data)).toContain('***CPF***');
+  });
+
+  it('redacts PII within stringified arrays', () => {
+    const data = ['123.456.789-00', 'joao@email.com'];
+    const redacted = redactPII(data);
+    expect(redacted).toContain('***CPF***');
+    expect(redacted).toContain('***EMAIL***');
+  });
+
+  it('handles null and undefined safely', () => {
+    expect(redactPII(null)).toBe('');
+    expect(redactPII(undefined)).toBe('');
+  });
+
+  it('handles non-string primitives', () => {
+    expect(redactPII(12345678900)).toBe('***CPF***');
+    expect(redactPII(true)).toBe('true');
+  });
+
+  it('handles circular references in objects via fallback to String()', () => {
+    const circular: any = { a: 1 };
+    circular.self = circular;
+    // JSON.stringify fails, falls back to String() which returns "[object Object]"
+    expect(redactPII(circular)).toBe('[object Object]');
+  });
+});
+
+describe('auditLog', () => {
+  it('logs an interaction successfully', async () => {
+    const mockInsert = vi.fn().mockResolvedValue({ error: null });
+    const mockSupabase = {
+      from: vi.fn().mockReturnValue({ insert: mockInsert }),
+    };
+
+    const entry = {
+      user_id: 'user-123',
+      tenant_id: 'tenant-456',
+      action: 'test_action',
+      query: 'test query',
+      response_time_ms: 100,
+      tools_used: ['tool1'],
+      success: true,
+    };
+
+    // @ts-ignore
+    await auditLog(mockSupabase, entry);
+
+    expect(mockSupabase.from).toHaveBeenCalledWith('assistant_audit');
+    expect(mockInsert).toHaveBeenCalledWith(expect.objectContaining({
+      user_id: 'user-123',
+      tenant_id: 'tenant-456',
+      action: 'test_action',
+      query: 'test query',
+      success: true,
+    }));
+  });
+
+  it('fails silently on database error', async () => {
+    const mockSupabase = {
+      from: vi.fn().mockImplementation(() => {
+        throw new Error('Database connection failed');
+      }),
+    };
+
+    const entry = {
+      user_id: 'user-123',
+      tenant_id: 'tenant-456',
+      action: 'test_action',
+      success: true,
+    };
+
+    // Should not throw error
+    // @ts-ignore
+    await expect(auditLog(mockSupabase, entry)).resolves.not.toThrow();
   });
 });
 
