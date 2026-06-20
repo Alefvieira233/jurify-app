@@ -115,4 +115,78 @@ describe('GoogleOAuthService', () => {
       },
     });
   });
+
+  it('createEvent calls the edge function', async () => {
+    const mockEvent = { id: 'new-id', summary: 'New Event' };
+    (supabase.functions.invoke as any).mockResolvedValue({
+      data: { event: mockEvent },
+      error: null,
+    });
+
+    const eventData = {
+      summary: 'New Event',
+      start: { dateTime: '2026-01-01T10:00:00Z' },
+      end: { dateTime: '2026-01-01T11:00:00Z' },
+    };
+
+    const result = await GoogleOAuthService.createEvent('primary', eventData);
+    expect(result).toEqual(mockEvent);
+    expect(supabase.functions.invoke).toHaveBeenCalledWith('google-calendar', {
+      body: {
+        action: 'createEvent',
+        data: { calendarId: 'primary', eventData },
+      },
+    });
+  });
+
+  it('updateEvent calls the edge function', async () => {
+    const mockEvent = { id: 'id1', summary: 'Updated Event' };
+    (supabase.functions.invoke as any).mockResolvedValue({
+      data: { event: mockEvent },
+      error: null,
+    });
+
+    const eventData = { summary: 'Updated Event' };
+    const result = await GoogleOAuthService.updateEvent('primary', 'id1', eventData);
+    expect(result).toEqual(mockEvent);
+    expect(supabase.functions.invoke).toHaveBeenCalledWith('google-calendar', {
+      body: {
+        action: 'updateEvent',
+        data: { calendarId: 'primary', eventId: 'id1', eventData },
+      },
+    });
+  });
+
+  it('deleteEvent calls the edge function', async () => {
+    (supabase.functions.invoke as any).mockResolvedValue({
+      data: { success: true },
+      error: null,
+    });
+
+    await GoogleOAuthService.deleteEvent('primary', 'id1');
+    expect(supabase.functions.invoke).toHaveBeenCalledWith('google-calendar', {
+      body: {
+        action: 'deleteEvent',
+        data: { calendarId: 'primary', eventId: 'id1' },
+      },
+    });
+  });
+
+  it('handles edge function errors gracefully', async () => {
+    (supabase.functions.invoke as any).mockResolvedValue({
+      data: null,
+      error: { message: 'Api error' },
+    });
+
+    await expect(GoogleOAuthService.getStatus()).rejects.toThrow('google-calendar edge function error: Api error');
+  });
+
+  it('handles empty response data', async () => {
+    (supabase.functions.invoke as any).mockResolvedValue({
+      data: null,
+      error: null,
+    });
+
+    await expect(GoogleOAuthService.getStatus()).rejects.toThrow('google-calendar edge function returned no data');
+  });
 });

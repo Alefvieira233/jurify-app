@@ -8,7 +8,7 @@ test.describe('Jurify — Autenticação', () => {
   test('deve exibir página de login com todos os elementos', async ({ page }) => {
     await expect(page.getByRole('heading', { name: /bem-vindo de volta/i })).toBeVisible();
     await expect(page.getByLabel(/email profissional/i)).toBeVisible();
-    await expect(page.getByLabel(/senha/i)).toBeVisible();
+    await expect(page.getByLabel('Senha', { exact: true })).toBeVisible();
     await expect(page.getByRole('button', { name: /acessar plataforma/i })).toBeVisible();
     await expect(page.getByText(/criar uma nova conta/i)).toBeVisible();
   });
