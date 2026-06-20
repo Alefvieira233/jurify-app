@@ -122,4 +122,16 @@ describe('useSubscription', () => {
     expect(result.current.can('create_lead')).toBe(true);
     expect(result.current.can('send_whatsapp')).toBe(true);
   });
+
+  it('handle query error', async () => {
+    vi.mocked(supabase.rpc).mockResolvedValue({
+      data: null,
+      error: { message: 'RPC Error' },
+    } as never);
+
+    const { result } = renderHook(() => useSubscription(), { wrapper });
+
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    expect(result.current.error).toBeDefined();
+  });
 });
