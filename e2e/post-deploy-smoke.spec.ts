@@ -25,8 +25,8 @@ test.describe('Post-Deploy Smoke', () => {
 
     await page.goto('/auth', { waitUntil: 'networkidle' });
 
-    await page.getByLabel(/email/i).first().fill(email);
-    await page.getByLabel(/senha/i).first().fill(password);
+    await page.locator('input[name="email"]').first().fill(email);
+    await page.locator('input[name="password"]').first().fill(password);
     await page.getByRole('button', { name: /acessar/i }).click();
 
     // Wait for redirect to dashboard
