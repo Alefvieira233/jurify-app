@@ -13,7 +13,7 @@
 // ---------------------------------------------------------------------------
 
 const INJECTION_PATTERNS = [
-  /ignore\s+(previous|all|above)\s+(instructions?|prompts?|rules?)/i,
+  /ignore\s+(?:.*?\s+)?(instructions?|prompts?|rules?)/i,
   /you\s+are\s+now\s+/i,
   /system\s*:\s*/i,
   /\bDAN\b/,
@@ -27,7 +27,7 @@ const INJECTION_PATTERNS = [
 
 // Homoglyph map for common substitution attacks (e.g. "ign0re" → "ignore")
 const HOMOGLYPHS: Record<string, string> = {
-  "0": "o", "1": "l", "3": "e", "4": "a", "5": "s",
+  "0": "o", "1": "i", "3": "e", "4": "a", "5": "s",
   "@": "a", "$": "s", "!": "i",
 };
 
@@ -67,7 +67,7 @@ export function sanitizeInput(
   }
 
   // Detect base64-encoded payloads that might hide injection instructions
-  const base64Match = trimmed.match(/[A-Za-z0-9+/]{40,}={0,2}/);
+  const base64Match = trimmed.match(/[A-Za-z0-9+/]{16,}={0,2}/);
   if (base64Match) {
     try {
       const decoded = atob(base64Match[0]);
