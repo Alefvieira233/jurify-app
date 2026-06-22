@@ -72,7 +72,7 @@ Object.defineProperty(window, 'localStorage', {
 
 // Mock do crypto (getRandomValues + subtle via Node.js webcrypto) para testes de segurança
 // eslint-disable-next-line @typescript-eslint/no-require-imports
-const { webcrypto } = require('node:crypto');
+const { webcrypto, randomUUID } = require('node:crypto');
 Object.defineProperty(global, 'crypto', {
   value: {
     getRandomValues: (arr: Uint8Array) => {
@@ -81,7 +81,8 @@ Object.defineProperty(global, 'crypto', {
       }
       return arr;
     },
-    randomUUID: () => 'test-uuid-' + Math.random().toString(36).substring(7),
+    // Use real UUID generator from node:crypto to satisfy hex regex in tests
+    randomUUID: randomUUID || (() => webcrypto.randomUUID()),
     subtle: webcrypto.subtle,
   },
 });
