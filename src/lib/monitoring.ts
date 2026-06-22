@@ -105,7 +105,7 @@ class MonitoringService {
     }
   }
 
-  private sendMetric(metric: MetricData) {
+  public sendMetric(metric: MetricData) {
     // Metrics are logged locally; for production, integrate with your APM
     // (DataDog, New Relic, etc.) when available
     console.debug('[monitoring] metric:', metric.name, metric.value, metric.tags || '');

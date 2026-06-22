@@ -46,7 +46,7 @@ const PII_PATTERNS: PIIPattern[] = [
   },
   {
     name: 'OAB',
-    regex: /\b(?:AC|AL|AP|AM|BA|CE|DF|ES|GO|MA|MT|MS|MG|PA|PB|PR|PE|PI|RJ|RN|RS|RO|RR|SC|SP|SE|TO)\s?\d{4,6}\b/g,
+    regex: /(?:OAB[/\s]?)?\b(?:AC|AL|AP|AM|BA|CE|DF|ES|GO|MA|MT|MS|MG|PA|PB|PR|PE|PI|RJ|RN|RS|RO|RR|SC|SP|SE|TO)[-\s/.]?[\d.]{4,9}\b/gi,
     prefix: 'OAB',
   },
   {
@@ -61,16 +61,11 @@ const PII_PATTERNS: PIIPattern[] = [
   },
 ];
 
-// ─── UUID Generator (no crypto dependency needed) ───────────────────────────
+// ─── UUID Generator (deterministic for masking) ─────────────────────────────
 
 function generateTokenId(): string {
-  // Simple UUID v4-like generator that works in all environments
-  const hex = '0123456789abcdef';
-  let id = '';
-  for (let i = 0; i < 8; i++) {
-    id += hex[Math.floor(Math.random() * 16)];
-  }
-  return id;
+  // Use crypto.randomUUID() for high-entropy tokens
+  return crypto.randomUUID().split('-')[0]!;
 }
 
 // ─── Core Types ─────────────────────────────────────────────────────────────
@@ -133,12 +128,6 @@ export class SanitizerEngine {
     return safeOutput;
   }
 
-  /**
-   * Quick sanitize for a single string (most common case: prompt text).
-   */
-  sanitizeString(text: string): SanitizeResult {
-    return this.sanitize(text);
-  }
 
   // ─── Private Methods ────────────────────────────────────────────────────
 
@@ -207,7 +196,7 @@ export class SanitizerEngine {
  * ```
  */
 export function sanitizePII(text: string): SanitizeResult {
-  return new SanitizerEngine().sanitizeString(text);
+  return new SanitizerEngine().sanitize(text);
 }
 
 export function rehydratePII(text: unknown, lookupMap: LookupMap): unknown {

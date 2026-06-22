@@ -6,8 +6,8 @@
  * assistant, chat-completion, ai-agent-processor).
  */
 
-import { describe, it, expect } from 'vitest';
-import { sanitizeInput, redactPII } from '../../../../supabase/functions/_shared/security';
+import { describe, it, expect, vi } from 'vitest';
+import { sanitizeInput, redactPII, auditLog } from '../../../../supabase/functions/_shared/security';
 
 // ─── Prompt injection detection ─────────────────────────────
 
@@ -174,7 +174,89 @@ describe('redactPII — idempotency', () => {
   });
 });
 
-describe('redactPII — non-PII is preserved', () => {
+describe('redactPII — patterns', () => {
+  it('redacts CNPJ', () => {
+    expect(redactPII('CNPJ: 12.345.678/0001-90')).toBe('CNPJ: ***CNPJ***');
+  });
+
+  it('redacts OAB', () => {
+    expect(redactPII('OAB/SP 123.456')).toBe('***OAB***');
+    expect(redactPII('oab rj 99999')).toBe('***OAB***');
+  });
+
+  it('redacts Processo CNJ', () => {
+    expect(redactPII('Proc: 0001234-56.2023.8.26.0100')).toBe('Proc: ***PROCESSO***');
+  });
+
+  it('redacts Phone numbers', () => {
+    expect(redactPII('Tel: (11) 98765-4321')).toBe('Tel: ***PHONE***');
+    expect(redactPII('Ligue +55 21 99999-8888')).toBe('Ligue ***PHONE***');
+  });
+
+  it('redacts Email addresses', () => {
+    expect(redactPII('Email: teste@exemplo.com.br')).toBe('Email: ***EMAIL***');
+  });
+
+  it('redacts RG', () => {
+    expect(redactPII('RG: 12.345.678-9')).toBe('RG: ***RG***');
+  });
+});
+
+describe('auditLog', () => {
+  it('calls supabase insert with correct data', async () => {
+    const mockInsert = vi.fn().mockResolvedValue({ error: null });
+    const mockFrom = vi.fn().mockReturnValue({ insert: mockInsert });
+    const supabase = { from: mockFrom };
+
+    await auditLog(supabase as any, {
+      user_id: 'user-123',
+      tenant_id: 'tenant-456',
+      action: 'ai_chat',
+      query: 'Hello world',
+      success: true,
+    });
+
+    expect(mockFrom).toHaveBeenCalledWith('assistant_audit');
+    expect(mockInsert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        user_id: 'user-123',
+        tenant_id: 'tenant-456',
+        action: 'ai_chat',
+        query: 'Hello world',
+        success: true,
+      })
+    );
+  });
+
+  it('handles errors silently', async () => {
+    const mockFrom = vi.fn().mockImplementation(() => {
+      throw new Error('DB Error');
+    });
+    const supabase = { from: mockFrom };
+
+    await expect(
+      auditLog(supabase as any, {
+        user_id: 'u1',
+        tenant_id: 't1',
+        action: 'act',
+        success: false,
+      })
+    ).resolves.not.toThrow();
+  });
+});
+
+describe('redactPII — edge cases and safety', () => {
+  it('returns empty string for non-string input', () => {
+    // @ts-expect-error - testing runtime safety
+    expect(redactPII(null)).toBe('');
+    // @ts-expect-error
+    expect(redactPII(undefined)).toBe('');
+    // @ts-expect-error
+    expect(redactPII(123)).toBe('');
+    // @ts-expect-error
+    expect(redactPII({})).toBe('');
+  });
+
   it('does not touch non-PII text', () => {
     const safe = 'Olá, tudo bem? Quero agendar uma consulta.';
     expect(redactPII(safe)).toBe(safe);

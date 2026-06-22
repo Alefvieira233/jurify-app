@@ -216,6 +216,16 @@ describe('SanitizerEngine', () => {
       const restored = rehydratePII(safePayload, lookupMap);
       expect(restored).toBe('CPF: 123.456.789-00');
     });
+
+    it('rehydrates an array', () => {
+      const { safePayload, lookupMap } = sanitizePII(['CPF: 123.456.789-00']);
+      const restored = rehydratePII(safePayload, lookupMap);
+      expect(restored).toEqual(['CPF: 123.456.789-00']);
+    });
+
+    it('handles non-rehydratable types', () => {
+      expect(rehydratePII(123, new Map())).toBe(123);
+    });
   });
 
   // ─── Regression: lastIndex stale state ───────────────────────────
