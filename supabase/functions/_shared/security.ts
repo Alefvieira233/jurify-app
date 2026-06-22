@@ -13,7 +13,7 @@
 // ---------------------------------------------------------------------------
 
 const INJECTION_PATTERNS = [
-  /ignore\s+(previous|all|above)\s+(instructions?|prompts?|rules?)/i,
+  /ignore\s+(?:.*?\s+)?(instructions?|prompts?|rules?)/i,
   /you\s+are\s+now\s+/i,
   /system\s*:\s*/i,
   /\bDAN\b/,
@@ -27,7 +27,7 @@ const INJECTION_PATTERNS = [
 
 // Homoglyph map for common substitution attacks (e.g. "ign0re" → "ignore")
 const HOMOGLYPHS: Record<string, string> = {
-  "0": "o", "1": "l", "3": "e", "4": "a", "5": "s",
+  "0": "o", "1": "i", "3": "e", "4": "a", "5": "s",
   "@": "a", "$": "s", "!": "i",
 };
 
@@ -38,7 +38,7 @@ function normalizeForDetection(text: string): string {
   // NFKD decomposes look-alike characters (e.g. ﬁ → fi, ℌ → H)
   let normalized = text.normalize("NFKD");
   // Replace common homoglyphs used to bypass detection
-  normalized = normalized.replace(/[01345@$!]/g, (ch) => HOMOGLYPHS[ch] || ch);
+  normalized = normalized.replace(/[01345@$!]/g, (ch) => HOMOGLYPHS[ch]);
   return normalized;
 }
 
@@ -51,7 +51,7 @@ export function sanitizeInput(
   text: string,
   maxLength = 2000
 ): { safe: true; text: string } | { safe: false; reason: string } {
-  if (!text || typeof text !== "string") {
+  if (typeof text !== "string" || !text.trim()) {
     return { safe: false, reason: "Empty or invalid input" };
   }
 
@@ -59,15 +59,16 @@ export function sanitizeInput(
 
   // Check original + normalized version to catch homoglyph attacks
   const normalized = normalizeForDetection(trimmed);
+  const isObfuscated = normalized !== trimmed;
 
   for (const pattern of INJECTION_PATTERNS) {
-    if (pattern.test(trimmed) || pattern.test(normalized)) {
+    if (pattern.test(trimmed) || (isObfuscated && pattern.test(normalized))) {
       return { safe: false, reason: "Potential prompt injection detected" };
     }
   }
 
   // Detect base64-encoded payloads that might hide injection instructions
-  const base64Match = trimmed.match(/[A-Za-z0-9+/]{40,}={0,2}/);
+  const base64Match = trimmed.match(/[A-Za-z0-9+/]{16,}={0,2}/);
   if (base64Match) {
     try {
       const decoded = atob(base64Match[0]);
@@ -90,14 +91,36 @@ export function sanitizeInput(
 // ---------------------------------------------------------------------------
 
 const PII_PATTERNS: Array<{ pattern: RegExp; label: string; replacement: string }> = [
+  { pattern: /\b\d{2}\.?\d{3}\.?\d{3}\/?\d{4}-?\d{2}\b/g, label: "CNPJ", replacement: "***CNPJ***" },
+  { pattern: /\b\d{7}-\d{2}\.\d{4}\.\d\.\d{2}\.\d{4}\b/g, label: "Processo", replacement: "***PROCESSO***" },
+  { pattern: /\b\d{4}\s?\d{4}\s?\d{4}\s?\d{4}\b/g, label: "Card", replacement: "***CARD***" },
+  { pattern: /\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}\b/g, label: "Email", replacement: "***EMAIL***" },
+  { pattern: /\bOAB[\s\/\-]?(?:[A-Z]{2})?[\s\/\-]?\d{5,6}\b/gi, label: "OAB", replacement: "***OAB***" },
   { pattern: /\b\d{3}\.?\d{3}\.?\d{3}-?\d{2}\b/g, label: "CPF", replacement: "***CPF***" },
   { pattern: /\b\d{2}\.?\d{3}\.?\d{3}-?[\dXx]\b/g, label: "RG", replacement: "***RG***" },
-  { pattern: /\b\d{4}\s?\d{4}\s?\d{4}\s?\d{4}\b/g, label: "Card", replacement: "***CARD***" },
+  { pattern: /\b(?:Bearer|JWT|sbp|eyJ)[_a-zA-Z0-9.\-]{8,}/g, label: "Token", replacement: "***TOKEN***" },
+  { pattern: /\b(?:sk-|sk-proj-)[a-zA-Z0-9_-]{20,}\b/g, label: "Token", replacement: "***TOKEN***" },
+  { pattern: /(?:\+?55[\s.-]?)?\(?\d{2,3}\)?[\s.-]?\d{4,5}[\s.-]?\d{4}\b/g, label: "Phone", replacement: "***PHONE***" },
 ];
 
-/** Redact PII from assistant responses before sending to client. */
-export function redactPII(text: string): string {
-  let result = text;
+/**
+ * Redact PII from text or objects before logging or sending to client.
+ * Handles non-string inputs by stringifying them first.
+ */
+export function redactPII(value: unknown): string {
+  if (value === null || value === undefined) return "";
+
+  let result: string;
+  if (typeof value === "string") {
+    result = value;
+  } else {
+    try {
+      result = JSON.stringify(value);
+    } catch {
+      result = String(value);
+    }
+  }
+
   for (const { pattern, replacement } of PII_PATTERNS) {
     result = result.replace(pattern, replacement);
   }
