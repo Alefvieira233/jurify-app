@@ -38,7 +38,7 @@ function normalizeForDetection(text: string): string {
   // NFKD decomposes look-alike characters (e.g. ﬁ → fi, ℌ → H)
   let normalized = text.normalize("NFKD");
   // Replace common homoglyphs used to bypass detection
-  normalized = normalized.replace(/[01345@$!]/g, (ch) => HOMOGLYPHS[ch] || ch);
+  normalized = normalized.replace(/[01345@$!]/g, (ch) => HOMOGLYPHS[ch]);
   return normalized;
 }
 
@@ -51,7 +51,7 @@ export function sanitizeInput(
   text: string,
   maxLength = 2000
 ): { safe: true; text: string } | { safe: false; reason: string } {
-  if (!text || typeof text !== "string") {
+  if (typeof text !== "string" || !text.trim()) {
     return { safe: false, reason: "Empty or invalid input" };
   }
 
@@ -59,15 +59,16 @@ export function sanitizeInput(
 
   // Check original + normalized version to catch homoglyph attacks
   const normalized = normalizeForDetection(trimmed);
+  const isObfuscated = normalized !== trimmed;
 
   for (const pattern of INJECTION_PATTERNS) {
-    if (pattern.test(trimmed) || pattern.test(normalized)) {
+    if (pattern.test(trimmed) || (isObfuscated && pattern.test(normalized))) {
       return { safe: false, reason: "Potential prompt injection detected" };
     }
   }
 
   // Detect base64-encoded payloads that might hide injection instructions
-  const base64Match = trimmed.match(/[A-Za-z0-9+/]{40,}={0,2}/);
+  const base64Match = trimmed.match(/[A-Za-z0-9+/]{16,}={0,2}/);
   if (base64Match) {
     try {
       const decoded = atob(base64Match[0]);
@@ -97,8 +98,8 @@ const PII_PATTERNS: Array<{ pattern: RegExp; label: string; replacement: string 
   { pattern: /\bOAB[\s\/\-]?(?:[A-Z]{2})?[\s\/\-]?\d{5,6}\b/gi, label: "OAB", replacement: "***OAB***" },
   { pattern: /\b\d{3}\.?\d{3}\.?\d{3}-?\d{2}\b/g, label: "CPF", replacement: "***CPF***" },
   { pattern: /\b\d{2}\.?\d{3}\.?\d{3}-?[\dXx]\b/g, label: "RG", replacement: "***RG***" },
-  { pattern: /(?:Bearer|JWT|sbp|eyJ)[_a-zA-Z0-9.\-]{8,}/g, label: "Token", replacement: "***TOKEN***" },
-  { pattern: /\bsk-[a-zA-Z0-9]{20,}\b/g, label: "Token", replacement: "***TOKEN***" },
+  { pattern: /\b(?:Bearer|JWT|sbp|eyJ)[_a-zA-Z0-9.\-]{8,}/g, label: "Token", replacement: "***TOKEN***" },
+  { pattern: /\b(?:sk-|sk-proj-)[a-zA-Z0-9_-]{20,}\b/g, label: "Token", replacement: "***TOKEN***" },
   { pattern: /(?:\+?55[\s.-]?)?\(?\d{2,3}\)?[\s.-]?\d{4,5}[\s.-]?\d{4}\b/g, label: "Phone", replacement: "***PHONE***" },
 ];
 

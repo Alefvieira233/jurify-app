@@ -6,8 +6,8 @@
  * assistant, chat-completion, ai-agent-processor).
  */
 
-import { describe, it, expect } from 'vitest';
-import { sanitizeInput, redactPII } from '../../../../supabase/functions/_shared/security';
+import { describe, it, expect, vi } from 'vitest';
+import { sanitizeInput, redactPII, auditLog } from '../../../../supabase/functions/_shared/security';
 
 // ─── Prompt injection detection ─────────────────────────────
 
@@ -92,14 +92,12 @@ describe('sanitizeInput — base64 hidden payload', () => {
     if (!result.safe) expect(result.reason).toMatch(/injection/i);
   });
 
-  it('documented gap: short base64 payloads (<40 alphabet chars) bypass the scanner', () => {
-    // The current regex requires 40+ chars in the base64 alphabet. Short
-    // injection strings encoded as base64 slip through. Document it here so
-    // if security.ts is ever hardened, this test flips to safe=false.
-    const shortHidden = Buffer.from('ignore').toString('base64');
-    expect(shortHidden.length).toBeLessThan(40);
+  it('no longer a gap: shorter base64 payloads are caught', () => {
+    // Hardened regex now requires 16+ chars.
+    const shortHidden = Buffer.from('ignore instructions').toString('base64');
+    expect(shortHidden.length).toBeGreaterThanOrEqual(16);
     const input = `msg ${shortHidden}`;
-    expect(sanitizeInput(input).safe).toBe(true);
+    expect(sanitizeInput(input).safe).toBe(false);
   });
 });
 
@@ -201,6 +199,21 @@ describe('redactPII — Non-string input', () => {
     const input = ['123.456.789-00', 'safe'];
     expect(redactPII(input)).toBe('["***CPF***","safe"]');
   });
+
+  it('handles circular references gracefully (best effort)', () => {
+    const obj: any = { a: 1 };
+    obj.self = obj;
+    expect(redactPII(obj)).toBe('[object Object]');
+  });
+
+  it('handles BigInt and other non-JSON values', () => {
+    expect(redactPII(100n)).toBe('100');
+  });
+
+  it('returns empty string for null or undefined', () => {
+    expect(redactPII(null)).toBe('');
+    expect(redactPII(undefined)).toBe('');
+  });
 });
 
 describe('redactPII — Credit card', () => {
@@ -231,5 +244,50 @@ describe('redactPII — non-PII is preserved', () => {
   it('does not redact short numbers', () => {
     const text = 'Ano 2026, mês 4, dia 10';
     expect(redactPII(text)).toBe(text);
+  });
+});
+
+// ─── Audit Trail ───────────────────────────────────────────
+
+describe('auditLog', () => {
+  it('calls supabase insert with correct data', async () => {
+    const mockInsert = vi.fn().mockResolvedValue({ error: null });
+    const mockFrom = vi.fn().mockReturnValue({ insert: mockInsert });
+    const mockSupabase = { from: mockFrom };
+
+    const entry = {
+      user_id: 'user-123',
+      tenant_id: 'tenant-456',
+      action: 'test-action',
+      query: 'secret 123.456.789-00',
+      success: true,
+    };
+
+    await auditLog(mockSupabase as any, entry);
+
+    expect(mockFrom).toHaveBeenCalledWith('assistant_audit');
+    expect(mockInsert).toHaveBeenCalledWith(expect.objectContaining({
+      user_id: 'user-123',
+      tenant_id: 'tenant-456',
+      action: 'test-action',
+      query: 'secret 123.456.789-00',
+      success: true,
+    }));
+  });
+
+  it('swallows errors and does not throw', async () => {
+    const mockInsert = vi.fn().mockRejectedValue(new Error('DB error'));
+    const mockFrom = vi.fn().mockReturnValue({ insert: mockInsert });
+    const mockSupabase = { from: mockFrom };
+
+    const entry = {
+      user_id: 'u',
+      tenant_id: 't',
+      action: 'a',
+      success: false,
+    };
+
+    // Should not throw
+    await expect(auditLog(mockSupabase as any, entry)).resolves.not.toThrow();
   });
 });
