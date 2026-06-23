@@ -8,6 +8,7 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { getCorsHeaders } from "../_shared/cors.ts";
 import { applyRateLimit } from "../_shared/rate-limiter.ts";
+import { isServiceRole } from "../_shared/supabase-client.ts";
 import { encrypt } from "../_shared/crypto.ts";
 import { GoogleOAuthService } from "./google-oauth.ts";
 
@@ -54,8 +55,14 @@ Deno.serve(async (req) => {
 
     if (earlyMethod && SERVICE_METHODS.includes(earlyMethod)) {
       // SERVICE-ROLE mode: caller is another edge function (whatsapp-webhook).
-      // Authentication is verified by the platform via the function-to-function
-      // invoke contract. We DO NOT consult auth.getUser here — there's no end user.
+      // We MUST verify it has the service role key to prevent public access.
+      if (!isServiceRole(req)) {
+        return new Response(
+          JSON.stringify({ error: "Unauthorized: service-role required for administrative methods" }),
+          { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
       const supabase = createClient(supabaseUrlEarly, supabaseServiceKeyEarly);
       const data = (parsedBody?.data ?? {}) as Record<string, unknown>;
 

@@ -1,0 +1,4 @@
+## 2026-05-25 - Explicit Service Role Verification for Administrative Methods
+**Vulnerability:** Administrative methods (e.g., `createEventForResponsavel`) in the `google-calendar` Edge Function were relying on the platform's internal invocation path and did not explicitly verify the `service_role` key, making them potentially accessible to anyone who discovered the function URL.
+**Learning:** Supabase Edge Functions do not automatically restrict access to the `service_role` key; any function can be called publicly unless explicitly protected. Administrative paths that bypass user authentication (JWT) must be manually hardened.
+**Prevention:** Always use `isServiceRole(req)` from `_shared/supabase-client.ts` to protect internal-only or administrative methods in Edge Functions that do not use standard user auth.
