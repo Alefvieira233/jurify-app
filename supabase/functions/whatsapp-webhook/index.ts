@@ -359,7 +359,9 @@ Deno.serve(async (req) => {
           }
           const normalized = normalizeKapsoMessage(payload, eventHeader);
           if (normalized) {
-            console.log(`[webhook:kapso] Processing message from ${normalized.from}: "${redactPII(normalized.text.substring(0, 50))}"`);
+            // SECURITY: Redact full text before truncation for logs
+            const redactedText = redactPII(normalized.text);
+            console.log(`[webhook:kapso] Processing message from ${normalized.from}: "${redactedText.substring(0, 50)}"`);
             await processNormalizedMessage(supabase, normalized);
           } else {
             console.warn(`[webhook:kapso] Could not normalize message | keys: ${payloadKeys} | event: ${event}`);
