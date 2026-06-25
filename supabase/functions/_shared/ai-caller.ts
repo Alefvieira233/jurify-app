@@ -25,6 +25,7 @@ import {
   recordTokenUsage,
   type BudgetDecision,
 } from "./ai-budget.ts";
+import { redactPII } from "./security.ts";
 
 type SupabaseClient = ReturnType<typeof createClient>;
 
@@ -204,7 +205,11 @@ export async function callOpenAI(
   // any failure is swallowed — logging must never break the pipeline) ---
   if (params.persistLog !== false) {
     try {
-      const preview = typeof content === "string" ? content.substring(0, 2000) : "";
+      // SEC-10: Redact PII from AI result before logging to agent_ai_logs.
+      // Must redact FULL content before any character-based truncation.
+      const redactedContent = redactPII(content);
+      const preview = redactedContent.substring(0, 2000);
+
       await supabase.from("agent_ai_logs").insert({
         execution_id: null, // callers that have an execution row should set metadata.execution_row_id
         agent_name: params.agentName ?? params.source,

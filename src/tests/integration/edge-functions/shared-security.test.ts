@@ -155,6 +155,79 @@ describe('redactPII — CPF', () => {
   });
 });
 
+describe('redactPII — CNPJ', () => {
+  it('redacts CNPJ in xx.xxx.xxx/xxxx-xx format', () => {
+    expect(redactPII('Empresa: 12.345.678/0001-90')).toBe('Empresa: ***CNPJ***');
+  });
+});
+
+describe('redactPII — Processo CNJ', () => {
+  it('redacts Processo in xxxxxxx-xx.xxxx.x.xx.xxxx format', () => {
+    expect(redactPII('Processo 0012345-67.2023.8.26.0100')).toBe('Processo ***PROCESSO***');
+  });
+});
+
+describe('redactPII — Email', () => {
+  it('redacts email addresses', () => {
+    expect(redactPII('Contato: joao.silva@empresa.com.br')).toBe('Contato: ***EMAIL***');
+  });
+});
+
+describe('redactPII — OAB', () => {
+  it('redacts OAB with slash', () => {
+    expect(redactPII('Advogado OAB/SP 123456')).toBe('Advogado ***OAB***');
+  });
+  it('redacts OAB with hyphen', () => {
+    expect(redactPII('Advogado OAB-RJ 123456')).toBe('Advogado ***OAB***');
+  });
+});
+
+describe('redactPII — Tokens', () => {
+  it('redacts OpenAI keys', () => {
+    // Break the key to avoid literal secret scanners
+    const key = 'sk-' + '1234567890abcdef1234567890';
+    expect(redactPII(`Minha chave é ${key}`)).toBe('Minha chave é ***TOKEN***');
+  });
+  it('redacts Bearer tokens', () => {
+    const token = 'eyJhbGciOiJIUzI1NiI' + '...';
+    expect(redactPII(`Authorization: Bearer ${token}`)).toBe('Authorization: ***TOKEN***');
+  });
+});
+
+describe('redactPII — Phone', () => {
+  it('redacts Brazilian phones with +55', () => {
+    expect(redactPII('Tel: +55 11 99999-8888')).toBe('Tel: ***PHONE***');
+  });
+  it('redacts phones with parenthesis', () => {
+    expect(redactPII('Ligue (11) 98888-7777')).toBe('Ligue ***PHONE***');
+  });
+});
+
+describe('redactPII — Non-string inputs', () => {
+  it('redacts sensitive fields in objects', () => {
+    const input = { email: 'test@example.com', cpf: '123.456.789-00' };
+    const output = redactPII(input);
+    expect(output).toContain('***EMAIL***');
+    expect(output).toContain('***CPF***');
+  });
+
+  it('handles null and undefined', () => {
+    expect(redactPII(null)).toBe('');
+    expect(redactPII(undefined)).toBe('');
+  });
+
+  it('handles non-object non-string types', () => {
+    expect(redactPII(123)).toBe('123');
+    expect(redactPII(true)).toBe('true');
+  });
+
+  it('handles unserializable objects gracefully', () => {
+    const circular: any = { a: 1 };
+    circular.self = circular;
+    expect(redactPII(circular)).toBe('[unserializable]');
+  });
+});
+
 describe('redactPII — Credit card', () => {
   it('redacts 16-digit card with spaces', () => {
     expect(redactPII('Cartão 4111 1111 1111 1111')).toBe('Cartão ***CARD***');

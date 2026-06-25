@@ -67,6 +67,7 @@ const RegisterForm: React.FC<RegisterFormProps> = ({
               </FormLabel>
               <FormControl>
                 <Input
+                  data-testid="email-input"
                   type="email"
                   placeholder="seu@escritorio.com.br"
                   className="h-12 border-[hsl(var(--border))] focus:border-[hsl(var(--accent))] focus:ring-[hsl(var(--accent))] transition-all"
@@ -88,6 +89,7 @@ const RegisterForm: React.FC<RegisterFormProps> = ({
               </FormLabel>
               <FormControl>
                 <Input
+                  data-testid="password-input"
                   type="password"
                   placeholder="••••••••"
                   className="h-12 border-[hsl(var(--border))] focus:border-[hsl(var(--accent))] focus:ring-[hsl(var(--accent))] transition-all"
@@ -110,6 +112,7 @@ const RegisterForm: React.FC<RegisterFormProps> = ({
               </FormLabel>
               <FormControl>
                 <Input
+                  data-testid="confirm-password-input"
                   type="password"
                   placeholder="••••••••"
                   className="h-12 border-[hsl(var(--border))] focus:border-[hsl(var(--accent))] focus:ring-[hsl(var(--accent))] transition-all"
