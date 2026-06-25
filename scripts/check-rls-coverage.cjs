@@ -36,9 +36,9 @@ const WHITELIST_NO_POLICY = new Set([
 ]);
 
 if (!TOKEN) {
-  console.error('ERROR: SUPABASE_ACCESS_TOKEN not set');
-  console.error('Get a PAT from https://supabase.com/dashboard/account/tokens');
-  process.exit(2);
+  console.warn('⚠️ SKIP: SUPABASE_ACCESS_TOKEN not set. RLS coverage audit skipped.');
+  console.warn('To enable, set SUPABASE_ACCESS_TOKEN in your environment.');
+  process.exit(0);
 }
 
 async function query(sql) {

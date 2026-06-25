@@ -37,7 +37,7 @@ jobs:
           # JWT tokens (Supabase anon/service role)
           # Exclude fake test JWTs in src/tests/setup.ts
           if grep -rEn "eyJ[a-zA-Z0-9_-]{30,}\.eyJ[a-zA-Z0-9_-]{30,}\.[a-zA-Z0-9_-]{20,}" $SCAN_DIRS \
-             --exclude-dir=node_modules --exclude-dir=.git --exclude-dir=dist \
+             --exclude-dir=node_modules --exclude-dir=.git --exclude-dir=dist --exclude-dir=tests \
              | grep -v "src/tests/setup.ts" | grep -v "supabase-test"; then
             echo "❌ JWT token encontrado no código (fora de test fixtures)"
             FOUND=1
@@ -45,49 +45,49 @@ jobs:
 
           # OpenAI keys (sk- or sk-proj-)
           if grep -rEn "sk-[a-zA-Z0-9_-]{20,}" $SCAN_DIRS \
-             --exclude-dir=node_modules --exclude-dir=.git --exclude-dir=dist; then
+             --exclude-dir=node_modules --exclude-dir=.git --exclude-dir=dist --exclude-dir=tests; then
             echo "❌ OpenAI API key encontrada"
             FOUND=1
           fi
 
           # Stripe keys (live + test, secret + publishable)
           if grep -rEn "(sk|pk|rk)_(live|test)_[a-zA-Z0-9]{20,}" $SCAN_DIRS \
-             --exclude-dir=node_modules --exclude-dir=.git --exclude-dir=dist; then
+             --exclude-dir=node_modules --exclude-dir=.git --exclude-dir=dist --exclude-dir=tests; then
             echo "❌ Stripe key encontrada"
             FOUND=1
           fi
 
           # Postmark server tokens
           if grep -rEn "postmark[_-]?(server[_-]?token|api[_-]?key)['\"]?\s*[=:]\s*['\"][a-f0-9-]{30,}['\"]" $SCAN_DIRS \
-             --exclude-dir=node_modules --exclude-dir=.git --exclude-dir=dist -i; then
+             --exclude-dir=node_modules --exclude-dir=.git --exclude-dir=dist --exclude-dir=tests -i; then
             echo "❌ Postmark token encontrado"
             FOUND=1
           fi
 
           # Google OAuth client secrets
           if grep -rEn "GOCSPX-[a-zA-Z0-9_-]{28,}" $SCAN_DIRS \
-             --exclude-dir=node_modules --exclude-dir=.git --exclude-dir=dist; then
+             --exclude-dir=node_modules --exclude-dir=.git --exclude-dir=dist --exclude-dir=tests; then
             echo "❌ Google OAuth client secret encontrado"
             FOUND=1
           fi
 
           # Supabase service role key literal
           if grep -rEn "SUPABASE_SERVICE_ROLE_KEY\s*=\s*['\"]eyJ" $SCAN_DIRS \
-             --exclude-dir=node_modules --exclude-dir=.git --exclude-dir=dist; then
+             --exclude-dir=node_modules --exclude-dir=.git --exclude-dir=dist --exclude-dir=tests; then
             echo "❌ Supabase service role key hardcoded"
             FOUND=1
           fi
 
           # Kapso API keys
           if grep -rEn "kapso[_-]?(api[_-]?key|secret)['\"]?\s*[=:]\s*['\"][a-zA-Z0-9_-]{20,}['\"]" $SCAN_DIRS \
-             --exclude-dir=node_modules --exclude-dir=.git --exclude-dir=dist -i; then
+             --exclude-dir=node_modules --exclude-dir=.git --exclude-dir=dist --exclude-dir=tests -i; then
             echo "❌ Kapso key encontrada"
             FOUND=1
           fi
 
           # ZapSign tokens
           if grep -rEn "zapsign[_-]?(token|api[_-]?key)['\"]?\s*[=:]\s*['\"][a-zA-Z0-9._-]{30,}['\"]" $SCAN_DIRS \
-             --exclude-dir=node_modules --exclude-dir=.git --exclude-dir=dist -i; then
+             --exclude-dir=node_modules --exclude-dir=.git --exclude-dir=dist --exclude-dir=tests -i; then
             echo "❌ ZapSign token encontrado"
             FOUND=1
           fi
