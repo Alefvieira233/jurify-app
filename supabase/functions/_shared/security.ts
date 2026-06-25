@@ -97,7 +97,8 @@ const PII_PATTERNS: Array<{ pattern: RegExp; label: string; replacement: string 
   { pattern: /\bOAB[\s\/\-]?(?:[A-Z]{2})?[\s\/\-]?\d{5,6}\b/gi, label: "OAB", replacement: "***OAB***" },
   { pattern: /\b\d{3}\.?\d{3}\.?\d{3}-?\d{2}\b/g, label: "CPF", replacement: "***CPF***" },
   { pattern: /\b\d{2}\.?\d{3}\.?\d{3}-?[\dXx]\b/g, label: "RG", replacement: "***RG***" },
-  { pattern: /\b(Bearer|JWT|sbp|sk-|eyJ)[_a-zA-Z0-9.\-]{8,}/g, label: "Token", replacement: "***TOKEN***" },
+  { pattern: /\b(Bearer|JWT|sbp)\s+[_a-zA-Z0-9.\-]{8,}/gi, label: "Token", replacement: "***TOKEN***" },
+  { pattern: /\b(sk-|eyJ)[_a-zA-Z0-9.\-]{8,}/gi, label: "Token", replacement: "***TOKEN***" },
   { pattern: /(?:\+?55[\s.-]?)?\(?\d{2,3}\)?[\s.-]?\d{4,5}[\s.-]?\d{4}\b/g, label: "Phone", replacement: "***PHONE***" },
 ];
 

@@ -44,6 +44,7 @@ const LoginForm: React.FC<LoginFormProps> = ({
               </FormLabel>
               <FormControl>
                 <Input
+                  data-testid="email-input"
                   type="email"
                   placeholder="seu@escritorio.com.br"
                   className="h-12 border-[hsl(var(--border))] focus:border-[hsl(var(--accent))] focus:ring-[hsl(var(--accent))] transition-all"
@@ -68,6 +69,7 @@ const LoginForm: React.FC<LoginFormProps> = ({
               </div>
               <FormControl>
                 <Input
+                  data-testid="password-input"
                   type="password"
                   placeholder="••••••••"
                   className="h-12 border-[hsl(var(--border))] focus:border-[hsl(var(--accent))] focus:ring-[hsl(var(--accent))] transition-all"
