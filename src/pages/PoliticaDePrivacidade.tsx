@@ -178,7 +178,7 @@ const PoliticaDePrivacidade = () => {
             </ul>
             <p className="mt-3">
               Para exercer seus direitos, envie solicitação para{' '}
-              <a href="mailto:privacidade@jurify.com.br" className="text-primary underline">
+              <a href="mailto:privacidade@jurify.com.br" rel="noopener noreferrer" className="text-primary underline">
                 privacidade@jurify.com.br
               </a>{' '}
               com o assunto "LGPD – Direitos do Titular". Respondemos em até 15 dias úteis.
