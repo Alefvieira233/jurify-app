@@ -210,7 +210,7 @@ describe('redactPII — New Patterns', () => {
   });
 
   it('redacts API Keys (Stripe, OpenAI)', () => {
-    expect(redactPII('sk_live_12345678901234567890')).toBe('***KEY***');
-    expect(redactPII('pk_test_12345678901234567890')).toBe('***KEY***');
+    expect(redactPII('sk_live_abcde12345ABCDE12345')).toBe('***KEY***');
+    expect(redactPII('pk_test_abcde12345ABCDE12345')).toBe('***KEY***');
   });
 });

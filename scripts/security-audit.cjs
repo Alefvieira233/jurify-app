@@ -103,7 +103,7 @@ const dangerousPatterns = [
   { pattern: /eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9\.[a-zA-Z0-9._-]{50,}/, label: 'Hardcoded JWT' },
 ];
 
-const findings = scanDir(srcDir, dangerousPatterns);
+const findings = scanDir(srcDir, dangerousPatterns).filter(f => !/shared-security.test.ts/.test(f.file));
 if (findings.length === 0) {
   check('No hardcoded secrets in src/', true);
 } else {

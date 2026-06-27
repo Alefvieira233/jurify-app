@@ -93,7 +93,8 @@ const PII_PATTERNS: Array<{ pattern: RegExp; label: string; replacement: string 
   // High entropy / specific prefixes first to prevent partial matches by shorter patterns
   { pattern: /\b\d{2}\.?\d{3}\.?\d{3}\/\d{4}-?\d{2}\b/g, label: "CNPJ", replacement: "***CNPJ***" },
   { pattern: /\b\d{7}-\d{2}\.\d{4}\.\d\.\d{2}\.\d{4}\b/g, label: "Processo", replacement: "***PROCESSO***" },
-  { pattern: /\b(?:sk|pk|rk)_(?:live|test)_[a-zA-Z0-9]{20,}\b/g, label: "Key", replacement: "***KEY***" },
+  { pattern: /\b(?:sk|pk|rk)_(?:live|test)_[a-zA-Z0-9]{20,}\b/g, label: "StripeKey", replacement: "***KEY***" },
+  { pattern: /\bsk-(?:proj-)?[a-zA-Z0-9_-]{20,}\b/g, label: "OpenAIKey", replacement: "***KEY***" },
   { pattern: /\b(?:Bearer\s+)?eyJ[a-zA-Z0-9._-]{50,}\b/g, label: "Token", replacement: "***TOKEN***" },
   { pattern: /\b\d{4}\s?\d{4}\s?\d{4}\s?\d{4}\b/g, label: "Card", replacement: "***CARD***" },
   { pattern: /\b\d{16}\b/g, label: "CardRaw", replacement: "***CARD***" },

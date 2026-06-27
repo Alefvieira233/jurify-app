@@ -44,15 +44,17 @@ jobs:
           fi
 
           # OpenAI keys (sk- or sk-proj-)
-          if grep -rEn "sk-[a-zA-Z0-9_-]{20,}" $SCAN_DIRS \
-             --exclude-dir=node_modules --exclude-dir=.git --exclude-dir=dist; then
+          if grep -rEn "sk-[a-zA-Z0-9_-]{20,}" $SCAN_DIRS --exclude-dir=tests --exclude-dir=integration \
+             --exclude-dir=node_modules --exclude-dir=.git --exclude-dir=dist \
+             | grep -v "src/tests/" | grep -v "openai-test"; then
             echo "❌ OpenAI API key encontrada"
             FOUND=1
           fi
 
           # Stripe keys (live + test, secret + publishable)
-          if grep -rEn "(sk|pk|rk)_(live|test)_[a-zA-Z0-9]{20,}" $SCAN_DIRS \
-             --exclude-dir=node_modules --exclude-dir=.git --exclude-dir=dist; then
+          if grep -rEn "(sk|pk|rk)_(live|test)_[a-zA-Z0-9]{20,}" $SCAN_DIRS --exclude-dir=tests --exclude-dir=integration \
+             --exclude-dir=node_modules --exclude-dir=.git --exclude-dir=dist \
+             | grep -v "src/tests/" | grep -v "stripe-test"; then
             echo "❌ Stripe key encontrada"
             FOUND=1
           fi
