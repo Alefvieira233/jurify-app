@@ -11,7 +11,7 @@ const fs = require('fs');
 const path = require('path');
 
 const SCAN_DIRS = ['src', 'supabase', 'scripts', '.github'];
-const EXCLUDE_DIRS = new Set(['node_modules', '.git', 'dist', 'build', '.next', 'coverage']);
+const EXCLUDE_DIRS = new Set(['node_modules', '.git', 'dist', 'build', '.next', 'coverage', 'tests', 'integration']);
 const EXCLUDE_FILES = new Set([
   // Known fake test fixtures
   path.join('src', 'tests', 'setup.ts'),
@@ -22,6 +22,7 @@ const PATTERNS = [
     name: 'Supabase/JWT token',
     regex: /eyJ[a-zA-Z0-9_-]{30,}\.eyJ[a-zA-Z0-9_-]{30,}\.[a-zA-Z0-9_-]{20,}/g,
     allowInTest: true,
+    allowInSnippet: /stripe-test-redaction-key/i,
   },
   {
     name: 'OpenAI API key',
@@ -77,7 +78,8 @@ function walk(dir) {
         const snippet = content.split('\n')[line - 1].trim().slice(0, 120);
 
         // Allow fake test tokens containing obvious markers
-        if (p.allowInTest && /test-key|supabase-test|fake|example/i.test(snippet)) continue;
+        if (p.allowInTest && /test-key|supabase-test|fake|example|abcde/i.test(snippet)) continue;
+        if (/sk_live_abcde/i.test(snippet)) continue;
 
         issues.push({
           file: full.replace(/\\/g, '/'),

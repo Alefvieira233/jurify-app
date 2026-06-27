@@ -221,6 +221,8 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
 
       - name: 🛡️ Enumerate RLS coverage
+        env:
+          CI: true
         run: node scripts/check-rls-coverage.cjs
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
