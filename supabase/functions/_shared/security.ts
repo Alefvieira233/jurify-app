@@ -90,21 +90,19 @@ export function sanitizeInput(
 // ---------------------------------------------------------------------------
 
 const PII_PATTERNS: Array<{ pattern: RegExp; label: string; replacement: string }> = [
-  // CNPJ and Processo have high length/entropy — match them first
+  // High entropy / specific prefixes first to prevent partial matches by shorter patterns
   { pattern: /\b\d{2}\.?\d{3}\.?\d{3}\/\d{4}-?\d{2}\b/g, label: "CNPJ", replacement: "***CNPJ***" },
   { pattern: /\b\d{7}-\d{2}\.\d{4}\.\d\.\d{2}\.\d{4}\b/g, label: "Processo", replacement: "***PROCESSO***" },
-  // Card should match before shorter patterns
+  { pattern: /\b(?:sk|pk|rk)_(?:live|test)_[a-zA-Z0-9]{20,}\b/g, label: "Key", replacement: "***KEY***" },
+  { pattern: /\b(?:Bearer\s+)?eyJ[a-zA-Z0-9._-]{50,}\b/g, label: "Token", replacement: "***TOKEN***" },
   { pattern: /\b\d{4}\s?\d{4}\s?\d{4}\s?\d{4}\b/g, label: "Card", replacement: "***CARD***" },
   { pattern: /\b\d{16}\b/g, label: "CardRaw", replacement: "***CARD***" },
-  // Other patterns
-  { pattern: /\bOAB[\s\/\-]?(?:[A-Z]{2})?[\s\/\-]?\d{5,6}\b/gi, label: "OAB", replacement: "***OAB***" },
+  // Other PII formats
   { pattern: /\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}\b/g, label: "Email", replacement: "***EMAIL***" },
+  { pattern: /\bOAB[\s\/\-]?(?:[A-Z]{2})?[\s\/\-]?\d{5,6}\b/gi, label: "OAB", replacement: "***OAB***" },
   { pattern: /\b\d{3}\.?\d{3}\.?\d{3}-?\d{2}\b/g, label: "CPF", replacement: "***CPF***" },
   { pattern: /\b\d{2}\.?\d{3}\.?\d{3}-?[\dXx]\b/g, label: "RG", replacement: "***RG***" },
   { pattern: /(?:\+?55[\s.-]?)?\(?\d{2,3}\)?[\s.-]?\d{4,5}[\s.-]?\d{4}\b/g, label: "Phone", replacement: "***PHONE***" },
-  // Tokens (JWT, API keys)
-  { pattern: /\b(?:Bearer\s+)?eyJ[a-zA-Z0-9._-]{50,}\b/g, label: "Token", replacement: "***TOKEN***" },
-  { pattern: /\b(?:sk|pk|rk)_(?:live|test)_[a-zA-Z0-9]{20,}\b/g, label: "Key", replacement: "***KEY***" },
 ];
 
 /** Redact PII from assistant responses before sending to client. */

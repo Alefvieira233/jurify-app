@@ -179,3 +179,38 @@ describe('redactPII — non-PII is preserved', () => {
     expect(redactPII(text)).toBe(text);
   });
 });
+
+describe('redactPII — New Patterns', () => {
+  it('redacts Processo CNJ', () => {
+    expect(redactPII('Processo 0001234-56.2026.8.19.0001')).toBe('Processo ***PROCESSO***');
+  });
+
+  it('redacts OAB', () => {
+    expect(redactPII('Advogado OAB/SP 123456')).toBe('Advogado ***OAB***');
+    expect(redactPII('OAB-RJ 654321')).toBe('***OAB***');
+  });
+
+  it('redacts Email', () => {
+    expect(redactPII('Contato: test@jurify.com.br')).toBe('Contato: ***EMAIL***');
+  });
+
+  it('redacts CNPJ', () => {
+    expect(redactPII('CNPJ: 12.345.678/0001-90')).toBe('CNPJ: ***CNPJ***');
+  });
+
+  it('redacts Phone (Brazilian)', () => {
+    expect(redactPII('Tel: +55 11 98888-7777')).toBe('Tel: ***PHONE***');
+    expect(redactPII('Fone: (11) 4004-0000')).toBe('Fone: ***PHONE***');
+  });
+
+  it('redacts Tokens (JWT and Bearer)', () => {
+    const jwt = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.' + 'a'.repeat(100) + '.' + 'b'.repeat(40);
+    expect(redactPII(`Bearer ${jwt}`)).toBe('***TOKEN***');
+    expect(redactPII(jwt)).toBe('***TOKEN***');
+  });
+
+  it('redacts API Keys (Stripe, OpenAI)', () => {
+    expect(redactPII('sk_live_12345678901234567890')).toBe('***KEY***');
+    expect(redactPII('pk_test_12345678901234567890')).toBe('***KEY***');
+  });
+});
