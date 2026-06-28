@@ -214,6 +214,18 @@ describe('redactPII — non-PII is preserved', () => {
     expect(redactPII(123)).toBe(123);
     expect(redactPII(true)).toBe(true);
     expect(redactPII(null)).toBe(null);
+    expect(redactPII(undefined)).toBe(undefined);
+    expect(redactPII(BigInt(10))).toBe(BigInt(10));
+  });
+
+  it('enforces depth limit to prevent circular dependency issues', () => {
+    const circular: any = { name: 'test' };
+    circular.self = circular;
+
+    const result = redactPII(circular) as any;
+    expect(result.name).toBe('test');
+    // The 6th level (depth 5) should return the marker
+    expect(result.self.self.self.self.self.self).toBe('[depth-limit]');
   });
 });
 

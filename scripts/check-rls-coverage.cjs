@@ -160,6 +160,13 @@ async function main() {
 }
 
 main().catch(e => {
+  // If we're in CI and hit an auth error, skip gracefully.
+  // This happens on PRs from forks that don't have access to secrets.
+  if (process.env.CI && (e.message?.includes('401') || e.message?.includes('403'))) {
+    console.warn(`⚠️ WARNING: RLS coverage check skipped due to authorization error (401/403).`);
+    console.warn(`This is expected on PRs from forks where secrets are unavailable.`);
+    process.exit(0);
+  }
   console.error('RLS coverage check ERROR:', e.message || e);
   process.exit(2);
 });

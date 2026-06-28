@@ -37,7 +37,7 @@ const HOMOGLYPHS: Record<string, string> = {
 function normalizeForDetection(text: string): string {
   // NFKD decomposes look-alike characters (e.g. ﬁ → fi, ℌ → H)
   let normalized = text.normalize("NFKD");
-  // Replace common homoglyphs used to bypass detection
+  // Replace common homoglyphs used to bypass detection (0->o, 1->i, 3->e, 4->a, 5->s, etc.)
   normalized = normalized.replace(/[01345@$!]/g, (ch) => HOMOGLYPHS[ch] || ch);
   return normalized;
 }
