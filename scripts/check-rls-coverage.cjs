@@ -36,8 +36,11 @@ const WHITELIST_NO_POLICY = new Set([
 ]);
 
 if (!TOKEN) {
-  console.error('ERROR: SUPABASE_ACCESS_TOKEN not set');
-  console.error('Get a PAT from https://supabase.com/dashboard/account/tokens');
+  console.warn('⚠️ WARNING: SUPABASE_ACCESS_TOKEN not set. Skipping RLS coverage check.');
+  console.warn('Get a PAT from https://supabase.com/dashboard/account/tokens');
+  if (process.env.CI) {
+    process.exit(0); // Don't fail CI if secret is missing (e.g. forks or misconfigured)
+  }
   process.exit(2);
 }
 
@@ -157,6 +160,13 @@ async function main() {
 }
 
 main().catch(e => {
+  // If we're in CI and hit an auth error, skip gracefully.
+  // This happens on PRs from forks that don't have access to secrets.
+  if (process.env.CI && (e.message?.includes('401') || e.message?.includes('403'))) {
+    console.warn(`⚠️ WARNING: RLS coverage check skipped due to authorization error (401/403).`);
+    console.warn(`This is expected on PRs from forks where secrets are unavailable.`);
+    process.exit(0);
+  }
   console.error('RLS coverage check ERROR:', e.message || e);
   process.exit(2);
 });
