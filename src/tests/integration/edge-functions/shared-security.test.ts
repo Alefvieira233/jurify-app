@@ -6,8 +6,8 @@
  * assistant, chat-completion, ai-agent-processor).
  */
 
-import { describe, it, expect } from 'vitest';
-import { sanitizeInput, redactPII } from '../../../../supabase/functions/_shared/security';
+import { describe, it, expect, vi } from 'vitest';
+import { sanitizeInput, redactPII, auditLog } from '../../../../supabase/functions/_shared/security';
 
 // ─── Prompt injection detection ─────────────────────────────
 
@@ -189,5 +189,75 @@ describe('redactPII — non-PII is preserved', () => {
   it('does not redact short numbers', () => {
     const text = 'Ano 2026, mês 4, dia 10';
     expect(redactPII(text)).toBe(text);
+  });
+
+  it('redacts nested PII in objects', () => {
+    const input = {
+      message: 'Meu CPF é 123.456.789-00',
+      nested: {
+        email: 'teste@exemplo.com'
+      }
+    };
+    const redacted = redactPII(input) as any;
+    expect(redacted.message).toContain('***CPF***');
+    expect(redacted.nested.email).toContain('***EMAIL***');
+  });
+
+  it('redacts PII in arrays', () => {
+    const input = ['CPF 12345678900', { email: 'a@b.com' }];
+    const redacted = redactPII(input) as any[];
+    expect(redacted[0]).toContain('***CPF***');
+    expect(redacted[1].email).toContain('***EMAIL***');
+  });
+
+  it('handles non-string primitives', () => {
+    expect(redactPII(123)).toBe(123);
+    expect(redactPII(true)).toBe(true);
+    expect(redactPII(null)).toBe(null);
+  });
+});
+
+// ─── Audit Log ─────────────────────────────────────────────
+
+describe('auditLog', () => {
+  it('calls supabase.from("assistant_audit").insert with correct data', async () => {
+    const insertSpy = vi.fn().mockResolvedValue({ error: null });
+    const fromSpy = vi.fn().mockReturnValue({ insert: insertSpy });
+    const mockSupabase = { from: fromSpy };
+
+    const entry = {
+      user_id: 'user-123',
+      tenant_id: 'tenant-456',
+      action: 'test-action',
+      query: 'test query',
+      response_time_ms: 100,
+      tools_used: ['tool1'],
+      success: true,
+    };
+
+    await auditLog(mockSupabase as any, entry);
+
+    expect(fromSpy).toHaveBeenCalledWith('assistant_audit');
+    expect(insertSpy).toHaveBeenCalledWith(expect.objectContaining({
+      user_id: 'user-123',
+      tenant_id: 'tenant-456',
+      action: 'test-action',
+      query: 'test query',
+      success: true,
+    }));
+  });
+
+  it('swallows errors and logs a warning', async () => {
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const mockSupabase = {
+      from: () => ({
+        insert: () => { throw new Error('DB Error'); }
+      })
+    };
+
+    await auditLog(mockSupabase as any, { user_id: 'u', tenant_id: 't', action: 'a', success: false });
+
+    expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining('auditLog insert failed'));
+    warnSpy.mockRestore();
   });
 });

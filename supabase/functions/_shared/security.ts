@@ -101,9 +101,35 @@ const PII_PATTERNS: Array<{ pattern: RegExp; label: string; replacement: string 
   { pattern: /(?:\+?55[\s.-]?)?\(?\d{2,3}\)?[\s.-]?\d{4,5}[\s.-]?\d{4}\b/g, label: "Phone", replacement: "***PHONE***" },
 ];
 
-/** Redact PII from assistant responses before sending to client. */
-export function redactPII(text: string): string {
-  let result = text;
+/**
+ * Redact PII from text or objects before logging or sending to client.
+ * Handles recursion for objects/arrays with depth limiting to prevent circular leaks.
+ */
+export function redactPII(input: unknown, depth = 0): unknown {
+  if (input === null || input === undefined) return input;
+  if (depth > 5) return "[depth-limit]";
+
+  // Recursion for arrays
+  if (Array.isArray(input)) {
+    return input.map((v) => redactPII(v, depth + 1));
+  }
+
+  // Recursion for objects
+  if (typeof input === "object") {
+    const out: Record<string, unknown> = {};
+    for (const [k, v] of Object.entries(input as Record<string, unknown>)) {
+      out[k] = redactPII(v, depth + 1);
+    }
+    return out;
+  }
+
+  // Handle non-string primitives by returning as-is (numbers, booleans, bigints)
+  if (typeof input !== "string") {
+    return input;
+  }
+
+  // Core redaction logic for strings
+  let result = input;
   for (const { pattern, replacement } of PII_PATTERNS) {
     result = result.replace(pattern, replacement);
   }
