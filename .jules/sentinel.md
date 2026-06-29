@@ -1,0 +1,4 @@
+## 2026-05-27 - [Implicit Trust in Internal Edge Functions]
+**Vulnerability:** Several background Edge Functions (`analyze-whatsapp-sentiment`, `transcribe-whatsapp-audio`) were exposed to the public internet without any authentication, despite performing sensitive AI processing.
+**Learning:** There was an implicit assumption that because these functions were called by other Edge Functions (like `whatsapp-webhook`) via `supabase.functions.invoke`, they were automatically "internal." However, unless explicitly protected by `isServiceRole(req)`, these endpoints remain publicly accessible to anyone who knows the URL.
+**Prevention:** Always verify the `Authorization` header using `isServiceRole(req)` for any Edge Function or method intended for internal service-to-service communication. Never assume that "being on the platform" provides automatic isolation.
