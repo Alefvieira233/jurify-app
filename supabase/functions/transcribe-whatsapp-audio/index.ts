@@ -25,7 +25,6 @@ Deno.serve(async (req) => {
   const corsHeaders = getCorsHeaders(req.headers.get("origin") || undefined);
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
-  // 🔒 Security: Only allow internal service-role calls (e.g. from whatsapp-webhook)
   if (!isServiceRole(req)) {
     return new Response(JSON.stringify({ error: "Unauthorized" }), {
       status: 401,
