@@ -86,9 +86,9 @@ export default defineConfig({
       // Aumentar gradualmente à medida que novos testes são adicionados.
       thresholds: {
         lines: 60,
-        functions: 48,
+        functions: 50,
         branches: 45,
-        statements: 59,
+        statements: 60,
       },
     },
     include: ['src/**/*.{test,spec}.{ts,tsx}'],
