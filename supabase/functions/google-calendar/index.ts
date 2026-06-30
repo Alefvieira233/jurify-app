@@ -1,3 +1,4 @@
+import { isServiceRole } from "../_shared/security.ts";
 /**
  * Google Calendar Edge Function — Calendar Operations + OAuth
  *
@@ -53,6 +54,14 @@ Deno.serve(async (req) => {
     const earlyMethod = parsedBody?.action || parsedBody?.method;
 
     if (earlyMethod && SERVICE_METHODS.includes(earlyMethod)) {
+
+      // 🛡️ SECURITY: Require service-role key
+      if (!isServiceRole(req)) {
+        return new Response(JSON.stringify({ error: "Unauthorized" }), {
+          status: 401,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
       // SERVICE-ROLE mode: caller is another edge function (whatsapp-webhook).
       // Authentication is verified by the platform via the function-to-function
       // invoke contract. We DO NOT consult auth.getUser here — there's no end user.

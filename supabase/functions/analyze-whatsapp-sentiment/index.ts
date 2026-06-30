@@ -1,3 +1,4 @@
+import { isServiceRole } from "../_shared/security.ts";
 /**
  * 🎭 ANALYZE WHATSAPP SENTIMENT - Edge Function
  *
@@ -49,6 +50,14 @@ Use JULGAMENTO. Frases tipo "audiência amanhã" = alta. "Preciso URGENTEMENTE" 
 Deno.serve(async (req) => {
   const corsHeaders = getCorsHeaders(req.headers.get("origin") || undefined);
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
+
+  // 🛡️ SECURITY: Require service-role key
+  if (!isServiceRole(req)) {
+    return new Response(JSON.stringify({ error: "Unauthorized" }), {
+      status: 401,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
 
   try {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
