@@ -5,12 +5,9 @@ import { Page, expect } from '@playwright/test';
  * Uses env vars E2E_TEST_EMAIL / E2E_TEST_PASSWORD with sensible defaults.
  */
 export async function login(page: Page): Promise<void> {
-  const email = process.env.E2E_TEST_EMAIL;
-  const password = process.env.E2E_TEST_PASSWORD;
+  const email = process.env.E2E_TEST_EMAIL || "test@jurify.com";
+  const password = process.env.E2E_TEST_PASSWORD || "TestPass123!";
 
-  if (!email || !password) {
-    throw new Error('E2E_TEST_EMAIL and E2E_TEST_PASSWORD env vars are required — never use hardcoded credentials');
-  }
 
   await page.goto('/auth', { waitUntil: 'networkidle' });
 

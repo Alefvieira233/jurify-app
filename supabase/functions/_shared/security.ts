@@ -144,3 +144,34 @@ export async function auditLog(
     console.warn("[security] auditLog insert failed silently");
   }
 }
+
+// ---------------------------------------------------------------------------
+// Authorization
+// ---------------------------------------------------------------------------
+
+/**
+ * Checks if the request is authenticated with the service-role key.
+ * Uses timing-safe comparison to prevent side-channel attacks.
+ */
+export function isServiceRole(req: Request): boolean {
+  const authHeader = req.headers.get("Authorization");
+  const token = authHeader?.replace("Bearer ", "") ?? "";
+  // In Deno Edge Runtime, we use Deno.env. In Vitest/Node, we use process.env via a fallback.
+  // deno-lint-ignore no-explicit-any
+  const env = (globalThis as any).Deno?.env || (globalThis as any).process?.env;
+  const serviceKey = env.get?.("SUPABASE_SERVICE_ROLE_KEY") || env.SUPABASE_SERVICE_ROLE_KEY || "";
+
+  if (!serviceKey || !token || token.length !== serviceKey.length) return false;
+
+  const encoder = new TextEncoder();
+  const a = encoder.encode(token);
+  const b = encoder.encode(serviceKey);
+
+  if (a.byteLength !== b.byteLength) return false;
+
+  let mismatch = 0;
+  for (let i = 0; i < a.byteLength; i++) {
+    mismatch |= a[i]! ^ b[i]!;
+  }
+  return mismatch === 0;
+}

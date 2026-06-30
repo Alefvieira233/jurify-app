@@ -1,3 +1,4 @@
+import { isServiceRole } from "../_shared/security.ts";
 /**
  * 🎙️ TRANSCRIBE WHATSAPP AUDIO - Edge Function
  *
@@ -14,7 +15,6 @@
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { getCorsHeaders } from "../_shared/cors.ts";
-import { isServiceRole } from "../_shared/supabase-client.ts";
 import { checkTrialAccess, trialBlockedResponse } from "../_shared/trial-gate.ts";
 
 interface Request { messageId: string; }
@@ -25,7 +25,7 @@ Deno.serve(async (req) => {
   const corsHeaders = getCorsHeaders(req.headers.get("origin") || undefined);
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
-  // 🛡️ SECURITY: Require service-role key for internal transcription
+  // 🛡️ SECURITY: Require service-role key
   if (!isServiceRole(req)) {
     return new Response(JSON.stringify({ error: "Unauthorized" }), {
       status: 401,
