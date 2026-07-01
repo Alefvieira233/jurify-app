@@ -1,4 +1,4 @@
-## 2026-05-25 - [CRITICAL] Edge Function Implicit Trust Vulnerability
+## 2026-03-04 - [CRITICAL] Edge Function Implicit Trust Vulnerability
 **Vulnerability:** Edge Functions intended for internal service-to-service communication (e.g., `google-calendar`) were publicly accessible and did not explicitly verify the `Authorization` header for administrative (`SERVICE_METHODS`) operations, relying on the platform's internal invocation contract.
 **Learning:** In Supabase, every Edge Function has a public URL. Internal `invoke` calls are not automatically isolated from external HTTP requests unless explicitly guarded by `isServiceRole(req)` or other authentication checks.
 **Prevention:** Always use `isServiceRole(req)` from `_shared/supabase-client.ts` to gate administrative methods in Edge Functions, even if they are only intended to be called by other internal functions or cron jobs.
