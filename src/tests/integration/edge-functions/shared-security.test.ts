@@ -177,6 +177,33 @@ describe('redactPII — Phone', () => {
   });
 });
 
+describe('redactPII — CNPJ', () => {
+  it('redacts standard CNPJ', () => {
+    expect(redactPII('Empresa: 12.345.678/0001-00')).toBe('Empresa: ***CNPJ***');
+  });
+});
+
+describe('redactPII — Processo CNJ', () => {
+  it('redacts Brazilian lawsuit numbers', () => {
+    expect(redactPII('Processo: 0801234-12.2023.8.19.0001')).toBe('Processo: ***PROCESSO***');
+  });
+});
+
+describe('redactPII — OAB', () => {
+  it('redacts OAB formats', () => {
+    expect(redactPII('Advogado OAB/SP 123456')).toBe('Advogado ***OAB***');
+    expect(redactPII('OAB-RJ 12345')).toBe('***OAB***');
+    expect(redactPII('inscrição oab 999999')).toBe('inscrição ***OAB***');
+  });
+});
+
+describe('redactPII — Tokens', () => {
+  it('redacts Bearer and custom tokens', () => {
+    expect(redactPII('Authorization: Bearer eyJhbGci...')).toBe('Authorization: ***TOKEN***');
+    expect(redactPII('ApiKey: sk-abcdef1234567890')).toBe('ApiKey: ***TOKEN***');
+  });
+});
+
 describe('redactPII — idempotency', () => {
   it('running redactPII twice produces the same output', () => {
     const text = 'CPF 123.456.789-00 e cartão 4111 1111 1111 1111';
