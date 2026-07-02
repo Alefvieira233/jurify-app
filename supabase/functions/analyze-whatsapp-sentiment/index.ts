@@ -51,8 +51,8 @@ Deno.serve(async (req) => {
   const corsHeaders = getCorsHeaders(req.headers.get("origin") || undefined);
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
-  // 🛡️ SECURITY: Este endpoint é apenas para uso interno (webhook -> sentiment).
-  // Exige service-role key para evitar chamadas externas maliciosas que consumiriam OpenAI.
+  // 🛡️ SECURITY: This endpoint is for internal use only (webhook -> sentiment).
+  // Requires service-role key to prevent malicious external calls that would consume OpenAI credits.
   if (!isServiceRole(req)) {
     console.error("[sentiment] Unauthorized: missing or invalid service-role key");
     return new Response(JSON.stringify({ error: "Unauthorized" }), {
