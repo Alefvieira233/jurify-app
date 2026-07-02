@@ -477,8 +477,11 @@ Deno.serve(async (req) => {
 
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
-    console.error("[google-calendar] Error:", message);
-    return new Response(JSON.stringify({ error: message }), {
+    console.error("[google-calendar] Internal Error:", message);
+
+    // 🛡️ SECURITY: Do not leak internal error details to the client.
+    // Return a generic error message while logging the specifics to the server console.
+    return new Response(JSON.stringify({ error: "Internal server error" }), {
       status: 500,
       headers: { ...getCorsHeaders(req.headers.get("origin") || undefined), "Content-Type": "application/json" },
     });
