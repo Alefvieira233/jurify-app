@@ -29,7 +29,7 @@ Deno.serve(async (req) => {
   // unauthorized external calls.
   if (!isServiceRole(req)) {
     console.error("[transcribe-whatsapp-audio] Unauthorized external call rejected.");
-    return new Response(JSON.stringify({ error: "Unauthorized" }), {
+    return new Response(JSON.stringify({ success: false, error: "Unauthorized" }), {
       status: 401,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
