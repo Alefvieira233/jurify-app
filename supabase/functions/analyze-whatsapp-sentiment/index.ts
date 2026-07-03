@@ -15,6 +15,7 @@
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { getCorsHeaders } from "../_shared/cors.ts";
+import { isServiceRole } from "../_shared/supabase-client.ts";
 import { checkTrialAccess, trialBlockedResponse } from "../_shared/trial-gate.ts";
 
 interface Request { messageId: string; }
@@ -49,6 +50,16 @@ Use JULGAMENTO. Frases tipo "audiência amanhã" = alta. "Preciso URGENTEMENTE" 
 Deno.serve(async (req) => {
   const corsHeaders = getCorsHeaders(req.headers.get("origin") || undefined);
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
+
+  // Hardened (2026-05-25): explicitly verify service role JWT to prevent
+  // unauthorized external calls.
+  if (!isServiceRole(req)) {
+    console.error("[analyze-whatsapp-sentiment] Unauthorized external call rejected.");
+    return new Response(JSON.stringify({ success: false, error: "Unauthorized" }), {
+      status: 401,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
 
   try {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
@@ -144,8 +155,8 @@ Deno.serve(async (req) => {
     }), { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200 });
   } catch (err) {
     console.error("[analyze-whatsapp-sentiment] error:", err);
-    const msg = err instanceof Error ? err.message : "Erro";
-    return new Response(JSON.stringify({ success: false, error: msg }),
+    // Hardened (2026-05-25): Return generic error to client to prevent info leakage.
+    return new Response(JSON.stringify({ success: false, error: "Internal server error" }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 500 });
   }
 });
