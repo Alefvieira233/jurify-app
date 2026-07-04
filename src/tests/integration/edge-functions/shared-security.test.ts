@@ -6,8 +6,8 @@
  * assistant, chat-completion, ai-agent-processor).
  */
 
-import { describe, it, expect } from 'vitest';
-import { sanitizeInput, redactPII } from '../../../../supabase/functions/_shared/security';
+import { describe, it, expect, vi } from 'vitest';
+import { sanitizeInput, redactPII, auditLog } from '../../../../supabase/functions/_shared/security';
 
 // ─── Prompt injection detection ─────────────────────────────
 
@@ -183,5 +183,60 @@ describe('redactPII — non-PII is preserved', () => {
   it('does not redact short numbers', () => {
     const text = 'Ano 2026, mês 4, dia 10';
     expect(redactPII(text)).toBe(text);
+  });
+});
+
+describe('auditLog', () => {
+  it('calls supabase.from().insert() with correct data', async () => {
+    const insertMock = vi.fn().mockResolvedValue({ error: null });
+    const fromMock = vi.fn().mockReturnValue({ insert: insertMock });
+    const supabaseMock = { from: fromMock };
+
+    const entry = {
+      user_id: 'user-123',
+      tenant_id: 'tenant-456',
+      action: 'test_action',
+      query: 'test query',
+      success: true,
+    };
+
+    await auditLog(supabaseMock as any, entry);
+
+    expect(fromMock).toHaveBeenCalledWith('assistant_audit');
+    expect(insertMock).toHaveBeenCalledWith(expect.objectContaining({
+      user_id: 'user-123',
+      tenant_id: 'tenant-456',
+      action: 'test_action',
+    }));
+  });
+
+  it('swallows errors without throwing', async () => {
+    const supabaseMock = {
+      from: () => ({
+        insert: () => Promise.reject(new Error('DB Down')),
+      }),
+    };
+
+    await expect(auditLog(supabaseMock as any, {
+      user_id: 'u', tenant_id: 't', action: 'a', success: false
+    })).resolves.not.toThrow();
+  });
+});
+
+describe('sanitizeInput — edge cases', () => {
+  it('rejects invalid inputs to increase branch coverage', () => {
+    // @ts-expect-error
+    expect(sanitizeInput(null).safe).toBe(false);
+    // @ts-expect-error
+    expect(sanitizeInput(undefined).safe).toBe(false);
+    // @ts-expect-error
+    expect(sanitizeInput(123).safe).toBe(false);
+    // @ts-expect-error
+    expect(sanitizeInput({}).safe).toBe(false);
+  });
+
+  it('handles invalid base64 gracefully', () => {
+    const result = sanitizeInput('This contains a long string that looks like base64 but is invalid !!! @@@ ### $$$ %%% ^^^');
+    expect(result.safe).toBe(true);
   });
 });
