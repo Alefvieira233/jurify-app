@@ -9,6 +9,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { getCorsHeaders } from "../_shared/cors.ts";
 import { applyRateLimit } from "../_shared/rate-limiter.ts";
 import { encrypt } from "../_shared/crypto.ts";
+import { isServiceRole } from "../_shared/supabase-client.ts";
 import { GoogleOAuthService } from "./google-oauth.ts";
 
 // Least-privilege OAuth scopes.
@@ -54,8 +55,15 @@ Deno.serve(async (req) => {
 
     if (earlyMethod && SERVICE_METHODS.includes(earlyMethod)) {
       // SERVICE-ROLE mode: caller is another edge function (whatsapp-webhook).
-      // Authentication is verified by the platform via the function-to-function
-      // invoke contract. We DO NOT consult auth.getUser here — there's no end user.
+      // Authentication MUST be verified via isServiceRole(req).
+      if (!isServiceRole(req)) {
+        console.error(`[google-calendar] Unauthorized service call to ${earlyMethod}`);
+        return new Response(JSON.stringify({ error: "Unauthorized" }), {
+          status: 401,
+          headers: { ...getCorsHeaders(req.headers.get("origin") || undefined), "Content-Type": "application/json" },
+        });
+      }
+
       const supabase = createClient(supabaseUrlEarly, supabaseServiceKeyEarly);
       const data = (parsedBody?.data ?? {}) as Record<string, unknown>;
 
@@ -469,7 +477,8 @@ Deno.serve(async (req) => {
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     console.error("[google-calendar] Error:", message);
-    return new Response(JSON.stringify({ error: message }), {
+    // SEC-01: Generic error response to avoid leaking internals
+    return new Response(JSON.stringify({ error: "Internal server error" }), {
       status: 500,
       headers: { ...getCorsHeaders(req.headers.get("origin") || undefined), "Content-Type": "application/json" },
     });
