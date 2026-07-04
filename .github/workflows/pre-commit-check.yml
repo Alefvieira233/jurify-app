@@ -24,6 +24,8 @@ jobs:
           path: ./
           base: ${{ github.event.pull_request.base.sha || github.event.before }}
           head: ${{ github.event.pull_request.head.sha || github.sha }}
+          # Note: --fail is omitted here as it is added automatically by the action.
+          # Including it twice causes a CLI error.
           extra_args: --results=verified,unknown
 
       - name: 🔍 Check for hardcoded credentials (explicit patterns)
