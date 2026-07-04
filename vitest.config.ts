@@ -85,6 +85,9 @@ export default defineConfig({
         'src/hooks/useDepartamentos.ts', // Tested via E2E
         'src/hooks/useAgendaTasks.ts', // Tested via E2E
         'src/hooks/useAgendaReminders.ts', // Tested via E2E
+        'src/hooks/usePushNotifications.ts', // Native API wrapper — E2E
+        'src/hooks/useNetworkStatus.ts', // Native API wrapper — E2E
+        'src/hooks/useBiometrics.ts', // Native API wrapper — E2E
       ],
       // Thresholds estabelecem um floor anti-regressão.
       // Aumentar gradualmente à medida que novos testes são adicionados.
