@@ -51,11 +51,14 @@ export function sanitizeInput(
   text: string,
   maxLength = 2000
 ): { safe: true; text: string } | { safe: false; reason: string } {
-  if (!text || typeof text !== "string") {
-    return { safe: false, reason: "Empty or invalid input" };
+  if (typeof text !== "string") {
+    return { safe: false, reason: "Invalid input: expected string" };
   }
 
   const trimmed = text.trim().slice(0, maxLength);
+  if (!trimmed) {
+    return { safe: false, reason: "Empty or invalid input" };
+  }
 
   // Check original + normalized version to catch homoglyph attacks
   const normalized = normalizeForDetection(trimmed);
@@ -90,7 +93,7 @@ export function sanitizeInput(
 // ---------------------------------------------------------------------------
 
 const PII_PATTERNS: Array<{ pattern: RegExp; label: string; replacement: string }> = [
-  { pattern: /\b\d{2}\.?\d{3}\.?\d{3}\/?\d{4}-?\d{2}\b/g, label: "CNPJ", replacement: "***CNPJ***" },
+  { pattern: /\b(?:CNPJ[\s\/\-]?)?\d{2}\.?\d{3}\.?\d{3}\/?\d{4}-?\d{2}\b/gi, label: "CNPJ", replacement: "***CNPJ***" },
   { pattern: /\b\d{7}-\d{2}\.\d{4}\.\d\.\d{2}\.\d{4}\b/g, label: "Processo", replacement: "***PROCESSO***" },
   { pattern: /\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b/g, label: "Email", replacement: "***EMAIL***" },
   { pattern: /\b(?:OAB[\s\/\-]?)?(?:AC|AL|AP|AM|BA|CE|DF|ES|GO|MA|MT|MS|MG|PA|PB|PR|PE|PI|RJ|RN|RS|RO|RR|SC|SP|SE|TO)[\s\/\-]?\d{4,6}\b/gi, label: "OAB", replacement: "***OAB***" },
