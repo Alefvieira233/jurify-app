@@ -19,6 +19,7 @@
 
 import { OpenAI } from "https://deno.land/x/openai@v4.24.0/mod.ts";
 import type { createClient } from "jsr:@supabase/supabase-js@2";
+import { redactPII } from "./security.ts";
 import { withRetry } from "./openai-retry.ts";
 import {
   checkBudgetBeforeCall,
@@ -204,7 +205,13 @@ export async function callOpenAI(
   // any failure is swallowed — logging must never break the pipeline) ---
   if (params.persistLog !== false) {
     try {
-      const preview = typeof content === "string" ? content.substring(0, 2000) : "";
+      const fullResult = typeof content === "string" ? redactPII(content) : "";
+      const resultPreview = fullResult.substring(0, 200);
+
+      // Redact system/user prompts from metadata if present or from params
+      const systemPrompt = params.messages.find(m => m.role === "system")?.content;
+      const lastUserPrompt = [...params.messages].reverse().find(m => m.role === "user")?.content;
+
       await supabase.from("agent_ai_logs").insert({
         execution_id: null, // callers that have an execution row should set metadata.execution_row_id
         agent_name: params.agentName ?? params.source,
@@ -215,8 +222,10 @@ export async function callOpenAI(
         prompt_tokens: tokens_in,
         completion_tokens: tokens_out,
         total_tokens: tokens_total,
-        result_preview: preview.substring(0, 200),
-        full_result: preview,
+        result_preview: resultPreview,
+        full_result: fullResult.substring(0, 2000),
+        system_prompt: typeof systemPrompt === "string" ? redactPII(systemPrompt).substring(0, 500) : null,
+        user_prompt: typeof lastUserPrompt === "string" ? redactPII(lastUserPrompt).substring(0, 500) : null,
         context: {
           source: params.source,
           latency_ms,

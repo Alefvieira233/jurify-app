@@ -55,6 +55,11 @@ async function query(sql) {
   );
   const text = await r.text();
   if (!r.ok) {
+    if (r.status === 401) {
+      console.error('\n❌ RLS coverage check FAILED: SUPABASE_ACCESS_TOKEN is missing or expired.');
+      console.error('To fix this, provide a valid PAT in CI secrets or local .env.');
+      process.exit(1);
+    }
     throw new Error(
       `Supabase API error ${r.status} ${r.statusText}: ${text.slice(0, 500)}`,
     );
