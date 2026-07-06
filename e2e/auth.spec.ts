@@ -40,6 +40,11 @@ test.describe('Jurify — Autenticação', () => {
     await page.getByTestId('name-input').fill('Teste E2E');
     await page.getByTestId('email-input').fill('e2e@test.com');
     await page.getByTestId('password-input').fill('fraca');
+    await page.getByTestId('confirm-password-input').fill('fraca');
+
+    // Consentimento LGPD é obrigatório para habilitar o fluxo de cadastro
+    await page.locator('#lgpdConsent').check();
+
     await page.getByRole('button', { name: /começar agora/i }).click();
 
     await expect(page.getByText(/senha fraca/i).first()).toBeVisible({ timeout: 5_000 });
