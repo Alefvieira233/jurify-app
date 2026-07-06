@@ -1,0 +1,4 @@
+## 2026-07-06 - [CRITICAL] Internal Edge Function Exposure
+**Vulnerability:** Edge Functions intended for internal service-to-service communication (e.g., sentiment analysis, audio transcription) were exposed to public HTTP calls because they lacked explicit `isServiceRole(req)` validation.
+**Learning:** In Supabase, simply not using `auth.getUser()` does not make a function "internal-only". Anyone with the project's Anon Key could theoretically invoke these functions if they guessed the URL, potentially draining OpenAI credits or manipulating database records.
+**Prevention:** Always use `isServiceRole(req)` (timing-safe comparison of the Authorization header against `SUPABASE_SERVICE_ROLE_KEY`) at the entry point of any Edge Function that is not intended for browser-based calls. Additionally, always mask internal error details in production responses to prevent information leakage.
