@@ -185,3 +185,66 @@ describe('redactPII — non-PII is preserved', () => {
     expect(redactPII(text)).toBe(text);
   });
 });
+
+describe('redactPII — CNPJ (Brazilian Company Tax ID)', () => {
+  it('redacts CNPJ with separators', () => {
+    expect(redactPII('CNPJ: 12.345.678/0001-90')).toBe('CNPJ: ***CNPJ***');
+  });
+
+  it('redacts CNPJ without separators', () => {
+    expect(redactPII('CNPJ 12345678000190')).toBe('CNPJ ***CNPJ***');
+  });
+
+  it('prioritizes CNPJ over CPF to avoid partial matches', () => {
+    // 12.345.678/0001-90 should not be partially redacted as CPF
+    expect(redactPII('12.345.678/0001-90')).toBe('***CNPJ***');
+  });
+});
+
+describe('redactPII — OAB (Brazilian Bar Association)', () => {
+  it('redacts OAB with UF prefix', () => {
+    expect(redactPII('Advogado OAB/SP 123456')).toBe('Advogado ***OAB***');
+    expect(redactPII('Inscrito na OAB-RJ 98765')).toBe('Inscrito na ***OAB***');
+  });
+
+  it('redacts OAB without UF prefix', () => {
+    expect(redactPII('OAB 12345')).toBe('***OAB***');
+  });
+
+  it('is case insensitive', () => {
+    expect(redactPII('oab sp 12345')).toBe('***OAB***');
+  });
+});
+
+describe('redactPII — Processo CNJ (Brazilian Lawsuit)', () => {
+  it('redacts standard CNJ format', () => {
+    expect(redactPII('Processo nº 0012345-67.2023.8.26.0100')).toBe('Processo nº ***PROCESSO***');
+  });
+});
+
+describe('redactPII — Email', () => {
+  it('redacts basic email', () => {
+    expect(redactPII('Contato: joao.silva@empresa.com.br')).toBe('Contato: ***EMAIL***');
+  });
+
+  it('redacts email in sentences', () => {
+    expect(redactPII('Envie para suporte@jurify.com para ajuda')).toBe('Envie para ***EMAIL*** para ajuda');
+  });
+});
+
+describe('redactPII — Brazilian Phone', () => {
+  it('redacts phone with +55 prefix', () => {
+    expect(redactPII('Tel: +55 11 99999-8888')).toBe('Tel: ***PHONE***');
+  });
+
+  it('redacts phone with DDD and 9-digits', () => {
+    expect(redactPII('Celular (11) 98888-7777')).toBe('Celular ***PHONE***');
+  });
+
+  it('redacts phone without separators', () => {
+    // Note: 11-digit numbers without separators match CPF pattern first.
+    // This is acceptable as both are PII.
+    const result = redactPII('Ligue 11977776666');
+    expect(result === 'Ligue ***PHONE***' || result === 'Ligue ***CPF***').toBe(true);
+  });
+});

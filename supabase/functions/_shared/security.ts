@@ -90,9 +90,19 @@ export function sanitizeInput(
 // ---------------------------------------------------------------------------
 
 const PII_PATTERNS: Array<{ pattern: RegExp; label: string; replacement: string }> = [
-  { pattern: /\b\d{3}\.?\d{3}\.?\d{3}-?\d{2}\b/g, label: "CPF", replacement: "***CPF***" },
-  { pattern: /\b\d{2}\.?\d{3}\.?\d{3}-?[\dXx]\b/g, label: "RG", replacement: "***RG***" },
+  // Prioritize CNPJ over CPF to avoid partial matches on long sequences
+  { pattern: /\b\d{2}\.?\d{3}\.?\d{3}\/?\d{4}-?\d{2}\b/g, label: "CNPJ", replacement: "***CNPJ***" },
+  // Processo CNJ (Brazilian Lawsuit): NNNNNNN-DD.AAAA.J.TR.OOOO
+  { pattern: /\b\d{7}-\d{2}\.\d{4}\.\d\.\d{2}\.\d{4}\b/g, label: "Processo", replacement: "***PROCESSO***" },
   { pattern: /\b\d{4}\s?\d{4}\s?\d{4}\s?\d{4}\b/g, label: "Card", replacement: "***CARD***" },
+  { pattern: /\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}\b/g, label: "Email", replacement: "***EMAIL***" },
+  // OAB: OAB/UF 123456 or OAB 123456
+  { pattern: /\b(?:OAB[\s\/\-]?)?(?:AC|AL|AP|AM|BA|CE|DF|ES|GO|MA|MT|MS|MG|PA|PB|PR|PE|PI|RJ|RN|RS|RO|RR|SC|SP|SE|TO)[\s\/\-]?\d{4,6}\b|\bOAB[\s\/\-]?\d{4,6}\b/gi, label: "OAB", replacement: "***OAB***" },
+  { pattern: /\b\d{3}\.?\d{3}\.?\d{3}-?\d{2}\b/g, label: "CPF", replacement: "***CPF***" },
+  // Brazilian Phone (handling international +55 prefix and optional parentheses)
+  // Prioritize after CPF to allow exact 11-digit CPF matches to win over phone
+  { pattern: /(?:\+?55[\s.-]?)?\(?\d{2,3}\)?[\s.-]?\d{4,5}[\s.-]?\d{4}\b/g, label: "Phone", replacement: "***PHONE***" },
+  { pattern: /\b\d{2}\.?\d{3}\.?\d{3}-?[\dXx]\b/g, label: "RG", replacement: "***RG***" },
 ];
 
 /** Redact PII from assistant responses before sending to client. */
