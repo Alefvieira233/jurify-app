@@ -14,6 +14,7 @@
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { getCorsHeaders } from "../_shared/cors.ts";
+import { isServiceRole } from "../_shared/supabase-client.ts";
 import { checkTrialAccess, trialBlockedResponse } from "../_shared/trial-gate.ts";
 
 interface Request { messageId: string; }
@@ -23,6 +24,15 @@ const MAX_AUDIO_BYTES = 25 * 1024 * 1024; // Whisper limit
 Deno.serve(async (req) => {
   const corsHeaders = getCorsHeaders(req.headers.get("origin") || undefined);
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
+
+  // 🛡️ SECURITY: Explicit service-role check (Audit 2026-05-25)
+  // This function is for internal use only by the whatsapp-webhook.
+  if (!isServiceRole(req)) {
+    return new Response(JSON.stringify({ error: "Unauthorized" }), {
+      status: 401,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
 
   try {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
@@ -123,8 +133,8 @@ Deno.serve(async (req) => {
     }), { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200 });
   } catch (err) {
     console.error("[transcribe-whatsapp-audio] error:", err);
-    const msg = err instanceof Error ? err.message : "Erro";
-    return new Response(JSON.stringify({ success: false, error: msg }),
+    // Mask error details for client security
+    return new Response(JSON.stringify({ success: false, error: "Internal server error" }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 500 });
   }
 });
