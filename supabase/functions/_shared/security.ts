@@ -86,17 +86,31 @@ export function sanitizeInput(
 }
 
 // ---------------------------------------------------------------------------
-// PII content filtering
+// PII content filtering (LGPD + OAB Compliance)
 // ---------------------------------------------------------------------------
 
 const PII_PATTERNS: Array<{ pattern: RegExp; label: string; replacement: string }> = [
+  // CNPJ and Processo first (longer/more specific)
+  { pattern: /\b\d{2}\.?\d{3}\.?\d{3}\/?\d{4}-?\d{2}\b/g, label: "CNPJ", replacement: "***CNPJ***" },
+  { pattern: /\b\d{7}-\d{2}\.\d{4}\.\d\.\d{2}\.\d{4}\b/g, label: "Processo", replacement: "***PROCESSO***" },
+  { pattern: /\b\d{4}\s?\d{4}\s?\d{4}\s?\d{4}\b/g, label: "Card", replacement: "***CARD***" },
+  { pattern: /\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}\b/g, label: "Email", replacement: "***EMAIL***" },
+  { pattern: /\bOAB[\/\s]?[A-Z]{2}\s?\d{1,6}\b/gi, label: "OAB", replacement: "***OAB***" },
+  // Mobile phones (with 9) have priority over CPF to avoid collisions in raw 11-digit numbers
+  { pattern: /(?:\+?55[\s.-]?)?\(?\d{2,3}\)?[\s.-]?9\d{4}[\s.-]?\d{4}\b/g, label: "Phone", replacement: "***PHONE***" },
   { pattern: /\b\d{3}\.?\d{3}\.?\d{3}-?\d{2}\b/g, label: "CPF", replacement: "***CPF***" },
   { pattern: /\b\d{2}\.?\d{3}\.?\d{3}-?[\dXx]\b/g, label: "RG", replacement: "***RG***" },
-  { pattern: /\b\d{4}\s?\d{4}\s?\d{4}\s?\d{4}\b/g, label: "Card", replacement: "***CARD***" },
+  // Bearer/JWT with space: redact the prefix too
+  { pattern: /\b(?:Bearer|JWT)\s+[A-Za-z0-9._\-\/]{10,}\b/g, label: "Token", replacement: "***TOKEN***" },
+  // Raw tokens (sbp, eyJ) or labels: redact only the token part
+  { pattern: /\b(?:sbp|eyJ)[A-Za-z0-9._\-\/]{10,}\b/g, label: "Token", replacement: "***TOKEN***" },
+  // General phones (landlines or other formats)
+  { pattern: /(?:\+?55[\s.-]?)?\(?\d{2,3}\)?[\s.-]?\d{4,5}[\s.-]?\d{4}\b/g, label: "Phone", replacement: "***PHONE***" },
 ];
 
-/** Redact PII from assistant responses before sending to client. */
+/** Redact PII from assistant responses or logs before persistence/transmission. */
 export function redactPII(text: string): string {
+  if (!text || typeof text !== "string") return text;
   let result = text;
   for (const { pattern, replacement } of PII_PATTERNS) {
     result = result.replace(pattern, replacement);
