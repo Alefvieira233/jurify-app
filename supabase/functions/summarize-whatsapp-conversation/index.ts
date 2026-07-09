@@ -13,6 +13,7 @@
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { getCorsHeaders } from "../_shared/cors.ts";
+import { isServiceRole } from "../_shared/supabase-client.ts";
 import { applyRateLimit } from "../_shared/rate-limiter.ts";
 import { checkTrialAccess, trialBlockedResponse } from "../_shared/trial-gate.ts";
 
@@ -47,26 +48,41 @@ Deno.serve(async (req) => {
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) throw new Error("Missing authorization header");
 
+    const isServiceRoleRequest = isServiceRole(req);
+
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const openaiKey = Deno.env.get("OPENAI_API_KEY");
     if (!openaiKey) throw new Error("OPENAI_API_KEY não configurada");
 
-    const supabaseAuth = createClient(supabaseUrl, supabaseAnonKey);
-    const token = authHeader.replace("Bearer ", "");
-    const { data: { user }, error: authError } = await supabaseAuth.auth.getUser(token);
-    if (authError || !user) throw new Error("Unauthorized");
-
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
-    const rl = await applyRateLimit(req, { maxRequests: 20, windowSeconds: 60, namespace: "wa-summarize" }, { supabase, user, corsHeaders });
+    let user: { id: string; email?: string } | null = null;
+
+    if (!isServiceRoleRequest) {
+      const supabaseAuth = createClient(supabaseUrl, supabaseAnonKey);
+      const token = authHeader.replace("Bearer ", "");
+      const { data: { user: authenticatedUser }, error: authError } = await supabaseAuth.auth.getUser(token);
+      if (authError || !authenticatedUser) throw new Error("Unauthorized");
+      user = authenticatedUser;
+    }
+    const rl = await applyRateLimit(req, { maxRequests: 20, windowSeconds: 60, namespace: "wa-summarize" }, { supabase, user: user ?? { id: "service-role" }, corsHeaders });
     if (!rl.allowed) return rl.response;
 
     const body = await req.json() as Request;
     if (!body.conversationId) throw new Error("conversationId obrigatório");
 
-    const { data: profile } = await supabase.from("profiles").select("tenant_id").eq("id", user.id).single();
-    const tenantId = (profile as { tenant_id?: string } | null)?.tenant_id;
+    let tenantId: string | null = null;
+
+    if (user) {
+      const { data: profile } = await supabase.from("profiles").select("tenant_id").eq("id", user.id).single();
+      tenantId = (profile as { tenant_id?: string } | null)?.tenant_id ?? null;
+    } else {
+      // For service role, we should probably get tenantId from the conversation itself
+      const { data: convTenant } = await supabase.from("whatsapp_conversations").select("tenant_id").eq("id", body.conversationId).maybeSingle();
+      tenantId = convTenant?.tenant_id ?? null;
+    }
+
     if (!tenantId) throw new Error("Tenant não encontrado");
 
     // 🚫 TRIAL GATE — bloqueia uso de IA outbound se trial expirado.

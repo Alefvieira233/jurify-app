@@ -6,8 +6,8 @@
  * assistant, chat-completion, ai-agent-processor).
  */
 
-import { describe, it, expect } from 'vitest';
-import { sanitizeInput, redactPII } from '../../../../supabase/functions/_shared/security';
+import { describe, it, expect, vi } from 'vitest';
+import { sanitizeInput, redactPII, auditLog } from '../../../../supabase/functions/_shared/security';
 
 // ─── Prompt injection detection ─────────────────────────────
 
@@ -183,5 +183,79 @@ describe('redactPII — non-PII is preserved', () => {
   it('does not redact short numbers', () => {
     const text = 'Ano 2026, mês 4, dia 10';
     expect(redactPII(text)).toBe(text);
+  });
+});
+
+describe('redactPII — New patterns (CNPJ, Processo, Email, Phone, Token, OAB)', () => {
+  it('redacts CNPJ', () => {
+    expect(redactPII('CNPJ: 12.345.678/0001-90')).toBe('CNPJ: ***CNPJ***');
+    expect(redactPII('CNPJ 12345678000190')).toBe('CNPJ ***CNPJ***');
+  });
+
+  it('redacts Processo CNJ', () => {
+    expect(redactPII('Processo 0001234-56.2024.8.26.0001')).toBe('Processo ***PROCESSO***');
+  });
+
+  it('redacts Email', () => {
+    expect(redactPII('Contato: joao.silva@email.com.br')).toBe('Contato: ***EMAIL***');
+  });
+
+  it('redacts Phone', () => {
+    expect(redactPII('Telefone: +55 (11) 99999-8888')).toBe('Telefone: ***PHONE***');
+    expect(redactPII('Me ligue em 11988887777')).toBe('Me ligue em ***PHONE***');
+  });
+
+  it('redacts Bearer/JWT Token', () => {
+    expect(redactPII('Authorization: Bearer eyJhbGciOiJIUzI1...')).toBe('Authorization: ***TOKEN***...');
+    expect(redactPII('Token sbp_1234567890abcdef')).toBe('Token ***TOKEN***');
+  });
+
+  it('redacts OAB', () => {
+    expect(redactPII('Advogado OAB SP 123456')).toBe('Advogado ***OAB***');
+    expect(redactPII('Inscrito na OAB/RJ98765')).toBe('Inscrito na ***OAB***');
+  });
+});
+
+describe('auditLog', () => {
+  it('calls supabase insert with correct parameters', async () => {
+    const insertMock = vi.fn().mockResolvedValue({ error: null });
+    const fromMock = vi.fn().mockReturnValue({ insert: insertMock });
+    const supabaseMock = { from: fromMock };
+
+    const entry = {
+      user_id: 'user-123',
+      tenant_id: 'tenant-456',
+      action: 'test-action',
+      query: 'test-query',
+      success: true,
+    };
+
+    await auditLog(supabaseMock as any, entry);
+
+    expect(fromMock).toHaveBeenCalledWith('assistant_audit');
+    expect(insertMock).toHaveBeenCalledWith(expect.objectContaining({
+      user_id: 'user-123',
+      tenant_id: 'tenant-456',
+      action: 'test-action',
+      query: 'test-query',
+      success: true,
+    }));
+  });
+
+  it('handles errors silently', async () => {
+    const supabaseMock = {
+      from: vi.fn().mockImplementation(() => {
+        throw new Error('DB error');
+      }),
+    };
+
+    const consoleSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+
+    await auditLog(supabaseMock as any, {
+      user_id: 'u', tenant_id: 't', action: 'a', success: false
+    });
+
+    expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining('auditLog insert failed'));
+    consoleSpy.mockRestore();
   });
 });

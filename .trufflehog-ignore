@@ -3,3 +3,5 @@
 .env.production.example
 # Supabase auto-generated types contain the project URL (not a secret)
 src/integrations/supabase/client.ts
+# Setup file contains dummy/test keys
+src/tests/setup.ts
