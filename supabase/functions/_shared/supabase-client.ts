@@ -50,16 +50,23 @@ export function isServiceRole(req: Request): boolean {
   const authHeader = req.headers.get("Authorization");
   const token = authHeader?.replace("Bearer ", "") ?? "";
   const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
-  if (!serviceKey || !token || token.length !== serviceKey.length) return false;
-  // Timing-safe comparison to prevent side-channel attacks
+
+  if (!serviceKey || !token) return false;
+
+  // Timing-safe comparison to prevent side-channel attacks.
+  // We use a fixed-time comparison even if lengths differ to avoid leaking key length,
+  // though we still return false if lengths don't match.
   const encoder = new TextEncoder();
   const a = encoder.encode(token);
   const b = encoder.encode(serviceKey);
-  if (a.byteLength !== b.byteLength) return false;
-  let mismatch = 0;
-  for (let i = 0; i < a.byteLength; i++) {
+
+  let mismatch = a.byteLength === b.byteLength ? 0 : 1;
+  const len = Math.min(a.byteLength, b.byteLength);
+
+  for (let i = 0; i < len; i++) {
     mismatch |= a[i]! ^ b[i]!;
   }
+
   return mismatch === 0;
 }
 
