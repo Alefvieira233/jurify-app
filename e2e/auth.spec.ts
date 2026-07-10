@@ -14,8 +14,8 @@ test.describe('Jurify — Autenticação', () => {
   });
 
   test('deve mostrar erro com credenciais inválidas', async ({ page }) => {
-    await page.getByTestId('email-input').fill('usuario@invalido.com');
-    await page.getByTestId('password-input').fill('SenhaErrada123!');
+    await page.getByTestId('email-input').first().fill('usuario@invalido.com');
+    await page.getByTestId('password-input').first().fill('SenhaErrada123!');
     await page.getByRole('button', { name: /acessar plataforma/i }).click();
 
     await expect(page.getByText(/erro no login/i).first()).toBeVisible({ timeout: 10_000 });
@@ -38,8 +38,8 @@ test.describe('Jurify — Autenticação', () => {
     await page.getByText(/criar uma nova conta/i).click();
 
     await page.getByTestId('name-input').fill('Teste E2E');
-    await page.getByTestId('email-input').fill('e2e@test.com');
-    await page.getByTestId('password-input').fill('fraca');
+    await page.getByTestId('email-input').first().fill('e2e@test.com');
+    await page.getByTestId('password-input').first().fill('fraca');
     await page.getByRole('button', { name: /começar agora/i }).click();
 
     await expect(page.getByText(/senha fraca/i).first()).toBeVisible({ timeout: 5_000 });
@@ -49,8 +49,8 @@ test.describe('Jurify — Autenticação', () => {
     const testEmail = process.env.E2E_TEST_EMAIL || 'test@jurify.com';
     const testPassword = process.env.E2E_TEST_PASSWORD || 'TestPass123!';
 
-    await page.getByTestId('email-input').fill(testEmail);
-    await page.getByTestId('password-input').fill(testPassword);
+    await page.getByTestId('email-input').first().fill(testEmail);
+    await page.getByTestId('password-input').first().fill(testPassword);
     await page.getByRole('button', { name: /acessar plataforma/i }).click();
 
     await expect(page).toHaveURL(/.*\//, { timeout: 15_000 });
@@ -71,8 +71,8 @@ test.describe('Jurify — Segurança', () => {
     });
 
     const xssPayload = '<script>alert("XSS")</script>';
-    await page.getByTestId('email-input').fill(xssPayload);
-    await page.getByTestId('password-input').fill('SenhaForte123!');
+    await page.getByTestId('email-input').first().fill(xssPayload);
+    await page.getByTestId('password-input').first().fill('SenhaForte123!');
     await page.getByRole('button', { name: /acessar plataforma/i }).click();
 
     // If we reach here, XSS was blocked

@@ -14,11 +14,11 @@ export async function login(page: Page): Promise<void> {
 
   await page.goto('/auth', { waitUntil: 'networkidle' });
 
-  const emailInput = page.getByTestId('email-input');
+  const emailInput = page.getByTestId('email-input').first();
   await emailInput.waitFor({ state: 'visible', timeout: 10_000 });
   await emailInput.fill(email);
 
-  await page.getByTestId('password-input').fill(password);
+  await page.getByTestId('password-input').first().fill(password);
   await page.getByRole('button', { name: /acessar plataforma/i }).click();
 
   // Wait for redirect away from /auth (real login completed)
