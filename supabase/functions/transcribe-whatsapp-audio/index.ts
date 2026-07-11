@@ -25,10 +25,10 @@ Deno.serve(async (req) => {
   const corsHeaders = getCorsHeaders(req.headers.get("origin") || undefined);
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
-  // 🔐 SECURITY: internal-only function.
-  // Must be called with SUPABASE_SERVICE_ROLE_KEY.
+  // 🔐 SECURITY: Internal-only function.
+  // Must be called with SUPABASE_SERVICE_ROLE_KEY to prevent unauthorized external access.
   if (!isServiceRole(req)) {
-    console.warn(`[transcribe] Unauthorized access attempt from ${req.headers.get("x-forwarded-for")}`);
+    console.warn(`[transcribe] Unauthorized access attempt from ${req.headers.get("x-forwarded-for") || "unknown"}`);
     return new Response(JSON.stringify({ error: "Unauthorized" }), {
       status: 401,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
