@@ -67,7 +67,8 @@ export function sanitizeInput(
   }
 
   // Detect base64-encoded payloads that might hide injection instructions
-  const base64Match = trimmed.match(/[A-Za-z0-9+/]{40,}={0,2}/);
+  // Lowered threshold to 16 to catch shorter commands
+  const base64Match = trimmed.match(/[A-Za-z0-9+/]{16,}={0,2}/);
   if (base64Match) {
     try {
       const decoded = atob(base64Match[0]);
@@ -95,8 +96,9 @@ const PII_PATTERNS: Array<{ pattern: RegExp; label: string; replacement: string 
   // CPF matched before Phone to ensure 11-digit sequences are correctly labeled in legal context
   { pattern: /\b\d{3}\.?\d{3}\.?\d{3}-?\d{2}\b/g, label: "CPF", replacement: "***CPF***" },
   // Brazilian Phone: handles +55, DDD (with/without parens), and 8/9 digit numbers
+  // Prioritized before RG to prevent 9-digit phones from being redacted as RG
   {
-    pattern: /(?:\+?55[\s.-]?)?(?:\(\d{2,3}\)|\b\d{2,3})[\s.-]?(?:9\d{4}|\d{4,5})[\s.-]?\d{4}\b/g,
+    pattern: /(?:\+?55[\s.-]?)?(?:\(?\d{2,3}\)?[\s.-]?)?(?:9\d{4}|\d{4,5})[\s.-]?\d{4}\b/g,
     label: "Phone",
     replacement: "***PHONE***"
   },
@@ -105,6 +107,7 @@ const PII_PATTERNS: Array<{ pattern: RegExp; label: string; replacement: string 
 
 /** Redact PII from assistant responses before sending to client. */
 export function redactPII(text: string): string {
+  if (!text || typeof text !== "string") return text;
   let result = text;
   for (const { pattern, replacement } of PII_PATTERNS) {
     result = result.replace(pattern, replacement);
