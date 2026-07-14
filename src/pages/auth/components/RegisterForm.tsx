@@ -49,6 +49,7 @@ const RegisterForm: React.FC<RegisterFormProps> = ({
                   type="text"
                   placeholder="Dr. João da Silva"
                   className="h-12 border-[hsl(var(--border))] focus:border-[hsl(var(--accent))] focus:ring-[hsl(var(--accent))] transition-all"
+                  data-testid="name-input"
                   {...field}
                 />
               </FormControl>
@@ -70,6 +71,7 @@ const RegisterForm: React.FC<RegisterFormProps> = ({
                   type="email"
                   placeholder="seu@escritorio.com.br"
                   className="h-12 border-[hsl(var(--border))] focus:border-[hsl(var(--accent))] focus:ring-[hsl(var(--accent))] transition-all"
+                  data-testid="email-input"
                   {...field}
                 />
               </FormControl>
@@ -91,6 +93,7 @@ const RegisterForm: React.FC<RegisterFormProps> = ({
                   type="password"
                   placeholder="••••••••"
                   className="h-12 border-[hsl(var(--border))] focus:border-[hsl(var(--accent))] focus:ring-[hsl(var(--accent))] transition-all"
+                  data-testid="password-input"
                   {...field}
                 />
               </FormControl>
@@ -113,6 +116,7 @@ const RegisterForm: React.FC<RegisterFormProps> = ({
                   type="password"
                   placeholder="••••••••"
                   className="h-12 border-[hsl(var(--border))] focus:border-[hsl(var(--accent))] focus:ring-[hsl(var(--accent))] transition-all"
+                  data-testid="confirm-password-input"
                   {...field}
                 />
               </FormControl>
