@@ -7,15 +7,15 @@ test.describe('Jurify — Autenticação', () => {
 
   test('deve exibir página de login com todos os elementos', async ({ page }) => {
     await expect(page.getByRole('heading', { name: /bem-vindo de volta/i })).toBeVisible();
-    await expect(page.getByLabel(/email profissional/i)).toBeVisible();
-    await expect(page.getByLabel(/senha/i)).toBeVisible();
+    await expect(page.getByTestId('email-input')).toBeVisible();
+    await expect(page.getByTestId('password-input')).toBeVisible();
     await expect(page.getByRole('button', { name: /acessar plataforma/i })).toBeVisible();
     await expect(page.getByText(/criar uma nova conta/i)).toBeVisible();
   });
 
   test('deve mostrar erro com credenciais inválidas', async ({ page }) => {
-    await page.getByLabel(/email profissional/i).fill('usuario@invalido.com');
-    await page.getByLabel(/senha/i).fill('SenhaErrada123!');
+    await page.getByTestId('email-input').fill('usuario@invalido.com');
+    await page.getByTestId('password-input').fill('SenhaErrada123!');
     await page.getByRole('button', { name: /acessar plataforma/i }).click();
 
     await expect(page.getByText(/erro no login/i).first()).toBeVisible({ timeout: 10_000 });
@@ -25,7 +25,7 @@ test.describe('Jurify — Autenticação', () => {
     await page.getByText(/criar uma nova conta/i).click();
 
     await expect(page.getByRole('heading', { name: /comece sua jornada/i })).toBeVisible();
-    await expect(page.getByLabel(/nome completo/i)).toBeVisible();
+    await expect(page.getByTestId('name-input')).toBeVisible();
     await expect(page.getByRole('button', { name: /começar agora/i })).toBeVisible();
 
     // Type a weak password and check strength indicator
