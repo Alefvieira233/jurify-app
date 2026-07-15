@@ -7,8 +7,8 @@ test.describe('Jurify — Autenticação', () => {
 
   test('deve exibir página de login com todos os elementos', async ({ page }) => {
     await expect(page.getByRole('heading', { name: /bem-vindo de volta/i })).toBeVisible();
-    await expect(page.getByLabel(/email profissional/i)).toBeVisible();
-    await expect(page.getByLabel(/senha/i)).toBeVisible();
+    await expect(page.getByTestId('email-input')).toBeVisible();
+    await expect(page.getByTestId('password-input')).toBeVisible();
     await expect(page.getByRole('button', { name: /acessar plataforma/i })).toBeVisible();
     await expect(page.getByText(/criar uma nova conta/i)).toBeVisible();
   });
@@ -25,13 +25,13 @@ test.describe('Jurify — Autenticação', () => {
     await page.getByText(/criar uma nova conta/i).click();
 
     await expect(page.getByRole('heading', { name: /comece sua jornada/i })).toBeVisible();
-    await expect(page.getByLabel(/nome completo/i)).toBeVisible();
+    await expect(page.getByTestId('name-input')).toBeVisible();
     await expect(page.getByRole('button', { name: /começar agora/i })).toBeVisible();
 
     // Type a weak password and check strength indicator
     await page.getByTestId('password-input').fill('abc');
-    await expect(page.getByText(/fraca/i)).toBeVisible();
-    await expect(page.getByText(/mínimo 8 caracteres/i)).toBeVisible();
+    await expect(page.getByText(/fraca/i).first()).toBeVisible();
+    await expect(page.getByText(/mínimo 8 caracteres/i).first()).toBeVisible();
   });
 
   test('deve bloquear cadastro com senha fraca', async ({ page }) => {
