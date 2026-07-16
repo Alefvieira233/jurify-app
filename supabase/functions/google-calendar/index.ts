@@ -7,6 +7,7 @@
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { getCorsHeaders } from "../_shared/cors.ts";
+import { isServiceRole } from "../_shared/supabase-client.ts";
 import { applyRateLimit } from "../_shared/rate-limiter.ts";
 import { encrypt } from "../_shared/crypto.ts";
 import { GoogleOAuthService } from "./google-oauth.ts";
@@ -54,6 +55,15 @@ Deno.serve(async (req) => {
 
     if (earlyMethod && SERVICE_METHODS.includes(earlyMethod)) {
       // SERVICE-ROLE mode: caller is another edge function (whatsapp-webhook).
+      // 🛡️ SECURITY: Internal service-role check (P0 audit 2026-05-25)
+      if (!isServiceRole(req)) {
+        console.error(`[google-calendar] Unauthorized service method: ${earlyMethod}`);
+        return new Response(JSON.stringify({ error: "Unauthorized" }), {
+          status: 401,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
       // Authentication is verified by the platform via the function-to-function
       // invoke contract. We DO NOT consult auth.getUser here — there's no end user.
       const supabase = createClient(supabaseUrlEarly, supabaseServiceKeyEarly);

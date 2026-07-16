@@ -157,7 +157,10 @@ export async function processNormalizedMessage(
 
     if (!tenantId) {
       // P0 SECURITY: strict tenant resolution failed. Sem fallback por telefone do lead.
-      console.error(`[processMsg:${provider}] TENANT_RESOLUTION_FAILED_STRICT | from=${from} | instance=${instanceName} | type=${messageType} | text="${redactPII(text.substring(0, 80))}"`);
+      // 🛡️ SECURITY: Apply redactPII to the FULL string before any .substring truncation
+      // to avoid splitting PII patterns (P0 audit 2026-05-25).
+      const redactedTextPreview = redactPII(text).substring(0, 80);
+      console.error(`[processMsg:${provider}] TENANT_RESOLUTION_FAILED_STRICT | from=${from} | instance=${instanceName} | type=${messageType} | text="${redactedTextPreview}"`);
       // Persist failed resolution for diagnostics
       void supabase.from("webhook_events").insert({
         event_id: `unresolved_${Date.now()}_${from}`,
