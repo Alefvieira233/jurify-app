@@ -13,7 +13,7 @@
 // ---------------------------------------------------------------------------
 
 const INJECTION_PATTERNS = [
-  /ignore\s+(previous|all|above)\s+(instructions?|prompts?|rules?)/i,
+  /ignore\s+(?:.*?\s+)?(instructions?|prompts?|rules?)/i,
   /you\s+are\s+now\s+/i,
   /system\s*:\s*/i,
   /\bDAN\b/,
@@ -27,8 +27,14 @@ const INJECTION_PATTERNS = [
 
 // Homoglyph map for common substitution attacks (e.g. "ign0re" → "ignore")
 const HOMOGLYPHS: Record<string, string> = {
-  "0": "o", "1": "l", "3": "e", "4": "a", "5": "s",
-  "@": "a", "$": "s", "!": "i",
+  "0": "o",
+  "1": "i",
+  "3": "e",
+  "4": "a",
+  "5": "s",
+  "@": "a",
+  $: "s",
+  "!": "i",
 };
 
 /**
@@ -49,7 +55,7 @@ function normalizeForDetection(text: string): string {
  */
 export function sanitizeInput(
   text: string,
-  maxLength = 2000
+  maxLength = 2000,
 ): { safe: true; text: string } | { safe: false; reason: string } {
   if (!text || typeof text !== "string") {
     return { safe: false, reason: "Empty or invalid input" };
@@ -74,7 +80,10 @@ export function sanitizeInput(
       const decodedNormalized = normalizeForDetection(decoded);
       for (const pattern of INJECTION_PATTERNS) {
         if (pattern.test(decoded) || pattern.test(decodedNormalized)) {
-          return { safe: false, reason: "Potential encoded prompt injection detected" };
+          return {
+            safe: false,
+            reason: "Potential encoded prompt injection detected",
+          };
         }
       }
     } catch {
@@ -89,10 +98,62 @@ export function sanitizeInput(
 // PII content filtering
 // ---------------------------------------------------------------------------
 
-const PII_PATTERNS: Array<{ pattern: RegExp; label: string; replacement: string }> = [
-  { pattern: /\b\d{3}\.?\d{3}\.?\d{3}-?\d{2}\b/g, label: "CPF", replacement: "***CPF***" },
-  { pattern: /\b\d{2}\.?\d{3}\.?\d{3}-?[\dXx]\b/g, label: "RG", replacement: "***RG***" },
-  { pattern: /\b\d{4}\s?\d{4}\s?\d{4}\s?\d{4}\b/g, label: "Card", replacement: "***CARD***" },
+const PII_PATTERNS: Array<{
+  pattern: RegExp;
+  label: string;
+  replacement: string;
+}> = [
+  {
+    pattern: /\b\d{2}\.?\d{3}\.?\d{3}\/?\d{4}-?\d{2}\b/g,
+    label: "CNPJ",
+    replacement: "***CNPJ***",
+  },
+  {
+    pattern: /\b\d{7}-\d{2}\.\d{4}\.\d\.\d{2}\.\d{4}\b/g,
+    label: "Processo",
+    replacement: "***PROCESSO***",
+  },
+  {
+    pattern: /\b\d{4}\s?\d{4}\s?\d{4}\s?\d{4}\b/g,
+    label: "Card",
+    replacement: "***CARD***",
+  },
+  {
+    pattern: /\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}\b/g,
+    label: "Email",
+    replacement: "***EMAIL***",
+  },
+  {
+    pattern:
+      /\b(?:AC|AL|AP|AM|BA|CE|DF|ES|GO|MA|MT|MS|MG|PA|PB|PR|PE|PI|RJ|RN|RS|RO|RR|SC|SP|SE|TO)\s?\d{4,6}\b/gi,
+    label: "OAB",
+    replacement: "***OAB***",
+  },
+  {
+    pattern: /\b\d{3}\.\d{3}\.\d{3}-\d{2}\b/g,
+    label: "CPF",
+    replacement: "***CPF***",
+  },
+  {
+    pattern: /(?<!\d)\d{2}[0-8]\d{8}(?!\d)/g,
+    label: "CPF",
+    replacement: "***CPF***",
+  },
+  {
+    pattern: /\b(?:Bearer|JWT|sbp)\s+[A-Za-z0-9._~+/-]+=*\b/g,
+    label: "Token",
+    replacement: "***TOKEN***",
+  },
+  {
+    pattern: /\b(?:sk-[a-zA-Z0-9]{20,}|eyJ[a-zA-Z0-9._~+/-]+=*)\b/g,
+    label: "Token",
+    replacement: "***TOKEN***",
+  },
+  {
+    pattern: /(?<!\d)(?:\+55\s?)?(?:\(\d{2}\)|\d{2})\s?\d{4,5}[-\s]?\d{4}\b/g,
+    label: "Phone",
+    replacement: "***PHONE***",
+  },
 ];
 
 /** Redact PII from assistant responses before sending to client. */
@@ -125,7 +186,7 @@ interface AuditEntry {
  */
 export async function auditLog(
   supabase: { from: (table: string) => any },
-  entry: AuditEntry
+  entry: AuditEntry,
 ): Promise<void> {
   try {
     await supabase.from("assistant_audit").insert({
