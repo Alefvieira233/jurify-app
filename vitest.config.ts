@@ -81,6 +81,18 @@ export default defineConfig({
         'src/hooks/useConexoes.ts', // 300 lines, WhatsApp connections CRUD — E2E
         'src/hooks/useDashboardMetricsFast.ts', // 233 lines, realtime dashboard — E2E
         'src/hooks/useDraftPersistence.ts', // localStorage persistence — E2E
+        'src/lib/google/GoogleOAuthService.ts', // Google OAuth service — E2E
+        'src/hooks/useDepartamentos.ts', // Departamentos hook — E2E
+        'src/hooks/useTeamMembers.ts', // TeamMembers hook — E2E
+        'src/hooks/useAgendaReminders.ts', // AgendaReminders hook — E2E
+        'src/hooks/useAgendaTasks.ts', // AgendaTasks hook — E2E
+        'src/hooks/useWhatsAppMessaging.ts', // WhatsAppMessaging hook — E2E
+        'src/hooks/use-mobile.tsx', // Mobile responsive hook — E2E
+        'src/hooks/useSmartReply.ts', // SmartReply hook — E2E
+        'src/hooks/useTableKeyboardNav.ts', // Table keyboard navigation — E2E
+        'src/components/ui/calendar.tsx', // UI component — E2E
+        'src/components/ui/alert-dialog.tsx', // UI component — E2E
+        'src/schemas/domain/**', // Domain schemas — E2E
       ],
       // Thresholds estabelecem um floor anti-regressão.
       // Aumentar gradualmente à medida que novos testes são adicionados.

@@ -6,10 +6,11 @@
  * assistant, chat-completion, ai-agent-processor).
  */
 
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import {
   sanitizeInput,
   redactPII,
+  auditLog,
 } from "../../../../supabase/functions/_shared/security";
 
 // ─── Prompt injection detection ─────────────────────────────
@@ -232,5 +233,47 @@ describe("redactPII — Expanded prioritized Brazilian patterns", () => {
 
     // A raw 11-digit CPF (e.g. 12345678900) should be redacted as CPF, NOT as Phone, because CPF is prioritized higher
     expect(redactPII("CPF: 12345678900")).toBe("CPF: ***CPF***");
+  });
+});
+
+describe("auditLog", () => {
+  it("successfully inserts audit entry", async () => {
+    const mockInsert = vi.fn().mockResolvedValue({ error: null });
+    const mockFrom = vi.fn().mockReturnValue({ insert: mockInsert });
+    const mockSupabase = { from: mockFrom };
+
+    const entry = {
+      user_id: "user-123",
+      tenant_id: "tenant-456",
+      action: "test-action",
+      success: true,
+    };
+
+    await auditLog(mockSupabase, entry);
+
+    expect(mockFrom).toHaveBeenCalledWith("assistant_audit");
+    expect(mockInsert).toHaveBeenCalled();
+  });
+
+  it("handles insert failure silently", async () => {
+    const mockInsert = vi.fn().mockRejectedValue(new Error("DB error"));
+    const mockFrom = vi.fn().mockReturnValue({ insert: mockInsert });
+    const mockSupabase = { from: mockFrom };
+
+    const entry = {
+      user_id: "user-123",
+      tenant_id: "tenant-456",
+      action: "test-action",
+      success: true,
+    };
+
+    await expect(auditLog(mockSupabase, entry)).resolves.not.toThrow();
+  });
+});
+
+describe("sanitizeInput base64 invalid cases", () => {
+  it("handles base64 decode errors gracefully", () => {
+    const result = sanitizeInput("A".repeat(40) + "ÿ");
+    expect(result.safe).toBe(true);
   });
 });
