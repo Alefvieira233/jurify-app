@@ -13,6 +13,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { getCorsHeaders } from "../_shared/cors.ts";
 import { applyRateLimit } from "../_shared/rate-limiter.ts";
 import { sendTextMessage as kapsoSendText, sendMediaMessage as kapsoSendMedia, getTenantKapsoConfig, type KapsoTenantConfig } from "../_shared/kapso-client.ts";
+import { sendTextMessage as metaSendText } from "../_shared/meta-client.ts";
 import { checkTrialAccess, trialBlockedResponse } from "../_shared/trial-gate.ts";
 import { checkWindowByConversation, checkWindowByPhone, windowClosedResponse } from "../_shared/whatsapp-window.ts";
 
@@ -155,37 +156,8 @@ async function sendViaMeta(
   accessToken: string
 ): Promise<{ success: boolean; messageId?: string; error?: string }> {
   try {
-    const response = await fetch(
-      `https://graph.facebook.com/v18.0/${phoneNumberId}/messages`,
-      {
-        method: "POST",
-        headers: {
-          "Authorization": `Bearer ${accessToken}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          messaging_product: "whatsapp",
-          to: to,
-          type: "text",
-          text: { body: text },
-        }),
-        signal: AbortSignal.timeout(15_000),
-      }
-    );
-
-    const data = await response.json();
-
-    if (!response.ok) {
-      console.error("❌ Meta API Error:", data);
-      return {
-        success: false,
-        error: "Falha ao enviar mensagem. Tente novamente.",
-      };
-    }
-
-    const messageId = data.messages?.[0]?.id;
-
-    return { success: true, messageId };
+    const result = await metaSendText({ accessToken, phoneNumberId }, to, text);
+    return { success: true, messageId: result.messageId };
   } catch (error) {
     console.error("❌ Network error (Meta):", error);
     return {

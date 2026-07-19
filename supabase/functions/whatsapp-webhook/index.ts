@@ -219,9 +219,8 @@ Deno.serve(async (req) => {
         //
         // If per-tenant secret not found → reject 401 (tenant must re-register webhook).
         // deno-lint-ignore no-explicit-any
-        const payloadPhoneId = (firstPayload as any)?.phone_number_id
-          || (firstPayload as any)?.conversation?.phone_number_id
-          || (firstPayload as any)?.instance;
+        const fp = firstPayload as any;
+        const payloadPhoneId = fp?.phone_number_id || fp?.conversation?.phone_number_id || fp?.instance;
 
         if (!payloadPhoneId) {
           console.error("[webhook:kapso] SECURITY: Payload has no phone_number_id — cannot resolve tenant secret");
@@ -376,6 +375,30 @@ Deno.serve(async (req) => {
 
       } else {
         // --- META OFFICIAL API (backward compatible) ---
+
+        // ── Verificação de assinatura Meta (X-Hub-Signature-256) ──
+        // Meta assina o corpo raw com HMAC-SHA256 usando o App Secret.
+        // Header: "sha256=<hex>". Configurado via Edge Secret WHATSAPP_APP_SECRET.
+        // Se a env existir, exigimos assinatura válida (rejeita 401 se ausente/inválida).
+        // Se não existir, mantemos o comportamento legado (apenas log de aviso)
+        // pra não quebrar tenants em migração. NÃO afeta o fluxo Kapso acima.
+        const metaAppSecret = Deno.env.get("WHATSAPP_APP_SECRET");
+        if (metaAppSecret) {
+          const sig256 = req.headers.get("x-hub-signature-256");
+          if (!sig256 || !sig256.startsWith("sha256=")) {
+            console.error("[webhook:meta] SECURITY: Missing/invalid X-Hub-Signature-256 header — rejecting");
+            return new Response("Unauthorized", { status: 401, headers: corsHeaders });
+          }
+          const providedHex = sig256.slice("sha256=".length);
+          const valid = await verifyHmacSignature(rawBody, providedHex, metaAppSecret);
+          if (!valid) {
+            console.error("[webhook:meta] SECURITY: Invalid X-Hub-Signature-256 — rejecting");
+            return new Response("Unauthorized", { status: 401, headers: corsHeaders });
+          }
+          console.log("[webhook:meta] Auth: X-Hub-Signature-256 verified");
+        } else {
+          console.warn("[webhook:meta] WHATSAPP_APP_SECRET not set — skipping signature verification (legacy mode)");
+        }
 
         const metaMsgId = getMessageId(firstPayload, "meta");
         if (metaMsgId && await isDuplicate(metaMsgId, supabase)) {

@@ -1,7 +1,7 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2";
 import { getCorsHeaders } from "../_shared/cors.ts";
-import { sendTextMessage } from "../_shared/kapso-client.ts";
+import { sendTextMessage, getTenantKapsoConfig, type KapsoTenantConfig } from "../_shared/kapso-client.ts";
 import { isServiceRole } from "../_shared/supabase-client.ts";
 
 Deno.serve(async (req) => {
@@ -57,6 +57,15 @@ Deno.serve(async (req) => {
     }
   }
 
+  // Cache de config Kapso por tenant — evita re-decrypt por prazo do mesmo tenant
+  const tenantConfigCache = new Map<string, KapsoTenantConfig | null>();
+  async function getConfigCached(tenantId: string): Promise<KapsoTenantConfig | null> {
+    if (!tenantConfigCache.has(tenantId)) {
+      tenantConfigCache.set(tenantId, await getTenantKapsoConfig(supabase, tenantId));
+    }
+    return tenantConfigCache.get(tenantId) ?? null;
+  }
+
   let sent = 0;
   for (const prazo of prazos ?? []) {
     const diasRestantes = Math.ceil(
@@ -97,7 +106,16 @@ Deno.serve(async (req) => {
     });
 
     try {
-      await sendTextMessage(phone, message);
+      // Fix P0 (2026-07-19): sendTextMessage exige o config do tenant como 1º
+      // argumento — a chamada antiga (phone, message) passava a string do
+      // telefone no lugar do config e SEMPRE lançava "WhatsApp não conectado":
+      // nenhum alerta de prazo chegava via WhatsApp.
+      const kapsoConfig = await getConfigCached(prazo.tenant_id as string);
+      if (!kapsoConfig?.phoneNumberId) {
+        console.warn(`[prazos-alerts] Tenant ${prazo.tenant_id} sem conexão WhatsApp ativa — alerta só in-app`);
+        continue;
+      }
+      await sendTextMessage(kapsoConfig, phone, message);
 
       // Mark alert as sent to prevent re-sending within 24h
       void supabase

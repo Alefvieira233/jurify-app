@@ -1,7 +1,5 @@
 import { createClient } from "jsr:@supabase/supabase-js@2";
 
-const INTEGRATION_NAME_META = "whatsapp_oficial";
-
 export interface SendResult {
   success: boolean;
   messageId: string | null;
@@ -63,61 +61,28 @@ export async function sendViaMeta(
   tenantId: string,
   supabase: ReturnType<typeof createClient>,
 ): Promise<SendResult> {
-  let accessToken = Deno.env.get("WHATSAPP_ACCESS_TOKEN") || "";
-  let phoneNumberId = Deno.env.get("WHATSAPP_PHONE_NUMBER_ID") || "";
+  const { getTenantMetaConfig, sendTextMessage } = await import("../../_shared/meta-client.ts");
 
-  // Tenta buscar credenciais da integração Meta scoped by tenant
-  if (tenantId) {
-    const { data: config } = await supabase
-      .from("configuracoes_integracoes")
-      .select("api_key_encrypted, endpoint_url")
-      .eq("nome_integracao", INTEGRATION_NAME_META)
-      .eq("status", "ativa")
-      .eq("tenant_id", tenantId)
-      .maybeSingle();
-
-    if (config?.api_key_encrypted) {
-      try {
-        const { decrypt } = await import("../../_shared/crypto.ts");
-        accessToken = await decrypt(config.api_key_encrypted);
-      } catch (err) {
-        console.error("[webhook:meta] Failed to decrypt Meta access token:", err instanceof Error ? err.message : err);
-      }
-    }
-    if (config?.endpoint_url) phoneNumberId = config.endpoint_url;
+  // Prioriza config Meta por tenant (whatsapp_oficial). Fallback pros env
+  // globais legados (WHATSAPP_ACCESS_TOKEN / WHATSAPP_PHONE_NUMBER_ID).
+  let metaConfig = tenantId ? await getTenantMetaConfig(supabase, tenantId) : null;
+  if (!metaConfig) {
+    const accessToken = Deno.env.get("WHATSAPP_ACCESS_TOKEN") || "";
+    const phoneNumberId = Deno.env.get("WHATSAPP_PHONE_NUMBER_ID") || "";
+    if (accessToken && phoneNumberId) metaConfig = { accessToken, phoneNumberId };
   }
 
-  if (!accessToken || !phoneNumberId) {
+  if (!metaConfig) {
     console.error("[webhook:meta] Missing credentials for sending");
     return { success: false, messageId: null, error: "Meta API credentials not configured" };
   }
 
   try {
-    const response = await fetch(`https://graph.facebook.com/v18.0/${phoneNumberId}/messages`, {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        messaging_product: "whatsapp",
-        to: to,
-        type: "text",
-        text: { body: text },
-      }),
-    });
-
-    const data = await response.json().catch(() => ({}));
-    if (!response.ok) {
-      const errorMsg = data?.error?.message || `HTTP ${response.status}`;
-      console.error("[webhook:meta] Error sending:", data);
-      return { success: false, messageId: null, error: errorMsg };
-    }
-    const messageId = data?.messages?.[0]?.id || null;
-    return { success: true, messageId, error: null };
+    const result = await sendTextMessage(metaConfig, to, text);
+    return { success: true, messageId: result.messageId || null, error: null };
   } catch (error) {
     const errorMsg = error instanceof Error ? error.message : "Network error";
-    console.error("[webhook:meta] Network error:", error);
+    console.error("[webhook:meta] Error sending:", errorMsg);
     return { success: false, messageId: null, error: errorMsg };
   }
 }

@@ -90,6 +90,63 @@ async function getSlashCommands(
 }
 
 // ============================================
+// 👤 RESOLVE RESPONSÁVEL (advogado/atendente) DO LEAD
+// ============================================
+// Fallback em camadas:
+//   1. lead.responsavel_id (FK já vinculada ao lead)
+//   2. connectionResponsavelId (resolvido por departamento/conexão)
+//   3. profile match por nome ILIKE em lead.responsavel (texto legado)
+//   4. primeiro admin/manager do tenant
+// Compartilhado entre o caminho de function-calling (buildToolContext) e o
+// parser legacy de agendamento. Antes, essa resolução vivia só dentro do bloco
+// do parser legacy e o caminho de tools referenciava as variáveis fora de
+// escopo — toda mensagem com intenção de ação lançava ReferenceError.
+async function resolveResponsavel(
+  supabase: ReturnType<typeof createClient>,
+  tenantId: string,
+  lead: { responsavel_id?: string | null } | null,
+  connectionResponsavelId: string | null,
+): Promise<{ id: string | null; nome: string }> {
+  let resolvedId: string | null = lead?.responsavel_id ?? null;
+  if (!resolvedId && connectionResponsavelId) {
+    resolvedId = connectionResponsavelId;
+  }
+  if (!resolvedId) {
+    // lead.responsavel é texto livre legado — tenta match case-insensitive
+    // deno-lint-ignore no-explicit-any
+    const leadResponsavelText = (lead as any)?.responsavel as string | undefined;
+    if (leadResponsavelText && leadResponsavelText.trim().length > 0) {
+      const { data: byName } = await supabase
+        .from("profiles")
+        .select("id")
+        .eq("tenant_id", tenantId)
+        .ilike("nome_completo", leadResponsavelText.trim())
+        .maybeSingle();
+      resolvedId = (byName as { id?: string } | null)?.id ?? null;
+    }
+  }
+  if (!resolvedId) {
+    // Fallback: primeiro admin/manager do tenant
+    const { data: adminProfile } = await supabase
+      .from("profiles")
+      .select("id, user_roles!inner(role, ativo)")
+      .eq("tenant_id", tenantId)
+      .eq("user_roles.tenant_id", tenantId)
+      .in("user_roles.role", ["admin", "manager"])
+      .order("created_at", { ascending: true })
+      .limit(1)
+      .maybeSingle();
+    resolvedId = (adminProfile as { id?: string } | null)?.id ?? null;
+  }
+
+  const nome = resolvedId
+    ? (await supabase.from("profiles").select("nome_completo").eq("id", resolvedId).maybeSingle())?.data?.nome_completo ?? "Advogado"
+    : "Advogado";
+
+  return { id: resolvedId, nome };
+}
+
+// ============================================
 // 📨 PROCESSA MENSAGEM NORMALIZADA (funciona para ambos providers)
 // ============================================
 export async function processNormalizedMessage(
@@ -848,6 +905,18 @@ export async function processNormalizedMessage(
     // and maps to the existing budgetExceeded path (friendly fallback, admin notif).
     let budgetExceeded = false;
 
+    // Fix P0 (2026-07-19): estas 4 variáveis são consumidas TANTO dentro do try
+    // de IA (buildToolContext, loop de tools) QUANTO depois dele (gate do parser
+    // legacy de agendamento, ~linha 1380). Precisam viver no escopo da função —
+    // declaradas dentro do try, o parser legacy lançava ReferenceError em toda
+    // mensagem, derrubando o processamento inteiro no catch genérico.
+    let resolvedResponsavelId: string | null = null;
+    let responsavelNome = "Advogado";
+    // P0-5 (auditoria 2026-05-25): flags para o parser legacy saber que a IA
+    // já lidou com agendamento/transferência via function-calling neste turn.
+    let aiUsedSchedulingTool = false;
+    let aiUsedTransferTool = false;
+
     try {
       // ── ONDA 17: Conversation state stateful ──
       // Lê fase atual da conversa pra dar ao agente contexto de pipeline.
@@ -914,6 +983,15 @@ export async function processNormalizedMessage(
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 30_000);
 
+      // Fix P0 (2026-07-19): resolução do responsável PRECISA acontecer antes
+      // do buildToolContext — antes, o caminho de tools referenciava variáveis
+      // que só existiam no bloco do parser legacy e lançava ReferenceError.
+      if (hasActionIntent && tenantId) {
+        const responsavel = await resolveResponsavel(supabase, tenantId, lead, connectionResponsavelId);
+        resolvedResponsavelId = responsavel.id;
+        responsavelNome = responsavel.nome;
+      }
+
       // Tool context (built once per turn — re-used across loop iterations).
       // P0-2 (2026-05-25): conversationId precisa fluir até aqui para a tool
       // transfer_to_agent gravar pending_handoff_to em conversation_state.
@@ -931,12 +1009,8 @@ export async function processNormalizedMessage(
       let aiResult: Awaited<ReturnType<typeof callOpenAI>> | null = null;
       let totalTokensIn = 0;
       let totalTokensOut = 0;
-      // P0-5 (auditoria 2026-05-25): flag para o parser legacy de agendamento
-      // saber que a IA já lidou com o assunto via function-calling neste turn.
-      // Sem isso, IA agendava via tool e logo em seguida o parser regex rodava
-      // e sobrescrevia a resposta com "Você já tem agendamento ativo".
-      let aiUsedSchedulingTool = false;
-      let aiUsedTransferTool = false;
+      // aiUsedSchedulingTool/aiUsedTransferTool declaradas no escopo da função
+      // (antes do try) — o parser legacy também as consome após este bloco.
       const MAX_TOOL_ITERATIONS = 4;
 
       try {
@@ -1330,46 +1404,14 @@ export async function processNormalizedMessage(
       } else {
         const parsed = parseScheduleFromText(text);
 
-        // RESOLVE responsavel_id (FK criada em 20260413000004) com fallback em camadas:
-        //   1. lead.responsavel_id (já vinculado ao lead)
-        //   2. connectionResponsavelId (resolvido por departamento/conexão)
-        //   3. profile match por nome ILIKE em lead.responsavel (text legado)
-        //   4. primeiro admin/manager do tenant
-        let resolvedResponsavelId: string | null = lead?.responsavel_id ?? null;
-        if (!resolvedResponsavelId && connectionResponsavelId) {
-          resolvedResponsavelId = connectionResponsavelId;
+        // RESOLVE responsavel_id (FK criada em 20260413000004) — lógica extraída
+        // para resolveResponsavel() e compartilhada com o caminho de tools.
+        // Reusa o resultado já computado quando hasActionIntent resolveu antes.
+        if (!resolvedResponsavelId && tenantId) {
+          const responsavel = await resolveResponsavel(supabase, tenantId, lead, connectionResponsavelId);
+          resolvedResponsavelId = responsavel.id;
+          responsavelNome = responsavel.nome;
         }
-        if (!resolvedResponsavelId) {
-          // lead.responsavel é texto livre legado — tenta match case-insensitive
-          // deno-lint-ignore no-explicit-any
-          const leadResponsavelText = (lead as any)?.responsavel as string | undefined;
-          if (leadResponsavelText && leadResponsavelText.trim().length > 0) {
-            const { data: byName } = await supabase
-              .from("profiles")
-              .select("id")
-              .eq("tenant_id", tenantId)
-              .ilike("nome_completo", leadResponsavelText.trim())
-              .maybeSingle();
-            resolvedResponsavelId = (byName as { id?: string } | null)?.id ?? null;
-          }
-        }
-        if (!resolvedResponsavelId) {
-          // Fallback: primeiro admin/manager do tenant
-          const { data: adminProfile } = await supabase
-            .from("profiles")
-            .select("id, user_roles!inner(role, ativo)")
-            .eq("tenant_id", tenantId)
-            .eq("user_roles.tenant_id", tenantId)
-            .in("user_roles.role", ["admin", "manager"])
-            .order("created_at", { ascending: true })
-            .limit(1)
-            .maybeSingle();
-          resolvedResponsavelId = (adminProfile as { id?: string } | null)?.id ?? null;
-        }
-
-        const responsavelNome = resolvedResponsavelId
-          ? (await supabase.from("profiles").select("nome_completo").eq("id", resolvedResponsavelId).maybeSingle())?.data?.nome_completo ?? "Advogado"
-          : "Advogado";
 
         if (parsed && parsed.confidence >= 0.5) {
           // Valida janela comercial (seg-sex, 8h-20h)
