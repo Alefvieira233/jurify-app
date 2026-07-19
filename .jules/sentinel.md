@@ -1,0 +1,4 @@
+## 2026-05-25 - Prompt Injection Vulnerability in Input Sanitizer
+**Vulnerability:** The prompt injection filter in `_shared/security.ts` had a documented bypass where homoglyph `1` mapped to `l` (allowing `1gn0re` to slip through as `lgn0re` which was unblocked), and the regex pattern for ignoring instructions was rigid and required strict adjacent keywords, allowing "ignore all previous prompts" to escape detection.
+**Learning:** Overly strict character-to-character maps and rigid adjacent regex patterns in hand-written security filters can easily leave gaps for creative prompt-injection attacks.
+**Prevention:** Harden input normalization by mapping leetspeak homoglyphs like `1` to `i` (or covering common bypass variants) and design sanitization regex patterns with non-greedy wildcard matching to capture flexible bypass variations.
