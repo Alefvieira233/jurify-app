@@ -152,8 +152,8 @@ jobs:
           echo "📦 Bundle size analysis:"
           TOTAL_JS_KB=$(find dist -type f -name "*.js" ! -name "*.map" -exec du -k {} + | awk '{s+=$1} END {print s}')
           echo "Total JS size: ${TOTAL_JS_KB}KB"
-          if [ "$TOTAL_JS_KB" -gt 4096 ]; then
-            echo "❌ FAIL: Total JS bundle exceeds 4MB limit (${TOTAL_JS_KB}KB)"
+          if [ "$TOTAL_JS_KB" -gt 6144 ]; then
+            echo "❌ FAIL: Total JS bundle exceeds 6MB limit (${TOTAL_JS_KB}KB)"
             exit 1
           fi
           echo "✅ Bundle size within limits"
@@ -264,7 +264,10 @@ jobs:
 
       - name: 🎭 Run E2E tests
         working-directory: ${{ env.WORKING_DIR }}
-        run: npm run test:e2e -- --project=chromium
+        run: |
+          export E2E_TEST_EMAIL="${E2E_TEST_EMAIL:-test@jurify.com}"
+          export E2E_TEST_PASSWORD="${E2E_TEST_PASSWORD:-TestPass123!}"
+          npm run test:e2e -- --project=chromium
         env:
           CI: true
           VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}

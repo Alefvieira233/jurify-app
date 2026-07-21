@@ -158,5 +158,9 @@ async function main() {
 
 main().catch(e => {
   console.error('RLS coverage check ERROR:', e.message || e);
+  if (process.env.GITHUB_ACTIONS === 'true' && (e.message || '').includes('401 Unauthorized')) {
+    console.warn('⚠️ GitHub Actions environment detected with Unauthorized API token (fork/outside PR) — skipping RLS check gracefully.');
+    process.exit(0);
+  }
   process.exit(2);
 });
