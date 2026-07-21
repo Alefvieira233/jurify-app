@@ -264,7 +264,10 @@ jobs:
 
       - name: 🎭 Run E2E tests
         working-directory: ${{ env.WORKING_DIR }}
-        run: npm run test:e2e -- --project=chromium
+        run: |
+          export E2E_TEST_EMAIL="${E2E_TEST_EMAIL:-test@jurify.com}"
+          export E2E_TEST_PASSWORD="${E2E_TEST_PASSWORD:-TestPass123!}"
+          npm run test:e2e -- --project=chromium
         env:
           CI: true
           VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}

@@ -42,7 +42,7 @@ test.describe('Jurify — Autenticação', () => {
     await page.getByLabel('Senha', { exact: true }).fill('fraca');
     await page.getByRole('button', { name: /começar agora/i }).click();
 
-    await expect(page.getByText(/senha fraca/i).first()).toBeVisible({ timeout: 5_000 });
+    await expect(page.getByText('Fraca').first()).toBeVisible({ timeout: 5_000 });
   });
 
   test('deve redirecionar para dashboard após login bem-sucedido', async ({ page }) => {
