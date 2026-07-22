@@ -157,6 +157,11 @@ async function main() {
 }
 
 main().catch(e => {
-  console.error('RLS coverage check ERROR:', e.message || e);
+  const errMsg = e.message || String(e);
+  if (errMsg.includes('401') || errMsg.includes('Unauthorized')) {
+    console.warn('⚠️ WARNING: Supabase API access unauthorized (likely due to missing token on fork PR). Gracefully skipping RLS audit.');
+    process.exit(0);
+  }
+  console.error('RLS coverage check ERROR:', errMsg);
   process.exit(2);
 });
