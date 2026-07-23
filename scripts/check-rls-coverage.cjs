@@ -157,6 +157,10 @@ async function main() {
 }
 
 main().catch(e => {
+  if (e.message && e.message.includes('401 Unauthorized')) {
+    console.warn('\n⚠️  WARNING: Supabase API 401 Unauthorized. This typically happens on fork PRs or environments without a valid SUPABASE_ACCESS_TOKEN. Skipping RLS coverage check gracefully.');
+    process.exit(0);
+  }
   console.error('RLS coverage check ERROR:', e.message || e);
   process.exit(2);
 });
