@@ -16,6 +16,7 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { getCorsHeaders } from "../_shared/cors.ts";
 import { checkTrialAccess, trialBlockedResponse } from "../_shared/trial-gate.ts";
+import { isServiceRole } from "../_shared/supabase-client.ts";
 
 interface Request { messageId: string; }
 
@@ -49,6 +50,14 @@ Use JULGAMENTO. Frases tipo "audiência amanhã" = alta. "Preciso URGENTEMENTE" 
 Deno.serve(async (req) => {
   const corsHeaders = getCorsHeaders(req.headers.get("origin") || undefined);
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
+
+  // Only allow service-role (internal) calls
+  if (!isServiceRole(req)) {
+    return new Response(JSON.stringify({ error: "Unauthorized" }), {
+      status: 401,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
 
   try {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
