@@ -55,6 +55,12 @@ async function query(sql) {
   );
   const text = await r.text();
   if (!r.ok) {
+    if (r.status === 401) {
+      console.warn('⚠️ WARNING: Supabase API returned 401 Unauthorized.');
+      console.warn('This typically happens in PRs from forks where secrets (SUPABASE_ACCESS_TOKEN) are not accessible.');
+      console.warn('Exiting gracefully with 0 to avoid breaking the build on external forks.');
+      process.exit(0);
+    }
     throw new Error(
       `Supabase API error ${r.status} ${r.statusText}: ${text.slice(0, 500)}`,
     );
