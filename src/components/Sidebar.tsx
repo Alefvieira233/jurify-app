@@ -414,4 +414,6 @@ const Sidebar = ({ activeSection, onSectionChange }: SidebarProps) => {
   );
 };
 
-export default React.memo(Sidebar);
+const MemoizedSidebar = React.memo(Sidebar);
+MemoizedSidebar.displayName = 'Sidebar';
+export default MemoizedSidebar;

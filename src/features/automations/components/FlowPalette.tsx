@@ -8,8 +8,6 @@ const PALETTE_ITEMS = [
   { type: 'delay', label: 'Espera', icon: Clock, color: 'text-purple-400 bg-purple-500/15' },
 ];
 
-export { PALETTE_ITEMS };
-
 export default function FlowPalette() {
   const onDragStart = useCallback((event: DragEvent, nodeType: string) => {
     event.dataTransfer.setData('application/reactflow-type', nodeType);

@@ -24,8 +24,6 @@ const EXAMPLE_MESSAGES = [
   }
 ];
 
-export { EXAMPLE_MESSAGES };
-
 export interface PlaygroundExamplesProps {
   onLoadExample: (text: string) => void;
   loading: boolean;
