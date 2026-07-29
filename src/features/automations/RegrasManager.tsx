@@ -13,10 +13,6 @@ import { RegrasLoadingSkeleton } from './RegrasLoadingSkeleton';
 import { useRegrasData } from './useRegrasData';
 import type { AutomationRule } from './types';
 
-// Re-export for backward compatibility
-export type { AutomationRule } from './types';
-export { EVENT_TYPE_LABELS } from './types';
-
 // ── Component ──
 
 export const RegrasManager = () => {

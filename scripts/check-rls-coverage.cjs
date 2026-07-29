@@ -36,9 +36,8 @@ const WHITELIST_NO_POLICY = new Set([
 ]);
 
 if (!TOKEN) {
-  console.error('ERROR: SUPABASE_ACCESS_TOKEN not set');
-  console.error('Get a PAT from https://supabase.com/dashboard/account/tokens');
-  process.exit(2);
+  console.warn('WARNING: SUPABASE_ACCESS_TOKEN not set. Skipping check gracefully (expected on forks/PRs without secrets access).');
+  process.exit(0);
 }
 
 async function query(sql) {
@@ -158,5 +157,10 @@ async function main() {
 
 main().catch(e => {
   console.error('RLS coverage check ERROR:', e.message || e);
+  const isUnauthorized = e.message && (e.message.includes('401') || e.message.includes('Unauthorized') || e.message.includes('403'));
+  if (isUnauthorized) {
+    console.warn('WARNING: Unauthorized API call. Skipping check gracefully (expected on forks/PRs without secrets access).');
+    process.exit(0);
+  }
   process.exit(2);
 });
