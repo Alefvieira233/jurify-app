@@ -157,6 +157,10 @@ async function main() {
 }
 
 main().catch(e => {
+  if (e.message && (e.message.includes('401') || e.message.includes('Unauthorized'))) {
+    console.warn('\n⚠️  RLS coverage check WARN: Supabase API returned 401 Unauthorized. This can happen on pull requests from forks where secrets are restricted. Skipping check gracefully.');
+    process.exit(0);
+  }
   console.error('RLS coverage check ERROR:', e.message || e);
   process.exit(2);
 });
