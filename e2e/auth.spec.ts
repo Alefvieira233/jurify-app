@@ -40,6 +40,7 @@ test.describe('Jurify — Autenticação', () => {
     await page.getByLabel(/nome completo/i).fill('Teste E2E');
     await page.getByLabel(/email profissional/i).fill('e2e@test.com');
     await page.getByLabel('Senha', { exact: true }).fill('fraca');
+    await page.getByLabel(/confirmar senha/i).fill('fraca');
     await page.getByRole('button', { name: /começar agora/i }).click();
 
     await expect(page.getByText(/senha fraca/i).first()).toBeVisible({ timeout: 5_000 });
