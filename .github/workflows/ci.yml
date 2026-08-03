@@ -85,7 +85,10 @@ jobs:
 
       - name: 🧪 Run unit tests
         working-directory: ${{ env.WORKING_DIR }}
-        run: npm test -- --run --reporter=verbose
+        run: |
+          export VITE_SUPABASE_URL="${VITE_SUPABASE_URL:-https://test.supabase.co}"
+          export VITE_SUPABASE_ANON_KEY="${VITE_SUPABASE_ANON_KEY:-eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS10ZXN0Iiwicm9sZSI6ImFub24iLCJleHAiOjk5OTk5OTk5OTl9.test-key}"
+          npm test -- --run --reporter=verbose
         env:
           CI: true
           VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
@@ -93,7 +96,10 @@ jobs:
 
       - name: 📊 Generate coverage report
         working-directory: ${{ env.WORKING_DIR }}
-        run: npm run test:coverage
+        run: |
+          export VITE_SUPABASE_URL="${VITE_SUPABASE_URL:-https://test.supabase.co}"
+          export VITE_SUPABASE_ANON_KEY="${VITE_SUPABASE_ANON_KEY:-eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS10ZXN0Iiwicm9sZSI6ImFub24iLCJleHAiOjk5OTk5OTk5OTl9.test-key}"
+          npm run test:coverage
         env:
           CI: true
           VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
@@ -134,7 +140,10 @@ jobs:
 
       - name: 🏗️ Build production bundle
         working-directory: ${{ env.WORKING_DIR }}
-        run: npm run build
+        run: |
+          export VITE_SUPABASE_URL="${VITE_SUPABASE_URL:-https://test.supabase.co}"
+          export VITE_SUPABASE_ANON_KEY="${VITE_SUPABASE_ANON_KEY:-eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS10ZXN0Iiwicm9sZSI6ImFub24iLCJleHAiOjk5OTk5OTk5OTl9.test-key}"
+          npm run build
         env:
           NODE_ENV: production
           VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
@@ -253,7 +262,10 @@ jobs:
 
       - name: 🏗️ Build for E2E
         working-directory: ${{ env.WORKING_DIR }}
-        run: npm run build
+        run: |
+          export VITE_SUPABASE_URL="${VITE_SUPABASE_URL:-https://test.supabase.co}"
+          export VITE_SUPABASE_ANON_KEY="${VITE_SUPABASE_ANON_KEY:-eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS10ZXN0Iiwicm9sZSI6ImFub24iLCJleHAiOjk5OTk5OTk5OTl9.test-key}"
+          npm run build
         env:
           VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
           VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
@@ -264,7 +276,10 @@ jobs:
 
       - name: 🎭 Run E2E tests
         working-directory: ${{ env.WORKING_DIR }}
-        run: npm run test:e2e -- --project=chromium
+        run: |
+          export E2E_TEST_EMAIL="${E2E_TEST_EMAIL:-test@jurify.com}"
+          export E2E_TEST_PASSWORD="${E2E_TEST_PASSWORD:-TestPass123!}"
+          npm run test:e2e -- --project=chromium
         env:
           CI: true
           VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}

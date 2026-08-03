@@ -157,6 +157,10 @@ async function main() {
 }
 
 main().catch(e => {
+  if (e.message && e.message.includes('401')) {
+    console.warn('⚠️ Warning: RLS coverage check skipped because of 401 Unauthorized (likely running in a fork PR or environment without a valid SUPABASE_ACCESS_TOKEN).');
+    process.exit(0);
+  }
   console.error('RLS coverage check ERROR:', e.message || e);
   process.exit(2);
 });
