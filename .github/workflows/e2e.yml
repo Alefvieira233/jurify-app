@@ -26,13 +26,19 @@ jobs:
         run: npx playwright install --with-deps chromium
 
       - name: Build app
-        run: npm run build
+        run: |
+          export VITE_SUPABASE_URL="${VITE_SUPABASE_URL:-https://test.supabase.co}"
+          export VITE_SUPABASE_ANON_KEY="${VITE_SUPABASE_ANON_KEY:-eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS10ZXN0Iiwicm9sZSI6ImFub24iLCJleHAiOjk5OTk5OTk5OTl9.test-key}"
+          npm run build
         env:
           VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
           VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
 
       - name: Run E2E tests
-        run: npx playwright test --project=chromium
+        run: |
+          export E2E_TEST_EMAIL="${E2E_TEST_EMAIL:-test@jurify.com}"
+          export E2E_TEST_PASSWORD="${E2E_TEST_PASSWORD:-TestPass123!}"
+          npx playwright test --project=chromium
         env:
           E2E_BASE_URL: http://localhost:8080
           E2E_TEST_EMAIL: ${{ secrets.E2E_TEST_EMAIL }}

@@ -41,6 +41,7 @@ test.describe('Jurify — Autenticação', () => {
     await page.getByLabel(/email profissional/i).fill('e2e@test.com');
     await page.getByLabel('Senha', { exact: true }).fill('fraca');
     await page.getByLabel('Confirmar Senha', { exact: true }).fill('fraca');
+    await page.locator('#lgpdConsent').check();
     await page.getByRole('button', { name: /começar agora/i }).click();
 
     await expect(page.getByText(/senha fraca/i).first()).toBeVisible({ timeout: 5_000 });
