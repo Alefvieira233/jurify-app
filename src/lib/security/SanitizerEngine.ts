@@ -71,7 +71,7 @@ function generateTokenId(): string {
     const arr = new Uint8Array(8);
     crypto.getRandomValues(arr);
     for (let i = 0; i < 8; i++) {
-      id += hex[arr[i] % 16];
+      id += hex[arr[i]! % 16];
     }
   } else {
     for (let i = 0; i < 8; i++) {

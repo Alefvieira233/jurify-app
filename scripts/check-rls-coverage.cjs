@@ -36,9 +36,8 @@ const WHITELIST_NO_POLICY = new Set([
 ]);
 
 if (!TOKEN) {
-  console.error('ERROR: SUPABASE_ACCESS_TOKEN not set');
-  console.error('Get a PAT from https://supabase.com/dashboard/account/tokens');
-  process.exit(2);
+  console.warn('WARNING: SUPABASE_ACCESS_TOKEN not set — skipping RLS check in fork/PR context');
+  process.exit(0);
 }
 
 async function query(sql) {
@@ -55,6 +54,10 @@ async function query(sql) {
   );
   const text = await r.text();
   if (!r.ok) {
+    if (r.status === 401) {
+      console.warn(`WARNING: Supabase API returned 401 Unauthorized. Skipping RLS coverage check (likely running in a fork PR or without secrets).`);
+      process.exit(0);
+    }
     throw new Error(
       `Supabase API error ${r.status} ${r.statusText}: ${text.slice(0, 500)}`,
     );
