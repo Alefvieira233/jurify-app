@@ -264,13 +264,17 @@ jobs:
 
       - name: 🎭 Run E2E tests
         working-directory: ${{ env.WORKING_DIR }}
-        run: npm run test:e2e -- --project=chromium
+        run: |
+          # Use shell parameter expansion to provide safe fallback E2E credentials when secrets are hidden (e.g. on forks)
+          export E2E_TEST_EMAIL="${{ secrets.E2E_TEST_EMAIL }}"
+          export E2E_TEST_EMAIL="${E2E_TEST_EMAIL:-test@jurify.com}"
+          export E2E_TEST_PASSWORD="${{ secrets.E2E_TEST_PASSWORD }}"
+          export E2E_TEST_PASSWORD="${E2E_TEST_PASSWORD:-TestPass123!}"
+          npm run test:e2e -- --project=chromium
         env:
           CI: true
           VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
           VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
-          E2E_TEST_EMAIL: ${{ secrets.E2E_TEST_EMAIL }}
-          E2E_TEST_PASSWORD: ${{ secrets.E2E_TEST_PASSWORD }}
 
       - name: 📤 Upload Playwright report
         if: always()
