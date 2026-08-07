@@ -68,11 +68,16 @@ function generateTokenId(): string {
   let id = '';
 
   // Use cryptographically secure random values if available (CSPRNG) to avoid token correlation vectors
-  if (typeof crypto !== 'undefined' && typeof crypto.getRandomValues === 'function') {
+  const g = typeof globalThis !== 'undefined' ? (globalThis as any) : undefined;
+  const cryptoObj = g ? g.crypto : undefined;
+  if (cryptoObj && typeof cryptoObj.getRandomValues === 'function') {
     const array = new Uint8Array(8);
-    crypto.getRandomValues(array);
+    cryptoObj.getRandomValues(array);
     for (let i = 0; i < 8; i++) {
-      id += hex[array[i] % 16];
+      const val = array[i];
+      if (val !== undefined) {
+        id += hex[val % 16];
+      }
     }
   } else {
     // Fallback to Math.random() in restricted environments
