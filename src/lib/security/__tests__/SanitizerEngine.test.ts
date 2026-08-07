@@ -294,4 +294,40 @@ describe('SanitizerEngine', () => {
       expect(safePayload).not.toContain('adv@law.com');
     });
   });
+
+  // ─── Token ID CSPRNG/Fallback Generation ───────────────────────
+  describe('Token ID generation robustness', () => {
+    it('generates valid 8-character hex tokens with CSPRNG', () => {
+      const { safePayload, lookupMap } = sanitizePII('CPF: 123.456.789-00');
+      expect(safePayload).not.toContain('123.456.789-00');
+      expect(lookupMap.size).toBe(1);
+      const token = [...lookupMap.keys()][0];
+      const match = token.match(/\[CPF-([a-f0-9]{8})\]/);
+      expect(match).not.toBeNull();
+    });
+
+    it('falls back to Math.random when crypto is undefined', () => {
+      const originalCrypto = global.crypto;
+      // Temporarily mock or delete global.crypto
+      Object.defineProperty(global, 'crypto', {
+        value: undefined,
+        configurable: true,
+      });
+
+      try {
+        const { safePayload, lookupMap } = sanitizePII('CPF: 123.456.789-00');
+        expect(safePayload).not.toContain('123.456.789-00');
+        expect(lookupMap.size).toBe(1);
+        const token = [...lookupMap.keys()][0];
+        const match = token.match(/\[CPF-([a-f0-9]{8})\]/);
+        expect(match).not.toBeNull();
+      } finally {
+        // Restore global.crypto
+        Object.defineProperty(global, 'crypto', {
+          value: originalCrypto,
+          configurable: true,
+        });
+      }
+    });
+  });
 });
