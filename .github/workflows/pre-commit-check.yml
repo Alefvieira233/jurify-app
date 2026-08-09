@@ -19,12 +19,16 @@ jobs:
           fetch-depth: 0
 
       - name: 🔍 Scan for secrets (TruffleHog — full history)
-        uses: trufflesecurity/trufflehog@v3.88.0
-        with:
-          path: ./
-          base: ${{ github.event.pull_request.base.sha || github.event.before }}
-          head: ${{ github.event.pull_request.head.sha || github.sha }}
-          extra_args: --results=verified,unknown
+        run: |
+          docker run --rm -v .:/tmp -w /tmp \
+            ghcr.io/trufflesecurity/trufflehog:latest \
+            git file:///tmp/ \
+            --since-commit "${{ github.event.pull_request.base.sha || github.event.before || '' }}" \
+            --branch "${{ github.event.pull_request.head.sha || github.sha || '' }}" \
+            --fail \
+            --no-update \
+            --github-actions \
+            --results=verified,unknown
 
       - name: 🔍 Check for hardcoded credentials (explicit patterns)
         run: |
