@@ -10,6 +10,8 @@ jobs:
   e2e:
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    # Skip on PRs from forks (no access to secrets)
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
 
     steps:
       - uses: actions/checkout@v4
@@ -32,7 +34,10 @@ jobs:
           VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
 
       - name: Run E2E tests
-        run: npx playwright test --project=chromium
+        run: |
+          E2E_TEST_EMAIL="${E2E_TEST_EMAIL:-test@jurify.com}" \
+          E2E_TEST_PASSWORD="${E2E_TEST_PASSWORD:-TestPass123!}" \
+          npx playwright test --project=chromium
         env:
           E2E_BASE_URL: http://localhost:8080
           E2E_TEST_EMAIL: ${{ secrets.E2E_TEST_EMAIL }}
