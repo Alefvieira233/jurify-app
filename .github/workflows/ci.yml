@@ -234,7 +234,10 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     needs: build
-    if: github.event_name == 'pull_request' || github.ref == 'refs/heads/master' || github.ref == 'refs/heads/main'
+    # Skip on PRs from forks (no access to secrets)
+    if: >-
+      (github.event_name == 'pull_request' || github.ref == 'refs/heads/master' || github.ref == 'refs/heads/main')
+      && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
 
     steps:
       - name: 📥 Checkout code
