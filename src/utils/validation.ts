@@ -29,13 +29,16 @@ export interface ValidationResult {
 class ValidationService {
   private rateLimitStore?: Map<string, number[]>;
 
-  // Email validation
+  // Email validation (RFC 5321 compliant length limit)
   validateEmail(email: string): ValidationResult {
     const errors: string[] = [];
 
     if (!email) {
       errors.push('Email é obrigatório');
     } else {
+      if (email.length > 254) {
+        errors.push('Email não deve exceder 254 caracteres');
+      }
       const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
       if (!emailRegex.test(email)) {
         errors.push('Email deve ter formato válido');
@@ -49,7 +52,7 @@ class ValidationService {
     };
   }
 
-  // Password validation (LGPD compliant)
+  // Password validation (LGPD compliant + DoS prevention limit)
   validatePassword(password: string): ValidationResult {
     const errors: string[] = [];
 
@@ -60,6 +63,10 @@ class ValidationService {
 
     if (password.length < 8) {
       errors.push('Senha deve ter pelo menos 8 caracteres');
+    }
+
+    if (password.length > 72) {
+      errors.push('Senha não deve exceder 72 caracteres');
     }
 
     if (!/[A-Z]/.test(password)) {
