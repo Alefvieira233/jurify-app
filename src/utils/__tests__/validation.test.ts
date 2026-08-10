@@ -16,6 +16,13 @@ describe('validation utilities', () => {
       expect(validateEmail('user@').isValid).toBe(false);
     });
 
+    it('rejects overly long emails (RFC 5321)', () => {
+      const longEmail = 'a'.repeat(245) + '@example.com';
+      const result = validateEmail(longEmail);
+      expect(result.isValid).toBe(false);
+      expect(result.errors).toContain('Email não deve exceder 254 caracteres');
+    });
+
     it('returns sanitized lowercase email', () => {
       const result = validateEmail('User@Example.COM');
       expect(result.sanitizedData?.email).toBe('user@example.com');
@@ -49,6 +56,12 @@ describe('validation utilities', () => {
       const result = validatePassword('');
       expect(result.isValid).toBe(false);
       expect(result.errors.length).toBeGreaterThan(0);
+    });
+
+    it('rejects overly long passwords (DoS prevention)', () => {
+      const result = validatePassword('A'.repeat(73));
+      expect(result.isValid).toBe(false);
+      expect(result.errors).toContain('Senha não deve exceder 72 caracteres');
     });
   });
 
