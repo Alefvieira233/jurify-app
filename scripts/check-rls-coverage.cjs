@@ -158,5 +158,11 @@ async function main() {
 
 main().catch(e => {
   console.error('RLS coverage check ERROR:', e.message || e);
+  const isCI = process.env.GITHUB_ACTIONS === 'true';
+  const isAuthError = e.message?.includes('401') || e.message?.includes('Unauthorized') || e.message?.includes('403') || e.message?.includes('Forbidden');
+  if (isCI && isAuthError) {
+    console.warn('WARNING: Gracefully ignoring Supabase API Auth failure in GitHub Actions environment (e.g. PR from fork).');
+    process.exit(0);
+  }
   process.exit(2);
 });
