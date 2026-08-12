@@ -24,7 +24,9 @@ jobs:
           path: ./
           base: ${{ github.event.pull_request.base.sha || github.event.before }}
           head: ${{ github.event.pull_request.head.sha || github.sha }}
-          extra_args: --results=verified,unknown --fail
+          # Exclude explicit '--fail' flag as the trufflesecurity/trufflehog action already handles it by default.
+          # Including it twice results in a fatal duplicate flag error in newer TruffleHog releases.
+          extra_args: --results=verified,unknown
 
       - name: 🔍 Check for hardcoded credentials (explicit patterns)
         run: |
