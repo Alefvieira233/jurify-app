@@ -157,6 +157,12 @@ async function main() {
 }
 
 main().catch(e => {
+  const errMsg = e.message || String(e);
+  if (errMsg.includes('401') || errMsg.includes('Unauthorized')) {
+    console.warn('\n⚠️ WARNING: Supabase RLS coverage check skipped due to 401 Unauthorized.');
+    console.warn('This is expected in GitHub Actions CI runs for Pull Requests from forks or environments without access to Supabase PAT secrets.\n');
+    process.exit(0);
+  }
   console.error('RLS coverage check ERROR:', e.message || e);
   process.exit(2);
 });
