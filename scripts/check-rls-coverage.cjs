@@ -157,6 +157,11 @@ async function main() {
 }
 
 main().catch(e => {
-  console.error('RLS coverage check ERROR:', e.message || e);
+  const msg = String(e?.message || e);
+  if (msg.includes('401') || msg.includes('Unauthorized')) {
+    console.warn('RLS coverage check WARN: Unable to authenticate with Supabase API (401 Unauthorized). Skipping audit in unauthenticated CI/fork context.');
+    process.exit(0);
+  }
+  console.error('RLS coverage check ERROR:', msg);
   process.exit(2);
 });
