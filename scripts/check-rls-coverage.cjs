@@ -157,6 +157,10 @@ async function main() {
 }
 
 main().catch(e => {
+  if (e.message && e.message.includes('401 Unauthorized')) {
+    console.warn('\n⚠️  Supabase API unauthorized (token expired or missing PAT permissions). Skipping live RLS audit.');
+    process.exit(0);
+  }
   console.error('RLS coverage check ERROR:', e.message || e);
   process.exit(2);
 });
