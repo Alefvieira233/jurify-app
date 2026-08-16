@@ -18,13 +18,15 @@ jobs:
         with:
           fetch-depth: 0
 
+      # Note: trufflesecurity/trufflehog@v3.88.0 action automatically passes --fail in its internal CLI invocation.
+      # Do NOT add --fail to extra_args here as repeating the flag causes TruffleHog CLI to fail with duplicate flag error.
       - name: 🔍 Scan for secrets (TruffleHog — full history)
         uses: trufflesecurity/trufflehog@v3.88.0
         with:
           path: ./
           base: ${{ github.event.pull_request.base.sha || github.event.before }}
           head: ${{ github.event.pull_request.head.sha || github.sha }}
-          extra_args: --results=verified,unknown --fail
+          extra_args: --results=verified,unknown
 
       - name: 🔍 Check for hardcoded credentials (explicit patterns)
         run: |
