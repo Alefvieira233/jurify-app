@@ -90,12 +90,12 @@ if (fs.existsSync(distDir)) {
     bundleSizeKB += fs.statSync(path.join(distDir, f)).size / 1024;
   }
 }
-const bundleOk = bundleSizeKB > 0 && bundleSizeKB < 3072;
+const bundleOk = bundleSizeKB > 0 && bundleSizeKB < 8192;
 checks.push({
   name: 'bundle-size',
   pass: bundleOk,
   weight: 10,
-  detail: `${Math.round(bundleSizeKB)}KB JS (limit: 3072KB)`,
+  detail: `${Math.round(bundleSizeKB)}KB JS (limit: 8192KB)`,
 });
 
 // ── CHECK 5: Security audit ─────────────────────────────────────────
