@@ -269,8 +269,8 @@ jobs:
           CI: true
           VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
           VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
-          E2E_TEST_EMAIL: ${{ secrets.E2E_TEST_EMAIL }}
-          E2E_TEST_PASSWORD: ${{ secrets.E2E_TEST_PASSWORD }}
+          E2E_TEST_EMAIL: ${{ secrets.E2E_TEST_EMAIL || 'test@jurify.com' }}
+          E2E_TEST_PASSWORD: ${{ secrets.E2E_TEST_PASSWORD || 'Password123!' }}
 
       - name: 📤 Upload Playwright report
         if: always()
