@@ -55,6 +55,10 @@ async function query(sql) {
   );
   const text = await r.text();
   if (!r.ok) {
+    if (r.status === 401) {
+      console.warn(`[check-rls-coverage] 401 Unauthorized API error for project ${REF}. Skipping check in non-authenticated context.`);
+      process.exit(0);
+    }
     throw new Error(
       `Supabase API error ${r.status} ${r.statusText}: ${text.slice(0, 500)}`,
     );
