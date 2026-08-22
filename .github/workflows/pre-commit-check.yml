@@ -24,7 +24,8 @@ jobs:
           path: ./
           base: ${{ github.event.pull_request.base.sha || github.event.before }}
           head: ${{ github.event.pull_request.head.sha || github.sha }}
-          extra_args: --results=verified,unknown --fail
+          # Note: TruffleHog action automatically appends --fail to docker invocation; omitting it here prevents 'flag cannot be repeated' fatal error.
+          extra_args: --results=verified,unknown
 
       - name: 🔍 Check for hardcoded credentials (explicit patterns)
         run: |
