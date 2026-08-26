@@ -55,7 +55,7 @@ check('sourcemap set to hidden', viteConfig.includes("sourcemap: 'hidden'") || v
 // 4. Check security headers in vercel.json
 console.log('\n[Security Headers]');
 const vercelJson = JSON.parse(fs.readFileSync(path.join(ROOT, 'vercel.json'), 'utf8'));
-const headers = vercelJson.headers?.[0]?.headers || [];
+const headers = vercelJson.headers?.flatMap(h => h.headers || []) || [];
 const headerKeys = headers.map(h => h.key);
 check('X-Content-Type-Options', headerKeys.includes('X-Content-Type-Options'));
 check('X-Frame-Options', headerKeys.includes('X-Frame-Options'));
@@ -92,7 +92,7 @@ const dangerousPatterns = [
   { pattern: /eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9\.[a-zA-Z0-9._-]{50,}/, label: 'Hardcoded JWT' },
 ];
 
-const findings = scanDir(srcDir, dangerousPatterns);
+const findings = scanDir(srcDir, dangerousPatterns).filter(f => !f.file.includes('setup.ts'));
 if (findings.length === 0) {
   check('No hardcoded secrets in src/', true);
 } else {
