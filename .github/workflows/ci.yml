@@ -208,8 +208,8 @@ jobs:
     name: 🛡️ RLS Coverage Audit
     runs-on: ubuntu-latest
     timeout-minutes: 5
-    # Skip on PRs from forks or when SUPABASE_ACCESS_TOKEN secret is unavailable
-    if: (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) && secrets.SUPABASE_ACCESS_TOKEN != ''
+    # Skip on PRs from forks (no access to SUPABASE_ACCESS_TOKEN secret)
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
 
     steps:
       - name: 📥 Checkout code
@@ -269,8 +269,8 @@ jobs:
           CI: true
           VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
           VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
-          E2E_TEST_EMAIL: ${{ secrets.E2E_TEST_EMAIL || 'test@jurify.com' }}
-          E2E_TEST_PASSWORD: ${{ secrets.E2E_TEST_PASSWORD || 'TestPass123!' }}
+          E2E_TEST_EMAIL: ${{ secrets.E2E_TEST_EMAIL }}
+          E2E_TEST_PASSWORD: ${{ secrets.E2E_TEST_PASSWORD }}
 
       - name: 📤 Upload Playwright report
         if: always()
