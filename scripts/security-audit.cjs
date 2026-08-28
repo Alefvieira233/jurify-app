@@ -74,7 +74,7 @@ function scanDir(dir, patterns) {
     const fullPath = path.join(dir, entry.name);
     if (entry.isDirectory() && entry.name !== 'node_modules') {
       found.push(...scanDir(fullPath, patterns));
-    } else if (entry.isFile() && /\.(ts|tsx|js)$/.test(entry.name) && !entry.name.includes('setup.ts')) {
+    } else if (entry.isFile() && /\.(ts|tsx|js)$/.test(entry.name)) {
       const content = fs.readFileSync(fullPath, 'utf8');
       for (const { pattern, label } of patterns) {
         if (pattern.test(content)) {
@@ -92,7 +92,7 @@ const dangerousPatterns = [
   { pattern: /eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9\.[a-zA-Z0-9._-]{50,}/, label: 'Hardcoded JWT' },
 ];
 
-const findings = scanDir(srcDir, dangerousPatterns);
+const findings = scanDir(srcDir, dangerousPatterns).filter(f => !f.file.includes('setup.ts'));
 if (findings.length === 0) {
   check('No hardcoded secrets in src/', true);
 } else {
