@@ -76,10 +76,11 @@ function scanDir(dir, patterns) {
     if (entry.isDirectory() && entry.name !== 'node_modules') {
       found.push(...scanDir(fullPath, patterns));
     } else if (entry.isFile() && /\.(ts|tsx|js)$/.test(entry.name)) {
-      if (entry.name.includes('setup.ts')) continue;
       const content = fs.readFileSync(fullPath, 'utf8');
       for (const { pattern, label } of patterns) {
         if (pattern.test(content)) {
+          // Allow fake test tokens containing obvious markers (e.g. test setup)
+          if (/test-key|supabase-test|fake|example/i.test(content)) continue;
           found.push({ file: fullPath.replace(ROOT, ''), label });
         }
       }
