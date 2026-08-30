@@ -18,13 +18,15 @@ jobs:
         with:
           fetch-depth: 0
 
+      # Note: trufflesecurity/trufflehog action automatically appends --fail to its internal docker invocation.
+      # Including --fail in extra_args causes a duplicate flag error in TruffleHog ("flag 'fail' cannot be repeated").
       - name: 🔍 Scan for secrets (TruffleHog — full history)
         uses: trufflesecurity/trufflehog@v3.88.0
         with:
           path: ./
           base: ${{ github.event.pull_request.base.sha || github.event.before }}
           head: ${{ github.event.pull_request.head.sha || github.sha }}
-          extra_args: --results=verified,unknown --fail
+          extra_args: --results=verified,unknown
 
       - name: 🔍 Check for hardcoded credentials (explicit patterns)
         run: |
