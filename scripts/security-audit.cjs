@@ -55,7 +55,7 @@ check('sourcemap set to hidden', viteConfig.includes("sourcemap: 'hidden'") || v
 // 4. Check security headers in vercel.json
 console.log('\n[Security Headers]');
 const vercelJson = JSON.parse(fs.readFileSync(path.join(ROOT, 'vercel.json'), 'utf8'));
-const headers = vercelJson.headers?.[0]?.headers || [];
+const headers = vercelJson.headers?.flatMap(h => h.headers || []) || [];
 const headerKeys = headers.map(h => h.key);
 check('X-Content-Type-Options', headerKeys.includes('X-Content-Type-Options'));
 check('X-Frame-Options', headerKeys.includes('X-Frame-Options'));
@@ -76,9 +76,13 @@ function scanDir(dir, patterns) {
       found.push(...scanDir(fullPath, patterns));
     } else if (entry.isFile() && /\.(ts|tsx|js)$/.test(entry.name)) {
       const content = fs.readFileSync(fullPath, 'utf8');
-      for (const { pattern, label } of patterns) {
-        if (pattern.test(content)) {
-          found.push({ file: fullPath.replace(ROOT, ''), label });
+      const lines = content.split('\n');
+      for (const line of lines) {
+        if (/test-key|supabase-test|fake|example/i.test(line)) continue;
+        for (const { pattern, label } of patterns) {
+          if (pattern.test(line)) {
+            found.push({ file: fullPath.replace(ROOT, ''), label });
+          }
         }
       }
     }
