@@ -29,7 +29,7 @@ test.describe('Jurify — Autenticação', () => {
     await expect(page.getByRole('button', { name: /começar agora/i })).toBeVisible();
 
     // Type a weak password and check strength indicator
-    await page.getByLabel(/senha/i).fill('abc');
+    await page.getByRole('textbox', { name: 'Senha', exact: true }).fill('abc');
     await expect(page.getByText(/fraca/i)).toBeVisible();
     await expect(page.getByText(/mínimo 8 caracteres/i)).toBeVisible();
   });
@@ -39,7 +39,8 @@ test.describe('Jurify — Autenticação', () => {
 
     await page.getByLabel(/nome completo/i).fill('Teste E2E');
     await page.getByLabel(/email profissional/i).fill('e2e@test.com');
-    await page.getByLabel(/senha/i).fill('fraca');
+    await page.getByRole('textbox', { name: 'Senha', exact: true }).fill('fraca');
+    await page.getByRole('textbox', { name: 'Confirmar Senha' }).fill('fraca');
     await page.getByRole('button', { name: /começar agora/i }).click();
 
     await expect(page.getByText(/senha fraca/i).first()).toBeVisible({ timeout: 5_000 });
