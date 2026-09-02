@@ -15,6 +15,7 @@
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { getCorsHeaders } from "../_shared/cors.ts";
+import { isServiceRole } from "../_shared/supabase-client.ts";
 import { checkTrialAccess, trialBlockedResponse } from "../_shared/trial-gate.ts";
 
 interface Request { messageId: string; }
@@ -51,6 +52,14 @@ Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
   try {
+    // SECURITY HARDENING: Explicitly verify that the request comes from an internal service (service-role key).
+    if (!isServiceRole(req)) {
+      return new Response(
+        JSON.stringify({ success: false, error: "Unauthorized: service-role key required" }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const openaiKey = Deno.env.get("OPENAI_API_KEY");
