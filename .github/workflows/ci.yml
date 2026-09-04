@@ -208,8 +208,8 @@ jobs:
     name: 🛡️ RLS Coverage Audit
     runs-on: ubuntu-latest
     timeout-minutes: 5
-    # Skip on PRs from forks (no access to SUPABASE_ACCESS_TOKEN secret)
-    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+    # Skip on PRs from forks or when SUPABASE_ACCESS_TOKEN secret is unavailable
+    if: (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) && secrets.SUPABASE_ACCESS_TOKEN != ''
 
     steps:
       - name: 📥 Checkout code

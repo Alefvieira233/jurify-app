@@ -81,6 +81,9 @@ export default defineConfig({
         'src/hooks/useConexoes.ts', // 300 lines, WhatsApp connections CRUD — E2E
         'src/hooks/useDashboardMetricsFast.ts', // 233 lines, realtime dashboard — E2E
         'src/hooks/useDraftPersistence.ts', // localStorage persistence — E2E
+        'src/features/dashboard/components/PerformanceDashboard.tsx', // 91 lines, dashboard chart — E2E
+        'src/features/reports/RelatoriosGerenciais.tsx', // 340 lines, reporting dashboard — E2E
+        'src/features/dashboard/Dashboard.tsx', // Page component — E2E
       ],
       // Thresholds estabelecem um floor anti-regressão.
       // Aumentar gradualmente à medida que novos testes são adicionados.
