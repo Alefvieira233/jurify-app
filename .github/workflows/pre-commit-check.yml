@@ -18,6 +18,8 @@ jobs:
         with:
           fetch-depth: 0
 
+      # Note: trufflesecurity/trufflehog@v3.88.0 action internally includes --fail.
+      # Adding --fail to extra_args causes duplicate flag failure.
       - name: 🔍 Scan for secrets (TruffleHog — full history)
         uses: trufflesecurity/trufflehog@v3.88.0
         with:
