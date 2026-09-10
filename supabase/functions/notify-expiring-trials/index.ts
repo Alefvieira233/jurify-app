@@ -11,6 +11,7 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2";
 import { getCorsHeaders } from "../_shared/cors.ts";
+import { isServiceRole } from "../_shared/supabase-client.ts";
 
 interface ExpiringTrial {
   id: string;
@@ -41,16 +42,14 @@ Deno.serve(async (req) => {
   }
 
   // Service-role only
-  const authHeader = req.headers.get("Authorization") ?? "";
-  const token = authHeader.replace("Bearer ", "");
-  const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
-  if (token !== serviceRoleKey) {
+  if (!isServiceRole(req)) {
     return new Response(JSON.stringify({ error: "Unauthorized — service role required" }), {
       status: 401,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
 
+  const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
   const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
   const supabase = createClient(supabaseUrl, serviceRoleKey);
 
