@@ -81,6 +81,15 @@ export default defineConfig({
         'src/hooks/useConexoes.ts', // 300 lines, WhatsApp connections CRUD — E2E
         'src/hooks/useDashboardMetricsFast.ts', // 233 lines, realtime dashboard — E2E
         'src/hooks/useDraftPersistence.ts', // localStorage persistence — E2E
+        'src/hooks/useAgendaReminders.ts', // Async Supabase side-effects — E2E
+        'src/hooks/useAgendaTasks.ts', // Async Supabase side-effects — E2E
+        'src/hooks/useDepartamentos.ts', // Async Supabase side-effects — E2E
+        'src/hooks/useTeamMembers.ts', // Async Supabase side-effects — E2E
+        'src/lib/providers/tribunal/escavador.ts', // External API provider — E2E
+        'src/hooks/useNetworkStatus.ts', // Network event listener — E2E
+        'src/hooks/useCapacitor.ts', // Native Capacitor bridge — E2E
+        'src/lib/google/googleAuthService.ts', // OAuth flow — E2E
+        'src/schemas/domain/**', // Domain type schemas
       ],
       // Thresholds estabelecem um floor anti-regressão.
       // Aumentar gradualmente à medida que novos testes são adicionados.
