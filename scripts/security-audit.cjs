@@ -72,11 +72,10 @@ function scanDir(dir, patterns) {
   const entries = fs.readdirSync(dir, { withFileTypes: true });
   for (const entry of entries) {
     const fullPath = path.join(dir, entry.name);
-    const relativePath = fullPath.replace(ROOT, '');
     if (entry.isDirectory() && entry.name !== 'node_modules') {
       found.push(...scanDir(fullPath, patterns));
     } else if (entry.isFile() && /\.(ts|tsx|js)$/.test(entry.name)) {
-      // Exclude test setup files where safe mock tokens are intentionally defined
+      const relativePath = fullPath.replace(ROOT, '');
       if (relativePath.includes('src/tests/setup.ts')) continue;
       const content = fs.readFileSync(fullPath, 'utf8');
       for (const { pattern, label } of patterns) {
