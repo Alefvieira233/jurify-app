@@ -13,13 +13,16 @@
 import { createClient } from '@supabase/supabase-js';
 import type { Database } from './database-extended';
 
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+const DUMMY_JWT = ['eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9', 'eyJpc3MiOiJzdXBhYmFzZS10ZXN0Iiwicm9sZSI6ImFub24iLCJleHAiOjk5OTk5OTk5OTl9', 'test-key'].join('.');
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://test.supabase.co';
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || DUMMY_JWT;
 
-if (!supabaseUrl || !supabaseAnonKey) {
-  throw new Error(
-    '[supabase] Missing environment variables: VITE_SUPABASE_URL and/or VITE_SUPABASE_ANON_KEY.'
-  );
+if (!import.meta.env.VITE_SUPABASE_URL || !import.meta.env.VITE_SUPABASE_ANON_KEY) {
+  if (import.meta.env.PROD) {
+    throw new Error(
+      '[supabase] Missing environment variables: VITE_SUPABASE_URL and/or VITE_SUPABASE_ANON_KEY.'
+    );
+  }
 }
 
 /**
