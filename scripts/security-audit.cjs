@@ -55,7 +55,7 @@ check('sourcemap set to hidden', viteConfig.includes("sourcemap: 'hidden'") || v
 // 4. Check security headers in vercel.json
 console.log('\n[Security Headers]');
 const vercelJson = JSON.parse(fs.readFileSync(path.join(ROOT, 'vercel.json'), 'utf8'));
-const headers = (vercelJson.headers || []).flatMap(h => h.headers || []);
+const headers = vercelJson.headers?.[0]?.headers || [];
 const headerKeys = headers.map(h => h.key);
 check('X-Content-Type-Options', headerKeys.includes('X-Content-Type-Options'));
 check('X-Frame-Options', headerKeys.includes('X-Frame-Options'));
@@ -67,16 +67,11 @@ check('Permissions-Policy', headerKeys.includes('Permissions-Policy'));
 // 5. Check no hardcoded keys in source
 console.log('\n[Source Code]');
 const srcDir = path.join(ROOT, 'src');
-const EXCLUDE_FILES = new Set([
-  path.join(ROOT, 'src', 'tests', 'setup.ts'),
-]);
-
 function scanDir(dir, patterns) {
   const found = [];
   const entries = fs.readdirSync(dir, { withFileTypes: true });
   for (const entry of entries) {
     const fullPath = path.join(dir, entry.name);
-    if (EXCLUDE_FILES.has(fullPath)) continue;
     if (entry.isDirectory() && entry.name !== 'node_modules') {
       found.push(...scanDir(fullPath, patterns));
     } else if (entry.isFile() && /\.(ts|tsx|js)$/.test(entry.name)) {
