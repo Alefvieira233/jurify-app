@@ -67,9 +67,6 @@ check('Permissions-Policy', headerKeys.includes('Permissions-Policy'));
 // 5. Check no hardcoded keys in source
 console.log('\n[Source Code]');
 const srcDir = path.join(ROOT, 'src');
-const EXCLUDE_FILES = new Set([
-  path.join(ROOT, 'src', 'tests', 'setup.ts'),
-]);
 
 function scanDir(dir, patterns) {
   const found = [];
@@ -79,7 +76,6 @@ function scanDir(dir, patterns) {
     if (entry.isDirectory() && entry.name !== 'node_modules') {
       found.push(...scanDir(fullPath, patterns));
     } else if (entry.isFile() && /\.(ts|tsx|js)$/.test(entry.name)) {
-      if (EXCLUDE_FILES.has(fullPath)) continue;
       const content = fs.readFileSync(fullPath, 'utf8');
       for (const { pattern, label } of patterns) {
         if (pattern.test(content)) {

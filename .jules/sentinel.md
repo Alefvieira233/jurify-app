@@ -1,0 +1,4 @@
+## 2026-09-20 - Multi-Route Security Header Scanning in Vercel Deployment Config
+**Vulnerability:** `scripts/security-audit.cjs` only inspected the first element (`vercelJson.headers[0]`) of `vercel.json`. Since the first rule targeted `/assets/(.*)` (containing only `Cache-Control`), all mandatory security headers (`X-Frame-Options`, `Content-Security-Policy`, `Strict-Transport-Security`, etc.) configured under `/(.*)` were skipped during automated audits.
+**Learning:** `vercel.json` supports multiple route-matching header blocks. Auditing tools must aggregate headers across all route definitions rather than inspecting only the first block.
+**Prevention:** Use `.flatMap(h => h.headers || [])` when parsing `vercel.json` headers in security audit scripts to guarantee coverage across all route rules.
